@@ -126,6 +126,8 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     schemaCascade.reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
     schemaCascade.minDistance = viewMinShadowDistance;
     schemaCascade.maxDistance = viewMaxShadowDistance;
+    cascade.minDistance = viewMinShadowDistance;
+    cascade.maxDistance = viewMaxShadowDistance;
 }
 
 void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {

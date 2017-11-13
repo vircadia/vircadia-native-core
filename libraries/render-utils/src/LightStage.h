@@ -56,6 +56,8 @@ public:
 
             gpu::FramebufferPointer framebuffer;
             gpu::TexturePointer map;
+            float minDistance;
+            float maxDistance;
 
             const std::shared_ptr<ViewFrustum>& getFrustum() const { return _frustum; }
 
@@ -95,8 +97,6 @@ public:
 
         };
         UniformBufferView _schemaBuffer = nullptr;
-        
-        void setupCascades();
 
         friend class Light;
     };

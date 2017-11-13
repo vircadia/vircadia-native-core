@@ -126,12 +126,14 @@ static const std::string DEFAULT_DEPTH_SHADER {
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
     " }"
 };
+
 static const std::string DEFAULT_LIGHTING_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
-static const std::string DEFAULT_SHADOW_SHADER {
+
+static const std::string DEFAULT_SHADOW_SHADER{
     "uniform sampler2DShadow shadowMap;"
     "vec4 getFragmentColor() {"
     "    for (int i = 255; i >= 0; --i) {"
@@ -141,6 +143,25 @@ static const std::string DEFAULT_SHADOW_SHADER {
     "        }"
     "    }"
     "    return vec4(vec3(0.0), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
+    "vec3 cascadeColors[4] = vec3[4]( vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(0,0,0) );"
+    "vec4 getFragmentColor() {"
+    "    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();"
+    "    DeferredFragment frag = unpackDeferredFragment(deferredTransform, uv);"
+    "    vec4 viewPosition = vec4(frag.position.xyz, 1.0);"
+    "    vec4 worldPosition = getViewInverse() * viewPosition;"
+    "    vec4 cascadeShadowCoords[4] = vec4[4]("
+    "       evalShadowTexcoord(0, worldPosition),"
+    "       evalShadowTexcoord(1, worldPosition),"
+    "       evalShadowTexcoord(2, worldPosition),"
+    "       evalShadowTexcoord(3, worldPosition)"
+    "    );"
+    "    ivec2 cascadeIndices;"
+    "    float cascadeMix = evalCascadeIndicesAndMix(viewPosition, cascadeShadowCoords, cascadeIndices);"
+    "    return vec4(mix(cascadeColors[cascadeIndices.x], cascadeColors[cascadeIndices.y], cascadeMix), 1.0);"
     " }"
 };
 
@@ -284,11 +305,13 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_SCATTERING_SHADER;
         case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
-        case Shadow0Mode:
-        case Shadow1Mode:
-        case Shadow2Mode:
-        case Shadow3Mode:
+        case ShadowCascade0Mode:
+        case ShadowCascade1Mode:
+        case ShadowCascade2Mode:
+        case ShadowCascade3Mode:
             return DEFAULT_SHADOW_SHADER;
+        case ShadowCascadeIndicesMode:
+            return DEFAULT_SHADOW_CASCADE_SHADER;
         case LinearDepthMode:
             return DEFAULT_LINEAR_DEPTH_SHADER;
         case HalfLinearDepthMode:
@@ -424,8 +447,8 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
 
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
-
-        batch.setPipeline(getPipeline(_mode, first));
+        auto pipeline = getPipeline(_mode, first);
+        batch.setPipeline(pipeline);
 
         if (deferredFramebuffer) {
             batch.setResourceTexture(Albedo, deferredFramebuffer->getDeferredColorTexture());
@@ -441,8 +464,12 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
-            const auto cascadeIndex = glm::clamp(_mode - Mode::Shadow0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
+            const auto cascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
+            const auto shadowBufferLoc = pipeline->getProgram()->getUniformBuffers().findLocation("shadowTransformBuffer");
             batch.setResourceTexture(Shadow, globalShadow->getCascade(cascadeIndex).map);
+            if (shadowBufferLoc >= 0) {
+                batch.setUniformBuffer(shadowBufferLoc, globalShadow->getBuffer());
+            }
         }
 
         if (linearDepthTarget) {

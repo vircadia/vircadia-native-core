@@ -188,6 +188,7 @@ Rectangle {
                     ListElement { text: "Shadow Cascade 1"; color: "White" }
                     ListElement { text: "Shadow Cascade 2"; color: "White" }
                     ListElement { text: "Shadow Cascade 3"; color: "White" }
+                    ListElement { text: "Shadow Cascade Indices"; color: "White" }
                     ListElement { text: "Linear Depth"; color: "White" }
                     ListElement { text: "Half Linear Depth"; color: "White" }
                     ListElement { text: "Half Normal"; color: "White" }

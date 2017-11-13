@@ -1,0 +1,86 @@
+<!
+//  ShadowCore.slh
+//  libraries/render-utils/src
+//
+//  Created by Olivier Prat on 11/13/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SHADOW_CORE_SLH@>
+<@def SHADOW_CORE_SLH@>
+
+<@include Shadows_shared.slh@>
+
+uniform shadowTransformBuffer {
+	ShadowParameters shadow;
+};
+
+int getShadowCascadeCount() {
+    return shadow.cascadeCount;
+}
+
+float getShadowCascadeMinDistance(int cascadeIndex) {
+    return shadow.cascades[cascadeIndex].minDistance;
+}
+
+mat4 getShadowReprojection(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].reprojection;
+}
+
+float getShadowScale() {
+	return shadow.invMapSize;
+}
+
+float getShadowBias(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].bias;
+}
+
+// Compute the texture coordinates from world coordinates
+vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
+	float bias = -getShadowBias(cascadeIndex);
+
+	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
+	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
+}
+
+int getFirstValidShadowTexcoord(vec4 cascadeShadowCoords[4]) {
+    int cascadeIndex;
+    for (cascadeIndex=0 ; cascadeIndex<getShadowCascadeCount()-1 ; cascadeIndex++) {
+        vec4 shadowTexcoord = cascadeShadowCoords[cascadeIndex];
+        bvec2 greaterThanZero = greaterThanEqual(shadowTexcoord.xy, vec2(0));
+        bvec2 lessThanOne = lessThanEqual(shadowTexcoord.xy, vec2(1));
+        if (all(greaterThanZero) && all(lessThanOne)) {
+            return cascadeIndex;
+        }
+    }
+    return cascadeIndex;
+}
+
+float evalCascadeIndicesAndMix(vec4 viewPosition, vec4 cascadeShadowCoords[4], out ivec2 cascadeIndices) {
+#if 0
+    // Cascade selection based on :
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/ee416307(v=vs.85).aspx
+    vec4 currentPixelDepth = viewPosition.zzzz;
+    vec4 cascadeDepthLimits = vec4(
+        getShadowCascadeMinDistance(0),
+        getShadowCascadeMinDistance(1),
+        getShadowCascadeMinDistance(2),
+        getShadowCascadeMinDistance(3)
+    );
+    bvec4 comparison = greaterThan( currentPixelDepth, cascadeDepthLimits);
+    int cascadeCount = getShadowCascadeCount();
+    bvec4 cascadeCountMask = greaterThan(ivec4(cascadeCount), ivec4(0,1,2,3));
+    int cascadeIndex = int(dot(ivec4(cascadeCountMask), ivec4(comparison)));
+    cascadeIndex = min( cascadeIndex, cascadeCount-1 );
+#else
+    int cascadeIndex = getFirstValidShadowTexcoord(cascadeShadowCoords);
+#endif
+
+    cascadeIndices.x = cascadeIndex;
+    cascadeIndices.y = cascadeIndex;
+    return 1.0;
+}
+
+<@endif@>

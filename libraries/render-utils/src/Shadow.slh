@@ -11,42 +11,10 @@
 <@if not SHADOW_SLH@>
 <@def SHADOW_SLH@>
 
-<@include Shadows_shared.slh@>
+<@include ShadowCore.slh@>
 
 // the shadow texture
 uniform sampler2DShadow shadowMaps[SHADOW_CASCADE_MAX_COUNT];
-
-uniform shadowTransformBuffer {
-	ShadowParameters shadow;
-};
-
-int getShadowCascadeCount() {
-    return shadow.cascadeCount;
-}
-
-float getShadowCascadeMinDistance(int cascadeIndex) {
-    return shadow.cascades[cascadeIndex].minDistance;
-}
-
-mat4 getShadowReprojection(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].reprojection;
-}
-
-float getShadowScale() {
-	return shadow.invMapSize;
-}
-
-float getShadowBias(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].bias;
-}
-
-// Compute the texture coordinates from world coordinates
-vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
-	float bias = -getShadowBias(cascadeIndex);
-
-	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
-	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
-}
 
 // Sample the shadowMap with PCF (built-in)
 float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {
@@ -109,8 +77,7 @@ float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, ve
     return shadowAttenuation;
 }
 
-float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position, ShadowSampleOffsets offsets) {
-	vec4 shadowTexcoord = evalShadowTexcoord(cascadeIndex, position);
+float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord) {
     if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
         shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0 ||
         shadowTexcoord.z < 0.0 || shadowTexcoord.z > 1.0) {
@@ -120,25 +87,23 @@ float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position, ShadowSample
     return evalShadowAttenuationPCF(cascadeIndex, offsets, shadowTexcoord);
 }
 
-float evalShadowAttenuation(vec4 position) {
-    ShadowSampleOffsets offsets = evalShadowFilterOffsets(position);
-
-    // Cascade selection based on :
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/ee416307(v=vs.85).aspx
-    vec4 currentPixelDepth = position.zzzz;
-    vec4 cascadeDepthLimits = vec4(
-        getShadowCascadeMinDistance(0),
-        getShadowCascadeMinDistance(1),
-        getShadowCascadeMinDistance(2),
-        getShadowCascadeMinDistance(3)
+float evalShadowAttenuation(vec4 worldPosition, vec4 viewPosition) {
+    ShadowSampleOffsets offsets = evalShadowFilterOffsets(worldPosition);
+    vec4 cascadeShadowCoords[4] = vec4[4] (
+        evalShadowTexcoord(0, worldPosition),
+        evalShadowTexcoord(1, worldPosition),
+        evalShadowTexcoord(2, worldPosition),
+        evalShadowTexcoord(3, worldPosition)
     );
-    bvec4 comparison = greaterThan( currentPixelDepth, cascadeDepthLimits);
-    int cascadeCount = getShadowCascadeCount();
-    bvec4 cascadeCountMask = greaterThan(ivec4(cascadeCount), ivec4(0,1,2,3));
-    int cascadeIndex = int(dot(ivec4(cascadeCountMask), ivec4(comparison)));
-    cascadeIndex = min( cascadeIndex, cascadeCount-1 );
+    ivec2 cascadeIndices;
+    float cascadeMix = evalCascadeIndicesAndMix(viewPosition, cascadeShadowCoords, cascadeIndices);
 	
-    return evalShadowCascadeAttenuation(cascadeIndex, position, offsets);
+    vec2 cascadeAttenuations = vec2(1.0, 1.0);
+    cascadeAttenuations.x = evalShadowCascadeAttenuation(cascadeIndices.x, offsets, cascadeShadowCoords[cascadeIndices.x]);
+    if (cascadeMix > 0.0) {
+        cascadeAttenuations.y = evalShadowCascadeAttenuation(cascadeIndices.y, offsets, cascadeShadowCoords[cascadeIndices.y]);
+    }
+    return mix(cascadeAttenuations.x, cascadeAttenuations.y, cascadeMix);
 }
 
 <@endif@>

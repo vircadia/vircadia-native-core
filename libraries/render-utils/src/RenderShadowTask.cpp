@@ -253,8 +253,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
     output.edit0() = args->_renderMode;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
-    const auto globalShadowCascadeCount = globalShadow->getCascadeCount();
-    if (globalShadow && _cascadeIndex<globalShadowCascadeCount) {
+    if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
         output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
         const auto nearClip = args->getViewFrustum().getNearClip();
@@ -263,7 +262,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 
         static const float SHADOW_MAX_DISTANCE = 25.0f;
         static const float SHADOW_OVERLAP_DISTANCE = 1.0f;
-        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(2.0f, globalShadowCascadeCount - 1 - _cascadeIndex);
+        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(2.0f, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
         float minCascadeDistance = maxCascadeDistance / 2.0f - SHADOW_OVERLAP_DISTANCE;
 
         if (_cascadeIndex == 0) {
