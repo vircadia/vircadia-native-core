@@ -20,6 +20,14 @@ uniform shadowTransformBuffer {
 	ShadowParameters shadow;
 };
 
+int getShadowCascadeCount() {
+    return shadow.cascadeCount;
+}
+
+float getShadowCascadeMinDistance(int cascadeIndex) {
+    return shadow.cascades[cascadeIndex].minDistance;
+}
+
 mat4 getShadowReprojection(int cascadeIndex) {
 	return shadow.cascades[cascadeIndex].reprojection;
 }
@@ -76,12 +84,30 @@ float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position) {
         // If a point is not in the map, do not attenuate
         return 1.0;
     }
-
     return evalShadowAttenuationPCF(cascadeIndex, position, shadowTexcoord);
 }
 
 float evalShadowAttenuation(vec4 position) {
-    return evalShadowCascadeAttenuation(0, position);
+    // Cascade selection based on :
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/ee416307(v=vs.85).aspx
+    vec4 currentPixelDepth = position.zzzz;
+    vec4 cascadeDepthLimits = vec4(
+        getShadowCascadeMinDistance(0),
+        getShadowCascadeMinDistance(1),
+        getShadowCascadeMinDistance(2),
+        getShadowCascadeMinDistance(3)
+    );
+    vec4 comparison = vec4( currentPixelDepth > cascadeDepthLimits);
+    int cascadeCount = getShadowCascadeCount();
+    float fIndex = dot(
+        vec4( cascadeCount > 0, cascadeCount > 1, cascadeCount > 2, cascadeCount > 3),
+        comparison 
+        );
+
+    fIndex = min( fIndex, cascadeCount-1 );
+    int currentCascadeIndex = int(fIndex);
+
+    return evalShadowCascadeAttenuation(currentCascadeIndex, position);
 }
 
 <@endif@>

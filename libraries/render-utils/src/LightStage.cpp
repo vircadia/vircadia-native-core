@@ -46,9 +46,12 @@ const glm::mat4& LightStage::Shadow::Cascade::getProjection() const {
 }
 
 LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount) : _light{ light } {
+    cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
+
     Schema schema;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
     _cascades.resize(cascadeCount);
+    _schemaBuffer.edit<Schema>().cascadeCount = cascadeCount;
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
