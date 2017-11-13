@@ -22,7 +22,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/tabletStylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
-    "controllerModules/overlayLaserInput.js",
+    "controllerModules/webSurfaceLaserInput.js",
     "controllerModules/inEditMode.js",
     "controllerModules/inVREditMode.js",
     "controllerModules/disableOtherModule.js",

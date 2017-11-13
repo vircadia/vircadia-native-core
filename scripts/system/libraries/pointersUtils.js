@@ -109,9 +109,15 @@ Pointer = function(hudLayer, pickType, pointerData) {
     }
 
     this.enable = function() {
+        Pointers.enablePointer(this.pointerID);
     };
 
     this.disable = function() {
+        Pointers.disablePointer(this.pointerID);
+    };
+
+    this.removePointer = function() {
+        Pointers.removePointer(this.pointerID);
     };
 
     this.makeVisible = function() {
@@ -153,7 +159,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
     pointerData.renderStates = this.renderStates;
     pointerData.defaultRenderStates = this.defaultRenderStates;
     this.pointerID = createPointer(pickType, pointerData);
-    print(this.pointerID);
 };
 
 
@@ -188,5 +193,12 @@ PointerManager = function() {
         for (var index = 0; index < this.pointers.length; index++) {
             this.pointers[index].updateRenderState(triggerClicks, triggerValues);
         }
+    };
+
+    this.removePointers = function() {
+        for (var index = 0; index < this.pointers.length; index++) {
+            this.pointers[index].removePointer();
+        }
+        this.pointers = [];
     };
 };

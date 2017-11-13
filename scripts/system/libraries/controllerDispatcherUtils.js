@@ -101,7 +101,8 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData"
+    "userData",
+    "type"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step

@@ -25,7 +25,6 @@
     var MARGIN = 25;
     var HUD_LASER_OFFSET = 2;
     function HudOverlayPointer(hand) {
-        var _this = this;
         this.hand = hand;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;

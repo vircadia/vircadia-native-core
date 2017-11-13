@@ -77,7 +77,7 @@ Script.include("/~/system/libraries/utils.js");
 
         this.isReady = function(controllerData) {
             if (isInEditMode()) {
-                if (controllerData.triggerValues[this.hand] <  TRIGGER_ON_VALUE) {
+                if (controllerData.triggerValues[this.hand] < TRIGGER_ON_VALUE) {
                     this.triggerClicked = false;
                 }
                 return makeRunningValues(true, [], []);

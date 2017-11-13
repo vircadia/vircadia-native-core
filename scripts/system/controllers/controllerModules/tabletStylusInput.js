@@ -9,14 +9,13 @@
    enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
    HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
-   getEnabledModuleByName
+   getEnabledModuleByName, Pointers, Picks, PickType
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    var TouchEventUtils = Script.require("/~/system/libraries/touchEventUtils.js");
     function isNearStylusTarget(stylusTargets, maxNormalDistance) {
         var stylusTargetIDs = [];
         for (var index = 0; index < stylusTargets.length; index++) {
@@ -36,7 +35,14 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-	function TabletStylusInput(hand) {
+    function getEntityDistance(controllerPosition, entityProps) {
+        return {
+            id: entityProps.id,
+            distance: Vec3.distance(entityProps.position, controllerPosition)
+        };
+    }
+
+    function TabletStylusInput(hand) {
         this.hand = hand;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -82,21 +88,9 @@ Script.include("/~/system/libraries/controllers.js");
 
             // build list of stylus targets, near the stylusTip
             var stylusTargets = [];
-            var candidateEntities = controllerData.nearbyEntityProperties;
             var candidateOverlays = controllerData.nearbyOverlayIDs;
             var controllerPosition = controllerData.controllerLocations[this.hand].position;
-            var i, props, stylusTarget;
-
-            /*for (i = 0; i < candidateEntities.length; i++) {
-                props = candidateEntities[i];
-                if (props && props.type === "Web") {
-                    stylusTarget = TouchEventUtils.calculateTouchTargetFromEntity({position: controllerPosition}, candidateEntities[i]);
-                    if (stylusTarget) {
-                        stylusTargets.push(stylusTarget);
-                    }
-                }
-            }*/
-
+            var i, stylusTarget;
 
             for (i = 0; i < candidateOverlays.length; i++) {
                 if (candidateOverlays[i] !== HMD.tabletID &&
@@ -107,8 +101,6 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
             }
-
-
 
             // add the tabletScreen, if it is valid
             if (HMD.tabletScreenID && HMD.tabletScreenID !== Uuid.NULL &&
@@ -132,7 +124,6 @@ Script.include("/~/system/libraries/controllers.js");
             var nearStylusTarget = isNearStylusTarget(stylusTargets, WEB_DISPLAY_STYLUS_DISTANCE * sensorScaleFactor);
 
             if (nearStylusTarget.length !== 0) {
-                print(this.hand + "---" + this.disable);
                 if (!this.disable) {
                     Pointers.setRenderState(this.pointer,"events on");
                     Pointers.setIncludeItems(this.pointer, nearStylusTarget);
@@ -145,8 +136,6 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.setIncludeItems(this.pointer, []);
                 return false;
             }
-
-           // var nearestStylusTarget = calculateNearestStylusTarget(stylusTargets);
         };
 
         this.isReady = function (controllerData) {
@@ -160,9 +149,9 @@ Script.include("/~/system/libraries/controllers.js");
         this.run = function (controllerData, deltaTime) {
             return this.isReady(controllerData);
         };
- 
+
         this.cleanup = function () {
-        	//Pointers.createPointer(this.pointer);
+            Pointers.removePointer(this.pointer);
         };
     }
 

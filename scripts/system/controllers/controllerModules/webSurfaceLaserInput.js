@@ -1,6 +1,6 @@
 "use strict";
 
-//  overlayLaserInput.js
+//  webSurfaceLaserInput.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,6 +18,7 @@ Script.include("/~/system/libraries/controllers.js");
 (function() {
     function OverlayLaserInput(hand) {
         this.hand = hand;
+        this.running = false;
 
         this.parameters = makeDispatcherModuleParameters(
             120,
@@ -42,6 +43,10 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
             return false;
+        };
+
+        this.getOtherModule = function() {
+            return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
         this.isPointingAtWebEntity = function(controllerData) {
@@ -72,7 +77,9 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) {
+            var otherModuleRunning = this.getOtherModule().running;
+            if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) &&
+                !otherModuleRunning) {
                 if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
                     return makeRunningValues(true, [], []);
                 }
@@ -83,9 +90,11 @@ Script.include("/~/system/libraries/controllers.js");
         this.run = function (controllerData, deltaTime) {
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
             if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE && !grabModuleNeedsToRun) {
+                this.running = true;
                 return makeRunningValues(true, [], []);
             }
             this.deleteContextOverlay();
+            this.running = false;
             return makeRunningValues(false, [], []);
         };
     }

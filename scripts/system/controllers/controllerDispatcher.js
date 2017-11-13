@@ -11,7 +11,7 @@
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Pointers, PickType, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks, TRIGGER_ON_VALUE
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks, TRIGGER_ON_VALUE, PointerManager
 */
 
 controllerDispatcherPlugins = {};
@@ -325,11 +325,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
-                        //_this.enableLaserForPlugin(candidatePlugin);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
-}
+                    }
                     if (PROFILE) {
                         Script.endProfileRange("dispatch.isReady." + orderedPluginName);
                     }
@@ -473,14 +472,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
-            Pointers.removePointer(_this.leftControllerPointer);
-            Pointers.removePointer(_this.rightControllerPointer);
-            Pointers.removePointer(_this.rightControllerHudRayPick);
-            Pointers.removePointer(_this.leftControllerHudRayPick);
+            this.pointerManager.removePointers();
         };
     }
     function mouseReleaseOnOverlay(overlayID, event) {
-        if (overlayID === HMD.homeButtonID) {
+        if (overlayID === HMD.homeButtonID && event.button === "Primary") {
             Messages.sendLocalMessage("home", overlayID);
         }
     }
