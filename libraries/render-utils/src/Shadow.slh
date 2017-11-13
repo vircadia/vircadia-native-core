@@ -65,8 +65,13 @@ float evalShadowNoise(vec4 seed) {
     return fract(sin(dot_product) * 43758.5453);
 }
 
-float evalShadowAttenuationPCF(int cascadeIndex, vec4 position, vec4 shadowTexcoord) {
+struct ShadowSampleOffsets {
+    vec3 points[4];
+};
+
+ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
 	float shadowScale = getShadowScale();
+    ShadowSampleOffsets offsets;
 
 #if 0
     // Pattern dithering in screen space
@@ -83,19 +88,28 @@ float evalShadowAttenuationPCF(int cascadeIndex, vec4 position, vec4 shadowTexco
     // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
     ivec2 offset = coords & ivec2(1,1);
     offset.y = (offset.x+offset.y) & 1;
-    vec2 offsetF = vec2(offset);
 
-    float shadowAttenuation = (0.25 * (
-        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
-        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[1], 0.0)) +
-        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
-        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
-    ));
+    offsets.points[0] = shadowScale * vec3(offset + PCFkernel[0], 0.0);
+    offsets.points[1] = shadowScale * vec3(offset + PCFkernel[1], 0.0);
+    offsets.points[2] = shadowScale * vec3(offset + PCFkernel[2], 0.0);
+    offsets.points[3] = shadowScale * vec3(offset + PCFkernel[3], 0.0);
+
+    return offsets;
+}
+
+float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord) {
+
+    float shadowAttenuation = 0.25 * (
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[0]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[1]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[2]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[3])
+    );
 
     return shadowAttenuation;
 }
 
-float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position) {
+float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position, ShadowSampleOffsets offsets) {
 	vec4 shadowTexcoord = evalShadowTexcoord(cascadeIndex, position);
     if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
         shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0 ||
@@ -103,10 +117,12 @@ float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position) {
         // If a point is not in the map, do not attenuate
         return 1.0;
     }
-    return evalShadowAttenuationPCF(cascadeIndex, position, shadowTexcoord);
+    return evalShadowAttenuationPCF(cascadeIndex, offsets, shadowTexcoord);
 }
 
 float evalShadowAttenuation(vec4 position) {
+    ShadowSampleOffsets offsets = evalShadowFilterOffsets(position);
+
     // Cascade selection based on :
     // https://msdn.microsoft.com/en-us/library/windows/desktop/ee416307(v=vs.85).aspx
     vec4 currentPixelDepth = position.zzzz;
@@ -116,17 +132,13 @@ float evalShadowAttenuation(vec4 position) {
         getShadowCascadeMinDistance(2),
         getShadowCascadeMinDistance(3)
     );
-    vec4 comparison = vec4( currentPixelDepth > cascadeDepthLimits);
+    bvec4 comparison = greaterThan( currentPixelDepth, cascadeDepthLimits);
     int cascadeCount = getShadowCascadeCount();
-    float fIndex = dot(
-        vec4( cascadeCount > 0, cascadeCount > 1, cascadeCount > 2, cascadeCount > 3),
-        comparison 
-        );
-
-    fIndex = min( fIndex, cascadeCount-1 );
-    int currentCascadeIndex = int(fIndex);
-
-    return evalShadowCascadeAttenuation(currentCascadeIndex, position);
+    bvec4 cascadeCountMask = greaterThan(ivec4(cascadeCount), ivec4(0,1,2,3));
+    int cascadeIndex = int(dot(ivec4(cascadeCountMask), ivec4(comparison)));
+    cascadeIndex = min( cascadeIndex, cascadeCount-1 );
+	
+    return evalShadowCascadeAttenuation(cascadeIndex, position, offsets);
 }
 
 <@endif@>
