@@ -72,7 +72,7 @@ void Test::evaluateTests() {
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        QString diffFilename = "hifi_autoTest_diff.txt";
+        QString diffFilename = "HIFI_AutoTest_diff.txt";
         QString command = "magick.exe compare -metric MAE " + expectedImages[i] + " " + resultImages[i] + " null: 2>" + diffFilename;
         system(command.toStdString().c_str());
 

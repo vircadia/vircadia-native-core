@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include <QtWidgets/QApplication>
-#include "ui/autoTester.h"
+#include "ui/AutoTester.h"
 
 int main(int argc, char *argv[])
 {

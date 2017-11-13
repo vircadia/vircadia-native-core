@@ -1,4 +1,4 @@
 <RCC>
-    <qresource prefix="autoTester">
+    <qresource prefix="AutoTester">
     </qresource>
 </RCC>

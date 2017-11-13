@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>autoTester</string>
+   <string>AutoTester</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QPushButton" name="closeButton">
@@ -76,7 +76,7 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="autoTester.qrc"/>
+  <include location="../src/AutoTester.qrc"/>
  </resources>
  <connections/>
 </ui>

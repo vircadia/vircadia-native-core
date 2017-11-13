@@ -1,5 +1,5 @@
 //
-//  autoTester.cpp
+//  AutoTester.cpp
 //  zone/ambientLightInheritence
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
