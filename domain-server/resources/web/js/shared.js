@@ -62,26 +62,25 @@ var Strings = {
   // dialog with new path still set, allowing them to retry immediately, and without
   // having to type the new path in again.
   EDIT_PLACE_TITLE: "Modify Viewpoint or Path",
-  EDIT_PLACE_ERROR: "Failed to update place path. Please try again.",
+  EDIT_PLACE_ERROR: "Failed to update Viewpoint or Path for this Place Name. Please try again.",
   EDIT_PLACE_CONFIRM_BUTTON: "Save",
   EDIT_PLACE_CONFIRM_BUTTON_PENDING: "Saving...",
   EDIT_PLACE_CANCEL_BUTTON: "Cancel",
 
-  REMOVE_PLACE_TITLE: "Are you sure you want to remove <strong>{{place}}</strong>?",
-  REMOVE_PLACE_ERROR: "Failed to remove place. Please try again.",
-  REMOVE_PLACE_DELETE_BUTTON: "Delete",
+  REMOVE_PLACE_TITLE: "Are you sure you want to remove <strong>{{place}}</strong> and its path information?",
+  REMOVE_PLACE_ERROR: "Failed to remove Place Name and its Path information.",
+  REMOVE_PLACE_DELETE_BUTTON: "This action removes your Place Name",
   REMOVE_PLACE_DELETE_BUTTON_PENDING: "Deleting...",
   REMOVE_PLACE_CANCEL_BUTTON: "Cancel",
 
   ADD_PLACE_TITLE: "Choose a place",
-  ADD_PLACE_MESSAGE: "Choose the High Fidelity place to point at this domain server.",
-  ADD_PLACE_CONFIRM_BUTTON: "Choose place",
+  ADD_PLACE_MESSAGE: "Choose a Place Name that you own or register a new Place Name.",
+  ADD_PLACE_CONFIRM_BUTTON: "Save",
   ADD_PLACE_CONFIRM_BUTTON_PENDING: "Saving...",
   ADD_PLACE_CANCEL_BUTTON: "Cancel",
-  ADD_PLACE_UNKNOWN_ERROR: "There was an error adding this place name.",
+  ADD_PLACE_UNKNOWN_ERROR: "There was an error adding this Place Name. Try saving again",
 
-  ADD_PLACE_NO_PLACES_MESSAGE: "<p>You do not have any places in your High Fidelity account."
-      + "<br/><br/>Go to your <a href='https://metaverse.highfidelity.com/user/places/new'>places page</a> to create a new one. Once your place is created re-open this dialog to select it.</p>",
+  ADD_PLACE_NO_PLACES_MESSAGE: "You don't have any Place Names registered. Once you have a Place Name, reopen this window to select it.",
   ADD_PLACE_NO_PLACES_BUTTON: "Create new place",
   ADD_PLACE_UNABLE_TO_LOAD_ERROR: "We were unable to load your place names. Please try again later.",
   ADD_PLACE_LOADING_DIALOG: "Loading your places...",
