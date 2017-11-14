@@ -16,22 +16,21 @@
 
 /*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:
 
-(1) Derive a class from pure-virtual PrioritySortUtil::Prioritizable
-    that wraps the Thing you want to prioritize and sort:
+(1) Derive a class from pure-virtual PrioritySortUtil::Sortable that wraps a copy of
+    the Thing you want to prioritize and sort:
 
-     class PrioritizableThing : public PrioritySortUtil::Prioritizable {
-     public:
-        PrioritizableThing(const Thing& thing) : _thing(thing) {}
-        glm::vec3 getPosition() const override { return _thing.getPosition(); }
-        float getRadius() const const override { return _thing.getBoundingRadius(); }
-        uint64_t getTimestamp() const override { return _thing.getLastUpdated(); }
-     private:
-        // Yes really: the data member is a const reference!
-        // PrioritizableThing only needs enough scope to compute a priority.
-        const Thing& _thing;
-     }
+    class SortableWrapper: public PrioritySortUtil::Sortable {
+    public:
+        SortableWrapper(const Thing& thing) : _thing(thing) { }
+        glm::vec3 getPosition() const override { return _thing->getPosition(); }
+        float getRadius() const override { return 0.5f * _thing->getBoundingRadius(); }
+        uint64_t getTimestamp() const override { return _thing->getLastTime(); }
+        const Thing& getThing() const { return _thing; }
+    private:
+        Thing _thing;
+    };
 
-(2) Loop over your things and insert each into a priority_queue:
+(2) Make a PrioritySortUtil::PriorityQueue<Thing> and add them to the queue:
 
     PrioritySortUtil::Prioritizer prioritizer(viewFrustum);
     std::priority_queue< PrioritySortUtil::Sortable<Thing> > sortedThings;
@@ -40,7 +39,7 @@
         sortedThings.push(PrioritySortUtil::Sortable<Thing> entry(thing, priority));
     }
 
-(4) Loop over your priority queue and do timeboxed work:
+(3) Loop over your priority queue and do timeboxed work:
 
     uint64_t cutoffTime = usecTimestampNow() + TIME_BUDGET;
     while (!sortedThings.empty()) {
@@ -51,7 +50,6 @@
             break;
         }
     }
-
 */
 
 namespace PrioritySortUtil {
@@ -60,39 +58,28 @@ namespace PrioritySortUtil {
     constexpr float DEFAULT_CENTER_COEF { 0.5f };
     constexpr float DEFAULT_AGE_COEF { 0.25f / (float)(USECS_PER_SECOND) };
 
-    template <typename T>
     class Sortable {
-    public:
-        Sortable(const T& thing, float sortPriority) : _thing(thing), _priority(sortPriority) {}
-        const T& getThing() const { return  _thing; }
-        void setPriority(float priority) { _priority = priority; }
-        bool operator<(const Sortable& other) const { return _priority < other._priority; }
-    private:
-        T _thing;
-        float _priority;
-    };
-
-    // Prioritizable isn't a template because templates can't have pure-virtual methods.
-    class Prioritizable {
     public:
         virtual glm::vec3 getPosition() const = 0;
         virtual float getRadius() const = 0;
         virtual uint64_t getTimestamp() const = 0;
+
+        void setPriority(float priority) { _priority = priority; }
+        bool operator<(const Sortable& other) const { return _priority < other._priority; }
+    private:
+        float _priority { 0.0f };
     };
 
-    class Prioritizer {
+    template <typename T>
+    class PriorityQueue {
     public:
-        Prioritizer() = delete;
+        PriorityQueue() = delete;
 
-        Prioritizer(const ViewFrustum& view) : _view(view) {
-            cacheView();
-        }
+        PriorityQueue(const ViewFrustum& view) : _view(view) { }
 
-        Prioritizer(const ViewFrustum& view, float angularWeight, float centerWeight, float ageWeight)
+        PriorityQueue(const ViewFrustum& view, float angularWeight, float centerWeight, float ageWeight)
                 : _view(view), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
-        {
-            cacheView();
-        }
+        { }
 
         void setView(const ViewFrustum& view) { _view = view; }
 
@@ -102,24 +89,34 @@ namespace PrioritySortUtil {
             _ageWeight = ageWeight;
         }
 
-        float computePriority(const Prioritizable& prioritizableThing) const {
+        size_t size() const { return _queue.size(); }
+        void push(T thing) {
+            thing.setPriority(computePriority(thing));
+            _queue.push(thing);
+        }
+        const T& top() const { return _queue.top(); }
+        void pop() { return _queue.pop(); }
+        bool empty() const { return _queue.empty(); }
+
+    private:
+        float computePriority(const T& thing) const {
             // priority = weighted linear combination of multiple values:
             //   (a) angular size
             //   (b) proximity to center of view
             //   (c) time since last update
             // where the relative "weights" are tuned to scale the contributing values into units of "priority".
 
-            glm::vec3 position = prioritizableThing.getPosition();
-            glm::vec3 offset = position - _viewPosition;
+            glm::vec3 position = thing.getPosition();
+            glm::vec3 offset = position - _view.getPosition();
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-            float radius = prioritizableThing.getRadius();
+            float radius = thing.getRadius();
 
             float priority = _angularWeight * (radius / distance)
-                + _centerWeight * (glm::dot(offset, _viewForward) / distance)
-                + _ageWeight * (float)(usecTimestampNow() - prioritizableThing.getTimestamp());
+                + _centerWeight * (glm::dot(offset, _view.getDirection()) / distance)
+                + _ageWeight * (float)(usecTimestampNow() - thing.getTimestamp());
 
             // decrement priority of things outside keyhole
-            if (distance - radius > _viewRadius) {
+            if (distance - radius > _view.getCenterRadius()) {
                 if (!_view.sphereIntersectsFrustum(position, radius)) {
                     constexpr float OUT_OF_VIEW_PENALTY = -10.0f;
                     priority += OUT_OF_VIEW_PENALTY;
@@ -128,18 +125,8 @@ namespace PrioritySortUtil {
             return priority;
         }
 
-    private:
-        void cacheView() {
-            // assuming we'll prioritize many things: cache these values
-            _viewPosition = _view.getPosition();
-            _viewForward = _view.getDirection();
-            _viewRadius = _view.getCenterRadius();
-        }
-
         ViewFrustum _view;
-        glm::vec3 _viewPosition;
-        glm::vec3 _viewForward;
-        float _viewRadius;
+        std::priority_queue<T> _queue;
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };
         float _ageWeight { DEFAULT_AGE_COEF };

@@ -338,42 +338,40 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         // we expect the cost to updating all renderables to exceed available time budget
         // so we first sort by priority and update in order until out of time
 
-        // as per the instructions in PriortySortUtil we first derive from PrioritySortUtil::Prioritizable
-        class PrioritizableRenderer: public PrioritySortUtil::Prioritizable {
+        class SortableRenderer: public PrioritySortUtil::Sortable {
         public:
-            PrioritizableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
+            SortableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
+
             glm::vec3 getPosition() const override { return _renderer->getEntity()->getPosition(); }
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
+
+            const EntityRendererPointer& getRenderer() const { return _renderer; }
         private:
-            const EntityRendererPointer& _renderer;
+            EntityRendererPointer _renderer;
         };
 
         // prioritize and sort the renderables
         uint64_t sortStart = usecTimestampNow();
-        using SortableRenderer = PrioritySortUtil::Sortable<EntityRendererPointer>;
-        std::priority_queue< SortableRenderer > sortedRenderables;
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
-            PrioritySortUtil::Prioritizer prioritizer(view);
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
             while (itr != _renderablesToUpdate.end()) {
-                float priority = prioritizer.computePriority(PrioritizableRenderer(itr->second));
-                //SortableRenderer entry(itr->second, priority);
-                sortedRenderables.push(SortableRenderer(itr->second, priority));
+                sortedRenderables.push(SortableRenderer(itr->second));
                 ++itr;
             }
         }
         {
-            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, sortedRenderables.size());
 
             // compute remaining time budget
             uint64_t updateStart = usecTimestampNow();
             const uint64_t MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET = 1 * USECS_PER_MSEC;
             uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
-            uint64_t timeForSort = updateStart - sortStart;
-            if (timeForSort < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
-                timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - timeForSort;
+            uint64_t sortCost = updateStart - sortStart;
+            if (sortCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
+                timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - sortCost;
             }
             uint64_t expiry = updateStart + timeBudget;
 
@@ -381,7 +379,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderer = sortedRenderables.top().getThing();
+                const EntityRendererPointer& renderer = sortedRenderables.top().getRenderer();
                 renderer->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderer->getEntity()->getID());
                 sortedRenderables.pop();
@@ -389,7 +387,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
             // compute average per-renderable update cost
             size_t numUpdated = numSorted - sortedRenderables.size() + 1; // add one to avoid divide by zero
-            float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated + 1);
+            float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
             const float blend = 0.1f;
             _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
         }
