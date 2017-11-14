@@ -46,7 +46,7 @@ public:
     class Shadow {
     public:
         using UniformBufferView = gpu::BufferView;
-        static const int MAP_SIZE = 1024;
+        static const int MAP_SIZE;
 
         class Cascade {
             friend Shadow;
