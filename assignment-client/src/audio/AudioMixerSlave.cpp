@@ -48,7 +48,7 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
 // mix helpers
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
-inline float computeGain(AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
+inline float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
         const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho);
 inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
@@ -488,7 +488,7 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
     // avatar: skip master gain - it is constant for all streams
 }
 
-float computeGain(AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
+float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
         const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho) {
     float gain = 1.0f;
 
