@@ -71,6 +71,24 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
     return false;
 }
 
+bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
+    _selectedItemsListMap.insert(listName, GameplayObjects());
+    emit selectedItemsListChanged(listName);
+    return true;
+}
+
+bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyle) {
+    return true;
+}
+
+bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
+    return true;
+}
+
+QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
+    return QVariantMap();
+}
+
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
     GameplayObjects currentList = _selectedItemsListMap.value(listName);
     currentList.addToGameplayObjects(idToAdd);

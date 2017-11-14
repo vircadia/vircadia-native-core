@@ -67,11 +67,45 @@ public:
 
     GameplayObjects getList(const QString& listName);
 
+    /**jsdoc
+    * Prints out the list of avatars, entities and overlays stored in a particular selection.
+    * @function Selection.printList
+    * @param listName {string} name of the selection
+    */
     Q_INVOKABLE void printList(const QString& listName);
+    /**jsdoc
+    * Removes a named selection from the list of selections.
+    * @function Selection.removeListFromMap
+    * @param listName {string} name of the selection
+    * @returns {bool} true if the selection existed and was successfully removed.
+    */
     Q_INVOKABLE bool removeListFromMap(const QString& listName);
 
+    /**jsdoc
+    * Add an item in a selection.
+    * @function Selection.addToSelectedItemsList
+    * @param listName {string} name of the selection
+    * @param itemType {string} the type of the item (one of "avatar", "entity" or "overlay")
+    * @param id {EntityID} the Id of the item to add to the selection
+    * @returns {bool} true if the item was successfully added.
+    */
     Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    /**jsdoc
+    * Remove an item from a selection.
+    * @function Selection.removeFromSelectedItemsList
+    * @param listName {string} name of the selection
+    * @param itemType {string} the type of the item (one of "avatar", "entity" or "overlay")
+    * @param id {EntityID} the Id of the item to remove
+    * @returns {bool} true if the item was successfully removed.
+    */
     Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    /**jsdoc
+    * Remove all items from a selection.
+    * @function Selection.clearSelectedItemsList
+    * @param listName {string} name of the selection
+    * @returns {bool} true if the item was successfully cleared.
+    */
+    Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
     Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
     Q_INVOKABLE bool disableListHighlight(const QString& listName);
