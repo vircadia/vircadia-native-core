@@ -11,6 +11,8 @@ link_hifi_libraries()
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+find_package(Qt5Widgets)
+
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
 file (GLOB_RECURSE MOC_HEADERS src/*.h)
