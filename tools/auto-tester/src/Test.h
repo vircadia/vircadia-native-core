@@ -12,9 +12,9 @@
 #ifndef hifi_test_h
 #define hifi_test_h
 
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QRegularExpression>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
+#include <QtCore/QRegularExpression>
 
 #include "ui/MismatchWindow.h"
 

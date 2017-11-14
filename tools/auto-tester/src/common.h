@@ -10,7 +10,7 @@
 #ifndef hifi_common_h
 #define hifi_common_h
 
-#include <QString>
+#include <QtCore/QString>
 
 class TestFailure {
 public:

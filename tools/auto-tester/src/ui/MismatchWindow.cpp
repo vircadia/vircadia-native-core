@@ -9,7 +9,7 @@
 //
 #include "MismatchWindow.h"
 
-#include <QFileInfo>
+#include <QtCore/QFileInfo>
 
 MismatchWindow::MismatchWindow(QWidget *parent)
     : QDialog(parent)
