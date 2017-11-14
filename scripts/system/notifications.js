@@ -210,10 +210,11 @@
             notificationOrientation,
             notificationPosition,
             buttonPosition;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         // Notification plane positions
-        noticeY = -y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
+        noticeY = -(y * sensorScaleFactor) * (NOTIFICATION_3D_SCALE * sensorScaleFactor) - (noticeHeight * sensorScaleFactor) / 2;
         notificationPosition = { x: 0, y: noticeY, z: 0 };
-        buttonPosition = { x: (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH) / 2, y: noticeY, z: 0.001 };
+        buttonPosition = { x: (noticeWidth * sensorScaleFactor - NOTIFICATION_3D_BUTTON_WIDTH * sensorScaleFactor) / 2, y: noticeY, z: 0.001 };
 
         // Rotate plane
         notificationOrientation = Quat.fromPitchYawRollDegrees(NOTIFICATIONS_3D_PITCH,
@@ -223,8 +224,8 @@
 
         // Translate plane
         originOffset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, NOTIFICATIONS_3D_DIRECTION, 0),
-                                         { x: 0, y: 0, z: -NOTIFICATIONS_3D_DISTANCE});
-        originOffset.y += NOTIFICATIONS_3D_ELEVATION;
+                                         { x: 0, y: 0, z: -NOTIFICATIONS_3D_DISTANCE * sensorScaleFactor});
+        originOffset.y += NOTIFICATIONS_3D_ELEVATION * sensorScaleFactor;
         notificationPosition = Vec3.sum(originOffset, notificationPosition);
         buttonPosition = Vec3.sum(originOffset, buttonPosition);
 
@@ -244,6 +245,7 @@
             noticeHeight,
             positions,
             last;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         if (isOnHMD) {
             // Calculate 3D values from 2D overlay properties.
 
@@ -262,7 +264,7 @@
                 notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
                 notice.bottomMargin = 0;
                 notice.rightMargin = 0;
-                notice.lineHeight = 10.0 * (fontSize * 1.0 / 12.0) * NOTIFICATION_3D_SCALE;
+                notice.lineHeight = 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE;
                 notice.isFacingAvatar = false;
 
                 notificationText = Overlays.addOverlay("text3d", notice);
@@ -367,6 +369,7 @@
             buttonProperties,
             i;
 
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         if (text.length >= breakPoint) {
             breaks = count;
         }
@@ -388,7 +391,7 @@
             alpha: backgroundAlpha,
             topMargin: topMargin,
             leftMargin: leftMargin,
-            font: {size: fontSize},
+            font: {size: fontSize * sensorScaleFactor},
             text: text
         };
 
@@ -450,13 +453,14 @@
     }
 
     function updateNotificationsTexts() {
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         for (var i = 0; i < notifications.length; i++) {
             var overlayType = Overlays.getOverlayType(notifications[i]);
 
             if (overlayType === "text3d") {
                 var props = {
-                    font: {size: fontSize},
-                    lineHeight: 10.0 * (fontSize * 1.0 / 12.0) * NOTIFICATION_3D_SCALE
+                    font: {size: fontSize * sensorScaleFactor},
+                    lineHeight: 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE
                 };
                 Overlays.editOverlay(notifications[i], props);
             }
