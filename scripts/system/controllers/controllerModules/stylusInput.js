@@ -42,7 +42,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    function TabletStylusInput(hand) {
+    function StylusInput(hand) {
         this.hand = hand;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -71,8 +71,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.overlayLaserActive = function(controllerData) {
-            var rightOverlayLaserModule = getEnabledModuleByName("RightOverlayLaserInput");
-            var leftOverlayLaserModule = getEnabledModuleByName("LeftOverlayLaserInput");
+            var rightOverlayLaserModule = getEnabledModuleByName("RightWebSurfaceLaserInput");
+            var leftOverlayLaserModule = getEnabledModuleByName("LeftWebSurfaceLaserInput");
             var rightModuleRunning = rightOverlayLaserModule ? rightOverlayLaserModule.isReady(controllerData).active : false;
             var leftModuleRunning = leftOverlayLaserModule ? leftOverlayLaserModule.isReady(controllerData).active : false;
             return leftModuleRunning || rightModuleRunning;
@@ -185,15 +185,15 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
-    var leftTabletStylusInput = new TabletStylusInput(LEFT_HAND);
-    var rightTabletStylusInput = new TabletStylusInput(RIGHT_HAND);
+    var leftTabletStylusInput = new StylusInput(LEFT_HAND);
+    var rightTabletStylusInput = new StylusInput(RIGHT_HAND);
 
     enableDispatcherModule("LeftTabletStylusInput", leftTabletStylusInput);
     enableDispatcherModule("RightTabletStylusInput", rightTabletStylusInput);
 
     Overlays.hoverEnterOverlay.connect(mouseHoverEnter);
     Overlays.hoverLeaveOverlay.connect(mouseHoverLeave);
-    Overlays.mousePressOnOverlay.connect(mousePress);
+    Overlays.mousePressOnOverlay.connect(mousePress); 
 
     this.cleanup = function () {
         leftTabletStylusInput.cleanup();

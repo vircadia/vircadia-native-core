@@ -539,8 +539,6 @@ Script.include("/~/system/libraries/Xform.js");
     enableDispatcherModule("RightFarActionGrabEntity", rightFarActionGrabEntity);
 
     function cleanup() {
-        leftFarActionGrabEntity.cleanup();
-        rightFarActionGrabEntity.cleanup();
         disableDispatcherModule("LeftFarActionGrabEntity");
         disableDispatcherModule("RightFarActionGrabEntity");
     }

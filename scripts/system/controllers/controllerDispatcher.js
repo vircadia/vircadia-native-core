@@ -246,7 +246,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 Pointers.getPrevPickResult(_this.leftHudPointer),
                 Pointers.getPrevPickResult(_this.rightHudPointer)
             ];
-            var mouseRayPick = RayPick.getPrevRayPickResult(_this.mouseRayPick);
+            var mouseRayPick = Pointers.getPrevPickResult(_this.mouseRayPick);
             // if the pickray hit something very nearby, put it into the nearby entities list
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
 
@@ -435,7 +435,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
-        this.mouseRayPick = RayPick.createRayPick({
+        this.mouseRayPick = Pointers.createPointer(PickType.Ray, {
             joint: "Mouse",
             filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true
@@ -472,7 +472,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
-            this.pointerManager.removePointers();
+            _this.pointerManager.removePointers();
+            Pointers.removePointer(this.mouseRayPick);
         };
     }
     function mouseReleaseOnOverlay(overlayID, event) {
@@ -480,7 +481,22 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Messages.sendLocalMessage("home", overlayID);
         }
     }
+
+    var HAPTIC_STYLUS_STRENGTH = 1.0;
+    var HAPTIC_STYLUS_DURATION = 20.0;
+    function mousePress(id, event) {
+        if (HMD.active) {
+            var runningPlugins = controllerDispatcher.runningPluginNames;
+            if (event.id === controllerDispatcher.leftPointer && event.button === "Primary" && runningPlugins.LeftWebSurfaceLaserInput) {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, LEFT_HAND);
+            } else if (event.id === controllerDispatcher.rightPointer && event.button === "Primary" && runningPlugins.RightWebSurfaceLaserInput) {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, RIGHT_HAND);
+            }
+        }
+    }
     Overlays.mouseReleaseOnOverlay.connect(mouseReleaseOnOverlay);
+    Overlays.mousePressOnOverlay.connect(mousePress);
+    Entities.mousePressOnEntity.connect(mousePress);
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);

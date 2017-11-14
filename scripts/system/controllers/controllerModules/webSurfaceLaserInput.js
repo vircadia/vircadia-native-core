@@ -16,7 +16,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    function OverlayLaserInput(hand) {
+    function WebSurfaceLaserInput(hand) {
         this.hand = hand;
         this.running = false;
 
@@ -99,15 +99,15 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    var leftOverlayLaserInput = new OverlayLaserInput(LEFT_HAND);
-    var rightOverlayLaserInput = new OverlayLaserInput(RIGHT_HAND);
+    var leftOverlayLaserInput = new WebSurfaceLaserInput(LEFT_HAND);
+    var rightOverlayLaserInput = new WebSurfaceLaserInput(RIGHT_HAND);
 
-    enableDispatcherModule("LeftOverlayLaserInput", leftOverlayLaserInput);
-    enableDispatcherModule("RightOverlayLaserInput", rightOverlayLaserInput);
+    enableDispatcherModule("LeftWebSurfaceLaserInput", leftOverlayLaserInput);
+    enableDispatcherModule("RightWebSurfaceLaserInput", rightOverlayLaserInput);
 
     function cleanup() {
-        disableDispatcherModule("LeftOverlayLaserInput");
-        disableDispatcherModule("RightOverlayLaserInput");
+        disableDispatcherModule("LeftWebSurfaceLaserInput");
+        disableDispatcherModule("RightWebSurfaceLaserInput");
     }
     Script.scriptEnding.connect(cleanup);
 }());

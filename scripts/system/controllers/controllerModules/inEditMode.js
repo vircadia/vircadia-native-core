@@ -96,7 +96,7 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
 
