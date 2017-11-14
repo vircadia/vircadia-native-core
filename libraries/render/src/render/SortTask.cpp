@@ -74,9 +74,13 @@ void render::depthSortItems(const RenderContextPointer& renderContext, bool fron
         std::sort(itemBoundSorts.begin(), itemBoundSorts.end(), backToFrontSort);
     }
 
-    // Finally once sorted result to a list of itemID
+    // Finally once sorted result to a list of itemID and keep uniques
+    render::ItemID previousID = Item::INVALID_ITEM_ID;
     for (auto& item : itemBoundSorts) {
-       outItems.emplace_back(ItemBound(item._id, item._bounds));
+        if (item._id != previousID) {
+            outItems.emplace_back(ItemBound(item._id, item._bounds));
+            previousID = item._id;
+        }
     }
 }
 

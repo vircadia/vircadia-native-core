@@ -32,6 +32,8 @@ Rectangle {
 
     color: hifi.colors.baseGray
 
+    property bool keyboardEnabled: HMD.active
+    property bool keyboardRaised: false
 
     LetterboxMessage {
         id: letterBoxMessage
@@ -380,7 +382,7 @@ Rectangle {
                     Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
                     onActiveFocusChanged: {
                         // raise the keyboard
-                        keyboard.raised = activeFocus;
+                        root.keyboardRaised = activeFocus;
 
                         // scroll to the bottom of the content area.
                         if (activeFocus) {
@@ -481,7 +483,7 @@ Rectangle {
 
     HifiControls.Keyboard {
         id: keyboard
-        raised: false
+        raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: false
         anchors {
             bottom: parent.bottom
