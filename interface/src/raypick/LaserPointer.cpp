@@ -14,7 +14,7 @@
 #include "avatar/AvatarManager.h"
 
 #include <DependencyManager.h>
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 #include "PickScriptingInterface.h"
 #include "RayPick.h"
 

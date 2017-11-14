@@ -9,7 +9,7 @@
 #define hifi_RayPick_h
 
 #include <RegisteredMetaTypes.h>
-#include <pointers/Pick.h>
+#include <Pick.h>
 
 class EntityItemID;
 class OverlayID;

@@ -37,7 +37,7 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 

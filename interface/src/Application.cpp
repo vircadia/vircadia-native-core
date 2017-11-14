@@ -194,8 +194,8 @@
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
-#include <pointers/PickManager.h>
-#include <pointers/PointerManager.h>
+#include <PickManager.h>
+#include <PointerManager.h>
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
 #include <raypick/PickScriptingInterface.h>

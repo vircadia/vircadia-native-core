@@ -8,7 +8,7 @@
 #ifndef hifi_StylusPick_h
 #define hifi_StylusPick_h
 
-#include "pointers/Pick.h"
+#include <Pick.h>
 #include "RegisteredMetaTypes.h"
 
 class StylusPickResult : public PickResult {
@@ -58,7 +58,7 @@ public:
 class StylusPick : public Pick<StylusTip> {
     using Side = bilateral::Side;
 public:
-    StylusPick(const PickFilter& filter, Side side, bool enabled);
+    StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled);
 
     StylusTip getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override;
@@ -67,12 +67,11 @@ public:
     PickResultPointer getAvatarIntersection(const StylusTip& pick) override;
     PickResultPointer getHUDIntersection(const StylusTip& pick) override;
 
+    bool isLeftHand() const override { return _side == Side::Left; }
+    bool isRightHand() const override { return _side == Side::Right; }
+
 private:
     const Side _side;
 };
 
 #endif // hifi_StylusPick_h
-
-
-
-

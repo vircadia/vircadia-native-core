@@ -37,7 +37,7 @@
 
 #include "RenderableWebEntityItem.h"
 
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;

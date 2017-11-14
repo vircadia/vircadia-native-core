@@ -16,8 +16,8 @@
 
 #include "ui/overlays/Overlay.h"
 
-#include <pointers/Pointer.h>
-#include <pointers/Pick.h>
+#include <Pointer.h>
+#include <Pick.h>
 
 struct LockEndObject {
     QUuid id { QUuid() };

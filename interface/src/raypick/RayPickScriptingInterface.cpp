@@ -14,7 +14,7 @@
 #include <QVariant>
 #include "GLMHelpers.h"
 
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 
 #include "StaticRayPick.h"
 #include "JointRayPick.h"

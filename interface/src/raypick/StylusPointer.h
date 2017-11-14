@@ -8,7 +8,7 @@
 #ifndef hifi_StylusPointer_h
 #define hifi_StylusPointer_h
 
-#include <pointers/Pointer.h>
+#include <Pointer.h>
 #include <shared/Bilateral.h>
 #include <RegisteredMetaTypes.h>
 
