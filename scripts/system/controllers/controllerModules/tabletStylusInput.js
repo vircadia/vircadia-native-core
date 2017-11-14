@@ -173,6 +173,18 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
+    var HAPTIC_STYLUS_STRENGTH = 1.0;
+    var HAPTIC_STYLUS_DURATION = 20.0;
+    function mousePress(overlayID, event) {
+        if (HMD.active) {
+            if (event.id === leftTabletStylusInput.pointer && event.button === "Primary") {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, LEFT_HAND);
+            } else if (event.id === rightTabletStylusInput.pointer && event.button === "Primary") {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, RIGHT_HAND);
+            }
+        }
+    }
+
     var leftTabletStylusInput = new TabletStylusInput(LEFT_HAND);
     var rightTabletStylusInput = new TabletStylusInput(RIGHT_HAND);
 
@@ -181,6 +193,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     Overlays.hoverEnterOverlay.connect(mouseHoverEnter);
     Overlays.hoverLeaveOverlay.connect(mouseHoverLeave);
+    Overlays.mousePressOnOverlay.connect(mousePress);
 
     this.cleanup = function () {
         leftTabletStylusInput.cleanup();
