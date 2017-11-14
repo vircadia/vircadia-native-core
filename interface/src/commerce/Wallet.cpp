@@ -27,7 +27,6 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
@@ -552,7 +551,7 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
 
-        int encryptReturn = ECDSA_sign(0, 
+        int Return = ECDSA_sign(0, 
             reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()), 
             hashedPlaintext.size(),
             reinterpret_cast<unsigned char*>(signature.data()), 
@@ -569,7 +568,7 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         // free the private key RSA struct now that we are done with it
         EC_KEY_free(ecPrivateKey);
 
-        if (encryptReturn != -1) {
+        if (Return != -1) {
             return signature.toBase64();
         }
     }
@@ -719,20 +718,20 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
     bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
     //unsigned char decryptedText[64];
-    int decryptionStatus;
+    int Status;
     int certIDByteArraySize;
-    int encryptedTextByteArraySize;
+    int TextByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
-    packet->readPrimitive(&encryptedTextByteArraySize);  //rerturns a cast char*, size
+    packet->readPrimitive(&TextByteArraySize);  //rerturns a cast char*, size
     if (challengeOriginatedFromClient) {
         packet->readPrimitive(&challengingNodeUUIDByteArraySize);
     }
 
     //"encryptedText"  is now a series of random bytes, a nonce
     QByteArray certID = packet->read(certIDByteArraySize);
-    QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    QByteArray Text = packet->read(TextByteArraySize);
     QByteArray challengingNodeUUID;
     if (challengeOriginatedFromClient) {
         challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
@@ -742,10 +741,10 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     QString sig;
    // int decryptionStatus = -1;
 
-    if (ec) {
+   if (ec) {
         ERR_clear_error();
-       sig = signWithKey(encryptedText, ""); //base64 signature, QByteArray cast
-                                             //upon return to QString
+        sig = signWithKey(Text, ""); //base64 signature, QByteArray cast
+                                           //upon return to QString
 
       //  decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
       //      reinterpret_cast<const unsigned char*>(encryptedText.constData()),
@@ -753,52 +752,52 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
       //      ec,
       //      RSA_PKCS1_OAEP_PADDING);
 
-        EC_KEY_free(ec);
-        decryptionStatus = 1;
+       // EC_KEY_free(ec);
+        Status = 1;
     } else {
         qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
-        decryptionStatus = -1;
+        Status = -1;
     }
 
     QByteArray ba = sig.toLocal8Bit();
     const char *sigChar = ba.data();
   
-    QByteArray decryptedTextByteArray;
-    if (decryptionStatus > -1) {
-        decryptedTextByteArray = QByteArray(sigChar, decryptionStatus);
-    }
-    int decryptedTextByteArraySize = decryptedTextByteArray.size();
+    QByteArray TextByteArray;
+   // if (decryptionStatus > -1) {
+        TextByteArray = QByteArray(sigChar, Status);
+    //}
+    TextByteArraySize = TextByteArray.size();
     int certIDSize = certID.size();
     // setup the packet
     if (challengeOriginatedFromClient) {
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-            certIDSize + decryptedTextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+        auto TextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+            certIDSize + TextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
             true);
 
-        decryptedTextPacket->writePrimitive(certIDSize);
-        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-        decryptedTextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-        decryptedTextPacket->write(certID);
-        decryptedTextPacket->write(decryptedTextByteArray);
-        decryptedTextPacket->write(challengingNodeUUID);
+        TextPacket->writePrimitive(certIDSize);
+        TextPacket->writePrimitive(TextByteArraySize);
+        TextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+        TextPacket->write(certID);
+        TextPacket->write(TextByteArray);
+        TextPacket->write(challengingNodeUUID);
 
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << decryptedTextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << TextByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(TextPacket), *sendingNode);
     } else {
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+        auto TextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + TextByteArraySize + 2 * sizeof(int), true);
 
-        decryptedTextPacket->writePrimitive(certIDSize);
-        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-        decryptedTextPacket->write(certID);
-        decryptedTextPacket->write(decryptedTextByteArray);
+        TextPacket->writePrimitive(certIDSize);
+        TextPacket->writePrimitive(TextByteArraySize);
+        TextPacket->write(certID);
+        TextPacket->write(TextByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << decryptedTextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << TextByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(TextPacket), *sendingNode);
     }
 
-    if (decryptionStatus == -1) {
+    if (Status == -1) {
         qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";
         long error = ERR_get_error();
         if (error != 0) {
