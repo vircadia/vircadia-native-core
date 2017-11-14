@@ -77,11 +77,36 @@ bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName
     return true;
 }
 
-bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyle) {
+bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
+    auto highlightStyle = _highlightedListMap.value(listName);
+    if (!highlightStyle.isBoundToList()) {
+        GameplayObjects currentList = _selectedItemsListMap.value(listName);
+        if (!currentList.getContainsData()) {
+            _selectedItemsListMap.insert(listName, currentList);
+        }
+    }
+
+    highlightStyle.fromVariantMap(highlightStyleValues);
+    highlightStyle.setBoundToList(true);
+
+    _highlightedListMap.insert(listName, highlightStyle);
+
+
+    emit selectedItemsListChanged(listName);
     return true;
 }
 
 bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
+    auto highlightStyle = _highlightedListMap.find(listName);
+    if (highlightStyle != _highlightedListMap.end()) {
+        if ((*highlightStyle).isBoundToList()) {
+            GameplayObjects currentList = _selectedItemsListMap.value(listName);
+            if (currentList.getContainsData()) {
+            }
+            _highlightedListMap.erase(highlightStyle);
+        }
+    }
+
     return true;
 }
 
@@ -210,4 +235,12 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
     } else {
         qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
     }
+}
+
+
+bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
+    return true;
+}
+QVariantMap SelectionHighlightStyle::toVariantMap() const {
+    return QVariantMap();
 }

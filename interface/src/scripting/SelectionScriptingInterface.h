@@ -52,10 +52,14 @@ class SelectionHighlightStyle {
 public:
     SelectionHighlightStyle() {}
 
+    void setBoundToList(bool bound) { _isBoundToList = bound; }
+    bool isBoundToList() const { return _isBoundToList; }
+
     bool fromVariantMap(const QVariantMap& properties);
     QVariantMap toVariantMap() const;
 
-
+protected:
+    bool _isBoundToList{ false };
 
 };
 
@@ -116,6 +120,8 @@ signals:
 
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
+
+    QMap<QString, SelectionHighlightStyle> _highlightedListMap;
 
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
