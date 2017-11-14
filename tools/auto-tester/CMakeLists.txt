@@ -1,12 +1,10 @@
 set(TARGET_NAME auto-tester)
-project(${TARGET_NAME})
 setup_hifi_library(Gui Widgets)
 
 # Automatically run UIC and MOC.  This replaces the older WRAP macros
 SET(CMAKE_AUTOUIC ON) 
 SET(CMAKE_AUTOMOC ON) 
 
-setup_hifi_project(Widgets)
 link_hifi_libraries()
 
 # Find includes in corresponding build directories
