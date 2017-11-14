@@ -5,7 +5,7 @@ project(${TARGET_NAME})
 SET(CMAKE_AUTOUIC ON) 
 SET(CMAKE_AUTOMOC ON) 
 
-setup_hifi_project(Widgets)
+setup_hifi_library(Widgets)
 link_hifi_libraries()
 
 set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
