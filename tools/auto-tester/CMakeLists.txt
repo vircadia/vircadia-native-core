@@ -8,10 +8,10 @@ SET(CMAKE_AUTOMOC ON)
 setup_hifi_library(Core Widgets)
 link_hifi_libraries()
 
-# For finding Qt includes
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-#include_directories(${Qt5Widgets_INCLUDE_DIRS})
-#include_directories(${Qt5Core_INCLUDE_DIRS})
+# Qt includes
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${Qt5Core_INCLUDE_DIRS})
+include_directories(${Qt5Widgets_INCLUDE_DIRS})
 
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
@@ -19,13 +19,14 @@ file (GLOB_RECURSE MOC_HEADERS src/*.h)
 file (GLOB_RECURSE UIS src/ui/*.ui)
 
 if (WIN32)
+    # Do not show Console
     set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
     add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
 else()
     add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
 endif()
  
-#target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
+target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
 
 # Copy required dll's.
 # Note that the two ImageMagick files are copied twice.  This is to allow the tester to run from VS as well as 
