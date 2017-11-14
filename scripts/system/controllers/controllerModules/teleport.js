@@ -449,6 +449,8 @@ Script.include("/~/system/libraries/controllers.js");
 
     function cleanup() {
         teleportMapping.disable();
+        leftTeleporter.cleanup();
+        rightTeleporter.cleanup();
         disableDispatcherModule("LeftTeleporter");
         disableDispatcherModule("RightTeleporter");
     }
