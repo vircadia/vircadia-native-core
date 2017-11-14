@@ -5,7 +5,7 @@ project(${TARGET_NAME})
 SET(CMAKE_AUTOUIC ON) 
 SET(CMAKE_AUTOMOC ON) 
 
-setup_hifi_library(Core Widgets)
+setup_hifi_project(Core Widgets)
 link_hifi_libraries()
 
 # Qt includes
