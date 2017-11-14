@@ -23,7 +23,7 @@ class BloomConfig : public render::Task::Config {
 
 public:
 
-    BloomConfig() : render::Task::Config(true) {}
+    BloomConfig() : render::Task::Config(false) {}
 
     float size{ 0.8f };
 
