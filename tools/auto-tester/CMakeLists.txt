@@ -1,11 +1,14 @@
 set(TARGET_NAME auto-tester)
-setup_hifi_library(Gui Widgets)
+project(${TARGET_NAME})
 
 # Automatically run UIC and MOC.  This replaces the older WRAP macros
 SET(CMAKE_AUTOUIC ON) 
 SET(CMAKE_AUTOMOC ON) 
 
+setup_hifi_project(Widgets)
 link_hifi_libraries()
+
+set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -16,10 +19,9 @@ file (GLOB_RECURSE MOC_HEADERS src/*.h)
 file (GLOB_RECURSE UIS src/ui/*.ui)
 
 if (WIN32)
-    set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
-    add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
+  add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
 else()
-    add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
+  add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
 endif()
  
 target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
