@@ -318,7 +318,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     }
 
     float expectedUpdateCost = _avgRenderableUpdateCost * _renderablesToUpdate.size();
-    const float MAX_UPDATE_RENDERABLES_TIME_BUDGET = 2 * USECS_PER_MSEC;
     if (expectedUpdateCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET) {
         // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
@@ -367,7 +366,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
             // compute remaining time budget
             uint64_t updateStart = usecTimestampNow();
-            const uint64_t MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET = 1 * USECS_PER_MSEC;
             uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
             uint64_t sortCost = updateStart - sortStart;
             if (sortCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
