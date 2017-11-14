@@ -341,7 +341,9 @@ void Web3DOverlay::hoverEnterOverlay(const PointerEvent& event) {
     if (_inputMode == Mouse) {
         handlePointerEvent(event);
     } else if (_webSurface) {
-        _webSurface->hoverBeginEvent(event, _touchDevice);
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverBeginEvent(webEvent, _touchDevice);
     }
 }
 
@@ -354,7 +356,9 @@ void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
         PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
         handlePointerEvent(endMoveEvent);
     } else if (_webSurface) {
-        _webSurface->hoverEndEvent(event, _touchDevice);
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverEndEvent(webEvent, _touchDevice);
     }
 }
 
