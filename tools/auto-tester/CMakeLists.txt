@@ -1,5 +1,6 @@
 set(TARGET_NAME auto-tester)
 project(${TARGET_NAME})
+setup_hifi_library(Gui Widgets)
 
 # Automatically run UIC and MOC.  This replaces the older WRAP macros
 SET(CMAKE_AUTOUIC ON) 
@@ -10,8 +11,6 @@ link_hifi_libraries()
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-find_package(Qt5Widgets)
 
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
