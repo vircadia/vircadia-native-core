@@ -260,16 +260,23 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         const auto farClip = args->getViewFrustum().getFarClip();
         const auto nearDepth = -args->_boomOffset.z;
 
-        static const float SHADOW_MAX_DISTANCE = 30.0f;
-        static const float CASCADE_LEVEL_SCALE = 2.0f;
-        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(CASCADE_LEVEL_SCALE, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
-        float minCascadeDistance = maxCascadeDistance / CASCADE_LEVEL_SCALE;
-        float shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
+        static const float HIGH_CASCADE_MAX_DISTANCE = 20.0f;
+        float maxCascadeDistance = HIGH_CASCADE_MAX_DISTANCE;
+        float minCascadeDistance = nearClip;
+        float shadowOverlapDistance = 0.0f;
 
+        if (globalShadow->getCascadeCount() > 1) {
+            static const float LOW_CASCADE_MAX_DISTANCE = 2.0f;
+            const float cascadeLevelScale = powf(HIGH_CASCADE_MAX_DISTANCE / LOW_CASCADE_MAX_DISTANCE, 1.0f / (globalShadow->getCascadeCount() - 1));
+
+            maxCascadeDistance = HIGH_CASCADE_MAX_DISTANCE / powf(cascadeLevelScale, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
+            minCascadeDistance = maxCascadeDistance / cascadeLevelScale;
+        }
+
+        shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
+        maxCascadeDistance += shadowOverlapDistance;
         if (_cascadeIndex == 0) {
             minCascadeDistance = nearDepth;
-        } else {
-            minCascadeDistance -= shadowOverlapDistance;
         }
         minCascadeDistance = std::max(minCascadeDistance, nearDepth);
         maxCascadeDistance = std::min(maxCascadeDistance, farClip);

@@ -497,7 +497,6 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryId);
 
-
         batch.setResourceTexture(Albedo, nullptr);
         batch.setResourceTexture(Normal, nullptr);
         batch.setResourceTexture(Specular, nullptr);

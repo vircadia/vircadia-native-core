@@ -43,10 +43,9 @@ float getShadowBias(int cascadeIndex) {
 
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
-	float bias = -getShadowBias(cascadeIndex);
-
 	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
-	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
+	float bias = getShadowBias(cascadeIndex);
+	return vec4(shadowCoord.xy, shadowCoord.z  - bias, 1.0);
 }
 
 int getFirstValidShadowTexcoord(vec4 cascadeShadowCoords[4]) {
