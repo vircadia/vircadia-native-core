@@ -28,7 +28,7 @@ void main(void) {
 
     vec4 viewPos = vec4(frag.position.xyz, 1.0);
     vec4 worldPos = getViewInverse() * viewPos;
-    float shadowAttenuation = evalShadowAttenuation(worldPos, viewPos);
+    float shadowAttenuation = evalShadowAttenuation(worldPos, -viewPos.z);
 
     // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT) {

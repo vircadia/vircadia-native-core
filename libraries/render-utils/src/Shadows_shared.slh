@@ -13,8 +13,8 @@ struct ShadowTransform {
 	MAT4 reprojection;
 
 	float bias;
-    float minDistance;
     float maxDistance;
+    float invTransitionWidth;
     float _padding;
 };
 

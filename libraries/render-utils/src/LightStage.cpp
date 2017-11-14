@@ -21,7 +21,7 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.0, 0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0 };
-const unsigned int LightStage::SUN_SHADOW_CASCADE_COUNT{ 3 };
+const unsigned int LightStage::SUN_SHADOW_CASCADE_COUNT{ 4 };
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
@@ -58,10 +58,11 @@ LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount)
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                            float viewMinShadowDistance, float viewMaxShadowDistance, 
+                                            float viewMinShadowDistance, float viewMaxShadowDistance, float viewOverlapDistance,
                                             float nearDepth, float farDepth) {
     assert(viewMinShadowDistance < viewMaxShadowDistance);
     assert(nearDepth < farDepth);
+    assert(viewOverlapDistance > 0.0f);
     assert(cascadeIndex < _cascades.size());
 
     // Orient the keylight frustum
@@ -124,7 +125,7 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     // Update the buffer
     auto& schemaCascade = _schemaBuffer.edit<Schema>().cascades[cascadeIndex];
     schemaCascade.reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
-    schemaCascade.minDistance = viewMinShadowDistance;
+    schemaCascade.invTransitionWidth = 1.0f / viewOverlapDistance;
     schemaCascade.maxDistance = viewMaxShadowDistance;
     cascade.minDistance = viewMinShadowDistance;
     cascade.maxDistance = viewMaxShadowDistance;

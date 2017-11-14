@@ -225,7 +225,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
      // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, deferredFrameTransform));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,

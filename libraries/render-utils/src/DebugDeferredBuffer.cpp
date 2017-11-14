@@ -38,7 +38,7 @@ void DebugDeferredBufferConfig::setMode(int newMode) {
     emit dirty();
 }
 
-enum Slot {
+enum TextureSlot {
     Albedo = 0,
     Normal,
     Specular,
@@ -55,7 +55,11 @@ enum Slot {
     AmbientOcclusionBlurred
 };
 
-
+enum ParamSlot {
+    CameraCorrection = 0,
+    DeferredFrameTransform,
+    ShadowTransform
+};
 
 static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
@@ -147,7 +151,7 @@ static const std::string DEFAULT_SHADOW_SHADER{
 };
 
 static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
-    "vec3 cascadeColors[4] = vec3[4]( vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(0,0,0) );"
+    "vec3 cascadeColors[4] = vec3[4]( vec3(0,1,0), vec3(0,0,1), vec3(1,0,0), vec3(0,0,0) );"
     "vec4 getFragmentColor() {"
     "    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();"
     "    DeferredFragment frag = unpackDeferredFragment(deferredTransform, uv);"
@@ -160,7 +164,7 @@ static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
     "       evalShadowTexcoord(3, worldPosition)"
     "    );"
     "    ivec2 cascadeIndices;"
-    "    float cascadeMix = evalCascadeIndicesAndMix(viewPosition, cascadeShadowCoords, cascadeIndices);"
+    "    float cascadeMix = evalCascadeIndicesAndMix(-viewPosition.z, cascadeShadowCoords, cascadeIndices);"
     "    return vec4(mix(cascadeColors[cascadeIndices.x], cascadeColors[cascadeIndices.y], cascadeMix), 1.0);"
     " }"
 };
@@ -378,6 +382,10 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         const auto program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("cameraCorrectionBuffer", CameraCorrection));
+        slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", DeferredFrameTransform));
+        slotBindings.insert(gpu::Shader::Binding("shadowTransformBuffer", ShadowTransform));
+
         slotBindings.insert(gpu::Shader::Binding("albedoMap", Albedo));
         slotBindings.insert(gpu::Shader::Binding("normalMap", Normal));
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
@@ -429,6 +437,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
     auto& ambientOcclusionFramebuffer = inputs.get3();
+    auto& frameTransform = inputs.get4();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -465,11 +474,9 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             const auto cascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
-            const auto shadowBufferLoc = pipeline->getProgram()->getUniformBuffers().findLocation("shadowTransformBuffer");
             batch.setResourceTexture(Shadow, globalShadow->getCascade(cascadeIndex).map);
-            if (shadowBufferLoc >= 0) {
-                batch.setUniformBuffer(shadowBufferLoc, globalShadow->getBuffer());
-            }
+            batch.setUniformBuffer(ShadowTransform, globalShadow->getBuffer());
+            batch.setUniformBuffer(DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         }
 
         if (linearDepthTarget) {
