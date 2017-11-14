@@ -11,18 +11,16 @@ link_hifi_libraries()
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
 file (GLOB_RECURSE MOC_HEADERS src/*.h)
 file (GLOB_RECURSE UIS src/ui/*.ui)
 
 if (WIN32)
-  add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
+    set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
+    add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
 else()
-  add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
+    add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
 endif()
  
 target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
