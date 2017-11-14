@@ -10,8 +10,7 @@ link_hifi_libraries()
 
 set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
 
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Widgets REQUIRED)
+include_directories(${Qt5Core_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
 
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
