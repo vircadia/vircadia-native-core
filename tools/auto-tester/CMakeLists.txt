@@ -11,18 +11,8 @@ link_hifi_libraries()
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-find_package(Qt5Core)
-find_package(Qt5Widgets)
-
-# Add the include directories for the Qt 5 Widgets module to
-# the compile lines.
-include_directories(${Qt5Core_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
-
-# Use the compile definitions defined in the Qt 5 Widgets module
-add_definitions(${Qt5Widgets_DEFINITIONS})
-
-# Add compiler flags for building executables (-fPIE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 # Find all sources files
 file (GLOB_RECURSE SOURCES src/*.cpp)
