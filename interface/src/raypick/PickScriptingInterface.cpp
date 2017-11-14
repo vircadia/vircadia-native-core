@@ -105,7 +105,12 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
         filter = PickFilter(propMap["filter"].toUInt());
     }
 
-    return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(filter, side, enabled));
+    float maxDistance = 0.0f;
+    if (propMap["maxDistance"].isValid()) {
+        maxDistance = propMap["maxDistance"].toFloat();
+    }
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {

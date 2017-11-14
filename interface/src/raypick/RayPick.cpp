@@ -60,8 +60,7 @@ glm::vec3 RayPick::intersectRayWithXYPlane(const glm::vec3& origin, const glm::v
 glm::vec3 RayPick::intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) {
     glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
     glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
-    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
-    return intersectRayWithXYPlane(origin, direction, position, rotation, DEFAULT_REGISTRATION_POINT);
+    return intersectRayWithXYPlane(origin, direction, position, rotation, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
 }
 
 glm::vec3 RayPick::intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) {
@@ -98,8 +97,7 @@ glm::vec2 RayPick::projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::
         dimensions = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01);
     }
 
-    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT, unNormalized);
+    return projectOntoXYPlane(worldPos, position, rotation, dimensions, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT, unNormalized);
 }
 
 glm::vec2 RayPick::projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos, bool unNormalized) {
