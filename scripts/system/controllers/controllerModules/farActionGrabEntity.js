@@ -14,7 +14,7 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo
+   Picks, makeLaserLockInfo Xform
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -495,10 +495,10 @@ Script.include("/~/system/libraries/Xform.js");
                     this.distanceRotate(otherFarGrabModule);
                 }
             }
-            return this.exitIfDisabled();
+            return this.exitIfDisabled(controllerData);
         };
 
-        this.exitIfDisabled = function() {
+        this.exitIfDisabled = function(controllerData) {
             var moduleName = this.hand === RIGHT_HAND ? "RightDisableModules" : "LeftDisableModules";
             var disableModule = getEnabledModuleByName(moduleName);
             if (disableModule) {
@@ -507,13 +507,28 @@ Script.include("/~/system/libraries/Xform.js");
                     return makeRunningValues(false, [], []);
                 }
             }
-            var grabbedThing = (this.distanceHolding || this.distanceRotating) ? this.grabbedThingID : null;
-            var grabbedIsOverlay = (this.distanceHolding || this.distanceRotating) ? this.grabbedIsOverlay : false;
-            var laserLockInfo = makeLaserLockInfo(grabbedThing, grabbedIsOverlay, this.hand);
+            var grabbedThing = (this.distanceHolding || this.distanceRotating) ? this.targetObject.entityID : null;
+            var offset = this.calculateOffset(controllerData);
+            var laserLockInfo = makeLaserLockInfo(grabbedThing, false, this.hand, offset);
             return makeRunningValues(true, [], [], laserLockInfo);
         };
 
-        this.cleanup = function () {
+        this.calculateOffset = function(controllerData) {
+            if (this.distanceHolding || this.distanceRotating) {
+                var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
+                    "position",
+                    "rotation"
+                ]);
+                var zeroVector = { x: 0, y: 0, z:0, w: 0 };
+                var intersection = controllerData.rayPicks[this.hand].intersection;
+                var intersectionMat = new Xform(zeroVector, intersection);
+                var modelMat = new Xform(targetProps.rotation, targetProps.position);
+                var modelMatInv = modelMat.inv();
+                var xformMat = Xform.mul(modelMatInv, intersectionMat);
+                var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+                return offsetMat;
+            }
+            return undefined;
         };
     }
 

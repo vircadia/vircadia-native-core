@@ -130,10 +130,14 @@ Pointer = function(hudLayer, pickType, pointerData) {
 
     this.lockEnd = function(lockData) {
         if (lockData !== undefined) {
-            if (this.visible) {
+            if (this.visible && !this.locked && lockData.targetID !== null) {
                 var targetID = lockData.targetID;
                 var targetIsOverlay = lockData.isOverlay;
-                Pointers.setLockEndUUID(this.pointerID, targetID, targetIsOverlay);
+                if (lockData.offset === undefined) {
+                    Pointers.setLockEndUUID(this.pointerID, targetID, targetIsOverlay);
+                } else {
+                    Pointers.setLockEndUUID(this.pointerID, targetID, targetIsOverlay, lockData.offset);
+                }
                 this.locked = targetID;
             }
         } else if (this.locked) {

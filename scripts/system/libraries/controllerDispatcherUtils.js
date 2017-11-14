@@ -125,11 +125,12 @@ makeDispatcherModuleParameters = function (priority, activitySlots, requiredData
     };
 };
 
-makeLaserLockInfo = function(targetID, isOverlay, hand) {
+makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
     return {
         targetID: targetID,
         isOverlay: isOverlay,
-        hand: hand
+        hand: hand,
+        offset: offset
     };
 };
 
