@@ -150,7 +150,6 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
         }
 
         auto entity = qApp->getEntities()->getTree()->findEntityByEntityItemID(target);
-        // Don't interact with non-3D or invalid overlays
         if (!entity) {
             continue;
         }
