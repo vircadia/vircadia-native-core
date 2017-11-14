@@ -2234,6 +2234,10 @@ void Application::initializeUi() {
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
+    {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        tabletScriptingInterface->getTablet(SYSTEM_TABLET);
+    }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create();
 

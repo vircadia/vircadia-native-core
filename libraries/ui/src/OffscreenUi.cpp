@@ -106,6 +106,9 @@ void OffscreenUi::create() {
     myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
     myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    qRegisterMetaType<TabletProxy*>();
+    qRegisterMetaType<TabletButtonProxy*>();
+    myContext->setContextProperty("Tablets", tabletScriptingInterface.data());
     TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
     myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }

@@ -32,12 +32,65 @@ const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
 
+static QString getUsername() {
+    QString username = "Unknown user";
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        username = accountManager->getAccountInfo().getUsername();
+    } 
+    return username;
+}
 
 static Setting::Handle<QStringList> tabletSoundsButtonClick("TabletSounds", QStringList { "/sounds/Button06.wav",
                                                                                "/sounds/Button04.wav",
                                                                                "/sounds/Button07.wav",
                                                                                "/sounds/Tab01.wav",
                                                                                "/sounds/Tab02.wav" });
+
+TabletButtonListModel::TabletButtonListModel() {
+
+}
+
+TabletButtonListModel::~TabletButtonListModel() {
+
+}
+
+enum ButtonDeviceRole {
+    ButtonProxyRole = Qt::UserRole,
+};
+
+QHash<int, QByteArray> TabletButtonListModel::_roles{
+    { ButtonProxyRole, "buttonProxy" },
+};
+
+Qt::ItemFlags TabletButtonListModel::_flags{ Qt::ItemIsSelectable | Qt::ItemIsEnabled };
+
+QVariant TabletButtonListModel::data(const QModelIndex& index, int role) const {
+    if (!index.isValid() || index.row() >= rowCount() || role != ButtonProxyRole) {
+        return QVariant();
+    }
+
+    return QVariant::fromValue(_buttons.at(index.row()).data());
+}
+
+TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) {
+    auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
+    beginResetModel();
+    _buttons.push_back(tabletButtonProxy);
+    endResetModel();
+    return tabletButtonProxy.data();
+}
+
+void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
+    auto itr = std::find(_buttons.begin(), _buttons.end(), button);
+    if (itr == _buttons.end()) {
+        qCWarning(uiLogging) << "TabletProxy::removeButton() could not find button " << button;
+        return;
+    }
+    beginResetModel();
+    _buttons.erase(itr);
+    endResetModel();
+}
 
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
@@ -232,15 +285,6 @@ TabletProxy::~TabletProxy() {
     disconnect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
-QVariant TabletProxy::getButtons() {
-    Q_ASSERT(QThread::currentThread() == qApp->thread());
-    QVariantList result;
-    for (const auto& button : _tabletButtonProxies) {
-        result.push_back(QVariant::fromValue(button.data()));
-    }
-    return result;
-}
-
 void TabletProxy::setToolbarMode(bool toolbarMode) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setToolbarMode", Q_ARG(bool, toolbarMode));
@@ -256,8 +300,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (toolbarMode) {
-        addButtonsToToolbar();
-
         // create new desktop window
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());
@@ -272,11 +314,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         // forward qml surface events to interface js
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
     } else {
-        removeButtonsFromToolbar();
-
-        if (_currentPathLoaded == TABLET_HOME_SOURCE_URL) {
-            // Tablet QML now pulls buttons from Tablet proxy
-        } else {
+        if (_currentPathLoaded != TABLET_HOME_SOURCE_URL) {
             loadHomeScreen(true);
         }
         //check if running scripts window opened and save it for reopen in Tablet
@@ -290,44 +328,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-}
 
-#if 0
-static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
-    Q_ASSERT(QThread::currentThread() == qApp->thread());
-    if (buttonProxy == NULL){
-        qCCritical(uiLogging) << __FUNCTION__ << "buttonProxy is NULL";
-        return;
-    }
-
-    QVariant resultVar;
-    qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << "adding button " << buttonProxy;
-    bool hasResult = QMetaObject::invokeMethod(qmlTablet, "addButtonProxy", Qt::DirectConnection,
-                                               Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, buttonProxy->getProperties()));
-    if (!hasResult) {
-        qCWarning(uiLogging) << __FUNCTION__ << " has no result";
-        return;
-    }
-
-    QObject* qmlButton = qvariant_cast<QObject *>(resultVar);
-    if (!qmlButton) {
-        qCWarning(uiLogging) << "TabletScriptingInterface addButtonProxyToQmlTablet result not a QObject";
-        return;
-    }
-    QObject::connect(qmlButton, SIGNAL(clicked()), buttonProxy, SLOT(clickedSlot()));
-    buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
-}
-#endif
-
-
-static QString getUsername() {
-    QString username = "Unknown user";
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (accountManager->isLoggedIn()) {
-        return accountManager->getAccountInfo().getUsername();
-    } else {
-        return "Unknown user";
-    }
+    emit toolbarModeChanged();
 }
 
 void TabletProxy::initialScreen(const QVariant& url) {
@@ -702,20 +704,7 @@ TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
         return result;
     }
 
-    auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
-    _tabletButtonProxies.push_back(tabletButtonProxy);
-    if (!_toolbarMode && _qmlTabletRoot) {
-        // Tablet now pulls buttons from the tablet proxy
-        // FIXME emit a signal so that the tablet can refresh buttons if they change
-    } else if (_toolbarMode) {
-        auto toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
-        if (toolbarProxy) {
-            // copy properties from tablet button proxy to toolbar button proxy.
-            auto toolbarButtonProxy = toolbarProxy->addButton(tabletButtonProxy->getProperties());
-            tabletButtonProxy->setToolbarButtonProxy(toolbarButtonProxy);
-        }
-    }
-    return tabletButtonProxy.data();
+    return _buttons.addButton(properties);
 }
 
 bool TabletProxy::onHomeScreen() {
@@ -734,35 +723,7 @@ void TabletProxy::removeButton(TabletButtonProxy* tabletButtonProxy) {
         return;
     }
 
-    auto tablet = getQmlTablet();
-    if (!tablet) {
-        qCCritical(uiLogging) << "Could not find tablet in TabletRoot.qml";
-    }
-
-    QSharedPointer<TabletButtonProxy> buttonProxy; 
-    {
-        auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
-        if (iter == _tabletButtonProxies.end()) {
-            qCWarning(uiLogging) << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
-            return;
-        }
-        buttonProxy = *iter;
-        _tabletButtonProxies.erase(iter);
-    }
-    
-    if (!_toolbarMode && _qmlTabletRoot) {
-        buttonProxy->setQmlButton(nullptr);
-        if (tablet) {
-            QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getProperties()));
-        }
-    } else if (_toolbarMode) {
-        auto toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
-        // remove button from toolbarProxy
-        if (toolbarProxy) {
-            toolbarProxy->removeButton(buttonProxy->getUuid().toString());
-            buttonProxy->setToolbarButtonProxy(nullptr);
-        }
-    }
+    _buttons.removeButton(tabletButtonProxy);
 }
 
 void TabletProxy::emitScriptEvent(const QVariant& msg) {
@@ -801,27 +762,6 @@ void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();
 }
 
-void TabletProxy::addButtonsToToolbar() {
-    Q_ASSERT(QThread::currentThread() == thread());
-    ToolbarProxy* toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
-    for (auto& buttonProxy : _tabletButtonProxies) {
-        // copy properties from tablet button proxy to toolbar button proxy.
-        buttonProxy->setToolbarButtonProxy(toolbarProxy->addButton(buttonProxy->getProperties()));
-    }
-
-    // make the toolbar visible
-    toolbarProxy->writeProperty("visible", QVariant(true));
-}
-
-void TabletProxy::removeButtonsFromToolbar() {
-    Q_ASSERT(QThread::currentThread() == thread());
-    ToolbarProxy* toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
-    for (auto& buttonProxy : _tabletButtonProxies) {
-        // remove button from toolbarProxy
-        toolbarProxy->removeButton(buttonProxy->getUuid().toString());
-        buttonProxy->setToolbarButtonProxy(nullptr);
-    }
-}
 
 QQuickItem* TabletProxy::getQmlTablet() const {
     if (!_qmlTabletRoot) {
@@ -891,25 +831,6 @@ TabletButtonProxy::~TabletButtonProxy() {
     }
 }
 
-void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
-    Q_ASSERT(QThread::currentThread() == qApp->thread());
-    if (_qmlButton) {
-        QObject::disconnect(_qmlButton, &QQuickItem::destroyed, this, nullptr);
-    }
-    _qmlButton = qmlButton;
-    if (_qmlButton) {
-        QObject::connect(_qmlButton, &QQuickItem::destroyed, this, [this] { _qmlButton = nullptr; });
-    }
-}
-
-void TabletButtonProxy::setToolbarButtonProxy(QObject* toolbarButtonProxy) {
-    Q_ASSERT(QThread::currentThread() == thread());
-    _toolbarButtonProxy = toolbarButtonProxy;
-    if (_toolbarButtonProxy) {
-        QObject::connect(_toolbarButtonProxy, SIGNAL(clicked()), this, SLOT(clickedSlot()));
-    }
-}
-
 QVariantMap TabletButtonProxy::getProperties() {
     if (QThread::currentThread() != thread()) {
         QVariantMap result;
@@ -926,20 +847,19 @@ void TabletButtonProxy::editProperties(const QVariantMap& properties) {
         return;
     }
 
+    bool changed = false;
     QVariantMap::const_iterator iter = properties.constBegin();
     while (iter != properties.constEnd()) {
         const auto& key = iter.key();
         const auto& value = iter.value();
         if (!_properties.contains(key) || _properties[key] != value) {
-            _properties[iter.key()] = iter.value();
-            if (_qmlButton) {
-                QMetaObject::invokeMethod(_qmlButton, "changeProperty", Qt::AutoConnection, Q_ARG(QVariant, QVariant(iter.key())), Q_ARG(QVariant, iter.value()));
-            }
+            _properties[key] = value;
+            changed = true;
         }
         ++iter;
     }
 
-    if (_toolbarButtonProxy) {
-        QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariantMap, properties));
+    if (changed) {
+        emit propertiesChanged();
     }
 }
