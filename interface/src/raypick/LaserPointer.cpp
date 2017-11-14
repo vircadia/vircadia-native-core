@@ -158,8 +158,6 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         }
     }
     
-    float avatarScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getAvatarScale();
-
     QVariant end = vec3toVariant(endVec);
     if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
@@ -168,7 +166,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
         if (_scaleWithAvatar) {
-            pathProps.insert("lineWidth", renderState.getLineWidth() * avatarScale);
+            pathProps.insert("lineWidth", renderState.getLineWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale());
         }
         qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
