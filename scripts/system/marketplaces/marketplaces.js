@@ -187,13 +187,6 @@
     }
 
     function rezEntity(itemHref, isWearable) {
-        if (!isWearable &&
-            (!Entities.canRez() && !Entities.canRezTmp() &&
-            !Entities.canRezCertified() && !Entities.canRezTmpCertified())) {
-            Window.notifyEditError("You do not have the necessary permissions to place items on this domain.");
-            return;
-        }
-
         var success = Clipboard.importEntities(itemHref);
 
         if (success) {
