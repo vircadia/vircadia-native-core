@@ -163,11 +163,8 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
                 }
             }
         }
-    }
 
-    if (_hover) {
-        // send hoverEnd events if we disable the pointer, disable hovering, or actually stop hovering over an object
-        if ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover) || (hoveredObject.type == NONE && _prevHoveredObject.type != NONE)) {
+        if (hoveredObject.type == NONE) {
             if (_prevHoveredObject.type == ENTITY) {
                 emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
             } else if (_prevHoveredObject.type == OVERLAY) {
@@ -175,6 +172,17 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
             } else if (_prevHoveredObject.type == HUD) {
                 emit pointerManager->hoverEndHUD(hoveredEvent);
             }
+        }
+    }
+
+    // send hoverEnd events if we disable the pointer or disable hovering
+    if (_hover && (!_enabled && _prevEnabled) || (!doHover && _prevDoHover)) {
+        if (_prevHoveredObject.type == ENTITY) {
+            emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+        } else if (_prevHoveredObject.type == OVERLAY) {
+            emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
+        } else if (_prevHoveredObject.type == HUD) {
+            emit pointerManager->hoverEndHUD(hoveredEvent);
         }
     }
 

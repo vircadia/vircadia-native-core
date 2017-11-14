@@ -1031,6 +1031,7 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
         touchEvent.setTarget(_rootItem);
         touchEvent.setTouchPoints(touchPoints);
         touchEvent.setTouchPointStates(touchPointStates);
+        touchEvent.ignore();
     }
 
     // Send mouse events to the surface so that HTML dialog elements work with mouse press and hover.
@@ -1046,29 +1047,39 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
         buttons |= Qt::LeftButton;
     }
 
-    bool eventsAccepted = false;
+    bool eventSent = false;
+    bool eventsAccepted = true;
 
     if (event.getType() == PointerEvent::Move) {
         QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
         // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
         // need to investigate into why this crash is happening.
         //_qmlContext->setContextProperty("lastMousePosition", windowPoint);
-        QCoreApplication::sendEvent(_quickWindow, &mouseEvent);
-        eventsAccepted &= mouseEvent.isAccepted();
+        mouseEvent.ignore();
+        if (QCoreApplication::sendEvent(_quickWindow, &mouseEvent)) {
+            eventSent = true;
+            eventsAccepted &= mouseEvent.isAccepted();
+        }
     }
 
     if (touchType == QEvent::TouchBegin) {
         _touchBeginAccepted = QCoreApplication::sendEvent(_quickWindow, &touchEvent);
+        if (_touchBeginAccepted) {
+            eventSent = true;
+            eventsAccepted &= touchEvent.isAccepted();
+        }
     } else if (_touchBeginAccepted) {
-        QCoreApplication::sendEvent(_quickWindow, &touchEvent);
+        if (QCoreApplication::sendEvent(_quickWindow, &touchEvent)) {
+            eventSent = true;
+            eventsAccepted &= touchEvent.isAccepted();
+        }
     }
-    eventsAccepted &= touchEvent.isAccepted();
 
     if (removeTouchPoint) {
         _activeTouchPoints.erase(event.getID());
     }
 
-    return eventsAccepted;
+    return eventSent && eventsAccepted;
 }
 
 void OffscreenQmlSurface::pause() {
