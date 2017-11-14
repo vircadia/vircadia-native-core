@@ -113,12 +113,13 @@ namespace render {
     // Keep items belonging to the job selection
     class SelectItems {
     public:
-        using Inputs = VaryingSet2<ItemBounds, ItemBounds>;
+        using Inputs = VaryingSet3<ItemBounds, ItemBounds, std::string>;
         using JobModel = Job::ModelIO<SelectItems, Inputs, ItemBounds>;
         
         std::string _name;
+        SelectItems() {}
         SelectItems(const Selection::Name& name) : _name(name) {}
-        
+
         void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 

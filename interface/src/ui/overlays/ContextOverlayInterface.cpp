@@ -38,8 +38,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
-    _selectionToSceneHandler.initialize("contextOverlayHighlightList");
-
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
@@ -66,17 +64,31 @@ ContextOverlayInterface::ContextOverlayInterface() {
         }
     });
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-
     connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
+    {
+        render::Transaction transaction;
+        initializeSelectionToSceneHandler(_selectionToSceneHandlers[0], "contextOverlayHighlightList", transaction);
+        for (auto i = 1; i < MAX_SELECTION_COUNT; i++) {
+            auto selectionName = QString("highlightList") + QString::number(i);
+            initializeSelectionToSceneHandler(_selectionToSceneHandlers[i], selectionName, transaction);
+        }
+        const render::ScenePointer& scene = qApp->getMain3DScene();
+        scene->enqueueTransaction(transaction);
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
+}
+
+void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction) {
+    handler.initialize(selectionName);
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &handler, &SelectionToSceneHandler::selectedItemsListChanged);
+    transaction.resetSelectionHighlight(selectionName.toStdString());
 }
 
 static const uint32_t MOUSE_HW_ID = 0;

@@ -68,8 +68,8 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         _dirty = true;
     } 
     
-    const bool wantDebug = false;
-    if (wantDebug && !success) {
+    #ifdef WANT_DEBUG
+    if (!success) {
         qCDebug(octree) << "OctreePacketData::append(const unsigned char* data, int length) FAILING....";
         qCDebug(octree) << "    length=" << length;
         qCDebug(octree) << "    _bytesAvailable=" << _bytesAvailable;
@@ -77,6 +77,7 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         qCDebug(octree) << "    _targetSize=" << _targetSize;
         qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
     }
+    #endif
     return success;
 }
 
@@ -645,6 +646,13 @@ void OctreePacketData::debugContent() {
         }
     }
     printf("\n");
+}
+
+void OctreePacketData::debugBytes() {
+    qCDebug(octree) << "    _bytesAvailable=" << _bytesAvailable;
+    qCDebug(octree) << "    _bytesInUse=" << _bytesInUse;
+    qCDebug(octree) << "    _targetSize=" << _targetSize;
+    qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 

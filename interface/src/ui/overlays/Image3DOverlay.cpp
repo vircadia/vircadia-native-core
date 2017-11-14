@@ -60,7 +60,7 @@ void Image3DOverlay::update(float deltatime) {
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
+    if (!_renderVisible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
         return;
     }
 

@@ -71,6 +71,12 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
     return false;
 }
 
+bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
+    _selectedItemsListMap.insert(listName, GameplayObjects());
+    emit selectedItemsListChanged(listName);
+    return true;
+}
+
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
     GameplayObjects currentList = _selectedItemsListMap.value(listName);
     currentList.addToGameplayObjects(idToAdd);
