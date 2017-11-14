@@ -13,7 +13,6 @@
 
 #include <PathUtils.h>
 
-
 QTEST_MAIN(PathUtilsTests)
 
 void PathUtilsTests::testPathUtils() {
