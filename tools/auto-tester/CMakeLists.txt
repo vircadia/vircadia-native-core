@@ -8,8 +8,6 @@ SET(CMAKE_AUTOMOC ON)
 setup_hifi_project(Widgets)
 link_hifi_libraries()
 
-set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
-
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
