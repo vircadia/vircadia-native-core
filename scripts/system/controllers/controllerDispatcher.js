@@ -416,7 +416,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             hand: RIGHT_HAND
         });
         this.leftHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
-            joint: "_CONTROLLER_LEFTHAND",
+            joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
@@ -426,7 +426,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             hand: LEFT_HAND
         });
         this.rightHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
-            joint: "_CONTROLLER_RIGHTHAND",
+            joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
