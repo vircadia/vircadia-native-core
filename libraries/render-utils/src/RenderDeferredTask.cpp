@@ -44,8 +44,6 @@
 #include "DrawHaze.h"
 #include "HighlightEffect.h"
 
-#include <gpu/StandardShaderLib.h>
-
 #include <sstream>
 
 using namespace render;
@@ -193,13 +191,18 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
-    { // DEbug the bounds of the rendered items, still look at the zbuffer
+    { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums");
+        const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
+        const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_FRUSTUM);
+        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(1.0f, 1.0f, 0.0f));
+        task.addJob<DrawFrustum>("DrawShadowFrustum", shadowFrustum, glm::vec3(0.0f, 0.0f, 1.0f));
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
@@ -532,3 +535,32 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
+void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Output& output) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    RenderArgs* args = renderContext->args;
+
+    // Return view frustum
+    auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
+    if (!viewFrustum) {
+        viewFrustum = std::make_shared<ViewFrustum>(args->getViewFrustum());
+    } else {
+        *viewFrustum = args->getViewFrustum();
+    }
+
+    // Return shadow frustum
+    auto& shadowFrustum = output[SHADOW_FRUSTUM].edit<ViewFrustumPointer>();
+    auto lightStage = args->_scene->getStage<LightStage>(LightStage::getName());
+    if (lightStage) {
+        auto globalShadow = lightStage->getCurrentKeyShadow();
+
+        if (globalShadow) {
+            shadowFrustum = globalShadow->getFrustum();
+        } else {
+            shadowFrustum.reset();
+        }
+    } else {
+        shadowFrustum.reset();
+    }
+}
