@@ -727,7 +727,7 @@ void DebugLightClusters::run(const render::RenderContextPointer& renderContext, 
     batch.setModelTransform(Transform());
 
     // Bind the Light CLuster data strucutre
-    batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->_lightArrayBuffer);
+    batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->getLightArrayBuffer());
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
     batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);

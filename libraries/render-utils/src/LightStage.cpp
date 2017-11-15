@@ -25,11 +25,17 @@ LightStage::Shadow::Schema::Schema() :
 
 }
 
+gpu::FramebufferPointer LightStage::Shadow::framebuffer;
+gpu::TexturePointer LightStage::Shadow::map;
+
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
-    framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
-    map = framebuffer->getDepthStencilBuffer();
     Schema schema;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+
+    if (!framebuffer) {
+        framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
+        map = framebuffer->getDepthStencilBuffer();
+    }
 }
 
 void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, 
@@ -122,11 +128,9 @@ LightStage::Index LightStage::findLight(const LightPointer& light) const {
     } else {
         return (*found).second;
     }
-
 }
 
 LightStage::Index LightStage::addLight(const LightPointer& light) {
-
     auto found = _lightMap.find(light);
     if (found == _lightMap.end()) {
         auto lightId = _lights.newElement(light);
@@ -137,6 +141,7 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
             if (lightId >= (Index) _descs.size()) {
                 _descs.emplace_back(Desc());
             } else {
+                assert(_descs[lightId].shadowId == INVALID_INDEX);
                 _descs.emplace(_descs.begin() + lightId, Desc());
             }
 
@@ -155,6 +160,7 @@ LightStage::Index LightStage::addShadow(Index lightIndex) {
     auto light = getLight(lightIndex);
     Index shadowId = INVALID_INDEX;
     if (light) {
+        assert(_descs[lightIndex].shadowId == INVALID_INDEX);
         shadowId = _shadows.newElement(std::make_shared<Shadow>(light));
         _descs[lightIndex].shadowId = shadowId;
     }
@@ -162,18 +168,20 @@ LightStage::Index LightStage::addShadow(Index lightIndex) {
 }
 
 LightStage::LightPointer LightStage::removeLight(Index index) {
-    LightPointer removed = _lights.freeElement(index);
-    
-    if (removed) {
+    LightPointer removedLight = _lights.freeElement(index);
+    if (removedLight) {
         auto shadowId = _descs[index].shadowId;
         // Remove shadow if one exists for this light
         if (shadowId != INVALID_INDEX) {
-            _shadows.freeElement(shadowId);
+            auto removedShadow = _shadows.freeElement(shadowId);
+            assert(removedShadow);
+            assert(removedShadow->getLight() == removedLight);
         }
-        _lightMap.erase(removed);
+        _lightMap.erase(removedLight);
         _descs[index] = Desc();
     }
-    return removed;
+    assert(_descs.size() <= index || _descs[index].shadowId == INVALID_INDEX);
+    return removedLight;
 }
 
 LightStage::LightPointer LightStage::getCurrentKeyLight() const {
@@ -197,7 +205,9 @@ LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
     if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
-    return getShadow(keyLightId);
+    auto shadow = getShadow(keyLightId);
+    assert(shadow == nullptr || shadow->getLight() == getLight(keyLightId));
+    return shadow;
 }
 
 LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
@@ -205,7 +215,18 @@ LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
     if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
-    return LightAndShadow(getLight(keyLightId), getShadow(keyLightId));
+    auto shadow = getShadow(keyLightId);
+    auto light = getLight(keyLightId);
+    assert(shadow == nullptr || shadow->getLight() == light);
+    return LightAndShadow(light, shadow);
+}
+
+LightStage::Index LightStage::getShadowId(Index lightId) const {
+    if (checkLightId(lightId)) {
+        return _descs[lightId].shadowId;
+    } else {
+        return INVALID_INDEX;
+    }
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {
