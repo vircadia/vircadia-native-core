@@ -9,7 +9,7 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick.Controls 2.2
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import "../controls-uit"
@@ -145,24 +145,30 @@ ModalWindow {
                 margins: 0
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
-            Button { action: cancelAction }
-            Button { action: acceptAction }
+            Button {
+                action: cancelAction;
+                text: qsTr("Cancel");
+            }
+
+            Button {
+                action: acceptAction
+                text: qsTr("OK");
+            }
         }
 
-        Action {
+        Shortcut {
             id: cancelAction
-            text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
-            onTriggered: {
+            sequence: Qt.Key_Escape
+            onActivated: {
                 root.canceled();
                 root.destroy();
             }
         }
-        Action {
+
+        Shortcut {
             id: acceptAction
-            text: qsTr("OK")
-            shortcut: Qt.Key_Return
-            onTriggered: {
+            sequence: Qt.Key_Return
+            onActivated: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
                 root.destroy();

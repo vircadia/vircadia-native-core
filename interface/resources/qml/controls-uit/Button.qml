@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 2.2 as Original
 import TabletScriptingInterface 1.0
 
@@ -22,7 +22,7 @@ Original.Button {
     property string buttonGlyph: "";
 
     //TODO: add real Action item. Backport from Qt 5.10
-    property QtObject action: null
+    property Shortcut action: null
 
     width: 120
     height: hifi.dimensions.controlLineHeight
@@ -37,6 +37,9 @@ Original.Button {
 
     onClicked: {
         tabletInterface.playSound(TabletEnums.ButtonClick);
+        if (action !== null) {
+            action.activated()
+        }
     }
 
     background: Rectangle {
