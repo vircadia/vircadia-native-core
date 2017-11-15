@@ -90,9 +90,9 @@ void render::depthSortItems(const RenderContextPointer& renderContext, bool fron
         }
         for (auto& item : itemBoundSorts) {
             if (item._id != previousID) {
-                *bounds += item._bounds;
                 outItems.emplace_back(ItemBound(item._id, item._bounds));
                 previousID = item._id;
+                *bounds += item._bounds;
             }
         }
     }
@@ -150,11 +150,7 @@ void DepthSortShapesAndComputeBounds::run(const RenderContextPointer& renderCont
         AABox bounds;
 
         depthSortItems(renderContext, _frontToBack, inItems, outItems->second, &bounds);
-        if (!outBounds.isNull()) {
-            outBounds += bounds;
-        } else {
-            outBounds = bounds;
-        }
+        outBounds += bounds;
     }
 }
 

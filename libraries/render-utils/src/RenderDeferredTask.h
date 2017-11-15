@@ -170,38 +170,20 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
-class DrawFrustumsConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(bool isFrozen MEMBER isFrozen NOTIFY dirty)
+class ExtractFrustums {
 public:
 
-    DrawFrustumsConfig(bool enabled = false) : JobConfig(enabled) {}
+    enum Frustum {
+        VIEW_FRUSTUM,
+        SHADOW_FRUSTUM,
 
-    bool isFrozen{ false };
-signals:
-    void dirty();
+        FRUSTUM_COUNT
+    };
 
-};
+    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
 
-class DrawFrustums {
-public:
-    using Config = DrawFrustumsConfig;
-    using JobModel = render::Job::Model<DrawFrustums, Config>;
-
-    void configure(const Config& configuration);
-    void run(const render::RenderContextPointer& renderContext);
-
-private:
-
-    bool _updateFrustums{ true };
-    gpu::PipelinePointer _pipeline;
-    gpu::BufferView _frustumMeshIndices;
-    gpu::BufferView _viewFrustumMeshVertices;
-    gpu::BufferView _shadowFrustumMeshVertices;
-    gpu::BufferStream _viewFrustumMeshStream;
-    gpu::BufferStream _shadowFrustumMeshStream;
-
-    static void updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 };
 
 class RenderDeferredTaskConfig : public render::Task::Config {

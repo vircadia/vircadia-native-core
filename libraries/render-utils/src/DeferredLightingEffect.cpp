@@ -620,7 +620,7 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
             // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
 
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
