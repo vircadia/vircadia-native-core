@@ -15,7 +15,7 @@
 #include "Engine.h"
 
 namespace render {
-    void depthSortItems(const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
+    void depthSortItems(const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems, AABox* bounds = nullptr);
 
     class PipelineSortShapes {
     public:
@@ -31,6 +31,17 @@ namespace render {
         DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
         void run(const RenderContextPointer& renderContext, const ShapeBounds& inShapes, ShapeBounds& outShapes);
+    };
+
+    class DepthSortShapesAndComputeBounds {
+    public:
+        using Outputs = VaryingSet2<ShapeBounds, AABox>;
+        using JobModel = Job::ModelIO<DepthSortShapesAndComputeBounds, ShapeBounds, Outputs>;
+
+        bool _frontToBack;
+        DepthSortShapesAndComputeBounds(bool frontToBack = true) : _frontToBack(frontToBack) {}
+
+        void run(const RenderContextPointer& renderContext, const ShapeBounds& inShapes, Outputs& outputs);
     };
 
     class DepthSortItems {
