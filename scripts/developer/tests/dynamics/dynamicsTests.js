@@ -11,7 +11,7 @@
 
 "use strict";
 
-/* global Entities, Script, Tablets, MyAvatar, Vec3 */
+/* global Entities, Script, Tablet, MyAvatar, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
 

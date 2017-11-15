@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Script, Settings, Window, Controller, Overlays, SoundArray, LODManager, MyAvatar, Tablets, Camera, HMD, Menu, Quat, Vec3*/
+/*global Script, Settings, Window, Controller, Overlays, SoundArray, LODManager, MyAvatar, Tablet, Camera, HMD, Menu, Quat, Vec3*/
 //
 //  notifications.js
 //  Version 0.801

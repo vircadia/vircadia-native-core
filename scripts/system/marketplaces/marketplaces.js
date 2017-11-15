@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Tablets, Script, HMD, UserActivityLogger, Entities */
+/* global Tablet, Script, HMD, UserActivityLogger, Entities */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () { // BEGIN LOCAL_SCOPE

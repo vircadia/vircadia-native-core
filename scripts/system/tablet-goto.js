@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Window, Script, Tablets, HMD, Controller, Account, XMLHttpRequest, location, print*/
+/*global Window, Script, Tablet, HMD, Controller, Account, XMLHttpRequest, location, print*/
 
 //
 //  goto.js

@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablets, Script,  */
+/*global Tablet, Script,  */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // spectatorCamera.js

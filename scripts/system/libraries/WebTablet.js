@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, Tablets, WebTablet:true, HMD, Settings, Script,
+/* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
    Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4, resizeTablet */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));

@@ -11,7 +11,7 @@
 // Adds a button to the tablet that will switch to a web page.
 // This web page contains buttons that will use the event bridge to trigger sounds.
 
-/* globals Tablets */
+/* globals Tablet */
 
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

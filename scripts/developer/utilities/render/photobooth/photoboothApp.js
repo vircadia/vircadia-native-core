@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* globals Tablets, Toolbars, Script, HMD, Controller, Menu */
+/* globals Tablet, Toolbars, Script, HMD, Controller, Menu */
 (function () {
     var SNAPSHOT_DELAY = 500; // 500ms
     var PHOTOBOOTH_WINDOW_HTML_URL = Script.resolvePath("./html/photobooth.html");
