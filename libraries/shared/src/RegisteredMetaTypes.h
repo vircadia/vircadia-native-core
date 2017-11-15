@@ -129,7 +129,7 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
  * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
  * mouse click or intersect a laser beam.
  *
- * @typedef PickRay
+ * @typedef {object} PickRay
  * @property {Vec3} origin - The starting position of the PickRay.
  * @property {Quat} direction - The direction that the PickRay travels.
  */

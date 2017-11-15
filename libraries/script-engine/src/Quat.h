@@ -23,7 +23,7 @@
 /**jsdoc
  * A Quaternion
  *
- * @typedef Quat
+ * @typedef {object} Quat
  * @property {float} x imaginary component i.
  * @property {float} y imaginary component j.
  * @property {float} z imaginary component k.

@@ -56,7 +56,7 @@ QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuIt
  * If none of <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> are specified, 
  * the menu item will be placed at the end of the menu.
  *
- * @typedef {Object} Menu.MenuItemProperties
+ * @typedef {object} Menu.MenuItemProperties
  * @property {string} menuName Name of the menu. Nested menus can be described using the ">" symbol.
  * @property {string} menuItemName Name of the menu item.
  * @property {boolean} [isCheckable=false] Whether or not the menu item is checkable.
