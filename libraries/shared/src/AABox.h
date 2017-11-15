@@ -127,10 +127,11 @@ public:
 
     AABox getOctreeChild(OctreeChild child) const; // returns the AABox of the would be octree child of this AABox
 
+    glm::vec4 getPlane(BoxFace face) const;
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
-    glm::vec4 getPlane(BoxFace face) const;
 
     static BoxFace getOppositeFace(BoxFace face);
 

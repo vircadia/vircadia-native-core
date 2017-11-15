@@ -170,6 +170,22 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class ExtractFrustums {
+public:
+
+    enum Frustum {
+        VIEW_FRUSTUM,
+        SHADOW_FRUSTUM,
+
+        FRUSTUM_COUNT
+    };
+
+    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+};
+
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
         Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)

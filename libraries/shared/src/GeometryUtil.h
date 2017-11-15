@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+class Plane;
+
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
 
 /// Computes the penetration between a point and a sphere (centered at the origin)
@@ -109,6 +111,8 @@ inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3
     return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance, allowBackface);
 }
 
+int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle* clippedTriangles, int maxClippedTriangleCount);
+int clipTriangleWithPlanes(const Triangle& triangle, const Plane* planes, int planeCount, Triangle* clippedTriangles, int maxClippedTriangleCount);
 
 bool doLineSegmentsIntersect(glm::vec2 r1p1, glm::vec2 r1p2, glm::vec2 r2p1, glm::vec2 r2p2);
 bool isOnSegment(float xi, float yi, float xj, float yj, float xk, float yk);

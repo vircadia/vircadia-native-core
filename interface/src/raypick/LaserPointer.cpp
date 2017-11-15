@@ -14,12 +14,12 @@
 #include "avatar/AvatarManager.h"
 
 #include <DependencyManager.h>
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 #include "PickScriptingInterface.h"
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
-        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled) :
+        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled, hover),
     _triggers(triggers),
     _renderStates(renderStates),
@@ -27,7 +27,8 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
-    _distanceScaleEnd(distanceScaleEnd)
+    _distanceScaleEnd(distanceScaleEnd),
+    _scaleWithAvatar(scaleWithAvatar)
 {
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -72,6 +73,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
         QVariant endDim = endProps.toMap()["dimensions"];
         if (endDim.isValid()) {
             _renderStates[state].setEndDim(vec3FromVariant(endDim));
+        }
+        QVariant lineWidth = pathProps.toMap()["lineWidth"];
+        if (lineWidth.isValid()) {
+            _renderStates[state].setLineWidth(lineWidth.toFloat());
         }
     });
 }
@@ -127,6 +132,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             }
         }
     }
+    
     QVariant end = vec3toVariant(endVec);
     if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
@@ -134,6 +140,9 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         pathProps.insert("end", end);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
+        if (_scaleWithAvatar) {
+            pathProps.insert("lineWidth", renderState.getLineWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale());
+        }
         qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
     if (!renderState.getEndID().isNull()) {
@@ -141,7 +150,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
         glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
         if (_distanceScaleEnd) {
-            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec) * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec);
             endProps.insert("dimensions", vec3toVariant(dim));
         }
         if (_centerEndY) {
@@ -185,8 +194,8 @@ void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
 
     IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
     if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-        (type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
-        PickRay pickRay{ rayPickResult->pickVariant };
+            (type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
+        PickRay pickRay(rayPickResult->pickVariant);
         QUuid uid = rayPickResult->objectID;
         float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
         updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
@@ -242,6 +251,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     }
     if (!_pathID.isNull()) {
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
+        _lineWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
     }
     if (!_endID.isNull()) {
         _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
@@ -293,85 +303,33 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     return RenderState(startID, pathID, endID);
 }
 
-PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const {
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
     QUuid pickedID;
     glm::vec3 intersection, surfaceNormal, direction, origin;
-    if (target.type != NONE) {
-        auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+    auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+    if (rayPickResult) {
         intersection = rayPickResult->intersection;
         surfaceNormal = rayPickResult->surfaceNormal;
         const QVariantMap& searchRay = rayPickResult->pickVariant;
         direction = vec3FromVariant(searchRay["direction"]);
         origin = vec3FromVariant(searchRay["origin"]);
-        pickedID = rayPickResult->objectID;;
+        pickedID = rayPickResult->objectID;
     }
 
     glm::vec2 pos2D;
     if (pickedID != target.objectID) {
         if (target.type == ENTITY) {
-            intersection = intersectRayWithEntityXYPlane(target.objectID, origin, direction);
+            intersection = RayPick::intersectRayWithEntityXYPlane(target.objectID, origin, direction);
         } else if (target.type == OVERLAY) {
-            intersection = intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
+            intersection = RayPick::intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
         }
     }
     if (target.type == ENTITY) {
-        pos2D = projectOntoEntityXYPlane(target.objectID, intersection);
+        pos2D = RayPick::projectOntoEntityXYPlane(target.objectID, intersection);
     } else if (target.type == OVERLAY) {
-        pos2D = projectOntoOverlayXYPlane(target.objectID, intersection);
+        pos2D = RayPick::projectOntoOverlayXYPlane(target.objectID, intersection);
     } else if (target.type == HUD) {
         pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
     }
     return PointerEvent(pos2D, intersection, surfaceNormal, direction);
-}
-
-glm::vec3 LaserPointer::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const {
-    glm::vec3 n = rotation * Vectors::FRONT;
-    float t = glm::dot(n, point - origin) / glm::dot(n, direction);
-    return origin + t * direction;
-}
-
-glm::vec3 LaserPointer::intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) const {
-    glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
-    glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
-    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
-    return intersectRayWithXYPlane(origin, direction, position, rotation, DEFAULT_REGISTRATION_POINT);
-}
-
-glm::vec3 LaserPointer::intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) const {
-    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
-    return intersectRayWithXYPlane(origin, direction, props.getPosition(), props.getRotation(), props.getRegistrationPoint());
-}
-
-glm::vec2 LaserPointer::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const {
-    glm::quat invRot = glm::inverse(rotation);
-    glm::vec3 localPos = invRot * (worldPos - position);
-    glm::vec3 invDimensions = glm::vec3(1.0f / dimensions.x, 1.0f / dimensions.y, 1.0f / dimensions.z);
-
-    glm::vec3 normalizedPos = (localPos * invDimensions) + registrationPoint;
-    return glm::vec2(normalizedPos.x * dimensions.x, (1.0f - normalizedPos.y) * dimensions.y);
-}
-
-glm::vec2 LaserPointer::projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos) const {
-    glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
-    glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
-    glm::vec3 dimensions;
-
-    float dpi = qApp->getOverlays().getProperty(overlayID, "dpi").value.toFloat();
-    if (dpi > 0) {
-        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
-        glm::vec3 resolution = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "resolution").value), 1);
-        glm::vec3 scale = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01f);
-        const float INCHES_TO_METERS = 1.0f / 39.3701f;
-        dimensions = (resolution * INCHES_TO_METERS / dpi) * scale;
-    } else {
-        dimensions = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01);
-    }
-
-    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
-}
-
-glm::vec2 LaserPointer::projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos) const {
-    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
-    return projectOntoXYPlane(worldPos, props.getPosition(), props.getRotation(), props.getDimensions(), props.getRegistrationPoint());
 }

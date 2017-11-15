@@ -16,8 +16,8 @@
 
 #include "ui/overlays/Overlay.h"
 
-#include <pointers/Pointer.h>
-#include <pointers/Pick.h>
+#include <Pointer.h>
+#include <Pick.h>
 
 struct LockEndObject {
     QUuid id { QUuid() };
@@ -41,6 +41,9 @@ public:
     void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
     const glm::vec3& getEndDim() const { return _endDim; }
 
+    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
+    const float& getLineWidth() const { return _lineWidth; }
+
     void deleteOverlays();
 
 private:
@@ -52,6 +55,7 @@ private:
     bool _endIgnoreRays;
 
     glm::vec3 _endDim;
+    float _lineWidth;
 };
 
 class LaserPointer : public Pointer {
@@ -61,7 +65,7 @@ public:
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
-        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled);
+        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
     ~LaserPointer();
 
     void setRenderState(const std::string& state) override;
@@ -76,13 +80,13 @@ public:
     static RenderState buildRenderState(const QVariantMap& propMap);
 
 protected:
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
 
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
     Pointer::Buttons getPressedButtons() override;
 
-    bool shouldHover() override { return _currentRenderState != ""; }
-    bool shouldTrigger() override { return _currentRenderState != ""; }
+    bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
+    bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
 
 private:
     PointerTriggers _triggers;
@@ -94,19 +98,12 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
+    bool _scaleWithAvatar;
     LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
     void disableRenderState(const RenderState& renderState);
-
-
-    glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) const;
-    glm::vec3 intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) const;
-    glm::vec3 intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const;
-    glm::vec2 projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos) const;
-    glm::vec2 projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos) const;
-    glm::vec2 projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const;
 
 };
 
