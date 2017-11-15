@@ -394,7 +394,7 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     rootContext->setContextProperty("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
     TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
-    myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+    engine->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {
