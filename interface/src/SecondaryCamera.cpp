@@ -51,63 +51,48 @@ public:
         _farClipPlaneDistance = config.farClipPlaneDistance;
         _textureWidth = config.textureWidth;
         _textureHeight = config.textureHeight;
-        _mirrorProjection = config.mirrorProjection;
+        _mirrorProjection = config.mirrorProjection;  
     }
 
     void setMirrorProjection(ViewFrustum& srcViewFrustum) {
         if (_attachedEntityId.isNull()) {
+            qDebug() << "ERROR: Cannot set mirror projection for SecondaryCamera without an attachedEntityId set.";
             return;
         }
-
-        glm::vec3 mainCamPos = qApp->getCamera().getPosition();
-
+       
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, _attachedEntityPropertyFlags);
         glm::vec3 mirrorPropsPos = entityProperties.getPosition();
         glm::quat mirrorPropsRot = entityProperties.getRotation();
         glm::vec3 mirrorPropsDim = entityProperties.getDimensions();
 
-        // get mirrored camera's position and rotation reflected about the mirror plane
-        glm::vec3 mirrorLocalPos = mirrorPropsRot * glm::vec3(0.f, 0.f, 0.f);
-        glm::vec3 mirrorWorldPos = mirrorPropsPos + mirrorLocalPos;
-        glm::vec3 mirrorToHeadVec = mainCamPos - mirrorWorldPos;
-        glm::vec3 zLocalVecNormalized = mirrorPropsRot * Vectors::UNIT_Z;
-        float distanceFromMirror = glm::dot(zLocalVecNormalized, mirrorToHeadVec);
-        glm::vec3 eyePos = mainCamPos - (2.f * distanceFromMirror * zLocalVecNormalized);
-        glm::quat eyeOrientation = glm::inverse(glm::lookAt(eyePos, mirrorWorldPos, mirrorPropsRot * Vectors::UP));
-        srcViewFrustum.setPosition(eyePos);
-        srcViewFrustum.setOrientation(eyeOrientation);
-
-        // setup world from mirrored camera transformation matrix
-        glm::mat4 worldFromEyeRot = glm::mat4_cast(eyeOrientation);
-        glm::mat4 worldFromEyeTrans = glm::translate(eyePos);
-        glm::mat4 worldFromEye = worldFromEyeTrans * worldFromEyeRot;
-
-        // setup mirror from world inverse of world from mirror transformation matrices
+        // setup mirror from world as inverse of world from mirror transformation using inverted x and z to mirror
         glm::mat4 worldFromMirrorRot = glm::mat4_cast(mirrorPropsRot) * glm::scale(vec3(-1.f, 1.f, -1.f));
-        glm::mat4 worldFromMirrorTrans = glm::translate(mirrorWorldPos);
+        glm::mat4 worldFromMirrorTrans = glm::translate(mirrorPropsPos);
         glm::mat4 worldFromMirror = worldFromMirrorTrans * worldFromMirrorRot;
         glm::mat4 mirrorFromWorld = glm::inverse(worldFromMirror);
 
-        glm::mat4 mirrorFromEye = mirrorFromWorld * worldFromEye;
-        glm::vec4 mirrorCenterPos = vec4(mirrorFromEye[3]);
-        mirrorFromEye[3] = vec4(0.f, 0.f, 0.f, 1.f);
+        // get mirror cam position by reflecting main cam position's z coord in mirror space
+        glm::vec3 mainCamPosWorld = qApp->getCamera().getPosition();
+        glm::vec3 mainCamPosMirror = vec3(mirrorFromWorld * vec4(mainCamPosWorld, 1.f));
+        glm::vec3 mirrorCamPosMirror = vec3(mainCamPosMirror.x, mainCamPosMirror.y, -mainCamPosMirror.z);
+        glm::vec3 mirrorCamPosWorld = vec3(worldFromMirror * vec4(mirrorCamPosMirror, 1.f));
 
-        float n = mirrorCenterPos.z + mirrorPropsDim.z * 2.f;
+        // set frustum position to be mirrored camera and set orientation to mirror's adjusted rotation
+        glm::vec3 eyePos = mirrorCamPosWorld;
+        glm::quat eyeOri = glm::quat_cast(worldFromMirrorRot);
+        srcViewFrustum.setPosition(eyePos);
+        srcViewFrustum.setOrientation(eyeOri);
+
+        // build frustum using mirror space translation of mirrored camera
+        float n = mirrorCamPosMirror.z + mirrorPropsDim.z * 2.f;
         float f = _farClipPlaneDistance;
-        float r = -mirrorCenterPos.x + mirrorPropsDim.x / 2.f;
-        float l = -mirrorCenterPos.x - mirrorPropsDim.x / 2.f;
-        float t = mirrorCenterPos.y + mirrorPropsDim.y / 2.f;
-        float b = mirrorCenterPos.y - mirrorPropsDim.y / 2.f;
+        float r = -mirrorCamPosMirror.x + mirrorPropsDim.x / 2.f;
+        float l = -mirrorCamPosMirror.x - mirrorPropsDim.x / 2.f;
+        float t = -mirrorCamPosMirror.y + mirrorPropsDim.y / 2.f;
+        float b = -mirrorCamPosMirror.y - mirrorPropsDim.y / 2.f;
 
         glm::mat4 frustum = glm::frustum(l, r, b, t, n, f);
-        glm::mat4 projection = frustum * mirrorFromEye;
-        srcViewFrustum.setProjection(projection);
-
-        glm::vec3 mirrorCenterPos3World = transformPoint(worldFromMirror, glm::vec3(mirrorCenterPos));
-        qDebug() << "mirrorCenterPos3World  " << mirrorCenterPos3World.x << " , " << mirrorCenterPos3World.y << " , " << mirrorCenterPos3World.z;
-        qDebug() << "mirrorWorldPos  " << mirrorWorldPos.x << " , " << mirrorWorldPos.y << " , " << mirrorWorldPos.z;
-        DebugDraw::getInstance().drawRay(mirrorCenterPos3World, mirrorCenterPos3World + glm::vec3(0.f, 5.f, 0.f), glm::vec4(0.f, 1.f, 0.f, 1.f)); // green
-        DebugDraw::getInstance().drawRay(mirrorWorldPos, mirrorWorldPos + glm::vec3(0.f, 5.f, 0.f), glm::vec4(1.f, 0.5f, 0.f, 1.f)); // orange
+        srcViewFrustum.setProjection(frustum);
     }
 
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
@@ -131,7 +116,7 @@ public:
             });
 
             auto srcViewFrustum = args->getViewFrustum();
-            if (_mirrorProjection && !_attachedEntityId.isNull()) {
+            if (_mirrorProjection) {
                 setMirrorProjection(srcViewFrustum);
             } else {
                 if (!_attachedEntityId.isNull()) {
@@ -150,15 +135,6 @@ public:
             srcViewFrustum.calculate();
             args->pushViewFrustum(srcViewFrustum);
             cachedArgs = _cachedArgsPointer;
-
-            glm::vec3 dirNorm = glm::normalize(srcViewFrustum.getDirection());
-            glm::vec3 nearPos = srcViewFrustum.getPosition() + dirNorm * srcViewFrustum.getNearClip();
-
-            DebugDraw::getInstance().drawRay(srcViewFrustum.getPosition(), srcViewFrustum.getPosition() + dirNorm * srcViewFrustum.getNearClip(), glm::vec4(1.f, 0.f, 0.f, 1.f)); // red
-            DebugDraw::getInstance().drawRay(nearPos, nearPos + srcViewFrustum.getRight(), glm::vec4(0.f, 0.f, 1.f, 1.f)); // blue
-            DebugDraw::getInstance().drawRay(nearPos, nearPos + srcViewFrustum.getUp(), glm::vec4(0.5f, 0.f, 1.f, 1.f)); // purple
-
-            srcViewFrustum.printDebugDetails();
         }
     }
 
