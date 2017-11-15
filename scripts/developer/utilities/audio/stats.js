@@ -10,7 +10,7 @@
 //
 
 if (HMD.active && !Settings.getValue("HUDUIEnabled")) {
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var qml = Script.resolvePath("TabletStats.qml");
     tablet.loadQMLSource(qml);
     Script.stop();

@@ -30,7 +30,7 @@
     var shouldActivateButton = false;
     function ignore() { }
 
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var NORMAL_ICON    = "icons/tablet-icons/goto-i.svg";
     var NORMAL_ACTIVE  = "icons/tablet-icons/goto-a.svg";
     var WAITING_ICON   = "icons/tablet-icons/goto-msg.svg";

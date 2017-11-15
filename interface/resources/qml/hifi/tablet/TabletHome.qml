@@ -9,7 +9,7 @@ import "../audio" as HifiAudio
 Item {
     id: tablet
     objectName: "tablet"
-    property var tabletProxy: Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
     
     Rectangle {
         id: bgTopBar

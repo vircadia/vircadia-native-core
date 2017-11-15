@@ -16,7 +16,7 @@
     var MODEL_BOUNDING_BOX_DIMENSIONS = {x: 1.0174,y: 1.1925,z: 1.0165};
     var PhotoBooth = {};
     var photoboothCreated = false;
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/snap-i.svg",
         text: "PHOTOBOOTH"

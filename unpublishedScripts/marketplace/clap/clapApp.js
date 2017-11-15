@@ -16,7 +16,7 @@
 // Load up engine
 var APP_NAME = "CLAP";
 var ClapEngine = Script.require(Script.resolvePath("scripts/ClapEngine.js?v9"));
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 // Define Menu
 var blackIcon = Script.resolvePath("icons/tablet-icons/clap-a.svg?foxv2");

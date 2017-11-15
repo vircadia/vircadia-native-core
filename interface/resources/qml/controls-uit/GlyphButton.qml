@@ -27,12 +27,12 @@ Original.Button {
 
     onHoveredChanged: {
         if (hovered) {
-            Tablets.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
 
     onClicked: {
-        Tablets.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     style: ButtonStyle {

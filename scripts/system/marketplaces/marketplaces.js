@@ -81,7 +81,7 @@
         }
     }
 
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var marketplaceButton = tablet.addButton({
         icon: "icons/tablet-icons/market-i.svg",
         activeIcon: "icons/tablet-icons/market-a.svg",

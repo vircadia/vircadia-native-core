@@ -81,7 +81,7 @@ function endGodView() {
 }
 
 var button;
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 function onClicked() {
     if (godView) {

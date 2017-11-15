@@ -677,7 +677,7 @@ var buttonName = "PEOPLE";
 var tablet = null;
 
 function startup() {
-    tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
         icon: "icons/tablet-icons/people-i.svg",

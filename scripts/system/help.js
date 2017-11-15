@@ -17,7 +17,7 @@
     var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     var buttonName = "HELP";
     var onHelpScreen = false;
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/help-i.svg",
         activeIcon: "icons/tablet-icons/help-a.svg",

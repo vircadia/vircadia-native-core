@@ -17,7 +17,7 @@
     var scopePaused = AudioScope.getPause();
     var autoPause = false;
 
-    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var showScopeButton = tablet.addButton({
         icon: "icons/tablet-icons/scope.svg",
         text: "Audio Scope",

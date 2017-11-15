@@ -414,7 +414,7 @@
     }
 
     function setUp() {
-        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
         }

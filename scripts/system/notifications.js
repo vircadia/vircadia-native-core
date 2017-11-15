@@ -696,7 +696,7 @@
     Window.announcement.connect(onNotify);
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
-    Tablets.tabletNotification.connect(tabletNotification);
+    Tablet.tabletNotification.connect(tabletNotification);
     Wallet.walletNotSetup.connect(walletNotSetup);
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);

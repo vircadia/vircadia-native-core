@@ -25,13 +25,13 @@ Preference {
         id: button
         onHoveredChanged: {
             if (hovered) {
-                Tablets.playSound(TabletEnums.ButtonHover);
+                Tablet.playSound(TabletEnums.ButtonHover);
             }
         }
 
         onClicked: {
             preference.trigger();
-            Tablets.playSound(TabletEnums.ButtonClick);
+            Tablet.playSound(TabletEnums.ButtonClick);
         }
         width: 180
         anchors.bottom: parent.bottom

@@ -54,7 +54,7 @@ function onScreenChanged(type, url) {
     button.editProperties({isActive: onAudioScreen});
 }
 
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: Audio.muted ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
     activeIcon: Audio.muted ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,

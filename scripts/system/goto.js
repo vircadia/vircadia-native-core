@@ -37,7 +37,7 @@ if (Settings.getValue("HUDUIEnabled")) {
         alpha: 0.9
     });
 } else {
-    tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         icon: "icons/tablet-icons/goto-i.svg",
         activeIcon: "icons/tablet-icons/goto-a.svg",

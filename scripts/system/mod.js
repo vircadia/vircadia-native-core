@@ -18,7 +18,7 @@
 Script.include("/~/system/libraries/controllers.js");
 
 // grab the toolbar
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 var ASSETS_PATH = Script.resolvePath("assets");
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");

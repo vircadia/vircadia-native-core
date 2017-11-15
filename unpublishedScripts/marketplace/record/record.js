@@ -631,7 +631,7 @@
     }
 
     function setUp() {
-        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
         }
@@ -694,7 +694,7 @@
     }
 
     // FIXME: If setUp() is run immediately at Interface start-up, Interface hangs and crashes because of the line of code:
-    //     tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    //     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     //setUp();
     //Script.scriptEnding.connect(tearDown);
     Script.setTimeout(function () {

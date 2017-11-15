@@ -33,7 +33,7 @@
 
     function checkTablet() {
         if (gTablet === null) {
-            gTablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         }
     }
 
@@ -315,7 +315,7 @@
     Script.scriptEnding.connect(function () {
 
         // if we reload scripts in tablet mode make sure we close the currently open window, by calling gotoHomeScreen
-        var tabletProxy = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (tabletProxy && tabletProxy.toolbarMode) {
             tabletProxy.gotoHomeScreen();
         }

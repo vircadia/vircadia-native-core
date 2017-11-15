@@ -38,7 +38,7 @@ function updateControllerDisplay() {
 }
 
 var button;
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 // Independent and Entity mode make people sick; disable them in hmd.
 var desktopOnlyViews = ['Independent Mode', 'Entity Mode'];

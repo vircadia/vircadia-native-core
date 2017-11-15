@@ -26,7 +26,7 @@
         APP_URL = APP_OUTDATED_URL;
     }
 
-	var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 	var button = tablet.addButton({
 	    icon: APP_ICON,
         activeIcon: APP_ICON_ACTIVE,

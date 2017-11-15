@@ -82,7 +82,7 @@ function toggleMarketplace() {
     }
 }
 
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 var browseExamplesButton = tablet.addButton({
     icon: "icons/tablet-icons/market-i.svg",

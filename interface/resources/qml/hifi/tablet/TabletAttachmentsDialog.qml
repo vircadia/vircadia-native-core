@@ -37,7 +37,7 @@ Item {
     }
 
     function closeDialog() {
-        Tablets.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
+        Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
     }
 
     anchors.topMargin: hifi.dimensions.tabletMenuHeader  // Space for header.

@@ -45,7 +45,7 @@ OriginalDesktop.Desktop {
     Toolbar {
         id: sysToolbar;
         objectName: "com.highfidelity.interface.toolbar.system";
-        property var tablet: Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        property var tablet: Tablet.getTablet("com.highfidelity.interface.tablet.system");
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x

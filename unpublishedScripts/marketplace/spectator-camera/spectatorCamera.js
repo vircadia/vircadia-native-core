@@ -188,7 +188,7 @@
     //   -tablet: The tablet instance to be modified.
     var tablet = null;
     function startup() {
-        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(onDomainChanged);

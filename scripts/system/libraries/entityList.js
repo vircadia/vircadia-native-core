@@ -15,7 +15,7 @@ EntityListTool = function(opts) {
     var that = {};
 
     var webView = null;
-    webView = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     webView.setVisible = function(value) {};
 
     var filterInView = false;

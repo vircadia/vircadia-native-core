@@ -22,7 +22,7 @@ var clearOverlayWhenMoving;
 var buttonName = "SNAP";
 var buttonConnected = false;
 
-var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: "icons/tablet-icons/snap-i.svg",
     activeIcon: "icons/tablet-icons/snap-a.svg",

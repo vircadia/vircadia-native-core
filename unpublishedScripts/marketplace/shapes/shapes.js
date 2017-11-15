@@ -1930,7 +1930,7 @@
     function setUp() {
         var hasRezPermissions;
 
-        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             App.log("ERROR: Tablet not found! App not started.");
             return;

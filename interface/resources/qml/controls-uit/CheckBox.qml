@@ -31,12 +31,12 @@ Original.CheckBox {
     activeFocusOnPress: true
 
     onClicked: {
-        Tablets.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
 // TODO: doesnt works for QQC1. check with QQC2
 //    onHovered: {
-//        Tablets.playSound(TabletEnums.ButtonHover);
+//        Tablet.playSound(TabletEnums.ButtonHover);
 //    }
 
     style: CheckBoxStyle {

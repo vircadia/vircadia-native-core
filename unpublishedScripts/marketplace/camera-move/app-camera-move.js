@@ -162,7 +162,7 @@ var globalState = {
 function main() {
     log('initializing...', VERSION);
 
-    var tablet = Tablets.getTablet('com.highfidelity.interface.tablet.system'),
+    var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
         button = tablet.addButton(BUTTON_CONFIG);
 
     Script.scriptEnding.connect(function() {
@@ -601,7 +601,7 @@ function _patchCameraModeSetting() {
 }
 
 function getSystemMetadata() {
-    var tablet = Tablets.getTablet('com.highfidelity.interface.tablet.system');
+    var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system');
     return {
         mode: {
             hmd: HMD.active,

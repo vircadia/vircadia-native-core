@@ -56,7 +56,7 @@ Item {
     }
 
     function closeDialog() {
-        var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
         if (gotoPreviousApp) {
             tablet.returnToPreviousApp();
@@ -206,7 +206,7 @@ Item {
     }
 
     Component.onCompleted: {
-        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         keyboardEnabled = HMD.active;
     }
 
