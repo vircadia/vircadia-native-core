@@ -35,7 +35,7 @@ class SecondaryCameraJobConfig : public render::Task::Config { // Exposes second
     Q_PROPERTY(float vFoV MEMBER vFoV NOTIFY dirty)  // Secondary camera's vertical field of view. In degrees.
     Q_PROPERTY(float nearClipPlaneDistance MEMBER nearClipPlaneDistance NOTIFY dirty)  // Secondary camera's near clip plane distance. In meters.
     Q_PROPERTY(float farClipPlaneDistance MEMBER farClipPlaneDistance NOTIFY dirty)  // Secondary camera's far clip plane distance. In meters.
-    Q_PROPERTY(bool mirrorProjection MEMBER mirrorProjection NOTIFY dirty)  // Flag to apply oblique near-plane clipping using perspective projection from attached mirror entity 
+    Q_PROPERTY(bool mirrorProjection MEMBER mirrorProjection NOTIFY dirty)  // Flag to use attached mirror entity to build frustum for the mirror and set mirrored camera position/orientation.
 public:
     QUuid attachedEntityId;
     glm::vec3 position;

@@ -14,9 +14,7 @@
 #include <TextureCache.h>
 #include <gpu/Context.h>
 #include <EntityScriptingInterface.h>
-#include <EntityTree.h>
 #include <glm/gtx/transform.hpp>
-#include <DebugDraw.h>
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
@@ -65,13 +63,13 @@ public:
         glm::quat mirrorPropsRot = entityProperties.getRotation();
         glm::vec3 mirrorPropsDim = entityProperties.getDimensions();
 
-        // setup mirror from world as inverse of world from mirror transformation using inverted x and z to mirror
+        // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
         glm::mat4 worldFromMirrorRot = glm::mat4_cast(mirrorPropsRot) * glm::scale(vec3(-1.f, 1.f, -1.f));
         glm::mat4 worldFromMirrorTrans = glm::translate(mirrorPropsPos);
         glm::mat4 worldFromMirror = worldFromMirrorTrans * worldFromMirrorRot;
         glm::mat4 mirrorFromWorld = glm::inverse(worldFromMirror);
 
-        // get mirror cam position by reflecting main cam position's z coord in mirror space
+        // get mirror camera position by reflecting main camera position's z coordinate in mirror space
         glm::vec3 mainCamPosWorld = qApp->getCamera().getPosition();
         glm::vec3 mainCamPosMirror = vec3(mirrorFromWorld * vec4(mainCamPosWorld, 1.f));
         glm::vec3 mirrorCamPosMirror = vec3(mainCamPosMirror.x, mainCamPosMirror.y, -mainCamPosMirror.z);
