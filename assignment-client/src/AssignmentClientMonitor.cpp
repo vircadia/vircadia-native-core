@@ -29,7 +29,7 @@ const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor
 const int WAIT_FOR_CHILD_MSECS = 1000;
 
 #ifdef Q_OS_WIN
-HANDLE JOB_OBJECT = createJobObject();
+HANDLE PROCESS_GROUP = createProcessGroup();
 #endif
 
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
@@ -207,7 +207,7 @@ void AssignmentClientMonitor::spawnChildClient() {
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
 #ifdef Q_OS_WIN
-    addProcessToJobObject(JOB_OBJECT, assignmentClient->processId());
+    addProcessToGroup(PROCESS_GROUP, assignmentClient->processId());
 #endif
 
     QString stdoutPath, stderrPath;

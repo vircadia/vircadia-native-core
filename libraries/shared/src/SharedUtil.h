@@ -240,8 +240,8 @@ void watchParentProcess(int parentPID);
 
 
 #ifdef Q_OS_WIN
-void* createJobObject();
-void addProcessToJobObject(void* jobObject, qint64 processId);
+void* createProcessGroup();
+void addProcessToGroup(void* processGroup, qint64 processId);
 #endif
 
 #endif // hifi_SharedUtil_h

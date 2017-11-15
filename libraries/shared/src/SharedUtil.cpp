@@ -1124,7 +1124,7 @@ QString getLastErrorAsString() {
 
     LPSTR messageBuffer = nullptr;
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+        nullptr, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, nullptr);
 
     auto message = QString::fromLocal8Bit(messageBuffer, (int)size);
 
@@ -1134,7 +1134,8 @@ QString getLastErrorAsString() {
     return message;
 }
 
-void* createJobObject() {
+// All processes in the group will shut down with the process creating the group
+void* createProcessGroup() {
     HANDLE jobObject = CreateJobObject(nullptr, nullptr);
     if (jobObject == nullptr) {
         qWarning() << "Could NOT create job object:" << getLastErrorAsString();
@@ -1155,12 +1156,12 @@ void* createJobObject() {
     return jobObject;
 }
 
-void addProcessToJobObject(void *jobObject, qint64 processId) {
+void addProcessToGroup(void* processGroup, qint64 processId) {
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
     if (hProcess == nullptr) {
         qCritical() << "Could NOT open process" << getLastErrorAsString();
     }
-    if (!AssignProcessToJobObject(jobObject, hProcess)) {
+    if (!AssignProcessToJobObject(processGroup, hProcess)) {
         qCritical() << "Could NOT assign process to job object" << getLastErrorAsString();
     }
 }
