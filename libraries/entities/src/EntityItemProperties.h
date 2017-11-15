@@ -262,8 +262,8 @@ public:
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
 
-    static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                       QByteArray& buffer);
+    static OctreeElement::AppendState encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+                                       QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
 
@@ -335,6 +335,10 @@ public:
 
     QByteArray getPackedStrokeColors() const;
     QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
+
+    QByteArray getStaticCertificateJSON() const;
+    QByteArray getStaticCertificateHash() const;
+    bool verifyStaticCertificateProperties();
 
 protected:
     QString getCollisionMaskAsString() const;

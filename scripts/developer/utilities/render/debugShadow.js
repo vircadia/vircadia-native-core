@@ -1,8 +1,8 @@
 //
-//  debugOutline.js
+//  debugShadow.js
 //  developer/utilities/render
 //
-//  Olivier Prat, created on 08/08/2017.
+//  Olivier Prat, created on 10/25/2017.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,11 +10,11 @@
 //
 
 // Set up the qml ui
-var qml = Script.resolvePath('outline.qml');
+var qml = Script.resolvePath('shadow.qml');
 var window = new OverlayWindow({
-    title: 'Outline',
+    title: 'Shadow Debug',
     source: qml,
-    width: 285, 
-    height: 370,
+    width: 200, 
+    height: 90
 });
 window.closed.connect(function() { Script.stop(); });

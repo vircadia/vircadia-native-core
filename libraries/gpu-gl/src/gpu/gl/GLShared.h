@@ -110,6 +110,7 @@ static const GLenum ELEMENT_TYPE_TO_GL[gpu::NUM_TYPES] = {
     GL_SHORT,
     GL_UNSIGNED_SHORT,
     GL_BYTE,
+    GL_UNSIGNED_BYTE,
     GL_UNSIGNED_BYTE
 };
 

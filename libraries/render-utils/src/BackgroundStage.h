@@ -27,7 +27,7 @@ public:
     static const std::string& getName() { return _stageName; }
 
     using Index = render::indexed_container::Index;
-    static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
+    static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
     using BackgroundPointer = model::SunSkyStagePointer;

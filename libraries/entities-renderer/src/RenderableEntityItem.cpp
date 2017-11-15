@@ -50,7 +50,9 @@ void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
 }
 
-
+const Transform& EntityRenderer::getModelTransform() const {
+    return _modelTransform;
+}
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -291,6 +293,14 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
+}
+
+void EntityRenderer::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
 }
 
 //

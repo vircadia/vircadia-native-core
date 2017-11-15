@@ -11,9 +11,9 @@
 #include "LaserPointerManager.h"
 
 QUuid LaserPointerManager::createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
-    const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled) {
+    const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) {
     QUuid result;
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled);
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled);
     if (!laserPointer->getRayUID().isNull()) {
         result = QUuid::createUuid();
         withWriteLock([&] { _laserPointers[result] = laserPointer; });
@@ -113,9 +113,9 @@ void LaserPointerManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>
     }
 }
 
-void LaserPointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const {
+void LaserPointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) const {
     auto laserPointer = find(uid);
     if (laserPointer) {
-        laserPointer->setLockEndUUID(objectID, isOverlay);
+        laserPointer->setLockEndUUID(objectID, isOverlay, offsetMat);
     }
 }

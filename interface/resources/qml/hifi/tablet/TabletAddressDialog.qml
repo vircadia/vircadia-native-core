@@ -134,7 +134,7 @@ StackView {
             bottom: parent.bottom
         }
 
-        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
+        onHostChanged: updateLocationTextTimer.start();
         Rectangle {
             id: navBar
             width: parent.width
@@ -366,7 +366,7 @@ StackView {
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom

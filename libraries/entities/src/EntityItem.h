@@ -36,9 +36,6 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
-// FIXME: The server-side marketplace will soon create the certificateID. At that point, all of the DEBUG_CERT stuff will go away.
-#define DEBUG_CERT 1
-
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -240,6 +237,7 @@ public:
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
+    virtual bool shouldPuffQueryAACube() const override;
 
     QString getScript() const;
     void setScript(const QString& value);
@@ -272,6 +270,8 @@ public:
     void setVisible(bool value);
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
+
+    bool isChildOfMyAvatar() const;
 
     bool getCollisionless() const;
     void setCollisionless(bool value);
@@ -328,12 +328,6 @@ public:
     void setEntityInstanceNumber(const quint32&);
     QString getCertificateID() const;
     void setCertificateID(const QString& value);
-    QByteArray getStaticCertificateJSON() const;
-    QByteArray getStaticCertificateHash() const;
-    bool verifyStaticCertificateProperties();
-#ifdef DEBUG_CERT
-    QString computeCertificateID();
-#endif
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -354,20 +348,16 @@ public:
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
     void updateParentID(const QUuid& value);
-    void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
-    void updateRotationFromNetwork(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
-    void updateVelocityFromNetwork(const glm::vec3& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
-    void updateAngularVelocityFromNetwork(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateCollisionless(bool value);
     void updateCollisionMask(uint8_t value);
@@ -483,6 +473,9 @@ public:
     using ChangeHandlerId = QUuid;
     ChangeHandlerId registerChangeHandler(const ChangeHandlerCallback& handler);
     void deregisterChangeHandler(const ChangeHandlerId& changeHandlerId);
+
+    static QString _marketplacePublicKey;
+    static void retrieveMarketplacePublicKey();
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -629,12 +622,14 @@ protected:
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
+    AACube _lastUpdatedQueryAACubeValue;
 
     quint64 _lastUpdatedPositionTimestamp { 0 };
     quint64 _lastUpdatedRotationTimestamp { 0 };
     quint64 _lastUpdatedVelocityTimestamp { 0 };
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
+    quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
 };
 

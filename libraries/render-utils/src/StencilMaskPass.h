@@ -49,8 +49,8 @@ public:
 
     static void drawMask(gpu::State& state);
     static void drawBackground(gpu::State& state);
-    static void testNoAA(gpu::State& state);
     static void testMask(gpu::State& state);
+    static void testNoAA(gpu::State& state);
     static void testBackground(gpu::State& state);
     static void testShape(gpu::State& state);
     static void testMaskDrawShape(gpu::State& state);

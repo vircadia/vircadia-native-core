@@ -25,7 +25,7 @@ class LaserPointerManager : protected ReadWriteLockable {
 
 public:
     QUuid createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled);
 
     void removeLaserPointer(const QUuid& uid);
     void enableLaserPointer(const QUuid& uid) const;
@@ -39,7 +39,7 @@ public:
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
     void setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const;
 
-    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const;
+    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const;
 
     void update();
 

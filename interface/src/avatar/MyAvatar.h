@@ -619,6 +619,11 @@ signals:
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
     void sensorToWorldScaleChanged(float sensorToWorldScale);
+    void attachmentsChanged();
+    void scaleChanged();
+
+private slots:
+    void leaveDomain();
 
 private:
 
@@ -635,6 +640,8 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+
+    void saveAvatarScale();
 
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
     float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }

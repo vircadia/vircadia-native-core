@@ -40,22 +40,26 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     if (_stage) {
         if (!LightStage::isIndexInvalid(_sunIndex)) {
             _stage->removeLight(_sunIndex);
+            _sunIndex = INVALID_INDEX;
+            _shadowIndex = INVALID_INDEX;
         }
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex);
-
+            _ambientIndex = INVALID_INDEX;
         }
     }
 
     if (_backgroundStage) {
         if (!BackgroundStage::isIndexInvalid(_backgroundIndex)) {
             _backgroundStage->removeBackground(_backgroundIndex);
+            _backgroundIndex = INVALID_INDEX;
         }
     }
 
     if (_hazeStage) {
         if (!HazeStage::isIndexInvalid(_hazeIndex)) {
             _hazeStage->removeHaze(_hazeIndex);
+            _hazeIndex = INVALID_INDEX;
         }
     }
 }
@@ -112,6 +116,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
+                _shadowIndex = _stage->addShadow(_sunIndex);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }
@@ -248,7 +253,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
     }
 }
 
@@ -340,23 +346,23 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
-    haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
+    haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
     xColor hazeColor = _hazeProperties.getHazeColor();
     haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
     xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
-    haze->setDirectionalLightColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
+    haze->setHazeGlareColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
-    haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeGlareAngle()));
+    haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
 
     float hazeAltitude = _hazeProperties.getHazeCeiling() - _hazeProperties.getHazeBaseRef();
-    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
+    haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
     haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
 
-    haze->setHazeBackgroundBlendValue(_hazeProperties.getHazeBackgroundBlend());
+    haze->setHazeBackgroundBlend(_hazeProperties.getHazeBackgroundBlend());
 
     haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
-    haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
-    haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
+    haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
+    haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 
     haze->setZoneTransform(entity->getTransform().getMatrix());
 }

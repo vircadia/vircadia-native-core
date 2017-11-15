@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var SERVER = 'https://metaverse.highfidelity.com/api/v1';
+var SERVER = Account.metaverseServerURL + '/api/v1';
 
 var OVERLAY = null;
 

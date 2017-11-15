@@ -16,6 +16,40 @@
 #include "ShapeFactory.h"
 #include "BulletUtil.h"
 
+
+class StaticMeshShape : public btBvhTriangleMeshShape {
+public:
+    StaticMeshShape() = delete;
+
+    StaticMeshShape(btTriangleIndexVertexArray* dataArray)
+    :   btBvhTriangleMeshShape(dataArray, true), _dataArray(dataArray) {
+        assert(_dataArray);
+    }
+
+    ~StaticMeshShape() {
+        assert(_dataArray);
+        IndexedMeshArray& meshes = _dataArray->getIndexedMeshArray();
+        for (int32_t i = 0; i < meshes.size(); ++i) {
+            btIndexedMesh mesh = meshes[i];
+            mesh.m_numTriangles = 0;
+            delete [] mesh.m_triangleIndexBase;
+            mesh.m_triangleIndexBase = nullptr;
+            mesh.m_numVertices = 0;
+            delete [] mesh.m_vertexBase;
+            mesh.m_vertexBase = nullptr;
+        }
+        meshes.clear();
+        delete _dataArray;
+        _dataArray = nullptr;
+    }
+
+private:
+    // the StaticMeshShape owns its vertex/index data
+    btTriangleIndexVertexArray* _dataArray;
+};
+
+// the dataArray must be created before we create the StaticMeshShape
+
 // These are the same normalized directions used by the btShapeHull class.
 // 12 points for the face centers of a dodecahedron plus another 30 points
 // for the midpoints the edges, for a total of 42.
@@ -230,23 +264,6 @@ btTriangleIndexVertexArray* createStaticMeshArray(const ShapeInfo& info) {
     return dataArray;
 }
 
-// util method
-void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
-    assert(dataArray);
-    IndexedMeshArray& meshes = dataArray->getIndexedMeshArray();
-    for (int32_t i = 0; i < meshes.size(); ++i) {
-        btIndexedMesh mesh = meshes[i];
-        mesh.m_numTriangles = 0;
-        delete [] mesh.m_triangleIndexBase;
-        mesh.m_triangleIndexBase = nullptr;
-        mesh.m_numVertices = 0;
-        delete [] mesh.m_vertexBase;
-        mesh.m_vertexBase = nullptr;
-    }
-    meshes.clear();
-    delete dataArray;
-}
-
 const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
@@ -314,6 +331,7 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btCylinderShapeZ(btHalfExtents);
         }
         break;
+        case SHAPE_TYPE_CIRCLE:
         case SHAPE_TYPE_CYLINDER_Y: {
             const glm::vec3 halfExtents = info.getHalfExtents();
             const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
@@ -430,7 +448,6 @@ void ShapeFactory::deleteShape(const btCollisionShape* shape) {
     assert(shape);
     // ShapeFactory is responsible for deleting all shapes, even the const ones that are stored
     // in the ShapeManager, so we must cast to non-const here when deleting.
-    // so we cast to non-const here when deleting memory.
     btCollisionShape* nonConstShape = const_cast<btCollisionShape*>(shape);
     if (nonConstShape->getShapeType() == (int)COMPOUND_SHAPE_PROXYTYPE) {
         btCompoundShape* compoundShape = static_cast<btCompoundShape*>(nonConstShape);
@@ -446,15 +463,4 @@ void ShapeFactory::deleteShape(const btCollisionShape* shape) {
         }
     }
     delete nonConstShape;
-}
-
-// the dataArray must be created before we create the StaticMeshShape
-ShapeFactory::StaticMeshShape::StaticMeshShape(btTriangleIndexVertexArray* dataArray)
-:   btBvhTriangleMeshShape(dataArray, true), _dataArray(dataArray) {
-    assert(dataArray);
-}
-
-ShapeFactory::StaticMeshShape::~StaticMeshShape() {
-    deleteStaticMeshArray(_dataArray);
-    _dataArray = nullptr;
 }

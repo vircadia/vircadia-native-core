@@ -82,8 +82,9 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
+    Q_INVOKABLE void lowerKeyboard();
 
     using TextureAndFence = std::pair<uint32_t, void*>;
     // Checks to see if a new texture is available.  If one is, the function returns true and 

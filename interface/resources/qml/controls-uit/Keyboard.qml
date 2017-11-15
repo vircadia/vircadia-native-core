@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.0
+import QtQuick 2.7
+import QtGraphicalEffects 1.0
 import "."
 
 Rectangle {
@@ -39,6 +40,10 @@ Rectangle {
     property bool shiftMode: false
     property bool numericShiftMode: false
 
+    onRaisedChanged: {
+        mirroredText = "";
+    }
+
     function resetShiftMode(mode) {
         shiftMode = mode;
         shiftKey.resetToggledMode(mode);
@@ -51,6 +56,8 @@ Rectangle {
             return ">";
         } else if (str === "/") {
             return "?";
+        } else if (str === "-") {
+            return "_";
         } else {
             return str.toUpperCase(str);
         }
@@ -63,6 +70,8 @@ Rectangle {
             return ".";
         } else if (str === "?") {
             return "/";
+        } else if (str === "_") {
+            return "-";
         } else {
             return str.toLowerCase(str);
         }
@@ -81,7 +90,7 @@ Rectangle {
 
     onShiftModeChanged: {
         forEachKey(function (key) {
-            if (/[a-z]/i.test(key.glyph)) {
+            if (/[a-z-_]/i.test(key.glyph)) {
                 if (shiftMode) {
                     key.glyph = keyboardBase.toUpper(key.glyph);
                 } else {
@@ -108,8 +117,6 @@ Rectangle {
     }
 
     Rectangle {
-        y: 0
-        x: 0
         height: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         color: "#252525"
@@ -118,13 +125,18 @@ Rectangle {
         TextInput {
             id: mirrorText
             visible: showMirrorText
-            FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
-            font.family: ralewaySemiBold.name
-            font.pointSize: 13.5
+            FontLoader { id: font; source: "../../fonts/FiraSans-Regular.ttf"; }
+            font.family: font.name
+            font.pixelSize: 20
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
-            color: "#FFFFFF";
-            anchors.fill: parent
+            color: "#00B4EF";
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+
             wrapMode: Text.WordWrap
             readOnly: false // we need this to allow control to accept QKeyEvent
             selectByMouse: false
@@ -136,16 +148,15 @@ Rectangle {
                     event.accepted = true;
                 }
             }
-        }
 
-        MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
-            anchors.fill: parent
+            MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
+                anchors.fill: parent
+            }
         }
     }
 
     Rectangle {
         id: keyboardRect
-        x: 0
         y: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         height: raisedHeight
@@ -153,6 +164,8 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
+
+        FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
 
         Column {
             id: columnAlpha
@@ -217,7 +230,7 @@ Rectangle {
                 Key { width: 43; glyph: "b"; }
                 Key { width: 43; glyph: "n"; }
                 Key { width: 43; glyph: "m"; }
-                Key { width: 43; glyph: "_"; }
+                Key { width: 43; glyph: "-"; }
                 Key { width: 43; glyph: "/"; }
                 Key { width: 43; glyph: "?"; }
             }
@@ -236,8 +249,13 @@ Rectangle {
                 Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "\u276C"; }
-                Key { width: 43; glyph: "\u276D"; }
+                Key {
+                    fontFamily: hiFiGlyphs.name;
+                    fontPixelSize: 48;
+                    letterAnchors.topMargin: -4;
+                    verticalAlignment: Text.AlignVCenter;
+                    width: 86; glyph: "\ue02b";
+                }
             }
         }
 
@@ -324,8 +342,13 @@ Rectangle {
                 Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "\u276C"; }
-                Key { width: 43; glyph: "\u276D"; }
+                Key {
+                    fontFamily: hiFiGlyphs.name;
+                    fontPixelSize: 48;
+                    letterAnchors.topMargin: -4;
+                    verticalAlignment: Text.AlignVCenter;
+                    width: 86; glyph: "\ue02b";
+                }
             }
         }
     }
