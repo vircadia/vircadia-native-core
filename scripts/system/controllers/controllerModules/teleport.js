@@ -153,6 +153,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
+            scaleWithAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
@@ -161,6 +162,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
+            scaleWithAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates
         });
@@ -168,6 +170,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
+            scaleWithAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
@@ -176,6 +179,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
+            scaleWithAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates
         });

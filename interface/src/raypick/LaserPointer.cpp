@@ -19,7 +19,7 @@
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
-        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled) :
+        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled, hover),
     _triggers(triggers),
     _renderStates(renderStates),
@@ -27,7 +27,8 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
-    _distanceScaleEnd(distanceScaleEnd)
+    _distanceScaleEnd(distanceScaleEnd),
+    _scaleWithAvatar(scaleWithAvatar)
 {
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -72,6 +73,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
         QVariant endDim = endProps.toMap()["dimensions"];
         if (endDim.isValid()) {
             _renderStates[state].setEndDim(vec3FromVariant(endDim));
+        }
+        QVariant lineWidth = pathProps.toMap()["lineWidth"];
+        if (lineWidth.isValid()) {
+            _renderStates[state].setLineWidth(lineWidth.toFloat());
         }
     });
 }
@@ -127,6 +132,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             }
         }
     }
+    
     QVariant end = vec3toVariant(endVec);
     if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
@@ -134,6 +140,9 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         pathProps.insert("end", end);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
+        if (_scaleWithAvatar) {
+            pathProps.insert("lineWidth", renderState.getLineWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale());
+        }
         qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
     if (!renderState.getEndID().isNull()) {
@@ -141,7 +150,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
         glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
         if (_distanceScaleEnd) {
-            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec) * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec);
             endProps.insert("dimensions", vec3toVariant(dim));
         }
         if (_centerEndY) {
@@ -242,6 +251,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     }
     if (!_pathID.isNull()) {
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
+        _lineWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
     }
     if (!_endID.isNull()) {
         _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);

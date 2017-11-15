@@ -26,7 +26,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -48,7 +47,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -70,7 +68,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -87,7 +84,6 @@ Script.include("/~/system/libraries/controllers.js");
         {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
         {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
     ];
-
 
     // triggered when stylus presses a web overlay/entity
     var HAPTIC_STYLUS_STRENGTH = 1.0;
@@ -452,6 +448,7 @@ Script.include("/~/system/libraries/controllers.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
     }

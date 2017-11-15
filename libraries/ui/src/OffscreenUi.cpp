@@ -28,7 +28,7 @@
 
 #include "ui/Logging.h"
 
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {

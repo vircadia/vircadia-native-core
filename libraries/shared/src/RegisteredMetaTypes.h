@@ -128,6 +128,8 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
 // MathPicks also have to overide operator== for their type
 class MathPick {
+public:
+    virtual ~MathPick() {}
     virtual operator bool() const = 0;
     virtual QVariantMap toVariantMap() const = 0;
 };

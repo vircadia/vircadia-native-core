@@ -33,7 +33,6 @@ Script.include("/~/system/libraries/Xform.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -55,7 +54,6 @@ Script.include("/~/system/libraries/Xform.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -77,7 +75,6 @@ Script.include("/~/system/libraries/Xform.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -649,6 +646,7 @@ Script.include("/~/system/libraries/Xform.js");
             renderStates: renderStates,
             faceAvatar: true,
             distanceScaleEnd: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
     }
