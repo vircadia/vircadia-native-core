@@ -5,20 +5,27 @@ project(${TARGET_NAME})
 SET(CMAKE_AUTOUIC ON) 
 SET(CMAKE_AUTOMOC ON) 
 
-setup_hifi_project(Widgets)
+setup_hifi_project(Core Widgets)
 link_hifi_libraries()
 
-set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
+# Qt includes
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${Qt5Core_INCLUDE_DIRS})
+include_directories(${Qt5Widgets_INCLUDE_DIRS})
 
-# This is preferred to GLOB_RECURSE, as per CMake documentation
-set(SOURCES src/main.cpp src/Test.cpp src/ui/autoTester.cpp src/ui/mismatchWindow.cpp)
-set(MOC_HEADERS src/autoTester.h src/mismatchWindow.h)
-set(UIS src/ui/autoTester.ui src/ui/mismatchWindow.ui)
+set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+
+# Find all sources files
+file (GLOB_RECURSE SOURCES src/*.cpp)
+file (GLOB_RECURSE MOC_HEADERS src/*.h)
+file (GLOB_RECURSE UIS src/ui/*.ui)
 
 if (WIN32)
-  add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
+    # Do not show Console
+    set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
+    add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
 else()
-  add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
+    add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
 endif()
  
 target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})

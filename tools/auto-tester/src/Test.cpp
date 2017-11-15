@@ -30,7 +30,7 @@
 #include "Test.h"
 
 #include <assert.h>
-#include <QTextStream>
+#include <QtCore/QTextStream>
 
 Test::Test() {
     snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.+-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
@@ -74,11 +74,16 @@ void Test::evaluateTests() {
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
         QString diffFilename = "HIFI_AutoTest_diff.txt";
         QString command = "magick.exe compare -metric MAE " + expectedImages[i] + " " + resultImages[i] + " null: 2>" + diffFilename;
-        system(command.toStdString().c_str());
+        
+        if (system(command.toStdString().c_str()) == -1) {
+            // command has failed
+            messageBox.critical(0, "Aborting!", "Error executing magick.exe");
+            exit(-1);
+        }
 
         QFile file(diffFilename);
         if (!file.open(QIODevice::ReadOnly)) {
-            messageBox.critical(0, "error", file.errorString());
+            messageBox.critical(0, "Error", file.errorString());
         }
 
         // First value on line is the comparison result
