@@ -18,7 +18,7 @@
 #include <QtScript/QScriptable>
 
 /**jsdoc
- * A UUID (Universally Unique IDentitier) is used to uniquely identify entities, overlays, avatars, and the like. It is
+ * A UUID (Universally Unique IDentifier) is used to uniquely identify entities, overlays, avatars, and the like. It is
  * represented in JavaScript as a string in the format, <code>{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}</code>, where the "n"s are
  * hexadecimal digits.
  *
@@ -32,7 +32,6 @@ class ScriptUUID : public QObject, protected QScriptable {
     Q_PROPERTY(QString NULL READ NULL_UUID CONSTANT) // String for use in scripts.
 
 public slots:
-    QUuid fromString(const QString& string);
     /**jsdoc
      * Generates a UUID from a string representation of the UUID.
      * @function Uuid.fromString
@@ -48,6 +47,7 @@ public slots:
      * uuid = Uuid.fromString("527c27ea");
      * print(uuid); // null
      */
+    QUuid fromString(const QString& string);
 
     /**jsdoc
      * Generates a string representation of a UUID. However, because UUIDs are represented in JavaScript as strings, this is in
