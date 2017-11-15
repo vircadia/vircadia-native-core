@@ -27,6 +27,12 @@ Item {
         id: hifi
     }
 
+    function unfocus() {
+        webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
+            console.log('unfocus completed: ', result);
+        });
+    }
+
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
 

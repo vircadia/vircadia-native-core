@@ -442,6 +442,8 @@ Rectangle {
                     onSendToPurchases: {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
+                        } else if (msg.method === "purchases_rezClicked") {
+                            sendToScript({method: 'purchases_rezClicked', itemHref: itemHref, isWearable: isWearable});
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
                             inspectionCertificate.visible = true;
                             inspectionCertificate.isLightbox = true;

@@ -1080,6 +1080,7 @@ static const uint8_t BACKSPACE_SYMBOL[] = { 0xE2, 0x86, 0x90, 0x00 };
 static const uint8_t LEFT_ARROW[] = { 0xE2, 0x9D, 0xAC, 0x00 };
 static const uint8_t RIGHT_ARROW[] = { 0xE2, 0x9D, 0xAD, 0x00 };
 static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 };
+static const uint8_t COLLAPSE_KEYBOARD[] = { 0xEE, 0x80, 0xAB, 0x00 };
 static const char PUNCTUATION_STRING[] = "123";
 static const char ALPHABET_STRING[] = "abc";
 
@@ -1103,6 +1104,9 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
         if (equals(utf8Key, SHIFT_ARROW) || equals(utf8Key, NUMERIC_SHIFT_ARROW) ||
             equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
             return;  // ignore
+        } else if (equals(utf8Key, COLLAPSE_KEYBOARD)) {
+            lowerKeyboard();
+            return;
         } else if (equals(utf8Key, BACKSPACE_SYMBOL)) {
             scanCode = Qt::Key_Backspace;
             keyString = "\x08";
@@ -1124,7 +1128,19 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
+void OffscreenQmlSurface::lowerKeyboard() {
+
+    QSignalBlocker blocker(_quickWindow);
+
+    if (_currentFocusItem) {
+        _currentFocusItem->setFocus(false);
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+}
+
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric, bool passwordField) {
+    qCDebug(uiLogging) << "setKeyboardRaised: " << object << ", raised: " << raised << ", numeric: " << numeric << ", password: " << passwordField;
+
 #if Q_OS_ANDROID
     return;
 #endif
@@ -1157,6 +1173,10 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
                 }
                 if (item->property("passwordField").isValid()) {
                     item->setProperty("passwordField", QVariant(passwordField));
+                }
+
+                if (raised) {
+                    item->setProperty("keyboardRaised", QVariant(!raised));
                 }
 
                 item->setProperty("keyboardRaised", QVariant(raised));

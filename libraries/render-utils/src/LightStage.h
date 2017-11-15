@@ -48,8 +48,9 @@ public:
 
         Shadow(model::LightPointer light);
 
-        void setKeylightFrustum(const ViewFrustum& viewFrustum, float nearDepth, float farDepth);
+        void setKeylightFrustum(const ViewFrustum& viewFrustum, float viewMinShadowDistance, float viewMaxShadowDistance, float nearDepth = 1.0f, float farDepth = 1000.0f);
 
+        void setFrustum(const ViewFrustum& shadowFrustum);
         const std::shared_ptr<ViewFrustum> getFrustum() const { return _frustum; }
 
         const glm::mat4& getView() const;
@@ -57,31 +58,35 @@ public:
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
 
-        gpu::FramebufferPointer framebuffer;
-        gpu::TexturePointer map;
+        // Shadow maps are shared among all lights for the moment as only one key light
+        // is used.
+        static gpu::FramebufferPointer framebuffer;
+        static gpu::TexturePointer map;
+
+        const model::LightPointer& getLight() const { return _light; }
+
     protected:
+
         model::LightPointer _light;
         std::shared_ptr<ViewFrustum> _frustum;
 
         class Schema {
         public:
+
+            Schema();
+
             glm::mat4 projection;
             glm::mat4 viewInverse;
 
-            glm::float32 bias = 0.005f;
-            glm::float32 scale = 1 / MAP_SIZE;
+            glm::float32 bias;
+            glm::float32 scale;
         };
         UniformBufferView _schemaBuffer = nullptr;
         
-        friend class Light;
     };
+
     using ShadowPointer = std::shared_ptr<Shadow>;
     using Shadows = render::indexed_container::IndexedPointerVector<Shadow>;
-
-    struct Desc {
-        Index shadowId { INVALID_INDEX };
-    };
-    using Descs = std::vector<Desc>;
 
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
@@ -100,50 +105,29 @@ public:
         return _lights.get(lightId);
     }
 
-    Index getShadowId(Index lightId) const {
-        if (checkLightId(lightId)) {
-            return _descs[lightId].shadowId;
-        } else {
-            return INVALID_INDEX;
-        }
-    }
+    Index getShadowId(Index lightId) const;
+
     ShadowPointer getShadow(Index lightId) const {
         return _shadows.get(getShadowId(lightId));
     }
 
     using LightAndShadow = std::pair<LightPointer, ShadowPointer>;
     LightAndShadow getLightAndShadow(Index lightId) const {
-        return LightAndShadow(getLight(lightId), getShadow(lightId));
+        auto light = getLight(lightId);
+        auto shadow = getShadow(lightId);
+        assert(shadow == nullptr || shadow->getLight() == light);
+        return LightAndShadow(light, shadow);
     }
 
-    LightPointer getCurrentKeyLight() const {
-        Index keyLightId{ 0 };
-        if (!_currentFrame._sunLights.empty()) {
-            keyLightId = _currentFrame._sunLights.front();
-        }
-        return _lights.get(keyLightId);
-    }
-
-    ShadowPointer getCurrentKeyShadow() const {
-        Index keyLightId{ 0 };
-        if (!_currentFrame._sunLights.empty()) {
-            keyLightId = _currentFrame._sunLights.front();
-        }
-        return getShadow(keyLightId);
-    }
-
-    LightAndShadow getCurrentKeyLightAndShadow() const {
-        Index keyLightId{ 0 };
-        if (!_currentFrame._sunLights.empty()) {
-            keyLightId = _currentFrame._sunLights.front();
-        }
-        return LightAndShadow(getLight(keyLightId), getShadow(keyLightId));
-    }
+    LightPointer getCurrentKeyLight() const;
+    LightPointer getCurrentAmbientLight() const;
+    ShadowPointer getCurrentKeyShadow() const;
+    LightAndShadow getCurrentKeyLightAndShadow() const;
 
     LightStage();
-    Lights _lights;
-    LightMap _lightMap;
-    Descs _descs;
+
+    gpu::BufferPointer getLightArrayBuffer() const { return _lightArrayBuffer; }
+    void updateLightArrayBuffer(Index lightId);
 
     class Frame {
     public:
@@ -172,13 +156,22 @@ public:
     
     Frame _currentFrame;
     
-    gpu::BufferPointer _lightArrayBuffer;
-    void updateLightArrayBuffer(Index lightId);
+protected:
 
+    struct Desc {
+        Index shadowId{ INVALID_INDEX };
+    };
+    using Descs = std::vector<Desc>;
+
+    gpu::BufferPointer _lightArrayBuffer;
+
+    Lights _lights;
     Shadows _shadows;
+    Descs _descs;
+    LightMap _lightMap;
+
 };
 using LightStagePointer = std::shared_ptr<LightStage>;
-
 
 
 class LightStageSetup {
