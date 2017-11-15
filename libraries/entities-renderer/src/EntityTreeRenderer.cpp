@@ -184,6 +184,7 @@ void EntityTreeRenderer::clear() {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
     _entitiesInScene.clear();
+    _renderablesToUpdate.clear();
 
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
@@ -289,30 +290,11 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
     {
         PROFILE_RANGE_EX(simulation_physics, "CopyRenderables", 0xffff00ff, (uint64_t)changedEntities.size());
-        if (_renderablesToUpdate.empty()) {
-            for (const auto& entityId : changedEntities) {
-                auto renderable = renderableForEntityId(entityId);
-                if (!renderable) {
-                    continue;
-                }
+        for (const auto& entityId : changedEntities) {
+            auto renderable = renderableForEntityId(entityId);
+            if (renderable) {
+                // only add valid renderables _renderablesToUpdate
                 _renderablesToUpdate.insert({ entityId, renderable });
-            }
-        } else {
-            // we weren't able to update all renderables last frame
-            // so we have to be more careful when processing changed renderables
-            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
-            for (const auto& entityId : changedEntities) {
-                auto renderable = renderableForEntityId(entityId);
-                itr = _renderablesToUpdate.find(entityId);
-                if (itr != _renderablesToUpdate.end()) {
-                    if (!renderable) {
-                        _renderablesToUpdate.erase(itr);
-                        continue;
-                    }
-                    _renderablesToUpdate.insert(itr, { entityId, renderable });
-                } else if (renderable) {
-                    _renderablesToUpdate.insert({ entityId, renderable });
-                }
             }
         }
     }
@@ -324,6 +306,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         uint64_t updateStart = usecTimestampNow();
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
+            assert(renderable); // only valid renderables are added to _renderablesToUpdate
             renderable->updateInScene(scene, transaction);
         }
         size_t numRenderables = _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
@@ -357,6 +340,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
             while (itr != _renderablesToUpdate.end()) {
+                assert(itr->second); // only valid renderables are added to _renderablesToUpdate
                 sortedRenderables.push(SortableRenderer(itr->second));
                 ++itr;
             }
@@ -377,9 +361,9 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderer = sortedRenderables.top().getRenderer();
-                renderer->updateInScene(scene, transaction);
-                _renderablesToUpdate.erase(renderer->getEntity()->getID());
+                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                renderable->updateInScene(scene, transaction);
+                _renderablesToUpdate.erase(renderable->getEntity()->getID());
                 sortedRenderables.pop();
             }
 
@@ -839,7 +823,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    // If it's in the pending queue, remove it
+    // If it's in a pending queue, remove it
+    _renderablesToUpdate.erase(entityID);
     _entitiesToAdd.erase(entityID);
 
     auto itr = _entitiesInScene.find(entityID);
@@ -847,7 +832,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         // Not in the scene, and no longer potentially in the pending queue, we're done
         return;
     }
-        
+
     if (_tree && !_shuttingDown && _entitiesScriptEngine) {
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }
