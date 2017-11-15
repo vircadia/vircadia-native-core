@@ -21,6 +21,7 @@
 #include "RenderableEntityItem.h"
 #include "ui/overlays/Overlay.h"
 #include <avatar/AvatarManager.h>
+#include <render/HighlightStyle.h>
 
 class GameplayObjects {
 public:
@@ -60,7 +61,7 @@ public:
 
 protected:
     bool _isBoundToList{ false };
-
+    render::HighlightStyle _style;
 };
 
 class SelectionScriptingInterface : public QObject, public Dependency {

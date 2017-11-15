@@ -239,6 +239,41 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
 
 
 bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
+    auto outlineColor = properties["outlineColor"];
+    if (outlineColor.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(properties["outlineColor"], isValid);
+        if (isValid) {
+            _style.color = toGlm(color);
+        }
+    }
+    auto outlineWidth = properties["outlineWidth"];
+    if (outlineWidth.isValid()) {
+        _style.outlineWidth = outlineWidth.toFloat();
+    }
+    auto isOutlineSmooth = properties["isOutlineSmooth"];
+    if (isOutlineSmooth.isValid()) {
+        _style.isOutlineSmooth = isOutlineSmooth.toBool();
+    }
+
+    auto outlineIntensity = properties["outlineIntensity"];
+    if (outlineIntensity.isValid()) {
+        _style.outlineIntensity = outlineIntensity.toFloat();
+    }
+
+    auto isFilled = properties["isFilled"];
+    if (isFilled.isValid()) {
+        _style.isFilled = isFilled.toBool();
+    }
+    auto unoccludedFillOpacity = properties["unoccludedFillOpacity"];
+    if (unoccludedFillOpacity.isValid()) {
+        _style.unoccludedFillOpacity = unoccludedFillOpacity.toFloat();
+    }
+    auto occludedFillOpacity = properties["occludedFillOpacity"];
+    if (occludedFillOpacity.isValid()) {
+        _style.occludedFillOpacity = occludedFillOpacity.toFloat();
+    }
+
     return true;
 }
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
