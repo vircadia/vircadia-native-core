@@ -51,6 +51,11 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         enabled = propertyMap["enabled"].toBool();
     }
 
+    bool scaleWithAvatar = false;
+    if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    }
+
     LaserPointer::RenderStateMap renderStates;
     if (propertyMap["renderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
@@ -80,7 +85,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled);
+    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
