@@ -151,11 +151,7 @@ void DepthSortShapesAndComputeBounds::run(const RenderContextPointer& renderCont
         AABox bounds;
 
         depthSortItems(renderContext, _frontToBack, inItems, outItems->second, &bounds);
-        if (!outBounds.isNull()) {
-            outBounds += bounds;
-        } else {
-            outBounds = bounds;
-        }
+        outBounds += bounds;
     }
 }
 

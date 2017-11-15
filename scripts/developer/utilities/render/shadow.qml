@@ -14,20 +14,24 @@ import QtQuick.Controls 1.4
 Column {
     id: root
     spacing: 8
-    property var config: Render.getConfig("RenderMainView.DrawFrustums");
+    property var viewConfig: Render.getConfig("RenderMainView.DrawViewFrustum");
+    property var shadowConfig: Render.getConfig("RenderMainView.DrawShadowFrustum");
 
     Component.onCompleted: {
-        config.enabled = true;
+        viewConfig.enabled = true;
+        shadowConfig.enabled = true;
     }
     Component.onDestruction: {
-        config.enabled = false;
+        viewConfig.enabled = false;
+        shadowConfig.enabled = false;
     }
 
     CheckBox {
         text: "Freeze Frustums"
         checked: false
         onCheckedChanged: { 
-            config.isFrozen = checked;
+            viewConfig.isFrozen = checked;
+            shadowConfig.isFrozen = checked;
         }
     }
     Row {
@@ -39,7 +43,7 @@ Column {
         }
         Label {
             text: "Shadow"
-            color: "red"
+            color: "blue"
             font.italic: true
         }
     }
