@@ -82,9 +82,12 @@ bool OctreeSendThread::process() {
         if (auto node = _node.lock()) {
             OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
 
-            // If we don't have the OctreeQueryNode or it's uninitialized because we haven't received
-            // a query yet from the client then we can't send an entity data packet
-            if (nodeData && nodeData->hasReceivedFirstQuery() && !nodeData->isShuttingDown()) {
+            // If we don't have the OctreeQueryNode at all
+            // or it's uninitialized because we haven't received a query yet from the client
+            // or we don't know where we should send packets for this node
+            // or we're shutting down
+            // then we can't send an entity data packet
+            if (nodeData && nodeData->hasReceivedFirstQuery() && node->getActiveSocket() && !nodeData->isShuttingDown()) {
                 bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
                 packetDistributor(node, nodeData, viewFrustumChanged);
             }
