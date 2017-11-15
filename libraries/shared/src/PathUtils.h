@@ -19,10 +19,13 @@
 #include "DependencyManager.h"
 
 /**jsdoc
+ * The Paths API provides absolute paths to the scripts and resources directories.
+ *
  * @namespace Paths
+ * @deprecated The Paths API is deprecated. Use {@link Script.resolvePath} and {@link Script.resourcesPath} instead.
  * @readonly
+ * @property {string} defaultScripts The path to the scripts directory. <em>Readonly</em>
  * @property {string} resources The path to the resources directory. <em>Readonly</em>
- * @property {string} defaultScripts The path to the defaultScripts directory. <em>Readonly</em>
  */
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
