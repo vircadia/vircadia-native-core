@@ -23,6 +23,16 @@ EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedN
 {
     connect(std::static_pointer_cast<EntityTree>(myServer->getOctree()).get(), &EntityTree::editingEntityPointer, this, &EntityTreeSendThread::editingEntityPointer, Qt::QueuedConnection);
     connect(std::static_pointer_cast<EntityTree>(myServer->getOctree()).get(), &EntityTree::deletingEntityPointer, this, &EntityTreeSendThread::deletingEntityPointer, Qt::QueuedConnection);
+
+    // connect to connection ID change on EntityNodeData so we can clear state for this receiver
+    auto nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
+    connect(nodeData, &EntityNodeData::incomingConnectionIDChanged, this, &EntityTreeSendThread::resetKnownState);
+}
+
+void EntityTreeSendThread::resetKnownState() {
+    qCDebug(entities) << "Clearing known EntityTreeSendThread state for" << _nodeUuid;
+
+    _knownState.clear();
 }
 
 void EntityTreeSendThread::preDistributionProcessing() {
