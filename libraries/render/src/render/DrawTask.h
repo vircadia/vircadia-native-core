@@ -70,6 +70,43 @@ private:
     int _colorLocation { -1 };
 };
 
+class DrawFrustumConfig : public render::JobConfig {
+    Q_OBJECT
+        Q_PROPERTY(bool isFrozen MEMBER isFrozen NOTIFY dirty)
+public:
+
+    DrawFrustumConfig(bool enabled = false) : JobConfig(enabled) {}
+
+    bool isFrozen{ false };
+signals:
+    void dirty();
+
+};
+
+class DrawFrustum {
+public:
+    using Config = DrawFrustumConfig;
+    using Input = ViewFrustumPointer;
+    using JobModel = render::Job::ModelI<DrawFrustum, Input, Config>;
+
+    DrawFrustum(const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f));
+
+    void configure(const Config& configuration);
+    void run(const render::RenderContextPointer& renderContext, const Input& input);
+
+private:
+
+    static gpu::PipelinePointer _pipeline;
+    static gpu::BufferView _frustumMeshIndices;
+
+    bool _updateFrustum{ true };
+    gpu::BufferView _frustumMeshVertices;
+    gpu::BufferStream _frustumMeshStream;
+    glm::vec3 _color;
+
+    void updateFrustum(const ViewFrustum& frustum);
+};
+
 }
 
 #endif // hifi_render_DrawTask_h

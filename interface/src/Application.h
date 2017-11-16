@@ -708,7 +708,7 @@ private:
 
     friend class RenderEventHandler;
 
-    std::atomic<bool> _pendingIdleEvent { false };
-    std::atomic<bool> _pendingRenderEvent { false };
+    std::atomic<bool> _pendingIdleEvent { true };
+    std::atomic<bool> _pendingRenderEvent { true };
 };
 #endif // hifi_Application_h

@@ -171,6 +171,8 @@ public:
         _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
 
+    const std::string& getName() const { return _name; }
+
 protected:
     ConceptPointer _concept;
     std::string _name = "";
@@ -206,6 +208,24 @@ public:
 
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
+        typename Jobs::iterator editJob(std::string name) {
+            typename Jobs::iterator jobIt;
+            for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {
+                if (jobIt->getName() == name) {
+                    return jobIt;
+                }
+            }
+            return jobIt;
+        }
+        typename Jobs::const_iterator getJob(std::string name) const {
+            typename Jobs::const_iterator jobIt;
+            for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {
+                if (jobIt->getName() == name) {
+                    return jobIt;
+                }
+            }
+            return jobIt;
+        }
 
         TaskConcept(const Varying& input, QConfigPointer config) : Concept(config), _input(input) {}
 

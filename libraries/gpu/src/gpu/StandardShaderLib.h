@@ -46,6 +46,7 @@ public:
     static ShaderPointer getDrawNadaPS();
 
     static ShaderPointer getDrawWhitePS();
+    static ShaderPointer getDrawColorPS();
     static ShaderPointer getDrawTexturePS();
     static ShaderPointer getDrawTextureMirroredXPS();
     static ShaderPointer getDrawTextureOpaquePS();
@@ -67,6 +68,7 @@ protected:
 
     static ShaderPointer _drawNadaPS;
     static ShaderPointer _drawWhitePS;
+    static ShaderPointer _drawColorPS;
     static ShaderPointer _drawTexturePS;
     static ShaderPointer _drawTextureMirroredXPS;
     static ShaderPointer _drawTextureOpaquePS;
