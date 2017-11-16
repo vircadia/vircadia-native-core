@@ -198,6 +198,11 @@ void Avatar::setTargetScale(float targetScale) {
     }
 }
 
+void Avatar::setAvatarEntityDataChanged(bool value) {
+    AvatarData::setAvatarEntityDataChanged(value);
+    _avatarEntityDataHashes.clear();
+}
+
 void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
