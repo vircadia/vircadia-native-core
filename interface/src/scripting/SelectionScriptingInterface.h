@@ -59,6 +59,8 @@ public:
     bool fromVariantMap(const QVariantMap& properties);
     QVariantMap toVariantMap() const;
 
+    render::HighlightStyle getStyle() const { return _style; }
+
 protected:
     bool _isBoundToList{ false };
     render::HighlightStyle _style;
@@ -116,8 +118,11 @@ public:
     Q_INVOKABLE bool disableListHighlight(const QString& listName);
     Q_INVOKABLE QVariantMap getListHighlightStyle(const QString& listName) const;
 
+    render::HighlightStyle getHighlightStyle(const QString& listName) const;
+
 signals:
     void selectedItemsListChanged(const QString& listName);
+    void highlightStyleChanged(const QString& listName);
 
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
@@ -139,6 +144,7 @@ public:
 
 public slots:
     void selectedItemsListChanged(const QString& listName);
+    void highlightStyleChanged(const QString& listName);
 
 private:
     QString _listName { "" };

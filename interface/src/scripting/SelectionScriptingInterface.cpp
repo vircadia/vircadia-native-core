@@ -78,21 +78,24 @@ bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName
 }
 
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
-    auto highlightStyle = _highlightedListMap.value(listName);
-    if (!highlightStyle.isBoundToList()) {
+    auto highlightStyle = _highlightedListMap.find(listName);
+    if (highlightStyle == _highlightedListMap.end()) {
+        highlightStyle = _highlightedListMap.insert(listName, SelectionHighlightStyle());
+    }
+
+    if (!(*highlightStyle).isBoundToList()) {
         GameplayObjects currentList = _selectedItemsListMap.value(listName);
         if (!currentList.getContainsData()) {
             _selectedItemsListMap.insert(listName, currentList);
+            highlightStyleChanged(listName);
         }
+        (*highlightStyle).setBoundToList(true);
     }
 
-    highlightStyle.fromVariantMap(highlightStyleValues);
-    highlightStyle.setBoundToList(true);
-
-    _highlightedListMap.insert(listName, highlightStyle);
+    (*highlightStyle).fromVariantMap(highlightStyleValues);
 
 
-    emit selectedItemsListChanged(listName);
+    emit highlightStyleChanged(listName);
     return true;
 }
 
@@ -104,6 +107,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
             if (currentList.getContainsData()) {
             }
             _highlightedListMap.erase(highlightStyle);
+            emit selectedItemsListChanged(listName);
         }
     }
 
@@ -112,6 +116,15 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
 
 QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
     return QVariantMap();
+}
+
+render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
+    auto highlightStyle = _highlightedListMap.find(listName);
+    if (highlightStyle != _highlightedListMap.end()) {
+        return render::HighlightStyle();
+    } else {
+        return (*highlightStyle).getStyle();
+    }
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
@@ -237,6 +250,21 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
     }
 }
 
+void SelectionToSceneHandler::highlightStyleChanged(const QString& listName) {
+    auto mainScene = qApp->getMain3DScene();
+    if (mainScene) {
+        auto thisStyle = DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName);
+        render::Transaction transaction;
+        render::ItemIDs finalList;
+
+        transaction.resetSelectionHighlight(listName.toStdString(), thisStyle);
+
+        mainScene->enqueueTransaction(transaction);
+    }
+    else {
+        qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
+    }
+}
 
 bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     auto outlineColor = properties["outlineColor"];
@@ -261,10 +289,6 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
         _style.outlineIntensity = outlineIntensity.toFloat();
     }
 
-    auto isFilled = properties["isFilled"];
-    if (isFilled.isValid()) {
-        _style.isFilled = isFilled.toBool();
-    }
     auto unoccludedFillOpacity = properties["unoccludedFillOpacity"];
     if (unoccludedFillOpacity.isValid()) {
         _style.unoccludedFillOpacity = unoccludedFillOpacity.toFloat();
@@ -277,5 +301,14 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     return true;
 }
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
-    return QVariantMap();
+    QVariantMap properties;
+
+    properties["outlineColor"] = xColorToVariant(xColorFromGlm(_style.color));
+    properties["outlineWidth"] = _style.outlineWidth;
+    properties["isOutlineSmooth"] = _style.isOutlineSmooth;
+    properties["outlineIntensity"] = _style.outlineIntensity;
+    properties["unoccludedFillOpacity"] = _style.unoccludedFillOpacity;
+    properties["occludedFillOpacity"] = _style.occludedFillOpacity;
+
+    return properties;
 }
