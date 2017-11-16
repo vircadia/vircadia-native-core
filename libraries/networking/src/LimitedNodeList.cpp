@@ -27,7 +27,6 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <StatTracker.h>
 #include <UUID.h>
 
 #include "AccountManager.h"
@@ -1110,7 +1109,6 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
-            DependencyManager::get<StatTracker>()->incrementStat(LOCAL_SOCKET_CHANGE_STAT);
         }
 
         _localSockAddr = sockAddr;

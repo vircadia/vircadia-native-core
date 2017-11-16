@@ -427,7 +427,6 @@ MasterReset = function() {
                     y: 0,
                     z: 0
                 }, downOffset)],
-                lineWidth: 5,
                 color: {
                     red: 255,
                     green: 255,
