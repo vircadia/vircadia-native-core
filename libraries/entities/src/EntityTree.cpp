@@ -1233,18 +1233,18 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& Nonce, Entity
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
-    int TextByteArraySize;
+    int textByteArraySize;
     int nodeToChallengeByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&TextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
     QByteArray certID(message.read(certIDByteArraySize));
-    QByteArray Text(message.read(TextByteArraySize));
+    QByteArray text(message.read(textByteArraySize));
     QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipRequestPacket(certID, Text, nodeToChallenge, sourceNode);
+    sendChallengeOwnershipRequestPacket(certID, text, nodeToChallenge, sourceNode);
 }
 
 void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -1306,7 +1306,7 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     }
 }
 
-void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& Text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
@@ -1314,7 +1314,7 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, c
     QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
 
     int certIDByteArraySize = certID.length();
-    int TextByteArraySize = Text.length();
+    int TextByteArraySize = text.length();
     int senderNodeUUIDSize = senderNodeUUID.length();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
@@ -1324,7 +1324,7 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, c
     challengeOwnershipPacket->writePrimitive(TextByteArraySize);
     challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
     challengeOwnershipPacket->write(certID);
-    challengeOwnershipPacket->write(Text);
+    challengeOwnershipPacket->write(text);
     challengeOwnershipPacket->write(senderNodeUUID);
 
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
@@ -1393,18 +1393,18 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
-    int TextByteArraySize;
+    int textByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&TextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
 
     QString certID(message.read(certIDByteArraySize));
-    QString Text(message.read(TextByteArraySize));
+    QString text(message.read(textByteArraySize));
 
     emit killChallengeOwnershipTimeoutTimer(certID);
 
     EntityItemID id;
-    if (!verifyNonce(certID, Text, id)) {
+    if (!verifyNonce(certID, text, id)) {
         if (!id.isNull()) {
             deleteEntity(id, true);
         }

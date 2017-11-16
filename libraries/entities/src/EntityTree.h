@@ -276,7 +276,7 @@ public:
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
-    bool verifyNonce(const QString& certID, const QString& Nonce, EntityItemID& id);
+    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -381,7 +381,7 @@ protected:
 
 private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
-    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& Text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 };
 

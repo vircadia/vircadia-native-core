@@ -175,6 +175,7 @@ QPair<QByteArray*, QByteArray*> generateECKeypair() {
     
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
     QPair<QByteArray*, QByteArray*> retval;
+    EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
     if (!EC_KEY_generate_key(keyPair)) {
         qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
         return retval;
@@ -188,10 +189,10 @@ QPair<QByteArray*, QByteArray*> generateECKeypair() {
     int privateKeyLength = i2d_ECPrivateKey(keyPair, &privateKeyDER);
 
     if (publicKeyLength <= 0 || privateKeyLength <= 0) {
-        qCDebug(commerce) << "Error getting DER public or private key from RSA struct -" << ERR_get_error();
+        qCDebug(commerce) << "Error getting DER public or private key from EC struct -" << ERR_get_error();
 
 
-        // cleanup the RSA struct
+        // cleanup the EC struct
         EC_KEY_free(keyPair);
 
         // cleanup the public and private key DER data, if required
