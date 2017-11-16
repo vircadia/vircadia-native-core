@@ -13,7 +13,7 @@
 #include "Application.h"
 #include "display-plugins/CompositorHelper.h"
 
-MouseRayPick::MouseRayPick(const PickFilter& filter, const float maxDistance, const bool enabled) :
+MouseRayPick::MouseRayPick(const PickFilter& filter, float maxDistance, bool enabled) :
     RayPick(filter, maxDistance, enabled)
 {
 }

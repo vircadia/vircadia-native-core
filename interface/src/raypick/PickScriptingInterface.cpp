@@ -11,19 +11,21 @@
 #include <QVariant>
 #include "GLMHelpers.h"
 
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 
 #include "StaticRayPick.h"
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
+#include "StylusPick.h"
 
-#include <pointers/Pick.h>
 #include <ScriptEngine.h>
 
 unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
     switch (type) {
         case PickQuery::PickType::Ray:
             return createRayPick(properties);
+        case PickQuery::PickType::Stylus:
+            return createStylusPick(properties);
         default:
             return PickManager::INVALID_PICK_ID;
     }
@@ -79,6 +81,35 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     }
 
     return PickManager::INVALID_PICK_ID;
+}
+
+unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties) {
+    QVariantMap propMap = properties.toMap();
+
+    bilateral::Side side = bilateral::Side::Invalid;
+    {
+        QVariant handVar = propMap["hand"];
+        if (handVar.isValid()) {
+            side = bilateral::side(handVar.toInt());
+        }
+    }
+
+    bool enabled = false;
+    if (propMap["enabled"].isValid()) {
+        enabled = propMap["enabled"].toBool();
+    }
+
+    PickFilter filter = PickFilter();
+    if (propMap["filter"].isValid()) {
+        filter = PickFilter(propMap["filter"].toUInt());
+    }
+
+    float maxDistance = 0.0f;
+    if (propMap["maxDistance"].isValid()) {
+        maxDistance = propMap["maxDistance"].toFloat();
+    }
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {

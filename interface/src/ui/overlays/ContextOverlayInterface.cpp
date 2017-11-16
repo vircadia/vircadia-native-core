@@ -19,7 +19,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <commerce/Ledger.h>
 
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))

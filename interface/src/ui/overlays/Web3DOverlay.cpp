@@ -337,6 +337,16 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+void Web3DOverlay::hoverEnterOverlay(const PointerEvent& event) {
+    if (_inputMode == Mouse) {
+        handlePointerEvent(event);
+    } else if (_webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverBeginEvent(webEvent, _touchDevice);
+    }
+}
+
 void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
     if (_inputMode == Mouse) {
         PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
@@ -346,17 +356,13 @@ void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
         PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
         handlePointerEvent(endMoveEvent);
     } else if (_webSurface) {
-        _webSurface->hoverEndEvent(event, _touchDevice);
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverEndEvent(webEvent, _touchDevice);
     }
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
-    if (event.getType() == PointerEvent::Press) {
-        _pressed = true;
-    } else if (event.getType() == PointerEvent::Release) {
-        _pressed = false;
-    }
-
     if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
     } else {

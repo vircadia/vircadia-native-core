@@ -28,7 +28,7 @@
 
 #include "ui/Logging.h"
 
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -96,12 +96,16 @@ OffscreenUi::OffscreenUi() {
     });
 
     auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenUi::handlePointerEvent);
+    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenUi::hoverBeginEvent);
     connect(pointerManager.data(), &PointerManager::hoverContinueHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::hoverEndHUD, this, &OffscreenUi::hoverEndEvent);
     connect(pointerManager.data(), &PointerManager::triggerBeginHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerContinueHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerEndHUD, this, &OffscreenUi::handlePointerEvent);
+}
+
+void OffscreenUi::hoverBeginEvent(const PointerEvent& event) {
+    OffscreenQmlSurface::hoverBeginEvent(event, _touchDevice);
 }
 
 void OffscreenUi::hoverEndEvent(const PointerEvent& event) {
@@ -1105,15 +1109,18 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
         case QEvent::MouseMove: {
             QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
             QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos());
-            PointerEvent pointerEvent(choosePointerEventType(mouseEvent->type()), PointerManager::MOUSE_POINTER_ID, glm::vec2(transformedPos.x(), transformedPos.y()),
-                PointerEvent::Button(mouseEvent->button()), mouseEvent->buttons(), mouseEvent->modifiers());
-            result = OffscreenQmlSurface::handlePointerEvent(pointerEvent, _touchDevice);
+            // FIXME: touch events are always being accepted.  Use mouse events on the OffScreenUi for now, and investigate properly switching to touch events
+            // (using handlePointerEvent) later
+            QMouseEvent mappedEvent(mouseEvent->type(), transformedPos, mouseEvent->screenPos(), mouseEvent->button(), mouseEvent->buttons(), mouseEvent->modifiers());
+            mappedEvent.ignore();
+            if (QCoreApplication::sendEvent(getWindow(), &mappedEvent)) {
+                return mappedEvent.isAccepted();
+            }
             break;
         }
         default:
             break;
     }
-
 
     // Check if this is a key press/release event that might need special attention
     auto type = event->type();

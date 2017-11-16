@@ -62,8 +62,8 @@ public:
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) {}
 
-    virtual void update(unsigned int pointerID, float deltaTime);
-    virtual void updateVisuals(const PickResultPointer& pickResult) {}
+    void update(unsigned int pointerID, float deltaTime);
+    virtual void updateVisuals(const PickResultPointer& pickResult) = 0;
     void generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult);
 
     struct PickedObject {
@@ -82,13 +82,13 @@ protected:
     bool _enabled;
     bool _hover;
 
-    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const = 0;
+    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const = 0;
 
     virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
     virtual Buttons getPressedButtons() = 0;
 
-    virtual bool shouldHover() = 0;
-    virtual bool shouldTrigger() = 0;
+    virtual bool shouldHover(const PickResultPointer& pickResult) { return true; }
+    virtual bool shouldTrigger(const PickResultPointer& pickResult) { return true; }
 
 private:
     PickedObject _prevHoveredObject;

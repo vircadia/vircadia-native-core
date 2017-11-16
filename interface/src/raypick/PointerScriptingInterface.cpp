@@ -43,19 +43,19 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
 }
 
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
-    bilateral::Side side = bilateral::Side::Invalid;
-    {
-        QVariant handVar = properties.toMap()["hand"];
-        if (handVar.isValid()) {
-            side = bilateral::side(handVar.toInt());
-        }
+    QVariantMap propertyMap = properties.toMap();
+
+    bool hover = false;
+    if (propertyMap["hover"].isValid()) {
+        hover = propertyMap["hover"].toBool();
     }
 
-    if (bilateral::Side::Invalid == side) {
-        return PointerEvent::INVALID_POINTER_ID;
+    bool enabled = false;
+    if (propertyMap["enabled"].isValid()) {
+        enabled = propertyMap["enabled"].toBool();
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(side));
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
 }
 
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
@@ -79,6 +79,11 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     bool distanceScaleEnd = false;
     if (propertyMap["distanceScaleEnd"].isValid()) {
         distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
+    }
+
+    bool scaleWithAvatar = false;
+    if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
     }
 
     bool enabled = false;
@@ -139,7 +144,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                               faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
+                                                                                               faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {

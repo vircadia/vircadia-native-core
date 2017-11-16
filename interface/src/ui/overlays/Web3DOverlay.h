@@ -39,6 +39,7 @@ public:
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
+    Q_INVOKABLE void hoverEnterOverlay(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveOverlay(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
     void handlePointerEventAsTouch(const PointerEvent& event);
@@ -97,7 +98,6 @@ private:
     int _geometryId { 0 };
     bool _showKeyboardFocusHighlight{ true };
 
-    bool _pressed{ false };
     QTouchDevice _touchDevice;
 
     uint8_t _desiredMaxFPS { 10 };

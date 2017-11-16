@@ -8,136 +8,72 @@
 #ifndef hifi_StylusPointer_h
 #define hifi_StylusPointer_h
 
-#include <QString>
-#include <glm/glm.hpp>
-
-#include <pointers/Pointer.h>
-#include <pointers/Pick.h>
+#include <Pointer.h>
 #include <shared/Bilateral.h>
 #include <RegisteredMetaTypes.h>
-#include <pointers/Pick.h>
 
 #include "ui/overlays/Overlay.h"
 
-
-class StylusPick : public Pick<StylusTip> {
-    using Side = bilateral::Side;
-public:
-    StylusPick(Side side);
-
-    StylusTip getMathematicalPick() const override;
-    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override;
-    PickResultPointer getEntityIntersection(const StylusTip& pick) override;
-    PickResultPointer getOverlayIntersection(const StylusTip& pick) override;
-    PickResultPointer getAvatarIntersection(const StylusTip& pick) override;
-    PickResultPointer getHUDIntersection(const StylusTip& pick) override;
-
-private:
-    const Side _side;
-    const bool _useFingerInsteadOfStylus{ false };
-};
-
-struct SideData;
-
-struct StylusPickResult : public PickResult {
-    using Side = bilateral::Side;
-    // FIXME make into a single ID
-    OverlayID overlayID;
-    // FIXME restore entity functionality
-#if 0
-    EntityItemID entityID;
-#endif
-    StylusTip tip;
-    float distance{ FLT_MAX };
-    vec3 position;
-    vec2 position2D;
-    vec3 normal;
-    vec3 normalizedPosition;
-    vec3 dimensions;
-    bool valid{ false };
-
-    virtual bool doesIntersect() const override;
-    virtual std::shared_ptr<PickResult> compareAndProcessNewResult(const std::shared_ptr<PickResult>& newRes) override;
-    virtual bool checkOrFilterAgainstMaxDistance(float maxDistance) override;
-
-    bool isNormalized() const;
-    bool isNearNormal(float min, float max, float hystersis) const;
-    bool isNear2D(float border, float hystersis) const;
-    bool isNear(float min, float max, float border, float hystersis) const;
-    operator bool() const;
-    bool hasKeyboardFocus() const;
-    void setKeyboardFocus() const;
-    void sendHoverOverEvent() const;
-    void sendHoverEnterEvent() const;
-    void sendTouchStartEvent() const;
-    void sendTouchEndEvent() const;
-    void sendTouchMoveEvent() const;
-
-private:
-    uint32_t deviceId() const;
-};
-
+#include "StylusPick.h"
 
 class StylusPointer : public Pointer {
     using Parent = Pointer;
-    using Side = bilateral::Side;
     using Ptr = std::shared_ptr<StylusPointer>;
 
 public:
-    StylusPointer(Side side);
+    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled);
     ~StylusPointer();
 
-    void enable() override;
-    void disable() override;
-    void update(unsigned int pointerID, float deltaTime) override;
+    void updateVisuals(const PickResultPointer& pickResult) override;
+
+    // Styluses have three render states:
+    // default: "events on" -> render and hover/trigger
+    // "events off" -> render, don't hover/trigger
+    // "disabled" -> don't render, don't hover/trigger
+    void setRenderState(const std::string& state) override;
+    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
+
+    static OverlayID buildStylusOverlay(const QVariantMap& properties);
+
+protected:
+    PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
+    Buttons getPressedButtons() override;
+    bool shouldHover(const PickResultPointer& pickResult) override;
+    bool shouldTrigger(const PickResultPointer& pickResult) override;
+
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
 
 private:
-
-    virtual void setRenderState(const std::string& state) override {}
-    virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
-    virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) override { return PickedObject();  }
-    virtual Buttons getPressedButtons() override { return {}; }
-    bool shouldHover() override { return true; }
-    bool shouldTrigger() override { return true; }
-    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override { return PointerEvent();  }
-
-
-    StylusPointer* getOtherStylus();
-
-    void updateStylusTarget();
-    void requestTouchFocus(const StylusPickResult& pickResult);
-    bool hasTouchFocus(const StylusPickResult& pickResult);
-    void relinquishTouchFocus();
-    void stealTouchFocus();
-    void stylusTouchingEnter();
-    void stylusTouchingExit();
-    void stylusTouching();
-    void show();
+    void show(const StylusTip& tip);
     void hide();
 
-    struct State {
-        StylusPickResult target;
-        bool nearTarget{ false };
-        bool touchingTarget{ false };
+    struct TriggerState {
+        PickedObject triggeredObject;
+        glm::vec3 intersection { NAN };
+        glm::vec2 triggerPos2D { NAN };
+        glm::vec3 surfaceNormal { NAN };
+        quint64 triggerStartTime { 0 };
+        bool triggering { false };
+
+        bool hovering { false };
     };
 
-    State _state;
-    State _previousState;
+    TriggerState _state;
 
-    float _nearHysteresis{ 0.0f };
-    float _touchHysteresis{ 0.0f };
-    float _hoverHysteresis{ 0.0f };
+    enum RenderState {
+        EVENTS_ON = 0,
+        EVENTS_OFF,
+        DISABLED
+    };
 
-    float _sensorScaleFactor{ 1.0f };
-    float _touchingEnterTimer{ 0 };
-    vec2 _touchingEnterPosition;
-    bool _deadspotExpired{ false };
+    RenderState _renderState { EVENTS_ON };
 
-    bool _renderingEnabled;
-    OverlayID _stylusOverlay;
-    OverlayID _hoverOverlay;
-    const Side _side;
-    const SideData& _sideData;
+    const OverlayID _stylusOverlay;
+
+    static bool isWithinBounds(float distance, float min, float max, float hysteresis);
+    static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
+    static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
+
 };
 
 #endif // hifi_StylusPointer_h

@@ -134,6 +134,16 @@ class PickQuery : protected ReadWriteLockable {
 public:
     PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
 
+    /**jsdoc
+     * @namespace
+     * @augments Picks
+     *
+     * Enum for different types of Picks and Pointers.
+     *
+     * @typedef {enum} Picks.PickType
+     * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
+     * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
+     */
     enum PickType {
         Ray = 0,
         Stylus,
