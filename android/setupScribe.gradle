@@ -1,0 +1,27 @@
+buildscript {
+    repositories {
+        jcenter()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.3.0'
+    }
+}
+
+def file='scribe_linux_x86_64'
+def url='https://s3.amazonaws.com/Oculus/Android/' + file
+def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
+
+task filepermission(type: Exec) {
+    commandLine 'chmod', '700', '<file_path>'
+}
+
+task downloadScribe(type: de.undercouch.gradle.tasks.download.Download) {
+    src url
+    dest destFile
+}
+
+task setupScribe(dependsOn: downloadScribe, type: Exec)  {
+    commandLine 'chmod', 'a+x', destFile
+}

@@ -1,0 +1,26 @@
+buildscript {
+    repositories {
+        jcenter()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.3.0'
+    }
+}
+
+def file='openssl-1.1.0g_armv8.tgz'
+def url='https://s3.amazonaws.com/Oculus/Android/' + file
+def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
+
+task downloadOpenSSL(type: de.undercouch.gradle.tasks.download.Download) {
+    src url
+    dest destFile
+}
+
+task extractOpenSSL(dependsOn: downloadOpenSSL, type: Copy) {
+    from tarTree(resources.gzip(destFile))
+    into new File(HIFI_ANDROID_PRECOMPILED, 'openssl')
+}
+
+task setupOpenSSL(dependsOn: extractOpenSSL) { }

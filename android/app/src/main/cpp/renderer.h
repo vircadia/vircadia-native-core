@@ -4,7 +4,7 @@
 #include <array>
 #include <glm/glm.hpp>
 
-#define GVR
+//#define GVR
 
 #if defined(GVR)
 #include <vr/gvr/capi/include/gvr.h>
