@@ -21,8 +21,7 @@ Original.Button {
     property int colorScheme: hifi.colorSchemes.light
     property string buttonGlyph: "";
 
-    //TODO: add real Action item. Backport from Qt 5.10
-    property Shortcut action: null
+    property Action action: null
 
     width: 120
     height: hifi.dimensions.controlLineHeight
@@ -35,10 +34,16 @@ Original.Button {
         }
     }
 
+    onActionChanged: {
+        if (action !== null && action.text !== "") {
+            control.text = action.text
+        }
+    }
+
     onClicked: {
         tabletInterface.playSound(TabletEnums.ButtonClick);
         if (action !== null) {
-            action.activated()
+            action.triggered()
         }
     }
 

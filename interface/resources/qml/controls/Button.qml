@@ -3,9 +3,20 @@ import QtQuick.Controls 2.2 as Original
 
 import "."
 import "../styles"
+import "../controls-uit"
 
 Original.Button {
+    id: control
+
     HifiConstants { id: hifi }
+    property Action action: null
+
+    onActionChanged: {
+        if (action !== null && action.text !== "") {
+            control.text = action.text
+        }
+    }
+
     padding {
         top: 8
         left: 12
