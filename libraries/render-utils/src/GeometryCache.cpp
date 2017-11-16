@@ -1931,9 +1931,10 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
             vec4 p1;
             vec4 p2;
             vec4 color;
+            float width;
         };
 
-        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color };
+        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color, glowWidth };
         details.uniformBuffer->resize(sizeof(LineData));
         details.uniformBuffer->setSubData(0, lineData);
     }

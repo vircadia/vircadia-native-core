@@ -346,9 +346,7 @@ Item {
             enabled: (root.canRezCertifiedItems || root.isWearable) && root.purchaseStatus !== "invalidated";
             
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
             }

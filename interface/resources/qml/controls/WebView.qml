@@ -12,6 +12,11 @@ Item {
     property alias urlTag: webroot.urlTag
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
+    onKeyboardRaisedChanged: {
+        if(!keyboardRaised) {
+            webroot.unfocus();
+        }
+    }
     property bool punctuationMode: false
     property bool passwordField: false
     property alias flickable: webroot.interactive
