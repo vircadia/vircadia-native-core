@@ -79,16 +79,15 @@ public:
         glm::vec3 mirrorCameraPositionWorld = vec3(worldFromMirror * vec4(mirrorCameraPositionMirror, 1.0f));
 
         // set frustum position to be mirrored camera and set orientation to mirror's adjusted rotation
-        glm::quat mirrorCamOrientation = glm::quat_cast(worldFromMirrorRotation);
+        glm::quat mirrorCameraOrientation = glm::quat_cast(worldFromMirrorRotation);
         srcViewFrustum.setPosition(mirrorCameraPositionWorld);
-        srcViewFrustum.setOrientation(mirrorCamOrientation);
+        srcViewFrustum.setOrientation(mirrorCameraOrientation);
 
         // build frustum using mirror space translation of mirrored camera
         float nearClip = mirrorCameraPositionMirror.z + mirrorPropertiesDimensions.z * 2.0f;
         glm::vec3 upperRight = halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
         glm::vec3 bottomLeft = -halfMirrorPropertiesDimensions - mirrorCameraPositionMirror;
         glm::mat4 frustum = glm::frustum(bottomLeft.x, upperRight.x, bottomLeft.y, upperRight.y, nearClip, _farClipPlaneDistance);
-
         srcViewFrustum.setProjection(frustum);
     }
 
