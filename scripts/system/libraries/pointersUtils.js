@@ -27,7 +27,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
@@ -51,7 +50,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
@@ -75,7 +73,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,

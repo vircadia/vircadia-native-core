@@ -4961,7 +4961,7 @@ void Application::update(float deltaTime) {
 
     {
         PROFILE_RANGE(app, "PointerManager");
-        DependencyManager::get<PointerManager>()->update(deltaTime);
+        DependencyManager::get<PointerManager>()->update();
     }
 
     {

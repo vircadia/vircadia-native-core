@@ -38,7 +38,7 @@ public:
     void setLength(unsigned int uid, float length) const;
     void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const;
 
-    void update(float deltaTime);
+    void update();
 
     bool isLeftHand(unsigned int uid);
     bool isRightHand(unsigned int uid);

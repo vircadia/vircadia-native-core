@@ -58,7 +58,7 @@ bool Pointer::isMouse() const {
     return DependencyManager::get<PickManager>()->isMouse(_pickUID);
 }
 
-void Pointer::update(unsigned int pointerID, float deltaTime) {
+void Pointer::update(unsigned int pointerID) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
         auto pickResult = getPrevPickResult();

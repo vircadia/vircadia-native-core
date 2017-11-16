@@ -23,7 +23,6 @@
 using namespace bilateral;
 
 // TODO: make these configurable per pick
-static Setting::Handle<double> USE_FINGER_AS_STYLUS("preferAvatarFingerOverStylus", false);
 static const float WEB_STYLUS_LENGTH = 0.2f;
 static const float WEB_TOUCH_Y_OFFSET = 0.105f;  // how far forward (or back with a negative number) to slide stylus in hand
 static const glm::vec3 TIP_OFFSET = glm::vec3(0.0f, WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, 0.0f);
@@ -130,7 +129,7 @@ static StylusTip getControllerWorldLocation(Side side) {
 
 StylusTip StylusPick::getMathematicalPick() const {
     StylusTip result;
-    if (USE_FINGER_AS_STYLUS.get()) {
+    if (qApp->getPreferAvatarFingerOverStylus()) {
         result = getFingerWorldLocation(_side);
     } else {
         result = getControllerWorldLocation(_side);

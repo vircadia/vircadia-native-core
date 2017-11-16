@@ -77,13 +77,13 @@ PickResultPointer PointerManager::getPrevPickResult(unsigned int uid) const {
     return result;
 }
 
-void PointerManager::update(float deltaTime) {
+void PointerManager::update() {
     auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
         return _pointers;
     });
 
     for (const auto& pointerPair : cachedPointers) {
-        pointerPair.second->update(pointerPair.first, deltaTime);
+        pointerPair.second->update(pointerPair.first);
     }
 }
 

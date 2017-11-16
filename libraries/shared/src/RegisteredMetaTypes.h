@@ -162,6 +162,9 @@ public:
         return pickRay;
     }
 };
+Q_DECLARE_METATYPE(PickRay)
+QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
+void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
 class StylusTip : public MathPick {
 public:
@@ -201,14 +204,14 @@ public:
 
 
 namespace std {
-	inline void hash_combine(std::size_t& seed) { }
+    inline void hash_combine(std::size_t& seed) { }
 
-	template <typename T, typename... Rest>
-	inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
-		std::hash<T> hasher;
-		seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-		hash_combine(seed, rest...);
-	}
+    template <typename T, typename... Rest>
+    inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
+	    std::hash<T> hasher;
+	    seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+	    hash_combine(seed, rest...);
+    }
 
     template <>
     struct hash<bilateral::Side> {
@@ -217,34 +220,34 @@ namespace std {
         }
     };
 
-	template <>
+    template <>
     struct hash<glm::vec3> {
         size_t operator()(const glm::vec3& a) const {
-        	size_t result = 0;
-        	hash_combine(result, a.x, a.y, a.z);
-        	return result;
+            size_t result = 0;
+            hash_combine(result, a.x, a.y, a.z);
+            return result;
         }
     };
 
-	template <>
+    template <>
     struct hash<glm::quat> {
         size_t operator()(const glm::quat& a) const {
-        	size_t result = 0;
-        	hash_combine(result, a.x, a.y, a.z, a.w);
-        	return result;
+            size_t result = 0;
+            hash_combine(result, a.x, a.y, a.z, a.w);
+            return result;
         }
     };
 
-	template <>
+    template <>
     struct hash<PickRay> {
         size_t operator()(const PickRay& a) const {
-        	size_t result = 0;
-        	hash_combine(result, a.origin, a.direction);
-        	return result;
+            size_t result = 0;
+            hash_combine(result, a.origin, a.direction);
+            return result;
         }
     };
 
-	template <>
+    template <>
     struct hash<StylusTip> {
         size_t operator()(const StylusTip& a) const {
             size_t result = 0;
@@ -253,9 +256,6 @@ namespace std {
         }
     };
 }
-Q_DECLARE_METATYPE(PickRay)
-QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
-void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,

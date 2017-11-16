@@ -61,7 +61,7 @@ OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
 void StylusPointer::updateVisuals(const PickResultPointer& pickResult) {
     auto stylusPickResult = std::static_pointer_cast<const StylusPickResult>(pickResult);
 
-    if (_enabled && _renderState != DISABLED && stylusPickResult) {
+    if (_enabled && !qApp->getPreferAvatarFingerOverStylus() && _renderState != DISABLED && stylusPickResult) {
         StylusTip tip(stylusPickResult->pickVariant);
         if (tip.side != bilateral::Side::Invalid) {
             show(tip);
