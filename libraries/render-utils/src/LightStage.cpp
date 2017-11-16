@@ -147,7 +147,7 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
                 _descs.emplace_back(Desc());
             } else {
                 assert(_descs[lightId].shadowId == INVALID_INDEX);
-                _descs.emplace(_descs.begin() + lightId, Desc());
+                _descs[lightId] = Desc();
             }
 
             // INsert the light and its index in the reverese map
