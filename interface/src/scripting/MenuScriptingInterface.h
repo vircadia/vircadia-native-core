@@ -204,7 +204,7 @@ public slots:
      * Check whether a menu or menu item is enabled. If disabled, the item is grayed out and unusable.
      * Menus are enabled by default.
      * @function Menu.isMenuEnabled
-     * @param {string} menuName The name of the menu to check.
+     * @param {string} menuName The name of the menu or menu item to check.
      * @returns {boolean} <code>true</code> if the menu is enabled, otherwise <code>false</code>.
      * @example <caption>Report with the Settings > Advanced Menus menu item is enabled.</caption>
      * print(Menu.isMenuEnabled("Settings > Advanced Menus")); // true or false
@@ -214,7 +214,7 @@ public slots:
     /**jsdoc
      * Set a menu or menu item to be enabled or disabled. If disabled, the item is grayed out and unusable.
      * @function Menu.setMenuEnabled
-     * @param {string} menuName - The name of the menu to modify.
+     * @param {string} menuName - The name of the menu or menu item to modify.
      * @param {boolean} isEnabled - If <code>true</code>, the menu will be enabled, otherwise it will be disabled.
      * @example <caption>Disable the Settings > Advanced Menus menu item.</caption>
      * Menu.setMenuEnabled("Settings > Advanced Menus", false);
