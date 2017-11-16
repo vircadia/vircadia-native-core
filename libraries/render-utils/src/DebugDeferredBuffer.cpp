@@ -166,13 +166,13 @@ static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
     "    ivec2 cascadeIndices;"
     "    float cascadeMix = evalCascadeIndicesAndMix(-viewPosition.z, cascadeShadowCoords, cascadeIndices);"
     "    return vec4(mix(cascadeColors[cascadeIndices.x], cascadeColors[cascadeIndices.y], cascadeMix), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_LINEAR_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(linearDepthMap, uv).x * 0.01), 1.0);"
-    " }"
+    "}"
 };
 
 static const std::string DEFAULT_HALF_LINEAR_DEPTH_SHADER{
