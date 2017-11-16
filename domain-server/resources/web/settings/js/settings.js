@@ -128,6 +128,10 @@ $(document).ready(function(){
     createTemporaryDomain();
   });
 
+  $('#' + Settings.FORM_ID).on('change', 'select', function(){
+    $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
+  });
+
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.DISCONNECT_ACCOUNT_BTN_ID, function(e){
     $(this).blur();
     disonnectHighFidelityAccount();

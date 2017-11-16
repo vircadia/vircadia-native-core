@@ -41,6 +41,13 @@ TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type tex
     }
 }
 
+TextureBaker::~TextureBaker() {
+    for (auto filepath : _temporaryFilesCreated) {
+        QFile f{filepath};
+        f.remove();
+    }
+}
+
 void TextureBaker::bake() {
     // once our texture is loaded, kick off a the processing
     connect(this, &TextureBaker::originalTextureLoaded, this, &TextureBaker::processTexture);

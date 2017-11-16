@@ -30,6 +30,7 @@ public:
     TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
                  const QDir& outputDirectory, const QString& bakedFilename = QString(),
                  const QByteArray& textureContent = QByteArray());
+    ~TextureBaker() override;
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
@@ -60,6 +61,8 @@ private:
 
     QDir _outputDirectory;
     QString _bakedTextureFileName;
+
+    std::vector<QString> _temporaryFilesCreated;
 
     std::atomic<bool> _abortProcessing { false };
 };

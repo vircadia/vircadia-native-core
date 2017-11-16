@@ -23,8 +23,45 @@
 
 #include "RegisteredMetaTypes.h"
 
+#include <BakingVersion.h>
+
+namespace std {
+    template <>
+    struct hash<QString> {
+        size_t operator()(const QString& v) const { return qHash(v); }
+    };
+}
+
+using BakeVersion = int;
+
+enum BakedAssetType : int {
+    Model = 0,
+    Texture,
+    Script,
+
+    NUM_ASSET_TYPES,
+    Undefined
+};
+
+enum class ModelBakeVersion : BakeVersion {
+    Initial = 0,
+    BetterModelBaking,
+};
+
+enum class TextureBakeVersion : BakeVersion {
+    Initial = 0,
+};
+
+enum class ScriptBakeVersion : BakeVersion {
+    Initial = 0,
+    FixEmptyScripts = 1
+};
+
 struct AssetMeta {
-    int bakeVersion { 0 };
+    AssetMeta() {
+    }
+
+    BakeVersion bakeVersion;
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
