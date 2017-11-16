@@ -46,8 +46,10 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    //angus
     //virtual void update(const quint64& now) override;
     //virtual bool needsToCallUpdate() const override;
+    //angus
     virtual void debugDump() const override;
 
     void setShapeType(ShapeType type) override;

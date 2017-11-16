@@ -1356,6 +1356,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // make a copy of the animation properites
         auto newAnimationProperties = entity->getAnimationProperties();
         if (newAnimationProperties != _renderAnimationProperties) {
+            qCDebug(entitiesrenderer) << "this is where the change is currently handled in the rendering code";
             withWriteLock([&] {
                 if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
                     if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {

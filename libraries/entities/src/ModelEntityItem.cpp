@@ -186,6 +186,29 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 }
 
 
+//angus
+/*
+void ModelEntityItem::update(const quint64& now) {
+
+    //put something here
+    qCDebug(entities) << "model entity item update";
+
+
+}
+
+bool ModelEntityItem::needsToCallUpdate() const {
+
+
+    //put something here
+    qCDebug(entities) << "needs to call update";
+    return true;
+}
+*/
+//angus
+
+
+
+
 void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
     qCDebug(entities) << "    edited ago:" << getEditedAgo();
