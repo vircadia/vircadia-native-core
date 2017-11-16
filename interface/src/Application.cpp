@@ -1825,6 +1825,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
 
+    _pendingIdleEvent = false;
+    _pendingRenderEvent = false;
+
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
