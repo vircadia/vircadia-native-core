@@ -318,6 +318,15 @@
         });
     }
 
+    function injectUnfocusOnSearch() {
+        // unfocus input field on search, thus hiding virtual keyboard
+        $('#search-box').on('submit', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+    }
+
     function injectHiFiCode() {
         if (commerceMode) {
             maybeAddLogInButton();
@@ -347,6 +356,8 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
     }
 
     function injectHiFiItemPageCode() {
@@ -386,6 +397,8 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
     }
 
     function updateClaraCode() {

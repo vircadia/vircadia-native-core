@@ -9,17 +9,7 @@
 
 <@func declareBlurUniforms()@>
 
-#define NUM_TAPS 7
-#define NUM_TAPS_OFFSET 3.0f
-
-float uniformFilterWidth = 0.05f;
-
-const float gaussianDistributionCurve[NUM_TAPS] = float[](
-    0.383f, 0.006f, 0.061f, 0.242f, 0.242f, 0.061f, 0.006f
-);
-const float gaussianDistributionOffset[NUM_TAPS] = float[](
-    0.0f,  -3.0f,  -2.0f,  -1.0f,   1.0f,   2.0f,   3.0f
-);
+<@include BlurTask_shared.slh@>
 
 struct BlurParameters {
     vec4 resolutionInfo;
@@ -28,6 +18,7 @@ struct BlurParameters {
     vec4 depthInfo;
     vec4 stereoInfo;
     vec4 linearDepthInfo;
+    vec2 taps[BLUR_MAX_NUM_TAPS];
 };
 
 uniform blurParamsBuffer {
@@ -46,6 +37,25 @@ float getFilterScale() {
     return parameters.filterInfo.x;
 }
 
+int getFilterNumTaps() {
+    return int(parameters.filterInfo.y);
+}
+
+float getOutputAlpha() {
+    return parameters.filterInfo.z;
+}
+
+vec2 getFilterTap(int index) {
+    return parameters.taps[index];
+}
+
+float getFilterTapOffset(vec2 tap) {
+    return tap.x;
+}
+
+float getFilterTapWeight(vec2 tap) {
+    return tap.y;
+}
 
 float getDepthThreshold() {
     return parameters.depthInfo.x;
@@ -70,19 +80,29 @@ uniform sampler2D sourceMap;
 
 vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
-    vec4 sampleCenter = texture(sourceMap, texcoord);
 
     vec2 finalStep = getFilterScale() * direction * pixelStep;
     vec4 srcBlurred = vec4(0.0);
+    float totalWeight = 0.f;
+    int numTaps = getFilterNumTaps();
     
-    for(int i = 0; i < NUM_TAPS; i++) {
-        // Fetch color and depth for current sample.
-        vec2 sampleCoord = texcoord + (gaussianDistributionOffset[i] * finalStep);
-        vec4 srcSample = texture(sourceMap, sampleCoord);
-        // Accumulate.
-        srcBlurred += gaussianDistributionCurve[i] * srcSample;
+    for(int i = 0; i < numTaps; i++) {
+        vec2 tapInfo = getFilterTap(i);
+        // Fetch color for current sample.
+        vec2 sampleCoord = texcoord + (getFilterTapOffset(tapInfo) * finalStep);
+        if (all(greaterThanEqual(sampleCoord, vec2(0,0))) && all(lessThanEqual(sampleCoord, vec2(1.0,1.0)))) {
+            vec4 srcSample = texture(sourceMap, sampleCoord);
+            float weight = getFilterTapWeight(tapInfo);
+            // Accumulate.
+            srcBlurred += srcSample * weight;
+            totalWeight += weight;
+        }
     }
     
+    if (totalWeight>0.0) {
+        srcBlurred /= totalWeight;
+    }
+    srcBlurred.a = getOutputAlpha();
     return srcBlurred;
 }
 
@@ -94,15 +114,6 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
 
 uniform sampler2D sourceMap;
 uniform sampler2D depthMap;
-
-#define NUM_HALF_TAPS 4
-
-const float gaussianDistributionCurveHalf[NUM_HALF_TAPS] = float[](
-    0.383f, 0.242f, 0.061f, 0.006f
-);
-const float gaussianDistributionOffsetHalf[NUM_HALF_TAPS] = float[](
-    0.0f,  1.0f,   2.0f,   3.0f
-);
 
 vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     texcoord = evalTexcoordTransformed(texcoord);
@@ -122,45 +133,36 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
     float scale = distanceToProjectionWindow / sampleDepth;
 
     vec2 finalStep = filterScale * scale * direction * pixelStep;
+    int numTaps = getFilterNumTaps();
 
     // Accumulate the center sample
-    vec4 srcBlurred = gaussianDistributionCurve[0] * sampleCenter;
+    vec2 tapInfo = getFilterTap(0);
+    float totalWeight = getFilterTapWeight(tapInfo);
+    vec4 srcBlurred = sampleCenter * totalWeight;
 
-     for(int i = 1; i < NUM_TAPS; i++) {
+     for(int i = 1; i < numTaps; i++) {
+        tapInfo = getFilterTap(i);
+
         // Fetch color and depth for current sample.
-        vec2 sampleCoord = texcoord + (gaussianDistributionOffset[i] * finalStep);
-        float srcDepth = texture(depthMap, sampleCoord).x;
-        vec4 srcSample = texture(sourceMap, sampleCoord);
+        vec2 sampleCoord = texcoord + (getFilterTapOffset(tapInfo) * finalStep);
+        if (all(greaterThanEqual(sampleCoord, vec2(0,0))) && all(lessThanEqual(sampleCoord, vec2(1.0,1.0)))) {
+            float srcDepth = texture(depthMap, sampleCoord).x;
+            vec4 srcSample = texture(sourceMap, sampleCoord);
+            float weight = getFilterTapWeight(tapInfo);
        
-        // If the difference in depth is huge, we lerp color back.
-        float s = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
-        srcSample = mix(srcSample, sampleCenter, s);
+            // If the difference in depth is huge, we lerp color back.
+            float s = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepth - sampleDepth), 0.0, 1.0);
+            srcSample = mix(srcSample, sampleCenter, s);
 
-        // Accumulate.
-        srcBlurred += gaussianDistributionCurve[i] * srcSample;
+            // Accumulate.
+            srcBlurred += srcSample * weight;
+            totalWeight += weight;
+        }
     }   
-
-     /*
-    for(int i = 1; i < NUM_HALF_TAPS; i++) {
-        // Fetch color and depth for current sample.
-        vec2 texcoordOffset = (gaussianDistributionOffsetHalf[i] * finalStep);
-        
-        float srcDepthN = texture(depthMap, texcoord - texcoordOffset).x;
-        float srcDepthP = texture(depthMap, texcoord + texcoordOffset).x;
-        vec4 srcSampleN = texture(sourceMap, texcoord - texcoordOffset);
-        vec4 srcSampleP = texture(sourceMap, texcoord + texcoordOffset);
-       
-        // If the difference in depth is huge, we lerp color back.
-        float sN = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepthN - sampleDepth), 0.0, 1.0);
-        float sP = clamp(depthThreshold * distanceToProjectionWindow  * filterScale * abs(srcDepthP - sampleDepth), 0.0, 1.0);
-
-        srcSampleN = mix(srcSampleN, sampleCenter, sN);
-        srcSampleP = mix(srcSampleP, sampleCenter, sP);
-
-        // Accumulate.
-        srcBlurred += gaussianDistributionCurveHalf[i] * (srcSampleP + srcSampleN);
-    }*/
     
+    if (totalWeight>0.0) {
+        srcBlurred /= totalWeight;
+    }
     return srcBlurred;
 }
 
