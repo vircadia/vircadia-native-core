@@ -389,7 +389,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         Controller.enableMapping(MAPPING_NAME);
 
         this.leftControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_LEFTHAND",
+            joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
@@ -403,7 +403,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.rightControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_RIGHTHAND",
+            joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
