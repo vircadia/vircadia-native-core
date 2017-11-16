@@ -11,14 +11,13 @@
 #include <QVariant>
 #include "GLMHelpers.h"
 
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 
 #include "StaticRayPick.h"
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 #include "StylusPick.h"
 
-#include <pointers/Pick.h>
 #include <ScriptEngine.h>
 
 unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {

@@ -194,8 +194,8 @@
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
-#include <pointers/PickManager.h>
-#include <pointers/PointerManager.h>
+#include <PickManager.h>
+#include <PointerManager.h>
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
 #include <raypick/PickScriptingInterface.h>
@@ -1709,8 +1709,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
-
-        properties["local_socket_changes"] = DependencyManager::get<StatTracker>()->getStat(LOCAL_SOCKET_CHANGE_STAT).toInt();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });

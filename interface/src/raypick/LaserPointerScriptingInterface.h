@@ -14,7 +14,7 @@
 #include <QtCore/QObject>
 
 #include "DependencyManager.h"
-#include <pointers/PointerManager.h>
+#include <PointerManager.h>
 
 class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

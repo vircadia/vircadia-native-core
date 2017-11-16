@@ -15,7 +15,7 @@
 
 #include <DependencyManager.h>
 #include "PickScriptingInterface.h"
-#include <pointers/PickManager.h>
+#include <PickManager.h>
 
 // TODO: make these configurable per pointer
 static const float WEB_STYLUS_LENGTH = 0.2f;

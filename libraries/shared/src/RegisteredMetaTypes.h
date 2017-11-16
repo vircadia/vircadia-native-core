@@ -128,12 +128,21 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
 // MathPicks also have to overide operator== for their type
 class MathPick {
+public:
+    virtual ~MathPick() {}
     virtual operator bool() const = 0;
     virtual QVariantMap toVariantMap() const = 0;
 };
 
 class PickRay : public MathPick {
 public:
+    /**jsdoc
+    * The mathematical definition of a ray.
+    *
+    * @typedef {Object} PickRay
+    * @property {Vec3} origin The origin of the ray.
+    * @property {Vec3} direction The direction of the ray.
+    */
     PickRay() : origin(NAN), direction(NAN)  { }
     PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
@@ -156,6 +165,15 @@ public:
 
 class StylusTip : public MathPick {
 public:
+    /**jsdoc
+    * The mathematical definition of a stylus tip.
+    *
+    * @typedef {Object} StylusTip
+    * @property {number} side The hand the tip is attached to.  0 == left, 1 == right.
+    * @property {Vec3} position The position of the tip.
+    * @property {Quat} orientation The orientation of the tip.
+    * @property {Vec3} velocity The velocity of the tip.
+    */
     StylusTip() : position(NAN), velocity(NAN) {}
     StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
         orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}

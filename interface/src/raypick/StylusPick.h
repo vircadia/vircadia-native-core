@@ -8,7 +8,7 @@
 #ifndef hifi_StylusPick_h
 #define hifi_StylusPick_h
 
-#include "pointers/Pick.h"
+#include <Pick.h>
 #include "RegisteredMetaTypes.h"
 
 class StylusPickResult : public PickResult {
