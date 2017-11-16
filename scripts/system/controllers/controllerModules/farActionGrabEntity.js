@@ -13,8 +13,8 @@
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI, Xform, getEntityParents
-
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
+   Picks, makeLaserLockInfo Xform
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -22,76 +22,6 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/Xform.js");
 
 (function() {
-    var PICK_WITH_HAND_RAY = true;
-
-    var SEARCH_SPHERE_SIZE = 0.0132;
-    var dim = {x: SEARCH_SPHERE_SIZE, y: SEARCH_SPHERE_SIZE, z: SEARCH_SPHERE_SIZE};
-    var halfPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var halfEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var fullPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var fullEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var holdPath = {
-        type: "line3d",
-        color: COLORS_GRAB_DISTANCE_HOLD,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-
-    var renderStates = [
-        {name: "half", path: halfPath, end: halfEnd},
-        {name: "full", path: fullPath, end: fullEnd},
-        {name: "hold", path: holdPath}
-    ];
-
-    var defaultRenderStates = [
-        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
-    ];
-
     var GRABBABLE_PROPERTIES = [
         "position",
         "registrationPoint",
@@ -188,53 +118,8 @@ Script.include("/~/system/libraries/Xform.js");
             550,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
-            100);
-
-        this.updateLaserPointer = function(controllerData) {
-            var mode = "hold";
-            if (!this.distanceHolding && !this.distanceRotating) {
-                if (controllerData.triggerClicks[this.hand]) {
-                    mode = "full";
-                } else {
-                    mode = "half";
-                }
-            }
-
-            var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
-            if (mode === "full") {
-                this.contextOverlayTimer = false;
-                this.destroyContextOverlay();
-            }
-
-            LaserPointers.enableLaserPointer(laserPointerID);
-            LaserPointers.setRenderState(laserPointerID, mode);
-            if (this.distanceHolding || this.distanceRotating) {
-                if (!this.locked) {
-                    // calculate offset
-                    var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
-                        "position",
-                        "rotation"
-                    ]);
-                    var zeroVector = { x: 0, y: 0, z:0, w: 0 };
-                    var intersection = controllerData.rayPicks[this.hand].intersection;
-                    var intersectionMat = new Xform(zeroVector, intersection);
-                    var modelMat = new Xform(targetProps.rotation, targetProps.position);
-                    var modelMatInv = modelMat.inv();
-                    var xformMat = Xform.mul(modelMatInv, intersectionMat);
-                    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
-                    LaserPointers.setLockEndUUID(laserPointerID, this.targetObject.entityID, this.grabbedIsOverlay, offsetMat);
-                    this.locked = true;
-                }
-            } else {
-                LaserPointers.setLockEndUUID(laserPointerID, null, false);
-                this.locked = false;
-            }
-        };
-
-        this.laserPointerOff = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-            LaserPointers.disableLaserPointer(this.headLaserPointer);
-        };
+            100,
+            this.hand);
 
 
         this.handToController = function() {
@@ -374,9 +259,6 @@ Script.include("/~/system/libraries/Xform.js");
             // XXX
             // this.maybeScale(grabbedProperties);
 
-            // visualizations
-            this.updateLaserPointer(controllerData);
-
             var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
 
             this.linearTimeScale = (this.linearTimeScale / 2);
@@ -506,11 +388,9 @@ Script.include("/~/system/libraries/Xform.js");
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
                 this.notPointingAtEntity(controllerData)) {
                 this.endNearGrabAction();
-                this.laserPointerOff();
                 return makeRunningValues(false, [], []);
             }
             this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
-            this.updateLaserPointer(controllerData);
 
             var otherModuleName =this.hand === RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
             var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
@@ -536,7 +416,6 @@ Script.include("/~/system/libraries/Xform.js");
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
                     if (nearGrabReadiness[k].active && nearGrabReadiness[k].targets[0] === this.grabbedThingID) {
-                        this.laserPointerOff();
                         this.endNearGrabAction();
                         return makeRunningValues(false, [], []);
                     }
@@ -548,7 +427,6 @@ Script.include("/~/system/libraries/Xform.js");
                 // where it could near-grab something, stop searching.
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
-                        this.laserPointerOff();
                         this.endNearGrabAction();
                         return makeRunningValues(false, [], []);
                     }
@@ -617,38 +495,41 @@ Script.include("/~/system/libraries/Xform.js");
                     this.distanceRotate(otherFarGrabModule);
                 }
             }
-            return this.exitIfDisabled();
+            return this.exitIfDisabled(controllerData);
         };
 
-        this.exitIfDisabled = function() {
+        this.exitIfDisabled = function(controllerData) {
             var moduleName = this.hand === RIGHT_HAND ? "RightDisableModules" : "LeftDisableModules";
             var disableModule = getEnabledModuleByName(moduleName);
             if (disableModule) {
                 if (disableModule.disableModules) {
-                    this.laserPointerOff();
                     this.endNearGrabAction();
                     return makeRunningValues(false, [], []);
                 }
             }
-            return makeRunningValues(true, [], []);
+            var grabbedThing = (this.distanceHolding || this.distanceRotating) ? this.targetObject.entityID : null;
+            var offset = this.calculateOffset(controllerData);
+            var laserLockInfo = makeLaserLockInfo(grabbedThing, false, this.hand, offset);
+            return makeRunningValues(true, [], [], laserLockInfo);
         };
 
-        this.cleanup = function () {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-            LaserPointers.removeLaserPointer(this.laserPointer);
+        this.calculateOffset = function(controllerData) {
+            if (this.distanceHolding || this.distanceRotating) {
+                var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
+                    "position",
+                    "rotation"
+                ]);
+                var zeroVector = { x: 0, y: 0, z:0, w: 0 };
+                var intersection = controllerData.rayPicks[this.hand].intersection;
+                var intersectionMat = new Xform(zeroVector, intersection);
+                var modelMat = new Xform(targetProps.rotation, targetProps.position);
+                var modelMatInv = modelMat.inv();
+                var xformMat = Xform.mul(modelMatInv, intersectionMat);
+                var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+                return offsetMat;
+            }
+            return undefined;
         };
-
-        this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
-            maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController(), true),
-            renderStates: renderStates,
-            faceAvatar: true,
-            distanceScaleEnd: true,
-            scaleWithAvatar: true,
-            defaultRenderStates: defaultRenderStates
-        });
     }
 
     var leftFarActionGrabEntity = new FarActionGrabEntity(LEFT_HAND);
@@ -657,11 +538,9 @@ Script.include("/~/system/libraries/Xform.js");
     enableDispatcherModule("LeftFarActionGrabEntity", leftFarActionGrabEntity);
     enableDispatcherModule("RightFarActionGrabEntity", rightFarActionGrabEntity);
 
-    this.cleanup = function () {
-        leftFarActionGrabEntity.cleanup();
-        rightFarActionGrabEntity.cleanup();
+    function cleanup() {
         disableDispatcherModule("LeftFarActionGrabEntity");
         disableDispatcherModule("RightFarActionGrabEntity");
-    };
-    Script.scriptEnding.connect(this.cleanup);
+    }
+    Script.scriptEnding.connect(cleanup);
 }());

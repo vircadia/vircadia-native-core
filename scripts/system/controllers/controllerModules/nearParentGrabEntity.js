@@ -338,11 +338,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
     enableDispatcherModule("LeftNearParentingGrabEntity", leftNearParentingGrabEntity);
     enableDispatcherModule("RightNearParentingGrabEntity", rightNearParentingGrabEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftNearParentingGrabEntity.cleanup();
         rightNearParentingGrabEntity.cleanup();
         disableDispatcherModule("LeftNearParentingGrabEntity");
         disableDispatcherModule("RightNearParentingGrabEntity");
-    };
-    Script.scriptEnding.connect(this.cleanup);
+    }
+    Script.scriptEnding.connect(cleanup);
 }());
