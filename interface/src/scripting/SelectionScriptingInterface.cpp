@@ -78,22 +78,28 @@ bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName
 }
 
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
+    bool doSetupHandler = false;
+
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
         highlightStyle = _highlightedListMap.insert(listName, SelectionHighlightStyle());
+        doSetupHandler = true;
     }
 
     if (!(*highlightStyle).isBoundToList()) {
         GameplayObjects currentList = _selectedItemsListMap.value(listName);
         if (!currentList.getContainsData()) {
             _selectedItemsListMap.insert(listName, currentList);
-            highlightStyleChanged(listName);
+            doSetupHandler = true;
         }
         (*highlightStyle).setBoundToList(true);
     }
 
     (*highlightStyle).fromVariantMap(highlightStyleValues);
 
+    if (doSetupHandler) {
+        setupHandler(listName);
+    }
 
     emit highlightStyleChanged(listName);
     return true;
@@ -190,12 +196,41 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     }
 }
 
+void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
+    emit selectedItemsListChanged(listName);
+}
+
+void SelectionScriptingInterface::onHighlightStyleChanged(const QString& listName) {
+    emit onHighlightStyleChanged(listName);
+}
+
+void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
+    auto handler = _handlerMap.find(selectionName);
+    if (handler == _handlerMap.end()) {
+        handler = _handlerMap.insert(selectionName, new SelectionToSceneHandler());
+    }
+
+
+    (*handler)->initialize(selectionName);
+
+}
+
 
 SelectionToSceneHandler::SelectionToSceneHandler() {
 }
 
 void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
+
+    connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::selectedItemsListChanged, this, &SelectionToSceneHandler::selectedItemsListChanged);
+    connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleChanged, this, &SelectionToSceneHandler::highlightStyleChanged);
+
+    auto mainScene = qApp->getMain3DScene();
+    if (mainScene) {
+        render::Transaction transaction;
+        transaction.resetSelectionHighlight(listName.toStdString(), DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName));
+        mainScene->enqueueTransaction(transaction);
+    }
 }
 
 void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) {
@@ -251,18 +286,20 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
 }
 
 void SelectionToSceneHandler::highlightStyleChanged(const QString& listName) {
-    auto mainScene = qApp->getMain3DScene();
-    if (mainScene) {
-        auto thisStyle = DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName);
-        render::Transaction transaction;
-        render::ItemIDs finalList;
+    if (listName == _listName) {
+        auto mainScene = qApp->getMain3DScene();
+        if (mainScene) {
+            auto thisStyle = DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName);
+            render::Transaction transaction;
+            render::ItemIDs finalList;
 
-        transaction.resetSelectionHighlight(listName.toStdString(), thisStyle);
+            transaction.resetSelectionHighlight(listName.toStdString(), thisStyle);
 
-        mainScene->enqueueTransaction(transaction);
-    }
-    else {
-        qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
+            mainScene->enqueueTransaction(transaction);
+        }
+        else {
+            qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
+        }
     }
 }
 
@@ -300,6 +337,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 
     return true;
 }
+
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 

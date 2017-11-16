@@ -49,6 +49,23 @@ private:
 };
 
 
+class SelectionToSceneHandler : public QObject {
+    Q_OBJECT
+public:
+    SelectionToSceneHandler();
+    void initialize(const QString& listName);
+
+    void updateSceneFromSelectedList();
+
+public slots:
+    void selectedItemsListChanged(const QString& listName);
+    void highlightStyleChanged(const QString& listName);
+
+private:
+    QString _listName{ "" };
+};
+using SelectionToSceneHandlerPointer = QSharedPointer<SelectionToSceneHandler>;
+
 class SelectionHighlightStyle {
 public:
     SelectionHighlightStyle() {}
@@ -120,6 +137,9 @@ public:
 
     render::HighlightStyle getHighlightStyle(const QString& listName) const;
 
+    void onSelectedItemsListChanged(const QString& listName);
+    void onHighlightStyleChanged(const QString& listName);
+
 signals:
     void selectedItemsListChanged(const QString& listName);
     void highlightStyleChanged(const QString& listName);
@@ -128,26 +148,12 @@ private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
     QMap<QString, SelectionHighlightStyle> _highlightedListMap;
+    QMap<QString, SelectionToSceneHandler*> _handlerMap;
 
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
-};
 
-
-class SelectionToSceneHandler : public QObject {
-    Q_OBJECT
-public:
-    SelectionToSceneHandler();
-    void initialize(const QString& listName);
-
-    void updateSceneFromSelectedList();
-
-public slots:
-    void selectedItemsListChanged(const QString& listName);
-    void highlightStyleChanged(const QString& listName);
-
-private:
-    QString _listName { "" };
+    void setupHandler(const QString& selectionName);
 };
 
 #endif // hifi_SelectionScriptingInterface_h

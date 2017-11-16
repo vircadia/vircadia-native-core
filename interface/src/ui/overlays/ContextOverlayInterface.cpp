@@ -69,14 +69,15 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
     {
-        render::Transaction transaction;
+        _selectionScriptingInterface->enableListHighlight("contextOverlayHighlightList", QVariantMap());
+    /*    render::Transaction transaction;
         initializeSelectionToSceneHandler(_selectionToSceneHandlers[0], "contextOverlayHighlightList", transaction);
         for (auto i = 1; i < MAX_SELECTION_COUNT; i++) {
             auto selectionName = QString("highlightList") + QString::number(i);
             initializeSelectionToSceneHandler(_selectionToSceneHandlers[i], selectionName, transaction);
         }
         const render::ScenePointer& scene = qApp->getMain3DScene();
-        scene->enqueueTransaction(transaction);
+        scene->enqueueTransaction(transaction);*/
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
