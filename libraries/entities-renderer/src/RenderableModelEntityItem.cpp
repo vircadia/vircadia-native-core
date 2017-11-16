@@ -980,8 +980,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    //added by angus
-    //this a spot to work on the avatar npc in my branch
 
     QVector<JointData> jointsData;
 
@@ -1000,7 +998,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     if ((firstFrame >= 0) && (firstFrame < lastFrame) && (lastFrame <= frameCount)) {
         //length of animation in now determined by first and last frame
-        updatedFrameCount = lastFrame - firstFrame;
+        updatedFrameCount = (lastFrame - firstFrame + 1);
     }
 
 
@@ -1016,14 +1014,12 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     //here we implement the looping animation property
     //if we have played through the animation once then we hold on the last frame
-   // if (!isLooping && (_currentFrame > _endAnim)) {
-        //don't advance current frame!!!
-        
-    //}else{
+   
     if( isLooping || ( _currentFrame < _endAnim ) ){
         //else advance the current frame.
         //if hold or not playing don't advance the current frame.
-        if (!isHolding && entity->getAnimationIsPlaying()) {
+        //also if the animFrame is outside of first or last frame then don't advance the motion.
+        if (!isHolding && entity->getAnimationIsPlaying() && !( _renderAnimationProperties.getCurrentFrame() > _renderAnimationProperties.getLastFrame() ) && !( _renderAnimationProperties.getCurrentFrame() < _renderAnimationProperties.getFirstFrame() ) ) {
             float deltaTime = (float)interval / (float)USECS_PER_SECOND;
             _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
         }
@@ -1362,17 +1358,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if (newAnimationProperties != _renderAnimationProperties) {
             withWriteLock([&] {
                 if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
-                    _currentFrame = newAnimationProperties.getCurrentFrame();
-                    _endAnim = (_currentFrame - 1) + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame()));
-                    _lastAnimated = 0;
-                    //qCDebug(entitiesrenderer) << "reset current frame" << _endAnim;
-                }
-                if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
-                    //set the end of animation relative to the current frame
-                    //qCDebug(entitiesrenderer) << "turned off looping";
-                    float startOffset = newAnimationProperties.getCurrentFrame() - newAnimationProperties.getFirstFrame();
-                    float posRelativeToStart = (_currentFrame - newAnimationProperties.getFirstFrame()) - startOffset;
-                    _endAnim = (_currentFrame - 1) + (((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - ((int)(glm::floor(posRelativeToStart)) % ((int)newAnimationProperties.getLastFrame() - (int)newAnimationProperties.getFirstFrame())));
+                    if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {
+                        _currentFrame = newAnimationProperties.getCurrentFrame();
+                        _endAnim = _currentFrame + ( newAnimationProperties.getLastFrame() - newAnimationProperties.getFirstFrame() );
+                        _lastAnimated = 0;
+                    }
+                }else if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
+                     int currentframe_mod_length = (int)(_currentFrame  - (int)(glm::floor(newAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(newAnimationProperties.getLastFrame())) - (int)(glm::floor(newAnimationProperties.getFirstFrame())) + 1);
+                    _endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
                 }
                 _renderAnimationProperties = newAnimationProperties;
             });
