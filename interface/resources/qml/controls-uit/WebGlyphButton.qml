@@ -9,8 +9,7 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4 as Original
-import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.2 as Original
 
 import "../styles-uit"
 
@@ -26,23 +25,16 @@ Original.Button {
     readonly property color clickedColor: "#FFFFFF"
     readonly property color disabledColor: "#575757"
 
-    style: ButtonStyle {
-        background: Item {}
+    background: Item {}
 
-
-        label: HiFiGlyphs {
-            color: control.enabled ? (control.pressed ? control.clickedColor :
-                                                        (control.hovered ? control.hoverColor : control.normalColor)) :
-                                     control.disabledColor
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-            anchors {
-                // Tweak horizontal alignment so that it looks right.
-                left: parent.left
-                leftMargin: -0.5
-            }
-            text: control.glyph
-            size: control.size
-        }
+    contentItem: HiFiGlyphs {
+        color: control.enabled ? (control.pressed ? control.clickedColor :
+                                                    (control.hovered ? control.hoverColor : control.normalColor)) :
+                                 control.disabledColor
+        verticalAlignment: Text.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
+        text: control.glyph
+        size: control.size
     }
 }
+
