@@ -66,6 +66,7 @@ public:
         glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
 
         // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
+        // TODO: we are assuming here that UP is world y-axis
         glm::mat4 worldFromMirrorRotation = glm::mat4_cast(mirrorPropertiesRotation) * glm::scale(vec3(-1.0f, 1.0f, -1.0f));
         glm::mat4 worldFromMirrorTranslation = glm::translate(mirrorPropertiesPosition);
         glm::mat4 worldFromMirror = worldFromMirrorTranslation * worldFromMirrorRotation;
