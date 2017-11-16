@@ -72,6 +72,7 @@ void EntityServer::aboutToFinish() {
 }
 
 void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    qDebug() << __FUNCTION__ << "from:" << senderNode->getUUID() << "type:" << message->getType();
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
     }

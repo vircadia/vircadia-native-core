@@ -64,6 +64,8 @@ void PacketSender::queuePacketListForSending(const SharedNodePointer& destinatio
     _totalPacketsQueued += packetList->getNumPackets();
     _totalBytesQueued += packetList->getMessageSize();
 
+    qDebug() << __FUNCTION__ << "to:" << destinationNode->getUUID() << "type:" << packetList->getType() << "_totalPacketsQueued:" << _totalPacketsQueued << "_totalBytesQueued:" << _totalBytesQueued;
+
     lock();
     _packets.push_back({ destinationNode, PacketOrPacketList { nullptr, std::move(packetList)} });
     unlock();
@@ -287,8 +289,12 @@ bool PacketSender::nonThreadedProcess() {
         //PacketOrPacketList packetOrList = packetPair.second;
         bool sendAsPacket = packetPair.second.first.get();
         if (sendAsPacket) {
+
+            qDebug() << __FUNCTION__ << "sendUnreliablePacket() to:" << packetPair.first->getUUID() << "type:" << packetPair.second.first->getType();
             DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second.first, *packetPair.first);
         } else {
+
+            qDebug() << __FUNCTION__ << "sendPacketList() to:" << packetPair.first->getUUID() << "type:" << packetPair.second.second->getType();
             DependencyManager::get<NodeList>()->sendPacketList(*packetPair.second.second, *packetPair.first);
         }
 
@@ -302,6 +308,10 @@ bool PacketSender::nonThreadedProcess() {
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize); // FIXME should include number of packets?
+
+        qDebug() << __FUNCTION__ << "packetsSentThisCall:" << packetsSentThisCall
+            << "_packetsOverCheckInterval:" << _packetsOverCheckInterval
+            << "_totalPacketsSent:" << _totalPacketsSent;
 
         _lastSendTime = now;
     }

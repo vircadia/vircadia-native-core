@@ -119,6 +119,8 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 // a known nodeID.
 void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
 
+    qDebug() << __FUNCTION__ << "to:" << nodeUUID << "type:" << packetList->getType();
+
     bool wantDebug = false;
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are getMyNodeType()
@@ -268,33 +270,65 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
                 });
             }
             if (isMyJurisdiction) {
-                std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID].first; //only a NLPacket for now
 
-                if (!bufferedPacket) {
-                    bufferedPacket = initializePacket(type, node->getClockSkewUsec());
-                } else {
-                    // If we're switching type, then we send the last one and start over
-                    if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
-                        (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
+                // for edit messages, we will attempt to combine multiple edit commands where possible, we
+                // don't do this for add because we send those reliably
+                if (type == PacketType::EntityAdd) {
 
-                        // create the new packet and swap it with the packet in _pendingEditPackets
-                        auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
-                        bufferedPacket.swap(packetToRelease);
+                    auto newPacket = NLPacketList::create(type, QByteArray(), true, true);
+                    auto nodeClockSkew = node->getClockSkewUsec();
 
-                        // release the previously buffered packet
-                        releaseQueuedPacket(nodeUUID, std::move(packetToRelease));
+                    // pack sequence number
+                    quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
+                    newPacket->writePrimitive(sequence);
+
+                    // pack in timestamp
+                    quint64 now = usecTimestampNow() + nodeClockSkew;
+                    newPacket->writePrimitive(now);
+
+
+                    // We call this virtual function that allows our specific type of EditPacketSender to
+                    // fixup the buffer for any clock skew
+                    if (nodeClockSkew != 0) {
+                        adjustEditPacketForClockSkew(type, editMessage, nodeClockSkew);
                     }
-                }
 
-                // This is really the first time we know which server/node this particular edit message
-                // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
-                // We call this virtual function that allows our specific type of EditPacketSender to
-                // fixup the buffer for any clock skew
-                if (node->getClockSkewUsec() != 0) {
-                    adjustEditPacketForClockSkew(type, editMessage, node->getClockSkewUsec());
-                }
+                    newPacket->write(editMessage);
 
-                bufferedPacket->write(editMessage);
+                    // release the new packet
+                    releaseQueuedPacketList(nodeUUID, std::move(newPacket));
+
+                } else {
+
+                    std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID].first; //only a NLPacket for now
+
+                    if (!bufferedPacket) {
+                        bufferedPacket = initializePacket(type, node->getClockSkewUsec());
+                    } else {
+                        // If we're switching type, then we send the last one and start over
+                        if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
+                            (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
+
+                            // create the new packet and swap it with the packet in _pendingEditPackets
+                            auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
+                            bufferedPacket.swap(packetToRelease);
+
+                            // release the previously buffered packet
+                            releaseQueuedPacket(nodeUUID, std::move(packetToRelease));
+                        }
+                    }
+
+                    // This is really the first time we know which server/node this particular edit message
+                    // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
+                    // We call this virtual function that allows our specific type of EditPacketSender to
+                    // fixup the buffer for any clock skew
+                    if (node->getClockSkewUsec() != 0) {
+                        adjustEditPacketForClockSkew(type, editMessage, node->getClockSkewUsec());
+                    }
+
+                    bufferedPacket->write(editMessage);
+
+                }
             }
         }
     });
@@ -346,6 +380,9 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
 }
 
 void OctreeEditPacketSender::releaseQueuedPacketList(const QUuid& nodeID, std::unique_ptr<NLPacketList> packetList) {
+
+    qDebug() << __FUNCTION__ << "to:" << nodeID << "type:" << packetList->getType();
+
     _releaseQueuedPacketMutex.lock();
     if (packetList->getMessageSize() > 0 && packetList->getType() != PacketType::Unknown) {
         queuePacketListToNode(nodeID, std::move(packetList));
