@@ -339,7 +339,6 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        lineWidth: grabberLineWidth,
         drawInFront: true,
         borderSize: 1.4
     };
@@ -352,7 +351,6 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        lineWidth: grabberLineWidth,
         drawInFront: true,
         borderSize: 1.4
     };
@@ -365,7 +363,6 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        lineWidth: grabberLineWidth,
         drawInFront: true,
         borderSize: 1.4
     };
@@ -378,14 +375,12 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        lineWidth: grabberLineWidth,
         drawInFront: true,
         borderSize: 1.4
     };
 
     var spotLightLineProperties = {
-        color: lightOverlayColor,
-        lineWidth: 1.5
+        color: lightOverlayColor
     };
 
     var highlightBox = Overlays.addOverlay("cube", {
@@ -400,7 +395,6 @@ SelectionDisplay = (function() {
         solid: false,
         visible: false,
         dashed: true,
-        lineWidth: 2.0,
         ignoreRayIntersection: true, // this never ray intersects
         drawInFront: true
     });
@@ -416,8 +410,7 @@ SelectionDisplay = (function() {
         alpha: 1,
         solid: false,
         visible: false,
-        dashed: false,
-        lineWidth: 1.0
+        dashed: false
     });
 
     var selectionBoxes = [];
@@ -466,7 +459,6 @@ SelectionDisplay = (function() {
 
     // var normalLine = Overlays.addOverlay("line3d", {
     //                 visible: true,
-    //                 lineWidth: 2.0,
     //                 start: { x: 0, y: 0, z: 0 },
     //                 end: { x: 0, y: 0, z: 0 },
     //                 color: { red: 255, green: 255, blue: 0 },
@@ -656,7 +648,6 @@ SelectionDisplay = (function() {
 
     var xRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
-        lineWidth: 1.0,
         start: Vec3.ZERO,
         end: Vec3.ZERO,
         color: {
@@ -668,7 +659,6 @@ SelectionDisplay = (function() {
     });
     var yRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
-        lineWidth: 1.0,
         start: Vec3.ZERO,
         end: Vec3.ZERO,
         color: {
@@ -680,7 +670,6 @@ SelectionDisplay = (function() {
     });
     var zRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
-        lineWidth: 1.0,
         start: Vec3.ZERO,
         end: Vec3.ZERO,
         color: {
@@ -693,7 +682,6 @@ SelectionDisplay = (function() {
 
     var rotateZeroOverlay = Overlays.addOverlay("line3d", {
         visible: false,
-        lineWidth: 2.0,
         start: Vec3.ZERO,
         end: Vec3.ZERO,
         color: {
@@ -706,7 +694,6 @@ SelectionDisplay = (function() {
 
     var rotateCurrentOverlay = Overlays.addOverlay("line3d", {
         visible: false,
-        lineWidth: 2.0,
         start: Vec3.ZERO,
         end: Vec3.ZERO,
         color: {
@@ -1788,7 +1775,6 @@ SelectionDisplay = (function() {
                             y: distance,
                             z: 1
                         },
-                        lineWidth: 1.5,
                         rotation: rotation,
                         visible: true
                     });
@@ -1994,7 +1980,6 @@ SelectionDisplay = (function() {
                     solid: false,
                     visible: false,
                     dashed: false,
-                    lineWidth: 1.0,
                     ignoreRayIntersection: true
                 }));
         }
