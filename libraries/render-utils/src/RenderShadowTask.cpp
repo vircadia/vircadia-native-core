@@ -263,7 +263,10 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
     RenderArgs* args = renderContext->args;
 
-    // Reset the render args
-    args->popViewFrustum();
+    if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
+        // Reset the render args
+        args->popViewFrustum();
+    }
+    assert(args->hasViewFrustum());
     args->_renderMode = input;
 };
