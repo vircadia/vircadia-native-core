@@ -39,7 +39,12 @@ static std::mutex rigRegistryMutex;
 
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
     const float EPSILON = 0.0001f;
-    return glm::length(u - v) / glm::length(u) <= EPSILON;
+    float uLen = glm::length(u);
+    if (uLen == 0.0f) {
+        return glm::length(v) <= EPSILON;
+    } else {
+        return (glm::length(u - v) / uLen) <= EPSILON;
+    }
 }
 
 static bool isEqual(const glm::quat& p, const glm::quat& q) {
@@ -173,6 +178,11 @@ void Rig::restoreRoleAnimation(const QString& role) {
                 _origRoleAnimations.erase(iter);
             } else {
                 qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
+            }
+            
+            auto statesIter = _roleAnimStates.find(role);
+            if (statesIter != _roleAnimStates.end()) {
+                _roleAnimStates.erase(statesIter);
             }
         }
     } else {

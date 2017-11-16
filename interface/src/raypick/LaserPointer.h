@@ -43,6 +43,9 @@ public:
     void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
     const glm::vec3& getEndDim() const { return _endDim; }
 
+    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
+    const float& getLineWidth() const { return _lineWidth; }
+
     void deleteOverlays();
 
 private:
@@ -54,6 +57,7 @@ private:
     bool _endIgnoreRays;
 
     glm::vec3 _endDim;
+    float _lineWidth;
 };
 
 
@@ -66,7 +70,7 @@ public:
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
@@ -97,6 +101,7 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
+    bool _scaleWithAvatar;
     LockEndObject _lockEndObject;
 
     const QUuid _rayPickUID;

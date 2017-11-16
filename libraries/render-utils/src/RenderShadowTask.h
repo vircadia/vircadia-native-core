@@ -21,11 +21,11 @@ class ViewFrustum;
 
 class RenderShadowMap {
 public:
-    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapeBounds>;
+    using Inputs = render::VaryingSet2<render::ShapeBounds, AABox>;
+    using JobModel = render::Job::ModelI<RenderShadowMap, Inputs>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::RenderContextPointer& renderContext,
-             const render::ShapeBounds& inShapes);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;

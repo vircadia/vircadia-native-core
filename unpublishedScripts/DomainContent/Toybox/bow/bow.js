@@ -329,7 +329,6 @@
                     y: 0,
                     z: 0
                 }, lineVectors[0]],
-                lineWidth: 5,
                 color: this.stringData.currentColor
             });
 
@@ -339,7 +338,6 @@
                     y: 0,
                     z: 0
                 }, lineVectors[1]],
-                lineWidth: 5,
                 color: this.stringData.currentColor
             });
 
