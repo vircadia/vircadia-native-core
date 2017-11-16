@@ -338,8 +338,6 @@ int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle
     int clippedTriangleCount = 0;
     int i;
 
-    assert(clippedTriangleCount > 0);
-
     for (i = 0; i < 3; i++) {
         pointDistanceToPlane[i] = plane.distance(triangleVertices[i]);
         arePointsClipped.set(i, pointDistanceToPlane[i] < 0.0f);

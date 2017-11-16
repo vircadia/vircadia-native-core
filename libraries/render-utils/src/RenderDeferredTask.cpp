@@ -44,8 +44,6 @@
 #include "DrawHaze.h"
 #include "HighlightEffect.h"
 
-#include <gpu/StandardShaderLib.h>
-
 #include <sstream>
 
 using namespace render;
@@ -193,14 +191,21 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
-    { // DEbug the bounds of the rendered items, still look at the zbuffer
+    { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
-        task.addJob<DrawFrustums>("DrawFrustums");
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums");
+        const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
+        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(1.0f, 1.0f, 0.0f));
+        for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
+            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM+i);
+            float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
+            task.addJob<DrawFrustum>("DrawShadowFrustum", shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
+        }
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
@@ -449,6 +454,11 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
+    // We do not want to render HUD elements in secondary camera
+    if (renderContext->args->_renderMode == RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) {
+        return;
+    }
+
     // Grab the HUD texture
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
         if (renderContext->args->_hudOperator) {
@@ -528,101 +538,35 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-void DrawFrustums::configure(const Config& configuration) {
-    _updateFrustums = !configuration.isFrozen;
-}
-
-void DrawFrustums::run(const render::RenderContextPointer& renderContext) {
+void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Output& output) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
     RenderArgs* args = renderContext->args;
-    static uint8_t indexData[] = { 0, 1, 2, 3, 0, 4, 5, 6, 7, 4, 5, 1, 2, 6, 7, 3 };
 
-    if (!_frustumMeshIndices._buffer) {
-        auto indices = std::make_shared<gpu::Buffer>(sizeof(indexData), indexData);
-        _frustumMeshIndices = gpu::BufferView(indices, gpu::Element(gpu::SCALAR, gpu::UINT8, gpu::INDEX));
-        _viewFrustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-        _viewFrustumMeshStream.addBuffer(_viewFrustumMeshVertices._buffer, _viewFrustumMeshVertices._offset, _viewFrustumMeshVertices._stride);
-        for (auto i = 0; i < MAX_SHADOW_FRUSTUM_COUNT; i++) {
-            _shadowFrustumMeshVertices[i] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-            _shadowFrustumMeshStream[i].addBuffer(_shadowFrustumMeshVertices[i]._buffer, _shadowFrustumMeshVertices[i]._offset, _shadowFrustumMeshVertices[i]._stride);
-        }
+    // Return view frustum
+    auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
+    if (!viewFrustum) {
+        viewFrustum = std::make_shared<ViewFrustum>(args->getViewFrustum());
+    } else {
+        *viewFrustum = args->getViewFrustum();
     }
 
-    auto lightStage = renderContext->_scene->getStage<LightStage>();
-    assert(lightStage);
+    // Return shadow frustum
+    auto lightStage = args->_scene->getStage<LightStage>(LightStage::getName());
+    for (auto i = 0; i < SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
+        auto& shadowFrustum = output[SHADOW_CASCADE0_FRUSTUM+i].edit<ViewFrustumPointer>();
+        if (lightStage) {
+            auto globalShadow = lightStage->getCurrentKeyShadow();
 
-    const auto globalShadow = lightStage->getCurrentKeyShadow();
-
-    if (_updateFrustums) {
-        updateFrustum(args->getViewFrustum(), _viewFrustumMeshVertices);
-
-        if (globalShadow) {
-            const auto cascadeCount = std::min(MAX_SHADOW_FRUSTUM_COUNT, (int)globalShadow->getCascadeCount());
-            for (auto i = 0; i < cascadeCount; i++) {
-                updateFrustum(*globalShadow->getCascade(i).getFrustum(), _shadowFrustumMeshVertices[i]);
+            if (globalShadow && i<globalShadow->getCascadeCount()) {
+                auto& cascade = globalShadow->getCascade(i);
+                shadowFrustum = cascade.getFrustum();
+            } else {
+                shadowFrustum.reset();
             }
+        } else {
+            shadowFrustum.reset();
         }
     }
-
-    if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawColorPS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("color", 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(true, false));
-        _pipeline = gpu::Pipeline::create(program, state);
-    }
-
-    // Render the frustums in wireframe
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-        batch.setPipeline(_pipeline);
-        batch.setIndexBuffer(_frustumMeshIndices);
-
-        batch._glUniform4f(0, 1.0f, 1.0f, 0.0f, 1.0f);
-        batch.setInputStream(0, _viewFrustumMeshStream);
-        batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
-
-        if (globalShadow) {
-            const auto cascadeCount = std::min(MAX_SHADOW_FRUSTUM_COUNT, (int)globalShadow->getCascadeCount());
-            for (auto i = 0; i < cascadeCount; i++) {
-                float cascadeTint = i / (float)(globalShadow->getCascadeCount() - 1);
-
-                batch._glUniform4f(0, 1.0f, 0.0f, cascadeTint, 1.0f);
-                batch.setInputStream(0, _shadowFrustumMeshStream[i]);
-                batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
-            }
-        }
-
-        args->_batch = nullptr;
-    });
-}
-
-void DrawFrustums::updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer) {
-    auto& vertices = vertexBuffer.edit<std::array<glm::vec3, 8U> >();
-    vertices[0] = frustum.getNearTopLeft();
-    vertices[1] = frustum.getNearTopRight();
-    vertices[2] = frustum.getNearBottomRight();
-    vertices[3] = frustum.getNearBottomLeft();
-    vertices[4] = frustum.getFarTopLeft();
-    vertices[5] = frustum.getFarTopRight();
-    vertices[6] = frustum.getFarBottomRight();
-    vertices[7] = frustum.getFarBottomLeft();
 }

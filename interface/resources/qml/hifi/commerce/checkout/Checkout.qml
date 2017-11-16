@@ -476,9 +476,7 @@ Rectangle {
                             commerce.buy(itemId, itemPrice, true);
                         }
                     } else {
-                        if (urlHandler.canHandleUrl(itemHref)) {
-                            urlHandler.handleUrl(itemHref);
-                        }
+                        sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                     }
                 }
             }

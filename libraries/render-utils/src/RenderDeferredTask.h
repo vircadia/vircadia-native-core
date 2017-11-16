@@ -170,40 +170,26 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
-class DrawFrustumsConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(bool isFrozen MEMBER isFrozen NOTIFY dirty)
+class ExtractFrustums {
 public:
 
-    DrawFrustumsConfig(bool enabled = false) : JobConfig(enabled) {}
+    enum Frustum {
+        SHADOW_CASCADE0_FRUSTUM = 0,
+        SHADOW_CASCADE1_FRUSTUM,
+        SHADOW_CASCADE2_FRUSTUM,
+        SHADOW_CASCADE3_FRUSTUM,
 
-    bool isFrozen{ false };
-signals:
-    void dirty();
+        SHADOW_CASCADE_FRUSTUM_COUNT,
 
-};
+        VIEW_FRUSTUM = SHADOW_CASCADE_FRUSTUM_COUNT,
 
-class DrawFrustums {
-public:
-    using Config = DrawFrustumsConfig;
-    using JobModel = render::Job::Model<DrawFrustums, Config>;
+        FRUSTUM_COUNT
+    };
 
-    void configure(const Config& configuration);
-    void run(const render::RenderContextPointer& renderContext);
+    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
 
-private:
-
-    static const int MAX_SHADOW_FRUSTUM_COUNT{ 4 };
-
-    bool _updateFrustums{ true };
-    gpu::PipelinePointer _pipeline;
-    gpu::BufferView _frustumMeshIndices;
-    gpu::BufferView _viewFrustumMeshVertices;
-    gpu::BufferStream _viewFrustumMeshStream;
-    gpu::BufferView _shadowFrustumMeshVertices[MAX_SHADOW_FRUSTUM_COUNT];
-    gpu::BufferStream _shadowFrustumMeshStream[MAX_SHADOW_FRUSTUM_COUNT];
-
-    static void updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 };
 
 class RenderDeferredTaskConfig : public render::Task::Config {
