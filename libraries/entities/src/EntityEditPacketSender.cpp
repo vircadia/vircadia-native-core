@@ -81,6 +81,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
+
+    qDebug() << __FUNCTION__ << "type:" << type;
+
     if (!_shouldSend) {
         return; // bail early
     }
@@ -92,6 +95,14 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     }
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
+
+    if (type == PacketType::EntityAdd) {
+        auto MAX_ADD_DATA_SIZE = NLPacket::maxPayloadSize(type) * 10; // a really big packet
+        bufferOut.resize(MAX_ADD_DATA_SIZE);
+    }
+
+    qDebug() << __FUNCTION__ << "bufferOut.size():" << bufferOut.size();
+
 
     OctreeElement::AppendState encodeResult = OctreeElement::PARTIAL; // start the loop assuming there's more to send
     auto nodeList = DependencyManager::get<NodeList>();
@@ -115,6 +126,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                 qCDebug(entities) << "    id:" << entityItemID;
                 qCDebug(entities) << "    properties:" << properties;
             #endif
+
+            qDebug() << __FUNCTION__ << "about to call queueOctreeEditMessage() --- bufferOut.size():" << bufferOut.size();
+
             queueOctreeEditMessage(type, bufferOut);
             if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
                 emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->getPlaceName());

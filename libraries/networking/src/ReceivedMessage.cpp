@@ -26,8 +26,10 @@ ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
       _sourceID(packetList.getSourceID()),
       _packetType(packetList.getType()),
       _packetVersion(packetList.getVersion()),
-      _senderSockAddr(packetList.getSenderSockAddr())
+      _senderSockAddr(packetList.getSenderSockAddr()),
+      _fromPacketList(true)
 {
+    qDebug() << __FUNCTION__ << "(const NLPacketList& packetList)  _fromPacketList:" << _fromPacketList;
 }
 
 ReceivedMessage::ReceivedMessage(NLPacket& packet)
@@ -38,8 +40,12 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
       _packetType(packet.getType()),
       _packetVersion(packet.getVersion()),
       _senderSockAddr(packet.getSenderSockAddr()),
-      _isComplete(packet.getPacketPosition() == NLPacket::ONLY)
+      _isComplete(packet.getPacketPosition() == NLPacket::ONLY),
+      _fromPacket(true)
 {
+    if (packet.getType() == PacketType::EntityAdd) {
+        qDebug() << __FUNCTION__ << "(NLPacket& packet) _fromPacketList:" << _fromPacketList << "packet.getType():" << packet.getType();
+    }
 }
 
 ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
@@ -51,9 +57,10 @@ ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, Pa
     _packetType(packetType),
     _packetVersion(packetVersion),
     _senderSockAddr(senderSockAddr),
-    _isComplete(true)
+    _isComplete(true),
+    _fromByteArray(true)
 {
-
+    qDebug() << __FUNCTION__ << "(QByteArray byteArray)... _fromPacketList:" << _fromPacketList;
 }
 
 void ReceivedMessage::setFailed() {

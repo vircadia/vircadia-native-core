@@ -64,7 +64,8 @@ void PacketSender::queuePacketListForSending(const SharedNodePointer& destinatio
     _totalPacketsQueued += packetList->getNumPackets();
     _totalBytesQueued += packetList->getMessageSize();
 
-    qDebug() << __FUNCTION__ << "to:" << destinationNode->getUUID() << "type:" << packetList->getType() << "_totalPacketsQueued:" << _totalPacketsQueued << "_totalBytesQueued:" << _totalBytesQueued;
+    qDebug() << __FUNCTION__ << "to:" << destinationNode->getUUID() << "type:" << packetList->getType() << "size:" << packetList->getDataSize()
+        << "_totalPacketsQueued:" << _totalPacketsQueued << "_totalBytesQueued:" << _totalBytesQueued;
 
     lock();
     _packets.push_back({ destinationNode, PacketOrPacketList { nullptr, std::move(packetList)} });
@@ -288,18 +289,22 @@ bool PacketSender::nonThreadedProcess() {
         // send the packet through the NodeList...
         //PacketOrPacketList packetOrList = packetPair.second;
         bool sendAsPacket = packetPair.second.first.get();
+        size_t packetSize = sendAsPacket ? packetPair.second.first->getDataSize() : packetPair.second.second->getMessageSize();
+        size_t packetCount = sendAsPacket ? 1 : packetPair.second.second->getNumPackets();
+
         if (sendAsPacket) {
 
             qDebug() << __FUNCTION__ << "sendUnreliablePacket() to:" << packetPair.first->getUUID() << "type:" << packetPair.second.first->getType();
             DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second.first, *packetPair.first);
         } else {
 
-            qDebug() << __FUNCTION__ << "sendPacketList() to:" << packetPair.first->getUUID() << "type:" << packetPair.second.second->getType();
+            qDebug() << __FUNCTION__ << "sendPacketList() to:" << packetPair.first->getUUID() << "type:" << packetPair.second.second->getType()
+                << "getMessageSize:" << packetPair.second.second->getMessageSize()
+                << "getDataSize:" << packetPair.second.second->getDataSize();
+
             DependencyManager::get<NodeList>()->sendPacketList(*packetPair.second.second, *packetPair.first);
         }
 
-        size_t packetSize = sendAsPacket ? packetPair.second.first->getDataSize() : packetPair.second.second->getMessageSize();
-        size_t packetCount = sendAsPacket ? 1 : packetPair.second.second->getNumPackets();
 
         packetsSentThisCall += packetCount;
         _packetsOverCheckInterval += packetCount;
@@ -311,7 +316,9 @@ bool PacketSender::nonThreadedProcess() {
 
         qDebug() << __FUNCTION__ << "packetsSentThisCall:" << packetsSentThisCall
             << "_packetsOverCheckInterval:" << _packetsOverCheckInterval
-            << "_totalPacketsSent:" << _totalPacketsSent;
+            << "_totalPacketsSent:" << _totalPacketsSent
+            << "packetSize:" << packetSize
+            << "_totalBytesSent:" << _totalBytesSent;
 
         _lastSendTime = now;
     }

@@ -119,7 +119,7 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 // a known nodeID.
 void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
 
-    qDebug() << __FUNCTION__ << "to:" << nodeUUID << "type:" << packetList->getType();
+    qDebug() << __FUNCTION__ << "to:" << nodeUUID << "type:" << packetList->getType() << "size:" << packetList->getDataSize();
 
     bool wantDebug = false;
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
@@ -381,7 +381,7 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
 
 void OctreeEditPacketSender::releaseQueuedPacketList(const QUuid& nodeID, std::unique_ptr<NLPacketList> packetList) {
 
-    qDebug() << __FUNCTION__ << "to:" << nodeID << "type:" << packetList->getType();
+    qDebug() << __FUNCTION__ << "to:" << nodeID << "type:" << packetList->getType() << "size:" << packetList->getDataSize();
 
     _releaseQueuedPacketMutex.lock();
     if (packetList->getMessageSize() > 0 && packetList->getType() != PacketType::Unknown) {

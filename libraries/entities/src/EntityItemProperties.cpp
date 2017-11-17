@@ -1227,6 +1227,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
+    qDebug() << __FUNCTION__ << "OctreePacketData::getBytesAvailable():" << packetData->getBytesAvailable();
+
+
     bool success = true; // assume the best
     OctreeElement::AppendState appendState = OctreeElement::COMPLETED; // assume the best
 
@@ -1525,9 +1528,15 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
         int finalizedSize = packetData->getFinalizedSize();
 
+        qDebug() << __FUNCTION__ << "packetData->getFinalizedSize():" << packetData->getFinalizedSize();
+        qDebug() << __FUNCTION__ << "packetData->getUncompressedSize():" << packetData->getUncompressedSize();
+        qDebug() << __FUNCTION__ << "buffer.size():" << buffer.size();
+
         if (finalizedSize <= buffer.size()) {
             buffer.replace(0, finalizedSize, finalizedData, finalizedSize);
             buffer.resize(finalizedSize);
+            qDebug() << __FUNCTION__ << "replaced with finalized data size:" << buffer.size();
+
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             success = false;
