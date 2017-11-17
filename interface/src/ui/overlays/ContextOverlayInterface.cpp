@@ -70,26 +70,12 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     {
         _selectionScriptingInterface->enableListHighlight("contextOverlayHighlightList", QVariantMap());
-    /*    render::Transaction transaction;
-        initializeSelectionToSceneHandler(_selectionToSceneHandlers[0], "contextOverlayHighlightList", transaction);
-        for (auto i = 1; i < MAX_SELECTION_COUNT; i++) {
-            auto selectionName = QString("highlightList") + QString::number(i);
-            initializeSelectionToSceneHandler(_selectionToSceneHandlers[i], selectionName, transaction);
-        }
-        const render::ScenePointer& scene = qApp->getMain3DScene();
-        scene->enqueueTransaction(transaction);*/
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
-}
-
-void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction) {
-    handler.initialize(selectionName);
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &handler, &SelectionToSceneHandler::selectedItemsListChanged);
-    transaction.resetSelectionHighlight(selectionName.toStdString());
 }
 
 static const uint32_t MOUSE_HW_ID = 0;

@@ -96,9 +96,6 @@ private:
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
     void deletingEntity(const EntityItemID& entityItemID);
-    void initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction);
-
-    SelectionToSceneHandler _selectionToSceneHandlers[MAX_SELECTION_COUNT];
 
     Q_INVOKABLE void startChallengeOwnershipTimer();
     QTimer _challengeOwnershipTimeoutTimer;

@@ -59,7 +59,8 @@ public:
 
 public slots:
     void selectedItemsListChanged(const QString& listName);
-    void highlightStyleChanged(const QString& listName);
+  //  void highlightStyleChanged(const QString& listName);
+  //  void highlightStyleRemoved(const QString& listName);
 
 private:
     QString _listName{ "" };
@@ -137,12 +138,10 @@ public:
 
     render::HighlightStyle getHighlightStyle(const QString& listName) const;
 
-    void onSelectedItemsListChanged(const QString& listName);
-    void onHighlightStyleChanged(const QString& listName);
-
 signals:
     void selectedItemsListChanged(const QString& listName);
-    void highlightStyleChanged(const QString& listName);
+ //   void highlightStyleChanged(const QString& listName);
+ //   void highlightStyleRemoved(const QString& listName);
 
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
@@ -154,6 +153,8 @@ private:
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 
     void setupHandler(const QString& selectionName);
+
+    
 };
 
 #endif // hifi_SelectionScriptingInterface_h

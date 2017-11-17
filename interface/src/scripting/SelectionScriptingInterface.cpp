@@ -83,38 +83,56 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
         highlightStyle = _highlightedListMap.insert(listName, SelectionHighlightStyle());
-        doSetupHandler = true;
+
     }
 
     if (!(*highlightStyle).isBoundToList()) {
-        GameplayObjects currentList = _selectedItemsListMap.value(listName);
-        if (!currentList.getContainsData()) {
-            _selectedItemsListMap.insert(listName, currentList);
-            doSetupHandler = true;
+        auto currentList = _selectedItemsListMap.find(listName);
+        if (currentList == _selectedItemsListMap.end()) {
+            _selectedItemsListMap.insert(listName, GameplayObjects());
+            setupHandler(listName);
+   //         doSetupHandler = true;
         }
         (*highlightStyle).setBoundToList(true);
     }
 
     (*highlightStyle).fromVariantMap(highlightStyleValues);
 
-    if (doSetupHandler) {
+/*    if (doSetupHandler) {
         setupHandler(listName);
+    }*/
+
+    auto mainScene = qApp->getMain3DScene();
+    if (mainScene) {
+        render::Transaction transaction;
+        transaction.resetSelectionHighlight(listName.toStdString(), (*highlightStyle).getStyle());
+        mainScene->enqueueTransaction(transaction);
+    }
+    else {
+        qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
     }
 
-    emit highlightStyleChanged(listName);
     return true;
 }
 
 bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle != _highlightedListMap.end()) {
-        if ((*highlightStyle).isBoundToList()) {
-            GameplayObjects currentList = _selectedItemsListMap.value(listName);
-            if (currentList.getContainsData()) {
-            }
+      //  if ((*highlightStyle).isBoundToList()) {
             _highlightedListMap.erase(highlightStyle);
-            emit selectedItemsListChanged(listName);
-        }
+
+            auto mainScene = qApp->getMain3DScene();
+            if (mainScene) {
+                render::Transaction transaction;
+                transaction.removeHighlightFromSelection(listName.toStdString());
+                mainScene->enqueueTransaction(transaction);
+            }
+            else {
+                qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
+            }
+      //      emit highlightStyleRemoved(listName);
+
+    //    }
     }
 
     return true;
@@ -126,7 +144,7 @@ QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& li
 
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
     auto highlightStyle = _highlightedListMap.find(listName);
-    if (highlightStyle != _highlightedListMap.end()) {
+    if (highlightStyle == _highlightedListMap.end()) {
         return render::HighlightStyle();
     } else {
         return (*highlightStyle).getStyle();
@@ -196,14 +214,6 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     }
 }
 
-void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
-    emit selectedItemsListChanged(listName);
-}
-
-void SelectionScriptingInterface::onHighlightStyleChanged(const QString& listName) {
-    emit onHighlightStyleChanged(listName);
-}
-
 void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
     auto handler = _handlerMap.find(selectionName);
     if (handler == _handlerMap.end()) {
@@ -223,14 +233,9 @@ void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
 
     connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::selectedItemsListChanged, this, &SelectionToSceneHandler::selectedItemsListChanged);
-    connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleChanged, this, &SelectionToSceneHandler::highlightStyleChanged);
+ //   connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleChanged, this, &SelectionToSceneHandler::highlightStyleChanged);
+ //   connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleRemoved, this, &SelectionToSceneHandler::highlightStyleRemoved);
 
-    auto mainScene = qApp->getMain3DScene();
-    if (mainScene) {
-        render::Transaction transaction;
-        transaction.resetSelectionHighlight(listName.toStdString(), DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName));
-        mainScene->enqueueTransaction(transaction);
-    }
 }
 
 void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) {
@@ -284,25 +289,36 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
         qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
     }
 }
-
+/*
 void SelectionToSceneHandler::highlightStyleChanged(const QString& listName) {
     if (listName == _listName) {
         auto mainScene = qApp->getMain3DScene();
         if (mainScene) {
             auto thisStyle = DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName);
             render::Transaction transaction;
-            render::ItemIDs finalList;
-
             transaction.resetSelectionHighlight(listName.toStdString(), thisStyle);
-
             mainScene->enqueueTransaction(transaction);
         }
         else {
-            qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
+            qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
         }
     }
 }
 
+void SelectionToSceneHandler::highlightStyleRemoved(const QString& listName) {
+    if (listName == _listName) {
+        auto mainScene = qApp->getMain3DScene();
+        if (mainScene) {
+            render::Transaction transaction;
+            transaction.removeHighlightFromSelection(listName.toStdString());
+            mainScene->enqueueTransaction(transaction);
+        }
+        else {
+            qWarning() << "SelectionToSceneHandler::highlightStyleRemoved(), Unexpected null scene, possibly during application shutdown";
+        }
+    }
+}
+*/
 bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     auto outlineColor = properties["outlineColor"];
     if (outlineColor.isValid()) {
