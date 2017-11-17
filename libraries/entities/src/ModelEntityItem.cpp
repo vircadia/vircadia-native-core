@@ -187,12 +187,33 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 //angus
-/*
+
 void ModelEntityItem::update(const quint64& now) {
 
     //put something here
-    qCDebug(entities) << "model entity item update";
+    //qCDebug(entities) << "model entity item update" << getName() << " " << getEntityItemID();
 
+    {
+        auto currentAnimationProperties = this->getAnimationProperties();
+
+        if (_previousAnimationProperties != currentAnimationProperties) {
+            qCDebug(entities) << "this is where the _currentFrame change is handled in the ModelEntityItem.cpp code";
+            withWriteLock([&] {
+                //if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
+                  //  if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {
+                    //    _currentFrame = newAnimationProperties.getCurrentFrame();
+                      //  _endAnim = _currentFrame + ( newAnimationProperties.getLastFrame() - newAnimationProperties.getFirstFrame() );
+                        //_lastAnimated = 0;
+                   // }
+                //}else if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
+                  //   int currentframe_mod_length = (int)(_currentFrame  - (int)(glm::floor(newAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(newAnimationProperties.getLastFrame())) - (int)(glm::floor(newAnimationProperties.getFirstFrame())) + 1);
+                   // _endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
+               // }
+                _previousAnimationProperties = currentAnimationProperties;
+            });
+        }
+
+    }
 
 }
 
@@ -200,10 +221,10 @@ bool ModelEntityItem::needsToCallUpdate() const {
 
 
     //put something here
-    qCDebug(entities) << "needs to call update";
+    //qCDebug(entities) << "needs to call update";
     return true;
 }
-*/
+
 //angus
 
 
@@ -603,8 +624,9 @@ float ModelEntityItem::getAnimationLastFrame() const {
         return _animationProperties.getLastFrame();
     });
 }
+//angus change
 bool ModelEntityItem::getAnimationIsPlaying() const { 
-    return resultWithReadLock<float>([&] {
+    return resultWithReadLock<bool>([&] {
         return _animationProperties.getRunning();
     });
 }
@@ -614,11 +636,17 @@ float ModelEntityItem::getAnimationCurrentFrame() const {
         return _animationProperties.getCurrentFrame();
     });
 }
-
+//angus change
 bool ModelEntityItem::isAnimatingSomething() const {
-    return resultWithReadLock<float>([&] {
+    return resultWithReadLock<bool>([&] {
         return !_animationProperties.getURL().isEmpty() &&
             _animationProperties.getRunning() &&
             (_animationProperties.getFPS() != 0.0f);
         });
+}
+
+float ModelEntityItem::getCurrentlyPlayingFrame() const {
+    return resultWithReadLock<float>([&] {
+        return _currentlyPlayingFrame;
+    });
 }

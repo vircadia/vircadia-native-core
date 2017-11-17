@@ -47,8 +47,8 @@ public:
                                                 bool& somethingChanged) override;
 
     //angus
-    //virtual void update(const quint64& now) override;
-    //virtual bool needsToCallUpdate() const override;
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const override;
     //angus
     virtual void debugDump() const override;
 
@@ -107,6 +107,8 @@ public:
     float getAnimationCurrentFrame() const;
     bool isAnimatingSomething() const;
 
+    float getCurrentlyPlayingFrame() const;
+
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
     void setTextures(const QString& textures);
@@ -163,6 +165,10 @@ protected:
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;
+
+private:
+    float _currentlyPlayingFrame{ 0 };
+    AnimationPropertyGroup _previousAnimationProperties;
 };
 
 #endif // hifi_ModelEntityItem_h

@@ -31,6 +31,18 @@ bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
         (a._hold == b._hold);
 }
 
+bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
+    return
+        (a._url != b._url) ||
+        (a._currentFrame != b._currentFrame) ||
+        (a._running != b._running) ||
+        (a._loop != b._loop) ||
+        (a._firstFrame != b._firstFrame) ||
+        (a._lastFrame != b._lastFrame) ||
+        (a._hold != b._hold);
+}
+
+
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
