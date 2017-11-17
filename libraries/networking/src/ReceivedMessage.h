@@ -79,10 +79,6 @@ public:
 
     template<typename T> qint64 readHeadPrimitive(T* data);
 
-    bool isFromPacketList() const { return _fromPacketList; };
-    bool isFromPacket() const { return _fromPacket; };
-    bool isFromByteArray() const { return _fromByteArray; };
-
 signals:
     void progress(qint64 size);
     void completed();
@@ -104,12 +100,6 @@ private:
 
     std::atomic<bool> _isComplete { true };  
     std::atomic<bool> _failed { false };
-
-    std::atomic<bool> _fromPacketList { false };
-    std::atomic<bool> _fromPacket { false };
-    std::atomic<bool> _fromByteArray { false };
-
-    
 };
 
 Q_DECLARE_METATYPE(ReceivedMessage*)

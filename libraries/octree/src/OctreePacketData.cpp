@@ -35,8 +35,7 @@ OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
 
 void OctreePacketData::changeSettings(bool enableCompression, unsigned int targetSize) {
     _enableCompression = enableCompression;
-    _targetSize = targetSize; // std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
-
+    _targetSize = targetSize;
     _uncompressedByteArray.resize(_targetSize);
     _compressedByteArray.resize(_targetSize);
 

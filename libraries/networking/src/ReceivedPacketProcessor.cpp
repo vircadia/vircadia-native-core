@@ -25,15 +25,6 @@ void ReceivedPacketProcessor::terminating() {
 }
 
 void ReceivedPacketProcessor::queueReceivedPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
-    qDebug() << __FUNCTION__ << "from:" << sendingNode->getUUID() << "type:" << message->getType()
-        << "getNumPackets:" << message->getNumPackets()
-        << "getSize:" << message->getSize()
-        << "isFromPacketList:" << message->isFromPacketList()
-        << "isComplete:" << message->isComplete()
-        ;
-
-
     lock();
     _packets.push_back({ sendingNode, message });
     _nodePacketCounts[sendingNode->getUUID()]++;

@@ -76,20 +76,12 @@ void OctreeInboundPacketProcessor::midProcess() {
 }
 
 void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
-    qDebug() << __FUNCTION__ << "from:" << sendingNode->getUUID() << "type:" << message->getType()
-        << "getNumPackets:" << message->getNumPackets()
-        << "getSize:" << message->getSize()
-        << "isFromPacketList:" << message->isFromPacketList()
-        << "isComplete:" << message->isComplete()
-        ;
-
     if (_shuttingDown) {
         qDebug() << "OctreeInboundPacketProcessor::processPacket() while shutting down... ignoring incoming packet";
         return;
     }
 
-    bool debugProcessPacket = true; // _myServer->wantsVerboseDebug();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
 
     if (debugProcessPacket) {
         qDebug("OctreeInboundPacketProcessor::processPacket() payload=%p payloadLength=%lld",

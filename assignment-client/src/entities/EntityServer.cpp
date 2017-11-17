@@ -41,8 +41,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ 
-        //PacketType::EntityAdd,
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
         PacketType::EntityEdit,
         PacketType::EntityErase,
         PacketType::EntityPhysics,
@@ -51,9 +50,6 @@ EntityServer::EntityServer(ReceivedMessage& message) :
         PacketType::ChallengeOwnershipReply },
         this,
         "handleEntityPacket");
-
-    packetReceiver.registerListener(PacketType::EntityAdd, this, "handleEntityPacket");
-
 
     connect(&_dynamicDomainVerificationTimer, &QTimer::timeout, this, &EntityServer::startDynamicDomainVerification);
     _dynamicDomainVerificationTimer.setSingleShot(true);
@@ -76,13 +72,6 @@ void EntityServer::aboutToFinish() {
 }
 
 void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    qDebug() << __FUNCTION__ << "from:" << senderNode->getUUID() << "type:" << message->getType()
-        << "getNumPackets:" << message->getNumPackets()
-        << "getSize:" << message->getSize()
-        << "isFromPacketList:" << message->isFromPacketList()
-        << "isComplete:" << message->isComplete()
-        ;
-
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
     }
