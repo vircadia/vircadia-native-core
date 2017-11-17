@@ -453,7 +453,9 @@ void Avatar::applyPositionDelta(const glm::vec3& delta) {
 void Avatar::measureMotionDerivatives(float deltaTime) {
     PerformanceTimer perfTimer("derivatives");
     // linear
-    float invDeltaTime = 1.0f / deltaTime;
+    const float MIN_DELTA_TIME = 0.001f;
+    const float safeDeltaTime = glm::max(deltaTime, MIN_DELTA_TIME);
+    float invDeltaTime = 1.0f / safeDeltaTime;
     // Floating point error prevents us from computing velocity in a naive way
     // (e.g. vel = (pos - oldPos) / dt) so instead we use _positionOffsetAccumulator.
     glm::vec3 velocity = _positionDeltaAccumulator * invDeltaTime;
@@ -1577,7 +1579,7 @@ float Avatar::getEyeHeight() const {
 
     if (QThread::currentThread() != thread()) {
         float result = DEFAULT_AVATAR_EYE_HEIGHT;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getHeight", Q_RETURN_ARG(float, result));
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getEyeHeight", Q_RETURN_ARG(float, result));
         return result;
     }
 

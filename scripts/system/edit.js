@@ -1424,24 +1424,29 @@ function deleteSelectedEntities() {
         for (var i = 0; i < newSortedSelection.length; i++) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            var children = Entities.getChildrenIDs(entityID);
-            var childList = [];
-            recursiveDelete(children, childList, deletedIDs);
-            savedProperties.push({
-                entityID: entityID,
-                properties: initialProperties,
-                children: childList
-            });
-            deletedIDs.push(entityID);
-            Entities.deleteEntity(entityID);
+            if (!initialProperties.locked) {
+                var children = Entities.getChildrenIDs(entityID);
+                var childList = [];
+                recursiveDelete(children, childList, deletedIDs);
+                savedProperties.push({
+                    entityID: entityID,
+                    properties: initialProperties,
+                    children: childList
+                });
+                deletedIDs.push(entityID);
+                Entities.deleteEntity(entityID);
+            }
         }
-        SelectionManager.clearSelections();
-        pushCommandForSelections([], savedProperties);
 
-        entityListTool.webView.emitScriptEvent(JSON.stringify({
-            type: "deleted",
-            ids: deletedIDs
-        }));
+        if (savedProperties.length > 0) {
+            SelectionManager.clearSelections();
+            pushCommandForSelections([], savedProperties);
+
+            entityListTool.webView.emitScriptEvent(JSON.stringify({
+                type: "deleted",
+                ids: deletedIDs
+            }));
+        }
     }
 }
 
@@ -1542,7 +1547,7 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {

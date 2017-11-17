@@ -72,7 +72,6 @@ Laser = function (side) {
     }
 
     laserLine = Overlays.addOverlay("line3d", {
-        lineWidth: 5,
         alpha: 1.0,
         glow: 1.0,
         ignoreRayIntersection: true,
