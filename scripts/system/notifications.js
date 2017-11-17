@@ -212,8 +212,7 @@
             buttonPosition;
         var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         // Notification plane positions
-        // y, NOTIFICATION_3D_SCALE and noticeHeight need to be scaled by sensorScaleFactor;
-        noticeY = -sensorScaleFactor * (y * NOTIFICATION_3D_SCALE * sensorScaleFactor + 0.5 * noticeHeight);
+        noticeY = -sensorScaleFactor * (y * NOTIFICATION_3D_SCALE + 0.5 * noticeHeight);
         notificationPosition = { x: 0, y: noticeY, z: 0 };
         buttonPosition = { x: 0.5 * sensorScaleFactor * (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH), y: noticeY, z: 0.001 };
 
