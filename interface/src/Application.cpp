@@ -6328,20 +6328,19 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks) {
+void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, bool isBlocks) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
-    QString path = filePath;
     QString filename = filenameFromPath(path);
-    if (isZip) {
-        QString assetFolder = zipFile.section("/", -1);
-        assetFolder.remove(".zip");
-        mapping = "/" + assetFolder + "/" + filename;
-    } else if (isBlocks) {
-        qCDebug(interfaceapp) << "Path to asset folder: " << zipFile;
-        QString assetFolder = zipFile.section('/', -1);
-        assetFolder.remove(".zip?noDownload=false");
-        mapping = "/" + assetFolder + "/" + filename;
+    if (isZip || isBlocks) {
+        QString assetName;
+        if (isZip) {
+            assetName = zipFile.section("/", -1).remove(".zip");
+        } else if (isBlocks) {
+            assetName = zipFile.section("/", -1).remove(".zip?noDownload=false");
+        }
+        QString assetFolder = path.section("model_repo/", -1);
+        mapping = "/" + assetName + "/" + assetFolder;
     } else {
         mapping = "/" + filename;
     }
@@ -6727,8 +6726,10 @@ void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoA
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
-                qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
+                if (QFileInfo(unzipFile.at(i)).isFile()) {
+                    qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
+                    addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
+                }
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
