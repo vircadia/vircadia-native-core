@@ -101,6 +101,20 @@ void Overlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Base3DOverlay.
+/**jsdoc
+ * @typedef
+ * @property {string} type - TODO.
+ * @property {RGB} color - TODO.
+ * @property {number} alpha - TODO.
+ * @property {number} pulseMax - TODO.
+ * @property {number} pulseMin - TODO.
+ * @property {number} pulsePeriod - TODO.
+ * @property {number} alphaPulse - TODO.
+ * @property {number} colorPulse - TODO.
+ * @property {boolean} visible - TODO.
+ * @property {string} anchor - TODO.
+ */
 QVariant Overlay::getProperty(const QString& property) {
     if (property == "type") {
         return QVariant(getType());

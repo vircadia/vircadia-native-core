@@ -200,6 +200,25 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Base3DOverlay.
+/**jsdoc
+ * @typedef
+ * @property {string} name - TODO
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ *     <code>start</code>
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent.
+ * @property {boolean} isSolid - TODO w.r.t. isWire and isDashedLine. Synonyms: <ode>solid</code>, <code>isFilled</code>, or
+ *     <code>filled</code>.
+ * @property {boolean} isWire - TODO. Synonym: <code>wire</code>.
+ * @property {boolean} isDashedLine - TODO. Synonym: <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection - TODO.
+ * @property {boolean} drawInFront - TODO.
+ * @property {boolean} grabbable - TODO.
+ * @property {Uuid} parentID - TODO.
+ * @property {number} parentJointIndex - TODO. Integer.
+ */
 QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
         return _name;

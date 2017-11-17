@@ -160,6 +160,48 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
 
     Overlay::Pointer thisOverlay = nullptr;
 
+    /**jsdoc
+     * <p>Overlays may be one of the following types:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>billboard</code></td><td>3D</td><td>Synonym for <code>image3d</code>.</td></td></tr>
+     *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
+     *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> to create a cube.</td></tr>
+     *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
+     *     <tr><td><code>image</code></td><td>2D</td><td>An image.</td></tr>
+     *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
+     *     <tr><td><code>line3d</code></td><td>3D</td><td>A line</td></tr>
+     *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
+     *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
+     *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
+     *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> to create a sphere.</td></tr>
+     *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
+     *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
+     *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {string} Overlays.OverlayType
+     */
+
+     /**jsdoc
+     * <p>Different overlay types have different properties:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Overlay Type</th><th>Overlay Properties</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>cube3d</code></td><td>{@link Overlays.cube3dProperties|cube3dProperties}</td></tr>
+     *     <tr><td><code>sphere3d</code></td><td>{@link Overlays.sphere3dProperties|sphere3dProperties}</td></tr>
+     *     <tr><td>TODO</td><td>TODO</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {object} Overlays.OverlayProperties
+     */
+
     if (type == ImageOverlay::TYPE) {
         thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility

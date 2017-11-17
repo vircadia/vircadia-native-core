@@ -45,12 +45,13 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
 const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 /**jsdoc
- * @typedef Overlays.RayToOverlayIntersectionResult
- * @property {bool} intersects True if the PickRay intersected with a 3D overlay.
- * @property {Overlays.OverlayID} overlayID The ID of the overlay that was intersected with.
- * @property {float} distance The distance from the PickRay origin to the intersection point.
- * @property {Vec3} surfaceNormal The normal of the surface that was intersected with.
- * @property {Vec3} intersection The point at which the PickRay intersected with the overlay.
+ * @typedef {object} Overlays.RayToOverlayIntersectionResult
+ * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
+ *     <code>false</code>. TODO: Only 3D overlay, really? What about the other properties?
+ * @property {Uuid} overlayID - The UUID of the overlay that was intersected with.
+ * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
+ * @property {Vec3} surfaceNormal - The normal of the surface that was intersected with.
+ * @property {Vec3} intersection - The point at which the {@link PickRay} intersected with the overlay.
  */
 class RayToOverlayIntersectionResult {
 public:
@@ -70,13 +71,10 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
 void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
 
 /**jsdoc
- * @typedef {int} Overlays.OverlayID
- */
-
-/**jsdoc
- *
- * Overlays namespace...
+ * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
+ * yourself and that aren't persisted to the domain. They are primarily used for UI.
  * @namespace Overlays
+ * @property {Uuid} keyboardFocusOverlay - Get or set the [web3d]{@link Overlays.OverlayType} overlay that has keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -116,13 +114,11 @@ public:
 
 public slots:
     /**jsdoc
-     * Add an overlays to the scene. The properties specified will depend
-     * on the type of overlay that is being created.
-     *
+     * Add an overlay to the scene.
      * @function Overlays.addOverlay
-     * @param {string} type The type of the overlay to add.
-     * @param {Overlays.OverlayProperties} The properties of the overlay that you want to add.
-     * @return {Overlays.OverlayID} The ID of the newly created overlay.
+     * @param {Overlays.OverlayType} type - The type of the overlay to add.
+     * @param {Overlays.OverlayProperties} properties - The properties of the overlay to add.
+     * @return {Uuid} The UUID of the newly created overlay.
      */
     OverlayID addOverlay(const QString& type, const QVariant& properties);
 
@@ -307,7 +303,20 @@ public slots:
     void sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
+    /**jsdoc
+     * Get the ID of the Web3D overlay that has keyboard focus.
+     * @function Overlays.getKeyboardFocusOverlay
+     * @returns {Uuid} The ID of the [web3d]{@link Overlays.OverlayType} overlay that has focus, if any, otherwise 
+     *     <code>null</code>.
+     */
     OverlayID getKeyboardFocusOverlay();
+
+    /**jsdoc
+    * Set the ID of the overlay that has keyboard focus.
+    * @function Overlays.setKeyboardFocusOverlay
+    * @param {Uuid} id - The ID of the [web3d]{@link Overlays.OverlayType} overlay to set keyboard focus to. Use 
+    *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
+    */
     void setKeyboardFocusOverlay(const OverlayID& id);
 
 signals:

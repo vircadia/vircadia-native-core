@@ -26,6 +26,39 @@ Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
 {
 }
 
+/**jsdoc
+* @typedef {object} Overlays.sphere3dProperties
+*
+* @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+*
+* @property {string} name - TODO
+* @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+*     <code>start</code>
+* @property {Vec3} localPosition - The local position of the overlay relative to its parent.
+* @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+* @property {Quat} localRotation - The orientation of the overlay relative to its parent.
+* @property {boolean} isSolid - TODO w.r.t. isWire and isDashedLine. Synonyms: <ode>solid</code>, <code>isFilled</code>, and
+*     <code>filled</code>.
+* @property {boolean} isWire - TODO. Synonym: <code>wire</code>.
+* @property {boolean} isDashedLine - TODO. Synonym: <code>dashed</code>.
+* @property {boolean} ignoreRayIntersection - TODO.
+* @property {boolean} drawInFront - TODO.
+* @property {boolean} grabbable - TODO.
+* @property {Uuid} parentID - TODO.
+* @property {number} parentJointIndex - TODO. Integer.
+*
+* @property {string} type - TODO.
+* @property {RGB} color - TODO.
+* @property {number} alpha - TODO.
+* @property {number} pulseMax - TODO.
+* @property {number} pulseMin - TODO.
+* @property {number} pulsePeriod - TODO.
+* @property {number} alphaPulse - TODO.
+* @property {number} colorPulse - TODO.
+* @property {boolean} visible - TODO.
+* @property {string} anchor - TODO.
+*/
+
 void Sphere3DOverlay::render(RenderArgs* args) {
     if (!_renderVisible) {
         return; // do nothing if we're not visible
