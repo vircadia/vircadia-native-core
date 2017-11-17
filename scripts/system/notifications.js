@@ -212,9 +212,10 @@
             buttonPosition;
         var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         // Notification plane positions
-        noticeY = -(y * sensorScaleFactor) * (NOTIFICATION_3D_SCALE * sensorScaleFactor) - (noticeHeight * sensorScaleFactor) / 2;
+        // y, NOTIFICATION_3D_SCALE and noticeHeight need to be scaled by sensorScaleFactor;
+        noticeY = -sensorScaleFactor * (y * NOTIFICATION_3D_SCALE * sensorScaleFactor + 0.5 * noticeHeight);
         notificationPosition = { x: 0, y: noticeY, z: 0 };
-        buttonPosition = { x: (noticeWidth * sensorScaleFactor - NOTIFICATION_3D_BUTTON_WIDTH * sensorScaleFactor) / 2, y: noticeY, z: 0.001 };
+        buttonPosition = { x: 0.5 * sensorScaleFactor * (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH), y: noticeY, z: 0.001 };
 
         // Rotate plane
         notificationOrientation = Quat.fromPitchYawRollDegrees(NOTIFICATIONS_3D_PITCH,
