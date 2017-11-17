@@ -522,7 +522,7 @@ public:
     Q_INVOKABLE virtual void clearJointsData();
 
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
-    Q_INVOKABLE virtual int getJointIndex(const QString& name) const;
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
     Q_INVOKABLE virtual QStringList getJointNames() const;
 
@@ -669,7 +669,6 @@ public slots:
             emit sessionUUIDChanged();
         }
     }
-
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }

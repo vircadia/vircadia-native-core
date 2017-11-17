@@ -219,6 +219,8 @@ enum EntityPropertyList {
     PROP_HAZE_KEYLIGHT_RANGE,
     PROP_HAZE_KEYLIGHT_ALTITUDE,
 
+    PROP_PARENT_JOINT_NAME,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

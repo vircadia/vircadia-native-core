@@ -77,6 +77,18 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
     getParentPointer(success);
 }
 
+quint16 SpatiallyNestable::getParentJointIndex() const {
+    if (_parentJointName.isEmpty()) {
+        return _parentJointIndex;
+    }
+    bool success = false;
+	SpatiallyNestablePointer parent = getParentPointer(success);
+    if (success && parent) {
+        return parent->getJointIndex(_parentJointName);
+    }
+    return _parentJointIndex;
+}
+
 Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer(success);
@@ -84,7 +96,7 @@ Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const 
         return result;
     }
     if (parent) {
-        result = parent->getTransform(_parentJointIndex, success, depth + 1);
+        result = parent->getTransform(getParentJointIndex(), success, depth + 1);
     }
     return result;
 }
@@ -161,6 +173,14 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
+}
+
+void SpatiallyNestable::setParentJointName(const QString& parentJointName) {
+    _parentJointName = parentJointName;
+}
+
+QString SpatiallyNestable::getParentJointName() const {
+    return _parentJointName;
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,

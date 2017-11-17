@@ -121,6 +121,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ACTION_DATA;
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
+    requestedProperties += PROP_PARENT_JOINT_NAME;
     requestedProperties += PROP_QUERY_AA_CUBE;
 
     requestedProperties += PROP_CLIENT_ONLY;
@@ -287,6 +288,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
 
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
+        APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_NAME, getParentJointName());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
 
@@ -831,6 +833,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
         READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, updateParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+        READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_NAME, QString, setParentJointName);
         overwriteLocalData = oldOverwrite;
     }
 
@@ -1262,6 +1265,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getDynamicData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointName, getParentJointName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
@@ -1369,6 +1373,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setDynamicData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointName, setParentJointName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(clientOnly, setClientOnly);
