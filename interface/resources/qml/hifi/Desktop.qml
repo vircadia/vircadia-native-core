@@ -1,12 +1,12 @@
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtWebEngine 1.1;
+import QtQuick 2.7
+import QtWebEngine 1.5;
 import Qt.labs.settings 1.0
 
 import "../desktop" as OriginalDesktop
 import ".."
 import "."
 import "./toolbars"
+import "../controls-uit"
 
 OriginalDesktop.Desktop {
     id: desktop
