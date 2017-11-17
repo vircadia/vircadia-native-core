@@ -20,6 +20,10 @@ file (GLOB_RECURSE SOURCES src/*.cpp)
 file (GLOB_RECURSE MOC_HEADERS src/*.h)
 file (GLOB_RECURSE UIS src/ui/*.ui)
 
+set (ITK_DIR ENV{ITK_DIR})
+find_package (ITK REQUIRED)
+include (${ITK_USE_FILE})
+
 if (WIN32)
     # Do not show Console
     set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
@@ -28,7 +32,7 @@ else()
     add_executable(PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS})
 endif()
  
-target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
+target_link_libraries(PROJECT_NAME ${QT_LIBRARIES} ${ITK_LIBRARIES})
 
 # Copy required dll's.
 # Note that the two ImageMagick files are copied twice.  This is to allow the tester to run from VS as well as 

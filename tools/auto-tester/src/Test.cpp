@@ -32,6 +32,8 @@
 #include <assert.h>
 #include <QtCore/QTextStream>
 
+#include <itkImage.h>
+
 Test::Test() {
     snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.+-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
 
