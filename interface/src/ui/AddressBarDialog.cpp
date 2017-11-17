@@ -40,6 +40,10 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
     connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::hostChanged);
+    auto nodeList = DependencyManager::get<NodeList>();
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::connectedToDomain, this, &AddressBarDialog::hostChanged);
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &AddressBarDialog::hostChanged);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
     connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }

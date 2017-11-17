@@ -640,7 +640,8 @@ Rectangle {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
                 if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
                     filteredPurchasesModel.insert(0, purchasesModel.get(i));
-                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === -1) || !root.isShowingMyItems) {
+                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === "0") ||
+                (!root.isShowingMyItems && purchasesModel.get(i).edition_number !== "0")) {
                     filteredPurchasesModel.append(purchasesModel.get(i));
                 }
             }
