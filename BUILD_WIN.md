@@ -40,7 +40,17 @@ Go to `Control Panel > System > Advanced System Settings > Environment Variables
  * In the vcpkg directory, install the 64 bit OpenSSL package with the command `vcpkg install openssl:x64-windows`
  * Once the build completes you should have a file `ssl.h` in `${VCPKG_ROOT}/installed/x64-windows/include/openssl`
   
-### Step 7. Running CMake to Generate Build Files
+### Step 7. Installing ITK from GitHub (only required for automatic testing)
+
+ * Clone ITK from <https://github.com/InsightSoftwareConsortium/ITK.git>
+ * Build ITK
+   * cd to ITK root
+   * mkdir build
+   * cd build
+   * cmake -G "Visual Studio 15 Win64"
+   * open ITK.sln and build ITK
+ * create environment variable ITK_DIR=`the ITK build directory just created`
+### Step 8. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
 ```
@@ -52,7 +62,7 @@ cmake .. -G "Visual Studio 15 Win64"
     
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.     
 
-### Step 8. Making a Build
+### Step 9. Making a Build
 
 Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
@@ -60,7 +70,7 @@ Change the Solution Configuration (next to the green play button) from "Debug" t
 
 Run `Build > Build Solution`.
 
-### Step 9. Testing Interface
+### Step 10. Testing Interface
 
 Create another environment variable (see Step #4)
 * Set "Variable name": `_NO_DEBUG_HEAP`
