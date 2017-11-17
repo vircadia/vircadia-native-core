@@ -191,29 +191,70 @@
   </dl>
 </div>
 
-<div class="wizard-step cloud-only col-xs-12 col-sm-12 col-md-9 col-lg-7 col-centered" style="display: none;">
+<div id="congratulation-step" class="wizard-step cloud-only col-xs-12 col-centered" style="display: none;">
   <div class="row">
-    <div class="col-xs-12" align="center">
-      <img id="checkmark-image" src="../images/checkmark.svg">
+    <div class="col-xs-10 col-xs-offset-1">
+      <img class="header" src="/images/wizard-congratulation-header.jpg" alt="Header" width="1440" height="339">
+      <h1 class="title">Congratulations!</h1>
     </div>
   </div>
 
-  <div id="congratulation-text" class="row">
-    <div class="col-xs-12">
-      <p class="step-info">Congratulations! You have successfully setup and configured your cloud hosted domain.</p>
+  <div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+      <p id="main-description" class="step-info">You have successfully setup and configured your cloud hosted domain.</p>
     </div>
   </div>
 
-  <dl class="row">
-    <div class="col-xs-12">
-      <div class="pull-right">
-        <div id="visit-domain-checkbox">
-          <label><input id="go-to-domain" class="form-check-input" type="checkbox"> Visit domain in VR now</label>
-        </div>
-        <button id="explore-settings" type="button" class="btn btn-md btn-primary">Explore all domain server settings</button>
+  <div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+      <div class="step-info">
+        <b>Invite people in!</b>
+      </div>
+      <div id="share-box">
+        <span id="share-text" class="step-info">Share your domain:</span>
+        <span id="share-field">
+          <a id="share-link" class="blue-link" target="_blank"></a>
+        </span>
+        <span>
+          <button type="button" class="btn btn-md btn-default btn-square" onclick="copyToClipboard('#share-link')">
+            <img src="/images/copy-icon.svg" alt="cpy icon" height="30" width="30">copy
+          </button>
+        </span>
       </div>
     </div>
-  </dl>
+  </div>
+
+  <div id="congrats-list" class="row">
+    <div class="col-xs-4 col-xs-offset-1">
+      <div class="step-info">
+        <b>Go to your Domain:</b>
+      </div>
+      <ul>
+        <li class="step-info">Browse environments in the Marketplace to select the perfect content set for your VR world.</li>
+        <li class="step-info">Invite people to your domain right now.</li>
+        <li class="step-info">Meet new people and explore other domains.</li>
+      </ul>
+    </div>
+    <div class="col-xs-3 col-xs-offset-1">
+      <div class="step-info">
+        <b>Continue to Domain settings:</b>
+      </div>
+      <ul>
+        <li class="step-info">Set additional permissions for who can visit and make changes.</li>
+        <li class="step-info">Adjust audio settings.</li>
+        <li class="step-info">Back up your domain's content.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-xs-4 col-xs-offset-1">
+      <button id="visit-domain" type="button" class="btn btn-md btn-primary btn-square">Visit Your VR World</button>
+    </div>
+    <div class="col-xs-3 col-xs-offset-1">
+      <button id="open-settings" type="button" class="btn btn-md btn-default btn-square next-button">Open Domain Settings</button>
+    </div>
+  </div>
 </div>
 
 <!--#include virtual="footer.html"-->
