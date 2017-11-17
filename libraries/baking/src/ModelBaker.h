@@ -30,12 +30,13 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 using getMaterialIDCallback = std::function <int(int)>;
 using getTextureTypeCallback = std::function<image::TextureUsage::Type()>;
 
-class ModelBaker : public Baker{
+class ModelBaker : public Baker {
     Q_OBJECT
 
 public:
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory);
+    virtual ~ModelBaker();
     bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
     QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
     virtual void setWasAborted(bool wasAborted) override;
@@ -43,15 +44,13 @@ public:
 protected:
     void checkIfTexturesFinished();
     
-    QHash<QByteArray, QByteArray> textureContentMap;
-    QUrl modelURL;
-    TextureBakerThreadGetter textureThreadGetter;
-    QString bakedOutputDir;
-    QString originalOutputDir;
-    QString bakedModelFilePath;
-    QDir modelTempDir;
-    QString originalModelFilePath;
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> bakingTextures;
+    QHash<QByteArray, QByteArray> _textureContentMap;
+    QUrl _modelURL;
+    QString _bakedOutputDir;
+    QString _originalOutputDir;
+    QString _bakedModelFilePath;
+    QDir _modelTempDir;
+    QString _originalModelFilePath;
 
 public slots:
     virtual void abort() override;
@@ -67,7 +66,8 @@ private:
                      const QString & bakedFilename, const QByteArray & textureContent);
     QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
     
-    
+    TextureBakerThreadGetter _textureThreadGetter;
+    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
     bool _pendingErrorEmission{ false };

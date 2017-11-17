@@ -30,12 +30,35 @@
 
 ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                        const QString& bakedOutputDirectory, const QString& originalOutputDirectory) :
-    modelURL(inputModelURL),
-    textureThreadGetter(inputTextureThreadGetter),
-    bakedOutputDir(bakedOutputDirectory),
-    originalOutputDir(originalOutputDirectory)
+    _modelURL(inputModelURL),
+    _textureThreadGetter(inputTextureThreadGetter),
+    _bakedOutputDir(bakedOutputDirectory),
+    _originalOutputDir(originalOutputDirectory)
 {
+    auto tempDir = PathUtils::generateTemporaryDir();
 
+    if (tempDir.isEmpty()) {
+        handleError("Failed to create a temporary directory.");
+        return;
+    }
+
+    _modelTempDir = tempDir;
+
+    _originalModelFilePath = _modelTempDir.filePath(_modelURL.fileName());
+    qDebug() << "Made temporary dir " << _modelTempDir;
+    qDebug() << "Origin file path: " << _originalModelFilePath;
+
+}
+
+ModelBaker::~ModelBaker() {
+    if (_modelTempDir.exists()) {
+        if (!_modelTempDir.remove(_originalModelFilePath)) {
+            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << _originalModelFilePath;
+        }
+        if (!_modelTempDir.rmdir(".")) {
+            qCWarning(model_baking) << "Failed to remove temporary directory:" << _modelTempDir;
+        }
+    }
 }
 
 void ModelBaker::abort() {
@@ -43,7 +66,7 @@ void ModelBaker::abort() {
 
     // tell our underlying TextureBaker instances to abort
     // the ModelBaker will wait until all are aborted before emitting its own abort signal
-    for (auto& textureBaker : bakingTextures) {
+    for (auto& textureBaker : _bakingTextures) {
         textureBaker->abort();
     }
 }
@@ -251,7 +274,7 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
         
         // figure out the URL to this texture, embedded or external
         if (!modelTextureFileInfo.filePath().isEmpty()) {
-            textureContent = textureContentMap.value(modelTextureFileName.toLocal8Bit());
+            textureContent = _textureContentMap.value(modelTextureFileName.toLocal8Bit());
         }
         auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
 
@@ -270,16 +293,16 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
             << "to" << bakedTextureFileName;
 
         QString bakedTextureFilePath{
-            bakedOutputDir + "/" + bakedTextureFileName
+            _bakedOutputDir + "/" + bakedTextureFileName
         };
 
         textureChild = bakedTextureFileName.toLocal8Bit();
 
-        if (!bakingTextures.contains(urlToTexture)) {
+        if (!_bakingTextures.contains(urlToTexture)) {
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
-            bakeTexture(urlToTexture, textureType, bakedOutputDir, bakedTextureFileName, textureContent);
+            bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
         }
     }
    
@@ -300,10 +323,10 @@ void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type t
     connect(bakingTexture.data(), &TextureBaker::aborted, this, &ModelBaker::handleAbortedTexture);
 
     // keep a shared pointer to the baking texture
-    bakingTextures.insert(textureURL, bakingTexture);
+    _bakingTextures.insert(textureURL, bakingTexture);
 
     // start baking the texture on one of our available worker threads
-    bakingTexture->moveToThread(textureThreadGetter());
+    bakingTexture->moveToThread(_textureThreadGetter());
     QMetaObject::invokeMethod(bakingTexture.data(), "bake");
 }
 
@@ -314,7 +337,7 @@ void ModelBaker::handleBakedTexture() {
     if (bakedTexture) {
         if (!shouldStop()) {
             if (!bakedTexture->hasErrors()) {
-                if (!originalOutputDir.isEmpty()) {
+                if (!_originalOutputDir.isEmpty()) {
                     // we've been asked to make copies of the originals, so we need to make copies of this if it is a linked texture
 
                     // use the path to the texture being baked to determine if this was an embedded or a linked texture
@@ -322,16 +345,16 @@ void ModelBaker::handleBakedTexture() {
                     // it is embeddded if the texure being baked was inside a folder with the name of the model
                     // since that is the fake URL we provide when baking external textures
 
-                    if (!modelURL.isParentOf(bakedTexture->getTextureURL())) {
+                    if (!_modelURL.isParentOf(bakedTexture->getTextureURL())) {
                         // for linked textures we want to save a copy of original texture beside the original model
 
                         qCDebug(model_baking) << "Saving original texture for" << bakedTexture->getTextureURL();
 
                         // check if we have a relative path to use for the texture
-                        auto relativeTexturePath = texturePathRelativeToModel(modelURL, bakedTexture->getTextureURL());
+                        auto relativeTexturePath = texturePathRelativeToModel(_modelURL, bakedTexture->getTextureURL());
 
                         QFile originalTextureFile{
-                            originalOutputDir + "/" + relativeTexturePath + bakedTexture->getTextureURL().fileName()
+                            _originalOutputDir + "/" + relativeTexturePath + bakedTexture->getTextureURL().fileName()
                         };
 
                         if (relativeTexturePath.length() > 0) {
@@ -340,10 +363,10 @@ void ModelBaker::handleBakedTexture() {
 
                         if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
                             qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
-                                << "for" << modelURL;
+                                << "for" << _modelURL;
                         } else {
                             handleError("Could not save original external texture " + originalTextureFile.fileName()
-                                        + " for " + modelURL.toString());
+                                        + " for " + _modelURL.toString());
                             return;
                         }
                     }
@@ -351,7 +374,7 @@ void ModelBaker::handleBakedTexture() {
 
 
                 // now that this texture has been baked and handled, we can remove that TextureBaker from our hash
-                bakingTextures.remove(bakedTexture->getTextureURL());
+                _bakingTextures.remove(bakedTexture->getTextureURL());
 
                 checkIfTexturesFinished();
             } else {
@@ -362,10 +385,10 @@ void ModelBaker::handleBakedTexture() {
                 _pendingErrorEmission = true;
 
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
-                bakingTextures.remove(bakedTexture->getTextureURL());
+                _bakingTextures.remove(bakedTexture->getTextureURL());
 
                 // abort any other ongoing texture bakes since we know we'll end up failing
-                for (auto& bakingTexture : bakingTextures) {
+                for (auto& bakingTexture : _bakingTextures) {
                     bakingTexture->abort();
                 }
 
@@ -375,7 +398,7 @@ void ModelBaker::handleBakedTexture() {
             // we have errors to attend to, so we don't do extra processing for this texture
             // but we do need to remove that TextureBaker from our list
             // and then check if we're done with all textures
-            bakingTextures.remove(bakedTexture->getTextureURL());
+            _bakingTextures.remove(bakedTexture->getTextureURL());
 
             checkIfTexturesFinished();
         }
@@ -387,14 +410,14 @@ void ModelBaker::handleAbortedTexture() {
     TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
 
     if (bakedTexture) {
-        bakingTextures.remove(bakedTexture->getTextureURL());
+        _bakingTextures.remove(bakedTexture->getTextureURL());
     }
 
     // since a texture we were baking aborted, our status is also aborted
     _shouldAbort.store(true);
 
     // abort any other ongoing texture bakes since we know we'll end up failing
-    for (auto& bakingTexture : bakingTextures) {
+    for (auto& bakingTexture : _bakingTextures) {
         bakingTexture->abort();
     }
 
@@ -408,7 +431,7 @@ QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativ
     auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
 
     if (isEmbedded) {
-        urlToTexture = modelURL.toString() + "/" + apparentRelativePath.filePath();
+        urlToTexture = _modelURL.toString() + "/" + apparentRelativePath.filePath();
     } else {
         if (textureFileInfo.exists() && textureFileInfo.isFile()) {
             // set the texture URL to the local texture that we have confirmed exists
@@ -418,14 +441,14 @@ QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativ
 
             // this is a relative file path which will require different handling
             // depending on the location of the original model
-            if (modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+            if (_modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
                 // the absolute path we ran into for the texture in the model exists on this machine
                 // so use that file
                 urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
             } else {
                 // we didn't find the texture on this machine at the absolute path
                 // so assume that it is right beside the model to match the behaviour of interface
-                urlToTexture = modelURL.resolved(apparentRelativePath.fileName());
+                urlToTexture = _modelURL.resolved(apparentRelativePath.fileName());
             }
         }
     }
@@ -450,7 +473,7 @@ void ModelBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this model
     // and emit our finished signal if we're done
 
-    if (bakingTextures.isEmpty()) {
+    if (_bakingTextures.isEmpty()) {
         if (shouldStop()) {
             // if we're checking for completion but we have errors
             // that means one or more of our texture baking operations failed
@@ -461,7 +484,7 @@ void ModelBaker::checkIfTexturesFinished() {
 
             return;
         } else {
-            qCDebug(model_baking) << "Finished baking, emitting finished" << modelURL;
+            qCDebug(model_baking) << "Finished baking, emitting finished" << _modelURL;
 
             setIsFinished(true);
         }
@@ -494,7 +517,7 @@ void ModelBaker::setWasAborted(bool wasAborted) {
         Baker::setWasAborted(wasAborted);
 
         if (wasAborted) {
-            qCDebug(model_baking) << "Aborted baking" << modelURL;
+            qCDebug(model_baking) << "Aborted baking" << _modelURL;
         }
     }
 }

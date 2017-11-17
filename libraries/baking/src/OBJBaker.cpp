@@ -16,7 +16,7 @@
 #include "OBJReader.h"
 #include "FBXWriter.h"
 
-const double UNIT_SCALE_FACTOR = 100;
+const double UNIT_SCALE_FACTOR = 100.0;
 const QByteArray PROPERTIES70_NODE_NAME = "Properties70";
 const QByteArray P_NODE_NAME = "P";
 const QByteArray C_NODE_NAME = "C";
@@ -41,33 +41,9 @@ OBJBaker::OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGet
 
 }
 
-OBJBaker::~OBJBaker() {
-    if (modelTempDir.exists()) {
-        if (!modelTempDir.remove(originalModelFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of OBJ file:" << originalModelFilePath;
-        }
-        if (!modelTempDir.rmdir(".")) {
-            qCWarning(model_baking) << "Failed to remove temporary directory:" << modelTempDir;
-        }
-    }
-}
-
 void OBJBaker::bake() {
-    qDebug() << "OBJBaker" << modelURL << "bake starting";
+    qDebug() << "OBJBaker" << _modelURL << "bake starting";
 
-    auto tempDir = PathUtils::generateTemporaryDir();
-
-    if (tempDir.isEmpty()) {
-        handleError("Failed to create a temporary directory.");
-        return;
-    }
-
-    modelTempDir = tempDir;
-
-    originalModelFilePath = modelTempDir.filePath(modelURL.fileName());
-    qDebug() << "Made temporary dir " << modelTempDir;
-    qDebug() << "Origin file path: " << originalModelFilePath;
-    
     // trigger bakeOBJ once OBJ is loaded
     connect(this, &OBJBaker::OBJLoaded, this, &OBJBaker::bakeOBJ);
 
@@ -77,24 +53,24 @@ void OBJBaker::bake() {
 
 void OBJBaker::loadOBJ() {
     // check if the OBJ is local or it needs to be downloaded
-    if (modelURL.isLocalFile()) {
+    if (_modelURL.isLocalFile()) {
         // loading the local OBJ
-        QFile localOBJ{ modelURL.toLocalFile() };
+        QFile localOBJ { _modelURL.toLocalFile() };
 
-        qDebug() << "Local file url: " << modelURL << modelURL.toString() << modelURL.toLocalFile() << ", copying to: " << originalModelFilePath;
+        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
 
         if (!localOBJ.exists()) {
-            handleError("Could not find " + modelURL.toString());
+            handleError("Could not find " + _modelURL.toString());
             return;
         }
 
         // make a copy in the output folder
-        if (!originalOutputDir.isEmpty()) {
-            qDebug() << "Copying to: " << originalOutputDir << "/" << modelURL.fileName();
-            localOBJ.copy(originalOutputDir + "/" + modelURL.fileName());
+        if (!_originalOutputDir.isEmpty()) {
+            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
+            localOBJ.copy(_originalOutputDir + "/" + _modelURL.fileName());
         }
-                
-        localOBJ.copy(originalModelFilePath);
+
+        localOBJ.copy(_originalModelFilePath);
 
         // local OBJ is loaded emit signal to trigger its baking
         emit OBJLoaded();
@@ -108,11 +84,11 @@ void OBJBaker::loadOBJ() {
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        networkRequest.setUrl(modelURL);
-        
-        qCDebug(model_baking) << "Downloading" << modelURL;
+        networkRequest.setUrl(_modelURL);
+
+        qCDebug(model_baking) << "Downloading" << _modelURL;
         auto networkReply = networkAccessManager.get(networkRequest);
-        
+
         connect(networkReply, &QNetworkReply::finished, this, &OBJBaker::handleOBJNetworkReply);
     }
 }
@@ -121,44 +97,44 @@ void OBJBaker::handleOBJNetworkReply() {
     auto requestReply = qobject_cast<QNetworkReply*>(sender());
 
     if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(model_baking) << "Downloaded" << modelURL;
+        qCDebug(model_baking) << "Downloaded" << _modelURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(originalModelFilePath);
+        QFile copyOfOriginal(_originalModelFilePath);
 
-        qDebug(model_baking) << "Writing copy of original obj to" << originalModelFilePath << copyOfOriginal.fileName();
+        qDebug(model_baking) << "Writing copy of original obj to" << _originalModelFilePath << copyOfOriginal.fileName();
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
             // add an error to the error list for this obj stating that a duplicate of the original obj could not be made
-            handleError("Could not create copy of " + modelURL.toString() + " (Failed to open " + originalModelFilePath + ")");
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalModelFilePath + ")");
             return;
         }
         if (copyOfOriginal.write(requestReply->readAll()) == -1) {
-            handleError("Could not create copy of " + modelURL.toString() + " (Failed to write)");
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
             return;
         }
 
         // close that file now that we are done writing to it
         copyOfOriginal.close();
 
-        if (!originalOutputDir.isEmpty()) {
-            copyOfOriginal.copy(originalOutputDir + "/" + modelURL.fileName());
+        if (!_originalOutputDir.isEmpty()) {
+            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
         }
 
         // remote OBJ is loaded emit signal to trigger its baking
         emit OBJLoaded();
     } else {
         // add an error to our list stating that the OBJ could not be downloaded
-        handleError("Failed to download " + modelURL.toString());
+        handleError("Failed to download " + _modelURL.toString());
     }
 }
 
 
 void OBJBaker::bakeOBJ() {
     // Read the OBJ file
-    QFile objFile(originalModelFilePath);
+    QFile objFile(_originalModelFilePath);
     if (!objFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + originalModelFilePath + " for reading");
+        handleError("Error opening " + _originalModelFilePath + " for reading");
         return;
     }
 
@@ -166,8 +142,8 @@ void OBJBaker::bakeOBJ() {
 
     bool combineParts = true; // set true so that OBJReader reads material info from material library
     OBJReader reader;
-    FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, modelURL);
-   
+    FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
+
     // Write OBJ Data as FBX tree nodes
     FBXNode rootNode;
     createFBXNodeTree(rootNode, *geometry);
@@ -176,25 +152,25 @@ void OBJBaker::bakeOBJ() {
     auto encodedFBX = FBXWriter::encodeFBX(rootNode);
 
     // Export as baked FBX
-    auto fileName = modelURL.fileName();
+    auto fileName = _modelURL.fileName();
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + ".baked.fbx";
 
-    bakedModelFilePath = bakedOutputDir + "/" + bakedFilename;
+    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
 
     QFile bakedFile;
-    bakedFile.setFileName(bakedModelFilePath);
+    bakedFile.setFileName(_bakedModelFilePath);
     if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + bakedModelFilePath + " for writing");
+        handleError("Error opening " + _bakedModelFilePath + " for writing");
         return;
     }
 
     bakedFile.write(encodedFBX);
 
     // Export successful
-    _outputFiles.push_back(bakedModelFilePath);
-    qCDebug(model_baking) << "Exported" << modelURL << "to" << bakedModelFilePath;
-    
+    _outputFiles.push_back(_bakedModelFilePath);
+    qCDebug(model_baking) << "Exported" << _modelURL << "to" << _bakedModelFilePath;
+
     // Export done emit finished
     emit finished();
 }
@@ -208,7 +184,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // Required for Unit Scale Factor
     FBXNode globalSettingsNode;
     globalSettingsNode.name = GLOBAL_SETTINGS_NODE_NAME;
-    
+
     // Setting the tree hierarchy: GlobalSettings -> Properties70 -> P -> Properties
     FBXNode properties70Node;
     properties70Node.name = PROPERTIES70_NODE_NAME;
@@ -225,10 +201,10 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     FBXNode geometryNode;
     geometryNode.name = GEOMETRY_NODE_NAME;
     setNodeProperties(geometryNode);
-    
+
     // Compress the mesh information and store in dracoNode
     bool hasDeformers = false; // No concept of deformers for an OBJ
-    FBXNode dracoNode; 
+    FBXNode dracoNode;
     this->compressMesh(geometry.meshes[0], hasDeformers, dracoNode);
     geometryNode.children.append(dracoNode);
 
@@ -236,12 +212,12 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     FBXNode modelNode;
     modelNode.name = MODEL_NODE_NAME;
     setNodeProperties(modelNode);
-    
+
     _objectNode.children = { geometryNode, modelNode };
 
     // Generating Objects node's child - Material node
-    auto meshParts = geometry.meshes[0].parts;
-    for (auto meshPart : meshParts) {
+    auto& meshParts = geometry.meshes[0].parts;
+    for (auto& meshPart : meshParts) {
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
         if (geometry.materials.size() == 1) {
@@ -252,24 +228,24 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         } else {
             setMaterialNodeProperties(materialNode, meshPart.materialID, geometry);
         }
-        
+
         _objectNode.children.append(materialNode);
     }
-    
+
     // Generating Texture Node
     // iterate through mesh parts and process the associated textures
-    for (int i = 0;i < meshParts.size();i++) {
+    for (int i = 0; i < meshParts.size(); i++) {
         QString material = meshParts[i].materialID;
         FBXMaterial currentMaterial = geometry.materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
             _textureID = _nodeID;
             _mapTextureMaterial.push_back(QPair<qlonglong, int>(_textureID, i));
-            
+
             FBXNode textureNode;
             textureNode.name = TEXTURE_NODE_NAME;
             QVariant textureProperty(_nodeID++);
             textureNode.properties = { textureProperty };
-            
+
             // Texture node child - TextureName node
             FBXNode textureNameNode;
             textureNameNode.name = TEXTURENAME_NODE_NAME;
@@ -280,14 +256,14 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
             // Texture node child - Relative Filename node
             FBXNode relativeFilenameNode;
             relativeFilenameNode.name = RELATIVEFILENAME_NODE_NAME;
-            
+
             QByteArray textureFileName = (!currentMaterial.albedoTexture.filename.isEmpty()) ? currentMaterial.albedoTexture.filename : currentMaterial.specularTexture.filename;
-            
+
             // Callback to get Texture content and type
             getTextureTypeCallback textureContentTypeCallback = [=]() {
                 return (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
             };
-            
+
             // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node
             QByteArray* textureFile = this->compressTexture(textureFileName, textureContentTypeCallback);
             if (textureFile) {
@@ -297,17 +273,17 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
                 return;
             }
             relativeFilenameNode.properties = { textureProperty };
-            
+
             textureNode.children = { textureNameNode, relativeFilenameNode };
 
             _objectNode.children.append(textureNode);
         }
     }
-    
+
     // Generating Connections node
     FBXNode connectionsNode;
     connectionsNode.name = CONNECTIONS_NODE_NAME;
-    
+
     // connect Geometry to Model 
     FBXNode cNode;
     cNode.name = C_NODE_NAME;
@@ -321,7 +297,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     connectionsNode.children = { cNode };
 
     // connect all materials to model
-    for (int i = 0;i < geometry.materials.size();i++) {
+    for (int i = 0; i < geometry.materials.size(); i++) {
         FBXNode cNode1;
         cNode1.name = C_NODE_NAME;
         property0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
@@ -330,10 +306,10 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         cNode1.properties = { property0, property1, property2 };
         connectionsNode.children.append(cNode1);
     }
-    
+
     // Connect textures to materials
     auto mapSize = _mapTextureMaterial.size();
-    for (size_t i = 0;i < mapSize;i++) {
+    for (size_t i = 0; i < mapSize; i++) {
         FBXNode cNode2;
         cNode2.name = C_NODE_NAME;
         propertyString = CONNECTIONS_NODE_PROPERTY_1;
@@ -357,7 +333,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         cNode3.properties = { property0, property1, property2, property3 };
         connectionsNode.children.append(cNode3);
     }
-    
+
     // Make all generated nodes children of rootNode
     rootNode.children = { globalSettingsNode, _objectNode, connectionsNode };
 }
@@ -365,8 +341,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 // Set properties for P Node and Sub-Object nodes
 void OBJBaker::setNodeProperties(FBXNode& parentNode) {
     if (parentNode.name == P_NODE_NAME) {
-        std::vector<QByteArray> stringProperties{ "UnitScaleFactor", "double", "Number", "" };
-        std::vector<double> numericProperties{ UNIT_SCALE_FACTOR };
+        std::vector<QByteArray> stringProperties { "UnitScaleFactor", "double", "Number", "" };
+        std::vector<double> numericProperties { UNIT_SCALE_FACTOR };
 
         setPropertiesList(stringProperties, numericProperties, parentNode.properties);
     } else if (parentNode.name == GEOMETRY_NODE_NAME) {
@@ -400,9 +376,9 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
     QVariant property2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
 
     materialNode.properties = { property0, property1, property2 };
-    
+
     FBXMaterial currentMaterial = geometry.materials[material];
-    
+
     // Setting the hierarchy: Material -> Properties70 -> P -> Properties
     FBXNode properties70Node;
     properties70Node.name = PROPERTIES70_NODE_NAME;
@@ -411,8 +387,8 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
     FBXNode pNodeDiffuseColor;
     pNodeDiffuseColor.name = P_NODE_NAME;
 
-    std::vector<QByteArray> stringProperties{ "DiffuseColor", "Color", "", "A" };
-    std::vector<double> numericProperties{ currentMaterial.diffuseColor[0], currentMaterial.diffuseColor[1], currentMaterial.diffuseColor[2] };
+    std::vector<QByteArray> stringProperties { "DiffuseColor", "Color", "", "A" };
+    std::vector<double> numericProperties { currentMaterial.diffuseColor[0], currentMaterial.diffuseColor[1], currentMaterial.diffuseColor[2] };
     setPropertiesList(stringProperties, numericProperties, pNodeDiffuseColor.properties);
 
     properties70Node.children.append(pNodeDiffuseColor);
@@ -434,7 +410,7 @@ void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material
     stringProperties = { "Shininess", "Number", "", "A" };
     numericProperties = { currentMaterial.shininess };
     setPropertiesList(stringProperties, numericProperties, pNodeShininess.properties);
-    
+
     properties70Node.children.append(pNodeShininess);
 
     // Set Opacity
