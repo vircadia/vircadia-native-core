@@ -34,7 +34,7 @@ protected:
             bool viewFrustumChanged, bool isFullScene) override;
 
 private slots:
-    void resetKnownState(); // clears our known state forcing entities to appear unsent
+    void resetState(); // clears our known state forcing entities to appear unsent
 
 private:
     // the following two methods return booleans to indicate if any extra flagged entities were new additions to set

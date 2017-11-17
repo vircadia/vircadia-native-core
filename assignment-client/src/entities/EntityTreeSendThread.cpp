@@ -26,13 +26,14 @@ EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedN
 
     // connect to connection ID change on EntityNodeData so we can clear state for this receiver
     auto nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
-    connect(nodeData, &EntityNodeData::incomingConnectionIDChanged, this, &EntityTreeSendThread::resetKnownState);
+    connect(nodeData, &EntityNodeData::incomingConnectionIDChanged, this, &EntityTreeSendThread::resetState);
 }
 
-void EntityTreeSendThread::resetKnownState() {
+void EntityTreeSendThread::resetState() {
     qCDebug(entities) << "Clearing known EntityTreeSendThread state for" << _nodeUuid;
 
     _knownState.clear();
+    _traversal.reset();
 }
 
 void EntityTreeSendThread::preDistributionProcessing() {
