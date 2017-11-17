@@ -137,12 +137,15 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor);
-    this.homeButtonID = Overlays.addOverlay("sphere", {
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor) - 0.003;
+    // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
+    var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
-        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        localRotation: {x: 0, y: 1, z: 0, w: 0},
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
+        localPosition: { x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: { x: 0, y: 1, z: 0, w: 0},
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
+        solid: true,
         alpha: 0.0,
         visible: visible,
         drawInFront: false,
@@ -152,14 +155,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
         name: "homeButtonHighlight",
-        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
+        color: { red: 255, green: 255, blue: 255 },
         solid: true,
         innerRadius: 0.9,
         ignoreIntersection: true,
         alpha: 1.0,
-        color: { red: 255, green: 255, blue: 255 },
         visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,

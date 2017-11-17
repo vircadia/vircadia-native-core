@@ -47,7 +47,7 @@
             }
             return false;
         }
-        if (Overlays.getProperty(HMD.homeButtonID, "type") != "sphere" ||
+        if (Overlays.getProperty(HMD.homeButtonID, "type") != "circle3d" ||
             Overlays.getProperty(HMD.tabletScreenID, "type") != "web3d") {
             if (debugTablet) {
                 print("TABLET is invalid due to other");

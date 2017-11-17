@@ -174,9 +174,7 @@ function calculateTouchTargetFromOverlay(touchTip, overlayID) {
     if (dimensions === undefined) {
         return;
     }
-    if (!dimensions.z) {
-        dimensions.z = 0.01; // sometimes overlay dimensions are 2D, not 3D.
-    }
+    dimensions.z = 0.01; // we are projecting onto the XY plane of the overlay, so ignore the z dimension
     var invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
     var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
 

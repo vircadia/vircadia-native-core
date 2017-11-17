@@ -58,7 +58,6 @@
 
 static int MAX_WINDOW_SIZE = 4096;
 
-static const float INCHES_TO_METERS = 1.0f / 39.3701f;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
