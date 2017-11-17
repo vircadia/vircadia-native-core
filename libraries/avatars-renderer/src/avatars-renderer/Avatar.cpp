@@ -1579,7 +1579,7 @@ float Avatar::getEyeHeight() const {
 
     if (QThread::currentThread() != thread()) {
         float result = DEFAULT_AVATAR_EYE_HEIGHT;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getHeight", Q_RETURN_ARG(float, result));
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getEyeHeight", Q_RETURN_ARG(float, result));
         return result;
     }
 

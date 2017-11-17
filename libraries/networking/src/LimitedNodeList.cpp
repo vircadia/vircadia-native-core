@@ -27,7 +27,6 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
-#include <StatTracker.h>
 #include <UUID.h>
 
 #include "AccountManager.h"
@@ -430,7 +429,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
     }
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
+qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
 
     if (activeSocket) {
@@ -453,8 +452,8 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
     }
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
-                                       const QUuid& connectionSecret) {
+qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                                                          const QUuid& connectionSecret) {
     qint64 bytesSent = 0;
 
     // close the last packet in the list
@@ -1110,7 +1109,6 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
-            DependencyManager::get<StatTracker>()->incrementStat(LOCAL_SOCKET_CHANGE_STAT);
         }
 
         _localSockAddr = sockAddr;
