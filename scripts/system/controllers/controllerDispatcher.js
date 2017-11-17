@@ -367,8 +367,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
-
-            Script.setTimeOut(_this.update(), 60);
+            Script.setTimeout(_this.update, 60);
         };
 
         this.setBlacklist = function() {
