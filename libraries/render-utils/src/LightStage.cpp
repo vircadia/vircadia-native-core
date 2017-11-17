@@ -116,9 +116,12 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     fitFrustum(farCorners.bottomRight);
     fitFrustum(farCorners.topLeft);
     fitFrustum(farCorners.topRight);
+    
+    // TODO: Far distance should be extended to the intersection of the exteruded shadow frustum far plane 
+    // with the view frustum.
 
     // Re-adjust near shadow distance
-    auto near = glm::max(max.z, -nearDepth);
+    auto near = glm::min(-max.z, nearDepth);
     auto far = -min.z;
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, near, far);
     cascade._frustum->setProjection(ortho);

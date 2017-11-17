@@ -204,7 +204,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
             const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM+i);
             float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
-            task.addJob<DrawFrustum>("DrawShadowFrustum", shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
+            char jobName[64];
+            sprintf(jobName, "DrawShadowFrustum%d", i);
+            task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
         }
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true

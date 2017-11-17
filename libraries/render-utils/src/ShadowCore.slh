@@ -49,8 +49,8 @@ vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
 }
 
 bool isShadowCascadeProjectedOnPixel(vec4 cascadeTexCoords) {
-    bvec3 greaterThanZero = greaterThanEqual(cascadeTexCoords.xyz, vec3(0));
-    bvec3 lessThanOne = lessThanEqual(cascadeTexCoords.xyz, vec3(1));
+    bvec2 greaterThanZero = greaterThanEqual(cascadeTexCoords.xy, vec2(0));
+    bvec2 lessThanOne = lessThanEqual(cascadeTexCoords.xy, vec2(1));
     return all(greaterThanZero) && all(lessThanOne);
 }
 

@@ -112,8 +112,7 @@ static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum
     float far = 0.0f;
 
     computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
-    // Limit the far range to the one used originally. There's no point in rendering objects
-    // that are not in the view frustum.
+    // Limit the far range to the one used originally.
     far = glm::min(far, shadowFrustum.getFarClip());
 
     const auto depthEpsilon = 0.1f;
@@ -233,7 +232,6 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
         // GPU jobs: Render to shadow map
         task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber, i);
-
         task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
     }
 }
@@ -272,12 +270,13 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
             minCascadeDistance = maxCascadeDistance / cascadeLevelScale;
         }
 
-        shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
+        shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 4.0f;
         maxCascadeDistance += shadowOverlapDistance;
         if (_cascadeIndex == 0) {
             minCascadeDistance = nearClip;
+        } else {
+            minCascadeDistance = std::max(minCascadeDistance, nearClip);
         }
-        minCascadeDistance = std::max(minCascadeDistance, nearClip);
         maxCascadeDistance = std::min(maxCascadeDistance, farClip);
         globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), minCascadeDistance, maxCascadeDistance, shadowOverlapDistance, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
