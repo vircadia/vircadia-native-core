@@ -151,21 +151,23 @@ static const std::string DEFAULT_SHADOW_SHADER{
 };
 
 static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
-    "vec3 cascadeColors[4] = vec3[4]( vec3(0,1,0), vec3(0,0,1), vec3(1,0,0), vec3(0,0,0) );"
+    "vec3 cascadeColors[4] = vec3[4]( vec3(0,1,0), vec3(0,0,1), vec3(1,0,0), vec3(1) );"
     "vec4 getFragmentColor() {"
     "    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();"
     "    DeferredFragment frag = unpackDeferredFragment(deferredTransform, uv);"
     "    vec4 viewPosition = vec4(frag.position.xyz, 1.0);"
+    "    float viewDepth = -viewPosition.z;"
     "    vec4 worldPosition = getViewInverse() * viewPosition;"
-    "    vec4 cascadeShadowCoords[4] = vec4[4]("
-    "       evalShadowTexcoord(0, worldPosition),"
-    "       evalShadowTexcoord(1, worldPosition),"
-    "       evalShadowTexcoord(2, worldPosition),"
-    "       evalShadowTexcoord(3, worldPosition)"
-    "    );"
+    "    vec4 cascadeShadowCoords[2];"
     "    ivec2 cascadeIndices;"
-    "    float cascadeMix = evalCascadeIndicesAndMix(-viewPosition.z, cascadeShadowCoords, cascadeIndices);"
-    "    return vec4(mix(cascadeColors[cascadeIndices.x], cascadeColors[cascadeIndices.y], cascadeMix), 1.0);"
+    "    float cascadeMix = determineShadowCascadesOnPixel(worldPosition, viewDepth, cascadeShadowCoords, cascadeIndices);"
+    "    vec3 firstCascadeColor = cascadeColors[cascadeIndices.x];"
+    "    vec3 secondCascadeColor = cascadeColors[cascadeIndices.x];"
+    "    if (cascadeMix > 0.0 && cascadeIndices.y < getShadowCascadeCount()) {"
+    "       secondCascadeColor = cascadeColors[cascadeIndices.y];"
+    "    }"
+    "    vec3 color = mix(firstCascadeColor, secondCascadeColor, cascadeMix);"
+    "    return vec4(mix(vec3(0.0), color, evalShadowFalloff(viewDepth)), 1.0);"
     "}"
 };
 

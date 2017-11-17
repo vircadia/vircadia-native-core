@@ -35,6 +35,9 @@ LightStage::Shadow::Schema::Schema() {
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
     cascadeCount = 1;
+    invCascadeBlendWidth = 1.0f / 0.1f;
+    invFalloffDistance = 1.0f / 2.0f;
+    maxDistance = 20.0f;
 }
 
 LightStage::Shadow::Cascade::Cascade() : _frustum{ std::make_shared<ViewFrustum>() } {
@@ -52,11 +55,10 @@ const glm::mat4& LightStage::Shadow::Cascade::getProjection() const {
 
 LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount) : _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
-
     Schema schema;
+    schema.cascadeCount = cascadeCount;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
     _cascades.resize(cascadeCount);
-    _schemaBuffer.edit<Schema>().cascadeCount = cascadeCount;
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
@@ -125,12 +127,12 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     cascade._frustum->calculate();
 
     // Update the buffer
-    auto& schemaCascade = _schemaBuffer.edit<Schema>().cascades[cascadeIndex];
-    schemaCascade.reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
-    schemaCascade.invTransitionWidth = 1.0f / viewOverlapDistance;
-    schemaCascade.maxDistance = viewMaxShadowDistance;
-    cascade.minDistance = viewMinShadowDistance;
-    cascade.maxDistance = viewMaxShadowDistance;
+    auto& schema = _schemaBuffer.edit<Schema>();
+    if (cascadeIndex == getCascadeCount() - 1) {
+        schema.maxDistance = viewMaxShadowDistance;
+        schema.invFalloffDistance = 1.0f / viewOverlapDistance;
+    }
+    schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
 }
 
 void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {

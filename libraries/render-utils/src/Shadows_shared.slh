@@ -13,17 +13,18 @@ struct ShadowTransform {
 	MAT4 reprojection;
 
 	float bias;
-    float maxDistance;
-    float invTransitionWidth;
-    float _padding;
+    float _padding1;
+    float _padding2;
+    float _padding3;
 };
 
 struct ShadowParameters {
+    ShadowTransform cascades[SHADOW_CASCADE_MAX_COUNT];
     int cascadeCount;
     float invMapSize;
-    float _padding1;
-    float _padding2;
-    ShadowTransform cascades[SHADOW_CASCADE_MAX_COUNT];
+    float invCascadeBlendWidth;
+    float maxDistance;
+    float invFalloffDistance;
 };
 
 // <@if 1@>
