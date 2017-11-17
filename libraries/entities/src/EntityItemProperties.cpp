@@ -13,9 +13,7 @@
 #include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
-
 #include <openssl/err.h>
-
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <NetworkingConstants.h>
@@ -27,7 +25,6 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
-
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -2534,9 +2531,9 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
             int signatureLength = signatureByteArray.length();
 
             ERR_clear_error();
-            //ECSDA verification prototype:  note that type is currently ignored
-            //int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
-            //   const unsigned char *sig, int siglen, EC_KEY *eckey);
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
             bool answer = ECDSA_verify(0,
                 digest,
                 digestLength,

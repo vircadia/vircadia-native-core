@@ -323,21 +323,21 @@ void ContextOverlayInterface::openInspectionCertificate() {
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
                                 QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray Text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
                                 QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
 
                                 int certIDByteArraySize = certID.length();
-                                int TextByteArraySize = Text.length();
+                                int textByteArraySize = text.length();
                                 int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
 
                                 auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                                    certIDByteArraySize + TextByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
                                     true);
                                 challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-                                challengeOwnershipPacket->writePrimitive(TextByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(textByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
                                 challengeOwnershipPacket->write(certID);
-                                challengeOwnershipPacket->write(Text);
+                                challengeOwnershipPacket->write(text);
                                 challengeOwnershipPacket->write(nodeToChallengeByteArray);
                                 nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
 
@@ -418,16 +418,16 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     _challengeOwnershipTimeoutTimer.stop();
 
     int certIDByteArraySize;
-    int TextByteArraySize;
+    int textByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
-    packet->readPrimitive(&TextByteArraySize);
+    packet->readPrimitive(&textByteArraySize);
 
     QString certID(packet->read(certIDByteArraySize));
-    QString Text(packet->read(TextByteArraySize));
+    QString text(packet->read(textByteArraySize));
 
     EntityItemID id;
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, Text, id);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));

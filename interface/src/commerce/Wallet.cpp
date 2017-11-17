@@ -165,12 +165,6 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
     return retval;
 }
 
-// copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
-// We will have a different implementation in practice, but this gives us a start for now
-//
-// TODO: we don't really use the private keys returned - we can see how this evolves, but probably
-// we should just return a list of public keys?
-// or perhaps return the RSA* instead?
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
     
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
@@ -261,7 +255,7 @@ QByteArray readPublicKey(const char* filename) {
 }
 
 // the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
-// so I'll return that.  Note we need to RSA_free(key) later!!!
+// so I'll return that. 
 EC_KEY* readPrivateKey(const char* filename) {
     FILE* fp;
     EC_KEY* key = NULL;
@@ -552,24 +546,15 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
 
-        int Return = ECDSA_sign(0, 
+        int retrn = ECDSA_sign(0, 
             reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()), 
             hashedPlaintext.size(),
             reinterpret_cast<unsigned char*>(signature.data()), 
             &signatureBytes, ecPrivateKey);
 
-        //Previous pattern, retained by ECDSA_sign
-        //int encryptReturn = RSA_sign(NID_sha256,
-        //        reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
-        //        hashedPlaintext.size(),
-        //        reinterpret_cast<unsigned char*>(signature.data()),
-        //        &signatureBytes,
-        //        rsaPrivateKey);
-
-        // free the private key RSA struct now that we are done with it
         EC_KEY_free(ecPrivateKey);
 
-        if (Return != -1) {
+        if (retrn != -1) {
             return signature.toBase64();
         }
     }
@@ -714,25 +699,24 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    //With EC keys, we receive a nonce from the metaverse server, which is signed
-    //here with the private key and returned.  Verification is done at server.
+    // With EC keys, we receive a nonce from the metaverse server, which is signed
+    // here with the private key and returned.  Verification is done at server.
 
     bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
-    //unsigned char decryptedText[64];
-    int Status;
+    int status;
     int certIDByteArraySize;
-    int TextByteArraySize;
+    int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
-    packet->readPrimitive(&TextByteArraySize);  //rerturns a cast char*, size
+    packet->readPrimitive(&textByteArraySize);  // returns a cast char*, size
     if (challengeOriginatedFromClient) {
         packet->readPrimitive(&challengingNodeUUIDByteArraySize);
     }
 
-    //"encryptedText"  is now a series of random bytes, a nonce
+    // "encryptedText"  is now a series of random bytes, a nonce
     QByteArray certID = packet->read(certIDByteArraySize);
-    QByteArray Text = packet->read(TextByteArraySize);
+    QByteArray text = packet->read(textByteArraySize);
     QByteArray challengingNodeUUID;
     if (challengeOriginatedFromClient) {
         challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
@@ -740,65 +724,56 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
     EC_KEY* ec = readKeys(keyFilePath().toStdString().c_str());
     QString sig;
-   // int decryptionStatus = -1;
 
    if (ec) {
         ERR_clear_error();
-        sig = signWithKey(Text, ""); //base64 signature, QByteArray cast
-                                           //upon return to QString
-
-      //  decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
-      //      reinterpret_cast<const unsigned char*>(encryptedText.constData()),
-      //      decryptedText, //unsigned char*
-      //      ec,
-      //      RSA_PKCS1_OAEP_PADDING);
-
-       // EC_KEY_free(ec);
-        Status = 1;
+        sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString
+        status = 1;
     } else {
         qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
-        Status = -1;
+        status = -1;
     }
-
+    
+    EC_KEY_free(ec);
     QByteArray ba = sig.toLocal8Bit();
     const char *sigChar = ba.data();
   
-    QByteArray TextByteArray;
-   // if (decryptionStatus > -1) {
-        TextByteArray = QByteArray(sigChar, Status);
-    //}
-    TextByteArraySize = TextByteArray.size();
+    QByteArray textByteArray;
+    if (status > -1) {
+        textByteArray = QByteArray(sigChar, status);
+    }
+    textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
     // setup the packet
     if (challengeOriginatedFromClient) {
-        auto TextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-            certIDSize + TextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+        auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+            certIDSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
             true);
 
-        TextPacket->writePrimitive(certIDSize);
-        TextPacket->writePrimitive(TextByteArraySize);
-        TextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-        TextPacket->write(certID);
-        TextPacket->write(TextByteArray);
-        TextPacket->write(challengingNodeUUID);
+        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(textByteArraySize);
+        textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+        textPacket->write(certID);
+        textPacket->write(textByteArray);
+        textPacket->write(challengingNodeUUID);
 
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << TextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(TextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(textPacket), *sendingNode);
     } else {
-        auto TextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + TextByteArraySize + 2 * sizeof(int), true);
+        auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + textByteArraySize + 2 * sizeof(int), true);
 
-        TextPacket->writePrimitive(certIDSize);
-        TextPacket->writePrimitive(TextByteArraySize);
-        TextPacket->write(certID);
-        TextPacket->write(TextByteArray);
+        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(textByteArraySize);
+        textPacket->write(certID);
+        textPacket->write(textByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << TextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(TextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(textPacket), *sendingNode);
     }
 
-    if (Status == -1) {
+    if (status == -1) {
         qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";
         long error = ERR_get_error();
         if (error != 0) {

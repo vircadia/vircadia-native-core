@@ -12,9 +12,7 @@
 #include "EntityTree.h"
 #include <QtCore/QDateTime>
 #include <QtCore/QQueue>
-
 #include <openssl/err.h>
-//#include <openssl/ecdsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <NetworkingConstants.h>
@@ -1177,23 +1175,9 @@ QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKe
         QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
         QByteArray nonceBytes = nonce.toByteArray();
 
-        //const unsigned int textLength = nonce.toString().length();
-        //QByteArray encryptedText(ECDSA_size(ec), 0);
-        //const int encryptStatus = RSA_public_encrypt(textLength,
-            //    reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString())),
-            //     reinterpret_cast<unsigned char*>(encryptedText.data()),
-            //     rsa,
-            //    RSA_PKCS1_OAEP_PADDING);
         if (bio) {
             BIO_free(bio);
         }
-        //rsa_free(ec);
-       // if (encryptStatus == -1) {
-        //     long error = ERR_get_error();
-        //    const char* error_str = ERR_error_string(error, NULL);
-        //    qCWarning(entities) << "Unable to compute nonce for" << certID << "\nECDSA error:" << error_str;
-        //    return "";
-        //}
 
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
@@ -1207,7 +1191,7 @@ QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKe
     }
 }
 
-bool EntityTree::verifyNonce(const QString& certID, const QString& Nonce, EntityItemID& id) {
+bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id) {
     {
         QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
         id = _entityCertificateIDMap.value(certID);
@@ -1219,13 +1203,13 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& Nonce, Entity
         actualNonce = _certNonceMap.take(certID).toString();
     }
 
-    bool verificationSuccess = (actualNonce == Nonce);
+    bool verificationSuccess = (actualNonce == nonce);
 
     if (verificationSuccess) {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed."
-            << "\nActual nonce:" << actualNonce << "\nonce:" << Nonce;
+            << "\nActual nonce:" << actualNonce << "\nonce:" << nonce;
     }
 
     return verificationSuccess;
@@ -1251,24 +1235,24 @@ void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, 
     auto nodeList = DependencyManager::get<NodeList>();
 
     int certIDByteArraySize;
-    int TextByteArraySize;
+    int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&TextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&challengingNodeUUIDByteArraySize);
 
     QByteArray certID(message.read(certIDByteArraySize));
-    QByteArray Text(message.read(TextByteArraySize));
+    QByteArray text(message.read(textByteArraySize));
     QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-        certIDByteArraySize + Text.length() + 2 * sizeof(int),
+        certIDByteArraySize + text.length() + 2 * sizeof(int),
         true);
     challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
-    challengeOwnershipReplyPacket->writePrimitive(Text.length());
+    challengeOwnershipReplyPacket->writePrimitive(text.length());
     challengeOwnershipReplyPacket->write(certID);
-    challengeOwnershipReplyPacket->write(Text);
+    challengeOwnershipReplyPacket->write(text);
 
     nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
 }
@@ -1277,9 +1261,9 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     // 1. Obtain a nonce
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray Text = computeNonce(certID, ownerKey);
+    QByteArray text = computeNonce(certID, ownerKey);
 
-    if (Text == "") {
+    if (text == "") {
         qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
         deleteEntity(entityItemID, true);
     } else {
@@ -1288,12 +1272,12 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
         QByteArray certIDByteArray = certID.toUtf8();
         int certIDByteArraySize = certIDByteArray.size();
         auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-            certIDByteArraySize + Text.length() + 2 * sizeof(int),
+            certIDByteArraySize + text.length() + 2 * sizeof(int),
             true);
         challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-        challengeOwnershipPacket->writePrimitive(Text.length());
+        challengeOwnershipPacket->writePrimitive(text.length());
         challengeOwnershipPacket->write(certIDByteArray);
-        challengeOwnershipPacket->write(Text);
+        challengeOwnershipPacket->write(text);
         nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
         // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
