@@ -16,11 +16,11 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/ecdsa.h>
 #include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
-#include <openssl/ecdsa.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
