@@ -282,7 +282,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-    qDebug() << "-------> current path " << _currentPathLoaded;
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
