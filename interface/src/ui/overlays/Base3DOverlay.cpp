@@ -209,9 +209,10 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent.
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent.
- * @property {boolean} isSolid - TODO w.r.t. isWire and isDashedLine. Synonyms: <ode>solid</code>, <code>isFilled</code>, or
- *     <code>filled</code>.
- * @property {boolean} isWire - TODO. Synonym: <code>wire</code>.
+ * @property {boolean} isSolid - TODO w.r.t. isWire and isDashedLine. Synonyms: <ode>solid</code>, <code>isFilled</code>,
+ *     <code>filled</code>, or <code>filed</code>. <strong>Deprecated:</strong> The erroneous property spelling
+ *     "<code>filed</code>" is deprecated and support for it will be removed shortly.
+ * @property {boolean} isWire - TODO. Synonym: <code>wire</code>. TODO: Actuall, this is an antonym?!
  * @property {boolean} isDashedLine - TODO. Synonym: <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection - TODO.
  * @property {boolean} drawInFront - TODO.
