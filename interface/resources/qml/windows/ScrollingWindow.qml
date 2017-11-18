@@ -10,8 +10,7 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
 import "."
@@ -78,17 +77,21 @@ Window {
         ScrollView {
             id: scrollView
             contentItem: content
-            horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-            verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+            clip: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 1 : 0
             anchors.bottomMargin: footerPane.height
 
-            style: ScrollViewStyle {
-
-                padding.right: -7  // Move to right away from content.
-
-                handle: Item {
+            ScrollBar.vertical: ScrollBar {
+                parent: scrollView
+                policy: ScrollBar.AsNeeded
+                orientation: Qt.Vertical
+                x: scrollView.mirrored ? 0 : scrollView.width - width
+                y: scrollView.topPadding
+                height: scrollView.availableHeight
+                active: scrollView.ScrollBar.horizontal.active
+                contentItem: Item {
                     implicitWidth: 8
                     Rectangle {
                         radius: 4
@@ -101,29 +104,23 @@ Window {
                         }
                     }
                 }
+            }
 
-                scrollBarBackground: Item {
-                    implicitWidth: 10
-                    Rectangle {
-                        color: hifi.colors.darkGray30
-                        radius: 4
-                        anchors {
-                            fill: parent
-                            topMargin: -1  // Finesse size
-                            bottomMargin: -2
-                        }
+            background: Item {
+                implicitWidth: 10
+                Rectangle {
+                    color: hifi.colors.darkGray30
+                    radius: 4
+                    anchors {
+                        fill: parent
+                        topMargin: -1  // Finesse size
+                        bottomMargin: -2
                     }
                 }
-
-                incrementControl: Item {
-                    visible: false
-                }
-
-                decrementControl: Item {
-                    visible: false
-                }
             }
+
         }
+
 
         function scrollBy(delta) {
             scrollView.flickableItem.contentY += delta;
