@@ -17,6 +17,7 @@
 #include <ThreadSafeValueCache.h>
 #include "AnimationPropertyGroup.h"
 
+
 class ModelEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -49,6 +50,7 @@ public:
     //angus
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override;
+    void updateFrameCount();
     //angus
     virtual void debugDump() const override;
 
@@ -108,6 +110,7 @@ public:
     bool isAnimatingSomething() const;
 
     float getCurrentlyPlayingFrame() const;
+    int getLastKnownCurrentFrame() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
@@ -152,7 +155,7 @@ protected:
     };
 
     QVector<ModelJointData> _localJointData;
-    int _lastKnownCurrentFrame;
+    int _lastKnownCurrentFrame{-1};
 
     rgbColor _color;
     QString _modelURL;
@@ -167,8 +170,12 @@ protected:
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
 private:
-    float _currentlyPlayingFrame{ 0 };
+    //angus
+    float _currentlyPlayingFrame{ -1 };
+    float _endAnim{ 0 };
+    uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;
+    //angus
 };
 
 #endif // hifi_ModelEntityItem_h

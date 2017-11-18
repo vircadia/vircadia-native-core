@@ -993,12 +993,19 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     bool isHolding = entity->getAnimationHold();
     int updatedFrameCount = frameCount;
 
+    //get the updated frame from the ModelEntity 
+    auto modelAnimProperties = entity->getAnimationProperties();
+    withWriteLock([&] {
+        _currentFrame = modelAnimProperties.getCurrentlyPlayingFrame();
+    });
+    qCDebug(entitiesrenderer) << "the client frame count is the following " << _currentFrame;
+
     if ((firstFrame >= 0) && (firstFrame < lastFrame) && (lastFrame <= frameCount)) {
         //length of animation in now determined by first and last frame
         updatedFrameCount = (lastFrame - firstFrame + 1);
     }
 
-
+    /*
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
@@ -1008,7 +1015,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
-
+    
     //here we implement the looping animation property
     //if we have played through the animation once then we hold on the last frame
    
@@ -1021,12 +1028,12 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
             _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
         }
     }
-
+    */
     {
         //where are we in the currently defined animation segment?       
-        int animationCurrentFrame = (int)(glm::floor(_currentFrame - _renderAnimationProperties.getFirstFrame())) % updatedFrameCount;
+        int animationCurrentFrame = (int)(glm::floor(_currentFrame - firstFrame)) % updatedFrameCount;
         //this gives us the absolute frame value to use by adding the first frame value.
-        animationCurrentFrame += _renderAnimationProperties.getFirstFrame();
+        animationCurrentFrame += firstFrame;
         
 
         
@@ -1347,7 +1354,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-
+    /*
     {
         DETAILED_PROFILE_RANGE(simulation_physics, "CheckAnimation");
         // make a copy of the animation properites
@@ -1370,6 +1377,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             });
         }
     }
+    */
+    //angus
+    {
+        
+        //_currentFrame = entity->getCurrentlyPlayingFrame();
+    }
+    //angus
+
 
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");

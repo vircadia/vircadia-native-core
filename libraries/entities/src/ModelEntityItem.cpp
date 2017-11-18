@@ -199,19 +199,20 @@ void ModelEntityItem::update(const quint64& now) {
         if (_previousAnimationProperties != currentAnimationProperties) {
             qCDebug(entities) << "this is where the _currentFrame change is handled in the ModelEntityItem.cpp code";
             withWriteLock([&] {
-                //if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
-                  //  if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {
-                    //    _currentFrame = newAnimationProperties.getCurrentFrame();
-                      //  _endAnim = _currentFrame + ( newAnimationProperties.getLastFrame() - newAnimationProperties.getFirstFrame() );
-                        //_lastAnimated = 0;
-                   // }
-                //}else if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
-                  //   int currentframe_mod_length = (int)(_currentFrame  - (int)(glm::floor(newAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(newAnimationProperties.getLastFrame())) - (int)(glm::floor(newAnimationProperties.getFirstFrame())) + 1);
-                   // _endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
-               // }
+                if ( (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) || (currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
+                    if (!(currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getLastFrame()) && !(currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getFirstFrame())) {
+                        _currentlyPlayingFrame = currentAnimationProperties.getCurrentFrame();
+                        _endAnim = _currentlyPlayingFrame + ( currentAnimationProperties.getLastFrame() - currentAnimationProperties.getFirstFrame() );
+                        _lastAnimated = 0;
+                    }
+                }else if ( _previousAnimationProperties.getLoop() && !currentAnimationProperties.getLoop()) {
+                     int currentframe_mod_length = (int)(_currentlyPlayingFrame  - (int)(glm::floor(currentAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(currentAnimationProperties.getLastFrame())) - (int)(glm::floor(currentAnimationProperties.getFirstFrame())) + 1);
+                    _endAnim = _currentlyPlayingFrame + ((int)(currentAnimationProperties.getLastFrame()) - (int)(currentAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
+                }
                 _previousAnimationProperties = currentAnimationProperties;
             });
         }
+        updateFrameCount();
 
     }
 
@@ -223,6 +224,38 @@ bool ModelEntityItem::needsToCallUpdate() const {
     //put something here
     //qCDebug(entities) << "needs to call update";
     return true;
+}
+
+void ModelEntityItem::updateFrameCount() {
+    
+
+    if (!_lastAnimated) {
+        _lastAnimated = usecTimestampNow();
+        return;
+    }
+
+    auto now = usecTimestampNow();
+    auto interval = now - _lastAnimated;
+    _lastAnimated = now;
+
+
+    //here we implement the looping animation property
+    //get entity anim props
+    bool isLooping = getAnimationLoop();
+    int firstFrame = getAnimationFirstFrame();
+    int lastFrame  =  getAnimationLastFrame();
+    bool isHolding = getAnimationHold();
+
+    if (isLooping || (_currentlyPlayingFrame < _endAnim)) {
+        //else advance the current frame.
+        //if hold or not playing don't advance the current frame.
+        //also if the animFrame is outside of first or last frame then don't advance the motion.
+        if (!isHolding && getAnimationIsPlaying() && !(_previousAnimationProperties.getCurrentFrame() > _previousAnimationProperties.getLastFrame()) && !(_previousAnimationProperties.getCurrentFrame() < _previousAnimationProperties.getFirstFrame())) {
+            float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+            _currentlyPlayingFrame += (deltaTime * _previousAnimationProperties.getFPS());
+            qCDebug(entities) << "the frame is now " << _currentlyPlayingFrame;
+        }
+    }
 }
 
 //angus
@@ -650,3 +683,10 @@ float ModelEntityItem::getCurrentlyPlayingFrame() const {
         return _currentlyPlayingFrame;
     });
 }
+
+int ModelEntityItem::getLastKnownCurrentFrame() const {
+    return resultWithReadLock<int>([&] {
+        return _lastKnownCurrentFrame;
+    });
+}
+//angus change

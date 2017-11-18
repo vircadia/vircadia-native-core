@@ -183,9 +183,9 @@ private:
     bool _marketplaceEntity { false };
     bool _shouldHighlight { false };
     bool _animating { false };
-    uint64_t _lastAnimated { 0 };
+    //uint64_t _lastAnimated { 0 };
     float _currentFrame { 0 };
-    float _endAnim{ 0 };
+    //float _endAnim{ 0 };
 
 };
 
