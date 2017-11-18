@@ -52,8 +52,6 @@ Item {
         onWalletAuthenticatedStatusResult: {
             if (isAuthenticated) {
                 root.activeView = "step_4";
-            } else {
-                root.activeView = "step_3";
             }
         }
 

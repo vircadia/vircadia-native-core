@@ -482,14 +482,23 @@ HifiEntityUI.prototype = {
         textureImage.className = "texture-image no-texture";
         var image = document.createElement("img");
         var imageLoad = _.debounce(function (url) {
-            if (url.length > 0) {
+            if (url.slice(0, 5).toLowerCase() === "atp:/") {
+                image.src = "";
+                image.style.display = "none";
+                textureImage.classList.remove("with-texture");
                 textureImage.classList.remove("no-texture");
+                textureImage.classList.add("no-preview");
+            } else if (url.length > 0) {
+                textureImage.classList.remove("no-texture");
+                textureImage.classList.remove("no-preview");
                 textureImage.classList.add("with-texture");
                 image.src = url;
                 image.style.display = "block";
             } else {
                 image.src = "";
                 image.style.display = "none";
+                textureImage.classList.remove("with-texture");
+                textureImage.classList.remove("no-preview");
                 textureImage.classList.add("no-texture");
             }
             self.webBridgeSync(group.id, url);
