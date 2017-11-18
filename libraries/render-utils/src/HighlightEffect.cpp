@@ -432,6 +432,24 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
     outputs.clear();
     _sharedParameters->_highlightIds.fill(render::HighlightStage::INVALID_INDEX);
 
+    int numLayers = 0;
+    auto highlightList = highlightStage->getActiveHighlightIds();
+
+    for (auto styleId : highlightList) {
+        auto highlight = highlightStage->getHighlight(styleId);
+
+        if (!scene->isSelectionEmpty(highlight._selectionName)) {
+            auto highlightId = highlightStage->getHighlightIdBySelection(highlight._selectionName);
+            _sharedParameters->_highlightIds[outputs.size()] = highlightId;
+            outputs.emplace_back(highlight._selectionName);
+            numLayers++;
+
+            if (numLayers == HighlightSharedParameters::MAX_PASS_COUNT) {
+                break;
+            }
+        }
+    }
+    /*
     for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
         std::ostringstream stream;
         if (i > 0) {
@@ -447,7 +465,7 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
                 outputs.emplace_back(selectionName);
             }
         }
-    }
+    }*/
 }
 
 void ExtractSelectionName::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {

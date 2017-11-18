@@ -138,6 +138,8 @@ public:
 
     render::HighlightStyle getHighlightStyle(const QString& listName) const;
 
+    void onSelectedItemsListChanged(const QString& listName);
+
 signals:
     void selectedItemsListChanged(const QString& listName);
  //   void highlightStyleChanged(const QString& listName);

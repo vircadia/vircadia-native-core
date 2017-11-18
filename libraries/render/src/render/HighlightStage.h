@@ -51,6 +51,7 @@ namespace render {
 
         HighlightIdList::iterator begin() { return _activeHighlightIds.begin(); }
         HighlightIdList::iterator end() { return _activeHighlightIds.end(); }
+        const HighlightIdList&  getActiveHighlightIds() const { return _activeHighlightIds; }
 
     private:
 

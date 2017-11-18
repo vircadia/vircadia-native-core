@@ -73,12 +73,11 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 
 bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
     _selectedItemsListMap.insert(listName, GameplayObjects());
-    emit selectedItemsListChanged(listName);
+    onSelectedItemsListChanged(listName);
     return true;
 }
 
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
-    bool doSetupHandler = false;
 
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
@@ -90,17 +89,13 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
         auto currentList = _selectedItemsListMap.find(listName);
         if (currentList == _selectedItemsListMap.end()) {
             _selectedItemsListMap.insert(listName, GameplayObjects());
-            setupHandler(listName);
-   //         doSetupHandler = true;
         }
+        setupHandler(listName);
+
         (*highlightStyle).setBoundToList(true);
     }
 
     (*highlightStyle).fromVariantMap(highlightStyleValues);
-
-/*    if (doSetupHandler) {
-        setupHandler(listName);
-    }*/
 
     auto mainScene = qApp->getMain3DScene();
     if (mainScene) {
@@ -139,7 +134,12 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
 }
 
 QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
-    return QVariantMap();
+    auto highlightStyle = _highlightedListMap.find(listName);
+    if (highlightStyle == _highlightedListMap.end()) {
+        return QVariantMap();
+    } else {
+        return (*highlightStyle).toVariantMap();
+    }
 }
 
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
@@ -156,7 +156,7 @@ template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const 
     currentList.addToGameplayObjects(idToAdd);
     _selectedItemsListMap.insert(listName, currentList);
 
-    emit selectedItemsListChanged(listName);
+    onSelectedItemsListChanged(listName);
     return true;
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
@@ -165,7 +165,7 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
         currentList.removeFromGameplayObjects(idToRemove);
         _selectedItemsListMap.insert(listName, currentList);
 
-        emit selectedItemsListChanged(listName);
+        onSelectedItemsListChanged(listName);
         return true;
     } else {
         return false;
@@ -180,34 +180,40 @@ GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    if (currentList.getContainsData()) {
+    auto currentList = _selectedItemsListMap.find(listName);
+    if (currentList != _selectedItemsListMap.end()) {
+        if ((*currentList).getContainsData()) {
 
-        qDebug() << "Avatar IDs:";
-        for (auto i : currentList.getAvatarIDs()) {
-            qDebug() << i << ';';
-        }
-        qDebug() << "";
+            qDebug() << "List named " << listName << ":";
+            qDebug() << "Avatar IDs:";
+            for (auto i : (*currentList).getAvatarIDs()) {
+                qDebug() << i << ';';
+            }
+            qDebug() << "";
 
-        qDebug() << "Entity IDs:";
-        for (auto j : currentList.getEntityIDs()) {
-            qDebug() << j << ';';
-        }
-        qDebug() << "";
+            qDebug() << "Entity IDs:";
+            for (auto j : (*currentList).getEntityIDs()) {
+                qDebug() << j << ';';
+            }
+            qDebug() << "";
 
-        qDebug() << "Overlay IDs:";
-        for (auto k : currentList.getOverlayIDs()) {
-            qDebug() << k << ';';
+            qDebug() << "Overlay IDs:";
+            for (auto k : (*currentList).getOverlayIDs()) {
+                qDebug() << k << ';';
+            }
+            qDebug() << "";
         }
-        qDebug() << "";
+        else {
+            qDebug() << "List named " << listName << " empty";
+        }
     } else {
-        qDebug() << "List named" << listName << "doesn't exist.";
+        qDebug() << "List named " << listName << " doesn't exist.";
     }
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     if (_selectedItemsListMap.remove(listName)) {
-        emit selectedItemsListChanged(listName);
+        onSelectedItemsListChanged(listName);
         return true;
     } else {
         return false;
@@ -222,7 +228,15 @@ void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
 
 
     (*handler)->initialize(selectionName);
+ //   connect(this, &SelectionScriptingInterface::selectedItemsListChanged, handler.value(), &SelectionToSceneHandler::selectedItemsListChanged);
 
+}
+
+void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
+    auto handler = _handlerMap.find(listName);
+    if (handler != _handlerMap.end()) {
+        (*handler)->updateSceneFromSelectedList();
+    }
 }
 
 
@@ -232,10 +246,8 @@ SelectionToSceneHandler::SelectionToSceneHandler() {
 void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
 
-    connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::selectedItemsListChanged, this, &SelectionToSceneHandler::selectedItemsListChanged);
- //   connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleChanged, this, &SelectionToSceneHandler::highlightStyleChanged);
- //   connect(&(*DependencyManager::get<SelectionScriptingInterface>()), &SelectionScriptingInterface::highlightStyleRemoved, this, &SelectionToSceneHandler::highlightStyleRemoved);
 
+    updateSceneFromSelectedList();
 }
 
 void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) {
