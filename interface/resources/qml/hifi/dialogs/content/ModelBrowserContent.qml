@@ -1,5 +1,4 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 
 import "../../../controls-uit" as HifiControls
 
@@ -40,7 +39,7 @@ Column {
             HifiControls.Button { action: cancelAction ;  color: hifi.buttons.black; colorScheme: hifi.colorSchemes.dark }
         }
 
-        Action {
+        HifiControls.Action {
             id: acceptAction
             text: qsTr("OK")
             enabled: root.result ? true : false
@@ -51,7 +50,7 @@ Column {
             }
         }
 
-        Action {
+        HifiControls.Action {
             id: cancelAction
             text: qsTr("Cancel")
             shortcut: Qt.Key_Escape
