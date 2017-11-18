@@ -537,7 +537,7 @@ private:
     ViewFrustum _displayViewFrustum;
     quint64 _lastQueriedTime;
 
-    OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+    OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
@@ -699,7 +699,7 @@ private:
 
     friend class RenderEventHandler;
 
-    std::atomic<bool> _pendingIdleEvent { false };
-    std::atomic<bool> _pendingRenderEvent { false };
+    std::atomic<bool> _pendingIdleEvent { true };
+    std::atomic<bool> _pendingRenderEvent { true };
 };
 #endif // hifi_Application_h
