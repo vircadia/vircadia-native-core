@@ -83,6 +83,9 @@ public:
     // uses randomization to have the AudioMixer send a stats packet to this node around every second
     bool shouldSendStats(int frameNumber);
 
+    float getMasterAvatarGain() const { return _masterAvatarGain; }
+    void setMasterAvatarGain(float gain) { _masterAvatarGain = gain; }
+
     AudioLimiter audioLimiter;
 
     void setupCodec(CodecPluginPointer codec, const QString& codecName);
@@ -174,6 +177,8 @@ private:
     AudioStreamStats _downstreamAudioStreamStats;
 
     int _frameToSendStats { 0 };
+
+    float _masterAvatarGain { 1.0f };   // per-listener mixing gain, applied only to avatars
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
