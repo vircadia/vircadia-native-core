@@ -53,7 +53,6 @@ ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, Pa
     _senderSockAddr(senderSockAddr),
     _isComplete(true)
 {
-
 }
 
 void ReceivedMessage::setFailed() {
