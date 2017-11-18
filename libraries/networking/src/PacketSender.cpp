@@ -191,7 +191,7 @@ bool PacketSender::nonThreadedProcess() {
 
     float averagePacketsPerCall = 0;  // might be less than 1, if our caller calls us more frequently than the target PPS
     size_t packetsSentThisCall = 0;
-    int packetsToSendThisCall = 0;
+    size_t packetsToSendThisCall = 0;
 
     // Since we're in non-threaded mode, we need to determine how many packets to send per call to process
     // based on how often we get called... We do this by keeping a running average of our call times, and we determine

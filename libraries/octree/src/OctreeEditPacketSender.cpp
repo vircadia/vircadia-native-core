@@ -118,7 +118,6 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID.
 void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
-    bool wantDebug = false;
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()
