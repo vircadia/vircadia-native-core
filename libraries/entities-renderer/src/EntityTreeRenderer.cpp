@@ -324,7 +324,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         public:
             SortableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
 
-            glm::vec3 getPosition() const override { return _renderer->getEntity()->getPosition(); }
+            glm::vec3 getPosition() const override { return _renderer->getEntity()->getWorldPosition(); }
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
 
