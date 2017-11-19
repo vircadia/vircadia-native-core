@@ -56,8 +56,8 @@ ScrollingWindow {
         id: toolWindowTabViewItem
         height: pane.scrollHeight
         width: pane.contentWidth
-        anchors.left: parent.left
-        anchors.top: parent.top
+        anchors.left: parent !== null ? parent.left : undefined
+        anchors.top: parent !== null ? parent.top : undefined
 
         TabView {
             id: tabView

@@ -9,9 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 import "../../styles-uit"
@@ -57,31 +56,31 @@ RowLayout {
     HifiConstants { id: hifi; }
 
     Button {
-        style: ButtonStyle {
-            background: Rectangle {
-                implicitWidth: 20;
-                implicitHeight: 20;
-                radius: hifi.buttons.radius;
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0.2;
-                        color: isPlaying ? hifi.buttons.colorStart[hifi.buttons.blue] : hifi.buttons.colorStart[hifi.buttons.black];
-                    }
-                    GradientStop {
-                        position: 1.0;
-                        color: isPlaying ? hifi.buttons.colorFinish[hifi.buttons.blue] : hifi.buttons.colorFinish[hifi.buttons.black];
-                    }
+        id: control
+        background: Rectangle {
+            implicitWidth: 20;
+            implicitHeight: 20;
+            radius: hifi.buttons.radius;
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.2;
+                    color: isPlaying ? hifi.buttons.colorStart[hifi.buttons.blue] : hifi.buttons.colorStart[hifi.buttons.black];
+                }
+                GradientStop {
+                    position: 1.0;
+                    color: isPlaying ? hifi.buttons.colorFinish[hifi.buttons.blue] : hifi.buttons.colorFinish[hifi.buttons.black];
                 }
             }
-            label: HiFiGlyphs {
-                // absolutely position due to asymmetry in glyph
-                x: isPlaying ? 0 : 1;
-                y: 1;
-                size: 14;
-                color: (control.pressed || control.hovered) ? (isPlaying ? "black" : hifi.colors.primaryHighlight) : "white";
-                text: isPlaying ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
-            }
         }
+        contentItem: HiFiGlyphs {
+            // absolutely position due to asymmetry in glyph
+//            x: isPlaying ? 0 : 1;
+//            y: 1;
+            size: 14;
+            color: (control.pressed || control.hovered) ? (isPlaying ? "black" : hifi.colors.primaryHighlight) : "white";
+            text: isPlaying ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
+        }
+
         onClicked: isPlaying ? stopSound() : playSound();
     }
 
