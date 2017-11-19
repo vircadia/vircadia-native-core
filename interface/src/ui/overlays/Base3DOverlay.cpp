@@ -216,7 +216,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "localRotation" || property == "localOrientation") {
         return quatToVariant(getLocalOrientation());
     }
-    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filled" || property == "filed") {
         return _isSolid;
     }
     if (property == "isWire" || property == "wire") {

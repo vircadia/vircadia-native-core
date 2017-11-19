@@ -1,6 +1,6 @@
 import QtQuick 2.5
 import QtWebChannel 1.0
-import QtWebEngine 1.2
+import QtWebEngine 1.5
 
 import "controls-uit"
 import "styles" as HifiStyles

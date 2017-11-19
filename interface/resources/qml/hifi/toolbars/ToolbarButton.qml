@@ -3,7 +3,9 @@ import QtQuick 2.5
 StateImage {
     id: button
 
-    property string captionColorOverride: ""
+    property color defaultCaptionColor: "#ffffff"
+    property color captionColor: defaultCaptionColor
+
     property bool buttonEnabled: true
     property bool isActive: false
     property bool isEntered: false
@@ -97,7 +99,7 @@ StateImage {
 
     Text {
         id: caption
-        color: captionColorOverride !== "" ? captionColorOverride: (button.isActive ? "#000000" : "#ffffff")
+        color: button.isActive ? "#000000" : captionColor
         text: button.isActive ? (button.isEntered ? button.activeHoverText : button.activeText) : (button.isEntered ? button.hoverText : button.text)
         font.bold: false
         font.pixelSize: 9

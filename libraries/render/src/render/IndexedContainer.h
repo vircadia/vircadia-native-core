@@ -87,7 +87,7 @@ namespace indexed_container {
                 if (index < (Index) _elements.size()) {
                     _elements[index] = e;
                 } else {
-                    assert(index == _elements.size());
+                    assert(index == (Index)_elements.size());
                     _elements.emplace_back(e);
                 }
             }

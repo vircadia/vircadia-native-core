@@ -12,24 +12,25 @@
 #include "EntityTreeRenderer.h"
 
 #include <glm/gtx/quaternion.hpp>
+#include <queue>
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
 #include <QThreadPool>
 
 #include <shared/QtHelpers.h>
-#include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
+#include <AddressManager.h>
+#include <ColorUtils.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
+#include <PrioritySortUtil.h>
+#include <Rig.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <AddressManager.h>
-#include <Rig.h>
 #include <EntitySimulation.h>
-#include <AddressManager.h>
 #include <ZoneRenderer.h>
 
 #include "EntitiesRendererLogging.h"
@@ -183,6 +184,7 @@ void EntityTreeRenderer::clear() {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
     _entitiesInScene.clear();
+    _renderablesToUpdate.clear();
 
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
@@ -272,7 +274,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -286,21 +288,91 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 #endif
     });
 
-    for (const auto& entityId : changedEntities) {
-        auto renderable = renderableForEntityId(entityId);
-        if (!renderable) {
-            continue;
+    {
+        PROFILE_RANGE_EX(simulation_physics, "CopyRenderables", 0xffff00ff, (uint64_t)changedEntities.size());
+        for (const auto& entityId : changedEntities) {
+            auto renderable = renderableForEntityId(entityId);
+            if (renderable) {
+                // only add valid renderables _renderablesToUpdate
+                _renderablesToUpdate.insert({ entityId, renderable });
+            }
         }
-        _renderablesToUpdate.insert({ entityId, renderable });
     }
 
-    if (!_renderablesToUpdate.empty()) {
+    float expectedUpdateCost = _avgRenderableUpdateCost * _renderablesToUpdate.size();
+    if (expectedUpdateCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET) {
+        // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+        uint64_t updateStart = usecTimestampNow();
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
+            assert(renderable); // only valid renderables are added to _renderablesToUpdate
             renderable->updateInScene(scene, transaction);
         }
+        size_t numRenderables = _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
         _renderablesToUpdate.clear();
+
+        // compute average per-renderable update cost
+        float cost = (float)(usecTimestampNow() - updateStart) / (float)(numRenderables);
+        const float blend = 0.1f;
+        _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+    } else {
+        // we expect the cost to updating all renderables to exceed available time budget
+        // so we first sort by priority and update in order until out of time
+
+        class SortableRenderer: public PrioritySortUtil::Sortable {
+        public:
+            SortableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
+
+            glm::vec3 getPosition() const override { return _renderer->getEntity()->getPosition(); }
+            float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
+            uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
+
+            const EntityRendererPointer& getRenderer() const { return _renderer; }
+        private:
+            EntityRendererPointer _renderer;
+        };
+
+        // prioritize and sort the renderables
+        uint64_t sortStart = usecTimestampNow();
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
+        {
+            PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
+            while (itr != _renderablesToUpdate.end()) {
+                assert(itr->second); // only valid renderables are added to _renderablesToUpdate
+                sortedRenderables.push(SortableRenderer(itr->second));
+                ++itr;
+            }
+        }
+        {
+            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, sortedRenderables.size());
+
+            // compute remaining time budget
+            uint64_t updateStart = usecTimestampNow();
+            uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
+            uint64_t sortCost = updateStart - sortStart;
+            if (sortCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
+                timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - sortCost;
+            }
+            uint64_t expiry = updateStart + timeBudget;
+
+            // process the sorted renderables
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
+            size_t numSorted = sortedRenderables.size();
+            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
+                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                renderable->updateInScene(scene, transaction);
+                _renderablesToUpdate.erase(renderable->getEntity()->getID());
+                sortedRenderables.pop();
+            }
+
+            // compute average per-renderable update cost
+            size_t numUpdated = numSorted - sortedRenderables.size() + 1; // add one to avoid divide by zero
+            float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
+            const float blend = 0.1f;
+            _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+        }
     }
 }
 
@@ -319,7 +391,9 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
-                updateChangedEntities(scene, transaction);
+                ViewFrustum view;
+                _viewState->copyCurrentViewFrustum(view);
+                updateChangedEntities(scene, view, transaction);
                 scene->enqueueTransaction(transaction);
             }
         }
@@ -749,7 +823,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    // If it's in the pending queue, remove it
+    // If it's in a pending queue, remove it
+    _renderablesToUpdate.erase(entityID);
     _entitiesToAdd.erase(entityID);
 
     auto itr = _entitiesInScene.find(entityID);
@@ -757,7 +832,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         // Not in the scene, and no longer potentially in the pending queue, we're done
         return;
     }
-        
+
     if (_tree && !_shuttingDown && _entitiesScriptEngine) {
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }
