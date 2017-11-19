@@ -297,7 +297,7 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
             const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
             if (diameter > MIN_DIAMETER
                 && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
-                _collisionShapeType = SHAPE_TYPE_SPHERE;
+                _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
             } else if (hullShapeCalculator) {
                 hullShapeCalculator(this, info);
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;

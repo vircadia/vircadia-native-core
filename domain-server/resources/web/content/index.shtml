@@ -19,12 +19,13 @@
               Upload an entities file (e.g.: models.json.gz) to replace the content of this domain.<br>
               Note: <strong>Your domain's content will be replaced by the content you upload</strong>, but the backup files of your domain's content will not immediately be changed.
             </p>
-            <p>
-              If your domain has any content that you would like to re-use at a later date, save a manual backup of your models.json.gz file, which is usually stored at the following paths:<br>
-              <pre>C:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz</pre>
-              <pre>/Users/[username]/Library/Application Support/High Fidelity/assignment-client/entities/models.json.gz</pre>
-              <pre>/home/[username]/.local/share/High Fidelity/assignment-client/entities/models.json.gz</pre>
-            </p>
+            <p>If your domain has any content that you would like to re-use at a later date, save a manual backup of your models.json.gz file, which is usually stored at the following paths:</p>
+            <label class="control-label">Windows</label>
+            <pre>C:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz</pre>
+            <label class="control-label">OSX</label>
+            <pre>/Users/[username]/Library/Application Support/High Fidelity/assignment-client/entities/models.json.gz</pre>
+            <label class="control-label">Linux</label>
+            <pre>/home/[username]/.local/share/High Fidelity/assignment-client/entities/models.json.gz</pre>
             <br>
             <input type="file" name="entities-file" class="form-control-file" accept=".json, .gz">
             <br>

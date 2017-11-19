@@ -33,8 +33,8 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     _length = line3DOverlay->getLength();
     _endParentID = line3DOverlay->getEndParentID();
     _endParentJointIndex = line3DOverlay->getEndJointIndex();
+    _lineWidth = line3DOverlay->getLineWidth();
     _glow = line3DOverlay->getGlow();
-    _glowWidth = line3DOverlay->getGlowWidth();
 }
 
 Line3DOverlay::~Line3DOverlay() {
@@ -96,7 +96,7 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
     } else {
         _direction = glm::vec3(0.0f);
     }
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
@@ -123,7 +123,7 @@ AABox Line3DOverlay::getBounds() const {
 }
 
 void Line3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -145,7 +145,7 @@ void Line3DOverlay::render(RenderArgs* args) {
             geometryCache->renderDashedLine(*batch, start, end, colorv4, _geometryCacheID);
         } else {
             // renderGlowLine handles both glow = 0 and glow > 0 cases
-            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
+            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _lineWidth, _geometryCacheID);
         }
     }
 }
@@ -239,11 +239,10 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
         }
     }
 
-    auto glowWidth = properties["glowWidth"];
-    if (glowWidth.isValid()) {
-        setGlowWidth(glowWidth.toFloat());
+    auto lineWidth = properties["lineWidth"];
+    if (lineWidth.isValid()) {
+        setLineWidth(lineWidth.toFloat());
     }
-
 }
 
 QVariant Line3DOverlay::getProperty(const QString& property) {
@@ -261,6 +260,9 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
     }
     if (property == "length") {
         return QVariant(getLength());
+    }
+    if (property == "lineWidth") {
+        return _lineWidth;
     }
 
     return Base3DOverlay::getProperty(property);

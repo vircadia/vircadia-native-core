@@ -97,7 +97,8 @@ bool operator==(const Properties& a, const Properties& b) {
         (a.maxParticles == b.maxParticles) &&
         (a.emission == b.emission) &&
         (a.polar == b.polar) &&
-        (a.azimuth == b.azimuth);
+        (a.azimuth == b.azimuth) &&
+        (a.textures == b.textures);
 }
 
 bool operator!=(const Properties& a, const Properties& b) {

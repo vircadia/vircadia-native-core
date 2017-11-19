@@ -203,6 +203,8 @@
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
 
+#include "webbrowser/WebBrowserSuggestionsEngine.h"
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -1392,7 +1394,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
         connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
@@ -1700,8 +1701,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
 
-        properties["local_socket_changes"] = DependencyManager::get<StatTracker>()->getStat(LOCAL_SOCKET_CHANGE_STAT).toInt();
-
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
     sendStatsTimer->start();
@@ -1824,6 +1823,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+
+    _pendingIdleEvent = false;
+    _pendingRenderEvent = false;
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
@@ -2223,6 +2225,7 @@ void Application::initializeUi() {
     QmlCommerce::registerType();
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
+    qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create();
@@ -2693,7 +2696,7 @@ bool Application::importFromZIP(const QString& filePath) {
     qDebug() << "A zip file has been dropped in: " << filePath;
     QUrl empty;
     // handle Blocks download from Marketplace
-    if (filePath.contains("vr.google.com/downloads")) {
+    if (filePath.contains("poly.google.com/downloads")) {
         addAssetToWorldFromURL(filePath);
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
@@ -4441,7 +4444,7 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
@@ -4481,8 +4484,11 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
+
     // Query the octree to refresh everything in view
     _lastQueriedTime = 0;
+    _octreeQuery.incrementConnectionID();
+
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -5543,6 +5549,7 @@ void Application::nodeActivated(SharedNodePointer node) {
     // so we will do a proper query during update
     if (node->getType() == NodeType::EntityServer) {
         _lastQueriedTime = 0;
+        _octreeQuery.incrementConnectionID();
     }
 
     if (node->getType() == NodeType::AudioMixer) {
@@ -6235,7 +6242,7 @@ void Application::addAssetToWorldFromURL(QString url) {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -6270,7 +6277,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -7082,6 +7089,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     return _displayPlugin;
 }
 
+static const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -7117,6 +7125,8 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
+
+    action->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(displayPluginGroup));
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
 }
 
@@ -7271,6 +7281,10 @@ void Application::updateDisplayMode() {
         menu->setIsOptionChecked(MenuOption::FirstPerson, true);
         cameraMenuChanged();
     }
+    
+    // Remove the mirror camera option from menu if in HMD mode
+    auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
+    mirrorAction->setVisible(!isHmd);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

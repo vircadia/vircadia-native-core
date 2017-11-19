@@ -57,7 +57,8 @@ public:
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum);
+    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
+        bool usesViewFrustum);
 
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
@@ -71,6 +72,8 @@ public:
 
     void setScanCallback(std::function<void (VisibleElement&)> cb);
     void traverse(uint64_t timeBudget);
+
+    void reset() { _path.clear(); _completedView.startTime = 0; } // resets our state to force a new "First" traversal
 
 private:
     void getNextVisibleElement(VisibleElement& next);

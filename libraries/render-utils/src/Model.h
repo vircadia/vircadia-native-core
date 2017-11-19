@@ -246,8 +246,7 @@ public:
 
     class MeshState {
     public:
-        QVector<glm::mat4> clusterMatrices;
-        gpu::BufferPointer clusterBuffer;
+        std::vector<glm::mat4> clusterMatrices;
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -261,6 +260,8 @@ public:
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
+
+    void scaleToFit();
 
 public slots:
     void loadURLFinished(bool success);
@@ -315,12 +316,11 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    QVector<MeshState> _meshStates;
+    std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void scaleToFit();
     void snapToRegistrationPoint();
 
     void computeMeshPartLocalBounds();
@@ -387,8 +387,9 @@ protected:
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
-
     render::ItemIDs _modelMeshRenderItemIDs;
+    using ShapeInfo = struct { int meshIndex; };
+    std::vector<ShapeInfo> _modelMeshRenderItemShapes;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene

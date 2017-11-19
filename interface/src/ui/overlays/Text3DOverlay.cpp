@@ -92,7 +92,7 @@ void Text3DOverlay::update(float deltatime) {
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
+    if (!_renderVisible || !getParentVisible()) {
         return; // do nothing if we're not visible
     }
 

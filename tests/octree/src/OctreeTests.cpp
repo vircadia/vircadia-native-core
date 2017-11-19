@@ -74,7 +74,7 @@ void OctreeTests::propertyFlagsTests() {
         EntityPropertyFlags props;
         props.setHasProperty(PROP_VISIBLE);
         props.setHasProperty(PROP_POSITION);
-        props.setHasProperty(PROP_RADIUS);
+        props.setHasProperty(PROP_DIMENSIONS);
         props.setHasProperty(PROP_MODEL_URL);
         props.setHasProperty(PROP_COMPOUND_SHAPE_URL);
         props.setHasProperty(PROP_ROTATION);

@@ -26,7 +26,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -48,7 +47,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -70,7 +68,6 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: MyAvatar.SELF_ID
@@ -365,12 +362,13 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
+            joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
 

@@ -1827,7 +1827,7 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             if (entity) {
-                result = entity->verifyStaticCertificateProperties();
+                result = entity->getProperties().verifyStaticCertificateProperties();
             }
         });
     }

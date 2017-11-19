@@ -14,6 +14,7 @@
 #include <gpu/Context.h>
 
 std::string HazeStage::_stageName { "HAZE_STAGE"};
+const HazeStage::Index HazeStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 FetchHazeStage::FetchHazeStage() {
     _haze = std::make_shared<model::Haze>();

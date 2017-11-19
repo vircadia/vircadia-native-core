@@ -53,7 +53,19 @@ void PacketSender::queuePacketForSending(const SharedNodePointer& destinationNod
     _totalBytesQueued += packet->getDataSize();
     
     lock();
-    _packets.push_back({destinationNode, std::move(packet)});
+    _packets.push_back({destinationNode, PacketOrPacketList { std::move(packet), nullptr} });
+    unlock();
+
+    // Make sure to  wake our actual processing thread because we  now have packets for it to process.
+    _hasPackets.wakeAll();
+}
+
+void PacketSender::queuePacketListForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacketList> packetList) {
+    _totalPacketsQueued += packetList->getNumPackets();
+    _totalBytesQueued += packetList->getMessageSize();
+
+    lock();
+    _packets.push_back({ destinationNode, PacketOrPacketList { nullptr, std::move(packetList)} });
     unlock();
 
     // Make sure to  wake our actual processing thread because we  now have packets for it to process.
@@ -178,8 +190,8 @@ bool PacketSender::nonThreadedProcess() {
 
 
     float averagePacketsPerCall = 0;  // might be less than 1, if our caller calls us more frequently than the target PPS
-    int packetsSentThisCall = 0;
-    int packetsToSendThisCall = 0;
+    size_t packetsSentThisCall = 0;
+    size_t packetsToSendThisCall = 0;
 
     // Since we're in non-threaded mode, we need to determine how many packets to send per call to process
     // based on how often we get called... We do this by keeping a running average of our call times, and we determine
@@ -265,24 +277,32 @@ bool PacketSender::nonThreadedProcess() {
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
 
-        NodePacketPair packetPair = std::move(_packets.front());
+        NodePacketOrPacketListPair packetPair = std::move(_packets.front());
         _packets.pop_front();
         packetsLeft = _packets.size();
 
         unlock();
 
         // send the packet through the NodeList...
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second, *packetPair.first);
+        //PacketOrPacketList packetOrList = packetPair.second;
+        bool sendAsPacket = packetPair.second.first.get();
+        size_t packetSize = sendAsPacket ? packetPair.second.first->getDataSize() : packetPair.second.second->getMessageSize();
+        size_t packetCount = sendAsPacket ? 1 : packetPair.second.second->getNumPackets();
 
-        packetsSentThisCall++;
-        _packetsOverCheckInterval++;
-        _totalPacketsSent++;
+        if (sendAsPacket) {
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(*packetPair.second.first, *packetPair.first);
+        } else {
+            DependencyManager::get<NodeList>()->sendPacketList(std::move(packetPair.second.second), *packetPair.first);
+        }
 
-        int packetSize = packetPair.second->getDataSize();
+
+        packetsSentThisCall += packetCount;
+        _packetsOverCheckInterval += packetCount;
+        _totalPacketsSent += packetCount;
+
 
         _totalBytesSent += packetSize;
-        emit packetSent(packetSize);
-
+        emit packetSent(packetSize); // FIXME should include number of packets?
         _lastSendTime = now;
     }
     return isStillRunning();
