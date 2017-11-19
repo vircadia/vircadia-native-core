@@ -18,7 +18,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
 }

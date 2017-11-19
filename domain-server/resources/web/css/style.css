@@ -80,11 +80,23 @@ span.port {
   display: none;
 }
 
-#setup-sidebar.affix {
-  /* This overrides a case where going to the bottom of the page,
-   * then scrolling up, causes `position: relative` to be added to the style
-   */
-  position: fixed !important;
+@media (min-width: 768px) {
+  #setup-sidebar.affix {
+    /* This overrides a case where going to the bottom of the page,
+     * then scrolling up, causes `position: relative` to be added to the style
+     */
+    position: fixed !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #setup-sidebar.affix {
+    position: static !important;
+  }
+
+  #setup-sidebar {
+    margin-bottom: 20px;
+  }
 }
 
 #setup-sidebar button {
@@ -302,6 +314,7 @@ table .headers + .headers td {
 }
 
 .account-connected-header {
+  vertical-align: middle;
   color: #6FCF97;
   font-size: 30px;
   margin-right: 20px;

@@ -63,6 +63,7 @@
 
                     var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
                     MyAvatar.scale = newAvatarScale;
+                    MyAvatar.scaleChanged();
                 }
                 return dispatcherUtils.makeRunningValues(true, [], []);
             }
