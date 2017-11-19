@@ -32,8 +32,6 @@
 #include <assert.h>
 #include <QtCore/QTextStream>
 
-#include <itkImage.h>
-
 Test::Test() {
     snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.+-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
 
@@ -74,26 +72,26 @@ void Test::evaluateTests() {
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        QString diffFilename = "HIFI_AutoTest_diff.txt";
-        QString command = "magick.exe compare -metric MAE " + expectedImages[i] + " " + resultImages[i] + " null: 2>" + diffFilename;
-        
-        if (system(command.toStdString().c_str()) == -1) {
-            // command has failed
-            messageBox.critical(0, "Aborting!", "Error executing magick.exe");
-            exit(-1);
-        }
+        ////QString diffFilename = "HIFI_AutoTest_diff.txt";
+        ////QString command = "magick.exe compare -metric MAE " + expectedImages[i] + " " + resultImages[i] + " null: 2>" + diffFilename;
+        ////
+        ////if (system(command.toStdString().c_str()) == -1) {
+        ////    // command has failed
+        ////    messageBox.critical(0, "Aborting!", "Error executing magick.exe");
+        ////    exit(-1);
+        ////}
 
-        QFile file(diffFilename);
-        if (!file.open(QIODevice::ReadOnly)) {
-            messageBox.critical(0, "Error", file.errorString());
-        }
+        ////QFile file(diffFilename);
+        ////if (!file.open(QIODevice::ReadOnly)) {
+        ////    messageBox.critical(0, "Error", file.errorString());
+        ////}
 
-        // First value on line is the comparison result
-        QTextStream in(&file);
-        QString line = in.readLine();
-        QStringList tokens = line.split(' ');
-        float error = tokens[0].toFloat();
-
+        ////// First value on line is the comparison result
+        ////QTextStream in(&file);
+        ////QString line = in.readLine();
+        ////QStringList tokens = line.split(' ');
+        ////float error = tokens[0].toFloat();
+        float error = itkImageComparer.compareImages(expectedImages[i], resultImages[i]);
         if (error > THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 error,                                                          // value of the error (float)

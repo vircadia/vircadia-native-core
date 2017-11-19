@@ -16,6 +16,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtCore/QRegularExpression>
 
+#include "ITKImageComparer.h"
 #include "ui/MismatchWindow.h"
 
 class Test {
@@ -41,6 +42,8 @@ private:
     QRegularExpression expectedImageFilenameFormat;
 
     MismatchWindow mismatchWindow;
+
+    ITKImageComparer itkImageComparer;
 };
 
 #endif // hifi_test_h
