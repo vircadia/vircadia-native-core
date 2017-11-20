@@ -6336,7 +6336,7 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
     QString mapping;
     QString filename = filenameFromPath(path);
     if (isZip || isBlocks) {
-        QString assetName = zipFile.section("/", -1).remove(QRegExp("\.zip(.*)$"));
+        QString assetName = zipFile.section("/", -1).remove(QRegExp("[.]zip(.*)$"));
         QString assetFolder = path.section("model_repo/", -1);
         mapping = "/" + assetName + "/" + assetFolder;
     } else {
