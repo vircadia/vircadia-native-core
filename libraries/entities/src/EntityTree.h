@@ -278,7 +278,7 @@ public:
     QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
     bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id);
 
-    void setMyAvatar(AvatarData* myAvatar) { _myAvatar = myAvatar; }
+    void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -386,7 +386,7 @@ private:
     void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 
-    AvatarData* _myAvatar{ nullptr };
+    std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 };
 
 #endif // hifi_EntityTree_h
