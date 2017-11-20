@@ -69,7 +69,6 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     #ifdef THREAD_DEBUGGING
     qCDebug(scriptengine) << "ScriptCache::getScriptContents() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
     #endif
-    forceDownload = true;
     QUrl unnormalizedURL(scriptOrURL);
     QUrl url = DependencyManager::get<ResourceManager>()->normalizeURL(unnormalizedURL);
 
