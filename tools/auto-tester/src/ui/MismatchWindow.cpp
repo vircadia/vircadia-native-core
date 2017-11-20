@@ -17,7 +17,7 @@ MismatchWindow::MismatchWindow(QWidget *parent)
     setupUi(this);
 
     expectedImage->setScaledContents(true);
-    actualImage->setScaledContents(true);
+    resultImage->setScaledContents(true);
 }
 
 void MismatchWindow::setTestFailure(TestFailure testFailure) {
@@ -28,8 +28,8 @@ void MismatchWindow::setTestFailure(TestFailure testFailure) {
     expectedFilename->setText(testFailure._expectedImageFilename);
     expectedImage->setPixmap(QPixmap(testFailure._pathname + testFailure._expectedImageFilename));
 
-    actualFilename->setText(testFailure._actualImageFilename);
-    actualImage->setPixmap(QPixmap(testFailure._pathname + testFailure._actualImageFilename));
+    resultFilename->setText(testFailure._actualImageFilename);
+    resultImage->setPixmap(QPixmap(testFailure._pathname + testFailure._actualImageFilename));
 }
 
 void MismatchWindow::on_passTestButton_clicked()

@@ -17,7 +17,7 @@
 class ITKImageComparer : public ImageComparer {
 public:
     ITKImageComparer();
-    float compareImages(QString actualImageFilename, QString expectedImageFilename) const final;
+    float compareImages(QString resultImageFilename, QString expectedImageFilename) const final;
 
 private:
     static const unsigned int Dimension{ 2 };
@@ -27,7 +27,7 @@ private:
 
     using ReaderType = itk::ImageFileReader<RGBImageType>;
 
-    ReaderType::Pointer actualImageReader;
+    ReaderType::Pointer resultImageReader;
     ReaderType::Pointer expectedImageReader;
 };
 

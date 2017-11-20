@@ -46,21 +46,21 @@ void Test::evaluateTests() {
     // Separate images into two lists.  The first is the expected images, the second is the test results
     // Images that are in the wrong format are ignored.
     QStringList expectedImages;
-    QStringList actualImages;
+    QStringList resultImages;
     foreach(QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
         if (isInExpectedImageFilenameFormat(currentFilename)) {
             expectedImages << fullCurrentFilename;
         } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            actualImages << fullCurrentFilename;
+            resultImages << fullCurrentFilename;
         }
     }
 
     // The number of images in each list should be identical
-    if (expectedImages.length() != actualImages.length()) {
+    if (expectedImages.length() != resultImages.length()) {
         messageBox.critical(0, 
             "Test failed", 
-            "Found " + QString::number(actualImages.length()) + " images in directory" +
+            "Found " + QString::number(resultImages.length()) + " images in directory" +
             "\nExpected to find " + QString::number(expectedImages.length()) + " images");
 
         exit(-1);
@@ -72,13 +72,13 @@ void Test::evaluateTests() {
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        float error = itkImageComparer.compareImages(actualImages[i], expectedImages[i]);
+        float error = itkImageComparer.compareImages(resultImages[i], expectedImages[i]);
         if (error > THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 error,                                                          // value of the error (float)
                 expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
                 QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(actualImages[i].toStdString().c_str()).fileName()     // filename of result image
+                QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
             });
             
             mismatchWindow.exec();

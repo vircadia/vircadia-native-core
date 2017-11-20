@@ -16,12 +16,12 @@
 
 ITKImageComparer::ITKImageComparer() {
     // These are smart pointers that do not need to be deleted
-    actualImageReader = ReaderType::New();
+    resultImageReader = ReaderType::New();
     expectedImageReader = ReaderType::New();
 }
 
-float ITKImageComparer::compareImages(QString actualImageFilename, QString expectedImageFilename) const {
-    actualImageReader->SetFileName(actualImageFilename.toStdString().c_str());
+float ITKImageComparer::compareImages(QString resultImageFilename, QString expectedImageFilename) const {
+    resultImageReader->SetFileName(resultImageFilename.toStdString().c_str());
     expectedImageReader->SetFileName(expectedImageFilename.toStdString().c_str());
 
     // Images are converted to monochrome for comparison
@@ -29,10 +29,10 @@ float ITKImageComparer::compareImages(QString actualImageFilename, QString expec
     using MonochromeImageType = itk::Image<MonochromePixelType, Dimension>;
     using FilterType = itk::RGBToLuminanceImageFilter<RGBImageType, MonochromeImageType>;
     
-    FilterType::Pointer actualImageToMonochrome = FilterType::New();
+    FilterType::Pointer resultImageToMonochrome = FilterType::New();
     FilterType::Pointer expectedImageToMonochrome = FilterType::New();
 
-    actualImageToMonochrome->SetInput(actualImageReader->GetOutput());
+    resultImageToMonochrome->SetInput(resultImageReader->GetOutput());
     expectedImageToMonochrome->SetInput(expectedImageReader->GetOutput());
     
     return 0.0;
