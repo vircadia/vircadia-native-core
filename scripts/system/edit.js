@@ -419,7 +419,7 @@ var toolBar = (function () {
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            captionColorOverride: hasRezPermissions ? "" : "#888888",
+            captionColor: hasRezPermissions ? "#ffffff" : "#888888",
             icon: createButtonIconRsrc,
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
@@ -792,7 +792,7 @@ function handleDomainChange() {
     var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColorOverride: (hasRezPermissions ? "" : "#888888"),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
     });
 }
 

@@ -36,11 +36,6 @@
     </div>
 
     <div class="col-md-9 col-sm-9 col-xs-12">
-
-      <div id="xs-advanced-container" class="col-xs-12 hidden-sm hidden-md hidden-lg">
-        <button id="advanced-toggle-button-xs" class="btn btn-info advanced-toggle">Show advanced</button>
-      </div>
-
       <div class="col-xs-12">
 
         <div id="cloud-domains-alert" class="alert alert-info alert-dismissible" role="alert" style="display: none;">
