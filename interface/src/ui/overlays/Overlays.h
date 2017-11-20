@@ -327,7 +327,10 @@ signals:
      * @param {OverlayID} The ID of the overlay that was deleted.
      */
     void overlayDeleted(OverlayID id);
+
+#if OVERLAY_PANELS
     void panelDeleted(OverlayID id);
+#endif
 
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mouseDoublePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
