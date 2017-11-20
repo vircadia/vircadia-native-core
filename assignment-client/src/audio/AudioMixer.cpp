@@ -29,6 +29,7 @@
 #include <UUID.h>
 #include <CPUDetect.h>
 
+#include "AudioLogging.h"
 #include "AudioHelpers.h"
 #include "AudioRingBuffer.h"
 #include "AudioMixerClientData.h"
@@ -130,7 +131,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     PacketType rewrittenType = PacketTypeEnum::getReplicatedPacketMapping().key(message->getType());
 
     if (rewrittenType == PacketType::Unknown) {
-        qDebug() << "Cannot unwrap replicated packet type not present in REPLICATED_PACKET_WRAPPING";
+        qCDebug(audio) << "Cannot unwrap replicated packet type not present in REPLICATED_PACKET_WRAPPING";
     }
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
@@ -345,7 +346,7 @@ void AudioMixer::sendStatsPacket() {
 
 void AudioMixer::run() {
 
-    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    qCDebug(audio) << "Waiting for connection to domain to request settings from domain-server.";
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -502,14 +503,14 @@ void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
             int proportionalTerm = 1 + (_trailingMixRatio - TARGET) / 0.1f;
             _throttlingRatio += THROTTLE_RATE * proportionalTerm;
             _throttlingRatio = std::min(_throttlingRatio, 1.0f);
-            qDebug("audio-mixer is struggling (%f mix/sleep) - throttling %f of streams",
-                    (double)_trailingMixRatio, (double)_throttlingRatio);
+            qCDebug(audio) << "audio-mixer is struggling (" << _trailingMixRatio << "mix/sleep) - throttling"
+                << _throttlingRatio << "of streams";
         } else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
             int proportionalTerm = 1 + (TARGET - _trailingMixRatio) / 0.2f;
             _throttlingRatio -= BACKOFF_RATE * proportionalTerm;
             _throttlingRatio = std::max(_throttlingRatio, 0.0f);
-            qDebug("audio-mixer is recovering (%f mix/sleep) - throttling %f of streams",
-                    (double)_trailingMixRatio, (double)_throttlingRatio);
+            qCDebug(audio) << "audio-mixer is recovering (" << _trailingMixRatio << "mix/sleep) - throttling"
+                << _throttlingRatio << "of streams";
         }
     }
 }
@@ -534,7 +535,7 @@ void AudioMixer::clearDomainSettings() {
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
-    qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
+    qCDebug(audio) << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
 
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
         QJsonObject audioThreadingGroupObject = settingsObject[AUDIO_THREADING_GROUP_KEY].toObject();
@@ -557,7 +558,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
         bool enableDynamicJitterBuffer = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
         if (enableDynamicJitterBuffer) {
-            qDebug() << "Enabling dynamic jitter buffers.";
+            qCDebug(audio) << "Enabling dynamic jitter buffers.";
 
             bool ok;
             const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
@@ -565,9 +566,9 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             if (!ok) {
                 _numStaticJitterFrames = InboundAudioStream::DEFAULT_STATIC_JITTER_FRAMES;
             }
-            qDebug() << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
+            qCDebug(audio) << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
-            qDebug() << "Disabling dynamic jitter buffers.";
+            qCDebug(audio) << "Disabling dynamic jitter buffers.";
             _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
         }
 
@@ -621,7 +622,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
         if (audioEnvGroupObject[CODEC_PREFERENCE_ORDER].isString()) {
             QString codecPreferenceOrder = audioEnvGroupObject[CODEC_PREFERENCE_ORDER].toString();
             _codecPreferenceOrder = codecPreferenceOrder.split(",");
-            qDebug() << "Codec preference order changed to" << _codecPreferenceOrder;
+            qCDebug(audio) << "Codec preference order changed to" << _codecPreferenceOrder;
         }
 
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
@@ -630,7 +631,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             float attenuation = audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);
             if (ok) {
                 _attenuationPerDoublingInDistance = attenuation;
-                qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
+                qCDebug(audio) << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
             }
         }
 
@@ -640,7 +641,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             float noiseMutingThreshold = audioEnvGroupObject[NOISE_MUTING_THRESHOLD].toString().toFloat(&ok);
             if (ok) {
                 _noiseMutingThreshold = noiseMutingThreshold;
-                qDebug() << "Noise muting threshold changed to" << _noiseMutingThreshold;
+                qCDebug(audio) << "Noise muting threshold changed to" << _noiseMutingThreshold;
             }
         }
 
@@ -680,8 +681,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                         glm::vec3 dimensions(xMax - xMin, yMax - yMin, zMax - zMin);
                         AABox zoneAABox(corner, dimensions);
                         _audioZones.insert(zone, zoneAABox);
-                        qDebug() << "Added zone:" << zone << "(corner:" << corner
-                                    << ", dimensions:" << dimensions << ")";
+                        qCDebug(audio) << "Added zone:" << zone << "(corner:" << corner << ", dimensions:" << dimensions << ")";
                     }
                 }
             }
@@ -712,7 +712,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                         _audioZones.contains(settings.source) && _audioZones.contains(settings.listener)) {
 
                         _zoneSettings.push_back(settings);
-                        qDebug() << "Added Coefficient:" << settings.source << settings.listener << settings.coefficient;
+                        qCDebug(audio) << "Added Coefficient:" << settings.source << settings.listener << settings.coefficient;
                     }
                 }
             }
@@ -745,7 +745,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
 
                         _zoneReverbSettings.push_back(settings);
 
-                        qDebug() << "Added Reverb:" << zone << reverbTime << wetLevel;
+                        qCDebug(audio) << "Added Reverb:" << zone << reverbTime << wetLevel;
                     }
                 }
             }
