@@ -32,11 +32,10 @@
 
 (2) Make a PrioritySortUtil::PriorityQueue<Thing> and add them to the queue:
 
-    PrioritySortUtil::Prioritizer prioritizer(viewFrustum);
+    PrioritySortUtil::PriorityQueue<SortableWrapper> sortedThings(viewFrustum);
     std::priority_queue< PrioritySortUtil::Sortable<Thing> > sortedThings;
     for (thing in things) {
-        float priority = prioritizer.computePriority(PrioritySortUtil::PrioritizableThing(thing));
-        sortedThings.push(PrioritySortUtil::Sortable<Thing> entry(thing, priority));
+        sortedThings.push(SortableWrapper(thing));
     }
 
 (3) Loop over your priority queue and do timeboxed work:
@@ -65,6 +64,7 @@ namespace PrioritySortUtil {
         virtual uint64_t getTimestamp() const = 0;
 
         void setPriority(float priority) { _priority = priority; }
+        float getPriority() const { return _priority; }
         bool operator<(const Sortable& other) const { return _priority < other._priority; }
     private:
         float _priority { 0.0f };
