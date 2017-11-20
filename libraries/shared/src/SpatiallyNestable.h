@@ -47,11 +47,8 @@ public:
     virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
 
-    virtual quint16 getParentJointIndex() const;
+    virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex);
-
-    virtual QString getParentJointName() const;
-    virtual void setParentJointName(const QString& parentJointName);
 
     static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
     static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
@@ -165,9 +162,6 @@ public:
     virtual bool setLocalJointRotation(int index, const glm::quat& rotation) { return false; }
     virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) { return false; }
 
-    virtual int getJointIndex(const QString& jointName) const { return -1; }
-    virtual QString getJointName(int jointIndex) const { return ""; }
-
     SpatiallyNestablePointer getThisPointer() const;
 
     using ChildLambda = std::function<void(const SpatiallyNestablePointer&)>;
@@ -230,7 +224,6 @@ protected:
 private:
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { INVALID_JOINT_INDEX }; // which joint of the parent is this relative to?
-    QString _parentJointName;
 
     mutable ReadWriteLockable _transformLock;
     mutable ReadWriteLockable _idLock;

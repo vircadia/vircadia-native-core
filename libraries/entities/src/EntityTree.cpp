@@ -2276,6 +2276,17 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     foreach (QVariant entityVariant, entitiesQList) {
         // QVariantMap --> QScriptValue --> EntityItemProperties --> Entity
         QVariantMap entityMap = entityVariant.toMap();
+
+        // handle parentJointName for wearables
+        if (_myAvatar && entityMap.contains("parentJointName") && entityMap.contains("parentID") &&
+            QUuid(entityMap["parentID"].toString()) == AVATAR_SELF_ID) {
+
+            entityMap["parentJointIndex"] = _myAvatar->getJointIndex(entityMap["parentJointName"].toString());
+
+            qCDebug(entities) << "Found parentJointName " << entityMap["parentJointName"].toString() <<
+                " mapped it to parentJointIndex " << entityMap["parentJointIndex"].toInt();
+        }
+
         QScriptValue entityScriptValue = variantMapToScriptValue(entityMap, scriptEngine);
         EntityItemProperties properties;
         EntityItemPropertiesFromScriptValueIgnoreReadOnly(entityScriptValue, properties);

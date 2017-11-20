@@ -199,8 +199,7 @@ QDebug operator<<(QDebug debug, const PacketType& type);
 enum class EntityVersion : PacketVersion {
     StrokeColorProperty = 77,
     HasDynamicOwnershipTests,
-    HazeEffect,
-    ParentJointName
+    HazeEffect
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -1183,6 +1183,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
     _entityEditSender.setMyAvatar(myAvatar.get());
 
+    // The entity octree will have to know about MyAvatar for the parentJointName import
+    getEntities()->getTree()->setMyAvatar(myAvatar.get());
+    _entityClipboard->setMyAvatar(myAvatar.get());
+
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move an entity around in your hand
