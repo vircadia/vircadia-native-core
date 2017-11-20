@@ -12,26 +12,28 @@
 
 #include <itkRGBPixel.h>
 #include <itkImage.h>
-#include <itkImageFileReader.h>
-#include <itkImageFileWriter.h>
+#include <itkRGBToLuminanceImageFilter.h>
 
-float ITKImageComparer::compareImages(QString file1, QString file2) const {
-    using PixelType = itk::RGBPixel<unsigned char>;
-    using ImageType = itk::Image<PixelType, 2>;
+ITKImageComparer::ITKImageComparer() {
+    // These are smart pointers that do not need to be deleted
+    actualImageReader = ReaderType::New();
+    expectedImageReader = ReaderType::New();
+}
 
-    using ReaderType = itk::ImageFileReader<ImageType>;
-    using WriterType = itk::ImageFileWriter<ImageType>;
+float ITKImageComparer::compareImages(QString actualImageFilename, QString expectedImageFilename) const {
+    actualImageReader->SetFileName(actualImageFilename.toStdString().c_str());
+    expectedImageReader->SetFileName(expectedImageFilename.toStdString().c_str());
 
-    ReaderType::Pointer reader = ReaderType::New();
-    WriterType::Pointer writer = WriterType::New();
+    // Images are converted to monochrome for comparison
+    using MonochromePixelType = unsigned char;
+    using MonochromeImageType = itk::Image<MonochromePixelType, Dimension>;
+    using FilterType = itk::RGBToLuminanceImageFilter<RGBImageType, MonochromeImageType>;
+    
+    FilterType::Pointer actualImageToMonochrome = FilterType::New();
+    FilterType::Pointer expectedImageToMonochrome = FilterType::New();
 
-    reader->SetFileName(file1.toStdString().c_str());
-    writer->SetFileName("D:/pics/loni.jpg");
-
-    ImageType::Pointer image = reader->GetOutput();
-    writer->SetInput(image);
-
-    writer->Update();
-
+    actualImageToMonochrome->SetInput(actualImageReader->GetOutput());
+    expectedImageToMonochrome->SetInput(expectedImageReader->GetOutput());
+    
     return 0.0;
 }

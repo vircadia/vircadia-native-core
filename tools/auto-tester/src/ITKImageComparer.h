@@ -12,11 +12,23 @@
 
 #include "ImageComparer.h"
 
-#include <itkImage.h>
+#include <itkImageFileReader.h>
 
 class ITKImageComparer : public ImageComparer {
 public:
-    float compareImages(QString file1, QString file2) const final;
+    ITKImageComparer();
+    float compareImages(QString actualImageFilename, QString expectedImageFilename) const final;
+
+private:
+    static const unsigned int Dimension{ 2 };
+
+    using RGBPixelType = itk::RGBPixel<unsigned char>;
+    using RGBImageType = itk::Image<RGBPixelType, Dimension>;
+
+    using ReaderType = itk::ImageFileReader<RGBImageType>;
+
+    ReaderType::Pointer actualImageReader;
+    ReaderType::Pointer expectedImageReader;
 };
 
 #endif // hifi_ITKImageComparer_h

@@ -57,10 +57,10 @@ void Test::evaluateTests() {
     }
 
     // The number of images in each list should be identical
-    if (expectedImages.length() != resultImages.length()) {
+    if (expectedImages.length() != actualImages.length()) {
         messageBox.critical(0, 
             "Test failed", 
-            "Found " + QString::number(resultImages.length()) + " images in directory" + 
+            "Found " + QString::number(actualImages.length()) + " images in directory" +
             "\nExpected to find " + QString::number(expectedImages.length()) + " images");
 
         exit(-1);
@@ -72,7 +72,7 @@ void Test::evaluateTests() {
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        float error = itkImageComparer.compareImages(expectedImages[i], actualImages[i]);
+        float error = itkImageComparer.compareImages(actualImages[i], expectedImages[i]);
         if (error > THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 error,                                                          // value of the error (float)

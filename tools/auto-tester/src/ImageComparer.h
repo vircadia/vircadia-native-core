@@ -14,7 +14,7 @@
 
 class ImageComparer {
 public:
-    virtual float compareImages(QString file1, QString file2) const = 0;
+    virtual float compareImages(QString actualImageFilename, QString expectedImageFilename) const = 0;
 };
 
 #endif // hifi_ImageComparer_h
