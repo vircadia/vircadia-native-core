@@ -2391,59 +2391,6 @@ float AvatarData::_avatarSortCoefficientSize { 0.5f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
-void AvatarData::sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore) {
-
-    PROFILE_RANGE(simulation, "sort");
-    uint64_t now = usecTimestampNow();
-
-    glm::vec3 frustumCenter = cameraView.getPosition();
-    const glm::vec3& forward = cameraView.getDirection();
-    for (int32_t i = 0; i < avatarList.size(); ++i) {
-        const auto& avatar = avatarList.at(i);
-
-        if (shouldIgnore(avatar)) {
-            continue;
-        }
-
-        // priority = weighted linear combination of:
-        //   (a) apparentSize
-        //   (b) proximity to center of view
-        //   (c) time since last update
-        glm::vec3 avatarPosition = avatar->getWorldPosition();
-        glm::vec3 offset = avatarPosition - frustumCenter;
-        float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-
-        // FIXME - AvatarData has something equivolent to this
-        float radius = getBoundingRadius(avatar);
-
-        float apparentSize = 2.0f * radius / distance;
-        float cosineAngle = glm::dot(offset, forward) / distance;
-        float age = (float)(now - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
-
-        // NOTE: we are adding values of different units to get a single measure of "priority".
-        // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-        // These weights are pure magic tuning and should be hard coded in the relation below,
-        // but are currently exposed for anyone who would like to explore fine tuning:
-        float priority = _avatarSortCoefficientSize * apparentSize
-            + _avatarSortCoefficientCenter * cosineAngle
-            + _avatarSortCoefficientAge * age;
-
-        // decrement priority of avatars outside keyhole
-        if (distance > cameraView.getCenterRadius()) {
-            if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                priority += OUT_OF_VIEW_PENALTY;
-            }
-        }
-        sortedAvatarsOut.push(AvatarPriority(avatar, priority));
-    }
-}
-
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {

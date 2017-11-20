@@ -189,10 +189,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    // for calling the AvatarData::sortAvatars() function and getting our sorted list of client nodes
     std::vector<AvatarSharedPointer> avatarsToSort;
     std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
-
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         // make sure this is an agent that we have avatar data for before considering it for inclusion
         if (otherNode->getType() == NodeType::Agent
