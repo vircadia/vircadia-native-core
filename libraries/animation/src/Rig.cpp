@@ -179,6 +179,11 @@ void Rig::restoreRoleAnimation(const QString& role) {
             } else {
                 qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
             }
+            
+            auto statesIter = _roleAnimStates.find(role);
+            if (statesIter != _roleAnimStates.end()) {
+                _roleAnimStates.erase(statesIter);
+            }
         }
     } else {
         qCWarning(animation) << "Rig::overrideRoleAnimation avatar not ready yet";
