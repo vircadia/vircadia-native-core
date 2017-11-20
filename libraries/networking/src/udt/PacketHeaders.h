@@ -124,6 +124,8 @@ public:
         OctreeFileReplacementFromUrl,
         ChallengeOwnership,
         EntityScriptCallMethod,
+        ChallengeOwnershipRequest,
+        ChallengeOwnershipReply,
         NUM_PACKET_TYPE
     };
 

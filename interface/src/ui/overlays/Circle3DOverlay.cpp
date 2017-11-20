@@ -59,7 +59,7 @@ Circle3DOverlay::~Circle3DOverlay() {
     }
 }
 void Circle3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -259,7 +259,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Circle3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withUnlit();
+    auto builder = render::ShapeKey::Builder().withoutCullFace();
     if (isTransparent()) {
         builder.withTranslucent();
     }

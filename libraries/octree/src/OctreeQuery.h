@@ -12,21 +12,7 @@
 #ifndef hifi_OctreeQuery_h
 #define hifi_OctreeQuery_h
 
-/* VS2010 defines stdint.h, but not inttypes.h */
-#if defined(_MSC_VER)
-typedef signed char  int8_t;
-typedef signed short int16_t;
-typedef signed int   int32_t;
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed long long   int64_t;
-typedef unsigned long long quint64;
-#define PRId64 "I64d"
-#else
 #include <inttypes.h>
-#endif
-
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -45,7 +31,7 @@ public:
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(ReceivedMessage& message) override;
+    virtual int parseData(ReceivedMessage& message) override;
 
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }

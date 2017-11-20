@@ -59,8 +59,12 @@ public:
             _max = other._max;
         }
         double totalSamples = _samples + other._samples;
-        _average = _average * ((double)_samples / totalSamples)
-            + other._average * ((double)other._samples / totalSamples);
+        if (totalSamples > 0) {
+            _average = _average * ((double)_samples / totalSamples)
+                + other._average * ((double)other._samples / totalSamples);
+        } else {
+            _average = 0.0f;
+        }
         _samples += other._samples;
     }
 

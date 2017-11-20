@@ -1825,6 +1825,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
 
+    _pendingIdleEvent = false;
+    _pendingRenderEvent = false;
+
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
@@ -2693,7 +2696,7 @@ bool Application::importFromZIP(const QString& filePath) {
     qDebug() << "A zip file has been dropped in: " << filePath;
     QUrl empty;
     // handle Blocks download from Marketplace
-    if (filePath.contains("vr.google.com/downloads")) {
+    if (filePath.contains("poly.google.com/downloads")) {
         addAssetToWorldFromURL(filePath);
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
@@ -4441,7 +4444,7 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
@@ -6235,7 +6238,7 @@ void Application::addAssetToWorldFromURL(QString url) {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -6270,7 +6273,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -7271,6 +7274,10 @@ void Application::updateDisplayMode() {
         menu->setIsOptionChecked(MenuOption::FirstPerson, true);
         cameraMenuChanged();
     }
+    
+    // Remove the mirror camera option from menu if in HMD mode
+    auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
+    mirrorAction->setVisible(!isHmd);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
