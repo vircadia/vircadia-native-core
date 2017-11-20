@@ -43,8 +43,8 @@ Window {
     // type should only consist of logic sized areas, with nothing drawn (although the
     // default value for the frame property does include visual decorations)
     property var pane: Item {
-        property bool isScrolling: /*scrollView.contentChildren.length > 0 ?
-                                       (scrollView.height < scrollView.contentChildren[0].height) :*/
+        property bool isScrolling: scrollView.contentChildren.length > 0 ?
+                                       (scrollView.height < scrollView.contentChildren[0].height) :
                                        false
         property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
         property int scrollHeight: scrollView.height
@@ -94,7 +94,18 @@ Window {
                 height: scrollView.availableHeight
                 active: scrollView.ScrollBar.vertical.active
                 visible: control.size < 1.0
-
+                background: Item {
+                    implicitWidth: 10
+                    Rectangle {
+                        color: hifi.colors.darkGray30
+                        radius: 4
+                        anchors {
+                            fill: parent
+                            topMargin: -1  // Finesse size
+                            bottomMargin: -2
+                        }
+                    }
+                }
                 contentItem: Item {
                     implicitWidth: 8
                     Rectangle {
@@ -110,18 +121,7 @@ Window {
                 }
             }
 
-            background: Item {
-                implicitWidth: 10
-                Rectangle {
-                    color: hifi.colors.darkGray30
-                    radius: 4
-                    anchors {
-                        fill: parent
-                        topMargin: -1  // Finesse size
-                        bottomMargin: -2
-                    }
-                }
-            }
+
         }
 
         function scrollBy(delta) {

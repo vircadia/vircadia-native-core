@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
@@ -177,22 +176,21 @@ FocusScope {
             id: scrollView
             height: root.dropdownHeight
             width: root.width + 4
-            property bool hoverEnabled: false;
+            hoverEnabled: false;
 
-            style: ScrollViewStyle {
-                decrementControl: Item {
-                    visible: false
-                }
-                incrementControl: Item {
-                    visible: false
-                }
-                scrollBarBackground: Rectangle{
+//            style: ScrollViewStyle {
+//                decrementControl: Item {
+//                    visible: false
+//                }
+//                incrementControl: Item {
+//                    visible: false
+//                }
+                background: Rectangle{
                     implicitWidth: 20
                     color: hifi.colors.baseGray
                 }
 
-                handle:
-                    Rectangle {
+                contentItem: Rectangle {
                     implicitWidth: 16
                     anchors.left: parent.left
                     anchors.leftMargin: 3
@@ -201,7 +199,7 @@ FocusScope {
                     radius: 6
                     color: hifi.colors.lightGrayText
                 }
-            }
+//            }
 
             ListView {
                 id: listView
