@@ -14,17 +14,17 @@
 
 class TestFailure {
 public:
-    TestFailure(float error, QString pathname, QString expectedImageFilename, QString resultImageFilename) {
+    TestFailure(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) {
         _error = error;
          _pathname = pathname;
          _expectedImageFilename = expectedImageFilename;
-         _resultImageFilename = resultImageFilename;
+         _actualImageFilename = actualImageFilename;
     }
 
     float _error;
     QString _pathname;
     QString _expectedImageFilename;
-    QString _resultImageFilename;
+    QString _actualImageFilename;
 };
 
 enum UserResponse {

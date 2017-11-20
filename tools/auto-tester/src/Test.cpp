@@ -46,13 +46,13 @@ void Test::evaluateTests() {
     // Separate images into two lists.  The first is the expected images, the second is the test results
     // Images that are in the wrong format are ignored.
     QStringList expectedImages;
-    QStringList resultImages;
+    QStringList actualImages;
     foreach(QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
         if (isInExpectedImageFilenameFormat(currentFilename)) {
             expectedImages << fullCurrentFilename;
         } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            resultImages << fullCurrentFilename;
+            actualImages << fullCurrentFilename;
         }
     }
 
@@ -72,32 +72,13 @@ void Test::evaluateTests() {
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        ////QString diffFilename = "HIFI_AutoTest_diff.txt";
-        ////QString command = "magick.exe compare -metric MAE " + expectedImages[i] + " " + resultImages[i] + " null: 2>" + diffFilename;
-        ////
-        ////if (system(command.toStdString().c_str()) == -1) {
-        ////    // command has failed
-        ////    messageBox.critical(0, "Aborting!", "Error executing magick.exe");
-        ////    exit(-1);
-        ////}
-
-        ////QFile file(diffFilename);
-        ////if (!file.open(QIODevice::ReadOnly)) {
-        ////    messageBox.critical(0, "Error", file.errorString());
-        ////}
-
-        ////// First value on line is the comparison result
-        ////QTextStream in(&file);
-        ////QString line = in.readLine();
-        ////QStringList tokens = line.split(' ');
-        ////float error = tokens[0].toFloat();
-        float error = itkImageComparer.compareImages(expectedImages[i], resultImages[i]);
+        float error = itkImageComparer.compareImages(expectedImages[i], actualImages[i]);
         if (error > THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 error,                                                          // value of the error (float)
                 expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
                 QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
+                QFileInfo(actualImages[i].toStdString().c_str()).fileName()     // filename of result image
             });
             
             mismatchWindow.exec();
