@@ -87,6 +87,7 @@ public:
     void setAnimationURL(const QString& url);
 
     void setAnimationCurrentFrame(float value);
+    void setAnimationCurrentlyPlayingFrame(float value);
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value); 
 

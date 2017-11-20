@@ -309,7 +309,8 @@ void EntityTreeRenderer::update(bool simulate) {
     PerformanceTimer perfTimer("ETRupdate");
     if (_tree && !_shuttingDown) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-        tree->update(simulate);
+        //angus
+        //tree->update(simulate);
 
         // Update the rendereable entities as needed
         {

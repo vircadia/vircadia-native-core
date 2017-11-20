@@ -254,6 +254,7 @@ void ModelEntityItem::updateFrameCount() {
             float deltaTime = (float)interval / (float)USECS_PER_SECOND;
             _currentlyPlayingFrame += (deltaTime * _previousAnimationProperties.getFPS());
             qCDebug(entities) << "the frame is now " << _currentlyPlayingFrame;
+            setAnimationCurrentlyPlayingFrame(_currentlyPlayingFrame);
         }
     }
 }
@@ -609,6 +610,12 @@ void ModelEntityItem::setAnimationCurrentFrame(float value) {
     });
 }
 
+void ModelEntityItem::setAnimationCurrentlyPlayingFrame(float value) {
+    withWriteLock([&] {
+        _animationProperties.setCurrentlyPlayingFrame(value);
+    });
+}
+
 void ModelEntityItem::setAnimationLoop(bool loop) { 
     withWriteLock([&] {
         _animationProperties.setLoop(loop);
@@ -669,6 +676,7 @@ float ModelEntityItem::getAnimationCurrentFrame() const {
         return _animationProperties.getCurrentFrame();
     });
 }
+
 //angus change
 bool ModelEntityItem::isAnimatingSomething() const {
     return resultWithReadLock<bool>([&] {
