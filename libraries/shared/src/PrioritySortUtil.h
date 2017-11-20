@@ -12,6 +12,9 @@
 #define hifi_PrioritySortUtil_h
 
 #include <glm/glm.hpp>
+#include <queue>
+
+#include "NumericalConstants.h"
 #include "ViewFrustum.h"
 
 /*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:

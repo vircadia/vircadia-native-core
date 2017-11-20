@@ -110,7 +110,7 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
-    ViewFrustum getViewFrustom() const { return _currentViewFrustum; }
+    ViewFrustum getViewFrustum() const { return _currentViewFrustum; }
 
     quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
         quint64 result = 0;
