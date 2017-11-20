@@ -35,8 +35,6 @@ public:
     void init(); // called after creation to set up some virtual items
     virtual PacketType getMyPacketType() const = 0;
 
-    virtual int parseData(ReceivedMessage& message) override;
-
     void resetOctreePacket();  // resets octree packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, unsigned int bytes); // writes to end of packet
@@ -108,8 +106,6 @@ public:
     bool shouldForceFullScene() const { return _shouldForceFullScene; }
     void setShouldForceFullScene(bool shouldForceFullScene) { _shouldForceFullScene = shouldForceFullScene; }
 
-    bool hasReceivedFirstQuery() const  { return _hasReceivedFirstQuery; }
-
 private:
     OctreeQueryNode(const OctreeQueryNode &);
     OctreeQueryNode& operator= (const OctreeQueryNode&);
@@ -157,8 +153,6 @@ private:
     QJsonObject _lastCheckJSONParameters;
 
     bool _shouldForceFullScene { false };
-
-    bool _hasReceivedFirstQuery { false };
 };
 
 #endif // hifi_OctreeQueryNode_h

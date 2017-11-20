@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#if defined(__AVX512F__)
+#ifdef __AVX512F__
 
 #include <assert.h>
 #include <immintrin.h>
@@ -85,17 +85,6 @@ void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* ds
     }
 
     _mm256_zeroupper();
-}
-
-// FIXME: this fallback can be removed, once we require VS2017
-#elif defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
-
-#include "../AudioHRTF.h"
-
-void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
-
-void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-    FIR_1x4_AVX2(src, dst0, dst1, dst2, dst3, coef, numFrames);
 }
 
 #endif

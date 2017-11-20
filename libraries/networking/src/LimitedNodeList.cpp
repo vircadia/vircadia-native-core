@@ -429,7 +429,7 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
     }
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
+qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
 
     if (activeSocket) {
@@ -452,8 +452,8 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
     }
 }
 
-qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
-                                       const QUuid& connectionSecret) {
+qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
+                                                          const QUuid& connectionSecret) {
     qint64 bytesSent = 0;
 
     // close the last packet in the list

@@ -66,7 +66,6 @@ Item {
 
         function toModel(items, newMenu) {
             var result = modelMaker.createObject(tabletMenu);
-            var exclusionGroups = {};
 
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
@@ -78,28 +77,6 @@ Item {
                     if (item.text !== "Users Online") {
                         result.append({"name": item.text, "item": item})
                     }
-
-                    for(var j = 0; j < tabletMenu.rootMenu.exclusionGroupsByMenuItem.count; ++j)
-                    {
-                        var entry = tabletMenu.rootMenu.exclusionGroupsByMenuItem.get(j);
-                        if(entry.menuItem == item.toString())
-                        {
-                            var exclusionGroupId = entry.exclusionGroup;
-                            console.debug('item exclusionGroupId: ', exclusionGroupId)
-
-                            if(!exclusionGroups[exclusionGroupId])
-                            {
-                                exclusionGroups[exclusionGroupId] = exclusiveGroupMaker.createObject(newMenu);
-                                console.debug('new exclusion group created: ', exclusionGroups[exclusionGroupId])
-                            }
-
-                            var exclusionGroup = exclusionGroups[exclusionGroupId];
-
-                            item.exclusiveGroup = exclusionGroup
-                            console.debug('item.exclusiveGroup: ', item.exclusiveGroup)                        
-                        }
-                    }
-
                     break;
                 case MenuItemType.Separator:
                     result.append({"name": "", "item": item})
