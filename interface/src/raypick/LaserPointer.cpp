@@ -147,7 +147,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     }
     if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
-        glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+        glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
         glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
         if (_distanceScaleEnd) {
             dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec);

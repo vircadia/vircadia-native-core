@@ -81,8 +81,8 @@ static StylusTip getFingerWorldLocation(Side side) {
 
     auto fingerPosition = myAvatar->getAbsoluteJointTranslationInObjectFrame(fingerJointIndex);
     auto fingerRotation = myAvatar->getAbsoluteJointRotationInObjectFrame(fingerJointIndex);
-    auto avatarOrientation = myAvatar->getOrientation();
-    auto avatarPosition = myAvatar->getPosition();
+    auto avatarOrientation = myAvatar->getWorldOrientation();
+    auto avatarPosition = myAvatar->getWorldPosition();
     StylusTip result;
     result.side = side;
     result.orientation = avatarOrientation * fingerRotation;

@@ -153,7 +153,7 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
             setupQmlSurface();
         }
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
         _webSurface->resize(QSize(_resolution.x, _resolution.y));
         _webSurface->resume();
     });
@@ -165,7 +165,7 @@ void Web3DOverlay::buildWebSurface() {
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
     }
     Parent::update(deltatime);
 }
@@ -546,7 +546,7 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
 
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getSize(), distance);
+    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getSize(), distance);
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {

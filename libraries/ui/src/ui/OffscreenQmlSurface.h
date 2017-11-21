@@ -111,6 +111,14 @@ public slots:
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
 
+    // audio output device
+public slots:
+    void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
+    void forceHtmlAudioOutputDeviceUpdate();
+    void forceQmlAudioOutputDeviceUpdate();
+signals:
+    void audioOutputDeviceChanged(const QString& deviceName);
+
     // event bridge
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
