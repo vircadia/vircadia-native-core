@@ -310,64 +310,46 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // connect Geometry to Model 
     FBXNode cNode;
     cNode.name = C_NODE_NAME;
-
     cNode.properties = {
         CONNECTIONS_NODE_PROPERTY,
         _geometryID,
         _modelID
     };
-
     connectionsNode.children = { cNode };
 
     // connect all materials to model
     for (auto& materialID : _materialIDs) {
-        FBXNode cNode1;
-        cNode1.name = C_NODE_NAME;
-        cNode1.properties = {
+        FBXNode cNode;
+        cNode.name = C_NODE_NAME;
+        cNode.properties = {
             CONNECTIONS_NODE_PROPERTY,
             materialID,
             _modelID
         };
-        connectionsNode.children.append(cNode1);
-    }
-    for (int i = 0; i < geometry.materials.size(); i++) {
-        continue;
-        FBXNode cNode1;
-        cNode1.name = C_NODE_NAME;
-        cNode1.properties = {
-            CONNECTIONS_NODE_PROPERTY,
-            _materialIDs[i],
-            _modelID
-        };
-
-        connectionsNode.children.append(cNode1);
+        connectionsNode.children.append(cNode);
     }
 
     // Connect textures to materials
-    auto mapSize = _mapTextureMaterial.size();
-    for (size_t i = 0; i < mapSize; i++) {
-        FBXNode cNode2;
-        cNode2.name = C_NODE_NAME;
-        auto& texMat = _mapTextureMaterial[i];
-        cNode2.properties = {
+    for (auto& texMat : _mapTextureMaterial) {
+        FBXNode cAmbientNode;
+        cAmbientNode.name = C_NODE_NAME;
+        cAmbientNode.properties = {
             CONNECTIONS_NODE_PROPERTY_1,
             texMat.first,
             _materialIDs[texMat.second],
             "AmbientFactor"
         };
+        connectionsNode.children.append(cAmbientNode);
 
-        connectionsNode.children.append(cNode2);
-
-        FBXNode cNode3;
-        cNode3.name = C_NODE_NAME;
-        cNode3.properties = {
+        FBXNode cDiffuseNode;
+        cDiffuseNode.name = C_NODE_NAME;
+        cDiffuseNode.properties = {
             CONNECTIONS_NODE_PROPERTY_1,
             texMat.first,
             _materialIDs[texMat.second],
             "DiffuseColor"
         };
-
-        connectionsNode.children.append(cNode3);
+        connectionsNode.children.append(cDiffuseNode);
     }
 
     // Make all generated nodes children of rootNode
