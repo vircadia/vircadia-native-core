@@ -72,12 +72,14 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 }
 
 bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
+ //   QWriteLocker lock(&_selectionListsLock);
     _selectedItemsListMap.insert(listName, GameplayObjects());
     onSelectedItemsListChanged(listName);
     return true;
 }
 
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
+ //   QWriteLocker lock(&_selectionListsLock);
 
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
@@ -111,6 +113,7 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
 }
 
 bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
+ //   QWriteLocker lock(&_selectionListsLock);
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle != _highlightedListMap.end()) {
       //  if ((*highlightStyle).isBoundToList()) {
@@ -134,6 +137,7 @@ bool SelectionScriptingInterface::disableListHighlight(const QString& listName) 
 }
 
 QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
+ //   QReadLocker lock(&_selectionListsLock);
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
         return QVariantMap();
@@ -143,6 +147,7 @@ QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& li
 }
 
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
+ //   QReadLocker lock(&_selectionListsLock);
     auto highlightStyle = _highlightedListMap.find(listName);
     if (highlightStyle == _highlightedListMap.end()) {
         return render::HighlightStyle();
@@ -152,6 +157,8 @@ render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QStr
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
+ //   QWriteLocker lock(&_selectionListsLock);
+
     GameplayObjects currentList = _selectedItemsListMap.value(listName);
     currentList.addToGameplayObjects(idToAdd);
     _selectedItemsListMap.insert(listName, currentList);
@@ -160,6 +167,7 @@ template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const 
     return true;
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
+ //   QWriteLocker lock(&_selectionListsLock);
     GameplayObjects currentList = _selectedItemsListMap.value(listName);
     if (currentList.getContainsData()) {
         currentList.removeFromGameplayObjects(idToRemove);
@@ -176,10 +184,12 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 //
 
 GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
+  //  QReadLocker lock(&_selectionListsLock);
     return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
+  //  QReadLocker lock(&_selectionListsLock);
     auto currentList = _selectedItemsListMap.find(listName);
     if (currentList != _selectedItemsListMap.end()) {
         if ((*currentList).getContainsData()) {
@@ -212,6 +222,7 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
+  //  QWriteLocker lock(&_selectionListsLock);
     if (_selectedItemsListMap.remove(listName)) {
         onSelectedItemsListChanged(listName);
         return true;
@@ -221,6 +232,7 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
 }
 
 void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
+ //   QWriteLocker lock(&_selectionListsLock);
     auto handler = _handlerMap.find(selectionName);
     if (handler == _handlerMap.end()) {
         handler = _handlerMap.insert(selectionName, new SelectionToSceneHandler());
@@ -233,6 +245,7 @@ void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
 }
 
 void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
+ //   QWriteLocker lock(&_selectionListsLock);
     auto handler = _handlerMap.find(listName);
     if (handler != _handlerMap.end()) {
         (*handler)->updateSceneFromSelectedList();
@@ -245,8 +258,6 @@ SelectionToSceneHandler::SelectionToSceneHandler() {
 
 void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
-
-
     updateSceneFromSelectedList();
 }
 

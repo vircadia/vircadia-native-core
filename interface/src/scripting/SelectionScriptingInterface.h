@@ -142,10 +142,9 @@ public:
 
 signals:
     void selectedItemsListChanged(const QString& listName);
- //   void highlightStyleChanged(const QString& listName);
- //   void highlightStyleRemoved(const QString& listName);
 
 private:
+    mutable QReadWriteLock _selectionListsLock;
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
     QMap<QString, SelectionHighlightStyle> _highlightedListMap;
@@ -155,6 +154,7 @@ private:
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 
     void setupHandler(const QString& selectionName);
+
 
     
 };
