@@ -35,11 +35,14 @@ class ModelBaker : public Baker {
 
 public:
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-               const QString& bakedOutputDirectory, const QString& originalOutputDirectory);
+               const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
     virtual ~ModelBaker();
     bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
     QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
     virtual void setWasAborted(bool wasAborted) override;
+
+public slots:
+    virtual void abort() override;
 
 protected:
     void checkIfTexturesFinished();
@@ -51,9 +54,6 @@ protected:
     QString _bakedModelFilePath;
     QDir _modelTempDir;
     QString _originalModelFilePath;
-
-public slots:
-    virtual void abort() override;
 
 private slots:
     void handleBakedTexture();

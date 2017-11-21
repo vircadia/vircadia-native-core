@@ -34,13 +34,6 @@ const QByteArray CONNECTIONS_NODE_PROPERTY = "OO";
 const QByteArray CONNECTIONS_NODE_PROPERTY_1 = "OP";
 const QByteArray MESH = "Mesh";
 
-OBJBaker::OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGetter,
-                   const QString& bakedOutputDir, const QString& originalOutputDir) :
-    ModelBaker(objURL, textureThreadGetter, bakedOutputDir, originalOutputDir)
-{
-
-}
-
 void OBJBaker::bake() {
     qDebug() << "OBJBaker" << _modelURL << "bake starting";
 

@@ -33,8 +33,7 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
-    FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
-             const QString& bakedOutputDir, const QString& originalOutputDir = "");
+    using ModelBaker::ModelBaker;
 
     QUrl getFBXUrl() const { return _modelURL; }
     QString getBakedFBXFilePath() const { return _bakedModelFilePath; }

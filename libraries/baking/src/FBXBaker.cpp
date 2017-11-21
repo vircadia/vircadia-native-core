@@ -33,13 +33,6 @@
 
 #include "FBXBaker.h"
 
-FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
-                   const QString& bakedOutputDir, const QString& originalOutputDir) : 
-    ModelBaker(fbxURL, textureThreadGetter, bakedOutputDir, originalOutputDir) 
-{
-
-}
-
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
 
