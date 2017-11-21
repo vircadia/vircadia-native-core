@@ -4003,6 +4003,7 @@ bool Application::exportEntities(const QString& filename,
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
+    exportTree->setMyAvatar(getMyAvatar());
     exportTree->createRootElement();
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     bool success = true;

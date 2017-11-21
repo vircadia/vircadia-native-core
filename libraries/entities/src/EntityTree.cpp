@@ -2254,7 +2254,8 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
         entityDescription["Entities"] = QVariantList();
     }
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,
+                                            skipThoseWithBadParents, _myAvatar);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
