@@ -422,14 +422,6 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     //
     // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
     // receive mouse events
-    Qt::MouseButton button = Qt::NoButton;
-    Qt::MouseButtons buttons = Qt::NoButton;
-    if (event.getButton() == PointerEvent::PrimaryButton) {
-        button = Qt::LeftButton;
-    }
-    if (event.getButtons() & PointerEvent::PrimaryButton) {
-        buttons |= Qt::LeftButton;
-    }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     //needed for ScrollBars
