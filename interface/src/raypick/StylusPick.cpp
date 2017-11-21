@@ -107,8 +107,8 @@ static StylusTip getControllerWorldLocation(Side side) {
         float sensorScaleFactor = myAvatar->getSensorToWorldScale();
         auto controllerJointIndex = myAvatar->getJointIndex(sideData.cameraJoint);
 
-        const auto avatarOrientation = myAvatar->getOrientation();
-        const auto avatarPosition = myAvatar->getPosition();
+        const auto avatarOrientation = myAvatar->getWorldOrientation();
+        const auto avatarPosition = myAvatar->getWorldPosition();
         result.orientation = avatarOrientation * myAvatar->getAbsoluteJointRotationInObjectFrame(controllerJointIndex);
 
         result.position = avatarPosition + (avatarOrientation * myAvatar->getAbsoluteJointTranslationInObjectFrame(controllerJointIndex));
