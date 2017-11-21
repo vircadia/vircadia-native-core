@@ -726,7 +726,7 @@ bool EntityTree::findNearPointOperation(const OctreeElementPointer& element, voi
 
         // we may have gotten NULL back, meaning no entity was available
         if (thisClosestEntity) {
-            glm::vec3 entityPosition = thisClosestEntity->getPosition();
+            glm::vec3 entityPosition = thisClosestEntity->getWorldPosition();
             float distanceFromPointToEntity = glm::distance(entityPosition, args->position);
 
             // If we're within our target radius
@@ -1099,7 +1099,7 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     if (entityEditFilters) {
-        auto position = existingEntity ? existingEntity->getPosition() : propertiesIn.getPosition();
+        auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
         accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID);
     }
