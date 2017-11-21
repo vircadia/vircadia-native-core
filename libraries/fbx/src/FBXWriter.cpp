@@ -161,23 +161,19 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
         case QMetaType::QString:
         {
             auto bytes = prop.toString().toUtf8();
-            out << 'S';
-            out << bytes.length();
-            out << bytes;
+            out.device()->write("S", 1);
             out << (int32_t)bytes.size();
             out.writeRawData(bytes, bytes.size());
             break;
         }
-
         case QMetaType::QByteArray:
-            {
-                auto bytes = prop.toByteArray();
-                out.device()->write("S", 1);
-                out << (int32_t)bytes.size();
-                out.writeRawData(bytes, bytes.size());
-                break;
-            }
-
+        {
+            auto bytes = prop.toByteArray();
+            out.device()->write("S", 1);
+            out << (int32_t)bytes.size();
+            out.writeRawData(bytes, bytes.size());
+            break;
+        }
         default:
         {
             if (prop.canConvert<QVector<float>>()) {
