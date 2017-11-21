@@ -368,7 +368,6 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         return;
     }
 
-
     QPointF windowPoint;
     {
         glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
@@ -433,10 +432,8 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
+    //needed for ScrollBars
+    handlePointerEventAsMouse(event);
 #endif
 
     if (touchType == QEvent::TouchBegin) {
@@ -451,10 +448,8 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
+    //needed for ScrollBars
+    handlePointerEventAsMouse(event);
 #endif
 }
 
