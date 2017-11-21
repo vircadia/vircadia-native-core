@@ -40,37 +40,29 @@ Item {
 
         CheckBox {
             id: checkbox
-            // FIXME: Should use radio buttons if source.exclusiveGroup.
+
             width: 20
             visible: source !== null ?
                          source.visible && source.type === 1 && source.checkable && !source.exclusiveGroup :
                          false
-            checked: setChecked()
-            function setChecked() {
-                if (!source || source.type !== 1 || !source.checkable) {
-                    return false;
-                }
-                // FIXME this works for native QML menus but I don't think it will
-                // for proxied QML menus
-                return source.checked;
+
+            Binding on checked {
+                value: source.checked;
+                when: source && source.type === 1 && source.checkable && !source.exclusiveGroup;
             }
         }
 
         RadioButton {
             id: radiobutton
-            // FIXME: Should use radio buttons if source.exclusiveGroup.
+
             width: 20
             visible: source !== null ?
                          source.visible && source.type === 1 && source.checkable && source.exclusiveGroup :
                          false
-            checked: setChecked()
-            function setChecked() {
-                if (!source || source.type !== 1 || !source.checkable) {
-                    return false;
-                }
-                // FIXME this works for native QML menus but I don't think it will
-                // for proxied QML menus
-                return source.checked;
+
+            Binding on checked {
+                value: source.checked;
+                when: source && source.type === 1 && source.checkable && source.exclusiveGroup;
             }
         }
     }

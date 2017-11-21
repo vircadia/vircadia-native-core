@@ -55,7 +55,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     QStringList fileList = unzipFile(path, tempDir);
     
     if (!fileList.isEmpty()) {
-        qCDebug(scriptengine) << "File to upload: " + fileList.first();
+        qCDebug(scriptengine) << "First file to upload: " + fileList.first();
     } else {
         qCDebug(scriptengine) << "Unzip failed";
     }

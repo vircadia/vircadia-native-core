@@ -57,7 +57,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
             QVariantMap props;
-            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * (CONTEXT_OVERLAY_TABLET_DISTANCE * (cameraOrientation * Vectors::FRONT))));
+            float sensorToWorldScale = myAvatar->getSensorToWorldScale();
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
             props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
             _contextOverlayJustClicked = false;
@@ -184,9 +185,9 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
-            _contextOverlay->setPosition(contextOverlayPosition);
+            _contextOverlay->setWorldPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
-            _contextOverlay->setRotation(entityProperties.getRotation());
+            _contextOverlay->setWorldOrientation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
 
             return true;
@@ -203,7 +204,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    Setting::Handle<bool> _settingSwitch{ "commerce", true };
     if (_settingSwitch.get()) {
         return (entityProperties.getCertificateID().length() != 0);
     } else {
@@ -233,7 +234,7 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        Setting::Handle<bool> _settingSwitch{ "commerce", false };
+        Setting::Handle<bool> _settingSwitch{ "commerce", true };
         if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {

@@ -69,7 +69,7 @@ void WebEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity)
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_contextPosition != entity->getPosition()) {
+    if (_contextPosition != entity->getWorldPosition()) {
         return true;
     }
 
@@ -127,9 +127,9 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
             buildWebSurface(entity);
         }
 
-        if (_contextPosition != entity->getPosition()) {
+        if (_contextPosition != entity->getWorldPosition()) {
             // update globalPosition
-            _contextPosition = entity->getPosition();
+            _contextPosition = entity->getWorldPosition();
             _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
         }
 

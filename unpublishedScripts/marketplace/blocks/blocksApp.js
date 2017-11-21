@@ -14,7 +14,7 @@
 
 (function () {
 	var APP_NAME = "BLOCKS";
-	var APP_URL = "https://vr.google.com/objects/";
+	var APP_URL = "https://poly.google.com/";
 	var APP_OUTDATED_URL = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/updateToBlocks.html";
 	var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-i.svg";
 	var APP_ICON_ACTIVE = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-a.svg";
