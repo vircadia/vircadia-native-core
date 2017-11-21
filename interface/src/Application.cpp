@@ -5503,6 +5503,8 @@ void Application::clearDomainOctreeDetails() {
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
+
+    getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
 void Application::clearDomainAvatars() {
