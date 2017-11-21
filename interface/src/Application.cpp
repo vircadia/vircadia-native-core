@@ -6139,46 +6139,60 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
                 "\nhttps://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content";
 
-            bool agreeToReplaceContent = false; // assume false
-            agreeToReplaceContent = QMessageBox::Yes == OffscreenUi::question("Are you sure you want to replace this domain's content set?",
-                infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
+                                                                  infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
-            if (agreeToReplaceContent) {
-                // Given confirmation, send request to domain server to replace content
-                qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                QByteArray urlData(url.toUtf8());
-                auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-                    return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
-                    auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-                    octreeFilePacket->write(urlData);
-                    limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                });
-                auto addressManager = DependencyManager::get<AddressManager>();
-                addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-                QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
-                qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
-                DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
-                methodDetails = "SuccessfulRequestToReplaceContent";
-            } else {
-                methodDetails = "UserDeclinedToReplaceContent";
-            }
+            QObject::connect(dig, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                QString details;
+                if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
+                    // Given confirmation, send request to domain server to replace content
+                    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+                    QByteArray urlData(url.toUtf8());
+                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+                    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+                            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+                            auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+                            octreeFilePacket->write(urlData);
+                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+                        });
+                    auto addressManager = DependencyManager::get<AddressManager>();
+                    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+                    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+                    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+                    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+                    details = "SuccessfulRequestToReplaceContent";
+                } else {
+                    details = "UserDeclinedToReplaceContent";
+                }
+                QJsonObject messageProperties = {
+                    { "status", details },
+                    { "content_set_url", url }
+                };
+                UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
+                QObject::disconnect(dig, &ModalDialogListener::response, this, nullptr);
+            });
         } else {
             methodDetails = "ContentSetDidNotOriginateFromMarketplace";
+            QJsonObject messageProperties = {
+                { "status", methodDetails },
+                { "content_set_url", url }
+            };
+            UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
         }
     } else {
             methodDetails = "UserDoesNotHavePermissionToReplaceContent";
             static const QString warningMessage = simpleWordWrap("The domain owner must enable 'Replace Content' "
                 "permissions for you in this domain's server settings before you can continue.", MAX_CHARACTERS_PER_LINE);
-            OffscreenUi::warning("You do not have permissions to replace domain content", warningMessage,
+            OffscreenUi::asyncWarning("You do not have permissions to replace domain content", warningMessage,
                                  QMessageBox::Ok, QMessageBox::Ok);
+
+            QJsonObject messageProperties = {
+                { "status", methodDetails },
+                { "content_set_url", url }
+            };
+            UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
     }
-    QJsonObject messageProperties = {
-        { "status", methodDetails },
-        { "content_set_url", url }
-    };
-    UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
     return true;
 }
 
