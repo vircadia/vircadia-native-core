@@ -367,7 +367,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
-            Script.setTimeout(_this.update, 60);
+            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
         };
 
         this.setBlacklist = function() {
@@ -465,5 +465,5 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
-    Script.setTimeout(controllerDispatcher.update, 60);
+    Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());
