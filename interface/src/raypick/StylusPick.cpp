@@ -157,8 +157,8 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
             continue;
         }
 
-        const auto entityRotation = entity->getRotation();
-        const auto entityPosition = entity->getPosition();
+        const auto entityRotation = entity->getWorldOrientation();
+        const auto entityPosition = entity->getWorldPosition();
 
         glm::vec3 normal = entityRotation * Vectors::UNIT_Z;
         float distance = glm::dot(pick.position - entityPosition, normal);
@@ -197,8 +197,8 @@ PickResultPointer StylusPick::getOverlayIntersection(const StylusTip& pick) {
         }
 
         auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        const auto overlayRotation = overlay3D->getRotation();
-        const auto overlayPosition = overlay3D->getPosition();
+        const auto overlayRotation = overlay3D->getWorldOrientation();
+        const auto overlayPosition = overlay3D->getWorldPosition();
 
         glm::vec3 normal = overlayRotation * Vectors::UNIT_Z;
         float distance = glm::dot(pick.position - overlayPosition, normal);
