@@ -324,7 +324,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         public:
             SortableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
 
-            glm::vec3 getPosition() const override { return _renderer->getEntity()->getPosition(); }
+            glm::vec3 getPosition() const override { return _renderer->getEntity()->getWorldPosition(); }
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
 
@@ -587,8 +587,8 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
 
     if (entity) {
 
-        glm::vec3 entityPosition = entity->getPosition();
-        glm::quat entityRotation = entity->getRotation();
+        glm::vec3 entityPosition = entity->getWorldPosition();
+        glm::quat entityRotation = entity->getWorldOrientation();
         glm::vec3 entityDimensions = entity->getDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 

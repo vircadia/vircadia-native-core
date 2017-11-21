@@ -592,7 +592,7 @@ void ParticleEffectEntityItem::debugDump() const {
         _particleProperties.color.gradient.target.red << "," << 
         _particleProperties.color.gradient.target.green << "," << 
         _particleProperties.color.gradient.target.blue;
-    qCDebug(entities) << "               position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "               position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "             dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "          getLastEdited:" << debugTime(getLastEdited(), now);
 }
