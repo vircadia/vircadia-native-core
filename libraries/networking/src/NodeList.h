@@ -40,6 +40,9 @@ const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
+using PacketOrPacketList = std::pair<std::unique_ptr<NLPacket>, std::unique_ptr<NLPacketList>>;
+using NodePacketOrPacketListPair = std::pair<SharedNodePointer, PacketOrPacketList>;
+
 using NodePacketPair = std::pair<SharedNodePointer, std::unique_ptr<NLPacket>>;
 using NodeSharedPacketPair = std::pair<SharedNodePointer, QSharedPointer<NLPacket>>;
 using NodeSharedReceivedMessagePair = std::pair<SharedNodePointer, QSharedPointer<ReceivedMessage>>;

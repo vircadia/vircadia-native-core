@@ -203,6 +203,8 @@
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
 
+#include "webbrowser/WebBrowserSuggestionsEngine.h"
+
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -1183,6 +1185,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
     _entityEditSender.setMyAvatar(myAvatar.get());
 
+    // The entity octree will have to know about MyAvatar for the parentJointName import
+    getEntities()->getTree()->setMyAvatar(myAvatar);
+    _entityClipboard->setMyAvatar(myAvatar);
+
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move an entity around in your hand
@@ -1391,7 +1397,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
 
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
@@ -2224,6 +2229,7 @@ void Application::initializeUi() {
     QmlCommerce::registerType();
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
+    qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create();
@@ -3997,6 +4003,7 @@ bool Application::exportEntities(const QString& filename,
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
+    exportTree->setMyAvatar(getMyAvatar());
     exportTree->createRootElement();
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     bool success = true;
@@ -4482,8 +4489,11 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
+
     // Query the octree to refresh everything in view
     _lastQueriedTime = 0;
+    _octreeQuery.incrementConnectionID();
+
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -5498,6 +5508,8 @@ void Application::clearDomainOctreeDetails() {
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
+
+    getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
 void Application::clearDomainAvatars() {
@@ -5544,6 +5556,7 @@ void Application::nodeActivated(SharedNodePointer node) {
     // so we will do a proper query during update
     if (node->getType() == NodeType::EntityServer) {
         _lastQueriedTime = 0;
+        _octreeQuery.incrementConnectionID();
     }
 
     if (node->getType() == NodeType::AudioMixer) {
@@ -6325,20 +6338,14 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks) {
+void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, bool isBlocks) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
-    QString path = filePath;
     QString filename = filenameFromPath(path);
-    if (isZip) {
-        QString assetFolder = zipFile.section("/", -1);
-        assetFolder.remove(".zip");
-        mapping = "/" + assetFolder + "/" + filename;
-    } else if (isBlocks) {
-        qCDebug(interfaceapp) << "Path to asset folder: " << zipFile;
-        QString assetFolder = zipFile.section('/', -1);
-        assetFolder.remove(".zip?noDownload=false");
-        mapping = "/" + assetFolder + "/" + filename;
+    if (isZip || isBlocks) {
+        QString assetName = zipFile.section("/", -1).remove(QRegExp("[.]zip(.*)$"));
+        QString assetFolder = path.section("model_repo/", -1);
+        mapping = "/" + assetName + "/" + assetFolder;
     } else {
         mapping = "/" + filename;
     }
@@ -6724,8 +6731,10 @@ void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoA
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
-                qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
+                if (QFileInfo(unzipFile.at(i)).isFile()) {
+                    qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
+                    addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
+                }
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
@@ -7083,6 +7092,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     return _displayPlugin;
 }
 
+static const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -7118,6 +7128,8 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
+
+    action->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(displayPluginGroup));
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
 }
 

@@ -18,13 +18,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-int OctreeQueryNode::parseData(ReceivedMessage& message) {
-    // set our flag to indicate that we've parsed for this query at least once
-    _hasReceivedFirstQuery = true;
-
-    return OctreeQuery::parseData(message);
-}
-
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
 }

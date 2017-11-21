@@ -265,6 +265,8 @@ public:
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
 
+    virtual void setAvatarEntityDataChanged(bool value) override;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

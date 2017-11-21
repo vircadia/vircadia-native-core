@@ -270,11 +270,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.otherModuleNeedsToRun = function(controllerData) {
             var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
             var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
+            var grabEntityModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
+            var grabEntityModule = getEnabledModuleByName(grabEntityModuleName);
             var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            var grabEntityModuleReady = grabEntityModule ? grabEntityModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
             var farGrabModule = getEnabledModuleByName(farGrabModuleName);
             var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
-            return grabOverlayModuleReady.active || farGrabModuleReady.active;
+            return grabOverlayModuleReady.active || farGrabModuleReady.active || grabEntityModuleReady.active;
         };
 
         this.processStylus = function(controllerData) {
