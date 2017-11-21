@@ -6139,7 +6139,6 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
                 "\nhttps://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content";
 
-            bool agreeToReplaceContent = false; // assume false
             ModalDialogListener* dig = OffscreenUi::asyncQuestion("Are you sure you want to replace this domain's content set?",
                                                                   infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
