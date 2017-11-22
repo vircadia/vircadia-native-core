@@ -19,6 +19,8 @@
 #include <QtNetwork/QNetworkReply>
 #include <commerce/Ledger.h>
 
+#include <PointerManager.h>
+
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
@@ -92,8 +94,6 @@ void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToScene
     transaction.resetSelectionHighlight(selectionName.toStdString());
 }
 
-static const uint32_t MOUSE_HW_ID = 0;
-static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
@@ -113,7 +113,7 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
         if (contextOverlayFilterPassed(entityItemID)) {
-            if (event.getID() == MOUSE_HW_ID) {
+            if (event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID())) {
                 enableEntityHighlight(entityItemID);
             }
 
@@ -164,7 +164,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 glm::vec3 normal;
                 boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
-                if (event.getID() == LEFT_HAND_HW_ID) {
+                if (DependencyManager::get<PointerManager>()->isLeftHand(event.getID())) {
                     offsetAngle *= -1.0f;
                 }
                 contextOverlayPosition = cameraPosition +
@@ -266,13 +266,15 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (contextOverlayFilterPassed(entityID) && _enabled && event.getID() != MOUSE_HW_ID) {
+    bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
+    if (contextOverlayFilterPassed(entityID) && _enabled && !isMouse) {
         enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (_currentEntityWithContextOverlay != entityID && _enabled && event.getID() != MOUSE_HW_ID) {
+    bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
+    if (_currentEntityWithContextOverlay != entityID && _enabled && !isMouse) {
         disableEntityHighlight(entityID);
     }
 }

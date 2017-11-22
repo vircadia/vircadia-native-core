@@ -21,6 +21,9 @@
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
 
+#include <QTouchEvent>
+#include "PointerEvent.h"
+
 class QWindow;
 class QMyQuickRenderControl;
 class OffscreenGLCanvas;
@@ -79,7 +82,7 @@ public:
     QObject* getEventHandler();
     QQmlContext* getSurfaceContext();
 
-    QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
+    QPointF mapToVirtualScreen(const QPointF& originalPoint);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
     void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
@@ -95,6 +98,10 @@ public:
 
     static std::function<void(uint32_t, void*)> getDiscardLambda();
     static size_t getUsedTextureMemory();
+
+    PointerEvent::EventType choosePointerEventType(QEvent::Type type);
+
+    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 signals:
     void focusObjectChanged(QObject* newFocus);
@@ -145,6 +152,11 @@ private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
 
+public slots:
+    void hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device);
+    void hoverEndEvent(const PointerEvent& event, class QTouchDevice& device);
+    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
+
 private:
     QQuickWindow* _quickWindow { nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
@@ -170,6 +182,16 @@ private:
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };
+
+    struct TouchState {
+        QTouchEvent::TouchPoint touchPoint;
+        bool hovering { false };
+        bool pressed { false };
+    };
+
+    bool _pressed;
+    bool _touchBeginAccepted { false };
+    std::map<uint32_t, TouchState> _activeTouchPoints;
 };
 
 #endif

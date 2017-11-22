@@ -8,7 +8,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Vec3, MyAvatar, RIGHT_HAND */
-/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () {
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
@@ -59,7 +58,7 @@
                 if (this.hand === dispatcherUtils.RIGHT_HAND) {
                     var scalingCurrentDistance =
                         Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
-                        controllerData.controllerLocations[this.otherHand()].position));
+                            controllerData.controllerLocations[this.otherHand()].position));
 
                     var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
                     MyAvatar.scale = newAvatarScale;
@@ -80,6 +79,6 @@
     function cleanup() {
         dispatcherUtils.disableDispatcherModule("LeftScaleAvatar");
         dispatcherUtils.disableDispatcherModule("RightScaleAvatar");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 })();

@@ -10,7 +10,7 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, LaserPointers, RayPick
+   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, LaserPointers, RayPick, Picks
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -18,84 +18,17 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
-    var END_RADIUS = 0.005;
-    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
-    var halfPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var halfEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var fullPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var fullEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var holdPath = {
-        type: "line3d",
-        color: COLORS_GRAB_DISTANCE_HOLD,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-
-    var renderStates = [
-        {name: "half", path: halfPath, end: halfEnd},
-        {name: "full", path: fullPath, end: fullEnd},
-        {name: "hold", path: holdPath}
-    ];
-
-    var defaultRenderStates = [
-        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
-    ];
-
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
-        this.mode = "none";
+        this.selectedTarget = null;
 
         this.parameters = makeDispatcherModuleParameters(
             160,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
-            100);
+            100,
+            this.hand);
 
         this.nearTablet = function(overlays) {
             for (var i = 0; i < overlays.length; i++) {
@@ -110,72 +43,47 @@ Script.include("/~/system/libraries/utils.js");
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
 
-
-        this.processControllerTriggers = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand]) {
-                this.mode = "full";
-            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.mode = "half";
-            } else {
-                this.mode = "none";
-            }
-        };
-
-        this.updateLaserPointer = function(controllerData) {
-            LaserPointers.enableLaserPointer(this.laserPointer);
-            LaserPointers.setRenderState(this.laserPointer, this.mode);
-
-            if (HMD.tabletID !== this.tabletID || HMD.tabletButtonID !== this.tabletButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
-                this.tabletID = HMD.tabletID;
-                this.tabletButtonID = HMD.tabletButtonID;
-                this.tabletScreenID = HMD.tabletScreenID;
-                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
-            }
-        };
-
         this.pointingAtTablet = function(objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.tabletButtonID) {
+            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
                 return true;
             }
             return false;
         };
 
         this.sendPickData = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand] && !this.triggerClicked) {
-                var intersection = controllerData.rayPicks[this.hand];
-                if (intersection.type === RayPick.INTERSECTED_ENTITY) {
+            if (controllerData.triggerClicks[this.hand]) {
+                if (!this.triggerClicked) {
+                    this.selectedTarget = controllerData.rayPicks[this.hand];
+                }
+                if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectEntity",
-                        entityID: intersection.objectID
+                        entityID: this.selectedTarget.objectID
                     }));
-                } else if (intersection.type === RayPick.INTERSECTED_OVERLAY) {
+                } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectOverlay",
-                        overlayID: intersection.objectID
+                        overlayID: this.selectedTarget.objectID
                     }));
                 }
 
                 this.triggerClicked = true;
-            } else {
-                this.triggerClicked = false;
             }
         };
 
         this.exitModule = function() {
-            this.disableLasers();
             return makeRunningValues(false, [], []);
-        };
-
-        this.disableLasers = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
         };
 
         this.isReady = function(controllerData) {
             if (isInEditMode()) {
-                this.triggerClicked = false;
+                if (controllerData.triggerValues[this.hand] < TRIGGER_ON_VALUE) {
+                    this.triggerClicked = false;
+                }
                 return makeRunningValues(true, [], []);
             }
-            return this.exitModule();
+            this.triggerClicked = false;
+            return makeRunningValues(false, [], []);
         };
 
         this.run = function(controllerData) {
@@ -188,7 +96,7 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
 
@@ -213,32 +121,9 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
-
-            this.processControllerTriggers(controllerData);
-            this.updateLaserPointer(controllerData);
             this.sendPickData(controllerData);
-
-
             return this.isReady(controllerData);
         };
-
-        this.cleanup = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-            LaserPointers.removeLaserPointer(this.laserPointer);
-        };
-
-        this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-            maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController(), true),
-            renderStates: renderStates,
-            faceAvatar: true,
-            scaleWithAvatar: true,
-            defaultRenderStates: defaultRenderStates
-        });
-
-        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
     }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);
@@ -247,12 +132,10 @@ Script.include("/~/system/libraries/utils.js");
     enableDispatcherModule("LeftHandInEditMode", leftHandInEditMode);
     enableDispatcherModule("RightHandInEditMode", rightHandInEditMode);
 
-    this.cleanup = function() {
-        leftHandInEditMode.cleanup();
-        rightHandInEditMode.cleanup();
+    function cleanup() {
         disableDispatcherModule("LeftHandInEditMode");
         disableDispatcherModule("RightHandInEditMode");
-    };
+    }
 
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());
