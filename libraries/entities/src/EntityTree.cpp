@@ -12,9 +12,7 @@
 #include "EntityTree.h"
 #include <QtCore/QDateTime>
 #include <QtCore/QQueue>
-
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <NetworkingConstants.h>
@@ -1167,36 +1165,24 @@ void EntityTree::startPendingTransferStatusTimer(const QString& certID, const En
     transferStatusRetryTimer->start(90000);
 }
 
-QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QString ownerKey) {
-    QString ownerKeyWithHeaders = ("-----BEGIN RSA PUBLIC KEY-----\n" + ownerKey + "\n-----END RSA PUBLIC KEY-----");
+QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
+    QString ownerKeyWithHeaders = ("-----BEGIN ECDSA PUBLIC KEY-----\n" + ownerKey + "\n-----END ECDSA PUBLIC KEY-----");
     BIO* bio = BIO_new_mem_buf((void*)ownerKeyWithHeaders.toUtf8().constData(), -1);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
-    RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+    EC_KEY* ec = PEM_read_bio_EC_PUBKEY(bio, NULL, NULL, NULL);
 
-    if (rsa) {
-        QUuid nonce = QUuid::createUuid();
-        const unsigned int textLength = nonce.toString().length();
-        QByteArray encryptedText(RSA_size(rsa), 0);
-        const int encryptStatus = RSA_public_encrypt(textLength,
-            reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString())),
-            reinterpret_cast<unsigned char*>(encryptedText.data()),
-            rsa,
-            RSA_PKCS1_OAEP_PADDING);
+    if (ec) {
+        QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
+        QByteArray nonceBytes = nonce.toByteArray();
+
         if (bio) {
             BIO_free(bio);
-        }
-        RSA_free(rsa);
-        if (encryptStatus == -1) {
-            long error = ERR_get_error();
-            const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "Unable to compute encrypted nonce for" << certID << "\nRSA error:" << error_str;
-            return "";
         }
 
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
 
-        return encryptedText;
+        return nonceBytes;
     } else {
         if (bio) {
             BIO_free(bio);
@@ -1205,7 +1191,7 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
     }
 }
 
-bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id) {
+bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id) {
     {
         QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
         id = _entityCertificateIDMap.value(certID);
@@ -1217,13 +1203,13 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
         actualNonce = _certNonceMap.take(certID).toString();
     }
 
-    bool verificationSuccess = (actualNonce == decryptedNonce);
+    bool verificationSuccess = (actualNonce == nonce);
 
     if (verificationSuccess) {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed."
-            << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
+            << "\nActual nonce:" << actualNonce << "\nonce:" << nonce;
     }
 
     return verificationSuccess;
@@ -1231,67 +1217,67 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
-    int encryptedTextByteArraySize;
+    int textByteArraySize;
     int nodeToChallengeByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&encryptedTextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
     QByteArray certID(message.read(certIDByteArraySize));
-    QByteArray encryptedText(message.read(encryptedTextByteArraySize));
+    QByteArray text(message.read(textByteArraySize));
     QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipRequestPacket(certID, encryptedText, nodeToChallenge, sourceNode);
+    sendChallengeOwnershipRequestPacket(certID, text, nodeToChallenge, sourceNode);
 }
 
 void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     int certIDByteArraySize;
-    int decryptedTextByteArraySize;
+    int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&decryptedTextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&challengingNodeUUIDByteArraySize);
 
     QByteArray certID(message.read(certIDByteArraySize));
-    QByteArray decryptedText(message.read(decryptedTextByteArraySize));
+    QByteArray text(message.read(textByteArraySize));
     QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-        certIDByteArraySize + decryptedText.length() + 2 * sizeof(int),
+        certIDByteArraySize + text.length() + 2 * sizeof(int),
         true);
     challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
-    challengeOwnershipReplyPacket->writePrimitive(decryptedText.length());
+    challengeOwnershipReplyPacket->writePrimitive(text.length());
     challengeOwnershipReplyPacket->write(certID);
-    challengeOwnershipReplyPacket->write(decryptedText);
+    challengeOwnershipReplyPacket->write(text);
 
     nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
 }
 
 void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
-    // 1. Encrypt a nonce with the owner's public key
+    // 1. Obtain a nonce
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray encryptedText = computeEncryptedNonce(certID, ownerKey);
+    QByteArray text = computeNonce(certID, ownerKey);
 
-    if (encryptedText == "") {
-        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
+    if (text == "") {
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
         deleteEntity(entityItemID, true);
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
-        // 2. Send the encrypted text to the rezzing avatar's node
+        // 2. Send the nonce to the rezzing avatar's node
         QByteArray certIDByteArray = certID.toUtf8();
         int certIDByteArraySize = certIDByteArray.size();
         auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-            certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
+            certIDByteArraySize + text.length() + 2 * sizeof(int),
             true);
         challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-        challengeOwnershipPacket->writePrimitive(encryptedText.length());
+        challengeOwnershipPacket->writePrimitive(text.length());
         challengeOwnershipPacket->write(certIDByteArray);
-        challengeOwnershipPacket->write(encryptedText);
+        challengeOwnershipPacket->write(text);
         nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
         // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
@@ -1304,7 +1290,7 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     }
 }
 
-void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
@@ -1312,17 +1298,17 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, c
     QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
 
     int certIDByteArraySize = certID.length();
-    int encryptedTextByteArraySize = encryptedText.length();
+    int TextByteArraySize = text.length();
     int senderNodeUUIDSize = senderNodeUUID.length();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-        certIDByteArraySize + encryptedTextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
+        certIDByteArraySize + TextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
         true);
     challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-    challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+    challengeOwnershipPacket->writePrimitive(TextByteArraySize);
     challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
     challengeOwnershipPacket->write(certID);
-    challengeOwnershipPacket->write(encryptedText);
+    challengeOwnershipPacket->write(text);
     challengeOwnershipPacket->write(senderNodeUUID);
 
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
@@ -1391,18 +1377,18 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
-    int decryptedTextByteArraySize;
+    int textByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
-    message.readPrimitive(&decryptedTextByteArraySize);
+    message.readPrimitive(&textByteArraySize);
 
     QString certID(message.read(certIDByteArraySize));
-    QString decryptedText(message.read(decryptedTextByteArraySize));
+    QString text(message.read(textByteArraySize));
 
     emit killChallengeOwnershipTimeoutTimer(certID);
 
     EntityItemID id;
-    if (!verifyDecryptedNonce(certID, decryptedText, id)) {
+    if (!verifyNonce(certID, text, id)) {
         if (!id.isNull()) {
             deleteEntity(id, true);
         }

@@ -13,21 +13,18 @@
 #include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
-
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/ecdsa.h>
 #include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
-
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
-
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -2523,8 +2520,8 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
     BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
     if (evp_key) {
-        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-        if (rsa) {
+        EC_KEY* ec = EVP_PKEY_get1_EC_KEY(evp_key);
+        if (ec) {
             const QByteArray digestByteArray = getStaticCertificateHash();
             const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
             int digestLength = digestByteArray.length();
@@ -2534,22 +2531,25 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
             int signatureLength = signatureByteArray.length();
 
             ERR_clear_error();
-            bool answer = RSA_verify(NID_sha256,
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
+            bool answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
-                rsa);
+                ec);
             long error = ERR_get_error();
             if (error != 0) {
                 const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
+                qCWarning(entities) << "ERROR while verifying static certificate properties! EC error:" << error_str
                     << "\nStatic Cert JSON:" << getStaticCertificateJSON()
                     << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
             }
-            RSA_free(rsa);
+            EC_KEY_free(ec);
             if (bio) {
                 BIO_free(bio);
             }
@@ -2566,7 +2566,7 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
             }
             long error = ERR_get_error();
             const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            qCWarning(entities) << "Failed to verify static certificate properties! EC error:" << error_str;
             return false;
         }
     } else {
@@ -2575,7 +2575,7 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
         }
         long error = ERR_get_error();
         const char* error_str = ERR_error_string(error, NULL);
-        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        qCWarning(entities) << "Failed to verify static certificate properties! EC error:" << error_str;
         return false;
     }
 }

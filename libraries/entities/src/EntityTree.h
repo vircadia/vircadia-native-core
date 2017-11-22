@@ -275,8 +275,8 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
-    QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
-    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id);
+    QByteArray computeNonce(const QString& certID, const QString ownerKey);
+    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
@@ -383,7 +383,7 @@ protected:
 
 private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
-    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
