@@ -2162,16 +2162,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
 // target scale to match the new scale they have chosen. When they leave the domain they will not return to the scale they were
 // before they entered the limiting domain.
 
-float MyAvatar::getDomainMinScale() {
-    const float unscaledHeight = getUnscaledEyeHeight();
-    return _domainMinimumHeight / unscaledHeight;
-}
-
-float MyAvatar::getDomainMaxScale() {
-    const float unscaledHeight = getUnscaledEyeHeight();
-    return _domainMaximumHeight / unscaledHeight;
-}
-
 void MyAvatar::setGravity(float gravity) {
     _characterController.setGravity(gravity);
 }
@@ -2184,7 +2174,9 @@ void MyAvatar::increaseSize() {
     float minScale = getDomainMinScale();
     float maxScale = getDomainMaxScale();
 
-    float newTargetScale = glm::clamp(_targetScale * (1.0f + SCALING_RATIO), minScale, maxScale);
+    float clampedTargetScale = glm::clamp(_targetScale, minScale, maxScale);
+    float newTargetScale = glm::clamp(clampedTargetScale * (1.0f + SCALING_RATIO), minScale, maxScale);
+
     setTargetScale(newTargetScale);
 }
 
@@ -2192,7 +2184,9 @@ void MyAvatar::decreaseSize() {
     float minScale = getDomainMinScale();
     float maxScale = getDomainMaxScale();
 
-    float newTargetScale = glm::clamp(_targetScale * (1.0f - SCALING_RATIO), minScale, maxScale);
+    float clampedTargetScale = glm::clamp(_targetScale, minScale, maxScale);
+    float newTargetScale = glm::clamp(clampedTargetScale * (1.0f - SCALING_RATIO), minScale, maxScale);
+
     setTargetScale(newTargetScale);
 }
 

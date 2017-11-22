@@ -558,8 +558,6 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    float getDomainMinScale();
-    float getDomainMaxScale();
 
     void setGravity(float gravity);
     float getGravity();

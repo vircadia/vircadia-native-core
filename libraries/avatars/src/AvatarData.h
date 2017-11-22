@@ -483,6 +483,8 @@ public:
     virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const;
+    float getDomainMinScale() const;
+    float getDomainMaxScale() const;
 
     // returns eye height of avatar in meters, ignoreing avatar scale.
     // if _targetScale is 1 then this will be identical to getEyeHeight;
@@ -507,6 +509,8 @@ public:
      * @returns {number} height of avatar in meters
      */
     Q_INVOKABLE virtual float getHeight() const;
+
+    float getUnscaledHeight() const;
 
     void setDomainMinimumHeight(float domainMinimumHeight);
     void setDomainMaximumHeight(float domainMaximumHeight);

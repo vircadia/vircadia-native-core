@@ -119,14 +119,8 @@ void AvatarData::setTargetScale(float targetScale) {
 
 float AvatarData::getDomainLimitedScale() const {
     if (canMeasureEyeHeight()) {
-        const float unscaledEyeHeight = getUnscaledEyeHeight();
-
-        // Add in an estimate of forehead height.
-        const float ratio = unscaledEyeHeight / DEFAULT_AVATAR_HEIGHT;
-        const float unscaledHeight = unscaledEyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
-
-        const float minScale = _domainMinimumHeight / unscaledHeight;
-        const float maxScale = _domainMaximumHeight / unscaledHeight;
+        const float minScale = getDomainMinScale();
+        const float maxScale = getDomainMaxScale();
         return glm::clamp(_targetScale, minScale, maxScale);
     } else {
         // We can't make a good estimate.
@@ -140,6 +134,22 @@ void AvatarData::setDomainMinimumHeight(float domainMinimumHeight) {
 
 void AvatarData::setDomainMaximumHeight(float domainMaximumHeight) {
     _domainMaximumHeight = glm::clamp(domainMaximumHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
+}
+
+float AvatarData::getDomainMinScale() const {
+    const float unscaledHeight = getUnscaledHeight();
+    return _domainMinimumHeight / unscaledHeight;
+}
+
+float AvatarData::getDomainMaxScale() const {
+    const float unscaledHeight = getUnscaledHeight();
+    return _domainMaximumHeight / unscaledHeight;
+}
+
+float AvatarData::getUnscaledHeight() const {
+    const float eyeHeight = getUnscaledEyeHeight();
+    const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+    return eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
 }
 
 float AvatarData::getHeight() const {
