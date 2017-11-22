@@ -12,21 +12,24 @@
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
-#include "RayPickScriptingInterface.h"
 
-LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) :
-    _renderingEnabled(enabled),
+#include <DependencyManager.h>
+#include <PickManager.h>
+#include "PickScriptingInterface.h"
+#include "RayPick.h"
+
+LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
+        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
+    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled, hover),
+    _triggers(triggers),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
     _distanceScaleEnd(distanceScaleEnd),
-    _scaleWithAvatar(scaleWithAvatar),
-    _rayPickUID(DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps))
+    _scaleWithAvatar(scaleWithAvatar)
 {
-
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
             disableRenderState(state.second);
@@ -40,36 +43,12 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
 }
 
 LaserPointer::~LaserPointer() {
-    qApp->getRayPickManager().removeRayPick(_rayPickUID);
-
     for (auto& renderState : _renderStates) {
         renderState.second.deleteOverlays();
     }
     for (auto& renderState : _defaultRenderStates) {
         renderState.second.second.deleteOverlays();
     }
-}
-
-void LaserPointer::enable() {
-    qApp->getRayPickManager().enableRayPick(_rayPickUID);
-    withWriteLock([&] {
-        _renderingEnabled = true;
-    });
-}
-
-void LaserPointer::disable() {
-    qApp->getRayPickManager().disableRayPick(_rayPickUID);
-    withWriteLock([&] {
-        _renderingEnabled = false;
-        if (!_currentRenderState.empty()) {
-            if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-                disableRenderState(_renderStates[_currentRenderState]);
-            }
-            if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-                disableRenderState(_defaultRenderStates[_currentRenderState].second);
-            }
-        }
-    });
 }
 
 void LaserPointer::setRenderState(const std::string& state) {
@@ -110,11 +89,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
     }
 }
 
-const RayPickResult LaserPointer::getPrevRayPickResult() {
-    return qApp->getRayPickManager().getPrevRayPickResult(_rayPickUID);
-}
-
-void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -214,49 +189,58 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
     }
 }
 
-void LaserPointer::update() {
-    // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
-    withReadLock([&] {
-        RayPickResult prevRayPickResult = qApp->getRayPickManager().getPrevRayPickResult(_rayPickUID);
-        if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
-            float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
-            updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
-            disableRenderState(_defaultRenderStates[_currentRenderState].second);
-        } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-            disableRenderState(_renderStates[_currentRenderState]);
-            updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), prevRayPickResult.searchRay, true);
-        } else if (!_currentRenderState.empty()) {
-            disableRenderState(_renderStates[_currentRenderState]);
-            disableRenderState(_defaultRenderStates[_currentRenderState].second);
+void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
+    auto rayPickResult = std::static_pointer_cast<const RayPickResult>(pickResult);
+
+    IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
+    if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+            (type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
+        PickRay pickRay(rayPickResult->pickVariant);
+        QUuid uid = rayPickResult->objectID;
+        float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
+        updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
+    } else if (_enabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant) : PickRay();
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay, true);
+    } else if (!_currentRenderState.empty()) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
+    }
+}
+
+Pointer::PickedObject LaserPointer::getHoveredObject(const PickResultPointer& pickResult) {
+    auto rayPickResult = std::static_pointer_cast<const RayPickResult>(pickResult);
+    if (!rayPickResult) {
+        return PickedObject();
+    }
+    return PickedObject(rayPickResult->objectID, rayPickResult->type);
+}
+
+Pointer::Buttons LaserPointer::getPressedButtons() {
+    std::unordered_set<std::string> toReturn;
+    for (const PointerTrigger& trigger : _triggers) {
+        // TODO: right now, LaserPointers don't support axes, only on/off buttons
+        if (trigger.getEndpoint()->peek() >= 1.0f) {
+            toReturn.insert(trigger.getButton());
         }
-    });
+    }
+    return toReturn;
 }
 
-void LaserPointer::setPrecisionPicking(const bool precisionPicking) {
-    qApp->getRayPickManager().setPrecisionPicking(_rayPickUID, precisionPicking);
-}
-
-void LaserPointer::setLaserLength(const float laserLength) {
+void LaserPointer::setLength(float length) {
     withWriteLock([&] {
-        _laserLength = laserLength;
+        _laserLength = length;
     });
 }
 
-void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat) {
+void LaserPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) {
     withWriteLock([&] {
         _lockEndObject.id = objectID;
         _lockEndObject.isOverlay = isOverlay;
         _lockEndObject.offsetMat = offsetMat;
     });
-}
-
-void LaserPointer::setIgnoreItems(const QVector<QUuid>& ignoreItems) const {
-    qApp->getRayPickManager().setIgnoreItems(_rayPickUID, ignoreItems);
-}
-
-void LaserPointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
-    qApp->getRayPickManager().setIncludeItems(_rayPickUID, includeItems);
 }
 
 RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :
@@ -285,4 +269,67 @@ void RenderState::deleteOverlays() {
     if (!_endID.isNull()) {
         qApp->getOverlays().deleteOverlay(_endID);
     }
+}
+
+RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
+    QUuid startID;
+    if (propMap["start"].isValid()) {
+        QVariantMap startMap = propMap["start"].toMap();
+        if (startMap["type"].isValid()) {
+            startMap.remove("visible");
+            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
+        }
+    }
+
+    QUuid pathID;
+    if (propMap["path"].isValid()) {
+        QVariantMap pathMap = propMap["path"].toMap();
+        // right now paths must be line3ds
+        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
+            pathMap.remove("visible");
+            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
+        }
+    }
+
+    QUuid endID;
+    if (propMap["end"].isValid()) {
+        QVariantMap endMap = propMap["end"].toMap();
+        if (endMap["type"].isValid()) {
+            endMap.remove("visible");
+            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
+        }
+    }
+
+    return RenderState(startID, pathID, endID);
+}
+
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
+    QUuid pickedID;
+    glm::vec3 intersection, surfaceNormal, direction, origin;
+    auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+    if (rayPickResult) {
+        intersection = rayPickResult->intersection;
+        surfaceNormal = rayPickResult->surfaceNormal;
+        const QVariantMap& searchRay = rayPickResult->pickVariant;
+        direction = vec3FromVariant(searchRay["direction"]);
+        origin = vec3FromVariant(searchRay["origin"]);
+        pickedID = rayPickResult->objectID;
+    }
+
+    glm::vec2 pos2D;
+    if (pickedID != target.objectID) {
+        if (target.type == ENTITY) {
+            intersection = RayPick::intersectRayWithEntityXYPlane(target.objectID, origin, direction);
+        } else if (target.type == OVERLAY) {
+            intersection = RayPick::intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
+        }
+    }
+    if (target.type == ENTITY) {
+        pos2D = RayPick::projectOntoEntityXYPlane(target.objectID, intersection);
+    } else if (target.type == OVERLAY) {
+        pos2D = RayPick::projectOntoOverlayXYPlane(target.objectID, intersection);
+    } else if (target.type == HUD) {
+        pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
+    }
+    return PointerEvent(pos2D, intersection, surfaceNormal, direction);
 }

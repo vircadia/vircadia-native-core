@@ -25,6 +25,7 @@ class WebEntityRenderer : public TypedEntityRenderer<WebEntityItem> {
 public:
     WebEntityRenderer(const EntityItemPointer& entity);
 
+    Q_INVOKABLE void hoverEnterEntity(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
@@ -58,7 +59,6 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     glm::vec3 _contextPosition;
     gpu::TexturePointer _texture;
-    bool _pressed{ false };
     QString _lastSourceUrl;
     uint16_t _lastDPI;
     bool _lastLocked;
