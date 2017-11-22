@@ -9,9 +9,19 @@ buildscript {
     }
 }
 
+import org.apache.tools.ant.taskdefs.condition.Os
+
 def file='scribe_linux_x86_64'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    file = 'scribe_osx_x86_64'
+}
+def localFile='scribe'
+if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    file = 'scribe.exe'
+}
+
 def url='https://s3.amazonaws.com/Oculus/Android/' + file
-def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
+def destFile = new File(HIFI_ANDROID_PRECOMPILED, localFile)
 
 task filepermission(type: Exec) {
     commandLine 'chmod', '700', '<file_path>'

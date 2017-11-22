@@ -9,7 +9,13 @@ buildscript {
     }
 }
 
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
 def file='qt-5.9.2_armv8-libcpp.tgz'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    file = 'qt-5.9.2_osx_armv8-libcpp.tgz'
+}
 def url='https://s3.amazonaws.com/Oculus/Android/' + file
 def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
 

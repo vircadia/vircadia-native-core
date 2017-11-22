@@ -17,7 +17,7 @@ android {
                     '-DANDROID_TOOLCHAIN=clang',
                     '-DANDROID_STL=c++_shared',
                     '-DQT_CMAKE_PREFIX_PATH=' + HIFI_ANDROID_PRECOMPILED + '/qt/lib/cmake',
-                    '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe_linux_x86_64',
+                    '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe',
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED
             }
         }
