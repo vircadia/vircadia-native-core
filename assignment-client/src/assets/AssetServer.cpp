@@ -100,7 +100,7 @@ QString bakedFilenameForAssetType(BakedAssetType type) {
 BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     switch (type) {
         case Model:
-            return (BakeVersion)ModelBakeVersion::BetterModelBaking;
+            return (BakeVersion)ModelBakeVersion::Initial;
         case Texture:
             return (BakeVersion)TextureBakeVersion::Initial;
         case Script:
@@ -110,12 +110,40 @@ BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     }
 }
 
-QString toSlug(BakedAssetType type) {
-    switch (type) {
-        Model: return "model";
-        Texture: return "texture";
+struct BakedTypeInfo {
+    BakedAssetType type;
+    const char* slug;
+    BakeVersion currentVersion;
+    const char* bakedName;
+};
+
+constexpr std::array<BakedTypeInfo, BakedAssetType::NUM_ASSET_TYPES> BAKED_TYPE_INFO { {
+    {
+        Model,
+        "model",
+        (BakeVersion)ModelBakeVersion::Initial,
+        "asset.fbx",
+    },
+    {
+        Texture,
+        "texture",
+        (BakeVersion)TextureBakeVersion::Initial,
+        "texture.ktx",
+    },
+    {
+        Script,
+        "script",
+        (BakeVersion)ScriptBakeVersion::FixEmptyScripts,
+        "asset.js",
     }
-}
+}};
+
+static_assert(BAKED_TYPE_INFO[BakedAssetType::Model].type == BakedAssetType::Model,
+              "Model should be in correct index");
+static_assert(BAKED_TYPE_INFO[BakedAssetType::Texture].type == BakedAssetType::Texture,
+              "Texture should be in correct index");
+static_assert(BAKED_TYPE_INFO[BakedAssetType::Script].type == BakedAssetType::Script,
+              "Script should be in correct index");
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
@@ -249,6 +277,10 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
 
     if (loaded && (meta.failedLastBake && meta.bakeVersion >= currentVersion)) {
         return false;
+    }
+
+    if (meta.bakeVersion < currentVersion) {
+        return true;
     }
 
     QString bakedFilename = bakedFilenameForAssetType(type);
@@ -706,9 +738,19 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketLi
             auto query = QUrlQuery(url.query());
             bool isSkybox = query.hasQueryItem("skybox");
             if (isSkybox) {
-                writeMetaFile(originalAssetHash);
-                if (!bakingDisabled) {
-                    maybeBake(assetPath, originalAssetHash);
+                bool loaded;
+                AssetMeta meta;
+                std::tie(loaded, meta) = readMetaFile(originalAssetHash);
+
+                if (!loaded) {
+                    AssetMeta needsBakingMeta;
+                    needsBakingMeta.bakeVersion = NEEDS_BAKING_BAKE_VERSION;
+
+                    writeMetaFile(originalAssetHash, needsBakingMeta);
+                    if (!bakingDisabled) {
+                        maybeBake(assetPath, originalAssetHash);
+                    }
+
                 }
             }
         }
@@ -1335,9 +1377,12 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
 
     std::tie(loaded, meta) = readMetaFile(originalAssetHash);
 
+    auto type = assetTypeForFilename(assetPath);
+    auto currentTypeVersion = currentBakeVersionForAssetType(type);
+
     meta.failedLastBake = true;
     meta.lastBakeErrors = errors;
-    meta.bakeVersion = (BakeVersion)CURRENT_MODEL_BAKE_VERSION;
+    meta.bakeVersion = currentTypeVersion;
 
     writeMetaFile(originalAssetHash, meta);
 
@@ -1427,17 +1472,19 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
         qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
     }
 
-    if (!errorCompletingBake) {
-        // create the meta file to store which version of the baking process we just completed
-        writeMetaFile(originalAssetHash);
-    } else {
+    auto type = assetTypeForFilename(originalAssetPath);
+    auto currentTypeVersion = currentBakeVersionForAssetType(type);
+
+    AssetMeta meta;
+    meta.bakeVersion = currentTypeVersion;
+    meta.failedLastBake = errorCompletingBake;
+
+    if (errorCompletingBake) {
         qWarning() << "Could not complete bake for" << originalAssetHash;
-        AssetMeta meta;
-        meta.failedLastBake = true;
         meta.lastBakeErrors = errorReason;
-        meta.bakeVersion = (BakeVersion)ModelBakeVersion::BetterModelBaking;
-        writeMetaFile(originalAssetHash, meta);
     }
+
+    writeMetaFile(originalAssetHash, meta);
 
     _pendingBakes.remove(originalAssetHash);
 }
@@ -1475,7 +1522,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash)
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             auto root = doc.object();
 
-            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
+            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(INITIAL_BAKE_VERSION);
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
             auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
 

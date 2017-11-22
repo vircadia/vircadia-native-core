@@ -33,6 +33,8 @@ namespace std {
 }
 
 using BakeVersion = int;
+static const BakeVersion INITIAL_BAKE_VERSION = 0;
+static const BakeVersion NEEDS_BAKING_BAKE_VERSION = -1;
 
 enum BakedAssetType : int {
     Model = 0,
@@ -44,17 +46,16 @@ enum BakedAssetType : int {
 };
 
 enum class ModelBakeVersion : BakeVersion {
-    Initial = 0,
-    BetterModelBaking,
+    Initial = INITIAL_BAKE_VERSION
 };
 
 enum class TextureBakeVersion : BakeVersion {
-    Initial = 0,
+    Initial = INITIAL_BAKE_VERSION,
 };
 
 enum class ScriptBakeVersion : BakeVersion {
-    Initial = 0,
-    FixEmptyScripts = 1
+    Initial = INITIAL_BAKE_VERSION,
+    FixEmptyScripts,
 };
 
 struct AssetMeta {
