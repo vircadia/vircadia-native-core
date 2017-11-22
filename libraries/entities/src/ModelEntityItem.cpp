@@ -209,9 +209,10 @@ void ModelEntityItem::update(const quint64& now) {
                      int currentframe_mod_length = (int)(_currentlyPlayingFrame  - (int)(glm::floor(currentAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(currentAnimationProperties.getLastFrame())) - (int)(glm::floor(currentAnimationProperties.getFirstFrame())) + 1);
                     _endAnim = _currentlyPlayingFrame + ((int)(currentAnimationProperties.getLastFrame()) - (int)(currentAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
                 }
-                _previousAnimationProperties = currentAnimationProperties;
+                //_previousAnimationProperties = currentAnimationProperties;
             });
         }
+        _previousAnimationProperties = currentAnimationProperties;
         updateFrameCount();
 
     }
@@ -256,6 +257,7 @@ void ModelEntityItem::updateFrameCount() {
             qCDebug(entities) << "the frame is now " << _currentlyPlayingFrame;
             setAnimationCurrentlyPlayingFrame(_currentlyPlayingFrame);
         }
+        
     }
 }
 
@@ -611,6 +613,7 @@ void ModelEntityItem::setAnimationCurrentFrame(float value) {
 }
 
 void ModelEntityItem::setAnimationCurrentlyPlayingFrame(float value) {
+    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
     withWriteLock([&] {
         _animationProperties.setCurrentlyPlayingFrame(value);
     });

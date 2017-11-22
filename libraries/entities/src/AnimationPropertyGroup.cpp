@@ -109,6 +109,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     bool loop = getLoop();
     bool hold = getHold();
     bool allowTranslation = getAllowTranslation();
+    float currentlyPlayingFrame = getCurrentlyPlayingFrame();
 
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
@@ -147,6 +148,10 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
         allowTranslation = settingsMap["allowTranslation"].toBool();
     }
 
+    if (settingsMap.contains("currentlyPlayingFrame")) {
+        currentlyPlayingFrame = settingsMap["currentlyPlayingFrame"].toFloat();
+    }
+
     setAllowTranslation(allowTranslation);
     setFPS(fps);
     setCurrentFrame(currentFrame);
@@ -155,6 +160,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     setLastFrame(lastFrame);
     setLoop(loop);
     setHold(hold);
+    setCurrentlyPlayingFrame(currentlyPlayingFrame);
 }
 
 
@@ -178,6 +184,9 @@ void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {
     }
     if (allowTranslationChanged()) {
         out << "animation-allowTranslation";
+    }
+    if (currentlyPlayingFrameChanged()) {
+        out << "animation-currentlyPlayingFrame";
     }
 }
 

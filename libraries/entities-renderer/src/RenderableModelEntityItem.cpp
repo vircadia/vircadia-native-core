@@ -995,9 +995,13 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     //get the updated frame from the ModelEntity 
     auto modelAnimProperties = entity->getAnimationProperties();
-    withWriteLock([&] {
-        _currentFrame = modelAnimProperties.getCurrentlyPlayingFrame();
-    });
+
+    
+    //_currentFrame = modelAnimProperties.getCurrentlyPlayingFrame();
+
+    //tempbool = modelAnimProperties.getRunning();
+    //qCDebug(entitiesrenderer) << "is playing is: " << tempbool;
+
     qCDebug(entitiesrenderer) << "the client frame count is the following " << _currentFrame;
 
     if ((firstFrame >= 0) && (firstFrame < lastFrame) && (lastFrame <= frameCount)) {
@@ -1005,7 +1009,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         updatedFrameCount = (lastFrame - firstFrame + 1);
     }
 
-    /*
+    
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
@@ -1025,13 +1029,13 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         //also if the animFrame is outside of first or last frame then don't advance the motion.
         if (!isHolding && entity->getAnimationIsPlaying() && !( _renderAnimationProperties.getCurrentFrame() > _renderAnimationProperties.getLastFrame() ) && !( _renderAnimationProperties.getCurrentFrame() < _renderAnimationProperties.getFirstFrame() ) ) {
             float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-            _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+            _currentlyPlayingFrame += (deltaTime * _renderAnimationProperties.getFPS());
         }
     }
-    */
+    
     {
         //where are we in the currently defined animation segment?       
-        int animationCurrentFrame = (int)(glm::floor(_currentFrame - firstFrame)) % updatedFrameCount;
+        int animationCurrentFrame = (int)(glm::floor(_currentlyPlayingFrame - firstFrame)) % updatedFrameCount;
         //this gives us the absolute frame value to use by adding the first frame value.
         animationCurrentFrame += firstFrame;
         
@@ -1354,7 +1358,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-    /*
+    
     {
         DETAILED_PROFILE_RANGE(simulation_physics, "CheckAnimation");
         // make a copy of the animation properites
@@ -1373,17 +1377,13 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                      int currentframe_mod_length = (int)(_currentFrame  - (int)(glm::floor(newAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(newAnimationProperties.getLastFrame())) - (int)(glm::floor(newAnimationProperties.getFirstFrame())) + 1);
                     _endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
                 }
+                _currentlyPlayingFrame = newAnimationProperties.getCurrentlyPlayingFrame();
                 _renderAnimationProperties = newAnimationProperties;
             });
         }
     }
-    */
-    //angus
-    {
-        
-        //_currentFrame = entity->getCurrentlyPlayingFrame();
-    }
-    //angus
+   //angus
+    
 
 
     if (_animating) {

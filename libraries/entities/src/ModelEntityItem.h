@@ -176,6 +176,8 @@ private:
     float _endAnim{ 0 };
     uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;
+    bool _propTestFlag{ true };
+    bool _propTestFlag2{ true };
     //angus
 };
 
