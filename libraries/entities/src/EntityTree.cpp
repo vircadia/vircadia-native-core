@@ -1166,29 +1166,13 @@ void EntityTree::startPendingTransferStatusTimer(const QString& certID, const En
 }
 
 QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
-    QString ownerKeyWithHeaders = ("-----BEGIN ECDSA PUBLIC KEY-----\n" + ownerKey + "\n-----END ECDSA PUBLIC KEY-----");
-    BIO* bio = BIO_new_mem_buf((void*)ownerKeyWithHeaders.toUtf8().constData(), -1);
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
-    EC_KEY* ec = PEM_read_bio_EC_PUBKEY(bio, NULL, NULL, NULL);
+    QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
+    QByteArray nonceBytes = nonce.toByteArray();
 
-    if (ec) {
-        QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
-        QByteArray nonceBytes = nonce.toByteArray();
+    QWriteLocker locker(&_certNonceMapLock);
+    _certNonceMap.insert(certID, QPair<QUuid, QString>(nonce, ownerKey));
 
-        if (bio) {
-            BIO_free(bio);
-        }
-
-        QWriteLocker locker(&_certNonceMapLock);
-        _certNonceMap.insert(certID, nonce);
-
-        return nonceBytes;
-    } else {
-        if (bio) {
-            BIO_free(bio);
-        }
-        return "";
-    }
+    return nonceBytes;
 }
 
 bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id) {
@@ -1197,22 +1181,97 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
         id = _entityCertificateIDMap.value(certID);
     }
 
-    QString actualNonce;
+    QString actualNonce, key;
     {
         QWriteLocker locker(&_certNonceMapLock);
-        actualNonce = _certNonceMap.take(certID).toString();
+        QPair<QUuid, QString> sent = _certNonceMap.take(certID);
+        actualNonce = sent.first.toString();
+        key = sent.second;
     }
 
-    bool verificationSuccess = (actualNonce == nonce);
+    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key + "\n-----END PUBLIC KEY-----";
+    bool verificationSuccess = verifySignature(annotatedKey.toUtf8(), actualNonce.toUtf8(), nonce.toUtf8());
 
     if (verificationSuccess) {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed."
-            << "\nActual nonce:" << actualNonce << "\nonce:" << nonce;
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed for nonce" << actualNonce << "key" << key << "signature" << nonce;
     }
 
     return verificationSuccess;
+}
+
+// FIXME: This is largely copied from EntityItemProperties::verifyStaticCertificateProperties, which should be refactored to use this.
+// I also don't like the nested-if style, but for this step I'm deliberately preserving the similarity.
+bool EntityTree::verifySignature(const QString& publicKey, const QByteArray& digestByteArray, const QByteArray& signatureByteArray) {
+
+    if (digestByteArray.isEmpty()) {
+        return false;
+    }
+
+    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    int keyLength = publicKey.length();
+
+    BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    if (evp_key) {
+        EC_KEY* ec = EVP_PKEY_get1_EC_KEY(evp_key);
+        if (ec) {
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
+            bool answer = ECDSA_verify(0,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                ec);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+                    << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
+            EC_KEY_free(ec);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        }
+        else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC key error:" << error_str;
+            return false;
+        }
+    }
+    else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC PEM error:" << error_str;
+        return false;
+    }
 }
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {

@@ -537,7 +537,7 @@ QStringList Wallet::listPublicKeys() {
 // the horror of code pages and so on (changing the bytes) by just returning a base64
 // encoded string representing the signature (suitable for http, etc...)
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
-    qCInfo(commerce) << "Signing text.";
+    qCInfo(commerce) << "Signing text" << text << "with key" << key;
     EC_KEY* ecPrivateKey = NULL;
     if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
         QByteArray signature(ECDSA_size(ecPrivateKey), 0);
@@ -727,7 +727,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
    if (ec) {
         ERR_clear_error();
-        sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString
+        sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString FIXME should pass ec as string so we can tell which key to sign with
         status = 1;
     } else {
         qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
@@ -740,7 +740,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
   
     QByteArray textByteArray;
     if (status > -1) {
-        textByteArray = QByteArray(sigChar, status);
+        textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
     }
     textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
@@ -768,7 +768,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
         textPacket->write(certID);
         textPacket->write(textByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for CertID" << certID;
 
         nodeList->sendPacket(std::move(textPacket), *sendingNode);
     }

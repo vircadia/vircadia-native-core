@@ -277,6 +277,7 @@ public:
 
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
     bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
+    static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
@@ -334,7 +335,7 @@ protected:
     QHash<QString, EntityItemID> _entityCertificateIDMap;
 
     mutable QReadWriteLock _certNonceMapLock;
-    QHash<QString, QUuid> _certNonceMap;
+    QHash<QString, QPair<QUuid, QString>> _certNonceMap;
 
     EntitySimulationPointer _simulation;
 
