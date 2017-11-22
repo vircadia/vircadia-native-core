@@ -16,17 +16,23 @@ AutoTester::AutoTester(QWidget *parent)
     ui.setupUi(this);
 }
 
-void AutoTester::on_closeButton_clicked()
-{
-    exit(0);
-}
 
 void AutoTester::on_evaluateTestsButton_clicked()
 {
     test.evaluateTests();
 }
 
+void AutoTester::on_createRecursiveScriptButton_clicked()
+{
+    test.createRecursiveScript();
+}
+
 void AutoTester::on_createTestButton_clicked()
 {
     test.createTest();
+}
+
+void AutoTester::on_closeButton_clicked()
+{
+    exit(0);
 }

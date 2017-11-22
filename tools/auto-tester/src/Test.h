@@ -24,6 +24,7 @@ public:
     Test();
 
     void evaluateTests();
+    void createRecursiveScript();
     void createTest();
 
     void createListOfAllJPEGimagesInDirectory();

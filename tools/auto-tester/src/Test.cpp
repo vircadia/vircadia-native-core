@@ -31,6 +31,7 @@
 
 #include <assert.h>
 #include <QtCore/QTextStream>
+#include <QDirIterator>
 
 Test::Test() {
     snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.+-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
@@ -105,7 +106,45 @@ void Test::evaluateTests() {
         messageBox.information(0, "Failure", "One or more images are not as expected");
     }
 }
-    
+
+// Creates a single script in a user-selected folder.
+// This script will run all text.js scripts in every applicable sub-folder
+void Test::createRecursiveScript() {
+    // Select folder to start recursing from
+    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+
+    QFile allTestsFilename(topLevelDirectory + "/" + "allTests.js");
+    if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        messageBox.critical(0,
+            "Internal Error",
+            "Failed to create \"allTests.js\" in directory \"" + topLevelDirectory + "\"");
+
+        exit(-1);
+    }
+
+    QTextStream textStream(&allTestsFilename);
+    textStream << "// This is an automatically generated file, created by auto-tester" << endl;
+
+    const QString testFilename{ "test.js" };
+    while (it.hasNext()) {
+        QString directory = it.next();
+        if (directory[directory.length() - 1] == '.') {
+            continue;   // ignore '.', '..' directories
+        }
+
+        const QString testPathname{ directory + "/" + testFilename };
+
+        QFileInfo fileInfo(testPathname);
+        if (fileInfo.exists()) {
+            // Current folder contains a test
+            textStream << "Script.include(\"" << testPathname << "/" << " ? raw = true\")" << endl;
+        }
+    }
+
+    allTestsFilename.close();
+}
+
 void Test::createTest() {
     // Rename files sequentially, as ExpectedResult_1.jpeg, ExpectedResult_2.jpg and so on
     // Any existing expected result images will be deleted
@@ -130,7 +169,7 @@ void Test::createTest() {
 }
 
 void Test::createListOfAllJPEGimagesInDirectory() {
-    // get list of JPEG images in folder, sorted by name
+    // Get list of JPEG images in folder, sorted by name
     pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
 
     imageDirectory = QDir(pathToImageDirectory);
