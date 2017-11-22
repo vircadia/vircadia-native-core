@@ -110,41 +110,6 @@ BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     }
 }
 
-struct BakedTypeInfo {
-    BakedAssetType type;
-    const char* slug;
-    BakeVersion currentVersion;
-    const char* bakedName;
-};
-
-constexpr std::array<BakedTypeInfo, BakedAssetType::NUM_ASSET_TYPES> BAKED_TYPE_INFO { {
-    {
-        Model,
-        "model",
-        (BakeVersion)ModelBakeVersion::Initial,
-        "asset.fbx",
-    },
-    {
-        Texture,
-        "texture",
-        (BakeVersion)TextureBakeVersion::Initial,
-        "texture.ktx",
-    },
-    {
-        Script,
-        "script",
-        (BakeVersion)ScriptBakeVersion::FixEmptyScripts,
-        "asset.js",
-    }
-}};
-
-static_assert(BAKED_TYPE_INFO[BakedAssetType::Model].type == BakedAssetType::Model,
-              "Model should be in correct index");
-static_assert(BAKED_TYPE_INFO[BakedAssetType::Texture].type == BakedAssetType::Texture,
-              "Texture should be in correct index");
-static_assert(BAKED_TYPE_INFO[BakedAssetType::Script].type == BakedAssetType::Script,
-              "Script should be in correct index");
-
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
 void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
