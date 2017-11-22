@@ -320,8 +320,8 @@ protected:
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
-    glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3 getBodyRightDirection() const { return getWorldOrientation() * IDENTITY_RIGHT; }
+    glm::vec3 getBodyUpDirection() const { return getWorldOrientation() * IDENTITY_UP; }
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;

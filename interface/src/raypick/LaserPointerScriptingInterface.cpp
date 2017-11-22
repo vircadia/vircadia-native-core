@@ -11,132 +11,25 @@
 
 #include "LaserPointerScriptingInterface.h"
 
-#include <QtCore/QVariant>
+#include "RegisteredMetaTypes.h"
+#include "PointerScriptingInterface.h"
 
-#include <GLMHelpers.h>
-#include <RegisteredMetaTypes.h>
-
-void LaserPointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const { 
-    qApp->getLaserPointerManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
-}
-void LaserPointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) const {
-    qApp->getLaserPointerManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems)); 
+void LaserPointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
+    DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
-    QVariantMap propertyMap = properties.toMap();
-
-    bool faceAvatar = false;
-    if (propertyMap["faceAvatar"].isValid()) {
-        faceAvatar = propertyMap["faceAvatar"].toBool();
-    }
-
-    bool centerEndY = true;
-    if (propertyMap["centerEndY"].isValid()) {
-        centerEndY = propertyMap["centerEndY"].toBool();
-    }
-
-    bool lockEnd = false;
-    if (propertyMap["lockEnd"].isValid()) {
-        lockEnd = propertyMap["lockEnd"].toBool();
-    }
-
-    bool distanceScaleEnd = false;
-    if (propertyMap["distanceScaleEnd"].isValid()) {
-        distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
-    }
-
-    bool enabled = false;
-    if (propertyMap["enabled"].isValid()) {
-        enabled = propertyMap["enabled"].toBool();
-    }
-
-    bool scaleWithAvatar = false;
-    if (propertyMap["scaleWithAvatar"].isValid()) {
-        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
-    }
-
-    LaserPointer::RenderStateMap renderStates;
-    if (propertyMap["renderStates"].isValid()) {
-        QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
-        for (QVariant& renderStateVariant : renderStateVariants) {
-            if (renderStateVariant.isValid()) {
-                QVariantMap renderStateMap = renderStateVariant.toMap();
-                if (renderStateMap["name"].isValid()) {
-                    std::string name = renderStateMap["name"].toString().toStdString();
-                    renderStates[name] = buildRenderState(renderStateMap);
-                }
-            }
-        }
-    }
-
-    LaserPointer::DefaultRenderStateMap defaultRenderStates;
-    if (propertyMap["defaultRenderStates"].isValid()) {
-        QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
-        for (QVariant& renderStateVariant : renderStateVariants) {
-            if (renderStateVariant.isValid()) {
-                QVariantMap renderStateMap = renderStateVariant.toMap();
-                if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
-                    std::string name = renderStateMap["name"].toString().toStdString();
-                    float distance = renderStateMap["distance"].toFloat();
-                    defaultRenderStates[name] = std::pair<float, RenderState>(distance, buildRenderState(renderStateMap));
-                }
-            }
-        }
-    }
-
-    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled);
+void LaserPointerScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) const {
+    DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
-    QVariantMap propMap = properties.toMap();
-
-    QVariant startProps;
-    if (propMap["start"].isValid()) {
-        startProps = propMap["start"];
-    }
-
-    QVariant pathProps;
-    if (propMap["path"].isValid()) {
-        pathProps = propMap["path"];
-    }
-
-    QVariant endProps;
-    if (propMap["end"].isValid()) {
-        endProps = propMap["end"];
-    }
-
-    qApp->getLaserPointerManager().editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
+unsigned int LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
+    return DependencyManager::get<PointerScriptingInterface>()->createLaserPointer(properties);
 }
 
-RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {
-    QUuid startID;
-    if (propMap["start"].isValid()) {
-        QVariantMap startMap = propMap["start"].toMap();
-        if (startMap["type"].isValid()) {
-            startMap.remove("visible");
-            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
-        }
-    }
+void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
+    DependencyManager::get<PointerScriptingInterface>()->editRenderState(uid, renderState, properties);
+}
 
-    QUuid pathID;
-    if (propMap["path"].isValid()) {
-        QVariantMap pathMap = propMap["path"].toMap();
-        // right now paths must be line3ds
-        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
-            pathMap.remove("visible");
-            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
-        }
-    }
-
-    QUuid endID;
-    if (propMap["end"].isValid()) {
-        QVariantMap endMap = propMap["end"].toMap();
-        if (endMap["type"].isValid()) {
-            endMap.remove("visible");
-            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
-        }
-    }
-
-    return RenderState(startID, pathID, endID);
+QVariantMap LaserPointerScriptingInterface::getPrevRayPickResult(unsigned int uid) const {
+    return DependencyManager::get<PointerScriptingInterface>()->getPrevPickResult(uid);
 }
