@@ -134,6 +134,9 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     }
 
     auto dimensions = properties["dimensions"];
+    if (!dimensions.isValid()) {
+        dimensions = properties["size"];
+    }
     if (dimensions.isValid()) {
         _scaleToFit = true;
         setDimensions(vec3FromVariant(dimensions));
