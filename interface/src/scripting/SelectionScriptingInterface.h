@@ -147,8 +147,11 @@ private:
     mutable QReadWriteLock _selectionListsLock;
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
-    QMap<QString, SelectionHighlightStyle> _highlightedListMap;
+    mutable QReadWriteLock _selectionHandlersLock;
     QMap<QString, SelectionToSceneHandler*> _handlerMap;
+
+    mutable QReadWriteLock _highlightStylesLock;
+    QMap<QString, SelectionHighlightStyle> _highlightStyleMap;
 
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);

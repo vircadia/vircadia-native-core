@@ -83,28 +83,28 @@ namespace render {
         QString getSelectionName() const { return QString(_selectionName.c_str()); }
         void setSelectionName(const QString& name);
 
-        bool isOutlineSmooth() const { return getStyle().isOutlineSmooth; }
+        bool isOutlineSmooth() const { return getStyle()._isOutlineSmooth; }
         void setOutlineSmooth(bool isSmooth);
 
-        float getColorRed() const { return getStyle().color.r; }
+        float getColorRed() const { return getStyle()._outlineUnoccluded.color.r; }
         void setColorRed(float value);
 
-        float getColorGreen() const { return getStyle().color.g; }
+        float getColorGreen() const { return getStyle()._outlineUnoccluded.color.g; }
         void setColorGreen(float value);
 
-        float getColorBlue() const { return getStyle().color.b; }
+        float getColorBlue() const { return getStyle()._outlineUnoccluded.color.b; }
         void setColorBlue(float value);
 
-        float getOutlineWidth() const { return getStyle().outlineWidth; }
+        float getOutlineWidth() const { return getStyle()._outlineWidth; }
         void setOutlineWidth(float value);
 
-        float getOutlineIntensity() const { return getStyle().outlineIntensity; }
+        float getOutlineIntensity() const { return getStyle()._outlineUnoccluded.alpha; }
         void setOutlineIntensity(float value);
 
-        float getUnoccludedFillOpacity() const { return getStyle().unoccludedFillOpacity; }
+        float getUnoccludedFillOpacity() const { return getStyle()._fillUnoccluded.alpha; }
         void setUnoccludedFillOpacity(float value);
 
-        float getOccludedFillOpacity() const { return getStyle().occludedFillOpacity; }
+        float getOccludedFillOpacity() const { return getStyle()._fillOccluded.alpha; }
         void setOccludedFillOpacity(float value);
 
         std::string _selectionName{ "contextOverlayHighlightList" };

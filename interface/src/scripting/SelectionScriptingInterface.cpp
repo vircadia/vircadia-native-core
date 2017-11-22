@@ -72,28 +72,29 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 }
 
 bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
- //   QWriteLocker lock(&_selectionListsLock);
-    _selectedItemsListMap.insert(listName, GameplayObjects());
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        _selectedItemsListMap.insert(listName, GameplayObjects());
+    }
     onSelectedItemsListChanged(listName);
     return true;
 }
 
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
- //   QWriteLocker lock(&_selectionListsLock);
+    QWriteLocker lock(&_highlightStylesLock);
 
-    auto highlightStyle = _highlightedListMap.find(listName);
-    if (highlightStyle == _highlightedListMap.end()) {
-        highlightStyle = _highlightedListMap.insert(listName, SelectionHighlightStyle());
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
+        highlightStyle = _highlightStyleMap.insert(listName, SelectionHighlightStyle());
 
     }
 
     if (!(*highlightStyle).isBoundToList()) {
-        auto currentList = _selectedItemsListMap.find(listName);
+ /*       auto currentList = _selectedItemsListMap.find(listName);
         if (currentList == _selectedItemsListMap.end()) {
             _selectedItemsListMap.insert(listName, GameplayObjects());
-        }
+        }*/
         setupHandler(listName);
-
         (*highlightStyle).setBoundToList(true);
     }
 
@@ -113,33 +114,32 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
 }
 
 bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
- //   QWriteLocker lock(&_selectionListsLock);
-    auto highlightStyle = _highlightedListMap.find(listName);
-    if (highlightStyle != _highlightedListMap.end()) {
-      //  if ((*highlightStyle).isBoundToList()) {
-            _highlightedListMap.erase(highlightStyle);
+    QWriteLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle != _highlightStyleMap.end()) {
+        if ((*highlightStyle).isBoundToList()) {
+        }
 
-            auto mainScene = qApp->getMain3DScene();
-            if (mainScene) {
-                render::Transaction transaction;
-                transaction.removeHighlightFromSelection(listName.toStdString());
-                mainScene->enqueueTransaction(transaction);
-            }
-            else {
-                qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
-            }
-      //      emit highlightStyleRemoved(listName);
+        _highlightStyleMap.erase(highlightStyle);
 
-    //    }
+        auto mainScene = qApp->getMain3DScene();
+        if (mainScene) {
+            render::Transaction transaction;
+            transaction.removeHighlightFromSelection(listName.toStdString());
+            mainScene->enqueueTransaction(transaction);
+        }
+        else {
+            qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
+        }
     }
 
     return true;
 }
 
 QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
- //   QReadLocker lock(&_selectionListsLock);
-    auto highlightStyle = _highlightedListMap.find(listName);
-    if (highlightStyle == _highlightedListMap.end()) {
+    QReadLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
         return QVariantMap();
     } else {
         return (*highlightStyle).toVariantMap();
@@ -147,9 +147,9 @@ QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& li
 }
 
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
- //   QReadLocker lock(&_selectionListsLock);
-    auto highlightStyle = _highlightedListMap.find(listName);
-    if (highlightStyle == _highlightedListMap.end()) {
+    QReadLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
         return render::HighlightStyle();
     } else {
         return (*highlightStyle).getStyle();
@@ -157,25 +157,30 @@ render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QStr
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
- //   QWriteLocker lock(&_selectionListsLock);
-
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    currentList.addToGameplayObjects(idToAdd);
-    _selectedItemsListMap.insert(listName, currentList);
-
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        GameplayObjects currentList = _selectedItemsListMap.value(listName);
+        currentList.addToGameplayObjects(idToAdd);
+        _selectedItemsListMap.insert(listName, currentList);
+    }
     onSelectedItemsListChanged(listName);
     return true;
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
- //   QWriteLocker lock(&_selectionListsLock);
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    if (currentList.getContainsData()) {
-        currentList.removeFromGameplayObjects(idToRemove);
-        _selectedItemsListMap.insert(listName, currentList);
-
+    bool listExist = false;
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        auto currentList = _selectedItemsListMap.find(listName);
+        if (currentList != _selectedItemsListMap.end()) {
+            listExist = true;
+            (*currentList).removeFromGameplayObjects(idToRemove);
+        }
+    }
+    if (listExist) {
         onSelectedItemsListChanged(listName);
         return true;
-    } else {
+    }
+    else {
         return false;
     }
 }
@@ -184,12 +189,12 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 //
 
 GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
-  //  QReadLocker lock(&_selectionListsLock);
+    QReadLocker lock(&_selectionListsLock);
     return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
-  //  QReadLocker lock(&_selectionListsLock);
+    QReadLocker lock(&_selectionListsLock);
     auto currentList = _selectedItemsListMap.find(listName);
     if (currentList != _selectedItemsListMap.end()) {
         if ((*currentList).getContainsData()) {
@@ -222,8 +227,12 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
-  //  QWriteLocker lock(&_selectionListsLock);
-    if (_selectedItemsListMap.remove(listName)) {
+    bool removed = false;
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        bool removed = _selectedItemsListMap.remove(listName);
+    }
+    if (removed) {
         onSelectedItemsListChanged(listName);
         return true;
     } else {
@@ -232,24 +241,25 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
 }
 
 void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
- //   QWriteLocker lock(&_selectionListsLock);
+    QWriteLocker lock(&_selectionHandlersLock);
     auto handler = _handlerMap.find(selectionName);
     if (handler == _handlerMap.end()) {
         handler = _handlerMap.insert(selectionName, new SelectionToSceneHandler());
     }
 
-
     (*handler)->initialize(selectionName);
- //   connect(this, &SelectionScriptingInterface::selectedItemsListChanged, handler.value(), &SelectionToSceneHandler::selectedItemsListChanged);
-
 }
 
 void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
- //   QWriteLocker lock(&_selectionListsLock);
-    auto handler = _handlerMap.find(listName);
-    if (handler != _handlerMap.end()) {
-        (*handler)->updateSceneFromSelectedList();
+    {
+        QWriteLocker lock(&_selectionHandlersLock);
+        auto handler = _handlerMap.find(listName);
+        if (handler != _handlerMap.end()) {
+            (*handler)->updateSceneFromSelectedList();
+        }
     }
+
+    emit selectedItemsListChanged(listName);
 }
 
 
@@ -312,66 +322,65 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
         qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
     }
 }
-/*
-void SelectionToSceneHandler::highlightStyleChanged(const QString& listName) {
-    if (listName == _listName) {
-        auto mainScene = qApp->getMain3DScene();
-        if (mainScene) {
-            auto thisStyle = DependencyManager::get<SelectionScriptingInterface>()->getHighlightStyle(listName);
-            render::Transaction transaction;
-            transaction.resetSelectionHighlight(listName.toStdString(), thisStyle);
-            mainScene->enqueueTransaction(transaction);
-        }
-        else {
-            qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
-        }
-    }
-}
 
-void SelectionToSceneHandler::highlightStyleRemoved(const QString& listName) {
-    if (listName == _listName) {
-        auto mainScene = qApp->getMain3DScene();
-        if (mainScene) {
-            render::Transaction transaction;
-            transaction.removeHighlightFromSelection(listName.toStdString());
-            mainScene->enqueueTransaction(transaction);
-        }
-        else {
-            qWarning() << "SelectionToSceneHandler::highlightStyleRemoved(), Unexpected null scene, possibly during application shutdown";
-        }
-    }
-}
-*/
 bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
-    auto outlineColor = properties["outlineColor"];
-    if (outlineColor.isValid()) {
+    auto colorVariant = properties["outlineUnoccludedColor"];
+    if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(properties["outlineColor"], isValid);
+        auto color = xColorFromVariant(colorVariant, isValid);
         if (isValid) {
-            _style.color = toGlm(color);
+            _style._outlineUnoccluded.color = toGlm(color);
         }
     }
+    colorVariant = properties["outlineOccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._outlineOccluded.color = toGlm(color);
+        }
+    }
+    colorVariant = properties["fillUnoccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._fillUnoccluded.color = toGlm(color);
+        }
+    }
+    colorVariant = properties["fillOccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._fillOccluded.color = toGlm(color);
+        }
+    }
+
+    auto intensityVariant = properties["outlineUnoccludedIntensity"];
+    if (intensityVariant.isValid()) {
+        _style._outlineUnoccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["outlineOccludedIntensity"];
+    if (intensityVariant.isValid()) {
+        _style._outlineOccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["fillUnoccludedIntensity"];
+    if (intensityVariant.isValid()) {
+        _style._fillUnoccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["fillOccludedIntensity"];
+    if (intensityVariant.isValid()) {
+        _style._fillOccluded.alpha = intensityVariant.toFloat();
+    }
+
     auto outlineWidth = properties["outlineWidth"];
     if (outlineWidth.isValid()) {
-        _style.outlineWidth = outlineWidth.toFloat();
+        _style._outlineWidth = outlineWidth.toFloat();
     }
     auto isOutlineSmooth = properties["isOutlineSmooth"];
     if (isOutlineSmooth.isValid()) {
-        _style.isOutlineSmooth = isOutlineSmooth.toBool();
-    }
-
-    auto outlineIntensity = properties["outlineIntensity"];
-    if (outlineIntensity.isValid()) {
-        _style.outlineIntensity = outlineIntensity.toFloat();
-    }
-
-    auto unoccludedFillOpacity = properties["unoccludedFillOpacity"];
-    if (unoccludedFillOpacity.isValid()) {
-        _style.unoccludedFillOpacity = unoccludedFillOpacity.toFloat();
-    }
-    auto occludedFillOpacity = properties["occludedFillOpacity"];
-    if (occludedFillOpacity.isValid()) {
-        _style.occludedFillOpacity = occludedFillOpacity.toFloat();
+        _style._isOutlineSmooth = isOutlineSmooth.toBool();
     }
 
     return true;
@@ -380,12 +389,18 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 
-    properties["outlineColor"] = xColorToVariant(xColorFromGlm(_style.color));
-    properties["outlineWidth"] = _style.outlineWidth;
-    properties["isOutlineSmooth"] = _style.isOutlineSmooth;
-    properties["outlineIntensity"] = _style.outlineIntensity;
-    properties["unoccludedFillOpacity"] = _style.unoccludedFillOpacity;
-    properties["occludedFillOpacity"] = _style.occludedFillOpacity;
+    properties["outlineUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineUnoccluded.color));
+    properties["outlineOccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineOccluded.color));
+    properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
+    properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
+
+    properties["outlineUnoccludedIntensity"] = _style._outlineUnoccluded.alpha;
+    properties["outlineOccludedIntensity"] = _style._outlineOccluded.alpha;
+    properties["fillUnoccludedIntensity"] = _style._fillUnoccluded.alpha;
+    properties["fillOccludedIntensity"] = _style._fillOccluded.alpha;
+
+    properties["outlineWidth"] = _style._outlineWidth;
+    properties["isOutlineSmooth"] = _style._isOutlineSmooth;
 
     return properties;
 }

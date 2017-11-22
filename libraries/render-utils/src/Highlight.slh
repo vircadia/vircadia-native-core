@@ -36,8 +36,6 @@ void main(void) {
     // the blur will have a different width between the left / right sides and top / bottom
     // sides of the silhouette
     float highlightedDepth = texture(highlightedDepthMap, varTexCoord0).x;
-    float intensity = 0.0;
-    float isOccluded = 0.0;
 
     if (highlightedDepth < FAR_Z) {
         // We're not on the far plane so we are on the highlighted object, thus no outline to do!
@@ -48,7 +46,11 @@ void main(void) {
         highlightedDepth = -evalZeyeFromZdb(highlightedDepth);
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
 
-        intensity = sceneDepth < (highlightedDepth-LINEAR_DEPTH_BIAS) ? params._occludedFillOpacity : params._unoccludedFillOpacity;
+        if (sceneDepth < (highlightedDepth-LINEAR_DEPTH_BIAS)) {
+            outFragColor = vec4(params._fillOccludedColor, params._fillOccludedAlpha);
+        } else {
+            outFragColor = vec4(params._fillUnoccludedColor, params._fillUnoccludedAlpha);
+        }
 <@else@>
     discard;
 <@endif@>
@@ -62,8 +64,9 @@ void main(void) {
         int x;
         int y;
 
-        float outlinedDepth = 0;
-        float sumOutlineDepth = 0;
+        float intensity = 0.0;
+        float outlinedDepth = 0.0;
+        float sumOutlineDepth = 0.0;
 
         for (y=0 ; y<params._blurKernelSize ; y++) {
             uv = lineStartUv;
@@ -96,21 +99,22 @@ void main(void) {
         if (intensity < OPACITY_EPSILON) {
             discard;
         }
-        intensity = min(1.0, intensity / params._threshold) * params._intensity;
+        intensity = min(1.0, intensity / params._threshold);
 
-        // But we need to check the scene depth aginst the depth of the outline
+        // But we need to check the scene depth against the depth of the outline
         float sceneDepth = texture(sceneDepthMap, texCoord0).x;
 
         // Transform to linear depth for better precision
         outlinedDepth = -evalZeyeFromZdb(sumOutlineDepth);
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
+
         // Are we occluded?
         if (sceneDepth < (outlinedDepth/*-LINEAR_DEPTH_BIAS*/)) {
-            isOccluded = 1.0;
+            outFragColor = vec4(params._outlineOccludedColor, intensity * params._outlineOccludedAlpha);
+        } else {
+            outFragColor = vec4(params._outlineUnoccludedColor, intensity * params._outlineUnoccludedAlpha);
         }
     }
-
-    outFragColor = vec4(mix(params._color.rgb, vec3(0.1,1,0.1), isOccluded), intensity);
 }
 
 <@endfunc@>

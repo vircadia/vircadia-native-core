@@ -20,17 +20,22 @@ namespace render {
     // This holds the configuration for a particular outline style
     class HighlightStyle {
     public:
+        struct RGBA {
+            glm::vec3 color{ 1.f, 0.7f, 0.2f };
+            float alpha{ 0.9f };
+        };
+
+        RGBA _outlineUnoccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };
+        RGBA _outlineOccluded{ { 0.2f, 0.7f, 1.0f }, 0.9f };
+        RGBA _fillUnoccluded{ { 1.f, 0.2f, 0.7f }, 0.0f };
+        RGBA _fillOccluded{ { 0.7f, 1.f, 0.2f }, 0.0f };
+
+        float _outlineWidth{ 2.0f };
+        bool _isOutlineSmooth{ false };
 
         bool isFilled() const {
-            return unoccludedFillOpacity > 5e-3f || occludedFillOpacity > 5e-3f;
+            return _fillUnoccluded.alpha > 5e-3f || _fillOccluded.alpha > 5e-3f;
         }
-
-        glm::vec3 color{ 1.f, 0.7f, 0.2f };
-        float outlineWidth{ 2.0f };
-        float outlineIntensity{ 0.9f };
-        float unoccludedFillOpacity{ 0.0f };
-        float occludedFillOpacity{ 0.0f };
-        bool isOutlineSmooth{ false };
     };
 
 }

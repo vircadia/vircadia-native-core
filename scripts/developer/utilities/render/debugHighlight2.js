@@ -23,7 +23,7 @@
 
 (function() {
     var TABLET_BUTTON_NAME = "Highlight";
-    var QMLAPP_URL = Script.resolvePath("./highlight.qml");
+    var QMLAPP_URL = Script.resolvePath("./highlight2.qml");
     var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
@@ -104,10 +104,6 @@
     });
 
     function setDebugCursor(x, y) {
-        nx = (x / Window.innerWidth);
-        ny = 1.0 - ((y) / (Window.innerHeight - 32));
-
-         Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
     }
 
 }()); 
@@ -115,23 +111,13 @@
 
 
 // Set up the qml ui
-var qml = Script.resolvePath('highlight.qml');
-var window = new OverlayWindow({
-    title: 'Highlight',
-    source: qml,
-    width: 400, 
-    height: 400,
-});
-window.closed.connect(function() { Script.stop(); });
-
-"use strict";
 
 // Created by Sam Gondelman on 9/7/2017
 // Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-
+/*
 (function() { // BEGIN LOCAL_SCOPE
 
 var END_DIMENSIONS = {
@@ -262,4 +248,4 @@ function update(deltaTime) {
 
 Script.update.connect(update);
 
-}()); // END LOCAL_SCOPE
+}()); // END LOCAL_SCOPE*/
