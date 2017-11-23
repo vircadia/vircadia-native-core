@@ -557,10 +557,10 @@ void NodeList::pingPunchForDomainServer() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
-        auto localPingPacket = constructICEPingPacket(PingType::Local, _sessionUUID);
+        auto localPingPacket = constructICEPingPacket(PingType::Local, _domainHandler.getICEClientID());
         sendPacket(std::move(localPingPacket), _domainHandler.getICEPeer().getLocalSocket());
 
-        auto publicPingPacket = constructICEPingPacket(PingType::Public, _sessionUUID);
+        auto publicPingPacket = constructICEPingPacket(PingType::Public, _domainHandler.getICEClientID());
         sendPacket(std::move(publicPingPacket), _domainHandler.getICEPeer().getPublicSocket());
 
         _domainHandler.getICEPeer().incrementConnectionAttempts();
