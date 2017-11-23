@@ -178,6 +178,7 @@ private:
     AnimationPropertyGroup _previousAnimationProperties;
     bool _propTestFlag{ true };
     bool _propTestFlag2{ true };
+    float _currentFrame{ 0 };
     //angus
 };
 
