@@ -1602,7 +1602,7 @@ void EntityItem::setParentID(const QUuid& value) {
     QUuid oldParentID = getParentID();
     if (oldParentID != value) {
         EntityTreePointer tree = getTree();
-        if (!oldParentID.isNull()) {
+        if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
         }
         SpatiallyNestable::setParentID(value);
