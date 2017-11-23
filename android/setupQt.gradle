@@ -12,7 +12,7 @@ buildscript {
 
 import org.apache.tools.ant.taskdefs.condition.Os
 
-def file='qt-5.9.2_linux_armv8-libcpp.tgz'
+def file='qt-5.9.3_linux_armv8-libcpp.tgz'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     file = 'qt-5.9.3_osx_armv8-libcpp.tgz'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
