@@ -1189,7 +1189,7 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
         key = sent.second;
     }
 
-    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key + "\n-----END PUBLIC KEY-----";
+    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----";
     bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), actualNonce.toUtf8(), nonce.toUtf8());
 
     if (verificationSuccess) {
