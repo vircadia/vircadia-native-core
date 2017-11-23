@@ -87,7 +87,7 @@ public:
     void setAnimationURL(const QString& url);
 
     void setAnimationCurrentFrame(float value);
-    void setAnimationCurrentlyPlayingFrame(float value);
+    void setAnimationCurrentlyPlayingFrame(quint64 value);
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value); 
 
@@ -110,7 +110,7 @@ public:
     float getAnimationCurrentFrame() const;
     bool isAnimatingSomething() const;
 
-    float getCurrentlyPlayingFrame() const;
+    quint64 getCurrentlyPlayingFrame() const;
     int getLastKnownCurrentFrame() const;
 
     static const QString DEFAULT_TEXTURES;
@@ -172,7 +172,7 @@ protected:
 
 private:
     //angus
-    float _currentlyPlayingFrame{ -1 };
+    quint64 _currentlyPlayingFrame{ 0 };
     float _endAnim{ 0 };
     uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;

@@ -75,7 +75,7 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, hold, bool, setHold);
 
     //angus added
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, currentlyPlayingFrame, float, setCurrentlyPlayingFrame);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, currentlyPlayingFrame, quint64, setCurrentlyPlayingFrame);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, setFPS, getFPS);
@@ -109,7 +109,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     bool loop = getLoop();
     bool hold = getHold();
     bool allowTranslation = getAllowTranslation();
-    float currentlyPlayingFrame = getCurrentlyPlayingFrame();
+    quint64 currentlyPlayingFrame = getCurrentlyPlayingFrame();
 
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
@@ -149,7 +149,7 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     }
 
     if (settingsMap.contains("currentlyPlayingFrame")) {
-        currentlyPlayingFrame = settingsMap["currentlyPlayingFrame"].toFloat();
+        currentlyPlayingFrame = settingsMap["currentlyPlayingFrame"].toULongLong();
     }
 
     setAllowTranslation(allowTranslation);
@@ -232,7 +232,7 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, float, setCurrentlyPlayingFrame);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, quint64, setCurrentlyPlayingFrame);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_URL, URL);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FPS, FPS);
@@ -367,6 +367,6 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, float, setCurrentlyPlayingFrame);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, quint64, setCurrentlyPlayingFrame);
     return bytesRead;
 }

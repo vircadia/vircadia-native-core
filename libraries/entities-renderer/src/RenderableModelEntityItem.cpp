@@ -997,7 +997,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto modelAnimProperties = entity->getAnimationProperties();
 
     
-    //_currentFrame = modelAnimProperties.getCurrentlyPlayingFrame();
+    //_currentFrame = modelAnimProperties.getCurrentFrame();
 
     //tempbool = modelAnimProperties.getRunning();
     //qCDebug(entitiesrenderer) << "is playing is: " << tempbool;
@@ -1016,26 +1016,44 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     }
 
     auto now = usecTimestampNow();
-    auto interval = now - _lastAnimated;
+
+    //find out how long it has been since this animation started.
+    auto interval = now - _currentlyPlayingFrame;
+    //auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
     
+    //new global start time code
+    float nowTime = (float)interval / (float)USECS_PER_SECOND;
+    float oldCurrentFrame = _currentFrame;
+    _currentFrame = _renderAnimationProperties.getCurrentFrame() + (nowTime * _renderAnimationProperties.getFPS());
+
+
     //here we implement the looping animation property
     //if we have played through the animation once then we hold on the last frame
    
-    if( isLooping || ( _currentFrame < _endAnim ) ){
+    if( isLooping || (_currentFrame < _endAnim ) ){
         //else advance the current frame.
         //if hold or not playing don't advance the current frame.
         //also if the animFrame is outside of first or last frame then don't advance the motion.
         if (!isHolding && entity->getAnimationIsPlaying() && !( _renderAnimationProperties.getCurrentFrame() > _renderAnimationProperties.getLastFrame() ) && !( _renderAnimationProperties.getCurrentFrame() < _renderAnimationProperties.getFirstFrame() ) ) {
-            float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-            _currentlyPlayingFrame += (deltaTime * _renderAnimationProperties.getFPS());
+            //float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+            //_currentlyPlayingFrame += (deltaTime * _renderAnimationProperties.getFPS());
+            //do nothing
         }
+        else {
+            //use old currentFrame
+            _currentFrame = oldCurrentFrame;
+        }
+    }
+    else {
+        //make current frame the endanim frame
+        _currentFrame = _endAnim;
     }
     
     {
         //where are we in the currently defined animation segment?       
-        int animationCurrentFrame = (int)(glm::floor(_currentlyPlayingFrame - firstFrame)) % updatedFrameCount;
+        int animationCurrentFrame = (int)(glm::floor(_currentFrame - firstFrame)) % updatedFrameCount;
         //this gives us the absolute frame value to use by adding the first frame value.
         animationCurrentFrame += firstFrame;
         
@@ -1369,7 +1387,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             withWriteLock([&] {
                 if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
                     if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {
-                        _currentFrame = newAnimationProperties.getCurrentFrame();
+                        _currentFrame = newAnimationProperties.getCurrentFrame();// +((float)newAnimationProperties.getCurrentlyPlayingFrame() / (float)USECS_PER_SECOND)*(newAnimationProperties.getFPS());
                         _endAnim = _currentFrame + ( newAnimationProperties.getLastFrame() - newAnimationProperties.getFirstFrame() );
                         _lastAnimated = 0;
                     }
@@ -1378,6 +1396,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                     _endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
                 }
                 _currentlyPlayingFrame = newAnimationProperties.getCurrentlyPlayingFrame();
+                qCDebug(entitiesrenderer) << "renderable update to currently playing frame " << _currentlyPlayingFrame;
                 _renderAnimationProperties = newAnimationProperties;
             });
         }

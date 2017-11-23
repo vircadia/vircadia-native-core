@@ -187,7 +187,7 @@ private:
     float _currentFrame { 0 };
     float _endAnim{ 0 };
     bool tempbool{ false };
-    float _currentlyPlayingFrame{ 0 };
+    quint64 _currentlyPlayingFrame{ 0 };
 };
 
 } } // namespace 
