@@ -10,7 +10,7 @@ buildscript {
 }
 
 def file='tbb-2018_U1_armv8_libcpp.tgz'
-def url='https://s3.amazonaws.com/Oculus/Android/' + file
+def url='https://hifi-public.s3.amazonaws.com/austin/android/' + file
 def destFile = new File(HIFI_ANDROID_PRECOMPILED, file)
 
 task downloadTBB(type: de.undercouch.gradle.tasks.download.Download) {

@@ -12,19 +12,21 @@ buildscript {
 import org.apache.tools.ant.taskdefs.condition.Os
 
 def file='scribe_linux_x86_64'
+def localFile='scribe'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     file = 'scribe_osx_x86_64'
-}
-def localFile='scribe'
-if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-    file = 'scribe.exe'
+} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    file = 'scribe_win32_x86_64.exe'
+    localFile = 'scribe.exe'
 }
 
-def url='https://s3.amazonaws.com/Oculus/Android/' + file
+def url='https://hifi-public.s3.amazonaws.com/austin/android/' + file
 def destFile = new File(HIFI_ANDROID_PRECOMPILED, localFile)
 
 task filepermission(type: Exec) {
-    commandLine 'chmod', '700', '<file_path>'
+    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine 'chmod', '700', '<file_path>'
+    }
 }
 
 task downloadScribe(type: de.undercouch.gradle.tasks.download.Download) {
