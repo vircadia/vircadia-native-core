@@ -64,11 +64,12 @@ Item {
             d.pop();
         }
 
-        function toModel(items) {
+        function toModel(items, newMenu) {
             var result = modelMaker.createObject(tabletMenu);
+            var exclusionGroups = {};
+
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
-                if (!item.visible) continue;
                 switch (item.type) {
                 case MenuItemType.Menu:
                     result.append({"name": item.title, "item": item})
@@ -77,6 +78,28 @@ Item {
                     if (item.text !== "Users Online") {
                         result.append({"name": item.text, "item": item})
                     }
+
+                    for(var j = 0; j < tabletMenu.rootMenu.exclusionGroupsByMenuItem.count; ++j)
+                    {
+                        var entry = tabletMenu.rootMenu.exclusionGroupsByMenuItem.get(j);
+                        if(entry.menuItem == item.toString())
+                        {
+                            var exclusionGroupId = entry.exclusionGroup;
+                            console.debug('item exclusionGroupId: ', exclusionGroupId)
+
+                            if(!exclusionGroups[exclusionGroupId])
+                            {
+                                exclusionGroups[exclusionGroupId] = exclusiveGroupMaker.createObject(newMenu);
+                                console.debug('new exclusion group created: ', exclusionGroups[exclusionGroupId])
+                            }
+
+                            var exclusionGroup = exclusionGroups[exclusionGroupId];
+
+                            item.exclusiveGroup = exclusionGroup
+                            console.debug('item.exclusiveGroup: ', item.exclusiveGroup)                        
+                        }
+                    }
+
                     break;
                 case MenuItemType.Separator:
                     result.append({"name": "", "item": item})
@@ -114,6 +137,7 @@ Item {
         }
 
         function clearMenus() {
+            topMenu = null
             d.clear()
         }
 
@@ -132,10 +156,21 @@ Item {
             }
         }
 
+        property Component exclusiveGroupMaker: Component {
+            ExclusiveGroup {
+            }
+        }
+
         function buildMenu(items) {
-            var model = toModel(items);
             // Menus must be childed to desktop for Z-ordering
-            var newMenu = menuViewMaker.createObject(tabletMenu, { model: model, isSubMenu: topMenu !== null });
+            var newMenu = menuViewMaker.createObject(tabletMenu);
+            console.debug('newMenu created: ', newMenu)
+
+            var model = toModel(items, newMenu);
+
+            newMenu.model = model;
+            newMenu.isSubMenu = topMenu !== null;
+
             pushMenu(newMenu);
             return newMenu;
         }
@@ -180,5 +215,4 @@ Item {
     function nextItem() { d.topMenu.nextItem(); }
     function selectCurrentItem() { d.topMenu.selectCurrentItem(); }
     function previousPage() { d.topMenu.previousPage(); }
-
 }

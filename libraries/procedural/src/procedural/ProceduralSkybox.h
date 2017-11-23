@@ -20,9 +20,8 @@
 class ProceduralSkybox: public model::Skybox {
 public:
     ProceduralSkybox();
-    ~ProceduralSkybox() override {};
-
-    void parse(const QString& userData) { _procedural.parse(userData); }
+    
+    void parse(const QString& userData) { _procedural.setProceduralData(ProceduralData::parse(userData)); }
 
     bool empty() override;
     void clear() override;

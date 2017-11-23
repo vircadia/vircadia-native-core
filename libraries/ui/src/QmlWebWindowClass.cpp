@@ -13,6 +13,7 @@
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
+#include <shared/QtHelpers.h>
 #include "OffscreenUi.h"
 
 static const char* const URL_PROPERTY = "source";
@@ -21,39 +22,51 @@ static const char* const SCRIPT_PROPERTY = "scriptUrl";
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     auto properties = parseArguments(context);
-    QmlWebWindowClass* retVal { nullptr };
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->executeOnUiThread([&] {
-        retVal = new QmlWebWindowClass();
-        retVal->initQml(properties);
-    }, true);
+    QmlWebWindowClass* retVal = new QmlWebWindowClass();
     Q_ASSERT(retVal);
+    if (QThread::currentThread() != qApp->thread()) {
+        retVal->moveToThread(qApp->thread());
+        QMetaObject::invokeMethod(retVal, "initQml", Q_ARG(QVariantMap, properties));
+    } else {
+        retVal->initQml(properties);
+    }
     connect(engine, &QScriptEngine::destroyed, retVal, &QmlWindowClass::deleteLater);
     return engine->newQObject(retVal);
 }
 
-QString QmlWebWindowClass::getURL() const {
-    QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
-        if (_qmlWindow.isNull()) {
-            return QVariant();
-        }
-        return _qmlWindow->property(URL_PROPERTY);
-    });
-    return result.toString();
+QString QmlWebWindowClass::getURL() {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        BLOCKING_INVOKE_METHOD(this, "getURL", Q_RETURN_ARG(QString, result));
+        return result;
+    }
+
+    if (_qmlWindow.isNull()) {
+        return QString();
+    }
+        
+    return _qmlWindow->property(URL_PROPERTY).toString();
 }
 
 void QmlWebWindowClass::setURL(const QString& urlString) {
-    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        if (!_qmlWindow.isNull()) {
-            _qmlWindow->setProperty(URL_PROPERTY, urlString);
-        }
-    });
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setURL", Q_ARG(QString, urlString));
+        return;
+    }
+
+    if (!_qmlWindow.isNull()) {
+        _qmlWindow->setProperty(URL_PROPERTY, urlString);
+    }
 }
 
 void QmlWebWindowClass::setScriptURL(const QString& script) {
-    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        if (!_qmlWindow.isNull()) {
-            _qmlWindow->setProperty(SCRIPT_PROPERTY, script);
-        }
-    });
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setScriptURL", Q_ARG(QString, script));
+        return;
+    }
+
+    if (!_qmlWindow.isNull()) {
+        _qmlWindow->setProperty(SCRIPT_PROPERTY, script);
+    }
 }

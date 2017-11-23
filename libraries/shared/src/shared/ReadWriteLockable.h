@@ -23,6 +23,9 @@ public:
     template <typename F>
     void withWriteLock(F&& f) const;
     
+    template <typename T, typename F>
+    T resultWithWriteLock(F&& f) const;
+
     template <typename F>
     bool withWriteLock(F&& f, bool require) const;
 
@@ -36,6 +39,9 @@ public:
     template <typename F>
     void withReadLock(F&& f) const;
     
+    template <typename T, typename F>
+    T resultWithReadLock(F&& f) const;
+
     template <typename F>
     bool withReadLock(F&& f, bool require) const;
     
@@ -68,6 +74,15 @@ inline bool ReadWriteLockable::withWriteLock(F&& f, bool require) const {
     }
 }
 
+template <typename T, typename F>
+inline T ReadWriteLockable::resultWithWriteLock(F&& f) const {
+    T result;
+    withWriteLock([&] {
+        result = f();
+    });
+    return result;
+}
+
 template <typename F>
 inline bool ReadWriteLockable::withTryWriteLock(F&& f) const {
     QTryWriteLocker locker(&_lock);
@@ -92,6 +107,15 @@ template <typename F>
 inline void ReadWriteLockable::withReadLock(F&& f) const {
     QReadLocker locker(&_lock);
     f();
+}
+
+template <typename T, typename F>
+inline T ReadWriteLockable::resultWithReadLock(F&& f) const {
+    T result;
+    withReadLock([&] {
+        result = f();
+    });
+    return result;
 }
 
 template <typename F>

@@ -1,0 +1,58 @@
+{
+  "alpha": 0.01,
+  "alphaFinish": 0.0,
+  "alphaSpread": 1,
+  "alphaStart": 0.05,
+  "color": {
+    "blue": 200,
+    "green": 200,
+    "red": 200
+  },
+  "colorFinish": {
+    "blue": 200,
+    "green": 200,
+    "red": 200
+  },
+  "colorStart": {
+    "blue": 200,
+    "green": 200,
+    "red": 200
+  },
+  "created": "2017-09-09T16:01:38Z",
+  "dimensions": {
+    "x": 0.5,
+    "y": 0.5,
+    "z": 0.5
+  },
+  "emitAcceleration": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "emitDimensions": {
+    "x": 0.25,
+    "y": 0.25,
+    "z": 0.25
+  },
+  "emitOrientation": {
+    "w": 1,
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "emitRate": 100,
+  "emitSpeed": 0.125,
+  "lifespan": 0.5,
+  "lifetime": 2,
+  "script": "(function(){return{preload:function(id){Script.setTimeout(function(){Entities.editEntity(id,{isEmitting:false});},200);}}})",
+  "maxParticles": 100,
+  "particleRadius": 0.05,
+  "polarFinish": 1.4311699867248535,
+  "polarStart": 1.3962633609771729,
+  "radiusFinish": 0.01,
+  "radiusSpread": 0.2,
+  "radiusStart": 0.05,
+  "speedSpread": 0,
+  "emitShouldTrail": true,
+  "type": "ParticleEffect"
+}

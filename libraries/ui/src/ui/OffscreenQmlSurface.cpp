@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
+#include "ImageProvider.h"
 
 // Has to come before Qt GL includes
 #include <gl/Config.h>
@@ -25,6 +26,8 @@
 #include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
+#include <shared/GlobalAppProperties.h>
+#include <shared/QtHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -34,15 +37,14 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
-#include <shared/GlobalAppProperties.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
 #include <gl/Context.h>
+#include <shared/ReadWriteLockable.h>
 
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
-#include "types/HFTabletWebEngineProfile.h"
 #include "types/SoundEffect.h"
 
 #include "Logging.h"
@@ -50,6 +52,53 @@
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
 Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
+
+
+class OffscreenQmlWhitelist : public Dependency, private ReadWriteLockable {
+    SINGLETON_DEPENDENCY
+
+public:
+
+    void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback) {
+        withWriteLock([&] {
+            for (const auto& url : urls) {
+                _callbacks[url].push_back(callback);
+            }
+        });
+    }
+
+    QList<QmlContextCallback> getCallbacksForUrl(const QUrl& url) const {
+        return resultWithReadLock<QList<QmlContextCallback>>([&] {
+            QList<QmlContextCallback> result;
+            auto itr = _callbacks.find(url);
+            if (_callbacks.end() != itr) {
+                result = *itr;
+            }
+            return result;
+        });
+    }
+
+private:
+    
+    QHash<QUrl, QList<QmlContextCallback>> _callbacks;
+};
+
+QSharedPointer<OffscreenQmlWhitelist> getQmlWhitelist() {
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        DependencyManager::set<OffscreenQmlWhitelist>();
+    });
+
+    return DependencyManager::get<OffscreenQmlWhitelist>();
+}
+
+
+void OffscreenQmlSurface::addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback) {
+    getQmlWhitelist()->addWhitelistContextHandler(urls, callback);
+}
+
+
+QmlContextCallback OffscreenQmlSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QObject*) {};
 
 struct TextureSet {
     // The number of surfaces with this size
@@ -184,7 +233,7 @@ private:
             GLuint texture = textureAndFence.first;
             uvec2 size = _textureSizes[texture];
             auto sizeKey = uvec2ToUint64(size);
-            // Textures can be returned after all surfaces of the given size have been destroyed, 
+            // Textures can be returned after all surfaces of the given size have been destroyed,
             // in which case we just destroy the texture
             if (!_textures.count(sizeKey)) {
                 destroy(textureAndFence);
@@ -210,12 +259,12 @@ class UrlHandler : public QObject {
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
+        return handler && handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
+        return handler && handler->acceptURL(url);
     }
 };
 
@@ -263,9 +312,6 @@ QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
     return new QmlNetworkAccessManager(parent);
 }
 
-static QQmlEngine* globalEngine { nullptr };
-static size_t globalEngineRefCount { 0 };
-
 QString getEventBridgeJavascript() {
     // FIXME: Refactor with similar code in RenderableWebEntityItem
     QString javaScriptToInject;
@@ -300,8 +346,47 @@ private:
 
 
 
+#define SINGLE_QML_ENGINE 0
+
+#if SINGLE_QML_ENGINE
+static QQmlEngine* globalEngine{ nullptr };
+static size_t globalEngineRefCount{ 0 };
+#endif
+
+void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
+    // register the pixmap image provider (used only for security image, for now)
+    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
+
+    engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
+    auto importList = engine->importPathList();
+    importList.insert(importList.begin(), PathUtils::resourcesPath());
+    engine->setImportPathList(importList);
+    for (const auto& path : importList) {
+        qDebug() << path;
+    }
+
+    if (!engine->incubationController()) {
+        engine->setIncubationController(window->incubationController());
+    }
+    auto rootContext = engine->rootContext();
+    rootContext->setContextProperty("GL", ::getGLContextData());
+    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("pathToFonts", "../../");
+    rootContext->setContextProperty("ApplicationInterface", qApp);
+    auto javaScriptToInject = getEventBridgeJavascript();
+    if (!javaScriptToInject.isEmpty()) {
+        rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+    }
+    rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
+    rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+}
+
 QQmlEngine* acquireEngine(QQuickWindow* window) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+
+    QQmlEngine* result = nullptr;
     if (QThread::currentThread() != qApp->thread()) {
         qCWarning(uiLogging) << "Cannot acquire QML engine on any thread but the main thread";
     }
@@ -310,47 +395,43 @@ QQmlEngine* acquireEngine(QQuickWindow* window) {
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
 
+
+#if SINGLE_QML_ENGINE
     if (!globalEngine) {
         Q_ASSERT(0 == globalEngineRefCount);
         globalEngine = new QQmlEngine();
-        globalEngine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
-
-        auto importList = globalEngine->importPathList();
-        importList.insert(importList.begin(), PathUtils::resourcesPath());
-        globalEngine->setImportPathList(importList);
-        for (const auto& path : importList) {
-            qDebug() << path;
-        }
-
-        if (!globalEngine->incubationController()) {
-            globalEngine->setIncubationController(window->incubationController());
-        }
-        auto rootContext = globalEngine->rootContext();
-        rootContext->setContextProperty("GL", ::getGLContextData());
-        rootContext->setContextProperty("urlHandler", new UrlHandler());
-        rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
-        rootContext->setContextProperty("pathToFonts", "../../");
-        rootContext->setContextProperty("ApplicationInterface", qApp);
-        auto javaScriptToInject = getEventBridgeJavascript();
-        if (!javaScriptToInject.isEmpty()) {
-            rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
-        }
-        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-        rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
+        initializeQmlEngine(result, window);
+        ++globalEngineRefCount;
     }
+    result = globalEngine;
+#else
+    result = new QQmlEngine();
+    initializeQmlEngine(result, window);
+#endif
 
-    ++globalEngineRefCount;
-    return globalEngine;
+    return result;
 }
 
-void releaseEngine() {
+void releaseEngine(QQmlEngine* engine) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+#if SINGLE_QML_ENGINE
     Q_ASSERT(0 != globalEngineRefCount);
     if (0 == --globalEngineRefCount) {
         globalEngine->deleteLater();
         globalEngine = nullptr;
     }
+#else
+    engine->deleteLater();
+#endif
+}
+
+#define OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY "com.highfidelity.qml.gl.sharedContext"
+void OffscreenQmlSurface::setSharedContext(QOpenGLContext* sharedContext) {
+    qApp->setProperty(OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY, QVariant::fromValue<void*>(sharedContext));
+}
+
+QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
+    return static_cast<QOpenGLContext*>(qApp->property(OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY).value<void*>());
 }
 
 void OffscreenQmlSurface::cleanup() {
@@ -374,9 +455,9 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
-#ifdef HIFI_ENABLE_NSIGHT_DEBUG
-    return;
-#endif
+    if (nsightActive()) {
+        return;
+    }
     if (_paused) {
         return;
     }
@@ -435,8 +516,8 @@ std::function<void(uint32_t, void*)> OffscreenQmlSurface::getDiscardLambda() {
 }
 
 bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
-    // If we already have a pending texture, don't render another one 
-    // i.e. don't render faster than the consumer context, since it wastes 
+    // If we already have a pending texture, don't render another one
+    // i.e. don't render faster than the consumer context, since it wastes
     // GPU cycles on producing output that will never be seen
     if (0 != _latestTextureAndFence.first) {
         return false;
@@ -455,11 +536,11 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(qApp);
 
     cleanup();
-
+    auto engine = _qmlContext->engine();
     _canvas->deleteLater();
     _rootItem->deleteLater();
     _quickWindow->deleteLater();
-    releaseEngine();
+    releaseEngine(engine);
 }
 
 void OffscreenQmlSurface::onAboutToQuit() {
@@ -467,7 +548,7 @@ void OffscreenQmlSurface::onAboutToQuit() {
     QObject::disconnect(&_updateTimer);
 }
 
-void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
+void OffscreenQmlSurface::create() {
     qCDebug(uiLogging) << "Building QML surface";
 
     _renderControl = new QMyQuickRenderControl();
@@ -488,15 +569,22 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _renderControl->_renderWindow = _proxyWindow;
 
     _canvas = new OffscreenGLCanvas();
-    if (!_canvas->create(shareContext)) {
+    if (!_canvas->create(getSharedContext())) {
         qFatal("Failed to create OffscreenGLCanvas");
         return;
     };
 
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
 
+    // acquireEngine interrogates the GL context, so we need to have the context current here
+    if (!_canvas->makeCurrent()) {
+        qFatal("Failed to make context current for QML Renderer");
+        return;
+    }
+    
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
+
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
 
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
@@ -506,11 +594,6 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
-
-    if (!_canvas->makeCurrent()) {
-        qWarning("Failed to make context current for QML Renderer");
-        return;
-    }
     _renderControl->initialize(_canvas->getContext());
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
@@ -605,18 +688,26 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
+    // Get any whitelist functionality
+    QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
+    // If we have whitelisted content, we must load a new context
+    createNewContext |= !callbacks.empty();
+    callbacks.push_back(onQmlLoadedCallback);
+
     QQmlContext* targetContext = _qmlContext;
     if (_rootItem && createNewContext) {
         targetContext = new QQmlContext(targetContext);
     }
 
+
+    // FIXME eliminate loading of relative file paths for QML
     QUrl finalQmlSource = qmlSource;
     if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
@@ -624,38 +715,40 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext,
 
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
-        connect(qmlComponent, &QQmlComponent::statusChanged, this,
-            [this, qmlComponent, targetContext, f](QQmlComponent::Status) {
-            finishQmlLoad(qmlComponent, targetContext, f);
+        connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) { 
+            finishQmlLoad(qmlComponent, targetContext, callbacks);
         });
-        return nullptr;
+        return;
     }
 
-    return finishQmlLoad(qmlComponent, targetContext, f);
+    finishQmlLoad(qmlComponent, targetContext, callbacks);
 }
 
-QObject* OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, true, f);
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
+    load(qmlSource, true, onQmlLoadedCallback);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, false, f);
+void OffscreenQmlSurface::load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
+    load(qmlSource, false, onQmlLoadedCallback);
+}
+
+void OffscreenQmlSurface::load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback)  {
+    return load(QUrl(qmlSourceFile), onQmlLoadedCallback);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
             qCWarning(uiLogging) << error.url() << error.line() << error;
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
-
 
     QObject* newObject = qmlComponent->beginCreate(qmlContext);
     if (qmlComponent->isError()) {
@@ -666,11 +759,26 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
             qFatal("Unable to finish loading QML root");
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
 
     qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
-    f(qmlContext, newObject);
+
+    // All quick items should be focusable
+    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
+    if (newItem) {
+        // Make sure we make items focusable (critical for
+        // supporting keyboard shortcuts)
+        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+    }
+
+    // Make sure we will call callback for this codepath
+    // Call this before qmlComponent->completeCreate() otherwise ghost window appears
+    if (newItem && _rootItem) {
+        for (const auto& callback : callbacks) {
+            callback(qmlContext, newObject);
+        }
+    }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
     if (qmlContext != _qmlContext && eventBridge && eventBridge != this) {
@@ -682,29 +790,20 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     qmlComponent->completeCreate();
     qmlComponent->deleteLater();
 
-
-    // All quick items should be focusable
-    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
-    if (newItem) {
-        // Make sure we make items focusable (critical for
-        // supporting keyboard shortcuts)
-        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
-    }
-
     // If we already have a root, just set a couple of flags and the ancestry
-    if (_rootItem) {
+    if (newItem && _rootItem) {
         // Allow child windows to be destroyed from JS
         QQmlEngine::setObjectOwnership(newObject, QQmlEngine::JavaScriptOwnership);
         newObject->setParent(_rootItem);
         if (newItem) {
             newItem->setParentItem(_rootItem);
         }
-        return newObject;
+        return;
     }
 
     if (!newItem) {
         qFatal("Could not load object as root item");
-        return nullptr;
+        return;
     }
 
     connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
@@ -713,7 +812,11 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
-    return _rootItem;
+
+    // Call this callback after rootitem is set, otherwise VrMenu wont work
+    for (const auto& callback : callbacks) {
+        callback(qmlContext, newObject);
+    }
 }
 
 void OffscreenQmlSurface::updateQuick() {
@@ -788,7 +891,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
+            QWidget* widget = static_cast<QWidget*>(originalDestination);
             if (widget) {
                 this->resize(resizeEvent->size());
             }
@@ -830,7 +933,9 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
             if (event->type() == QEvent::MouseMove) {
-                _qmlContext->setContextProperty("lastMousePosition", transformedPos);
+                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+                // need to investigate into why this crash is happening.
+                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
             }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
@@ -886,34 +991,12 @@ QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
 }
 
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
-}
-
 void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
     _currentFocusItem = nullptr;
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
         _currentFocusItem = nullptr;
@@ -955,6 +1038,7 @@ static const uint8_t BACKSPACE_SYMBOL[] = { 0xE2, 0x86, 0x90, 0x00 };
 static const uint8_t LEFT_ARROW[] = { 0xE2, 0x9D, 0xAC, 0x00 };
 static const uint8_t RIGHT_ARROW[] = { 0xE2, 0x9D, 0xAD, 0x00 };
 static const uint8_t RETURN_SYMBOL[] = { 0xE2, 0x8F, 0x8E, 0x00 };
+static const uint8_t COLLAPSE_KEYBOARD[] = { 0xEE, 0x80, 0xAB, 0x00 };
 static const char PUNCTUATION_STRING[] = "123";
 static const char ALPHABET_STRING[] = "abc";
 
@@ -968,8 +1052,8 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
     return ptr[i] == 0x00;
 }
 
-void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
-    auto eventHandler = getEventHandler();
+void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverride) {
+    auto eventHandler = targetOverride ? targetOverride : getEventHandler();
     if (eventHandler) {
         auto utf8Key = key.toUtf8();
 
@@ -978,6 +1062,9 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
         if (equals(utf8Key, SHIFT_ARROW) || equals(utf8Key, NUMERIC_SHIFT_ARROW) ||
             equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
             return;  // ignore
+        } else if (equals(utf8Key, COLLAPSE_KEYBOARD)) {
+            lowerKeyboard();
+            return;
         } else if (equals(utf8Key, BACKSPACE_SYMBOL)) {
             scanCode = Qt::Key_Backspace;
             keyString = "\x08";
@@ -999,7 +1086,23 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
     }
 }
 
-void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+void OffscreenQmlSurface::lowerKeyboard() {
+
+    QSignalBlocker blocker(_quickWindow);
+
+    if (_currentFocusItem) {
+        _currentFocusItem->setFocus(false);
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+}
+
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric, bool passwordField) {
+    qCDebug(uiLogging) << "setKeyboardRaised: " << object << ", raised: " << raised << ", numeric: " << numeric << ", password: " << passwordField;
+
+#if Q_OS_ANDROID
+    return;
+#endif
+
     if (!object) {
         return;
     }
@@ -1007,15 +1110,33 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
     // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
     if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
         QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+        if (!item) {
+            return;
+        }
+
+        // for future probably makes sense to consider one of the following:
+        // 1. make keyboard a singleton, which will be dynamically re-parented before showing
+        // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
+        // any of above should also eliminate need in duplicated properties and code below
+
         while (item) {
             // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
             numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
             if (item->property("keyboardRaised").isValid()) {
+
                 // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
                 if (item->property("punctuationMode").isValid()) {
                     item->setProperty("punctuationMode", QVariant(numeric));
                 }
+                if (item->property("passwordField").isValid()) {
+                    item->setProperty("passwordField", QVariant(passwordField));
+                }
+
+                if (raised) {
+                    item->setProperty("keyboardRaised", QVariant(!raised));
+                }
+
                 item->setProperty("keyboardRaised", QVariant(raised));
                 return;
             }
@@ -1040,9 +1161,13 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
         const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
         const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
         const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC_PASSWORD = "_RAISE_KEYBOARD_NUMERIC_PASSWORD";
+        const QString RAISE_KEYBOARD_PASSWORD = "_RAISE_KEYBOARD_PASSWORD";
         QString messageString = message.type() == QVariant::String ? message.toString() : "";
         if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
-            setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
+            bool numeric = (messageString == RAISE_KEYBOARD_NUMERIC || messageString == RAISE_KEYBOARD_NUMERIC_PASSWORD);
+            bool passwordField = (messageString == RAISE_KEYBOARD_PASSWORD || messageString == RAISE_KEYBOARD_NUMERIC_PASSWORD);
+            setKeyboardRaised(_currentFocusItem, true, numeric, passwordField);
         } else if (messageString == LOWER_KEYBOARD) {
             setKeyboardRaised(_currentFocusItem, false);
         } else {
@@ -1059,5 +1184,6 @@ void OffscreenQmlSurface::sendToQml(const QVariant& message) {
         QMetaObject::invokeMethod(_rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
     }
 }
+
 
 #include "OffscreenQmlSurface.moc"

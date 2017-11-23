@@ -258,7 +258,8 @@ namespace cache {
     };
 }
 
-void FileCache::eject(const FilePointer& file) {
+// Take file pointer by value to insure it doesn't get destructed during the "erase()" calls
+void FileCache::eject(FilePointer file) {
     file->_locked = false;
     const auto& length = file->getLength();
     const auto& key = file->getKey();

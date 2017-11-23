@@ -23,9 +23,6 @@ import "../controls" as HifiControls
 
 Rectangle {
     id: pal;
-    // Size
-    width: parent.width;
-    height: parent.height;
     // Style
     color: "#E3E3E3";
     // Properties
@@ -830,7 +827,7 @@ Rectangle {
                         hoverEnabled: enabled
                         enabled: connectionsNameCard.selected && pal.activeTab == "connectionsTab"
                         onClicked: {
-                            AddressManager.goToUser(model.userName);
+                            AddressManager.goToUser(model.userName, false);
                             UserActivityLogger.palAction("go_to_user", model.userName);
                         }
                         onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
@@ -1101,9 +1098,9 @@ Rectangle {
         case 'nearbyUsers':
             var data = message.params;
             var index = -1;
+            iAmAdmin = Users.canKick;
             index = findNearbySessionIndex('', data);
             if (index !== -1) {
-                iAmAdmin = Users.canKick;
                 myData = data[index];
                 data.splice(index, 1);
             } else {

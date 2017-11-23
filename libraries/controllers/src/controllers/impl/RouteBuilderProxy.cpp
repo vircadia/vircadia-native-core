@@ -24,6 +24,7 @@
 #include "filters/DeadZoneFilter.h"
 #include "filters/HysteresisFilter.h"
 #include "filters/InvertFilter.h"
+#include "filters/NotFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
@@ -145,6 +146,11 @@ QObject* RouteBuilderProxy::constrainToPositiveInteger() {
 
 QObject* RouteBuilderProxy::pulse(float interval) {
     addFilter(std::make_shared<PulseFilter>(interval));
+    return this;
+}
+
+QObject* RouteBuilderProxy::logicalNot() {
+    addFilter(std::make_shared<NotFilter>());
     return this;
 }
 

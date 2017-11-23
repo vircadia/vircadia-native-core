@@ -19,6 +19,7 @@
 #include <QGuiApplication>
 
 #include <gl/GLHelpers.h>
+#include <gl/GLShaders.h>
 
 #include <gl/QOpenGLContextWrapper.h>
 
@@ -57,8 +58,6 @@
 #include <render-utils/model_lightmap_specular_map_frag.h>
 #include <render-utils/model_translucent_frag.h>
 
-#include <entities-renderer/untextured_particle_frag.h>
-#include <entities-renderer/untextured_particle_vert.h>
 #include <entities-renderer/textured_particle_frag.h>
 #include <entities-renderer/textured_particle_vert.h>
 
@@ -116,12 +115,36 @@ public:
     }
 };
 
+
+
+const std::string VERTEX_SHADER_DEFINES{ R"GLSL(
+#version 410 core
+#define GPU_VERTEX_SHADER
+#define GPU_TRANSFORM_IS_STEREO
+#define GPU_TRANSFORM_STEREO_CAMERA
+#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
+#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+)GLSL" };
+
+const std::string PIXEL_SHADER_DEFINES{ R"GLSL(
+#version 410 core
+#define GPU_PIXEL_SHADER
+#define GPU_TRANSFORM_IS_STEREO
+#define GPU_TRANSFORM_STEREO_CAMERA
+#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
+#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+)GLSL" };
+
 void testShaderBuild(const char* vs_src, const char * fs_src) {
-    auto vs = gpu::Shader::createVertex(std::string(vs_src));
-    auto fs = gpu::Shader::createPixel(std::string(fs_src));
-    auto pr = gpu::Shader::createProgram(vs, fs);
-    if (!gpu::Shader::makeProgram(*pr)) {
+    std::string error;
+    GLuint vs, fs;
+    if (!gl::compileShader(GL_VERTEX_SHADER, vs_src, VERTEX_SHADER_DEFINES, vs, error) || 
+        !gl::compileShader(GL_FRAGMENT_SHADER, fs_src, PIXEL_SHADER_DEFINES, fs, error)) {
         throw std::runtime_error("Failed to compile shader");
+    }
+    auto pr = gl::compileProgram({ vs, fs }, error);
+    if (!pr) {
+        throw std::runtime_error("Failed to link shader");
     }
 }
 
@@ -172,7 +195,6 @@ void QTestWindow::draw() {
         testShaderBuild(skin_model_normal_map_vert, model_translucent_frag);
 
         testShaderBuild(model_shadow_vert, model_shadow_frag);
-        testShaderBuild(untextured_particle_vert, untextured_particle_frag);
         testShaderBuild(textured_particle_vert, textured_particle_frag);
 /* FIXME: Bring back the ssao shader tests
         testShaderBuild(gaussian_blur_vertical_vert, gaussian_blur_frag);

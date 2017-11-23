@@ -20,7 +20,7 @@ public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
 public slots:
-    QString getURL() const;
+    QString getURL();
     void setURL(const QString& url);
     void setScriptURL(const QString& script);
 

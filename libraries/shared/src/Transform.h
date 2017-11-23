@@ -38,6 +38,7 @@ inline bool isValidScale(float scale) {
 
 class Transform {
 public:
+    friend QDebug& operator<<(QDebug& debug, const Transform& transform);
     using Pointer = std::shared_ptr<Transform>;
     typedef glm::mat4 Mat4;
     typedef glm::mat3 Mat3;
@@ -148,6 +149,7 @@ public:
 
     Vec4 transform(const Vec4& pos) const;
     Vec3 transform(const Vec3& pos) const;
+    Vec3 transformDirection(const Vec3& dir) const;
 
     bool containsNaN() const { return isNaN(_rotation) || isNaN(glm::dot(_scale, _translation)); }
 
@@ -169,7 +171,6 @@ protected:
         FLAG_CACHE_INVALID_BITSET = 1,
     };
     typedef std::bitset<NUM_FLAGS> Flags;
-
 
     // TRS
     Quat _rotation;
@@ -201,6 +202,8 @@ protected:
     void updateCache() const;
     Mat4& getCachedMatrix(Mat4& result) const;
 };
+
+QDebug& operator<<(QDebug& debug, const Transform& transform);
 
 inline Transform& Transform::setIdentity() {
     _translation = Vec3(0.0f);
@@ -537,6 +540,13 @@ inline Transform::Vec3 Transform::transform(const Vec3& pos) const {
     getMatrix(m);
     Vec4 result = m * Vec4(pos, 1.0f);
     return Vec3(result.x / result.w, result.y / result.w, result.z / result.w);
+}
+
+inline Transform::Vec3 Transform::transformDirection(const Vec3& dir) const {
+    Mat4 m;
+    getMatrix(m);
+    Vec4 result = m * Vec4(dir, 0.0f);
+    return Vec3(result.x, result.y, result.z);
 }
 
 inline Transform::Mat4& Transform::getCachedMatrix(Transform::Mat4& result) const {

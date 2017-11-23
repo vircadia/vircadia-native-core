@@ -36,7 +36,7 @@ MyCharacterController::~MyCharacterController() {
 
 void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     CharacterController::setDynamicsWorld(world);
-    if (world) {
+    if (world && _rigidBody) {
         initRayShotgun(world);
     }
 }

@@ -52,19 +52,26 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 }
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
-    auto backgroundStage = context->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
     backgroundStage->_currentFrame.clear();
+
+    // Haze
+    auto hazeStage = context->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+    hazeStage->_currentFrame.clear();
 
     // call render in the correct order first...
     render::renderItems(context, inputs);
 
     // Finally add the default lights and background:
-    auto lightStage = context->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = context->_scene->getStage<LightStage>();
+    assert(lightStage);
+    
     lightStage->_currentFrame.pushSunLight(0);
     lightStage->_currentFrame.pushAmbientLight(0);
 
     backgroundStage->_currentFrame.pushBackground(0);
-
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
@@ -136,14 +143,13 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
     auto deferredTransform = inputs;
 
-    auto lightStage = context->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = context->_scene->getStage<LightStage>(LightStage::getName());
     std::vector<model::LightPointer> keyLightStack;
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         for (auto index : lightStage->_currentFrame._sunLights) {
             keyLightStack.push_back(lightStage->getLight(index));
         }
     }
-   // keyLightStack.push_back(lightStage->getLight(0));
 
     std::vector<model::LightPointer> ambientLightStack;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
@@ -151,9 +157,8 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             ambientLightStack.push_back(lightStage->getLight(index));
         }
     }
-  //  ambientLightStack.push_back(lightStage->getLight(0));
 
-    auto backgroundStage = context->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
     std::vector<model::SkyboxPointer> skyboxStack;
     if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
         for (auto index : backgroundStage->_currentFrame._backgrounds) {
@@ -162,8 +167,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
                 skyboxStack.push_back(background->getSkybox());
             }
         }
-    } 
-  //  skyboxStack.push_back(backgroundStage->getBackground(0)->getSkybox());
+    }
 
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {

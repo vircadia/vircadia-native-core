@@ -13,6 +13,10 @@
 
 #include <QObject>
 
+#include <glm/glm.hpp>
+
+#include <EntityItemID.h>
+
 /**jsdoc
  * @namespace Clipboard
  */

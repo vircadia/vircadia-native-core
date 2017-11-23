@@ -13,8 +13,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtGui/QImage>
+#include <QtConcurrent/QtConcurrentRun>
 
-#include <QtConcurrent/qtconcurrentrun.h>
+#include <plugins/DisplayPlugin.h>
 #include "SnapshotAnimated.h"
 
 QTimer* SnapshotAnimated::snapshotAnimatedTimer = NULL;

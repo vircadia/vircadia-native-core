@@ -9,18 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(location = 0) in vec4 inColor;
+in vec4 _color;
 
+in float distanceFromCenter;
 out vec4 _fragColor;
 
 void main(void) {
     // The incoming value actually ranges from -1 to 1, so modify it 
     // so that it goes from 0 -> 1 -> 0 with the solid alpha being at 
     // the center of the line
-    float alpha = 1.0 - abs(inColor.a);
+    float alpha = 1.0 - abs(distanceFromCenter);
     
     // Convert from a linear alpha curve to a sharp peaked one
-	alpha = pow(alpha, 10); 
+	alpha = _color.a * pow(alpha, 10.0);
 	
 	// Drop everything where the curve falls off to nearly nothing
     if (alpha <= 0.05) {
@@ -28,6 +29,5 @@ void main(void) {
     }
     
     // Emit the color
-    _fragColor = vec4(inColor.rgb, alpha);
-    return;
+    _fragColor = vec4(_color.rgb, alpha);
 }

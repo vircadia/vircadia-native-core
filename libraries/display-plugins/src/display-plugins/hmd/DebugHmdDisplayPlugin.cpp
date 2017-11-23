@@ -35,26 +35,9 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     //_currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
     withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
-        
-        _handPoses[0] = glm::translate(mat4(), vec3(0.3f * cosf(secTimestampNow() * 3.0f), -0.3f * sinf(secTimestampNow() * 5.0f), 0.0f));
-        _handLasers[0].color = vec4(1, 0, 0, 1);
-        _handLasers[0].mode = HandLaserMode::Overlay;
-
-        _handPoses[1] = glm::translate(mat4(), vec3(0.3f * sinf(secTimestampNow() * 3.0f), -0.3f * cosf(secTimestampNow() * 5.0f), 0.0f));
-        _handLasers[1].color = vec4(0, 1, 1, 1);
-        _handLasers[1].mode = HandLaserMode::Overlay;
     });
     return Parent::beginFrameRender(frameIndex);
-}
-
-// DLL based display plugins MUST initialize GLEW inside the DLL code.
-void DebugHmdDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    glewInit();
-    glGetError(); // clear the potential error from glewExperimental
-    Parent::customizeContext();
 }
 
 bool DebugHmdDisplayPlugin::internalActivate() {
@@ -70,7 +53,7 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     _eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     _eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[0][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
     _renderTargetSize = { 3024, 1680 };
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated

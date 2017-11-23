@@ -118,20 +118,12 @@ CameraManager = function() {
     that.targetYaw = 0;
     that.targetPitch = 0;
 
-    that.focalPoint = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-    that.targetFocalPoint = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
+    that.focalPoint = Vec3.ZERO;
+    that.targetFocalPoint = Vec3.ZERO;
 
     easing = false;
     easingTime = 0;
-    startOrientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+    startOrientation = Quat.IDENTITY;
 
     that.previousCameraMode = null;
 

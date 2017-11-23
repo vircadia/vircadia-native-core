@@ -105,6 +105,7 @@ namespace MenuOption {
     const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
+    const QString FirstPersonHMD = "Enter First Person Mode in HMD";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
@@ -114,7 +115,6 @@ namespace MenuOption {
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
-    const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -162,6 +162,7 @@ namespace MenuOption {
     const QString RenderIKTargets = "Show IK Targets";
     const QString RenderIKConstraints = "Show IK Constraints";
     const QString RenderIKChains = "Show IK Chains";
+    const QString RenderDetailedCollision = "Show Detailed Collision";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
@@ -176,6 +177,7 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowMyLookAtVectors = "Show My Eye Vectors";
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
+    const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
@@ -198,6 +200,8 @@ namespace MenuOption {
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
     const QString WorldAxes = "World Axes";
+    const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
+    const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
 }
 
 #endif // hifi_Menu_h

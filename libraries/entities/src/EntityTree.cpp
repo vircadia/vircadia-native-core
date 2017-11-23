@@ -13,16 +13,26 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QQueue>
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include "AccountManager.h"
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
 #include <QtScript/QScriptEngine>
 
-#include <PerfStat.h>
 #include <Extents.h>
+#include <PerfStat.h>
+#include <Profile.h>
 
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
-#include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
@@ -62,6 +72,8 @@ EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
 {
     resetClientEditStats();
+
+    EntityItem::retrieveMarketplacePublicKey();
 }
 
 EntityTree::~EntityTree() {
@@ -90,17 +102,126 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
-    {
-        QWriteLocker locker(&_entityToElementLock);
-        foreach(EntityTreeElementPointer element, _entityToElementMap) {
-            element->cleanupEntities();
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
+            EntityTreeElementPointer element = entity->getElement();
+            if (element) {
+                element->cleanupEntities();
+            }
         }
-        _entityToElementMap.clear();
-    }
+    });
+    localMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
     clearDeletedEntities();
+}
+
+void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) {
+    Octree::readBitstreamToTree(bitstream, bufferSizeBytes, args);
+
+    // add entities
+    QHash<EntityItemID, EntityItemPointer>::const_iterator itr;
+    for (itr = _entitiesToAdd.constBegin(); itr != _entitiesToAdd.constEnd(); ++itr) {
+        const EntityItemPointer& entityItem = itr.value();
+        AddEntityOperator theOperator(getThisPointer(), entityItem);
+        recurseTreeWithOperator(&theOperator);
+        postAddEntity(entityItem);
+    }
+    _entitiesToAdd.clear();
+
+    // move entities
+    if (_entityMover.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        recurseTreeWithOperator(&_entityMover);
+        _entityMover.reset();
+    }
+}
+
+int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    const unsigned char* dataAt = data;
+    int bytesRead = 0;
+    uint16_t numberOfEntities = 0;
+    int expectedBytesPerEntity = EntityItem::expectedBytes();
+
+    args.elementsPerPacket++;
+
+    if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
+        // read our entities in....
+        numberOfEntities = *(uint16_t*)dataAt;
+
+        dataAt += sizeof(numberOfEntities);
+        bytesLeftToRead -= (int)sizeof(numberOfEntities);
+        bytesRead += sizeof(numberOfEntities);
+
+        if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
+            for (uint16_t i = 0; i < numberOfEntities; i++) {
+                int bytesForThisEntity = 0;
+                EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+                EntityItemPointer entity = findEntityByEntityItemID(entityItemID);
+
+                if (entity) {
+                    QString entityScriptBefore = entity->getScript();
+                    QUuid parentIDBefore = entity->getParentID();
+                    QString entityServerScriptsBefore = entity->getServerScripts();
+                    quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
+
+                    bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    if (entity->getDirtyFlags()) {
+                        entityChanged(entity);
+                    }
+                    _entityMover.addEntityToMoveList(entity, entity->getQueryAACube());
+
+                    QString entityScriptAfter = entity->getScript();
+                    QString entityServerScriptsAfter = entity->getServerScripts();
+                    quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
+                    bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+
+                    // If the script value has changed on us, or it's timestamp has changed to force
+                    // a reload then we want to send out a script changing signal...
+                    if (reload || entityScriptBefore != entityScriptAfter) {
+                        emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
+                    }
+                    if (reload || entityServerScriptsBefore != entityServerScriptsAfter) {
+                        emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
+                    }
+
+                    QUuid parentIDAfter = entity->getParentID();
+                    if (parentIDBefore != parentIDAfter) {
+                        addToNeedsParentFixupList(entity);
+                    }
+                } else {
+                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                    if (entity) {
+                        bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+
+                        // don't add if we've recently deleted....
+                        if (!isDeletedEntity(entityItemID)) {
+                            _entitiesToAdd.insert(entityItemID, entity);
+
+                            if (entity->getCreated() == UNKNOWN_CREATED_TIME) {
+                                entity->recordCreationTime();
+                            }
+                        #ifdef WANT_DEBUG
+                        } else {
+                                qCDebug(entities) << "Received packet for previously deleted entity [" <<
+                                        entityItemID << "] ignoring. (inside " << __FUNCTION__ << ")";
+                        #endif
+                        }
+                    }
+                }
+                // Move the buffer forward to read more entities
+                dataAt += bytesForThisEntity;
+                bytesLeftToRead -= bytesForThisEntity;
+                bytesRead += bytesForThisEntity;
+            }
+        }
+    }
+
+    return bytesRead;
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -119,6 +240,31 @@ bool EntityTree::handlesEditPacketType(PacketType packetType) const {
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
+
+    if (getIsServer()) {
+        QString certID(entity->getCertificateID());
+        EntityItemID entityItemID = entity->getEntityItemID();
+        EntityItemID existingEntityItemID;
+
+        {
+            QWriteLocker locker(&_entityCertificateIDMapLock);
+            existingEntityItemID = _entityCertificateIDMap.value(certID);
+            if (!certID.isEmpty()) {
+                _entityCertificateIDMap.insert(certID, entityItemID);
+                qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID;
+            }
+        }
+
+        // Delete an already-existing entity from the tree if it has the same
+        //     CertificateID as the entity we're trying to add.
+        if (!existingEntityItemID.isNull()) {
+            qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
+                << existingEntityItemID << ". Deleting existing entity.";
+            deleteEntity(existingEntityItemID, true);
+            return;
+        }
+    }
+    
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -136,29 +282,24 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
+    EntityItemPointer entity;
+    {
+        QReadLocker locker(&_entityMapLock);
+        entity = _entityMap.value(entityID);
+    }
+    if (!entity) {
+        return false;
+    }
+    return updateEntity(entity, properties, senderNode);
+}
+
+bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& origProperties,
+        const SharedNodePointer& senderNode) {
+    EntityTreeElementPointer containingElement = entity->getElement();
     if (!containingElement) {
         return false;
     }
 
-    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
-    if (!existingEntity) {
-        return false;
-    }
-
-    return updateEntityWithElement(existingEntity, properties, containingElement, senderNode);
-}
-
-bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
-    EntityTreeElementPointer containingElement = getContainingElement(entity->getEntityItemID());
-    if (!containingElement) {
-        return false;
-    }
-    return updateEntityWithElement(entity, properties, containingElement, senderNode);
-}
-
-bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties,
-                                         EntityTreeElementPointer containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
 
     bool allowLockChange;
@@ -190,11 +331,13 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 bool success;
                 AACube queryCube = entity->getQueryAACube(success);
                 if (!success) {
-                    qCDebug(entities) << "Warning -- failed to get query-cube for" << entity->getID();
+                    qCWarning(entities) << "failed to get query-cube for" << entity->getID();
                 }
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
-                entity->setProperties(tempProperties);
+                if (entity->setProperties(tempProperties)) {
+                    emit editingEntityPointer(entity);
+                }
                 _isDirty = true;
             }
         }
@@ -269,7 +412,9 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         }
         UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newQueryAACube);
         recurseTreeWithOperator(&theOperator);
-        entity->setProperties(properties);
+        if (entity->setProperties(properties)) {
+            emit editingEntityPointer(entity);
+        }
 
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
@@ -331,9 +476,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
      }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
-    containingElement = getContainingElement(entity->getEntityItemID());
-    if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID="
+    if (!entity->getElement()) {
+        qCWarning(entities) << "EntityTree::updateEntity() we no longer have a containing element for entityID="
                 << entity->getEntityItemID();
         return false;
     }
@@ -352,7 +496,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     if (!properties.getClientOnly() && getIsClient() &&
-        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
         return nullptr;
     }
 
@@ -366,7 +511,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID
+        qCWarning(entities) << "EntityTree::addEntity() on existing entity item with entityID=" << entityID
                           << "containingElement=" << containingElement.get();
         return result;
     }
@@ -422,7 +567,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (!containingElement) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existent entityID=" << entityID;
         }
         return;
     }
@@ -430,8 +575,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
-                        "entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existant entity item with entityID=" << entityID;
         }
         return;
     }
@@ -445,6 +589,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
 
     unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
+    emit deletingEntityPointer(existingEntity.get());
 
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer(), entityID);
@@ -453,6 +598,10 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         auto descendantID = descendant->getID();
         theOperator.addEntityIDToDeleteList(descendantID);
         emit deletingEntity(descendantID);
+        EntityItemPointer descendantEntity = std::dynamic_pointer_cast<EntityItem>(descendant);
+        if (descendantEntity) {
+            emit deletingEntityPointer(descendantEntity.get());
+        }
     });
 
     recurseTreeWithOperator(&theOperator);
@@ -478,7 +627,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityTreeElementPointer containingElement = getContainingElement(entityID);
         if (!containingElement) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entityID=" << entityID;
             }
             continue;
         }
@@ -486,8 +635,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
-                            "entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entity item with entityID=" << entityID;
             }
             continue;
         }
@@ -503,6 +651,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
+        emit deletingEntityPointer(existingEntity.get());
     }
 
     if (theOperator.getEntities().size() > 0) {
@@ -531,8 +680,16 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         theEntity->die();
 
         if (getIsServer()) {
+            {
+                QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
+                QString certID = theEntity->getCertificateID();
+                if (theEntity->getEntityItemID() == _entityCertificateIDMap.value(certID)) {
+                    _entityCertificateIDMap.remove(certID);
+                }
+            }
+
             // set up the deleted entities ID
-            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+            QWriteLocker recentlyDeletedEntitiesLocker(&_recentlyDeletedEntitiesLock);
             _recentlyDeletedEntityItemIDs.insert(deletedAt, theEntity->getEntityItemID());
         } else {
             // on the client side, we also remember that we deleted this entity, we don't care about the time
@@ -594,7 +751,7 @@ bool EntityTree::findNearPointOperation(const OctreeElementPointer& element, voi
 bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
-    EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
     if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
@@ -751,6 +908,12 @@ void EntityTree::findEntities(const ViewFrustum& frustum, QVector<EntityItemPoin
     recurseTreeWithOperation(findInFrustumOperation, &args);
     // swap the two lists of entity pointers instead of copy
     foundEntities.swap(args.entities);
+}
+
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
+                              QVector<EntityItemPointer>& foundEntities) {
+    recurseTreeWithOperation(elementFilter, nullptr);
 }
 
 EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
@@ -911,7 +1074,8 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         changedProperties[index] = QString("queryAACube:") +
             QString::number((int)center.x) + "," +
             QString::number((int)center.y) + "," +
-            QString::number((int)center.z);
+            QString::number((int)center.z) + "/" +
+            QString::number(properties.getQueryAACube().getDimensions().x);
     }
     if (properties.positionChanged()) {
         int index = changedProperties.indexOf("position");
@@ -971,11 +1135,285 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
     return false;
 }
 
+void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
+    QTimer* _challengeOwnershipTimeoutTimer = new QTimer(this);
+    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const QString& certID) {
+        QReadLocker locker(&_entityCertificateIDMapLock);
+        EntityItemID id = _entityCertificateIDMap.value(certID);
+        if (entityItemID == id && _challengeOwnershipTimeoutTimer) {
+            _challengeOwnershipTimeoutTimer->stop();
+            _challengeOwnershipTimeoutTimer->deleteLater();
+        }
+    });
+    connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
+        qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
+        deleteEntity(entityItemID, true);
+        if (_challengeOwnershipTimeoutTimer) {
+            _challengeOwnershipTimeoutTimer->stop();
+            _challengeOwnershipTimeoutTimer->deleteLater();
+        }
+    });
+    _challengeOwnershipTimeoutTimer->setSingleShot(true);
+    _challengeOwnershipTimeoutTimer->start(5000);
+}
+
+void EntityTree::startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
+    qCDebug(entities) << "'transfer_status' is 'pending', checking again in 90 seconds..." << entityItemID;
+    QTimer* transferStatusRetryTimer = new QTimer(this);
+    connect(transferStatusRetryTimer, &QTimer::timeout, this, [=]() {
+        validatePop(certID, entityItemID, senderNode, true);
+    });
+    transferStatusRetryTimer->setSingleShot(true);
+    transferStatusRetryTimer->start(90000);
+}
+
+QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QString ownerKey) {
+    QString ownerKeyWithHeaders = ("-----BEGIN RSA PUBLIC KEY-----\n" + ownerKey + "\n-----END RSA PUBLIC KEY-----");
+    BIO* bio = BIO_new_mem_buf((void*)ownerKeyWithHeaders.toUtf8().constData(), -1);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
+    RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+
+    if (rsa) {
+        QUuid nonce = QUuid::createUuid();
+        const unsigned int textLength = nonce.toString().length();
+        QByteArray encryptedText(RSA_size(rsa), 0);
+        const int encryptStatus = RSA_public_encrypt(textLength,
+            reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString())),
+            reinterpret_cast<unsigned char*>(encryptedText.data()),
+            rsa,
+            RSA_PKCS1_OAEP_PADDING);
+        if (bio) {
+            BIO_free(bio);
+        }
+        RSA_free(rsa);
+        if (encryptStatus == -1) {
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Unable to compute encrypted nonce for" << certID << "\nRSA error:" << error_str;
+            return "";
+        }
+
+        QWriteLocker locker(&_certNonceMapLock);
+        _certNonceMap.insert(certID, nonce);
+
+        return encryptedText;
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        return "";
+    }
+}
+
+bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id) {
+    {
+        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+        id = _entityCertificateIDMap.value(certID);
+    }
+
+    QString actualNonce;
+    {
+        QWriteLocker locker(&_certNonceMapLock);
+        actualNonce = _certNonceMap.take(certID).toString();
+    }
+
+    bool verificationSuccess = (actualNonce == decryptedNonce);
+
+    if (verificationSuccess) {
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
+    } else {
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed."
+            << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
+    }
+
+    return verificationSuccess;
+}
+
+void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    int certIDByteArraySize;
+    int encryptedTextByteArraySize;
+    int nodeToChallengeByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&encryptedTextByteArraySize);
+    message.readPrimitive(&nodeToChallengeByteArraySize);
+
+    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray encryptedText(message.read(encryptedTextByteArraySize));
+    QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
+
+    sendChallengeOwnershipRequestPacket(certID, encryptedText, nodeToChallenge, sourceNode);
+}
+
+void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    int certIDByteArraySize;
+    int decryptedTextByteArraySize;
+    int challengingNodeUUIDByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&decryptedTextByteArraySize);
+    message.readPrimitive(&challengingNodeUUIDByteArraySize);
+
+    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray decryptedText(message.read(decryptedTextByteArraySize));
+    QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
+
+    auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+        certIDByteArraySize + decryptedText.length() + 2 * sizeof(int),
+        true);
+    challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipReplyPacket->writePrimitive(decryptedText.length());
+    challengeOwnershipReplyPacket->write(certID);
+    challengeOwnershipReplyPacket->write(decryptedText);
+
+    nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
+}
+
+void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
+    // 1. Encrypt a nonce with the owner's public key
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    QByteArray encryptedText = computeEncryptedNonce(certID, ownerKey);
+
+    if (encryptedText == "") {
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
+        deleteEntity(entityItemID, true);
+    } else {
+        qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
+        // 2. Send the encrypted text to the rezzing avatar's node
+        QByteArray certIDByteArray = certID.toUtf8();
+        int certIDByteArraySize = certIDByteArray.size();
+        auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+            certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
+            true);
+        challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+        challengeOwnershipPacket->writePrimitive(encryptedText.length());
+        challengeOwnershipPacket->write(certIDByteArray);
+        challengeOwnershipPacket->write(encryptedText);
+        nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
+
+        // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
+        if (thread() != QThread::currentThread()) {
+            QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
+            return;
+        } else {
+            startChallengeOwnershipTimer(entityItemID);
+        }
+    }
+}
+
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
+    //     to make sure belongs to Avatar B.
+    QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
+
+    int certIDByteArraySize = certID.length();
+    int encryptedTextByteArraySize = encryptedText.length();
+    int senderNodeUUIDSize = senderNodeUUID.length();
+
+    auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+        certIDByteArraySize + encryptedTextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
+        true);
+    challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+    challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
+    challengeOwnershipPacket->write(certID);
+    challengeOwnershipPacket->write(encryptedText);
+    challengeOwnershipPacket->write(senderNodeUUID);
+
+    nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
+}
+
+void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
+    // Start owner verification.
+    auto nodeList = DependencyManager::get<NodeList>();
+    //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+    QJsonObject request;
+    request["certificate_id"] = certID;
+    networkRequest.setUrl(requestURL);
+
+    QNetworkReply* networkReply = NULL;
+    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+    connect(networkReply, &QNetworkReply::finished, [=]() {
+        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+        jsonObject = jsonObject["data"].toObject();
+
+        if (networkReply->error() == QNetworkReply::NoError) {
+            if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
+                deleteEntity(entityItemID, true);
+            } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
+                qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
+                deleteEntity(entityItemID, true);
+            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
+                if (isRetryingValidation) {
+                    qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
+                    deleteEntity(entityItemID, true);
+                } else {
+                    if (thread() != QThread::currentThread()) {
+                        QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
+                            Q_ARG(const QString&, certID),
+                            Q_ARG(const EntityItemID&, entityItemID),
+                            Q_ARG(const SharedNodePointer&, senderNode));
+                        return;
+                    } else {
+                        startPendingTransferStatusTimer(certID, entityItemID, senderNode);
+                    }
+                }
+            } else {
+                // Second, challenge ownership of the PoP cert
+                sendChallengeOwnershipPacket(certID,
+                    jsonObject["transfer_recipient_key"].toString(),
+                    entityItemID,
+                    senderNode);
+
+            }
+        } else {
+            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
+                << "More info:" << jsonObject;
+            deleteEntity(entityItemID, true);
+        }
+
+        networkReply->deleteLater();
+    });
+}
+
+void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    int certIDByteArraySize;
+    int decryptedTextByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&decryptedTextByteArraySize);
+
+    QString certID(message.read(certIDByteArraySize));
+    QString decryptedText(message.read(decryptedTextByteArraySize));
+
+    emit killChallengeOwnershipTimeoutTimer(certID);
+
+    EntityItemID id;
+    if (!verifyDecryptedNonce(certID, decryptedText, id)) {
+        if (!id.isNull()) {
+            deleteEntity(id, true);
+        }
+    }
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
-        qCDebug(entities) << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
+        qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
     }
 
@@ -1080,7 +1518,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
-                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
+                (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
@@ -1139,19 +1578,23 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (!isPhysics) {
                         properties.setLastEditedBy(senderNode->getUUID());
                     }
-                    updateEntity(entityItemID, properties, senderNode);
+                    updateEntity(existingEntity, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
                 } else if (isAdd) {
                     bool failedAdd = !allowed;
+                    bool isCertified = !properties.getCertificateID().isEmpty();
                     if (!allowed) {
                         qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
-                    } else if (!senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
+                    } else if (!isCertified && !senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
                         failedAdd = true;
-                        qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
-                                          << "] attempted to add an entity ID:" << entityItemID;
-
+                        qCDebug(entities) << "User without 'uncertified rez rights' [" << senderNode->getUUID()
+                            << "] attempted to add an uncertified entity with ID:" << entityItemID;
+                    } else if (isCertified && !senderNode->getCanRezCertified() && !senderNode->getCanRezTmpCertified()) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
+                            << "] attempted to add a certified entity with ID:" << entityItemID;
                     } else {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
@@ -1160,6 +1603,19 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
                         endCreate = usecTimestampNow();
                         _totalCreates++;
+
+                        if (newEntity && isCertified && getIsServer()) {
+                            if (!properties.verifyStaticCertificateProperties()) {
+                                qCDebug(entities) << "User" << senderNode->getUUID()
+                                    << "attempted to add a certified entity with ID" << entityItemID << "which failed"
+                                    << "static certificate verification.";
+                                // Delete the entity we just added if it doesn't pass static certificate verification
+                                deleteEntity(entityItemID, true);
+                            } else {
+                                validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
+                            }
+                        }
+
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);
@@ -1252,7 +1708,8 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 
 
 void EntityTree::fixupNeedsParentFixups() {
-    MovingEntitiesOperator moveOperator(getThisPointer());
+    PROFILE_RANGE(simulation_physics, "FixupParents");
+    MovingEntitiesOperator moveOperator;
 
     QWriteLocker locker(&_needsParentFixupLock);
 
@@ -1328,14 +1785,22 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
     }
 }
 
+void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
+    QUuid avatarID = entity->getParentID();
+    if (_childrenOfAvatars.contains(avatarID)) {
+        _childrenOfAvatars[avatarID].remove(entity->getID());
+    }
+}
+
 void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     QWriteLocker locker(&_needsParentFixupLock);
     _needsParentFixup.append(entity);
 }
 
-void EntityTree::update() {
+void EntityTree::update(bool simulate) {
+    PROFILE_RANGE(simulation_physics, "ET::update");
     fixupNeedsParentFixups();
-    if (_simulation) {
+    if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
             VectorOfEntities pendingDeletes;
@@ -1502,27 +1967,43 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    QReadLocker locker(&_entityToElementLock);
-    EntityTreeElementPointer element = _entityToElementMap.value(entityItemID);
-    return element;
+    EntityItemPointer entity;
+    {
+        QReadLocker locker(&_entityMapLock);
+        entity = _entityMap.value(entityItemID);
+    }
+    if (entity) {
+        return entity->getElement();
+    }
+    return EntityTreeElementPointer(nullptr);
 }
 
-void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element) {
-    QWriteLocker locker(&_entityToElementLock);
-    if (element) {
-        _entityToElementMap[entityItemID] = element;
-    } else {
-        _entityToElementMap.remove(entityItemID);
+void EntityTree::addEntityMapEntry(EntityItemPointer entity) {
+    EntityItemID id = entity->getEntityItemID();
+    QWriteLocker locker(&_entityMapLock);
+    EntityItemPointer otherEntity = _entityMap.value(id);
+    if (otherEntity) {
+        qCWarning(entities) << "EntityTree::addEntityMapEntry() found pre-existing id " << id;
+        assert(false);
+        return;
     }
+    _entityMap.insert(id, entity);
+}
+
+void EntityTree::clearEntityMapEntry(const EntityItemID& id) {
+    QWriteLocker locker(&_entityMapLock);
+    _entityMap.remove(id);
 }
 
 void EntityTree::debugDumpMap() {
+    // QHash's are implicitly shared, so we make a shared copy and use that instead.
+    // This way we might be able to avoid both a lock and a true copy.
+    QHash<EntityItemID, EntityItemPointer> localMap(_entityMap);
     qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
-    QReadLocker locker(&_entityToElementLock);
-    QHashIterator<EntityItemID, EntityTreeElementPointer> i(_entityToElementMap);
+    QHashIterator<EntityItemID, EntityItemPointer> i(localMap);
     while (i.hasNext()) {
         i.next();
-        qCDebug(entities) << i.key() << ": " << i.value().get();
+        qCDebug(entities) << i.key() << ": " << i.value()->getElement().get();
     }
     qCDebug(entities) << "-----------------------------------------------------";
 }
@@ -1653,7 +2134,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     // add-entity packet to the server.
 
     // fix the queryAACubes of any children that were read in before their parents, get them into the correct element
-    MovingEntitiesOperator moveOperator(localTree);
+    MovingEntitiesOperator moveOperator;
     QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
     while (i != map.end()) {
         EntityItemID newID = i.value();
@@ -1663,6 +2144,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                 addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
+            entity->updateQueryAACube();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {
@@ -1681,7 +2163,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
         if (entity) {
             // queue the packet to send to the server
-            entity->computePuffedQueryAACube();
+            entity->updateQueryAACube();
             EntityItemProperties properties = entity->getProperties();
             properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
             packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
@@ -1706,7 +2188,13 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
 
         QHash<EntityItemID, EntityItemID>::iterator iter = args->map->find(oldID);
         if (iter == args->map->end()) {
-            EntityItemID newID = QUuid::createUuid();
+            EntityItemID newID;
+            if (oldID == AVATAR_SELF_ID) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                newID = EntityItemID(nodeList->getSessionUUID());
+            } else {
+                newID = QUuid::createUuid();
+            }
             args->map->insert(oldID, newID);
             return newID;
         }
@@ -1723,8 +2211,8 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
             properties.setPosition(properties.getPosition() + args->root);
         } else {
             EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
-            if (parentEntity) { // map the parent
-                properties.setParentID(getMapped(parentEntity->getID()));
+            if (parentEntity || oldParentID == AVATAR_SELF_ID) { // map the parent
+                properties.setParentID(getMapped(oldParentID));
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
@@ -1799,6 +2287,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
+        if (properties.getClientOnly()) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            properties.setOwningAvatarID(myNodeID);
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
@@ -1832,16 +2326,6 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
             _maxEditDelta = sinceEdit;
         }
     }
-}
-
-void EntityTree::callLoader(EntityItemID entityID) {
-    // this is used to bounce from the networking thread to the main thread
-    this->withWriteLock([&] {
-        EntityItemPointer entity = findEntityByEntityItemID(entityID);
-        if (entity) {
-            entity->loader();
-        }
-    });
 }
 
 int EntityTree::getJointIndex(const QUuid& entityID, const QString& name) const {

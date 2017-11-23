@@ -34,6 +34,7 @@ int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int xColorMetaTypeId = qRegisterMetaType<xColor>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
+int rayPickResultMetaTypeId = qRegisterMetaType<RayPickResult>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
 int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
@@ -56,6 +57,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
     qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
+    qScriptRegisterMetaType(engine, rayPickResultToScriptValue, rayPickResultFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
@@ -751,6 +753,26 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
+QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("type", rayPickResult.type);
+    QScriptValue objectID = quuidToScriptValue(engine, rayPickResult.objectID);
+    obj.setProperty("objectID", objectID);
+    obj.setProperty("distance", rayPickResult.distance);
+    QScriptValue intersection = vec3toScriptValue(engine, rayPickResult.intersection);
+    obj.setProperty("intersection", intersection);
+    obj.setProperty("intersects", rayPickResult.type != NONE);
+    QScriptValue searchRay = pickRayToScriptValue(engine, rayPickResult.searchRay);
+    obj.setProperty("searchRay", searchRay);
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, rayPickResult.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
+    return obj;
+}
+
+void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult) {
+    // TODO: cannot currently accept RayPickResults from JS
+}
+
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("type", collision.type);
@@ -808,10 +830,10 @@ AnimationDetails::AnimationDetails() :
 }
 
 AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame) :
+    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame, bool allowTranslation) :
     role(role), url(url), fps(fps), priority(priority), loop(loop), hold(hold),
     startAutomatically(startAutomatically), firstFrame(firstFrame), lastFrame(lastFrame),
-    running(running), currentFrame(currentFrame) {
+    running(running), currentFrame(currentFrame), allowTranslation(allowTranslation) {
 }
 
 
@@ -828,6 +850,7 @@ QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const Animatio
     obj.setProperty("lastFrame", details.lastFrame);
     obj.setProperty("running", details.running);
     obj.setProperty("currentFrame", details.currentFrame);
+    obj.setProperty("allowTranslation", details.allowTranslation);
     return obj;
 }
 

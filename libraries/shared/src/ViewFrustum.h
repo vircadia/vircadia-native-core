@@ -107,12 +107,7 @@ public:
     bool cubeIntersectsKeyhole(const AACube& cube) const;
     bool boxIntersectsKeyhole(const AABox& box) const;
 
-    // some frustum comparisons
-    bool matches(const ViewFrustum& compareTo, bool debug = false) const;
-    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
-
-    bool isVerySimilar(const ViewFrustum& compareTo, bool debug = false) const;
-    bool isVerySimilar(const ViewFrustum* compareTo, bool debug = false) const { return isVerySimilar(*compareTo, debug); }
+    bool isVerySimilar(const ViewFrustum& compareTo) const;
 
     PickRay computePickRay(float x, float y);
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
@@ -124,6 +119,8 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
+    CubeProjectedPolygon getProjectedPolygon(const AABox& box) const;
+    bool getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm::vec2& topRight) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -174,6 +171,10 @@ private:
 
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
+    
+    template <typename TBOX>
+    CubeProjectedPolygon computeProjectedPolygon(const TBOX& box) const;
+
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 

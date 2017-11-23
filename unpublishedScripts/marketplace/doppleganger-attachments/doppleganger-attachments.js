@@ -1,10 +1,12 @@
 "use strict";
 /* eslint-env commonjs */
 /* eslint-disable comma-dangle */
+/* global console */
 
+// var require = function(id) { return Script.require(id + '?'+new Date().getTime().toString(36)); }
 module.exports = DopplegangerAttachments;
 
-DopplegangerAttachments.version = '0.0.0';
+DopplegangerAttachments.version = '0.0.1b';
 DopplegangerAttachments.WANT_DEBUG = false;
 
 var _modelHelper = require('./model-helper.js'),
@@ -13,8 +15,10 @@ var _modelHelper = require('./model-helper.js'),
     utils = require('./utils.js');
 
 function log() {
-    print('doppleganger-attachments | ' + [].slice.call(arguments).join(' '));
+    // eslint-disable-next-line no-console
+    (typeof console === 'object' ? console.log : print)('doppleganger-attachments | ' + [].slice.call(arguments).join(' '));
 }
+log(DopplegangerAttachments.version);
 
 function debugPrint() {
     DopplegangerAttachments.WANT_DEBUG && log.apply(this, arguments);
@@ -61,6 +65,9 @@ DopplegangerAttachments.prototype = {
     },
     // compare before / after attachment sets to determine which ones need to be (re)created
     refreshAttachments: function() {
+        if (!this.doppleganger.objectID) {
+            return log('refreshAttachments -- canceling; !this.doppleganger.objectID');
+        }
         var before = this.attachments || [],
             beforeIndex = before.reduce(function(out, att, index) {
                 out[att.$hash] = index; return out;
@@ -90,18 +97,19 @@ DopplegangerAttachments.prototype = {
             var attachments = this.attachments,
                 parentID = this.doppleganger.objectID,
                 jointNames = this.doppleganger.jointNames,
-                properties = modelHelper.getProperties(this.doppleganger.objectID);
-
+                properties = modelHelper.getProperties(this.doppleganger.objectID),
+                modelType = properties && properties.type;
+            utils.assert(modelType === 'model' || modelType === 'Model', 'unrecognized doppleganger modelType:' + modelType);
             debugPrint('DopplegangerAttachments..._createAttachmentObjects', JSON.stringify({
-                type: properties.type,
+                modelType: modelType,
                 attachments: attachments.length,
                 parentID: parentID,
                 jointNames: jointNames.join(' | '),
             },0,2));
             return attachments.map(utils.bind(this, function(attachment, i) {
-                var type = modelHelper.type(attachment.properties && attachment.properties.objectID);
-                if (type === 'overlay') {
-                    debugPrint('skipping already-provisioned attachment object', type, attachment.properties && attachment.properties.name);
+                var objectType = modelHelper.type(attachment.properties && attachment.properties.objectID);
+                if (objectType === 'overlay') {
+                    debugPrint('skipping already-provisioned attachment object', objectType, attachment.properties && attachment.properties.name);
                     return attachment;
                 }
                 var jointIndex = attachment.$jointIndex, // jointNames.indexOf(attachment.jointName),
@@ -109,7 +117,7 @@ DopplegangerAttachments.prototype = {
 
                 attachment.properties = utils.assign({
                     name: attachment.toString(),
-                    type: properties.type,
+                    type: modelType,
                     modelURL: attachment.modelUrl,
                     scale: scale,
                     dimensions: modelHelper.type(parentID) === 'entity' ?
@@ -119,14 +127,16 @@ DopplegangerAttachments.prototype = {
                     dynamic: false,
                     shapeType: 'none',
                     lifetime: 60,
-                    grabbable: true,
                 }, !this.manualJointSync && {
                     parentID: parentID,
                     parentJointIndex: jointIndex,
+                    localPosition: attachment.translation,
+                    localRotation: Quat.fromVec3Degrees(attachment.rotation),
                 });
                 var objectID = attachment.properties.objectID = modelHelper.addObject(attachment.properties);
+                utils.assert(!Uuid.isNull(objectID), 'could not create attachment: ' + [objectID, JSON.stringify(attachment.properties,0,2)]);
                 attachment._resource = ModelCache.prefetch(attachment.properties.modelURL);
-                attachment._modelReadier = new ModelReadyWatcher( {
+                attachment._modelReadier = new ModelReadyWatcher({
                     resource: attachment._resource,
                     objectID: objectID,
                 });
@@ -134,21 +144,23 @@ DopplegangerAttachments.prototype = {
 
                 attachment._modelReadier.modelReady.connect(this, function(err, result) {
                     if (err) {
-                        log('>>>>> modelReady ERROR <<<<<: ' + err, attachment.modelUrl);
+                        log('>>>>> modelReady ERROR <<<<<: ' + err, attachment.properties.modelURL);
                         modelHelper.deleteObject(objectID);
                         return objectID = null;
                     }
                     debugPrint('attachment model ('+modelHelper.type(result.objectID)+') is ready; # joints ==',
-                        result.jointNames && result.jointNames.length, result.naturalDimensions, result.objectID);
+                        result.jointNames && result.jointNames.length, JSON.stringify(result.naturalDimensions), result.objectID);
                     var properties = modelHelper.getProperties(result.objectID),
-                        naturalDimensions = attachment.properties.naturalDimensions = properties.naturalDimensions;
-                    modelHelper.editObject(result.objectID, {
+                        naturalDimensions = attachment.properties.naturalDimensions = properties.naturalDimensions || result.naturalDimensions;
+                    modelHelper.editObject(objectID, {
                         dimensions: naturalDimensions ? Vec3.multiply(attachment.scale, naturalDimensions) : undefined,
+                        localRotation: Quat.normalize({}),
+                        localPosition: Vec3.ZERO,
                     });
                     this.onJointsUpdated(parentID); // trigger once to initialize position/rotation
                     // give time for model overlay to "settle", then make it visible
                     Script.setTimeout(utils.bind(this, function() {
-                        modelHelper.editObject(result.objectID, {
+                        modelHelper.editObject(objectID, {
                             visible: true,
                         });
                         attachment._loaded = true;
@@ -175,7 +187,7 @@ DopplegangerAttachments.prototype = {
         }
     },
 
-    onJointsUpdated: function onJointsUpdated(objectID) {
+    onJointsUpdated: function onJointsUpdated(objectID, jointUpdates) {
         var jointOrientations = modelHelper.getJointOrientations(objectID),
             jointPositions = modelHelper.getJointPositions(objectID),
             parentID = objectID,
@@ -195,8 +207,9 @@ DopplegangerAttachments.prototype = {
                 jointPosition = jointPositions[jointIndex];
 
             var translation = Vec3.multiply(avatarScale, attachment.translation),
-                rotation = Quat.fromVec3Degrees(attachment.rotation),
-                localPosition = Vec3.multiplyQbyV(jointOrientation, translation),
+                rotation = Quat.fromVec3Degrees(attachment.rotation);
+
+            var localPosition = Vec3.multiplyQbyV(jointOrientation, translation),
                 localRotation = rotation;
 
             updates[objectID] = manualJointSync ? {
@@ -212,7 +225,6 @@ DopplegangerAttachments.prototype = {
                 localPosition: localPosition,
                 scale: attachment.scale,
             };
-            onJointsUpdated[objectID] = updates[objectID];
             return updates;
         }, {});
         modelHelper.editObjects(updatedObjects);
@@ -221,7 +233,7 @@ DopplegangerAttachments.prototype = {
     _initialize: function() {
         var doppleganger = this.doppleganger;
         if ('$attachmentControls' in doppleganger) {
-            throw new Error('only one set of debug controls can be added per doppleganger');
+            throw new Error('only one set of attachment controls can be added per doppleganger');
         }
         doppleganger.$attachmentControls = this;
         doppleganger.activeChanged.connect(this, function(active) {

@@ -159,6 +159,7 @@ protected:
     friend class gl::GLBuffer;
     friend class gl41::GL41Buffer;
     friend class gl45::GL45Buffer;
+    friend class gles::GLESBuffer;
 };
 
 using BufferUpdates = std::vector<Buffer::Update>;
@@ -192,7 +193,7 @@ public:
     BufferView(const BufferPointer& buffer, Size offset, Size size, const Element& element = DEFAULT_ELEMENT);
     BufferView(const BufferPointer& buffer, Size offset, Size size, uint16 stride, const Element& element = DEFAULT_ELEMENT);
 
-    Size getNumElements() const { return (_size - _offset) / _stride; }
+    Size getNumElements() const { return _size / _stride; }
 
     //Template iterator with random access on the buffer sysmem
     template<typename T>

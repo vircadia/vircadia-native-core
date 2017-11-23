@@ -21,4 +21,16 @@ glm::quat averageQuats(size_t numQuats, const glm::quat* quats);
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
                      const QString& id, AnimNode::Triggers& triggersOut);
 
+inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
+    // adjust signs if necessary
+    glm::quat bTemp = b;
+    float dot = glm::dot(a, bTemp);
+    if (dot < 0.0f) {
+        bTemp = -bTemp;
+    }
+    return glm::normalize(glm::lerp(a, bTemp, alpha));
+}
+
+AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone);
+
 #endif

@@ -127,7 +127,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     // construct a "fake" audio received message from the byte array and packet list information
     auto audioData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
 
-    PacketType rewrittenType = REPLICATED_PACKET_MAPPING.key(message->getType());
+    PacketType rewrittenType = PacketTypeEnum::getReplicatedPacketMapping().key(message->getType());
 
     if (rewrittenType == PacketType::Unknown) {
         qDebug() << "Cannot unwrap replicated packet type not present in REPLICATED_PACKET_WRAPPING";

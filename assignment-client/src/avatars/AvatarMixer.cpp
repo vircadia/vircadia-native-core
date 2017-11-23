@@ -85,7 +85,22 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
-    auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    SharedNodePointer replicatedNode;
+
+    if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        // this is a kill packet, which we should only process if we already have the node in our list
+        // since it of course does not make sense to add a node just to remove it an instant later
+        replicatedNode = nodeList->nodeWithUUID(nodeID);
+
+        if (!replicatedNode) {
+            return;
+        }
+    } else {
+        replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    }
+
+    // we better have a node to work with at this point
+    assert(replicatedNode);
 
     if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
         handleAvatarIdentityPacket(message, replicatedNode);
@@ -129,10 +144,10 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         // check if this is a packet type we replicate
         // which means it must be a packet type present in REPLICATED_PACKET_MAPPING or must be the
         // replicated version of one of those packet types
-        PacketType replicatedType = REPLICATED_PACKET_MAPPING.value(message.getType());
+        PacketType replicatedType = PacketTypeEnum::getReplicatedPacketMapping().value(message.getType());
 
         if (replicatedType == PacketType::Unknown) {
-            if (REPLICATED_PACKET_MAPPING.key(message.getType()) != PacketType::Unknown) {
+            if (PacketTypeEnum::getReplicatedPacketMapping().key(message.getType()) != PacketType::Unknown) {
                 replicatedType = message.getType();
             } else {
                 qDebug() << __FUNCTION__ << "called without replicatable packet type - returning";
@@ -285,6 +300,13 @@ void AvatarMixer::start() {
 // is guaranteed to not be accessed by other thread
 void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+    // there is no need to manage identity data we haven't received yet
+    // so bail early if we've never received an identity packet for this avatar
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+        return;
+    }
+
     bool sendIdentity = false;
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
         AvatarData& avatar = nodeData->getAvatar();

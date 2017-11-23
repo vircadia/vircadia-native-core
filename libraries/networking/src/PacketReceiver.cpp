@@ -32,7 +32,7 @@ bool PacketReceiver::registerListenerForTypes(PacketTypeList types, QObject* lis
     
     // Partition types based on whether they are sourced or not (non sourced in front)
     auto middle = std::partition(std::begin(types), std::end(types), [](PacketType type) {
-        return NON_SOURCED_PACKETS.contains(type);
+        return PacketTypeEnum::getNonSourcedPackets().contains(type);
     });
     
     QMetaMethod nonSourcedMethod, sourcedMethod;
@@ -123,7 +123,7 @@ QMetaMethod PacketReceiver::matchingMethodForListener(PacketType type, QObject* 
         SIGNATURE_TEMPLATE.arg(slot, NON_SOURCED_MESSAGE_LISTENER_PARAMETERS)
     };
 
-    if (!NON_SOURCED_PACKETS.contains(type)) {
+    if (!PacketTypeEnum::getNonSourcedPackets().contains(type)) {
         static const QString SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,QSharedPointer<Node>";
         static const QString TYPEDEF_SOURCED_MESSAGE_LISTENER_PARAMETERS = "QSharedPointer<ReceivedMessage>,SharedNodePointer";
 

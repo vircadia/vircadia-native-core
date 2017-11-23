@@ -61,6 +61,7 @@
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
+        tablet.screenChanged.disconnect(onScreenChanged);
         Script.clearInterval(interval);
         if (tablet) {
             tablet.removeButton(button);

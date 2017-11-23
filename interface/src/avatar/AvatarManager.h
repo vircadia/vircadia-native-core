@@ -22,11 +22,11 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <AudioInjector.h>
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
 
-class AudioInjector;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
@@ -55,7 +55,7 @@ public:
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
 
-    void postUpdate(float deltaTime);
+    void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
     void clearOtherAvatars();
     void deleteAllAvatars();
@@ -73,6 +73,9 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
+    Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
+                                                                        const QVector<EntityItemID>& avatarsToInclude,
+                                                                        const QVector<EntityItemID>& avatarsToDiscard);
 
     // TODO: remove this HACK once we settle on optimal default sort coefficients
     Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
@@ -104,7 +107,7 @@ private:
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
-    std::list<QPointer<AudioInjector>> _collisionInjectors;
+    std::list<AudioInjectorPointer> _collisionInjectors;
 
     RateCounter<> _myAvatarSendRate;
     int _numAvatarsUpdated { 0 };

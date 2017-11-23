@@ -32,7 +32,7 @@ const bool ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED = true;
 const QString ZoneEntityItem::DEFAULT_FILTER_URL = "";
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ZoneEntityItem(entityID) };
+    EntityItemPointer entity(new ZoneEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -49,8 +49,10 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
-    
-    _keyLightProperties.getProperties(properties);
+    // Contains a QString property, must be synchronized
+    withReadLock([&] {
+        _keyLightProperties.getProperties(properties);
+    });
     
     _stageProperties.getProperties(properties);
 
@@ -58,11 +60,17 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
 
-    _skyboxProperties.getProperties(properties);
+    // Contains a QString property, must be synchronized
+    withReadLock([&] {
+        _skyboxProperties.getProperties(properties);
+    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
+    _hazeProperties.getProperties(properties);
 
     return properties;
 }
@@ -88,8 +96,10 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
 bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
 
-
-    _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
+    // Contains a QString property, must be synchronized
+    withWriteLock([&] {
+        _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
+    });
 
     _stagePropertiesChanged = _stageProperties.setProperties(properties);
 
@@ -97,14 +107,19 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
+    // Contains a QString property, must be synchronized
+    withWriteLock([&] {
+        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+    });
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
+	
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
+    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
 
-    _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
-
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged;
-
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
 }
@@ -116,8 +131,12 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    int bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                                 propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
+    int bytesFromKeylight;
+    withWriteLock([&] {
+        bytesFromKeylight = _keyLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _keyLightPropertiesChanged);
+    });
+
     somethingChanged = somethingChanged || _keyLightPropertiesChanged;
     bytesRead += bytesFromKeylight;
     dataAt += bytesFromKeylight;
@@ -132,8 +151,11 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
-    int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                           propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
+    int bytesFromSkybox;
+    withWriteLock([&] {
+        bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _skyboxPropertiesChanged);
+    });
     somethingChanged = somethingChanged || _skyboxPropertiesChanged;
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
@@ -141,6 +163,15 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
+
+    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
+
+    int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+        propertyFlags, overwriteLocalData, _hazePropertiesChanged);
+
+    somethingChanged = somethingChanged || _hazePropertiesChanged;
+    bytesRead += bytesFromHaze;
+    dataAt += bytesFromHaze;
 
     return bytesRead;
 }
@@ -150,17 +181,26 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
-    requestedProperties += _keyLightProperties.getEntityProperties(params);
+    withReadLock([&] {
+        requestedProperties += _keyLightProperties.getEntityProperties(params);
+    });
+
+    requestedProperties += _stageProperties.getEntityProperties(params);
 
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
-    requestedProperties += _stageProperties.getEntityProperties(params);
-    requestedProperties += _skyboxProperties.getEntityProperties(params);
+
+    withReadLock([&] {
+        requestedProperties += _skyboxProperties.getEntityProperties(params);
+    });
 
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
+
+    requestedProperties += PROP_HAZE_MODE;
+    requestedProperties += _hazeProperties.getEntityProperties(params);
 
     return requestedProperties;
 }
@@ -187,21 +227,15 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
-}
 
-void ZoneEntityItem::somethingChangedNotification() {
-    EntityItem::somethingChangedNotification();
-    withWriteLock([&] {
-        _keyLightPropertiesChanged = false;
-        _backgroundPropertiesChanged = false;
-        _stagePropertiesChanged = false;
-        _skyboxPropertiesChanged = false;
-    });
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
+    _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -211,10 +245,12 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
+    qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);
 
     _keyLightProperties.debugDump();
-    _stageProperties.debugDump();
     _skyboxProperties.debugDump();
+    _hazeProperties.debugDump();
+    _stageProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
@@ -272,4 +308,25 @@ QString ZoneEntityItem::getCompoundShapeURL() const {
         result = _compoundShapeURL;
     });
     return result;
+}
+
+void ZoneEntityItem::resetRenderingPropertiesChanged() {
+    withWriteLock([&] {
+        _keyLightPropertiesChanged = false;
+        _backgroundPropertiesChanged = false;
+        _skyboxPropertiesChanged = false;
+        _hazePropertiesChanged = false;
+        _stagePropertiesChanged = false;
+    });
+}
+
+void ZoneEntityItem::setHazeMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT) {
+        _hazeMode = value;
+        _hazePropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getHazeMode() const {
+    return _hazeMode;
 }

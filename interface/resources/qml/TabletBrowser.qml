@@ -1,7 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebChannel 1.0
-import QtWebEngine 1.2
+import QtWebEngine 1.5
 
 import "controls"
 import "controls-uit" as HifiControls
@@ -13,11 +13,11 @@ Item {
     id: root
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifistyles }
-    //width: parent.width
+
     height: 600
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     property alias url: webview.url
-    property WebEngineView webView: webview
+
     property bool canGoBack: webview.canGoBack
     property bool canGoForward: webview.canGoForward
 
@@ -39,7 +39,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFTabletWebEngineProfile;
+        profile: HFWebEngineProfile;
 
         property string userScriptUrl: ""
 
@@ -123,5 +123,4 @@ Item {
             break;
         }
     }
-    
 }

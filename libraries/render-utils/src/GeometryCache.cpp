@@ -18,17 +18,21 @@
 #include <QtCore/QFileInfo>
 #include <QtNetwork/QNetworkReply>
 
+#include <shared/Shapes.h>
+#include <shared/PlatformHacks.h>
+
 #include <FSTReader.h>
 #include <NumericalConstants.h>
-#include <shared/Shapes.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
+#include "FadeEffect.h"
 
 #include "gpu/StandardShaderLib.h"
 
 #include "model/TextureMap.h"
+#include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
 #include "standardDrawTexture_frag.h"
@@ -36,16 +40,57 @@
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
 #include "simple_textured_unlit_frag.h"
+#include "simple_fade_vert.h"
+#include "simple_textured_fade_frag.h"
+#include "simple_textured_unlit_fade_frag.h"
 #include "simple_opaque_web_browser_frag.h"
-#include "simple_opaque_web_browser_overlay_frag.h"
 #include "simple_transparent_web_browser_frag.h"
-#include "simple_transparent_web_browser_overlay_frag.h"
 #include "glowLine_vert.h"
 #include "glowLine_frag.h"
 
 #include "grid_frag.h"
 
 //#define WANT_DEBUG
+
+// @note: Originally size entity::NUM_SHAPES
+//        As of Commit b93e91b9, render-utils no longer retains knowledge of
+//        entity lib, and thus doesn't know about entity::NUM_SHAPES.  Should
+//        the enumerations be altered, this will need to be updated.
+// @see ShapeEntityItem.h
+static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING{ {
+        GeometryCache::Triangle,
+        GeometryCache::Quad,
+        GeometryCache::Hexagon,
+        GeometryCache::Octagon,
+        GeometryCache::Circle,
+        GeometryCache::Cube,
+        GeometryCache::Sphere,
+        GeometryCache::Tetrahedron,
+        GeometryCache::Octahedron,
+        GeometryCache::Dodecahedron,
+        GeometryCache::Icosahedron,
+        GeometryCache::Torus,
+        GeometryCache::Cone,
+        GeometryCache::Cylinder,
+} };
+
+static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
+        "Line",
+        "Triangle",
+        "Quad",
+        "Hexagon",
+        "Octagon",
+        "Circle",
+        "Cube",
+        "Sphere",
+        "Tetrahedron",
+        "Octahedron",
+        "Dodecahedron",
+        "Icosahedron",
+        "Torus",
+        "Cone",
+        "Cylinder"
+    } };
 
 const int GeometryCache::UNKNOWN_ID = -1;
 
@@ -55,14 +100,59 @@ static const int VERTICES_PER_TRIANGLE = 3;
 static const gpu::Element POSITION_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT { gpu::VEC4, gpu::NUINT8, gpu::RGBA };
+static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::FLOAT, gpu::XYZW };
 
 static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
+static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
-static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT32;
-static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint32);
+
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );
+    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( geometryShape );
+    if (!shapeData){
+        //--EARLY EXIT--( data isn't ready for some reason... )
+        return;
+    }
+
+    const gpu::BufferView & shapeVerts = shapeData->_positionView;
+    const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
+
+    outPointList.reserve((int)numItems);
+    QVector<glm::vec3> uniqueVerts;
+    uniqueVerts.reserve((int)numItems);
+
+    const float MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED = 1.0e-6f; //< 1mm^2
+    for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
+        const int numUniquePoints = (int)uniqueVerts.size();
+        const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
+        bool isUniquePoint = true;
+
+        for (int uniqueIndex = 0; uniqueIndex < numUniquePoints; ++uniqueIndex) {
+            const geometry::Vec knownVert = uniqueVerts[uniqueIndex];
+            const float distToKnownPoint = glm::length2(knownVert - curVert);
+
+            if (distToKnownPoint <= MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED) {
+                isUniquePoint = false;
+                break;
+            }
+        }
+
+        if (!isUniquePoint) {
+
+            //--EARLY ITERATION EXIT--
+            continue;
+        }
+
+
+        uniqueVerts.push_back(curVert);
+        outPointList.push_back(curVert * entityExtents);
+    }
+}
 
 template <size_t SIDES>
 std::vector<vec3> polygon() {
@@ -77,67 +167,83 @@ std::vector<vec3> polygon() {
 }
 
 void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices) {
+    gpu::Buffer::Size offset = vertexBuffer->getSize();
     vertexBuffer->append(vertices);
 
-    _positionView = gpu::BufferView(vertexBuffer, 0,
-        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
-    _normalView = gpu::BufferView(vertexBuffer, SHAPE_NORMALS_OFFSET,
-        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
+    gpu::Buffer::Size viewSize = vertices.size() * sizeof(glm::vec3);
+
+    _positionView = gpu::BufferView(vertexBuffer, offset,
+        viewSize, SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
+    _normalView = gpu::BufferView(vertexBuffer, offset + SHAPE_NORMALS_OFFSET,
+        viewSize, SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
 }
 
 void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices) {
-    _indices = indexBuffer;
+    gpu::Buffer::Size offset = indexBuffer->getSize();
     if (!indices.empty()) {
-        _indexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
-        _indexCount = indices.size();
-        indexBuffer->append(indices);
+        for (uint32_t i = 0; i < indices.size(); ++i) {
+            indexBuffer->append((uint16_t)indices[i]);
+        }
     }
+    gpu::Size viewSize = indices.size() * sizeof(uint16_t);
+    _indicesView = gpu::BufferView(indexBuffer, offset, viewSize, gpu::Element::INDEX_UINT16);
 
+    offset = indexBuffer->getSize();
     if (!wireIndices.empty()) {
-        _wireIndexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
-        _wireIndexCount = wireIndices.size();
-        indexBuffer->append(wireIndices);
+        for (uint32_t i = 0; i < wireIndices.size(); ++i) {
+            indexBuffer->append((uint16_t)wireIndices[i]);
+        }
     }
+    viewSize = wireIndices.size() * sizeof(uint16_t);
+    _wireIndicesView = gpu::BufferView(indexBuffer, offset, viewSize, gpu::Element::INDEX_UINT16);
 }
 
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
-    batch.setIndexBuffer(SHAPE_INDEX_TYPE, _indices, 0);
+    batch.setIndexBuffer(_indicesView);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
-    if (_indexCount) {
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
+    if (numIndices > 0) {
         setupBatch(batch);
-        batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
+        batch.drawIndexed(gpu::TRIANGLES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
-    if (_wireIndexCount) {
-        setupBatch(batch);
-        batch.drawIndexed(gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
+    if (numIndices > 0) {
+        batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
+        batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+        batch.setIndexBuffer(_wireIndicesView);
+        batch.drawIndexed(gpu::LINES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
-    if (_indexCount) {
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
+    if (numIndices > 0) {
         setupBatch(batch);
-        batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
-    if (_wireIndexCount) {
-        setupBatch(batch);
-        batch.drawIndexedInstanced((gpu::uint32)count, gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
+    if (numIndices > 0) {
+        batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
+        batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+        batch.setIndexBuffer(_wireIndicesView);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::LINES, numIndices, 0);
     }
 }
 
 static const size_t ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT = 3;
 
 size_t GeometryCache::getShapeTriangleCount(Shape shape) {
-    return _shapes[shape]._indexCount / VERTICES_PER_TRIANGLE;
+    return _shapes[shape]._indicesView.getNumElements() / VERTICES_PER_TRIANGLE;
 }
 
 size_t GeometryCache::getSphereTriangleCount() {
@@ -161,7 +267,6 @@ static IndexPair indexToken(geometry::Index a, geometry::Index b) {
 template <size_t N>
 void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
     IndexPairs wireSeenIndices;
@@ -172,6 +277,7 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
     vertices.reserve(N * faceCount * 2);
     solidIndices.reserve(faceIndexCount * faceCount);
 
+    Index baseVertex = 0;
     for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Compute the face normal
@@ -212,7 +318,6 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
 template <size_t N>
 void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
 
     VertexVector vertices;
     vertices.reserve(shape.vertices.size() * 2);
@@ -229,6 +334,7 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 
     solidIndices.reserve(faceIndexCount * faceCount);
 
+    Index baseVertex = 0;
     for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Create the wire indices for unseen edges
@@ -258,7 +364,6 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 template <uint32_t N>
 void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical = false) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
 
@@ -279,6 +384,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         vertices.push_back(vec3(v.x, -0.5f, v.z));
         vertices.push_back(vec3(0.0f, -1.0f, 0.0f));
     }
+    Index baseVertex = 0;
     for (uint32_t i = 2; i < N; i++) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
@@ -336,7 +442,6 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
     // Draw a circle with radius 1/4th the size of the bounding box
     using namespace geometry;
 
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
     const int NUM_CIRCLE_VERTICES = 64;
@@ -347,6 +452,7 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
         vertices.push_back(vec3(0.0f, 0.0f, 0.0f));
     }
 
+    Index baseVertex = 0;
     for (uint32_t i = 2; i < NUM_CIRCLE_VERTICES; i++) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
@@ -376,8 +482,10 @@ void GeometryCache::buildShapes() {
     using namespace geometry;
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
-    // Cube 
+    // Cube
     setupFlatShape(_shapes[Cube], geometry::cube(), _shapeVertices, _shapeIndices);
+    //Quad renders as flat Cube
+    setupFlatShape(_shapes[Quad], geometry::cube(), _shapeVertices, _shapeIndices);
     // Tetrahedron
     setupFlatShape(_shapes[Tetrahedron], geometry::tetrahedron(), _shapeVertices, _shapeIndices);
     // Icosahedron
@@ -396,7 +504,6 @@ void GeometryCache::buildShapes() {
 
     // Line
     {
-        Index baseVertex = (Index)(_shapeVertices->getSize() / SHAPE_VERTEX_STRIDE);
         ShapeData& shapeData = _shapes[Line];
         shapeData.setupVertices(_shapeVertices, VertexVector {
             vec3(-0.5f, 0.0f, 0.0f), vec3(-0.5f, 0.0f, 0.0f),
@@ -404,8 +511,8 @@ void GeometryCache::buildShapes() {
         });
         IndexVector wireIndices;
         // Only two indices
-        wireIndices.push_back(0 + baseVertex);
-        wireIndices.push_back(1 + baseVertex);
+        wireIndices.push_back(0);
+        wireIndices.push_back(1);
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
 
@@ -419,12 +526,44 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
     //Cone,
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
-    //Circle
-    drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
-    // Not implememented yet:
-    //Quad,
-    //Torus, 
- 
+    // Circle renders as flat Cylinder
+    extrudePolygon<64>(_shapes[Circle], _shapeVertices, _shapeIndices);
+    // Not implemented yet:
+    //Torus,
+}
+
+const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {
+    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeData - Invalid shape " << shape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( No valid shape data for shape )
+        return nullptr;
+    }
+
+    return &_shapes[shape];
+}
+
+GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
+    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeForEntityShape - Invalid shape " << entityShape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( fall back to default assumption )
+        return GeometryCache::Sphere;
+    }
+
+    return MAPPING[entityShape];
+}
+
+QString GeometryCache::stringFromShape(GeometryCache::Shape geoShape)
+{
+    if (((int)geoShape < 0) || ((int)geoShape >= (int)GeometryCache::NUM_SHAPES)) {
+        qCWarning(renderutils) << "GeometryCache::stringFromShape - Invalid shape " << geoShape << " specified.";
+
+        //--EARLY EXIT--
+        return "INVALID_GEOCACHE_SHAPE";
+    }
+
+    return GEOCACHE_SHAPE_STRINGS[geoShape];
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
@@ -446,32 +585,64 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
+gpu::Stream::FormatPointer& getInstancedSolidFadeStreamFormat() {
+    if (!INSTANCED_SOLID_FADE_STREAM_FORMAT) {
+        INSTANCED_SOLID_FADE_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD2, gpu::Stream::TEXCOORD2, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD3, gpu::Stream::TEXCOORD3, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+        INSTANCED_SOLID_FADE_STREAM_FORMAT->setAttribute(gpu::Stream::TEXCOORD4, gpu::Stream::TEXCOORD4, TEXCOORD4_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
+    }
+    return INSTANCED_SOLID_FADE_STREAM_FORMAT;
+}
+
+QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
+
+gpu::ShaderPointer GeometryCache::_simpleShader;
+gpu::ShaderPointer GeometryCache::_unlitShader;
+gpu::ShaderPointer GeometryCache::_simpleFadeShader;
+gpu::ShaderPointer GeometryCache::_unlitFadeShader;
+
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
+render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
+render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
+
+uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
+
+render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    initializeShapePipelines();
+
+    if (key.isWireframe()) {
+        return _simpleWirePipeline;
+    }
+
+    if (key.isFaded()) {
+        if (key.isTranslucent()) {
+            return _simpleTransparentFadePipeline;
+        }
+        else {
+            return _simpleOpaqueFadePipeline;
+        }
+    }
+    else {
+        if (key.isTranslucent()) {
+            return _simpleTransparentPipeline;
+        }
+        else {
+            return _simpleOpaquePipeline;
+        }
+    }
+}
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
+    // Let's register its special shapePipeline factory:
+    registerShapePipeline();
     buildShapes();
-    GeometryCache::_simpleOpaquePipeline =
-        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
-            [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {
-                // Set the defaults needed for a simple program
-                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-                    DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
-        );
-    GeometryCache::_simpleTransparentPipeline =
-        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {
-                // Set the defaults needed for a simple program
-                batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-                    DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
-        );
-    GeometryCache::_simpleWirePipeline =
-        std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {});
 }
 
 GeometryCache::~GeometryCache() {
@@ -511,9 +682,46 @@ void GeometryCache::releaseID(int id) {
     _registeredGridBuffers.remove(id);
 }
 
-void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
-    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+void GeometryCache::initializeShapePipelines() {
+    if (!_simpleOpaquePipeline) {
+        _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
+        _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
+        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
+        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
+        _simpleWirePipeline = getShapePipeline(false, false, true, true);
+    }
+}
+
+render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
+    bool unlit, bool depthBias) {
+
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true), nullptr,
+        [](const render::ShapePipeline& , gpu::Batch& batch, render::Args*) {
+        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    }
+    );
+}
+
+render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool culled,
+    bool unlit, bool depthBias) {
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
+    auto fadeBatchSetter = fadeEffect->getBatchSetter();
+    auto fadeItemSetter = fadeEffect->getItemStoredSetter();
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
+        [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
+            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
+            fadeBatchSetter(shapePipeline, batch, args);
+        },
+        fadeItemSetter
+    );
+}
+
+render::ShapePipelinePointer GeometryCache::getOpaqueShapePipeline(bool isFading) {
+    return isFading ? _simpleOpaqueFadePipeline : _simpleOpaquePipeline;
+}
+
+render::ShapePipelinePointer GeometryCache::getTransparentShapePipeline(bool isFading) { 
+    return isFading ? _simpleTransparentFadePipeline : _simpleTransparentPipeline;
 }
 
 void GeometryCache::renderShape(gpu::Batch& batch, Shape shape) {
@@ -526,6 +734,11 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
     _shapes[shape].drawWire(batch);
 }
 
+void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
+    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+}
+
 void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
     setupBatchInstance(batch, colorBuffer);
@@ -535,6 +748,32 @@ void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t 
 void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
     setupBatchInstance(batch, colorBuffer);
+    _shapes[shape].drawWireInstances(batch, count);
+}
+
+void setupBatchFadeInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer, 
+    gpu::BufferPointer fadeBuffer1, gpu::BufferPointer fadeBuffer2, gpu::BufferPointer fadeBuffer3) {
+    gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
+    gpu::BufferView texCoord2View(fadeBuffer1, TEXCOORD4_ELEMENT);
+    gpu::BufferView texCoord3View(fadeBuffer2, TEXCOORD4_ELEMENT);
+    gpu::BufferView texCoord4View(fadeBuffer3, TEXCOORD4_ELEMENT);
+    batch.setInputBuffer(gpu::Stream::COLOR, colorView);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD2, texCoord2View);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD3, texCoord3View);
+    batch.setInputBuffer(gpu::Stream::TEXCOORD4, texCoord4View);
+}
+
+void GeometryCache::renderFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+    gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
+    batch.setInputFormat(getInstancedSolidFadeStreamFormat());
+    setupBatchFadeInstance(batch, colorBuffer, fadeBuffer1, fadeBuffer2, fadeBuffer3);
+    _shapes[shape].drawInstances(batch, count);
+}
+
+void GeometryCache::renderWireFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+    gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
+    batch.setInputFormat(getInstancedSolidFadeStreamFormat());
+    setupBatchFadeInstance(batch, colorBuffer, fadeBuffer1, fadeBuffer2, fadeBuffer3);
     _shapes[shape].drawWireInstances(batch, count);
 }
 
@@ -1636,8 +1875,12 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     glowIntensity = 0.0f;
 #endif
 
-    if (glowIntensity <= 0) {
-        bindSimpleProgram(batch, false, false, false, true, false);
+    if (glowIntensity <= 0.0f) {
+        if (color.a >= 1.0f) {
+            bindSimpleProgram(batch, false, false, false, true, true);
+        } else {
+            bindSimpleProgram(batch, false, true, false, true, true);
+        }
         renderLine(batch, p1, p2, color, id);
         return;
     }
@@ -1688,9 +1931,10 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
             vec4 p1;
             vec4 p2;
             vec4 color;
+            float width;
         };
 
-        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color };
+        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color, glowWidth };
         details.uniformBuffer->resize(sizeof(LineData));
         details.uniformBuffer->setSubData(0, lineData);
     }
@@ -1717,7 +1961,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 
         auto stateNoBlend = std::make_shared<gpu::State>();
-        PrepareStencil::testMaskDrawShape(*state);
+        PrepareStencil::testMaskDrawShape(*stateNoBlend);
 
         auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
@@ -1767,6 +2011,8 @@ public:
         IS_CULLED_FLAG,
         IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
+        IS_FADING_FLAG,
+        IS_ANTIALIASED_FLAG,
 
         NUM_FLAGS,
     };
@@ -1777,6 +2023,8 @@ public:
         IS_CULLED = (1 << IS_CULLED_FLAG),
         IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
+        IS_FADING = (1 << IS_FADING_FLAG),
+        IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
     };
     typedef unsigned short Flags;
 
@@ -1787,6 +2035,8 @@ public:
     bool isCulled() const { return isFlag(IS_CULLED); }
     bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
+    bool isFading() const { return isFlag(IS_FADING); }
+    bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
 
     Flags _flags = 0;
     short _spare = 0;
@@ -1795,9 +2045,9 @@ public:
 
 
     SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false) {
+        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true) {
         _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
-            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
+            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -1826,48 +2076,28 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
     state->setBlendFunction(blendEnable,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    if (blendEnable) {
-        PrepareStencil::testMask(*state);
-    } else {
-        PrepareStencil::testMaskDrawShape(*state);
-    }
+
+    PrepareStencil::testMaskDrawShapeNoAA(*state);
 
     pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
 }
 
-void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA) {
-    batch.setPipeline(getOpaqueWebBrowserProgram(isAA));
+void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
+    batch.setPipeline(getWebBrowserProgram(transparent));
 }
 
-gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram(bool isAA) {
+gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        const bool BLEND_ENABLE = false;
-        buildWebShader(simple_vert, simple_opaque_web_browser_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
-        buildWebShader(simple_vert, simple_opaque_web_browser_overlay_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserOverlayShader, _simpleOpaqueWebBrowserOverlayPipeline);
+        buildWebShader(simple_vert, simple_opaque_web_browser_frag, false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipelineNoAA);
+        buildWebShader(simple_vert, simple_transparent_web_browser_frag, true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipelineNoAA);
     });
 
-    return isAA ? _simpleOpaqueWebBrowserPipeline : _simpleOpaqueWebBrowserOverlayPipeline;
+    return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
 }
 
-void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA) {
-    batch.setPipeline(getTransparentWebBrowserProgram(isAA));
-}
-
-gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram(bool isAA) {
-    static std::once_flag once;
-    std::call_once(once, [&]() {
-
-        const bool BLEND_ENABLE = true;
-        buildWebShader(simple_vert, simple_transparent_web_browser_frag, BLEND_ENABLE, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
-        buildWebShader(simple_vert, simple_transparent_web_browser_overlay_frag, BLEND_ENABLE, _simpleTransparentWebBrowserOverlayShader, _simpleTransparentWebBrowserOverlayPipeline);
-    });
-
-    return isAA ? _simpleTransparentWebBrowserPipeline : _simpleTransparentWebBrowserOverlayPipeline;
-}
-
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1876,28 +2106,47 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
     }
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
-    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased };
-
-    // Compile the shaders
-    static std::once_flag once;
-    std::call_once(once, [&]() {
-        auto VS = gpu::Shader::createVertex(std::string(simple_vert));
-        auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
-        auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
-
-        _simpleShader = gpu::Shader::createProgram(VS, PS);
-        _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*_simpleShader, slotBindings);
-        gpu::Shader::makeProgram(*_unlitShader, slotBindings);
-    });
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
     if (it != _simplePrograms.end()) {
         return it.value();
+    }
+
+    // Compile the shaders
+    if (!fading) {
+        static std::once_flag once;
+        std::call_once(once, [&]() {
+            auto VS = gpu::Shader::createVertex(std::string(simple_vert));
+            auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
+            auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
+
+            _simpleShader = gpu::Shader::createProgram(VS, PS);
+            _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
+
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
+            gpu::Shader::makeProgram(*_simpleShader, slotBindings);
+            gpu::Shader::makeProgram(*_unlitShader, slotBindings);
+        });
+    } else {
+        static std::once_flag once;
+        std::call_once(once, [&]() {
+            auto VS = gpu::Shader::createVertex(std::string(simple_fade_vert));
+            auto PS = gpu::Shader::createPixel(std::string(simple_textured_fade_frag));
+            auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_fade_frag));
+
+            _simpleFadeShader = gpu::Shader::createProgram(VS, PS);
+            _unlitFadeShader = gpu::Shader::createProgram(VS, PSUnlit);
+
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
+            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
+            gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
+            gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
+        });
     }
 
     // If the pipeline did not exist, make it
@@ -1916,13 +2165,13 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    if (config.isTransparent()) {
-        PrepareStencil::testMask(*state);
+    if (config.isAntiAliased()) {
+        config.isTransparent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
     } else {
-        PrepareStencil::testMaskDrawShape(*state);
+        PrepareStencil::testMaskDrawShapeNoAA(*state);
     }
 
-    gpu::ShaderPointer program = (config.isUnlit()) ? _unlitShader : _simpleShader;
+    gpu::ShaderPointer program = (config.isUnlit()) ? (config.isFading() ? _unlitFadeShader : _unlitShader) : (config.isFading() ? _simpleFadeShader : _simpleShader);
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
     return pipeline;
@@ -1957,26 +2206,93 @@ void renderInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color
 
         if (isWire) {
             DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
-        } else {
+        }
+        else {
             DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
         }
     });
 }
 
+static const size_t INSTANCE_FADE_BUFFER1 = 1;
+static const size_t INSTANCE_FADE_BUFFER2 = 2;
+static const size_t INSTANCE_FADE_BUFFER3 = 3;
+
+void renderFadeInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, int fadeCategory, float fadeThreshold,
+    const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, bool isWire,
+    const render::ShapePipelinePointer& pipeline, GeometryCache::Shape shape) {
+    // Add pipeline to name
+    std::string instanceName = (isWire ? "wire_shapes_" : "solid_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
+
+    // Add color to named buffer
+    {
+        gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(instanceName, INSTANCE_COLOR_BUFFER);
+        auto compactColor = toCompactColor(color);
+        instanceColorBuffer->append(compactColor);
+    }
+    // Add fade parameters to named buffers
+    {
+        gpu::BufferPointer fadeBuffer1 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER1);
+        gpu::BufferPointer fadeBuffer2 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER2);
+        gpu::BufferPointer fadeBuffer3 = batch.getNamedBuffer(instanceName, INSTANCE_FADE_BUFFER3);
+        // Pack parameters in 3 vec4s
+        glm::vec4 fadeData1;
+        glm::vec4 fadeData2;
+        glm::vec4 fadeData3;
+        FadeEffect::packToAttributes(fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize,
+            fadeData1, fadeData2, fadeData3);
+        fadeBuffer1->append(fadeData1);
+        fadeBuffer2->append(fadeData2);
+        fadeBuffer3->append(fadeData3);
+    }
+
+    // Add call to named buffer
+    batch.setupNamedCalls(instanceName, [args, isWire, pipeline, shape](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        auto& buffers = data.buffers;
+        batch.setPipeline(pipeline->pipeline);
+        pipeline->prepare(batch, args);
+
+        if (isWire) {
+            DependencyManager::get<GeometryCache>()->renderWireFadeShapeInstances(batch, shape, data.count(), 
+                buffers[INSTANCE_COLOR_BUFFER], buffers[INSTANCE_FADE_BUFFER1], buffers[INSTANCE_FADE_BUFFER2], buffers[INSTANCE_FADE_BUFFER3]);
+        }
+        else {
+            DependencyManager::get<GeometryCache>()->renderFadeShapeInstances(batch, shape, data.count(), 
+                buffers[INSTANCE_COLOR_BUFFER], buffers[INSTANCE_FADE_BUFFER1], buffers[INSTANCE_FADE_BUFFER2], buffers[INSTANCE_FADE_BUFFER3]);
+        }
+    });
+}
+
 void GeometryCache::renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
     renderInstances(args, batch, color, false, pipeline, shape);
 }
 
 void GeometryCache::renderWireShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, shape);
 }
 
+void GeometryCache::renderSolidFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, 
+    int fadeCategory, float fadeThreshold, const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, 
+    const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
+    renderFadeInstances(args, batch, color, fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, false, pipeline, shape);
+}
+
+void GeometryCache::renderWireFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, 
+    int fadeCategory, float fadeThreshold, const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, 
+    const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
+    renderFadeInstances(args, batch, color, fadeCategory, fadeThreshold, fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, true, pipeline, shape);
+}
 
 void GeometryCache::renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
     renderInstances(args, batch, color, false, pipeline, GeometryCache::Sphere);
 }
 
 void GeometryCache::renderWireSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, GeometryCache::Sphere);
 }
 
@@ -1984,7 +2300,9 @@ void GeometryCache::renderWireSphereInstance(RenderArgs* args, gpu::Batch& batch
 // available shape types, both solid and wireframes
 //#define DEBUG_SHAPES
 
+
 void GeometryCache::renderSolidCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    assert(pipeline != nullptr);
 #ifdef DEBUG_SHAPES
     static auto startTime = usecTimestampNow();
     renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
@@ -2024,5 +2342,6 @@ void GeometryCache::renderSolidCubeInstance(RenderArgs* args, gpu::Batch& batch,
 
 void GeometryCache::renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
+    assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, GeometryCache::Cube);
 }

@@ -125,11 +125,11 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         // now make sure it's a packet type that we want to replicate
 
         // first check if it is an original type that we should replicate
-        PacketType mirroredType = REPLICATED_PACKET_MAPPING.value(message.getType());
+        PacketType mirroredType = PacketTypeEnum::getReplicatedPacketMapping().value(message.getType());
 
         if (mirroredType == PacketType::Unknown) {
             // if it wasn't check if it is a replicated type that we should re-replicate
-            if (REPLICATED_PACKET_MAPPING.key(message.getType()) != PacketType::Unknown) {
+            if (PacketTypeEnum::getReplicatedPacketMapping().key(message.getType()) != PacketType::Unknown) {
                 mirroredType = message.getType();
             } else {
                 qDebug() << "Packet passed to optionallyReplicatePacket was not a replicatable type - returning";

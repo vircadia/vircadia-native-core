@@ -13,6 +13,8 @@
 #include <NumericalConstants.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Application.h"
+
 static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float DEFAULT_ALPHA = 0.7f;
 
@@ -20,7 +22,7 @@ Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
-    _pulse(0.0f),
+    _pulse(1.0f),
     _pulseMax(0.0f),
     _pulseMin(0.0f),
     _pulsePeriod(1.0f),
@@ -160,7 +162,6 @@ float Overlay::getAlpha() {
     float pulseLevel = updatePulse();
     return (_alphaPulse >= 0.0f) ? _alpha * pulseLevel : _alpha * (1.0f - pulseLevel);
 }
-
 
 // pulse travels from min to max, then max to min in one period.
 float Overlay::updatePulse() {

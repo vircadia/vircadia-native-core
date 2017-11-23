@@ -1,11 +1,19 @@
 /* eslint-env commonjs */
+/* global console */
 
 module.exports = {
+    version: '0.0.1',
     bind: bind,
     signal: signal,
     assign: assign,
     assert: assert
 };
+
+function log() {
+    // eslint-disable-next-line no-console
+    (typeof console === 'object' ? console.log : print)('utils | ' + [].slice.call(arguments).join(' '));
+}
+log(module.exports.version);
 
 // @function - bind a function to a `this` context
 // @param {Object} - the `this` context

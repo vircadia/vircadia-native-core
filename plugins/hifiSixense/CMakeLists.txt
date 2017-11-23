@@ -6,6 +6,10 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
+# FIXME if we want to properly re-enable this, we need to fix the mechanism for installing the 
+# dependency dlls `msvcr100` and `msvcp100` WITHOUT using CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
+# currently this will build the hifiSixense plugin, but unless the user has previously installed
+# the msvcr100 runtime support, the plugin will not load.
 if (NOT ANDROID)
   set(TARGET_NAME hifiSixense)
   setup_hifi_plugin(Script Qml Widgets)

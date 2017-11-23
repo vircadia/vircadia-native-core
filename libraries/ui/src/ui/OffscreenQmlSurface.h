@@ -35,30 +35,32 @@ class QQuickItem;
 // one copy in flight, and one copy being used by the receiver
 #define GPU_RESOURCE_BUFFER_SIZE 3
 
+using QmlContextCallback = std::function<void(QQmlContext*, QObject*)>;
+
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
+    static void setSharedContext(QOpenGLContext* context);
+
+    static QmlContextCallback DEFAULT_CONTEXT_CALLBACK;
+    static void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback);
+    static void addWhitelistContextHandler(const QUrl& url, const QmlContextCallback& callback) { addWhitelistContextHandler({ { url } }, callback); };
+
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
 
     using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
-    virtual void create(QOpenGLContext* context);
+    virtual void create();
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
-    Q_INVOKABLE QObject* load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
-        return load(QUrl(qmlSourceFile), f);
-    }
+    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     void clearCache();
-
-    Q_INVOKABLE void executeOnUiThread(std::function<void()> function, bool blocking = false);
-    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
-
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
     void setProxyWindow(QWindow* window);
@@ -80,8 +82,9 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
-    Q_INVOKABLE void synthesizeKeyPress(QString key);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
+    Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
+    Q_INVOKABLE void lowerKeyboard();
 
     using TextureAndFence = std::pair<uint32_t, void*>;
     // Checks to see if a new texture is available.  If one is, the function returns true and 
@@ -120,7 +123,9 @@ protected:
     void setFocusText(bool newFocusText);
 
 private:
-    QObject* finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f);
+    static QOpenGLContext* getSharedContext();
+
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);

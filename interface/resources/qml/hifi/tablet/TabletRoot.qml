@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
+
 import "../../dialogs"
 import "../../controls"
 
@@ -8,6 +9,7 @@ Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
+    property string usernameShort: "Unknown user"
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;
@@ -93,6 +95,11 @@ Item {
         loader.source = "";
         loader.source = "TabletWebView.qml";
     }
+
+    function loadTabletWebBase() {
+        loader.source = "";
+        loader.source = "./BlocksWebView.qml";
+    }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
@@ -121,6 +128,9 @@ Item {
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
         tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
+        if (loader.item.hasOwnProperty("closeButtonVisible")) {
+            loader.item.closeButtonVisible = false;
+        }
     }
 
     // used to send a message from qml to interface script.
@@ -149,6 +159,11 @@ Item {
 
     function setUsername(newUsername) {
         username = newUsername;
+        usernameShort = newUsername.substring(0, 8);
+
+        if (newUsername.length > 8) {
+            usernameShort = usernameShort + "..."
+        }
     }
 
     ListModel {
@@ -202,5 +217,11 @@ Item {
     width: 480
     height: 706
 
-    function setShown(value) {}
+    function setShown(value) {
+        if (value === true) {
+            HMD.openTablet(HMD.tabletContextualMode) // pass in current contextual mode flag to maintain flag (otherwise uses default false argument)
+        } else {
+            HMD.closeTablet()
+        }
+    }
 }

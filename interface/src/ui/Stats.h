@@ -32,8 +32,6 @@ class Stats : public QQuickItem {
 
     STATS_PROPERTY(int, serverCount, 0)
     // How often the app is creating new gpu::Frames
-    STATS_PROPERTY(float, framerate, 0)
-    // How often the display plugin is executing a given frame
     STATS_PROPERTY(float, renderrate, 0)
     // How often the display plugin is presenting to the device
     STATS_PROPERTY(float, presentrate, 0)
@@ -47,8 +45,7 @@ class Stats : public QQuickItem {
 
     STATS_PROPERTY(float, presentnewrate, 0)
     STATS_PROPERTY(float, presentdroprate, 0)
-    STATS_PROPERTY(int, simrate, 0)
-    STATS_PROPERTY(int, avatarSimrate, 0)
+    STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
     STATS_PROPERTY(int, notUpdatedAvatarCount, 0)
@@ -85,6 +82,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioPacketLoss, 0)
     STATS_PROPERTY(QString, audioCodec, QString())
     STATS_PROPERTY(QString, audioNoiseGate, QString())
+    STATS_PROPERTY(int, entityPacketsInKbps, 0)
 
     STATS_PROPERTY(int, downloads, 0)
     STATS_PROPERTY(int, downloadLimit, 0)
@@ -107,6 +105,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QString, packetStats, QString())
     STATS_PROPERTY(QString, lodStatus, QString())
     STATS_PROPERTY(QString, timingStats, QString())
+    STATS_PROPERTY(QString, gameUpdateStats, QString())
     STATS_PROPERTY(int, serverElements, 0)
     STATS_PROPERTY(int, serverInternal, 0)
     STATS_PROPERTY(int, serverLeaves, 0)
@@ -147,7 +146,7 @@ public:
     void updateStats(bool force = false);
 
     bool isExpanded() { return _expanded; }
-    bool isTimingExpanded() { return _timingExpanded; }
+    bool isTimingExpanded() { return _showTimingDetails; }
 
     void setExpanded(bool expanded) {
         if (_expanded != expanded) {
@@ -166,7 +165,6 @@ signals:
     void longrendersChanged();
     void longframesChanged();
     void appdroppedChanged();
-    void framerateChanged();
     void expandedChanged();
     void timingExpandedChanged();
     void serverCountChanged();
@@ -175,8 +173,7 @@ signals:
     void presentnewrateChanged();
     void presentdroprateChanged();
     void stutterrateChanged();
-    void simrateChanged();
-    void avatarSimrateChanged();
+    void gameLoopRateChanged();
     void avatarCountChanged();
     void updatedAvatarCountChanged();
     void notUpdatedAvatarCountChanged();
@@ -212,6 +209,7 @@ signals:
     void audioPacketLossChanged();
     void audioCodecChanged();
     void audioNoiseGateChanged();
+    void entityPacketsInKbpsChanged();
 
     void downloadsChanged();
     void downloadLimitChanged();
@@ -240,6 +238,7 @@ signals:
     void localInternalChanged();
     void localLeavesChanged();
     void timingStatsChanged();
+    void gameUpdateStatsChanged();
     void glContextSwapchainMemoryChanged();
     void qmlTextureMemoryChanged();
     void texturePendingTransfersChanged();
@@ -265,7 +264,8 @@ private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon{ true };
     bool _expanded{ false };
-    bool _timingExpanded{ false };
+    bool _showTimingDetails{ false };
+    bool _showGameUpdateStats{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();

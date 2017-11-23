@@ -13,6 +13,9 @@
 #define hifi_PathUtils_h
 
 #include <QtCore/QObject>
+#include <QtCore/QUrl>
+#include <QtCore/QDir>
+
 #include "DependencyManager.h"
 
 /**jsdoc
@@ -23,15 +26,18 @@
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    Q_PROPERTY(QString resources READ resourcesPath)
+    Q_PROPERTY(QString resources READ resourcesPath CONSTANT)
+    Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
     static const QString& resourcesPath();
 
     static QString getAppDataPath();
-    static QString getAppLocalDataPath(const QString& overridePath = "");
+    static QString getAppLocalDataPath();
 
     static QString getAppDataFilePath(const QString& filename);
     static QString getAppLocalDataFilePath(const QString& filename);
+
+    static QString generateTemporaryDir();
 
     static Qt::CaseSensitivity getFSCaseSensitivity();
     static QString stripFilename(const QUrl& url);

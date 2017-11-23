@@ -17,18 +17,34 @@
 
 using namespace render;
 
+ShapePipeline::CustomFactoryMap ShapePipeline::_globalCustomFactoryMap;
+
+ShapePipeline::CustomKey ShapePipeline::registerCustomShapePipelineFactory(CustomFactory factory) {  
+    ShapePipeline::CustomKey custom = (ShapePipeline::CustomKey) _globalCustomFactoryMap.size() + 1;
+    _globalCustomFactoryMap[custom] = factory;
+    return custom;  
+}
+
+
 void ShapePipeline::prepare(gpu::Batch& batch, RenderArgs* args) {
-    if (batchSetter) {
-        batchSetter(*this, batch, args);
+    if (_batchSetter) {
+        _batchSetter(*this, batch, args);
     }
 }
+
+void ShapePipeline::prepareShapeItem(RenderArgs* args, const ShapeKey& key, const Item& shape) {
+    if (_itemSetter) {
+        _itemSetter(*this, args, shape);
+    }
+}
+
 
 ShapeKey::Filter::Builder::Builder() {
     _mask.set(OWN_PIPELINE);
     _mask.set(INVALID);
 }
 
-void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) {
+void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) const {
     // Iterate over all keys
     if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {
         addPipelineHelper(filter, key, bit + 1, pipeline);
@@ -48,12 +64,12 @@ void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit
 }
 
 void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter) {
-    addPipeline(Filter{key}, program, state, batchSetter);
+        BatchSetter batchSetter, ItemSetter itemSetter) {
+    addPipeline(Filter{key}, program, state, batchSetter, itemSetter);
 }
 
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter) {
+        BatchSetter batchSetter, ItemSetter itemSetter) {
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
@@ -69,6 +85,8 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -87,10 +105,12 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->lightAmbientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
-    
+    locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
+    locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
+
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
-    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter);
+    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
     addPipelineHelper(filter, key, 0, shapePipeline);
 }
 
@@ -101,25 +121,36 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     PerformanceTimer perfTimer("ShapePlumber::pickPipeline");
 
-    const auto& pipelineIterator = _pipelineMap.find(key);
+    auto pipelineIterator = _pipelineMap.find(key);
     if (pipelineIterator == _pipelineMap.end()) {
-        // The first time we can't find a pipeline, we should log it
+        // The first time we can't find a pipeline, we should try things to solve that
         if (_missingKeys.find(key) == _missingKeys.end()) {
-            _missingKeys.insert(key);
-            qCDebug(renderlogging) << "Couldn't find a pipeline for" << key;
+            if (key.isCustom()) {
+                auto factoryIt = ShapePipeline::_globalCustomFactoryMap.find(key.getCustom());
+                if ((factoryIt != ShapePipeline::_globalCustomFactoryMap.end()) && (factoryIt)->second) {
+                    // found a factory for the custom key, can now generate a shape pipeline for this case:
+                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key));
+
+                    return pickPipeline(args, key);
+                } else {
+                    qCDebug(renderlogging) << "ShapePlumber::Couldn't find a custom pipeline factory for " << key.getCustom() << " key is: " << key;
+                }
+            }
+
+           _missingKeys.insert(key);
+            qCDebug(renderlogging) << "ShapePlumber::Couldn't find a pipeline for" << key;
         }
         return PipelinePointer(nullptr);
     }
 
     PipelinePointer shapePipeline(pipelineIterator->second);
-    auto& batch = args->_batch;
 
     // Setup the one pipeline (to rule them all)
-    batch->setPipeline(shapePipeline->pipeline);
+    args->_batch->setPipeline(shapePipeline->pipeline);
 
     // Run the pipeline's BatchSetter on the passed in batch
-    if (shapePipeline->batchSetter) {
-        shapePipeline->batchSetter(*shapePipeline, *batch, args);
+    if (shapePipeline->_batchSetter) {
+        shapePipeline->_batchSetter(*shapePipeline, *(args->_batch), args);
     }
 
     return shapePipeline;

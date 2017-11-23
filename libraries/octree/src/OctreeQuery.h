@@ -12,21 +12,7 @@
 #ifndef hifi_OctreeQuery_h
 #define hifi_OctreeQuery_h
 
-/* VS2010 defines stdint.h, but not inttypes.h */
-#if defined(_MSC_VER)
-typedef signed char  int8_t;
-typedef signed short int16_t;
-typedef signed int   int32_t;
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed long long   int64_t;
-typedef unsigned long long quint64;
-#define PRId64 "I64d"
-#else
 #include <inttypes.h>
-#endif
-
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -45,7 +31,7 @@ public:
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
-    int parseData(ReceivedMessage& message) override;
+    virtual int parseData(ReceivedMessage& message) override;
 
     // getters for camera details
     const glm::vec3& getCameraPosition() const { return _cameraPosition; }
@@ -89,14 +75,14 @@ public slots:
 
 protected:
     // camera details for the avatar
-    glm::vec3 _cameraPosition = glm::vec3(0.0f);
-    glm::quat _cameraOrientation = glm::quat();
-    float _cameraFov = 0.0f;
-    float _cameraAspectRatio = 1.0f;
-    float _cameraNearClip = 0.0f;
-    float _cameraFarClip = 0.0f;
-    float _cameraCenterRadius { 0.0f };
-    glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
+    glm::vec3 _cameraPosition { glm::vec3(0.0f) };
+    glm::quat _cameraOrientation { glm::quat() };
+    float _cameraFov;
+    float _cameraAspectRatio;
+    float _cameraNearClip;
+    float _cameraFarClip;
+    float _cameraCenterRadius;
+    glm::vec3 _cameraEyeOffsetPosition { glm::vec3(0.0f) };
 
     // octree server sending items
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;

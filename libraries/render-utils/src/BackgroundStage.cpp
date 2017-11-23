@@ -14,6 +14,7 @@
 #include <gpu/Context.h>
 
 std::string BackgroundStage::_stageName { "BACKGROUND_STAGE"};
+const BackgroundStage::Index BackgroundStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 BackgroundStage::Index BackgroundStage::findBackground(const BackgroundPointer& background) const {
     auto found = _backgroundMap.find(background);
@@ -61,6 +62,8 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
     // Background rendering decision
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
+
     model::SunSkyStagePointer background;
     model::SkyboxPointer skybox;
     if (backgroundStage->_currentFrame._backgrounds.size()) {

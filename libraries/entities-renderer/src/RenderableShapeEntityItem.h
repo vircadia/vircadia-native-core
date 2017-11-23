@@ -9,30 +9,36 @@
 #ifndef hifi_RenderableShapeEntityItem_h
 #define hifi_RenderableShapeEntityItem_h
 
-#include <ShapeEntityItem.h>
-#include <procedural/Procedural.h>
-
 #include "RenderableEntityItem.h"
 
-class RenderableShapeEntityItem : public ShapeEntityItem, private SimplerRenderableEntitySupport {
-    using Pointer = std::shared_ptr<RenderableShapeEntityItem>;
-    static Pointer baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
+#include <procedural/Procedural.h>
+#include <ShapeEntityItem.h>
+
+namespace render { namespace entities { 
+
+class ShapeEntityRenderer : public TypedEntityRenderer<ShapeEntityItem> {
+    using Parent = TypedEntityRenderer<ShapeEntityItem>;
+    using Pointer = std::shared_ptr<ShapeEntityRenderer>;
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
-
-    void render(RenderArgs* args) override;
-    void setUserData(const QString& value) override;
-
-    bool isTransparent() override;
+    ShapeEntityRenderer(const EntityItemPointer& entity);
 
 private:
-    std::unique_ptr<Procedural> _procedural { nullptr };
+    virtual bool needsRenderUpdate() const override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+    virtual bool isTransparent() const override;
 
-    SIMPLE_RENDERABLE();
+    Procedural _procedural;
+    QString _lastUserData;
+    Transform _renderTransform;
+    entity::Shape _shape { entity::Sphere };
+    glm::vec4 _color;
+    glm::vec3 _position;
+    glm::vec3 _dimensions;
+    glm::quat _orientation;
 };
 
-
+} } 
 #endif // hifi_RenderableShapeEntityItem_h

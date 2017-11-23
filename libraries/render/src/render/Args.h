@@ -71,7 +71,6 @@ namespace render {
         Args() {}
 
         Args(const gpu::ContextPointer& context,
-            QSharedPointer<QObject> renderData = QSharedPointer<QObject>(nullptr),
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -79,7 +78,6 @@ namespace render {
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
             gpu::Batch* batch = nullptr) :
             _context(context),
-            _renderData(renderData),
             _sizeScale(sizeScale),
             _boundaryLevelAdjust(boundaryLevelAdjust),
             _renderMode(renderMode),
@@ -99,10 +97,11 @@ namespace render {
         void pushViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustums.push(viewFrustum); }
         void popViewFrustum() { _viewFrustums.pop(); }
 
+        bool isStereo() const { return _displayMode != MONO; }
+
         std::shared_ptr<gpu::Context> _context;
         std::shared_ptr<gpu::Framebuffer> _blitFramebuffer;
-        std::shared_ptr<render::ShapePipeline> _pipeline;
-        QSharedPointer<QObject> _renderData;
+        std::shared_ptr<render::ShapePipeline> _shapePipeline;
         std::stack<ViewFrustum> _viewFrustums;
         glm::ivec4 _viewport { 0.0f, 0.0f, 1.0f, 1.0f };
         glm::vec3 _boomOffset { 0.0f, 0.0f, 1.0f };
@@ -113,12 +112,18 @@ namespace render {
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 
-        uint32_t _globalShapeKey { 0 };
+        uint32_t _globalShapeKey{ 0 };
+        uint32_t _itemShapeKey{ 0 };
         bool _enableTexturing { true };
+
+        bool _enableFade{ false };
 
         RenderDetails _details;
         render::ScenePointer _scene;
         int8_t _cameraMode { -1 };
+
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
+        gpu::TexturePointer _hudTexture;
     };
 
 }

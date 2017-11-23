@@ -14,6 +14,7 @@
 
 #include <QtScript/QScriptValueIterator>
 
+#include <shared/QtHelpers.h>
 #include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
@@ -38,35 +39,42 @@
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+
 void Overlays::cleanupAllOverlays() {
+    QMap<OverlayID, Overlay::Pointer> overlaysHUD;
+    QMap<OverlayID, Overlay::Pointer> overlaysWorld;
     {
-        QWriteLocker lock(&_lock);
-        QWriteLocker deleteLock(&_deleteLock);
-        foreach(Overlay::Pointer overlay, _overlaysHUD) {
-            _overlaysToDelete.push_back(overlay);
-        }
-        foreach(Overlay::Pointer overlay, _overlaysWorld) {
-            _overlaysToDelete.push_back(overlay);
-        }
-        _overlaysHUD.clear();
-        _overlaysWorld.clear();
-        _panels.clear();
+        QMutexLocker locker(&_mutex);
+        overlaysHUD.swap(_overlaysHUD);
+        overlaysWorld.swap(_overlaysWorld);
     }
+
+    foreach(Overlay::Pointer overlay, overlaysHUD) {
+        _overlaysToDelete.push_back(overlay);
+    }
+    foreach(Overlay::Pointer overlay, overlaysWorld) {
+        _overlaysToDelete.push_back(overlay);
+    }
+#if OVERLAY_PANELS
+    _panels.clear();
+#endif
     cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
+#if OVERLAY_PANELS
     _scriptEngine = new QScriptEngine();
+#endif
 }
 
 void Overlays::update(float deltatime) {
-
     {
-        QWriteLocker lock(&_lock);
-        foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+        QMutexLocker locker(&_mutex);
+        foreach(const auto& thisOverlay, _overlaysHUD) {
             thisOverlay->update(deltatime);
         }
-        foreach(Overlay::Pointer thisOverlay, _overlaysWorld) {
+        foreach(const auto& thisOverlay, _overlaysWorld) {
             thisOverlay->update(deltatime);
         }
     }
@@ -80,8 +88,6 @@ void Overlays::cleanupOverlaysToDelete() {
         render::Transaction transaction;
 
         {
-            QWriteLocker lock(&_deleteLock);
-
             do {
                 Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
@@ -92,7 +98,7 @@ void Overlays::cleanupOverlaysToDelete() {
             } while (!_overlaysToDelete.isEmpty());
         }
 
-        if (transaction._removedItems.size() > 0) {
+        if (transaction.hasRemovedItems()) {
             scene->enqueueTransaction(transaction);
         }
     }
@@ -100,7 +106,6 @@ void Overlays::cleanupOverlaysToDelete() {
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
     PROFILE_RANGE(render_overlays, __FUNCTION__);
-    QReadLocker lock(&_lock);
     gpu::Batch& batch = *renderArgs->_batch;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -111,9 +116,9 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
 
-
+    QMutexLocker locker(&_mutex);
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
-    
+
         // Reset all batch pipeline settings between overlay
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
@@ -126,56 +131,63 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 }
 
 void Overlays::disable() {
-    QWriteLocker lock(&_lock);
     _enabled = false;
 }
 
 void Overlays::enable() {
-    QWriteLocker lock(&_lock);
     _enabled = true;
 }
 
+// Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder
+// class on packet processing threads
 Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
+    QMutexLocker locker(&_mutex);
     if (_overlaysHUD.contains(id)) {
         return _overlaysHUD[id];
-    }
-    if (_overlaysWorld.contains(id)) {
+    } else if (_overlaysWorld.contains(id)) {
         return _overlaysWorld[id];
     }
     return nullptr;
 }
 
 OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) {
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(QString, type), Q_ARG(QVariant, properties));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = nullptr;
 
     if (type == ImageOverlay::TYPE) {
-        thisOverlay = std::make_shared<ImageOverlay>();
+        thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
-        thisOverlay = std::make_shared<Image3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Image3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == TextOverlay::TYPE) {
-        thisOverlay = std::make_shared<TextOverlay>();
+        thisOverlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Text3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Text3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Text3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Shape3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Shape3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Shape3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Cube3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Cube3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Cube3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Sphere3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Sphere3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Sphere3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Circle3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Circle3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Circle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Rectangle3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Rectangle3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Rectangle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Line3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Line3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Line3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Grid3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Grid3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Grid3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == ModelOverlay::TYPE) {
-        thisOverlay = std::make_shared<ModelOverlay>();
+        thisOverlay = Overlay::Pointer(new ModelOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Web3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Web3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Web3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == RectangleOverlay::TYPE) {
-        thisOverlay = std::make_shared<RectangleOverlay>();
+        thisOverlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     }
 
     if (thisOverlay) {
@@ -185,19 +197,22 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
     return UNKNOWN_OVERLAY_ID;
 }
 
-OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
-    QWriteLocker lock(&_lock);
+OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
     OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
     overlay->setStackOrder(_stackOrder++);
     if (overlay->is3D()) {
-        _overlaysWorld[thisID] = overlay;
+        {
+            QMutexLocker locker(&_mutex);
+            _overlaysWorld[thisID] = overlay;
+        }
 
         render::ScenePointer scene = qApp->getMain3DScene();
         render::Transaction transaction;
         overlay->addToScene(overlay, scene, transaction);
         scene->enqueueTransaction(transaction);
     } else {
+        QMutexLocker locker(&_mutex);
         _overlaysHUD[thisID] = overlay;
     }
 
@@ -205,14 +220,23 @@ OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
 }
 
 OverlayID Overlays::cloneOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
-        OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+        OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
+#if OVERLAY_PANELS
         auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
         if (attachable && attachable->getParentPanel()) {
             attachable->getParentPanel()->addChild(cloneId);
         }
+#endif
         return cloneId;
     }
 
@@ -220,21 +244,30 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 }
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
-    QWriteLocker lock(&_lock);
+    auto thisOverlay = getOverlay(id);
+    if (!thisOverlay) {
+        return false;
+    }
 
-    Overlay::Pointer thisOverlay = getOverlay(id);
-    if (thisOverlay) {
-        thisOverlay->setProperties(properties.toMap());
-
+    if (!thisOverlay->is3D() && QThread::currentThread() != thread()) {
+        // NOTE editOverlay can be called very frequently in scripts and can't afford to
+        // block waiting on the main thread.  Additionally, no script actually
+        // examines the return value and does something useful with it, so use a non-blocking
+        // invoke and just always return true
+        QMetaObject::invokeMethod(this, "editOverlay", Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
         return true;
     }
-    return false;
+
+    thisOverlay->setProperties(properties.toMap());
+    return true;
 }
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
-    QVariantMap map = propertiesById.toMap();
+    bool defer2DOverlays = QThread::currentThread() != thread();
+
+    QVariantMap deferrred;
+    const QVariantMap map = propertiesById.toMap();
     bool success = true;
-    QWriteLocker lock(&_lock);
     for (const auto& key : map.keys()) {
         OverlayID id = OverlayID(key);
         Overlay::Pointer thisOverlay = getOverlay(id);
@@ -242,17 +275,34 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
             success = false;
             continue;
         }
-        QVariant properties = map[key];
+
+        const QVariant& properties = map[key];
+        if (defer2DOverlays && !thisOverlay->is3D()) {
+            deferrred[key] = properties;
+            continue;
+        }
         thisOverlay->setProperties(properties.toMap());
     }
+
+    // For 2D/QML overlays, we need to perform the edit on the main thread
+    if (defer2DOverlays && !deferrred.empty()) {
+        // NOTE see comment on editOverlay for why this is not a blocking call
+        QMetaObject::invokeMethod(this, "editOverlays", Q_ARG(QVariant, deferrred));
+    }
+
     return success;
 }
 
 void Overlays::deleteOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(OverlayID, id));
+        return;
+    }
+
     Overlay::Pointer overlayToDelete;
 
     {
-        QWriteLocker lock(&_lock);
+        QMutexLocker locker(&_mutex);
         if (_overlaysHUD.contains(id)) {
             overlayToDelete = _overlaysHUD.take(id);
         } else if (_overlaysWorld.contains(id)) {
@@ -262,19 +312,27 @@ void Overlays::deleteOverlay(OverlayID id) {
         }
     }
 
+#if OVERLAY_PANELS
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
     if (attachable && attachable->getParentPanel()) {
         attachable->getParentPanel()->removeChild(id);
         attachable->setParentPanel(nullptr);
     }
+#endif
 
-    QWriteLocker lock(&_deleteLock);
+
     _overlaysToDelete.push_back(overlayToDelete);
-
     emit overlayDeleted(id);
 }
 
-QString Overlays::getOverlayType(OverlayID overlayId) const {
+QString Overlays::getOverlayType(OverlayID overlayId) {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(OverlayID, overlayId));
+        return result;
+    }
+
     Overlay::Pointer overlay = getOverlay(overlayId);
     if (overlay) {
         return overlay->getType();
@@ -283,6 +341,13 @@ QString Overlays::getOverlayType(OverlayID overlayId) const {
 }
 
 QObject* Overlays::getOverlayObject(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        QObject* result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         return qobject_cast<QObject*>(&(*thisOverlay));
@@ -290,6 +355,7 @@ QObject* Overlays::getOverlayObject(OverlayID id) {
     return nullptr;
 }
 
+#if OVERLAY_PANELS
 OverlayID Overlays::getParentPanel(OverlayID childId) const {
     Overlay::Pointer overlay = getOverlay(childId);
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
@@ -330,33 +396,25 @@ void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
         }
     }
 }
+#endif
 
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    glm::vec2 pointCopy = point;
-    QReadLocker lock(&_lock);
     if (!_enabled) {
         return UNKNOWN_OVERLAY_ID;
     }
-    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
 
-    const float LARGE_NEGATIVE_FLOAT = -9999999;
-    glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
-    glm::vec3 direction(0, 0, 1);
-    glm::vec3 thisSurfaceNormal;
+    QMutexLocker locker(&_mutex);
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
     unsigned int bestStackOrder = 0;
     OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
-
     while (i.hasNext()) {
         i.next();
-        OverlayID thisID = i.key();
-        if (!i.value()->is3D()) {
-            auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
-                if (thisOverlay->getStackOrder() > bestStackOrder) {
-                    bestOverlayID = thisID;
-                    bestStackOrder = thisOverlay->getStackOrder();
-                }
+        auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+            if (thisOverlay->getStackOrder() > bestStackOrder) {
+                bestOverlayID = i.key();
+                bestStackOrder = thisOverlay->getStackOrder();
             }
         }
     }
@@ -365,12 +423,44 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
 }
 
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {
-    OverlayPropertyResult result;
     Overlay::Pointer thisOverlay = getOverlay(id);
-    QReadLocker lock(&_lock);
+    OverlayPropertyResult result;
     if (thisOverlay && thisOverlay->supportsGetProperty()) {
         result.value = thisOverlay->getProperty(property);
     }
+    return result;
+}
+
+OverlayPropertyResult Overlays::getProperties(const OverlayID& id, const QStringList& properties) {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    OverlayPropertyResult result;
+    if (thisOverlay && thisOverlay->supportsGetProperty()) {
+        QVariantMap mapResult;
+        for (const auto& property : properties) {
+            mapResult.insert(property, thisOverlay->getProperty(property));
+        }
+        result.value = mapResult;
+    }
+    return result;
+}
+
+OverlayPropertyResult Overlays::getOverlaysProperties(const QVariant& propertiesById) {
+    QVariantMap map = propertiesById.toMap();
+    OverlayPropertyResult result;
+    QVariantMap resultMap;
+    for (const auto& key : map.keys()) {
+        OverlayID id = OverlayID(key);
+        QVariantMap overlayResult;
+        Overlay::Pointer thisOverlay = getOverlay(id);
+        if (thisOverlay && thisOverlay->supportsGetProperty()) {
+            QStringList propertiesToFetch = map[key].toStringList();
+            for (const auto& property : propertiesToFetch) {
+                overlayResult[property] = thisOverlay->getProperty(property);
+            }
+        }
+        resultMap[key] = overlayResult;
+    }
+    result.value = resultMap;
     return result;
 }
 
@@ -396,19 +486,19 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
     const QVector<OverlayID> overlaysToInclude = qVectorOverlayIDFromScriptValue(overlayIDsToInclude);
     const QVector<OverlayID> overlaysToDiscard = qVectorOverlayIDFromScriptValue(overlayIDsToDiscard);
 
-    return findRayIntersectionInternal(ray, precisionPicking,
-                                       overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
+    return findRayIntersectionVector(ray, precisionPicking,
+                                     overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
 }
 
 
-RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
-                                                                     const QVector<OverlayID>& overlaysToInclude,
-                                                                     const QVector<OverlayID>& overlaysToDiscard,
-                                                                     bool visibleOnly, bool collidableOnly) {
-    QReadLocker lock(&_lock);
+RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+                                                                   const QVector<OverlayID>& overlaysToInclude,
+                                                                   const QVector<OverlayID>& overlaysToDiscard,
+                                                                   bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 
+    QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     while (i.hasNext()) {
@@ -446,16 +536,6 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
         }
     }
     return result;
-}
-
-RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
-    intersects(false),
-    overlayID(UNKNOWN_OVERLAY_ID),
-    distance(0),
-    face(),
-    intersection(),
-    extraInfo()
-{
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
@@ -531,7 +611,13 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar
 }
 
 bool Overlays::isLoaded(OverlayID id) {
-    QReadLocker lock(&_lock);
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (!thisOverlay) {
         return false; // not found
@@ -539,21 +625,30 @@ bool Overlays::isLoaded(OverlayID id) {
     return thisOverlay->isLoaded();
 }
 
-QSizeF Overlays::textSize(OverlayID id, const QString& text) const {
-    Overlay::Pointer thisOverlay = _overlaysHUD[id];
+QSizeF Overlays::textSize(OverlayID id, const QString& text) {
+    if (QThread::currentThread() != thread()) {
+        QSizeF result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(OverlayID, id), Q_ARG(QString, text));
+        return result;
+    }
+
+    Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
-        if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
-            return textOverlay->textSize(text);
-        }
-    } else {
-        thisOverlay = _overlaysWorld[id];
-        if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
-            return text3dOverlay->textSize(text);
+        if (thisOverlay->is3D()) {
+            if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
+                return text3dOverlay->textSize(text);
+            }
+        } else {
+            if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
+                return textOverlay->textSize(text);
+            }
         }
     }
     return QSizeF(0.0f, 0.0f);
 }
 
+#if OVERLAY_PANELS
 OverlayID Overlays::addPanel(OverlayPanel::Pointer panel) {
     QWriteLocker lock(&_lock);
 
@@ -607,56 +702,79 @@ void Overlays::deletePanel(OverlayID panelId) {
 
     emit panelDeleted(panelId);
 }
+#endif
 
 bool Overlays::isAddedOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "isAddedOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
+    QMutexLocker locker(&_mutex);
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
-void Overlays::sendMousePressOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mousePressOnOverlay(overlayID, event);
+void Overlays::sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    mousePressEvent(overlayID, event);
 }
 
-void Overlays::sendMouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mouseReleaseOnOverlay(overlayID, event);
+void Overlays::sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    mouseReleaseEvent(overlayID, event);
 }
 
-void Overlays::sendMouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mouseMoveOnOverlay(overlayID, event);
+void Overlays::sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    mouseMoveEvent(overlayID, event);
 }
 
-void Overlays::sendHoverEnterOverlay(OverlayID id, PointerEvent event) {
-    emit hoverEnterOverlay(id, event);
+void Overlays::sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    emit hoverEnterOverlay(overlayID, event);
 }
 
-void Overlays::sendHoverOverOverlay(OverlayID  id, PointerEvent event) {
-    emit hoverOverOverlay(id, event);
+void Overlays::sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    emit hoverOverOverlay(overlayID, event);
 }
 
-void Overlays::sendHoverLeaveOverlay(OverlayID  id, PointerEvent event) {
-    emit hoverLeaveOverlay(id, event);
+void Overlays::sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    hoverLeaveEvent(overlayID, event);
 }
 
-OverlayID Overlays::getKeyboardFocusOverlay() const {
+OverlayID Overlays::getKeyboardFocusOverlay() {
     return qApp->getKeyboardFocusOverlay();
 }
 
-void Overlays::setKeyboardFocusOverlay(OverlayID id) {
+void Overlays::setKeyboardFocusOverlay(const OverlayID& id) {
     qApp->setKeyboardFocusOverlay(id);
 }
 
-float Overlays::width() const {
+float Overlays::width() {
+    if (QThread::currentThread() != thread()) {
+        float result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "width", Q_RETURN_ARG(float, result));
+        return result;
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().width();
 }
 
-float Overlays::height() const {
+float Overlays::height() {
+    if (QThread::currentThread() != thread()) {
+        float result;
+        PROFILE_RANGE(script, __FUNCTION__);
+        BLOCKING_INVOKE_METHOD(this, "height", Q_RETURN_ARG(float, result));
+        return result;
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().height();
 }
 
 static const uint32_t MOUSE_POINTER_ID = 0;
 
-static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay, 
+static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay,
     const RayToOverlayIntersectionResult& rayPickResult) {
 
     // Project the intersection point onto the local xy plane of the overlay.
@@ -699,16 +817,20 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay ray,
+PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray,
                                              RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event,
                                              PointerEvent::EventType eventType) {
+    auto overlay = std::dynamic_pointer_cast<Planar3DOverlay>(getOverlay(overlayID));
+    if (getOverlayType(overlayID) == "web3d") {
+        overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
+    if (!overlay) {
+        return PointerEvent();
+    }
+    glm::vec3 position = overlay->getPosition();
+    glm::quat rotation = overlay->getRotation();
+    glm::vec2 dimensions = overlay->getSize();
 
-    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlay);
-
-    QReadLocker lock(&_lock);
-    auto position = thisOverlay->getPosition();
-    auto rotation = thisOverlay->getRotation();
-    auto dimensions = thisOverlay->getSize();
 
     glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
 
@@ -726,21 +848,21 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRa
 
     // first priority is tablet screen
     overlaysToInclude << qApp->getTabletScreenID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet home button
     overlaysToInclude.clear();
     overlaysToInclude << qApp->getTabletHomeButtonID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet frame
     overlaysToInclude.clear();
     overlaysToInclude << OverlayID(qApp->getTabletFrameID());
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
@@ -756,16 +878,34 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
-        // Only Web overlays can have focus.
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
-        if (thisOverlay) {
-            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
-            emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-            return true;
-        }
+        PointerEvent pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
+        mousePressEvent(_currentClickingOnOverlayID, pointerEvent);
+        return true;
     }
+    // if we didn't press on an overlay, disable overlay keyboard focus
+    setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    // emit to scripts
     emit mousePressOffOverlay();
     return false;
+}
+
+void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // TODO: generalize this to allow any overlay to recieve events
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
+    if (thisOverlay) {
+        // Focus keyboard on web overlays
+        DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        setKeyboardFocusOverlay(overlayID);
+
+        // Send to web overlay
+        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    }
+
+    // emit to scripts
+    emit mousePressOnOverlay(overlayID, event);
 }
 
 bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
@@ -776,16 +916,29 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
-        // Only Web overlays can have focus.
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentClickingOnOverlayID));
-        if (thisOverlay) {
-            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Press);
-            emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-            return true;
-        }
+        auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
+        // emit to scripts
+        emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+        return true;
     }
+    // emit to scripts
     emit mouseDoublePressOffOverlay();
     return false;
+}
+
+void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // TODO: generalize this to allow any overlay to recieve events
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
+    if (thisOverlay) {
+        // Send to web overlay
+        QMetaObject::invokeMethod(thisOverlay.get(), "hoverLeaveOverlay", Q_ARG(PointerEvent, event));
+    }
+
+    // emit to scripts
+    emit hoverLeaveOverlay(overlayID, event);
 }
 
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
@@ -794,17 +947,27 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PickRay ray = qApp->computePickRay(event->x(), event->y());
     RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
     if (rayPickResult.intersects) {
-
-        // Only Web overlays can have focus.
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
-        if (thisOverlay) {
-            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Release);
-            emit mouseReleaseOnOverlay(rayPickResult.overlayID, pointerEvent);
-        }
+        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
+        mouseReleaseEvent(rayPickResult.overlayID, pointerEvent);
     }
 
     _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
     return false;
+}
+
+void Overlays::mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // TODO: generalize this to allow any overlay to recieve events
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
+    if (thisOverlay) {
+        // Send to web overlay
+        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    }
+
+    // emit to scripts
+    emit mouseReleaseOnOverlay(overlayID, event);
 }
 
 bool Overlays::mouseMoveEvent(QMouseEvent* event) {
@@ -813,40 +976,29 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PickRay ray = qApp->computePickRay(event->x(), event->y());
     RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
     if (rayPickResult.intersects) {
+        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
+        mouseMoveEvent(rayPickResult.overlayID, pointerEvent);
 
-        // Only Web overlays can have focus.
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(rayPickResult.overlayID));
-        if (thisOverlay) {
-            auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
-            emit mouseMoveOnOverlay(rayPickResult.overlayID, pointerEvent);
-
-            // If previously hovering over a different overlay then leave hover on that overlay.
-            if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
-                auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
-                if (thisOverlay) {
-                    auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
-                    emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
-                }
-            }
-
-            // If hovering over a new overlay then enter hover on that overlay.
-            if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
-                emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
-            }
-
-            // Hover over current overlay.
-            emit hoverOverOverlay(rayPickResult.overlayID, pointerEvent);
-
-            _currentHoverOverOverlayID = rayPickResult.overlayID;
+        // If previously hovering over a different overlay then leave hover on that overlay.
+        if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
+            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
+            hoverLeaveEvent(_currentHoverOverOverlayID, pointerEvent);
         }
+
+        // If hovering over a new overlay then enter hover on that overlay.
+        if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
+            emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
+        }
+
+        // Hover over current overlay.
+        emit hoverOverOverlay(rayPickResult.overlayID, pointerEvent);
+
+        _currentHoverOverOverlayID = rayPickResult.overlayID;
     } else {
         // If previously hovering an overlay then leave hover.
         if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
-            auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(_currentHoverOverOverlayID));
-            if (thisOverlay) {
-                auto pointerEvent = calculatePointerEvent(thisOverlay, ray, rayPickResult, event, PointerEvent::Move);
-                emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
-            }
+            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
+            hoverLeaveEvent(_currentHoverOverOverlayID, pointerEvent);
 
             _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
         }
@@ -854,9 +1006,30 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     return false;
 }
 
-QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
-    QVector<QUuid> result;
+void Overlays::mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // TODO: generalize this to allow any overlay to recieve events
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
+    if (thisOverlay) {
+        // Send to web overlay
+        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    }
 
+    // emit to scripts
+    emit mouseMoveOnOverlay(overlayID, event);
+}
+
+QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
+    QVector<QUuid> result;
+    //if (QThread::currentThread() != thread()) {
+    //    PROFILE_RANGE(script, __FUNCTION__);
+    //    BLOCKING_INVOKE_METHOD(this, "findOverlays", Q_RETURN_ARG(QVector<QUuid>, result), Q_ARG(glm::vec3, center), Q_ARG(float, radius));
+    //    return result;
+    //}
+
+    QMutexLocker locker(&_mutex);
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     int checked = 0;
     while (i.hasNext()) {
@@ -871,6 +1044,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) con
             AABox overlayFrameBox(low, dimensions);
 
             Transform overlayToWorldMatrix = overlay->getTransform();
+            overlayToWorldMatrix.setScale(1.0f);  // ignore inherited scale factor from parents
             glm::mat4 worldToOverlayMatrix = glm::inverse(overlayToWorldMatrix.getMatrix());
             glm::vec3 overlayFrameSearchPosition = glm::vec3(worldToOverlayMatrix * glm::vec4(center, 1.0f));
             glm::vec3 penetration;

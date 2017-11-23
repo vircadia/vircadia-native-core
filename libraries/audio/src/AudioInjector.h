@@ -32,6 +32,8 @@
 
 class AbstractAudioInterface;
 class AudioInjectorManager;
+class AudioInjector;
+using AudioInjectorPointer = QSharedPointer<AudioInjector>;
 
 
 enum class AudioInjectorState : uint8_t {
@@ -46,19 +48,19 @@ AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs);
 AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs);
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
-// until it dies. 
-class AudioInjector : public QObject {
+// until it dies.
+class AudioInjector : public QObject, public QEnableSharedFromThis<AudioInjector> {
     Q_OBJECT
 public:
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
     AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     ~AudioInjector();
-    
+
     bool isFinished() const { return (stateHas(AudioInjectorState::Finished)); }
-    
+
     int getCurrentSendOffset() const { return _currentSendOffset; }
     void setCurrentSendOffset(int currentSendOffset) { _currentSendOffset = currentSendOffset; }
-    
+
     AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
     AudioHRTF& getLocalHRTF() { return _localHRTF; }
     AudioFOA& getLocalFOA() { return _localFOA; }
@@ -72,36 +74,36 @@ public:
 
     bool stateHas(AudioInjectorState state) const ;
     static void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
-    static AudioInjector* playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options);
-    static AudioInjector* playSound(const QByteArray& buffer, const AudioInjectorOptions options);
-    static AudioInjector* playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position);
+    static AudioInjectorPointer playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options);
+    static AudioInjectorPointer playSound(const QByteArray& buffer, const AudioInjectorOptions options);
+    static AudioInjectorPointer playSound(SharedSoundPointer sound, const float volume,
+                                          const float stretchFactor, const glm::vec3 position);
 
 public slots:
     void restart();
-    
+
     void stop();
     void triggerDeleteAfterFinish();
-    void stopAndDeleteLater();
-    
+
     const AudioInjectorOptions& getOptions() const { return _options; }
     void setOptions(const AudioInjectorOptions& options);
-    
+
     float getLoudness() const { return _loudness; }
     bool isPlaying() const { return !stateHas(AudioInjectorState::Finished); }
     void finish();
     void finishLocalInjection();
     void finishNetworkInjection();
-    
+
 signals:
     void finished();
     void restarting();
-    
+
 private:
     int64_t injectNextFrame();
-    bool inject(bool(AudioInjectorManager::*injection)(AudioInjector*));
+    bool inject(bool(AudioInjectorManager::*injection)(const AudioInjectorPointer&));
     bool injectLocally();
     void deleteLocalBuffer();
-    
+
     static AbstractAudioInterface* _localAudioInterface;
 
     QByteArray _audioData;
@@ -112,17 +114,15 @@ private:
     int _currentSendOffset { 0 };
     std::unique_ptr<NLPacket> _currentPacket { nullptr };
     AudioInjectorLocalBuffer* _localBuffer { nullptr };
-    
+
     int64_t _nextFrame { 0 };
     std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
     quint16 _outgoingSequenceNumber { 0 };
-    
+
     // when the injector is local, we need this
     AudioHRTF _localHRTF;
     AudioFOA _localFOA;
     friend class AudioInjectorManager;
 };
 
-Q_DECLARE_METATYPE(AudioInjector*)
-    
 #endif // hifi_AudioInjector_h

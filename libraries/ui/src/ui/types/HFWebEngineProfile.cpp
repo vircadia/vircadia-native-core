@@ -18,8 +18,6 @@ static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 HFWebEngineProfile::HFWebEngineProfile(QObject* parent) :
     QQuickWebEngineProfile(parent)
 {
-    static const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (HighFidelityInterface)";
-    setHttpUserAgent(WEB_ENGINE_USER_AGENT);
     setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
 
     // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user

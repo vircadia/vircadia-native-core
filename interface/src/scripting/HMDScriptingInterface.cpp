@@ -13,6 +13,7 @@
 
 #include <QtScript/QScriptContext>
 
+#include <shared/QtHelpers.h>
 #include <avatar/AvatarManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
@@ -81,12 +82,39 @@ bool HMDScriptingInterface::shouldShowHandControllers() const {
     return _showHandControllersCount > 0;
 }
 
-void  HMDScriptingInterface::closeTablet() {
-    _showTablet = false;
+void HMDScriptingInterface::activateHMDHandMouse() {
+    QWriteLocker lock(&_hmdHandMouseLock);
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", true);
+    _hmdHandMouseCount++;
 }
 
-void HMDScriptingInterface::openTablet() {
+void HMDScriptingInterface::deactivateHMDHandMouse() {
+    QWriteLocker lock(&_hmdHandMouseLock);
+    _hmdHandMouseCount = std::max(_hmdHandMouseCount - 1, 0);
+    if (_hmdHandMouseCount == 0) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", false);
+    }
+}
+
+void  HMDScriptingInterface::closeTablet() {
+    _showTablet = false;
+    _tabletContextualMode = false;
+}
+
+void HMDScriptingInterface::openTablet(bool contextualMode) {
     _showTablet = true;
+    _tabletContextualMode = contextualMode;
+}
+
+void HMDScriptingInterface::toggleShouldShowTablet() {
+    setShouldShowTablet(!getShouldShowTablet());
+}
+
+void HMDScriptingInterface::setShouldShowTablet(bool value) {
+    _showTablet = value;
+    _tabletContextualMode = false;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
@@ -134,7 +162,7 @@ glm::vec3 HMDScriptingInterface::getPosition() const {
 
 glm::quat HMDScriptingInterface::getOrientation() const {
     if (qApp->getActiveDisplayPlugin()->isHmd()) {
-        return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
+        return glmExtractRotation(getWorldHMDMatrix());
     }
     return glm::quat();
 }
@@ -150,41 +178,6 @@ QString HMDScriptingInterface::preferredAudioInput() const {
 
 QString HMDScriptingInterface::preferredAudioOutput() const {
     return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
-}
-
-bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
-        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
-    });
-    return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
-        enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
-        color, direction);
-}
-
-bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
-        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
-    });
-
-
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
-    auto worldToSensor = glm::inverse(sensorToWorld);
-    auto sensorStart = ::transformPoint(worldToSensor, worldStart);
-    auto sensorDirection = ::transformVectorFast(worldToSensor, direction);
-
-    return qApp->getActiveDisplayPlugin()->setExtraLaser(enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
-        color, sensorStart, sensorDirection);
-}
-
-void HMDScriptingInterface::disableExtraLaser() const {
-    setExtraLaser(vec3(0), false, vec4(0), vec3(0));
-}
-
-void HMDScriptingInterface::disableHandLasers(int hands) const {
-    setHandLasers(hands, false, vec4(0), vec3(0));
 }
 
 bool HMDScriptingInterface::suppressKeyboard() {

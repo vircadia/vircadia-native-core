@@ -14,12 +14,17 @@
     var isWindowFocused = true;
     var isKeyboardRaised = false;
     var isNumericKeyboard = false;
-    var KEYBOARD_HEIGHT = 200;
+    var isPasswordField = false;
+
+    function shouldSetPasswordField() {
+        var nodeType = document.activeElement.type;
+        return nodeType === "password";
+    }
 
     function shouldRaiseKeyboard() {
         var nodeName = document.activeElement.nodeName;
         var nodeType = document.activeElement.type;
-        if (nodeName === "INPUT" && ["email", "number", "password", "tel", "text", "url"].indexOf(nodeType) !== -1
+        if (nodeName === "INPUT" && ["email", "number", "password", "tel", "text", "url", "search"].indexOf(nodeType) !== -1
             || document.activeElement.nodeName === "TEXTAREA") {
             return true;
         } else {
@@ -38,15 +43,30 @@
         return document.activeElement.type === "number";
     };
 
+    function scheduleBringToView(timeout) {
+
+        var timer = setTimeout(function () {
+            clearTimeout(timer);
+
+            var elementRect = document.activeElement.getBoundingClientRect();
+            var absoluteElementTop = elementRect.top + window.scrollY;
+            var middle = absoluteElementTop - (window.innerHeight / 2);
+
+            window.scrollTo(0, middle);
+        }, timeout);
+    }
+
     setInterval(function () {
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
+        var passwordField = shouldSetPasswordField();
 
-        if (isWindowFocused && (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard)) {
+        if (isWindowFocused &&
+            (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard || passwordField !== isPasswordField)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
-                    keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "")) : "_LOWER_KEYBOARD"
+                    keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "") + (passwordField ? "_PASSWORD" : "")) : "_LOWER_KEYBOARD"
                 );
             } else {
                 if (numWarnings < MAX_WARNINGS) {
@@ -56,19 +76,22 @@
             }
 
             if (!isKeyboardRaised) {
-                var delta = document.activeElement.getBoundingClientRect().bottom + 10
-                    - (document.body.clientHeight - KEYBOARD_HEIGHT);
-                if (delta > 0) {
-                    setTimeout(function () {
-                        document.body.scrollTop += delta;
-                    }, 500);  // Allow time for keyboard to be raised in QML.
-                }
+                scheduleBringToView(250); // Allow time for keyboard to be raised in QML.
+                                          // 2DO: should it be rather done from 'client area height changed' event?
             }
 
             isKeyboardRaised = keyboardRaised;
             isNumericKeyboard = numericKeyboard;
+            isPasswordField = passwordField;
         }
     }, POLL_FREQUENCY);
+
+    window.addEventListener("click", function () {
+        var keyboardRaised = shouldRaiseKeyboard();
+        if(keyboardRaised && isKeyboardRaised) {
+            scheduleBringToView(150);
+        }
+    });
 
     window.addEventListener("focus", function () {
         isWindowFocused = true;

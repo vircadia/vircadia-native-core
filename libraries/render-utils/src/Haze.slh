@@ -1,0 +1,46 @@
+<!
+//  Haze.slh
+//
+//  Created by Nissim Hadar on 9/13/2017
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not HAZE_SLH@>
+<@def HAZE_SLH@>
+
+const int HAZE_MODE_IS_ACTIVE = 1 << 0;
+const int HAZE_MODE_IS_ALTITUDE_BASED = 1 << 1;
+const int HAZE_MODE_IS_KEYLIGHT_ATTENUATED = 1 << 2;
+const int HAZE_MODE_IS_MODULATE_COLOR = 1 << 3;
+const int HAZE_MODE_IS_ENABLE_LIGHT_BLEND = 1 << 4;
+
+struct HazeParams {
+    vec3 hazeColor;
+    float hazeGlareBlend;
+
+    vec3 hazeGlareColor;
+    float hazeBaseReference;
+
+    vec3 colorModulationFactor;
+    int hazeMode;
+
+    mat4 zoneTransform;
+    float backgroundBlend;
+
+    float hazeRangeFactor;
+    float hazeHeightFactor;
+
+    float hazeKeyLightRangeFactor;
+    float hazeKeyLightAltitudeFactor;
+};
+
+layout(std140) uniform hazeBuffer {
+    HazeParams hazeParams;
+};
+
+uniform sampler2D linearDepthMap;
+
+<@endif@>
+

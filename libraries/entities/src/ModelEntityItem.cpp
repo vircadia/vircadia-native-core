@@ -26,16 +26,13 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    EntityItemPointer entity(new ModelEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
-    _animationProperties.associateWithAnimationLoop(&_animationLoop);
-    _animationLoop.setResetOnRunning(false);
-
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -114,35 +111,19 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
-    if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        setCompoundShapeURL("");
-    } else {
-        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-    }
-
-    // Because we're using AnimationLoop which will reset the frame index if you change it's running state
-    // we want to read these values in the order they appear in the buffer, but call our setters in an
-    // order that allows AnimationLoop to preserve the correct frame rate.
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setAnimationURL);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationCurrentFrame);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-    }
-
+    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-    } else {
+    int bytesFromAnimation;
+    withWriteLock([&] {
         // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
         // will automatically read into the animation loop
-        int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                        propertyFlags, overwriteLocalData, animationPropertiesChanged);
+        bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, animationPropertiesChanged);
+    });
 
-        bytesRead += bytesFromAnimation;
-        dataAt += bytesFromAnimation;
-    }
+    bytesRead += bytesFromAnimation;
+    dataAt += bytesFromAnimation;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
@@ -191,8 +172,10 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
-    _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
-        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    withReadLock([&] {
+        _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
 
@@ -202,26 +185,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
 
-
-bool ModelEntityItem::isAnimatingSomething() const {
-    return getAnimationIsPlaying() &&
-            getAnimationFPS() != 0.0f &&
-            !getAnimationURL().isEmpty();
-}
-
-bool ModelEntityItem::needsToCallUpdate() const {
-    return isAnimatingSomething() || EntityItem::needsToCallUpdate();
-}
-
-void ModelEntityItem::update(const quint64& now) {
-
-    // only advance the frame index if we're playing
-    if (getAnimationIsPlaying()) {
-        _animationLoop.simulateAtTime(now);
-    }
-
-    EntityItem::update(now); // let our base class handle it's updates...
-}
 
 void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
@@ -233,16 +196,18 @@ void ModelEntityItem::debugDump() const {
 }
 
 void ModelEntityItem::setShapeType(ShapeType type) {
-    if (type != _shapeType) {
-        if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
-            // dynamic and STATIC_MESH are incompatible
-            // since the shape is being set here we clear the dynamic bit
-            _dynamic = false;
-            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+    withWriteLock([&] {
+        if (type != _shapeType) {
+            if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+                // dynamic and STATIC_MESH are incompatible
+                // since the shape is being set here we clear the dynamic bit
+                _dynamic = false;
+                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+            }
+            _shapeType = type;
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
-        _shapeType = type;
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-    }
+    });
 }
 
 ShapeType ModelEntityItem::getShapeType() const {
@@ -264,28 +229,33 @@ ShapeType ModelEntityItem::computeTrueShapeType() const {
 }
 
 void ModelEntityItem::setModelURL(const QString& url) {
-    if (_modelURL != url) {
-        _modelURL = url;
-        _parsedModelURL = QUrl(url);
-        if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+    withWriteLock([&] {
+        if (_modelURL != url) {
+            _modelURL = url;
+            if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
+                _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            }
         }
-    }
+    });
 }
 
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
-    if (_compoundShapeURL != url) {
-        ShapeType oldType = computeTrueShapeType();
-        _compoundShapeURL = url;
-        if (oldType != computeTrueShapeType()) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+    withWriteLock([&] {
+        if (_compoundShapeURL.get() != url) {
+            ShapeType oldType = computeTrueShapeType();
+            _compoundShapeURL.set(url);
+            if (oldType != computeTrueShapeType()) {
+                _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            }
         }
-    }
+    });
 }
 
 void ModelEntityItem::setAnimationURL(const QString& url) {
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
-    _animationProperties.setURL(url);
+    withWriteLock([&] {
+        _animationProperties.setURL(url);
+    });
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) {
@@ -305,7 +275,7 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
     if (settingsMap.contains("frameIndex")) {
         float currentFrame = settingsMap["frameIndex"].toFloat();
 #ifdef WANT_DEBUG
-        if (isAnimatingSomething()) {
+        if (!getAnimationURL().isEmpty()) {
             qCDebug(entities) << "ModelEntityItem::setAnimationSettings() calling setAnimationFrameIndex()...";
             qCDebug(entities) << "    model URL:" << getModelURL();
             qCDebug(entities) << "    animation URL:" << getAnimationURL();
@@ -345,17 +315,21 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
+    if (settingsMap.contains("allowTranslation")) {
+        bool allowTranslation = settingsMap["allowTranslation"].toBool();
+        setAnimationAllowTranslation(allowTranslation);
+    }
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
-    _animationLoop.setRunning(value);
+    _animationProperties.setRunning(value);
 }
 
 void ModelEntityItem::setAnimationFPS(float value) {
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
-    _animationLoop.setFPS(value);
+    _animationProperties.setFPS(value);
 }
 
 // virtual
@@ -364,58 +338,79 @@ bool ModelEntityItem::shouldBePhysical() const {
 }
 
 void ModelEntityItem::resizeJointArrays(int newSize) {
-    if (newSize >= 0 && newSize > _localJointRotations.size()) {
-        _localJointRotations.resize(newSize);
-        _localJointRotationsSet.resize(newSize);
-        _localJointRotationsDirty.resize(newSize);
-        _localJointTranslations.resize(newSize);
-        _localJointTranslationsSet.resize(newSize);
-        _localJointTranslationsDirty.resize(newSize);
+    if (newSize < 0) {
+        return;
     }
+
+    _jointDataLock.withWriteLock([&] {
+        if (newSize > _localJointData.size()) {
+            _localJointData.resize(newSize);
+        }
+    });
+}
+
+void ModelEntityItem::setAnimationJointsData(const QVector<JointData>& jointsData) {
+    resizeJointArrays(jointsData.size());
+    _jointDataLock.withWriteLock([&] {
+        for (auto index = 0; index < jointsData.size(); ++index) {
+            const auto& newJointData = jointsData[index];
+            auto& localJointData = _localJointData[index];
+            if (newJointData.translationSet) {
+                localJointData.joint.translation = newJointData.translation;
+                localJointData.translationDirty = true;
+            }
+            if (newJointData.rotationSet) {
+                localJointData.joint.rotation = newJointData.rotation;
+                localJointData.rotationDirty = true;
+            }
+        }
+    });
 }
 
 void ModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    resizeJointArrays(rotations.size());
     _jointDataLock.withWriteLock([&] {
         _jointRotationsExplicitlySet = rotations.size() > 0;
-        resizeJointArrays(rotations.size());
         for (int index = 0; index < rotations.size(); index++) {
-            if (_localJointRotationsSet[index]) {
-                _localJointRotations[index] = rotations[index];
-                _localJointRotationsDirty[index] = true;
+            auto& jointData = _localJointData[index];
+            if (jointData.joint.rotationSet) {
+                jointData.joint.rotation = rotations[index];
+                jointData.rotationDirty = true;
             }
         }
     });
 }
 
 void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    resizeJointArrays(rotationsSet.size());
     _jointDataLock.withWriteLock([&] {
         _jointRotationsExplicitlySet = rotationsSet.size() > 0;
-        resizeJointArrays(rotationsSet.size());
         for (int index = 0; index < rotationsSet.size(); index++) {
-            _localJointRotationsSet[index] = rotationsSet[index];
+            _localJointData[index].joint.rotationSet = rotationsSet[index];
         }
     });
 }
 
 void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    resizeJointArrays(translations.size());
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = translations.size() > 0;
-        resizeJointArrays(translations.size());
         for (int index = 0; index < translations.size(); index++) {
-            if (_localJointTranslationsSet[index]) {
-                _localJointTranslations[index] = translations[index];
-                _localJointTranslationsDirty[index] = true;
+            auto& jointData = _localJointData[index];
+            if (jointData.joint.translationSet) {
+                jointData.joint.translation = translations[index];
+                jointData.translationDirty = true;
             }
         }
     });
 }
 
 void ModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    resizeJointArrays(translationsSet.size());
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = translationsSet.size() > 0;
-        resizeJointArrays(translationsSet.size());
         for (int index = 0; index < translationsSet.size(); index++) {
-            _localJointTranslationsSet[index] = translationsSet[index];
+            _localJointData[index].joint.translationSet = translationsSet[index];
         }
     });
 }
@@ -424,7 +419,10 @@ QVector<glm::quat> ModelEntityItem::getJointRotations() const {
     QVector<glm::quat> result;
     _jointDataLock.withReadLock([&] {
         if (_jointRotationsExplicitlySet) {
-            result = _localJointRotations;
+            result.resize(_localJointData.size());
+            for (auto i = 0; i < _localJointData.size(); ++i) {
+                result[i] = _localJointData[i].joint.rotation;
+            }
         }
     });
     return result;
@@ -434,7 +432,10 @@ QVector<bool> ModelEntityItem::getJointRotationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
         if (_jointRotationsExplicitlySet) {
-            result = _localJointRotationsSet;
+            result.resize(_localJointData.size());
+            for (auto i = 0; i < _localJointData.size(); ++i) {
+                result[i] = _localJointData[i].joint.rotationSet;
+            }
         }
     });
 
@@ -445,7 +446,10 @@ QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
     QVector<glm::vec3> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
-            result = _localJointTranslations;
+            result.resize(_localJointData.size());
+            for (auto i = 0; i < _localJointData.size(); ++i) {
+                result[i] = _localJointData[i].joint.translation;
+            }
         }
     });
     return result;
@@ -455,8 +459,136 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     QVector<bool> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
-            result = _localJointTranslationsSet;
+            result.resize(_localJointData.size());
+            for (auto i = 0; i < _localJointData.size(); ++i) {
+                result[i] = _localJointData[i].joint.translationSet;
+            }
         }
     });
     return result;
+}
+
+
+xColor ModelEntityItem::getXColor() const { 
+    xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; 
+}
+bool ModelEntityItem::hasModel() const { 
+    return resultWithReadLock<bool>([&] {
+        return !_modelURL.isEmpty();
+    });
+}
+bool ModelEntityItem::hasCompoundShapeURL() const {
+    return !_compoundShapeURL.get().isEmpty();
+}
+
+QString ModelEntityItem::getModelURL() const {
+    return resultWithReadLock<QString>([&] {
+        return _modelURL;
+    });
+}
+
+QString ModelEntityItem::getCompoundShapeURL() const {
+    return _compoundShapeURL.get();
+}
+
+void ModelEntityItem::setColor(const rgbColor& value) { 
+    withWriteLock([&] {
+        memcpy(_color, value, sizeof(_color));
+    });
+}
+
+void ModelEntityItem::setColor(const xColor& value) {
+    withWriteLock([&] {
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
+    });
+}
+
+// Animation related items...
+AnimationPropertyGroup ModelEntityItem::getAnimationProperties() const { 
+    AnimationPropertyGroup result;
+    withReadLock([&] {
+        result = _animationProperties;
+    });
+    return result; 
+}
+
+bool ModelEntityItem::hasAnimation() const { 
+    return resultWithReadLock<bool>([&] { 
+        return !_animationProperties.getURL().isEmpty();
+    });
+}
+
+QString ModelEntityItem::getAnimationURL() const { 
+    return resultWithReadLock<QString>([&] {
+        return _animationProperties.getURL();
+    });
+}
+
+void ModelEntityItem::setAnimationCurrentFrame(float value) {
+    withWriteLock([&] {
+        _animationProperties.setCurrentFrame(value);
+    });
+}
+
+void ModelEntityItem::setAnimationLoop(bool loop) { 
+    withWriteLock([&] {
+        _animationProperties.setLoop(loop);
+    });
+}
+
+void ModelEntityItem::setAnimationHold(bool hold) { 
+    withWriteLock([&] {
+        _animationProperties.setHold(hold);
+    });
+}
+
+bool ModelEntityItem::getAnimationHold() const { 
+    return resultWithReadLock<bool>([&] {
+        return _animationProperties.getHold();
+    });
+}
+
+void ModelEntityItem::setAnimationFirstFrame(float firstFrame) { 
+    withWriteLock([&] {
+        _animationProperties.setFirstFrame(firstFrame);
+    });
+}
+
+float ModelEntityItem::getAnimationFirstFrame() const { 
+    return resultWithReadLock<float>([&] {
+        return _animationProperties.getFirstFrame();
+    });
+}
+
+void ModelEntityItem::setAnimationLastFrame(float lastFrame) { 
+    withWriteLock([&] {
+        _animationProperties.setLastFrame(lastFrame);
+    });
+}
+
+float ModelEntityItem::getAnimationLastFrame() const { 
+    return resultWithReadLock<float>([&] {
+        return _animationProperties.getLastFrame();
+    });
+}
+bool ModelEntityItem::getAnimationIsPlaying() const { 
+    return resultWithReadLock<float>([&] {
+        return _animationProperties.getRunning();
+    });
+}
+
+float ModelEntityItem::getAnimationCurrentFrame() const { 
+    return resultWithReadLock<float>([&] {
+        return _animationProperties.getCurrentFrame();
+    });
+}
+
+bool ModelEntityItem::isAnimatingSomething() const {
+    return resultWithReadLock<float>([&] {
+        return !_animationProperties.getURL().isEmpty() &&
+            _animationProperties.getRunning() &&
+            (_animationProperties.getFPS() != 0.0f);
+        });
 }

@@ -18,6 +18,12 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
+int OctreeQueryNode::parseData(ReceivedMessage& message) {
+    // set our flag to indicate that we've parsed for this query at least once
+    _hasReceivedFirstQuery = true;
+
+    return OctreeQuery::parseData(message);
+}
 
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
@@ -182,6 +188,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
                                                              getCameraAspectRatio(),
                                                              getCameraNearClip(),
                                                              getCameraFarClip()));
+            newestViewFrustum.calculate();
         }
         
         
@@ -189,7 +196,6 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
             QMutexLocker viewLocker(&_viewMutex);
             if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
                 _currentViewFrustum = newestViewFrustum;
-                _currentViewFrustum.calculate();
                 currentViewFrustumChanged = true;
             }
         }

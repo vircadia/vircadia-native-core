@@ -18,6 +18,7 @@
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include <AddressManager.h>
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -45,7 +46,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
     if (!entity) {
-        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage can't find entity: " << entityItemID;
         return;
     }
 
@@ -54,6 +55,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     EntityItemProperties entityProperties = entity->getProperties();
     entityProperties.merge(properties);
 
+    std::lock_guard<std::mutex> lock(_mutex);
     QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
     QVariant variantProperties = scriptProperties.toVariant();
     QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
@@ -91,24 +93,41 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
-    bool success;
+    OctreeElement::AppendState encodeResult = OctreeElement::PARTIAL; // start the loop assuming there's more to send
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    EntityPropertyFlags didntFitProperties;
+    EntityItemProperties propertiesCopy = properties;
+
     if (properties.parentIDChanged() && properties.getParentID() == AVATAR_SELF_ID) {
-        EntityItemProperties propertiesCopy = properties;
-        auto nodeList = DependencyManager::get<NodeList>();
         const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesCopy.setParentID(myNodeID);
-        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut);
-    } else {
-        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, properties, bufferOut);
     }
 
-    if (success) {
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "calling queueOctreeEditMessage()...";
-            qCDebug(entities) << "    id:" << entityItemID;
-            qCDebug(entities) << "    properties:" << properties;
-        #endif
-        queueOctreeEditMessage(type, bufferOut);
+    EntityPropertyFlags requestedProperties = propertiesCopy.getChangedProperties();
+
+    while (encodeResult == OctreeElement::PARTIAL) {
+        encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);
+
+        if (encodeResult != OctreeElement::NONE) {
+            #ifdef WANT_DEBUG
+                qCDebug(entities) << "calling queueOctreeEditMessage()...";
+                qCDebug(entities) << "    id:" << entityItemID;
+                qCDebug(entities) << "    properties:" << properties;
+            #endif
+            queueOctreeEditMessage(type, bufferOut);
+            if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
+                emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->getPlaceName());
+            }
+        }
+
+        // if we still have properties to send, switch the message type to edit, and request only the packets that didn't fit
+        if (encodeResult != OctreeElement::COMPLETED) {
+            type = PacketType::EntityEdit;
+            requestedProperties = didntFitProperties;
+        }
+
+        bufferOut.resize(NLPacket::maxPayloadSize(type)); // resize our output buffer for the next packet
     }
 }
 

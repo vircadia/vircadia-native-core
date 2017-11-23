@@ -25,6 +25,7 @@
 #endif
 
 
+#include <shared/QtHelpers.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
@@ -52,7 +53,7 @@ const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
-    _myAvatar(std::make_shared<MyAvatar>(qApp->thread()))
+    _myAvatar(new MyAvatar(qApp->thread()), [](MyAvatar* ptr) { ptr->deleteLater(); })
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -62,7 +63,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::ExitingSpaceBubble, this, "processExitingSpaceBubble");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
@@ -179,6 +179,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
 
+        bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
+        if (ignoring) {
+            sortedAvatars.pop();
+            continue;
+        }
+
         // for ALL avatars...
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
@@ -252,19 +258,20 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         qApp->getMain3DScene()->enqueueTransaction(transaction);
     }
 
-    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
     simulateAvatarFades(deltaTime);
+
+    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
 
-void AvatarManager::postUpdate(float deltaTime) {
+void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     auto hashCopy = getHashCopy();
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     for (avatarIterator = hashCopy.begin(); avatarIterator != hashCopy.end(); avatarIterator++) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
-        avatar->postUpdate(deltaTime);
+        avatar->postUpdate(deltaTime, scene);
     }
 }
 
@@ -273,19 +280,15 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         return;
     }
 
-    const float SHRINK_RATE = 0.15f;
-    const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
-
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
+    const render::ScenePointer& scene = qApp->getMain3DScene();
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
-        avatar->animateScaleChanges(deltaTime);
-        if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
+        avatar->updateFadingStatus(scene);
+        if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
-                const render::ScenePointer& scene = qApp->getMain3DScene();
                 render::Transaction transaction;
                 avatar->removeFromScene(*avatarItr, scene, transaction);
                 scene->enqueueTransaction(transaction);
@@ -300,7 +303,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<OtherAvatar>(qApp->thread());
+    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -319,13 +322,11 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
-    }
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
-        DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
+        avatar->fadeOut(qApp->getMain3DScene(), removalReason);
     }
     _avatarsToFade.push_back(removedAvatar);
 }
@@ -433,8 +434,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-
-                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) {
                     return !injector || injector->isFinished();
                 });
 
@@ -480,18 +480,24 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
                                                                  const QScriptValue& avatarIdsToDiscard) {
-    RayToAvatarIntersectionResult result;
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
-                                  Q_ARG(const PickRay&, ray),
-                                  Q_ARG(const QScriptValue&, avatarIdsToInclude),
-                                  Q_ARG(const QScriptValue&, avatarIdsToDiscard));
-        return result;
-    }
-
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
+
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
+}
+
+RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
+                                                                       const QVector<EntityItemID>& avatarsToInclude,
+                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
+    RayToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
+                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
+                                  Q_ARG(const PickRay&, ray),
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+        return result;
+    }
 
     glm::vec3 normDirection = glm::normalize(ray.direction);
 

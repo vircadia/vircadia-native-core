@@ -35,7 +35,7 @@ public:
 
     void simulate(float deltaTime, bool fullUpdate = true) override;
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
-    void updateAttitude();
+    void updateAttitude(const glm::quat& orientation);
 
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? getFBXGeometry().leftHandJointIndex : -1; }

@@ -12,47 +12,67 @@
 #ifndef hifi_RenderablePolyLineEntityItem_h
 #define hifi_RenderablePolyLineEntityItem_h
 
-
-#include <gpu/Batch.h>
-#include <GeometryCache.h>
-#include <PolyLineEntityItem.h>
 #include "RenderableEntityItem.h"
+#include <PolyLineEntityItem.h>
 #include <TextureCache.h>
 
-#include <QReadWriteLock>
+namespace render { namespace entities {
 
+class PolyLineEntityRenderer : public TypedEntityRenderer<PolyLineEntityItem> {
+    using Parent = TypedEntityRenderer<PolyLineEntityItem>;
+    friend class EntityRenderer;
 
-class RenderablePolyLineEntityItem : public PolyLineEntityItem, public SimplerRenderableEntitySupport {
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    static void createPipeline();
-    RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
-
-    virtual void render(RenderArgs* args) override;
-    virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override { return true; }
-
-    bool isTransparent() override { return true; }
-
-    SIMPLE_RENDERABLE();
-
-    NetworkTexturePointer _texture;
-
-    static gpu::PipelinePointer _pipeline;
-    static gpu::Stream::FormatPointer _format;
-
-    static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
-    static const int32_t PAINTSTROKE_UNIFORM_SLOT { 0 };
+    PolyLineEntityRenderer(const EntityItemPointer& entity);
 
 protected:
-    void updateGeometry();
-    void updateVertices();
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, 
+                                                Transaction& transaction, 
+                                                const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+
+    virtual ItemKey getKey() override;
+    virtual ShapeKey getShapeKey() override;
+    virtual void doRender(RenderArgs* args) override;
+
+    virtual bool isTransparent() const override { return true; }
+
+    struct Vertex {
+        Vertex() {}
+        Vertex(const vec3& position, const vec3& normal, const vec2& uv, const vec3& color) : position(position), 
+                                                                                              normal(normal), 
+                                                                                              uv(uv), 
+                                                                                              color(color) {}
+        vec3 position;
+        vec3 normal;
+        vec2 uv;
+        vec3 color;
+    };
+
+    void updateGeometry(const std::vector<Vertex>& vertices);
+    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, 
+                                              const QVector<glm::vec3>& normals, 
+                                              const QVector<float>& strokeWidths, 
+                                              const QVector<glm::vec3>& strokeColors, 
+                                              const bool isUVModeStretch,
+                                              const float textureAspectRatio);
+
+    Transform _polylineTransform;
+    QVector<glm::vec3> _lastPoints;
+    QVector<glm::vec3> _lastNormals;
+    QVector<glm::vec3> _lastStrokeColors;
+    QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;
-    unsigned int _numVertices;
-    bool _empty { true };
-    QVector<glm::vec3> _vertices;
+    
+    uint32_t _numVertices { 0 };
+    bool _empty{ true };
+    NetworkTexturePointer _texture;
+    float _textureAspectRatio { 1.0f };
+
 };
 
+} } // namespace 
 
 #endif // hifi_RenderablePolyLineEntityItem_h

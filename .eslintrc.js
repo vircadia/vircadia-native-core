@@ -54,7 +54,11 @@ module.exports = {
         "Window": false,
         "XMLHttpRequest": false,
         "location": false,
-        "print": false
+        "print": false,
+        "RayPick": false,
+        "LaserPointers": false,
+        "ContextOverlay": false,
+        "module": false
     },
     "rules": {
         "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
@@ -64,7 +68,7 @@ module.exports = {
         "eqeqeq": ["error", "always"],
         "indent": ["error", 4, { "SwitchCase": 1 }],
         "keyword-spacing": ["error", { "before": true, "after": true }],
-        "max-len": ["error", 192, 4],
+        "max-len": ["error", 128, 4],
         "new-cap": ["error"],
         "no-floating-decimal": ["error"],
         //"no-magic-numbers": ["error", { "ignore": [0, 1], "ignoreArrayIndexes": true }],

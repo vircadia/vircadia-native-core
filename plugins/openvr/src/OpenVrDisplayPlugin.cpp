@@ -282,7 +282,7 @@ public:
                 static const vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
                 static const vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
 
-                vr::Texture_t texture{ (void*)_colors[currentColorBuffer], vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+                vr::Texture_t texture{ (void*)(uintptr_t)_colors[currentColorBuffer], vr::TextureType_OpenGL, vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
                 _plugin._presentRate.increment();
@@ -355,6 +355,32 @@ public:
 
 bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
+}
+
+glm::mat4 OpenVrDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        vr::EVREye openVrEye = (eye == Left) ? vr::Eye_Left : vr::Eye_Right;
+        return toGlm(_system->GetProjectionMatrix(openVrEye, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
+}
+
+glm::mat4 OpenVrDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
+        return toGlm(_system->GetProjectionMatrix((vr::EVREye)0, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
 }
 
 float OpenVrDisplayPlugin::getTargetFrameRate() const {
@@ -594,9 +620,6 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     }
 
     withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
-        // Make controller poses available to the presentation thread
-        _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return Parent::beginFrameRender(frameIndex);
@@ -643,7 +666,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
         _submitThread->waitForPresent();
     } else {
         GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
-        vr::Texture_t vrTexture { (void*)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+        vr::Texture_t vrTexture { (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
         vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
         vr::VRCompositor()->PostPresentHandoff();

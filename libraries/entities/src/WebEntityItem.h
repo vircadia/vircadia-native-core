@@ -54,12 +54,8 @@ public:
     virtual void setSourceUrl(const QString& value);
     QString getSourceUrl() const;
 
-    virtual bool wantsHandControllerPointerEvents() const override { return true; }
-
     void setDPI(uint16_t value);
     uint16_t getDPI() const;
-
-    virtual QObject* getRootItem() { return nullptr; }
 
 protected:
     QString _sourceUrl;

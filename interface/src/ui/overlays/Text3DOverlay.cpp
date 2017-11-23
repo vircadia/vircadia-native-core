@@ -17,6 +17,8 @@
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
 
+#include <AbstractViewStateInterface.h>
+
 const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
@@ -86,19 +88,18 @@ void Text3DOverlay::update(float deltatime) {
         applyTransformTo(transform);
         setTransform(transform);
     }
+    Parent::update(deltatime);
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
+    if (!_renderVisible || !getParentVisible()) {
         return; // do nothing if we're not visible
     }
 
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
 
-    Transform transform = getTransform();
-    applyTransformTo(transform, true);
-    setTransform(transform);
+    auto transform = getRenderTransform();
     batch.setModelTransform(transform);
 
     const float MAX_COLOR = 255.0f;
@@ -113,6 +114,7 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, quadColor.a < 1.0f, false, false, false, false);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor, _geometryId);
 
     // Same font properties as textSize()
@@ -132,18 +134,13 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
                             _color.blue / MAX_COLOR, getTextAlpha() };
 
-    // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline
-    //        for a gpu performance increase. Currently,
-    //        Text renderer sets its own pipeline,
-    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), getDrawInFront());
-    //        so before we continue, we must reset the pipeline
-    batch.setPipeline(args->_pipeline->pipeline);
-    args->_pipeline->prepare(batch, args);
+    // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
+    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true);
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder();
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();
@@ -159,7 +156,18 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
 
     auto textAlpha = properties["textAlpha"];
     if (textAlpha.isValid()) {
+        float prevTextAlpha = getTextAlpha();
         setTextAlpha(textAlpha.toFloat());
+        // Update our payload key if necessary to handle transparency
+        if ((prevTextAlpha < 1.0f && _textAlpha >= 1.0f) || (prevTextAlpha >= 1.0f && _textAlpha < 1.0f)) {
+            auto itemID = getRenderItemID();
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                render::Transaction transaction;
+                transaction.updateItem(itemID);
+                scene->enqueueTransaction(transaction);
+            }
+        }
     }
 
     bool valid;
@@ -248,3 +256,4 @@ bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3
     setTransform(transform);
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 }
+

@@ -53,7 +53,7 @@ AABox Grid3DOverlay::getBounds() const {
 }
 
 void Grid3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -79,9 +79,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             position += glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z);
         }
 
-        Transform transform;
-        transform.setRotation(getRotation());
-        transform.setScale(glm::vec3(getDimensions(), 1.0f));
+        Transform transform = getRenderTransform();
         transform.setTranslation(position);
         batch->setModelTransform(transform);
         const float MINOR_GRID_EDGE = 0.0025f;
@@ -144,4 +142,11 @@ void Grid3DOverlay::updateGrid() {
 
     _minorGridRowDivisions = getDimensions().x / _minorGridEvery;
     _minorGridColDivisions = getDimensions().y / _minorGridEvery;
+}
+
+Transform Grid3DOverlay::evalRenderTransform() {
+    Transform transform;
+    transform.setRotation(getRotation());
+    transform.setScale(glm::vec3(getDimensions(), 1.0f));
+    return transform;
 }

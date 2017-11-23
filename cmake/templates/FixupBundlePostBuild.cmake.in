@@ -11,33 +11,27 @@
 
 include(BundleUtilities)
 
-# replace copy_resolved_item_into_bundle
-#
-# The official version of copy_resolved_item_into_bundle will print out a "warning:" when
-# the resolved item matches the resolved embedded item. This not not really an issue that
-# should rise to the level of a "warning" so we replace this message with a "status:"
-#
-function(copy_resolved_item_into_bundle resolved_item resolved_embedded_item)
-  if (WIN32)
-    # ignore case on Windows
-    string(TOLOWER "${resolved_item}" resolved_item_compare)
-    string(TOLOWER "${resolved_embedded_item}" resolved_embedded_item_compare)
-  else()
-    set(resolved_item_compare "${resolved_item}")
-    set(resolved_embedded_item_compare "${resolved_embedded_item}")
+function(gp_resolved_file_type_override resolved_file type_var)
+  if( file MATCHES ".*VCRUNTIME140.*" )
+    set(type "system" PARENT_SCOPE)
   endif()
-
-  if ("${resolved_item_compare}" STREQUAL "${resolved_embedded_item_compare}")
-    # this is our only change from the original version
-    message(STATUS "status: resolved_item == resolved_embedded_item - not copying...")
-  else()
-    #message(STATUS "copying COMMAND ${CMAKE_COMMAND} -E copy ${resolved_item} ${resolved_embedded_item}")
-    execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${resolved_item}" "${resolved_embedded_item}")
-    if(UNIX AND NOT APPLE)
-        file(RPATH_REMOVE FILE "${resolved_embedded_item}")
-    endif()
+  if( file MATCHES ".*concrt140.*" )
+    set(type "system" PARENT_SCOPE)
+  endif()
+  if( file MATCHES ".*msvcp140.*" )
+    set(type "system" PARENT_SCOPE)
+  endif()
+  if( file MATCHES ".*vcruntime140.*" )
+    set(type "system" PARENT_SCOPE)
+  endif()
+  if( file MATCHES ".*api-ms-win-crt-conio.*" )
+    set(type "system" PARENT_SCOPE)
+  endif()
+  if( file MATCHES ".*api-ms-win-core-winrt.*" )
+    set(type "system" PARENT_SCOPE)
   endif()
 endfunction()
+
 
 message(STATUS "FIXUP_LIBS for fixup_bundle called for bundle ${BUNDLE_EXECUTABLE} are @FIXUP_LIBS@")
 message(STATUS "Scanning for plugins from ${BUNDLE_PLUGIN_DIR}")
@@ -52,3 +46,4 @@ endif()
 
 file(GLOB EXTRA_PLUGINS "${BUNDLE_PLUGIN_DIR}/*.${PLUGIN_EXTENSION}")
 fixup_bundle("${BUNDLE_EXECUTABLE}" "${EXTRA_PLUGINS}" "@FIXUP_LIBS@")
+

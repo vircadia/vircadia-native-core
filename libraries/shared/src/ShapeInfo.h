@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include "DoubleHashKey.h"
+#include "HashKey.h"
 
 const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
@@ -46,7 +46,8 @@ enum ShapeType {
     SHAPE_TYPE_SIMPLE_HULL,
     SHAPE_TYPE_SIMPLE_COMPOUND,
     SHAPE_TYPE_STATIC_MESH,
-    SHAPE_TYPE_ELLIPSOID
+    SHAPE_TYPE_ELLIPSOID,
+    SHAPE_TYPE_CIRCLE
 };
 
 class ShapeInfo {
@@ -57,6 +58,8 @@ public:
     using PointCollection = QVector<PointList>;
     using TriangleIndices = QVector<int32_t>;
 
+    static QString getNameForShapeType(ShapeType type);
+
     void clear();
 
     void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
@@ -66,7 +69,7 @@ public:
     void setCapsuleY(float radius, float halfHeight);
     void setOffset(const glm::vec3& offset);
 
-    int getType() const { return _type; }
+    ShapeType getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
     const glm::vec3& getOffset() const { return _offset; }
@@ -86,15 +89,17 @@ public:
     /// For compound shapes it will only return whether it is inside the bounding box
     bool contains(const glm::vec3& point) const;
 
-    const DoubleHashKey& getHash() const;
+    const HashKey& getHash() const;
 
 protected:
+    void setHalfExtents(const glm::vec3& halfExtents);
+
     QUrl _url; // url for model of convex collision hulls
     PointCollection _pointCollection;
     TriangleIndices _triangleIndices;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
-    mutable DoubleHashKey _doubleHashKey;
+    mutable HashKey _hashKey;
     ShapeType _type = SHAPE_TYPE_NONE;
 };
 

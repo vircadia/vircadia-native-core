@@ -16,47 +16,67 @@ import "../controls-uit"
 import "../styles-uit"
 import "../windows"
 
+import "../LoginDialog"
+
 TabletModalWindow {
-    id: loginDialogRoot
+    id: realRoot
     objectName: "LoginDialog"
 
     signal sendToScript(var message);
     property bool isHMD: false
     property bool gotoPreviousApp: false;
     color: hifi.colors.baseGray
+    title: qsTr("Sign in to High Fidelity")
+    property alias titleWidth: root.titleWidth
+    property alias punctuationMode: root.punctuationMode
 
-    property int colorScheme: hifi.colorSchemes.dark
-    property int titleWidth: 0
-    property string iconText: ""
-    property int icon: hifi.icons.none
-    property int iconSize: 35
+    //fake root for shared components expecting root here
+    property var root: QtObject {
+        id: root
+
+        property bool keyboardEnabled: false
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+        property bool isPassword: false
+        property alias text: loginKeyboard.mirroredText
+
+        readonly property bool isTablet: true
+
+        property alias title: realRoot.title
+        property real width: realRoot.width
+        property real height: realRoot.height
+
+        property int titleWidth: 0
+        property string iconText: hifi.glyphs.avatar
+        property int iconSize: 35
+
+        property var pane: QtObject {
+            property real width: root.width
+            property real height: root.height
+        }
+
+        function tryDestroy() {
+            canceled()
+        }
+    }
+
+    //property int colorScheme: hifi.colorSchemes.dark
+
     MouseArea {
-        width: parent.width
-        height: parent.height
+        width: realRoot.width
+        height: realRoot.height
     }
 
     property bool keyboardOverride: true
-    onIconChanged: updateIcon();
 
     property var items;
     property string label: ""
 
-    onTitleWidthChanged: d.resize();
+    //onTitleWidthChanged: d.resize();
 
-    property bool keyboardEnabled: false
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
-
-    onKeyboardRaisedChanged: d.resize();
+    //onKeyboardRaisedChanged: d.resize();
 
     signal canceled();
-
-    function updateIcon() {
-        if (!root) {
-            return;
-        }
-        iconText = hifi.glyphForIcon(root.icon);
-    }
 
     property alias bodyLoader: bodyLoader
     property alias loginDialog: loginDialog
@@ -65,9 +85,10 @@ TabletModalWindow {
     HifiConstants { id: hifi }
 
     onCanceled: {
-        if (loginDialogRoot.Stack.view) {
-            loginDialogRoot.Stack.view.pop();
-        } else if (gotoPreviousApp) {
+        if (bodyLoader.active === true) {
+            //bodyLoader.active = false
+        }
+        if (gotoPreviousApp) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.returnToPreviousApp();
         } else {
@@ -75,45 +96,82 @@ TabletModalWindow {
         }
     }
 
-    LoginDialog {
-        id: loginDialog
-        width: parent.width
-        height: parent.height
-        StackView {
-            id: bodyLoader
-            property var item: currentItem
-            property var props
-            property string source: ""
+    TabletModalFrame {
+        id: mfRoot
 
-            onCurrentItemChanged: {
-                //cleanup source for future usage
-                source = ""
+        width: root.width
+        height: root.height + frameMarginTop + hifi.dimensions.contentMargin.x
+
+        anchors {
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: parent.verticalCenter
+            verticalCenterOffset: -loginKeyboard.height / 2
+        }
+
+        LoginDialog {
+            id: loginDialog
+
+            anchors {
+                fill: parent
+                topMargin: parent.frameMarginTop
+                leftMargin: hifi.dimensions.contentMargin.x
+                rightMargin: hifi.dimensions.contentMargin.x
+                horizontalCenter: parent.horizontalCenter
             }
 
-            function setSource(src, props) {
-                source = "../TabletLoginDialog/" + src
-                bodyLoader.props = props
+            Loader {
+                id: bodyLoader
+                anchors.fill: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                source: loginDialog.isSteamRunning() ? "../LoginDialog/SignInBody.qml" : "../LoginDialog/LinkAccountBody.qml"
             }
-            function popup() {
-                bodyLoader.pop()
+        }
+    }
 
-                //check if last screen, if yes, dialog is popped out
-                if (depth === 1)
-                    loginDialogRoot.canceled()
-            }
+    Keyboard {
+        id: loginKeyboard
+        raised: root.keyboardEnabled && root.keyboardRaised
+        numeric: root.punctuationMode
+        password: root.isPassword
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
 
-            anchors.fill: parent
-            anchors.margins: 10
-            onSourceChanged: {
-                if (source !== "") {
-                    bodyLoader.push(Qt.resolvedUrl(source), props)
+    Keys.onPressed: {
+        if (!visible) {
+            return
+        }
+
+        if (event.modifiers === Qt.ControlModifier)
+            switch (event.key) {
+            case Qt.Key_A:
+                event.accepted = true
+                detailedText.selectAll()
+                break
+            case Qt.Key_C:
+                event.accepted = true
+                detailedText.copy()
+                break
+            case Qt.Key_Period:
+                if (Qt.platform.os === "osx") {
+                    event.accepted = true
+                    content.reject()
                 }
-            }
-            Component.onCompleted: {
-                setSource(loginDialog.isSteamRunning() ?
-                              "SignInBody.qml" :
-                              "LinkAccountBody.qml")
-            }
+                break
+        } else switch (event.key) {
+            case Qt.Key_Escape:
+            case Qt.Key_Back:
+                event.accepted = true
+                destroy()
+                break
+
+            case Qt.Key_Enter:
+            case Qt.Key_Return:
+                event.accepted = true
+                break
         }
     }
 }

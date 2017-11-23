@@ -98,7 +98,7 @@ public:
 
     void updateRenderItem(render::Transaction& transaction);
 
-    virtual void postUpdate(float deltaTime);
+    virtual void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
     //setters
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
@@ -108,11 +108,8 @@ public:
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
     const SkeletonModelPointer getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
-    float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
-
-    glm::quat getWorldAlignedOrientation() const;
 
     AABox getBounds() const;
 
@@ -122,8 +119,10 @@ public:
     virtual bool isMyAvatar() const override { return false; }
 
     virtual QVector<glm::quat> getJointRotations() const override;
+    using AvatarData::getJointRotation;
     virtual glm::quat getJointRotation(int index) const override;
     virtual QVector<glm::vec3> getJointTranslations() const override;
+    using AvatarData::getJointTranslation;
     virtual glm::vec3 getJointTranslation(int index) const override;
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
@@ -151,6 +150,7 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
+    virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
@@ -184,7 +184,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() override { _skeletonModel->updateAttitude(); }
+    virtual void updateAttitude(const glm::quat& orientation) override;
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
@@ -197,10 +197,8 @@ public:
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
 
-    using SpatiallyNestable::setPosition;
-    virtual void setPosition(const glm::vec3& position) override;
-    using SpatiallyNestable::setOrientation;
-    virtual void setOrientation(const glm::quat& orientation) override;
+    void setPositionViaScript(const glm::vec3& position) override;
+    void setOrientationViaScript(const glm::quat& orientation) override;
 
     // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
@@ -234,21 +232,38 @@ public:
 
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
+    float getTargetScale() const { return _targetScale; }
 
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
-    
+
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
+    render::ItemID getRenderItemID() { return _renderItemID; }
     bool isMoving() const { return _moving; }
 
     void setPhysicsCallback(AvatarPhysicsCallback cb);
     void addPhysicsFlags(uint32_t flags);
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
+
+    void fadeIn(render::ScenePointer scene);
+    void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
+    bool isFading() const { return _isFading; }
+    void updateFadingStatus(render::ScenePointer scene);
+
+    /**jsdoc
+     * Provides read only access to the current eye height of the avatar.
+     * @function Avatar.getEyeHeight
+     * @returns {number} eye height of avatar in meters
+     */
+    Q_INVOKABLE float getEyeHeight() const;
+
+    virtual float getModelScale() const { return _modelScale; }
+    virtual void setModelScale(float scale) { _modelScale = scale; }
 
 public slots:
 
@@ -267,6 +282,13 @@ protected:
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
 
     SkeletonModelPointer _skeletonModel;
+
+    void invalidateJointIndicesCache() const;
+    void withValidJointIndicesCache(std::function<void()> const& worker) const;
+    mutable QHash<QString, int> _modelJointIndicesCache;
+    mutable QReadWriteLock _modelJointIndicesCacheLock;
+    mutable bool _modelJointsCached { false };
+
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
@@ -294,9 +316,10 @@ protected:
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
 
+    void fade(render::Transaction& transaction, render::Transition::Type type);
+
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;
@@ -342,6 +365,9 @@ private:
     bool _initialized { false };
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
+    bool _mustFadeIn { false };
+    bool _isFading { false };
+    float _modelScale { 1.0f };
 
     static int _jointConesID;
 
@@ -351,7 +377,6 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
-
 };
 
 #endif // hifi_Avatar_h

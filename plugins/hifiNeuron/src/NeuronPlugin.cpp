@@ -368,6 +368,12 @@ void NeuronPlugin::init() {
     auto preferences = DependencyManager::get<Preferences>();
     static const QString NEURON_PLUGIN { "Perception Neuron" };
     {
+        auto getter = [this]()->bool { return _enabled; };
+        auto setter = [this](bool value) { _enabled = value; saveSettings(); };
+        auto preference = new CheckPreference(NEURON_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [this]()->QString { return _serverAddress; };
         auto setter = [this](const QString& value) { _serverAddress = value; saveSettings(); };
         auto preference = new EditPreference(NEURON_PLUGIN, "Server Address", getter, setter);
@@ -385,12 +391,6 @@ void NeuronPlugin::init() {
         preference->setMin(MIN_PORT_NUMBER);
         preference->setMax(MAX_PORT_NUMBER);
         preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = [this]()->bool { return _enabled; };
-        auto setter = [this](bool value) { _enabled = value; saveSettings(); };
-        auto preference = new CheckPreference(NEURON_PLUGIN, "Enabled", getter, setter);
         preferences->addPreference(preference);
     }
 }
@@ -455,6 +455,10 @@ void NeuronPlugin::deactivate() {
 }
 
 void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    if (!_enabled) {
+        return;
+    }
+
     std::vector<NeuronJoint> joints;
     {
         // lock and copy

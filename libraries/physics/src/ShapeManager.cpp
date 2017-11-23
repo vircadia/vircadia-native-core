@@ -32,14 +32,7 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
         return nullptr;
     }
-    const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
-    if (4.0f * glm::length2(info.getHalfExtents()) < MIN_SHAPE_DIAGONAL_SQUARED) {
-        // tiny shapes are not supported
-        // qCDebug(physics) << "ShapeManager::getShape -- not making shape due to size" << diagonal;
-        return nullptr;
-    }
-
-    DoubleHashKey key = info.getHash();
+    HashKey key = info.getHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->refCount++;
@@ -57,7 +50,7 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 // private helper method
-bool ShapeManager::releaseShapeByKey(const DoubleHashKey& key) {
+bool ShapeManager::releaseShapeByKey(const HashKey& key) {
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->refCount > 0) {
@@ -95,7 +88,7 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
-        DoubleHashKey& key = _pendingGarbage[i];
+        HashKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
             ShapeFactory::deleteShape(shapeRef->shape);
@@ -106,7 +99,7 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    DoubleHashKey key = info.getHash();
+    HashKey key = info.getHash();
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         return shapeRef->refCount;

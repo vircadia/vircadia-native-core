@@ -23,7 +23,7 @@
 
 #include <DependencyManager.h>
 
-class AudioInjector;
+#include "AudioInjector.h"
 
 class AudioInjectorManager : public QObject, public Dependency {
     Q_OBJECT
@@ -33,39 +33,38 @@ public:
 private slots:
     void run();
 private:
-    
-    using InjectorQPointer = QPointer<AudioInjector>;
-    using TimeInjectorPointerPair = std::pair<uint64_t, InjectorQPointer>;
-    
+
+    using TimeInjectorPointerPair = std::pair<uint64_t, AudioInjectorPointer>;
+
     struct greaterTime {
         bool operator() (const TimeInjectorPointerPair& x, const TimeInjectorPointerPair& y) const {
             return x.first > y.first;
         }
     };
-    
+
     using InjectorQueue = std::priority_queue<TimeInjectorPointerPair,
                                               std::deque<TimeInjectorPointerPair>,
                                               greaterTime>;
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
-    
-    bool threadInjector(AudioInjector* injector);
-    bool restartFinishedInjector(AudioInjector* injector);
+
+    bool threadInjector(const AudioInjectorPointer& injector);
+    bool restartFinishedInjector(const AudioInjectorPointer& injector);
     void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
     bool wouldExceedLimits();
-    
+
     AudioInjectorManager() {};
     AudioInjectorManager(const AudioInjectorManager&) = delete;
     AudioInjectorManager& operator=(const AudioInjectorManager&) = delete;
-    
+
     void createThread();
-    
+
     QThread* _thread { nullptr };
     bool _shouldStop { false };
     InjectorQueue _injectors;
     Mutex _injectorsMutex;
     std::condition_variable _injectorReady;
-    
+
     friend class AudioInjector;
 };
 

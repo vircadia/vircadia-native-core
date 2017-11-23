@@ -96,7 +96,7 @@ bool DeleteEntityOperator::preRecursion(const OctreeElementPointer& element) {
                 bool entityDeleted = entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 assert(entityDeleted);
                 (void)entityDeleted; // quite warning
-                _tree->setContainingElement(details.entity->getEntityItemID(), NULL); // update or id to element lookup
+                _tree->clearEntityMapEntry(details.entity->getEntityItemID());
                 _foundCount++;
             }
         }

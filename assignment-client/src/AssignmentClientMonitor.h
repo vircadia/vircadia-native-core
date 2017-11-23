@@ -44,7 +44,7 @@ public:
     void stopChildProcesses();
 private slots:
     void checkSpares();
-    void childProcessFinished(qint64 pid);
+    void childProcessFinished(qint64 pid, int exitCode, QProcess::ExitStatus exitStatus);
     void handleChildStatusPacket(QSharedPointer<ReceivedMessage> message);
 
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;

@@ -21,6 +21,7 @@
 #include <QThreadPool>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QUrlQuery>
 
 #if DEBUG_DUMP_TEXTURE_LOADS
 #include <QtCore/QFile>
@@ -54,6 +55,7 @@ const std::string TextureCache::KTX_EXT { "ktx" };
 
 static const QString RESOURCE_SCHEME = "resource";
 static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
+static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
@@ -188,8 +190,14 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
+    auto modifiedUrl = url;
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        QUrlQuery query { url.query() };
+        query.addQueryItem("skybox", "");
+        modifiedUrl.setQuery(query.toString());
+    }
     TextureExtra extra = { type, content, maxNumPixels };
-    return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(modifiedUrl, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
 gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
@@ -198,11 +206,7 @@ gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
         std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
         weakPointer = _texturesByHashes[hash];
     }
-    auto result = weakPointer.lock();
-    if (result) {
-        qCWarning(modelnetworking) << "QQQ Returning live texture for hash " << hash.c_str();
-    }
-    return result;
+    return weakPointer.lock();
 }
 
 gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture) {
@@ -223,7 +227,7 @@ gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, co
 gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     gpu::TexturePointer result;
     auto textureCache = DependencyManager::get<TextureCache>();
-    // Since this can be called on a background thread, there's a chance that the cache 
+    // Since this can be called on a background thread, there's a chance that the cache
     // will be destroyed by the time we request it
     if (!textureCache) {
         return result;
@@ -260,7 +264,7 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
+    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString(), false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -293,6 +297,8 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
     _lowestRequestedMipLevel = 0;
+
+    _shouldFailOnRedirect = !_sourceIsKTX;
 
     if (type == image::TextureUsage::CUBE_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
@@ -373,7 +379,7 @@ void NetworkTexture::makeRequest() {
     if (!_sourceIsKTX) {
         Resource::makeRequest();
         return;
-    } 
+    }
 
     // We special-handle ktx requests to run 2 concurrent requests right off the bat
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
@@ -421,6 +427,21 @@ void NetworkTexture::makeRequest() {
         qWarning(networking) << "NetworkTexture::makeRequest() called while not in a valid state: " << _ktxResourceState;
     }
 
+}
+
+bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
+    if (!_sourceIsKTX && result == ResourceRequest::Result::RedirectFail) {
+        auto newPath = _request->getRelativePathUrl();
+        if (newPath.fileName().endsWith(".ktx")) {
+            qDebug() << "Redirecting to" << newPath << "from" << _url;
+            _sourceIsKTX = true;
+            _activeUrl = newPath;
+            _shouldFailOnRedirect = false;
+            makeRequest();
+            return true;
+        }
+    }
+    return Resource::handleFailedRequest(result);
 }
 
 void NetworkTexture::startRequestForNextMipLevel() {
@@ -522,7 +543,7 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
         _ktxHighMipData = _ktxMipRequest->getData();
         handleFinishedInitialLoad();
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_INITIAL_LOAD;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
@@ -599,6 +620,12 @@ void NetworkTexture::ktxMipRequestFinished() {
 
                 texture->assignStoredMip(mipLevel, data.size(), reinterpret_cast<const uint8_t*>(data.data()));
 
+                // If mip level assigned above is still unavailable, then we assume future requests will also fail.
+                auto minMipLevel = texture->minAvailableMipLevel();
+                if (minMipLevel > mipLevel) {
+                    return;
+                }
+
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, texture),
                     Q_ARG(int, texture->getWidth()),
@@ -611,7 +638,7 @@ void NetworkTexture::ktxMipRequestFinished() {
             finishedLoading(false);
         }
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_MIP_REQUEST;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
@@ -912,7 +939,7 @@ void ImageReader::read() {
             }
         }
 
-        // If we found the texture either because it's in use or via KTX deserialization, 
+        // If we found the texture either because it's in use or via KTX deserialization,
         // set the image and return immediately.
         if (texture) {
             QMetaObject::invokeMethod(resource.data(), "setImage",
@@ -961,7 +988,7 @@ void ImageReader::read() {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
         }
 
-        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
         // be the winner
         texture = textureCache->cacheTextureByHash(hash, texture);
@@ -973,31 +1000,59 @@ void ImageReader::read() {
                                 Q_ARG(int, texture->getHeight()));
 }
 
-
 NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) {
     gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
         if (!_spectatorCameraNetworkTexture) {
             _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
         }
-        texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
-        if (texture) {
-            _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
-            return _spectatorCameraNetworkTexture;
+        if (_spectatorCameraFramebuffer) {
+            texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
+            if (texture) {
+                texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
+                _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+                return _spectatorCameraNetworkTexture;
+            }
+        }
+    }
+    // FIXME: Generalize this, DRY up this code
+    if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
+        if (!_hmdPreviewNetworkTexture) {
+            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+        }
+        if (_hmdPreviewFramebuffer) {
+            texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
+            if (texture) {
+                texture->setSource(HMD_PREVIEW_FRAME_URL.toString().toStdString());
+                _hmdPreviewNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+                return _hmdPreviewNetworkTexture;
+            }
         }
     }
 
     return NetworkTexturePointer();
 }
 
+const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer(int width, int height) {
+    if (!_hmdPreviewFramebuffer || _hmdPreviewFramebuffer->getWidth() != width || _hmdPreviewFramebuffer->getHeight() != height) {
+        _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, width, height));
+    }
+    return _hmdPreviewFramebuffer;
+}
+
 const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {
+    // If we're taking a screenshot and the spectator cam buffer hasn't been created yet, reset to the default size
     if (!_spectatorCameraFramebuffer) {
-        resetSpectatorCameraFramebuffer(2048, 1024);
+        return getSpectatorCameraFramebuffer(DEFAULT_SPECTATOR_CAM_WIDTH, DEFAULT_SPECTATOR_CAM_HEIGHT);
     }
     return _spectatorCameraFramebuffer;
 }
 
-void TextureCache::resetSpectatorCameraFramebuffer(int width, int height) {
-    _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
-    _spectatorCameraNetworkTexture.reset();
+const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer(int width, int height) {
+    // If we aren't taking a screenshot, we might need to resize or create the camera buffer
+    if (!_spectatorCameraFramebuffer || _spectatorCameraFramebuffer->getWidth() != width || _spectatorCameraFramebuffer->getHeight() != height) {
+        _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
+        emit spectatorCameraFramebufferReset();
+    }
+    return _spectatorCameraFramebuffer;
 }

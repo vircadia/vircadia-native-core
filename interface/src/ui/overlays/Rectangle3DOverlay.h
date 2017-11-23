@@ -28,6 +28,7 @@ public:
     void setProperties(const QVariantMap& properties) override;
 
     virtual Rectangle3DOverlay* createClone() const override;
+
 private:
     int _geometryCacheID;
     std::array<int, 4> _rectGeometryIds;

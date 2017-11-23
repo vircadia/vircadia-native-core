@@ -13,21 +13,23 @@
 #include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
+#include <SettingHandle.h>
 
 #include "AccountManager.h"
 
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
+        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL;
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
-            "metaverse.highfidelity.com", "metaverse.highfidelity.io"
+            metaverseServerURL.toString(), "metaverse.highfidelity.io"
         };
         const auto& scheme = url.scheme();
         const auto& host = url.host();
 
         return (scheme == "https" && HF_HOSTS.contains(host)) ||
-            ((scheme == NetworkingConstants::METAVERSE_SERVER_URL.scheme()) && (host == NetworkingConstants::METAVERSE_SERVER_URL.host()));
+            ((scheme == metaverseServerURL.scheme()) && (host == metaverseServerURL.host()));
     }
 
      bool isScript(const QString filename) {
@@ -42,7 +44,8 @@ namespace {
 
 void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info) {
     // check if this is a request to a highfidelity URL
-    if (isAuthableHighFidelityURL(info.requestUrl())) {
+    bool isAuthable = isAuthableHighFidelityURL(info.requestUrl());
+    if (isAuthable) {
         // if we have an access token, add it to the right HTTP header for authorization
         auto accountManager = DependencyManager::get<AccountManager>();
 
@@ -53,6 +56,17 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
             info.setHttpHeader(OAUTH_AUTHORIZATION_HEADER.toLocal8Bit(), bearerTokenString.toLocal8Bit());
         }
     }
+    static const QString USER_AGENT = "User-Agent";
+    const QString tokenStringMobile{ "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36" };
+    const QString tokenStringMetaverse{ "Chrome/48.0 (HighFidelityInterface)" };
+
+    // During the period in which we have HFC commerce in the system, but not applied everywhere:
+    const QString tokenStringCommerce{ "Chrome/48.0 (HighFidelityInterface WithHFC)" };
+    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    bool isMoney = _settingSwitch.get();
+
+    const QString tokenString = !isAuthable ? tokenStringMobile : (isMoney ? tokenStringCommerce : tokenStringMetaverse);
+    info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 
 void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {

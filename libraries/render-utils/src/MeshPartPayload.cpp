@@ -14,7 +14,6 @@
 #include <PerfStat.h>
 
 #include "DeferredLightingEffect.h"
-#include "EntityItem.h"
 
 using namespace render;
 
@@ -259,7 +258,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     gpu::Batch& batch = *(args->_batch);
 
-    auto locations = args->_pipeline->locations;
+    auto locations = args->_shapePipeline->locations;
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
@@ -318,18 +317,28 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
-    _meshIndex(_meshIndex),
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+    _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    const Model::MeshState& state = model->getMeshState(_meshIndex);
+
     updateMeshPart(modelMesh, partIndex);
+    computeAdjustedLocalBound(state.clusterMatrices);
 
     updateTransform(transform, offsetTransform);
+    Transform renderTransform = transform;
+    if (state.clusterMatrices.size() == 1) {
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    }
+    updateTransformForSkinnedMesh(renderTransform, transform);
+
     initCache();
 }
 
@@ -358,12 +367,25 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform,
-        const gpu::BufferPointer& buffer) {
+
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+    // Once computed the cluster matrices, update the buffer(s)
+    if (clusterMatrices.size() > 1) {
+        if (!_clusterBuffer) {
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.data());
+        }
+        else {
+            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.data());
+        }
+    }
+}
+
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
     _worldBound.transform(boundTransform);
-    _clusterBuffer = buffer;
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
@@ -376,7 +398,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
             builder.withInvisible();
         }
 
-        if (model->isLayeredInFront()) {
+        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
             builder.withLayered();
         }
 
@@ -390,28 +412,23 @@ ItemKey ModelMeshPartPayload::getKey() const {
                 builder.withTransparent();
             }
         }
-
-        if (_fadeState != FADE_COMPLETE) {
-            builder.withTransparent();
-        }
     }
     return builder.build();
 }
 
 int ModelMeshPartPayload::getLayer() const {
-    // MAgic number while we are defining the layering mechanism:
-    const int LAYER_3D_FRONT = 1;
-    const int LAYER_3D = 0;
     ModelPointer model = _model.lock();
-    if (model && model->isLayeredInFront()) {
-        return LAYER_3D_FRONT;
-    } else {
-        return LAYER_3D;
+    if (model) {
+        if (model->isLayeredInFront()) {
+            return Item::LAYER_3D_FRONT;
+        } else if (model->isLayeredInHUD()) {
+            return Item::LAYER_3D_HUD;
+        }
     }
+    return Item::LAYER_3D;
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-
     // guard against partially loaded meshes
     ModelPointer model = _model.lock();
     if (!model || !model->isLoaded() || !model->getGeometry()) {
@@ -465,7 +482,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     ShapeKey::Builder builder;
     builder.withMaterial();
 
-    if (isTranslucent || _fadeState != FADE_COMPLETE) {
+    if (isTranslucent) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -510,9 +527,8 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
         }
     }
 
-    if (_fadeState != FADE_COMPLETE) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
-    } else if (!_hasColorAttrib) {
+    // TODO: Get rid of that extra call
+    if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
@@ -525,45 +541,17 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() {
-    if (_fadeState == FADE_WAITING_TO_START) {
-        return 0.0f;
-    }
-    float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
-    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
-    if (fraction < 1.0f) {
-        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
-    }
-    if (fadeAlpha >= 1.0f) {
-        _fadeState = FADE_COMPLETE;
-        // when fade-in completes we flag model for one last "render item update"
-        ModelPointer model = _model.lock();
-        if (model) {
-            model->setRenderItemsNeedUpdate();
-        }
-        return 1.0f;
-    }
-    return Interpolate::simpleNonLinearBlend(fadeAlpha);
-}
-
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
     ModelPointer model = _model.lock();
-    if (!model || !model->addedToScene() || !model->isVisible()) {
+    if (!model || !model->isAddedToScene() || !model->isVisible()) {
         return; // bail asap
     }
 
-    if (_fadeState == FADE_WAITING_TO_START) {
+    if (_state == WAITING_TO_START) {
         if (model->isLoaded()) {
-            // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
-            if (EntityItem::getEntitiesShouldFadeFunction()()) {
-                _fadeStartTime = usecTimestampNow();
-                _fadeState = FADE_IN_PROGRESS;
-            } else {
-                _fadeState = FADE_COMPLETE;
-            }
+            _state = STARTED;
             model->setRenderItemsNeedUpdate();
         } else {
             return;
@@ -583,7 +571,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto locations =  args->_pipeline->locations;
+    auto locations =  args->_shapePipeline->locations;
     assert(locations);
 
     bindTransform(batch, locations, args->_renderMode);
@@ -606,11 +594,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
         _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < clusterMatrices.size(); ++i) {
+        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;

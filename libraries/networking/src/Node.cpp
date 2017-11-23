@@ -29,11 +29,9 @@ int NodePtrMetaTypeId = qRegisterMetaType<Node*>("Node*");
 int sharedPtrNodeMetaTypeId = qRegisterMetaType<QSharedPointer<Node>>("QSharedPointer<Node>");
 int sharedNodePtrMetaTypeId = qRegisterMetaType<SharedNodePointer>("SharedNodePointer");
 
-namespace NodeType {
-    QHash<NodeType_t, QString> TypeNameHash;
-}
-
 void NodeType::init() {
+    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
+
     TypeNameHash.insert(NodeType::DomainServer, "Domain Server");
     TypeNameHash.insert(NodeType::EntityServer, "Entity Server");
     TypeNameHash.insert(NodeType::Agent, "Agent");
@@ -50,6 +48,7 @@ void NodeType::init() {
 }
 
 const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
+    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
     QHash<NodeType_t, QString>::iterator matchedTypeName = TypeNameHash.find(nodeType);
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
@@ -85,6 +84,7 @@ NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
 }
 
 NodeType_t NodeType::fromString(QString type) {
+    QHash<NodeType_t, QString>& TypeNameHash = Node::getTypeNameHash();
     return TypeNameHash.key(type, NodeType::Unassigned);
 }
 

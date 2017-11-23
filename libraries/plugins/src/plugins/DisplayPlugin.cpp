@@ -18,6 +18,28 @@ void DisplayPlugin::incrementPresentCount() {
 
     ++_presentedFrameIndex;
 
-    // Alert the app that it needs to paint a new presentation frame
-    qApp->postEvent(qApp, new QEvent(static_cast<QEvent::Type>(Present)), Qt::HighEventPriority);
+    {
+        QMutexLocker locker(&_presentMutex);
+        _presentCondition.wakeAll();
+    }
+
+    emit presented(_presentedFrameIndex);
+}
+
+void DisplayPlugin::waitForPresent() {
+    QMutexLocker locker(&_presentMutex);
+    while (isActive()) {
+        if (_presentCondition.wait(&_presentMutex, MSECS_PER_SECOND)) {
+            break;
+        }
+    }
+}
+
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> DisplayPlugin::getHUDOperator() {
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> hudOperator;
+    {
+        QMutexLocker locker(&_presentMutex);
+        hudOperator = _hudOperator;
+    }
+    return hudOperator;
 }

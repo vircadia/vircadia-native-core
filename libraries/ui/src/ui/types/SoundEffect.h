@@ -15,6 +15,7 @@
 #include <SoundCache.h>
 
 class AudioInjector;
+using AudioInjectorPointer = QSharedPointer<AudioInjector>;
 
 // SoundEffect object, exposed to qml only, not interface JavaScript.
 // This is used to play spatial sound effects on tablets/web entities from within QML.
@@ -38,7 +39,7 @@ protected:
     QUrl _url;
     float _volume { 1.0f };
     SharedSoundPointer _sound;
-    AudioInjector* _injector { nullptr };
+    AudioInjectorPointer _injector;
 };
 
 #endif  // hifi_SoundEffect_h

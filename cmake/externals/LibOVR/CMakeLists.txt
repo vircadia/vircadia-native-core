@@ -33,7 +33,6 @@ if (WIN32)
   include(SelectLibraryConfigurations)
   select_library_configurations(LIBOVR)
   set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE TYPE INTERNAL)
-  message("Libs ${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES}")
 
 elseif(APPLE)
   

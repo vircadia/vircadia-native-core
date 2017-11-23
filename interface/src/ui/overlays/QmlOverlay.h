@@ -32,7 +32,7 @@ public:
     void render(RenderArgs* args) override;
 
 private:
-    void buildQmlElement(const QUrl& url);
+    Q_INVOKABLE void buildQmlElement(const QUrl& url);
 
 protected:
     std::shared_ptr<QQuickItem> _qmlElement;

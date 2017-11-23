@@ -53,7 +53,7 @@ public:
 
     void initialize(); // instantly put the camera at the ideal position and orientation.
 
-    void update( float deltaTime );
+    void update();
 
     CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);
@@ -127,7 +127,7 @@ private:
     glm::mat4 _projection;
 
     // derived
-    glm::vec3 _position;
+    glm::vec3 _position { 0.0f, 0.0f, 0.0f };
     glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;

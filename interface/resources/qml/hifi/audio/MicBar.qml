@@ -14,6 +14,8 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
+import TabletScriptingInterface 1.0
+
 Rectangle {
     readonly property var level: Audio.inputLevel;
 
@@ -27,7 +29,7 @@ Rectangle {
 
     color: "#00000000";
     border {
-        width: (standalone || Audio.muted || mouseArea.containsMouse) ? 2 : 0;
+        width: mouseArea.containsMouse || mouseArea.containsPress ? 2 : 0;
         color: colors.border;
     }
 
@@ -57,11 +59,19 @@ Rectangle {
 
         hoverEnabled: true;
         scrollGestureEnabled: false;
-        onClicked: { Audio.muted = !Audio.muted; }
+        onClicked: {
+            Audio.muted = !Audio.muted;
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+        }
         drag.target: dragTarget;
+        onContainsMouseChanged: {
+            if (containsMouse) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
     }
 
-    Item {
+    QtObject {
         id: colors;
 
         readonly property string unmuted: "#FFF";
@@ -72,7 +82,7 @@ Rectangle {
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: (Audio.muted && !mouseArea.containsMouse) ? muted : unmuted;
+        readonly property string icon: Audio.muted ? muted : unmuted;
     }
 
     Item {
@@ -92,10 +102,8 @@ Rectangle {
                 readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
                 readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
 
-                function exclusiveOr(a, b) { return (a || b) && !(a && b); }
-
                 id: image;
-                source: exclusiveOr(Audio.muted, mouseArea.containsMouse) ? mutedIcon : unmutedIcon;
+                source: Audio.muted ? mutedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -118,9 +126,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: (Audio.muted && !mouseArea.containsMouse) ? colors.muted : colors.unmuted;
+        readonly property string color: Audio.muted ? colors.muted : colors.unmuted;
 
-        visible: Audio.muted || mouseArea.containsMouse;
+        visible: Audio.muted;
 
         anchors {
             left: parent.left;
@@ -133,14 +141,14 @@ Rectangle {
 
         Text {
             anchors {
-        horizontalCenter: parent.horizontalCenter;
+                horizontalCenter: parent.horizontalCenter;
                 verticalCenter: parent.verticalCenter;
             }
 
             color: parent.color;
 
-            text: Audio.muted ? (mouseArea.containsMouse ? "UNMUTE" : "MUTED") : "MUTE";
-        font.pointSize: 12;
+            text: Audio.muted ? "MUTED" : "MUTE";
+            font.pointSize: 12;
         }
 
         Rectangle {
@@ -150,7 +158,7 @@ Rectangle {
             }
 
             width: 50;
-        height: 4;
+            height: 4;
             color: parent.color;
         }
 
@@ -161,7 +169,7 @@ Rectangle {
             }
 
             width: 50;
-        height: 4;
+            height: 4;
             color: parent.color;
         }
     }

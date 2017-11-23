@@ -19,6 +19,8 @@ public:
     bool hasFocus() const override;
     void submitFrame(const gpu::FramePointer& newFrame) override;
     QImage getScreenshot(float aspectRatio = 0.0f) const override;
+    QImage getSecondaryCameraScreenshot() const override;
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override {};
 private:
     static const QString NAME;
 };

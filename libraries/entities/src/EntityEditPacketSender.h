@@ -14,6 +14,8 @@
 
 #include <OctreeEditPacketSender.h>
 
+#include <mutex>
+
 #include "EntityItem.h"
 #include "AvatarData.h"
 
@@ -41,6 +43,9 @@ public:
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, qint64 clockSkew) override;
 
+signals:
+    void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
+
 public slots:
     void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
@@ -49,6 +54,7 @@ private:
                                       EntityItemID entityItemID, const EntityItemProperties& properties);
 
 private:
+    std::mutex _mutex;
     AvatarData* _myAvatar { nullptr };
     QScriptEngine _scriptEngine;
 };

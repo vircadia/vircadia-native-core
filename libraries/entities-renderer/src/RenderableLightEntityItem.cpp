@@ -9,115 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
-
+#include "RenderableLightEntityItem.h"
 
 #include <GLMHelpers.h>
 #include <PerfStat.h>
 
-#include "RenderableLightEntityItem.h"
+using namespace render;
+using namespace render::entities;
 
-EntityItemPointer RenderableLightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderableLightEntityItem(entityID) };
-    entity->setProperties(properties);
-    return entity;
-}
+void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    // Reset the value before reading the data!
+    // otherwise there could be a race condition where the value changes
+    // after we read it but before we reset, and we never see the change
+    entity->resetLightPropertiesChanged();
 
-RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityItemID) : LightEntityItem(entityItemID)
-{
-}
+    auto& lightPayload = *_lightPayload;
 
-bool RenderableLightEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
-    _myItem = scene->allocateID();
-
-    auto renderItem = std::make_shared<LightPayload>();
-    updateRenderItemFromEntity((*renderItem));
-
-    auto renderPayload = std::make_shared<LightPayload::Payload>(renderItem);
-
-    render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(self, statusGetters);
-    renderPayload->addStatusGetters(statusGetters);
-
-    transaction.resetItem(_myItem, renderPayload);
-
-    return true;
-}
-
-void RenderableLightEntityItem::somethingChangedNotification() {
-    if (_lightPropertiesChanged) {
-        notifyChanged();
-    }
-    LightEntityItem::somethingChangedNotification();
-}
-
-void RenderableLightEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
-    transaction.removeItem(_myItem);
-    render::Item::clearID(_myItem);
-}
-
-void RenderableLightEntityItem::locationChanged(bool tellPhysics) {
-    EntityItem::locationChanged(tellPhysics);
-    notifyChanged();
-}
-
-void RenderableLightEntityItem::dimensionsChanged() {
-    EntityItem::dimensionsChanged();
-    notifyChanged();
-}
-
-void RenderableLightEntityItem::checkFading() {
-    bool transparent = isTransparent();
-    if (transparent != _prevIsTransparent) {
-        notifyChanged();
-        _isFading = false;
-        _prevIsTransparent = transparent;
-    }
-}
-
-void RenderableLightEntityItem::notifyChanged() {
-
-    if (!render::Item::isValidID(_myItem)) {
-        return;
-    }
-
-    render::Transaction transaction;
-    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-    updateLightFromEntity(transaction);
-
-    scene->enqueueTransaction(transaction);
-}
-
-bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                        BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const {
-
-    // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
-    // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could 
-    // be on the clipboard and someone might be trying to use the ray intersection API there. Anyway... if you ever try to 
-    // do ray intersection testing off of trees other than the main tree of the main entity renderer, then we'll need to 
-    // fix this mechanism.
-    return _lightsArePickable;
-}
-
-
-void RenderableLightEntityItem::updateLightFromEntity(render::Transaction& transaction) {
-    if (!render::Item::isValidID(_myItem)) {
-        return;
-    }
-
-
-    transaction.updateItem<LightPayload>(_myItem, [&](LightPayload& data) {
-        updateRenderItemFromEntity(data);
-    });
-}
-
-void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload& lightPayload) {
-    auto entity = this;
-
-    lightPayload.setVisible(entity->getVisible());
+    lightPayload.setVisible(_visible);
 
     auto light = lightPayload.editLight();
     light->setPosition(entity->getPosition());
@@ -151,9 +59,21 @@ void RenderableLightEntityItem::updateRenderItemFromEntity(LightPayload& lightPa
         light->setSpotAngle(cutoff);
         light->setSpotExponent(exponent);
     }
-
 }
 
+ItemKey LightEntityRenderer::getKey() {
+    return payloadGetKey(_lightPayload);
+}
 
+Item::Bound LightEntityRenderer::getBound() {
+    return payloadGetBound(_lightPayload);
+}
 
+bool LightEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    return entity->lightPropertiesChanged();
+}
+
+void LightEntityRenderer::doRender(RenderArgs* args) {
+    _lightPayload->render(args);
+}
 

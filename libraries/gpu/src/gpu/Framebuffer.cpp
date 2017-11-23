@@ -13,6 +13,7 @@
 #include <math.h>
 #include <QDebug>
 
+#include <shared/PlatformHacks.h>
 #include <Transform.h>
 
 using namespace gpu;
@@ -219,7 +220,7 @@ uint32 Framebuffer::getRenderBufferSubresource(uint32 slot) const {
     }
 }
 
-bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+bool Framebuffer::assignDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
     if (isSwapchain()) {
         return false;
     }
@@ -243,18 +244,57 @@ bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const For
     // assign the new one
     _depthStencilBuffer = TextureView(texture, subresource, format);
 
-    _bufferMask = ( _bufferMask & ~BUFFER_DEPTHSTENCIL);
-    if (texture) {
-        if (format.getSemantic() == gpu::DEPTH) {
-            _bufferMask |= BUFFER_DEPTH;
-        } else if (format.getSemantic() == gpu::STENCIL) {
-            _bufferMask |= BUFFER_STENCIL;
-        } else if (format.getSemantic() == gpu::DEPTH_STENCIL) {
-            _bufferMask |= BUFFER_DEPTHSTENCIL;
-        }
-    }
-
     return true;
+}
+
+bool Framebuffer::setDepthBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+    if (assignDepthStencilBuffer(texture, format, subresource)) {
+        _bufferMask = (_bufferMask & ~BUFFER_DEPTHSTENCIL);
+        if (texture) {
+            if (format.getSemantic() == gpu::DEPTH || format.getSemantic() == gpu::DEPTH_STENCIL) {
+                _bufferMask |= BUFFER_DEPTH;
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    return false;
+}
+
+bool Framebuffer::setStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+    if (assignDepthStencilBuffer(texture, format, subresource)) {
+        _bufferMask = (_bufferMask & ~BUFFER_DEPTHSTENCIL);
+        if (texture) {
+            if (format.getSemantic() == gpu::STENCIL || format.getSemantic() == gpu::DEPTH_STENCIL) {
+                _bufferMask |= BUFFER_STENCIL;
+            } else  {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    return false;
+}
+
+bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+    if (assignDepthStencilBuffer(texture, format, subresource)) {
+        _bufferMask = (_bufferMask & ~BUFFER_DEPTHSTENCIL);
+        if (texture) {
+            if (format.getSemantic() == gpu::DEPTH) {
+                _bufferMask |= BUFFER_DEPTH;
+            } else if (format.getSemantic() == gpu::STENCIL) {
+                _bufferMask |= BUFFER_STENCIL;
+            } else if (format.getSemantic() == gpu::DEPTH_STENCIL) {
+                _bufferMask |= BUFFER_DEPTHSTENCIL;
+            }
+        }
+
+        return true;
+    }
+    return false;
 }
 
 TexturePointer Framebuffer::getDepthStencilBuffer() const {

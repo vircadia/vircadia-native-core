@@ -43,6 +43,7 @@
     var speechBubbleOffset = {x: 0, y: 0.3, z: 0.0}; // The offset from the joint to whic the speech bubble is attached.
     var speechBubbleJointName = 'Head'; // The name of the joint to which the speech bubble is attached.
     var speechBubbleLineHeight = 0.05; // The height of a line of text in the speech bubble.
+    var SPEECH_BUBBLE_MAX_WIDTH = 1; // meters
 
     // Load the persistent variables from the Settings, with defaults.
     function loadSettings() {
@@ -283,8 +284,7 @@
             endParentJointIndex: yourJointIndex,
             end: yourJointPosition,
             color: identifyAvatarLineColor,
-            alpha: 1,
-            lineWidth: 1
+            alpha: 1
         };
 
         avatarIdentifiers[yourAvatarID] = identifierParams;
@@ -370,14 +370,14 @@
     // Change the avatar size to bigger.
     function biggerSize() {
         //print("biggerSize");
-        logMessage("Increasing avatar size bigger!", null);
+        logMessage("Increasing avatar size", null);
         MyAvatar.increaseSize();
     }
 
     // Change the avatar size to smaller.
     function smallerSize() {
         //print("smallerSize");
-        logMessage("Decreasing avatar size smaler!", null);
+        logMessage("Decreasing avatar size", null);
         MyAvatar.decreaseSize();
     }
 
@@ -470,14 +470,13 @@
 
             case '?':
             case 'help':
-                logMessage('Type "/?" or "/help" for help, which is this!', null);
-                logMessage('Type "/name <name>" to set your chat name, or "/name" to use your display name, or a random name if that is not defined.', null);
-                logMessage('Type "/shutup" to shut up your overhead chat message.', null);
-                logMessage('Type "/say <something>" to say something.', null);
-                logMessage('Type "/clear" to clear your cha, nullt log.', null);
-                logMessage('Type "/who" to ask who is h, nullere to chat.', null);
-                logMessage('Type "/bigger", "/smaller" or "/normal" to change, null your avatar size.', null);
-                logMessage('(Sorry, that\'s all there is so far!)', null);
+                logMessage('Type "/?" or "/help" for help', null);
+                logMessage('Type "/name <name>" to set your chat name, or "/name" to use your display name. If your display name is not defined, a random name will be used.', null);
+                logMessage('Type "/close" to close your overhead chat message.', null);
+                logMessage('Type "/say <something>" to display a new message.', null);
+                logMessage('Type "/clear" to clear your chat log.', null);
+                logMessage('Type "/who" to ask who is in the chat session.', null);
+                logMessage('Type "/bigger", "/smaller" or "/normal" to change your avatar size.', null);
                 break;
 
             case 'name':
@@ -498,9 +497,9 @@
                 }
                 break;
 
-            case 'shutup':
+            case 'close':
                 popDownSpeechBubble();
-                logMessage('Overhead chat message shut up.', null);
+                logMessage('Overhead chat message closed.', null);
                 break;
 
             case 'say':
@@ -646,8 +645,16 @@
         //print("updateSpeechBubble:", "speechBubbleMessage", speechBubbleMessage, "textSize", textSize.width, textSize.height);
 
         var fudge = 0.02;
+
         var width = textSize.width + fudge;
-        var height = textSize.height + fudge;
+        var height = speechBubbleLineHeight + fudge;
+
+        if (textSize.width >= SPEECH_BUBBLE_MAX_WIDTH) {
+            var numLines = Math.ceil(width);
+            height = speechBubbleLineHeight * numLines + fudge;
+            width = SPEECH_BUBBLE_MAX_WIDTH;
+        } 
+
         dimensions = {
             x: width,
             y: height,
@@ -673,6 +680,7 @@
             Vec3.sum(
                 headPosition,
                 rotatedOffset);
+        position.y += height / 2; // offset based on half of bubble height
         speechBubbleParams.position = position;
 
         if (!speechBubbleTextID) {

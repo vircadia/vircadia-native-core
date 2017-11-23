@@ -105,6 +105,7 @@ protected:
     SetOfEntities _simpleKinematicEntities; // entities undergoing non-colliding kinematic motion
     QList<EntityDynamicPointer> _dynamicsToAdd;
     QSet<QUuid> _dynamicsToRemove;
+    QMutex _dynamicsMutex { QMutex::Recursive };
 
 protected:
     SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)

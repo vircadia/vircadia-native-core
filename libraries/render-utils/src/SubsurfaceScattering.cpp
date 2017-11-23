@@ -532,7 +532,8 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
 
 
 
-    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
    // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
     const auto light = lightStage->getLight(0);
     

@@ -28,7 +28,7 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails();
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
     
 private slots:

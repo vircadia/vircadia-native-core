@@ -92,7 +92,7 @@ public:
     void captureNamedDrawCallInfo(std::string name);
 
     Batch();
-    explicit Batch(const Batch& batch);
+    Batch(const Batch& batch);
     ~Batch();
 
     void clear();
@@ -217,6 +217,9 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    void disableContextViewCorrection();
+    void restoreContextViewCorrection();
+
     void disableContextStereo();
     void restoreContextStereo();
 
@@ -303,6 +306,9 @@ public:
         COMMAND_getQuery,
 
         COMMAND_resetStages,
+
+        COMMAND_disableContextViewCorrection,
+        COMMAND_restoreContextViewCorrection,
 
         COMMAND_disableContextStereo,
         COMMAND_restoreContextStereo,

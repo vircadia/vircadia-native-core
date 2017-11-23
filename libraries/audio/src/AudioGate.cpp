@@ -7,6 +7,7 @@
 //
 
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "AudioDynamics.h"
@@ -25,10 +26,10 @@ static inline int32_t saturateQ30(int32_t x) {
 }
 
 //
-// First-order DC-blocking filter, with zero at 1.0 and pole at 0.99994
+// First-order DC-blocking filter, with zero at 1.0 and pole at 0.9999
 //
-// -3dB @ 0.5 Hz (48KHz)
-// -3dB @ 0.2 Hz (24KHz)
+// -3dB @ 1.0 Hz (48KHz)
+// -3dB @ 0.5 Hz (24KHz)
 //
 // input in Q15, output in Q30
 //
@@ -39,9 +40,9 @@ class MonoDCBlock {
 public:
     void process(int32_t& x) {
 
-        x <<= 15;               // scale to Q30
+        x *= (1 << 15);         // scale to Q30
         x -= _dcOffset;         // remove DC
-        _dcOffset += x >> 14;   // pole = (1.0 - 2^-14) = 0.99994
+        _dcOffset += x >> 13;   // pole = (1.0 - 2^-13) = 0.9999
     }
 };
 
@@ -52,8 +53,8 @@ class StereoDCBlock {
 public:
     void process(int32_t& x0, int32_t& x1) {
 
-        x0 <<= 15;
-        x1 <<= 15;
+        x0 *= (1 << 15);
+        x1 *= (1 << 15);
 
         x0 -= _dcOffset[0];
         x1 -= _dcOffset[1];
@@ -70,10 +71,10 @@ class QuadDCBlock {
 public:
     void process(int32_t& x0, int32_t& x1, int32_t& x2, int32_t& x3) {
 
-        x0 <<= 15;
-        x1 <<= 15;
-        x2 <<= 15;
-        x3 <<= 15;
+        x0 *= (1 << 15);
+        x1 *= (1 << 15);
+        x2 *= (1 << 15);
+        x3 *= (1 << 15);
 
         x0 -= _dcOffset[0];
         x1 -= _dcOffset[1];
@@ -99,10 +100,10 @@ protected:
     int _histogram[NHIST] = {};
 
     // peakhold
-    int32_t _holdMin = 0x7fffffff;
-    int32_t _holdInc = 0x7fffffff;
+    uint32_t _holdMin = 0x7fffffff;
+    uint32_t _holdInc = 0x7fffffff;
     uint32_t _holdMax = 0x7fffffff;
-    int32_t _holdRel = 0x7fffffff;
+    uint32_t _holdRel = 0x7fffffff;
     int32_t _holdPeak = 0x7fffffff;
 
     // hysteresis
@@ -147,10 +148,10 @@ GateImpl::GateImpl(int sampleRate) {
     _sampleRate = sampleRate;
 
     // defaults
-    setThreshold(-36.0);
-    setHold(20.0);
-    setHysteresis(6.0);
-    setRelease(1000.0);
+    setThreshold(-30.0f);
+    setHold(20.0f);
+    setHysteresis(6.0f);
+    setRelease(1000.0f);
 }
 
 //
@@ -176,18 +177,23 @@ void GateImpl::setThreshold(float threshold) {
 void GateImpl::setHold(float hold) {
 
     const double RELEASE = 100.0;   // release = 100ms
-    const double PROGHOLD = 0.100;  // progressive hold = 100ms
+    const double PROGHOLD = 100.0;  // progressive hold = 100ms
 
     // pure hold = 1 to 1000ms
     hold = MAX(hold, 1.0f);
     hold = MIN(hold, 1000.0f);
 
+    // compute final tc
     _holdMin = msToTc(RELEASE, _sampleRate);
 
-    _holdInc = (int32_t)((_holdMin - 0x7fffffff) / (PROGHOLD * _sampleRate));
-    _holdInc = MIN(_holdInc, -1); // prevent 0 on long releases
-
-    _holdMax = 0x7fffffff - (uint32_t)(_holdInc * (double)hold/1000.0 * _sampleRate);
+    // compute tc increment, to progress from 0x7fffffff to _holdMin in PROGHOLD ms
+    double progSamples = PROGHOLD/1000.0 * _sampleRate;
+    _holdInc = (uint32_t)((0x7fffffff - _holdMin) / progSamples);
+    _holdInc = MAX(_holdInc, 1);    // prevent 0 on long releases
+    
+    // compute initial tc, to progress from _holdMax to 0x7fffffff in hold ms
+    double holdSamples = (double)hold/1000.0 * _sampleRate;
+    _holdMax = 0x7fffffff + (uint32_t)(_holdInc * holdSamples);
 }
 
 //
@@ -317,8 +323,6 @@ void GateImpl::processHistogram(int numFrames) {
 
     // smooth threshold update
     _threshAdapt = threshold + MULQ31((_threshAdapt - threshold), tcThreshold);
-
-    //printf("threshold = %0.1f\n", (_threshAdapt - (LOG2_HEADROOM_Q15 << LOG2_FRACBITS)) * -6.02f / (1 << LOG2_FRACBITS));
 }
 
 //
@@ -335,10 +339,8 @@ int32_t GateImpl::peakhold(int32_t peak) {
         // (_holdRel > _holdMin) progressive hold
         // (_holdRel = _holdMin) release
 
-        _holdRel += _holdInc;                                   // update progressive hold
-        _holdRel = MAX((uint32_t)_holdRel, (uint32_t)_holdMin); // saturate at final value
-
-        int32_t tc = MIN((uint32_t)_holdRel, 0x7fffffff);
+        _holdRel -= _holdInc;                                   // update progressive hold
+        int32_t tc = MIN(MAX(_holdRel, _holdMin), 0x7fffffff);  // saturate to [_holdMin, 0x7fffffff]
         peak += MULQ31((_holdPeak - peak), tc);                 // apply release
 
     } else {

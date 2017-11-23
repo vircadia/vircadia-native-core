@@ -390,6 +390,13 @@ void Batch::resetStages() {
     ADD_COMMAND(resetStages);
 }
 
+void Batch::disableContextViewCorrection() {
+    ADD_COMMAND(disableContextViewCorrection);
+}
+
+void Batch::restoreContextViewCorrection() {
+    ADD_COMMAND(restoreContextViewCorrection);
+}
 
 void Batch::disableContextStereo() {
     ADD_COMMAND(disableContextStereo);

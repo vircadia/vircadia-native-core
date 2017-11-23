@@ -18,6 +18,8 @@
 #include <QtScript/QScriptValue>
 #include <QtWidgets/QMessageBox>
 
+#include <DependencyManager.h>
+
 class CustomPromptResult {
 public:
     QVariant value;
@@ -49,20 +51,28 @@ public slots:
     void raiseMainWindow();
     void alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
-    QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
+    QScriptValue prompt(const QString& message, const QString& defaultText);
+    void promptAsync(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
     QScriptValue browseDir(const QString& title = "", const QString& directory = "");
+    void browseDirAsync(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void browseAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void saveAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
+    void browseAssetsAsync(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
+    QString checkVersion();
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSecondaryCameraSnapshot();
     void makeConnection(bool success, const QString& userNameOrError);
     void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
     bool setDisplayTexture(const QString& name);
+    bool isPointOnDesktopWindow(QVariant point);
 
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
     void updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton);
@@ -85,6 +95,11 @@ signals:
     void announcement(const QString& message);
 
     void messageBoxClosed(int id, int button);
+    void browseDirChanged(QString browseDir);
+    void assetsDirChanged(QString assetsDir);
+    void saveFileChanged(QString filename);
+    void openFileChanged(QString filename);
+    void promptTextChanged(QString text);
 
     // triggered when window size or position changes
     void geometryChanged(QRect geometry);

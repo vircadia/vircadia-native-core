@@ -118,16 +118,16 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _rig.updateFromEyeParameters(eyeParams);
 }
 
-void SkeletonModel::updateAttitude() {
+void SkeletonModel::updateAttitude(const glm::quat& orientation) {
     setTranslation(_owningAvatar->getSkeletonPosition());
-    setRotation(_owningAvatar->getOrientation() * Quaternions::Y_180);
-    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
+    setRotation(orientation * Quaternions::Y_180);
+    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getModelScale());
 }
 
 // Called by Avatar::simulate after it has set the joint states (fullUpdate true if changed),
 // but just before head has been simulated.
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
-    updateAttitude();
+    updateAttitude(_owningAvatar->getOrientation());
     if (fullUpdate) {
         setBlendshapeCoefficients(_owningAvatar->getHead()->getSummedBlendshapeCoefficients());
 
@@ -294,7 +294,7 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
 }
 
 glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
-    return _owningAvatar->getScale() * _defaultEyeModelPosition;
+    return _owningAvatar->getModelScale() * _defaultEyeModelPosition;
 }
 
 float DENSITY_OF_WATER = 1000.0f; // kg/m^3
@@ -316,7 +316,7 @@ void SkeletonModel::computeBoundingShape() {
     float radius, height;
     glm::vec3 offset;
     _rig.computeAvatarBoundingCapsule(geometry, radius, height, offset);
-    float invScale = 1.0f / _owningAvatar->getUniformScale();
+    float invScale = 1.0f / _owningAvatar->getModelScale();
     _boundingCapsuleRadius = invScale * radius;
     _boundingCapsuleHeight = invScale * height;
     _boundingCapsuleLocalOffset = invScale * offset;

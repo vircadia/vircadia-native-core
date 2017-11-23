@@ -15,7 +15,7 @@ Script.include("../libraries/WebTablet.js");
 
 var toolIconUrl = Script.resolvePath("../assets/images/tools/");
 
-var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
     title: "Marketplace",
     source: "about:blank",

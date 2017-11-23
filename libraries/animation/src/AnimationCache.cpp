@@ -9,14 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AnimationCache.h"
+
 #include <QRunnable>
 #include <QThreadPool>
 
-#include "AnimationCache.h"
-#include "AnimationLogging.h"
+#include <shared/QtHelpers.h>
 #include <Trace.h>
 #include <StatTracker.h>
 #include <Profile.h>
+
+#include "AnimationLogging.h"
 
 int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
@@ -31,7 +34,7 @@ AnimationCache::AnimationCache(QObject* parent) :
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
         AnimationPointer result;
-        QMetaObject::invokeMethod(this, "getAnimation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getAnimation",
             Q_RETURN_ARG(AnimationPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }
@@ -97,7 +100,7 @@ bool Animation::isLoaded() const {
 QStringList Animation::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        QMetaObject::invokeMethod(const_cast<Animation*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
@@ -111,7 +114,7 @@ QStringList Animation::getJointNames() const {
 QVector<FBXAnimationFrame> Animation::getFrames() const {
     if (QThread::currentThread() != thread()) {
         QVector<FBXAnimationFrame> result;
-        QMetaObject::invokeMethod(const_cast<Animation*>(this), "getFrames", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames", 
             Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
         return result;
     }

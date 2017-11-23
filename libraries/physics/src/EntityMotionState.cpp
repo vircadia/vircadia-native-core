@@ -92,6 +92,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 
     Transform localTransform;
     _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverVariablesSet = true;
     _serverPosition = localTransform.getTranslation();
     _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
@@ -99,18 +100,19 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 void EntityMotionState::handleDeactivation() {
-    // copy _server data to entity
-    bool success;
-    _entity->setPosition(_serverPosition, success, false);
-    _entity->setOrientation(_serverRotation, success, false);
-    _entity->setVelocity(ENTITY_ITEM_ZERO_VEC3);
-    _entity->setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
-    // and also to RigidBody
-    btTransform worldTrans;
-    worldTrans.setOrigin(glmToBullet(_serverPosition));
-    worldTrans.setRotation(glmToBullet(_serverRotation));
-    _body->setWorldTransform(worldTrans);
-    // no need to update velocities... should already be zero
+    if (_serverVariablesSet) {
+        // copy _server data to entity
+        Transform localTransform = _entity->getLocalTransform();
+        localTransform.setTranslation(_serverPosition);
+        localTransform.setRotation(_serverRotation);
+        _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
+        // and also to RigidBody
+        btTransform worldTrans;
+        worldTrans.setOrigin(glmToBullet(_entity->getPosition()));
+        worldTrans.setRotation(glmToBullet(_entity->getRotation()));
+        _body->setWorldTransform(worldTrans);
+        // no need to update velocities... should already be zero
+    }
 }
 
 // virtual
@@ -339,6 +341,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
+        _serverVariablesSet = true;
         _serverPosition = worldToLocal.transform(bulletToGLM(xform.getOrigin()));
         _serverRotation = worldToLocal.getRotation() * bulletToGLM(xform.getRotation());
         _serverVelocity = worldVelocityToLocal.transform(getBodyLinearVelocityGTSigma());
@@ -484,12 +487,12 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return false;
     }
 
-    if (_entity->dynamicDataNeedsTransmit()) {
+    if (_entity->dynamicDataNeedsTransmit() || _entity->queryAACubeNeedsUpdate()) {
         return true;
     }
 
-    if (_entity->queryAABoxNeedsUpdate()) {
-        return true;
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
     }
 
     if (!isLocallyOwned()) {
@@ -577,9 +580,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.setActionData(_serverActionData);
     }
 
-    if (properties.parentRelatedPropertyChanged() && _entity->computePuffedQueryAACube()) {
-        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-        properties.setQueryAACube(_entity->getQueryAACube());
+    if (properties.transformChanged()) {
+        if (_entity->updateQueryAACube()) {
+            // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+            properties.setQueryAACube(_entity->getQueryAACube());
+        }
     }
 
     // set the LastEdited of the properties but NOT the entity itself
@@ -643,7 +648,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         if (descendant->getNestableType() == NestableType::Entity) {
             EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-            if (descendant->computePuffedQueryAACube()) {
+            if (descendant->updateQueryAACube()) {
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());

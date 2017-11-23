@@ -20,8 +20,8 @@ namespace gpu {
         friend class Context;
 
     public:
+        Frame();
         virtual ~Frame();
-
         using Batches = std::vector<Batch>;
         using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
         using OverlayRecycler = std::function<void(const TexturePointer&)>;
@@ -36,8 +36,6 @@ namespace gpu {
         BufferUpdates bufferUpdates;
         /// The destination framebuffer in which the results will be placed
         FramebufferPointer framebuffer;
-        /// The destination texture containing the 2D overlay
-        TexturePointer overlay;
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
 

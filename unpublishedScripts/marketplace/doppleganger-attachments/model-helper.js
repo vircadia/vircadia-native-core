@@ -8,6 +8,7 @@
 //
 
 /* eslint-env commonjs */
+/* global console */
 // @module model-helper
 //
 // This module provides ModelReadyWatcher (a helper class for knowing when a model becomes usable inworld) and
@@ -18,9 +19,15 @@ var utils = require('./utils.js'),
     assert = utils.assert;
 
 module.exports = {
-    version: '0.0.0',
+    version: '0.0.1',
     ModelReadyWatcher: ModelReadyWatcher
 };
+
+function log() {
+    // eslint-disable-next-line no-console
+    (typeof console === 'object' ? console.log : print)('model-helper | ' + [].slice.call(arguments).join(' '));
+}
+log(module.exports.version);
 
 var _objectDeleted = utils.signal(function objectDeleted(objectID){});
 // proxy for _objectDeleted that only binds deletion tracking if script actually connects to the unified signal

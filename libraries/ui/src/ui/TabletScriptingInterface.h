@@ -23,7 +23,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-
+#include "SoundCache.h"
 #include <DependencyManager.h>
 
 class ToolbarProxy;
@@ -40,8 +40,12 @@ class OffscreenQmlSurface;
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+    enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
+    Q_ENUM(TabletAudioEvents)
+
     TabletScriptingInterface();
-    ~TabletScriptingInterface();
+    virtual ~TabletScriptingInterface();
+    static const QString QML;
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
@@ -52,6 +56,9 @@ public:
      * @return {TabletProxy} tablet instance
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
+
+    void preloadSounds();
+    Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
     void setToolbarMode(bool toolbarMode);
 
@@ -76,6 +83,7 @@ private:
     void processTabletEvents(QObject* object, const QKeyEvent* event);
     ToolbarProxy* getSystemToolbarProxy();
 
+    QMap<TabletAudioEvents, SharedSoundPointer> _audioEvents;
 protected:
     std::map<QString, TabletProxy*> _tabletProxies;
     ToolbarScriptingInterface* _toolbarScriptingInterface { nullptr };
@@ -122,9 +130,9 @@ public:
      * @param [injectedJavaScriptUrl] {string} optional url to an additional JS script to inject into the web page.
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
-    Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
 
-    Q_INVOKABLE void loadQMLSource(const QVariant& path);
+    Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
     Q_INVOKABLE bool pushOntoStack(const QVariant& path);
@@ -232,6 +240,7 @@ protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
+    void onTabletShown();
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
@@ -252,6 +261,7 @@ protected:
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
     bool _landscape { false };
+    bool _showRunningScripts { false };
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);

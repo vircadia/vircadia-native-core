@@ -43,16 +43,21 @@ layout(location=14) in int _inStereoSide;
 flat out int _stereoSide;
 
 // In stereo drawcall mode Instances are drawn twice (left then right) hence the true InstanceID is the gl_InstanceID / 2
-int gpu_InstanceID = gl_InstanceID >> 1;
+int gpu_InstanceID() {
+    return gl_InstanceID >> 1;
+}
 
 #else
 
-int gpu_InstanceID = gl_InstanceID;
-
+int gpu_InstanceID() {
+    return gl_InstanceID;
+}
 #endif
 #else
 
-int gpu_InstanceID = gl_InstanceID;
+int gpu_InstanceID() {
+    return gl_InstanceID;
+}
 
 #endif
 
@@ -166,7 +171,7 @@ TransformObject getTransformObject() {
 #ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
         vec4 eyeClipEdge[2]= vec4[2](vec4(-1,0,0,1), vec4(1,0,0,1));
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
-        uint eyeIndex = _stereoSide;
+        uint eyeIndex = uint(_stereoSide);
         gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
         float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
         <$clipPos$>.x = newClipPosX;
@@ -188,13 +193,17 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
-<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
-    { // transformModelToClipPos
+<@func transformModelToMonoClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
+    { // transformModelToMonoClipPos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
-
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
-        
+    }
+<@endfunc@>
+
+<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
+    { // transformModelToClipPos
+        <$transformModelToMonoClipPos($cameraTransform$, $objectTransform$, $modelPos$, $clipPos$)$>
         <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>

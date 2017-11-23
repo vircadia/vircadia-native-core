@@ -25,11 +25,12 @@ Rectangle {
     signal canceled()
     signal restart()
 
-    property int count: 3
+    property int count: 5
     property string calibratingText: "CALIBRATING..."
     property string calibratingCountText: "CALIBRATION STARTING IN"
     property string calibrationSuccess: "CALIBRATION COMPLETED"
     property string calibrationFailed: "CALIBRATION FAILED"
+    property string instructionText: "Please stand in a T-Pose during calibration"
     
     HifiConstants { id: hifi }
     visible: true
@@ -64,7 +65,7 @@ Rectangle {
 
     HiFiGlyphs {
         id: image
-        text: hifi.glyphs.avatar1
+        text: hifi.glyphs.avatarTPose
         size: 190
         color: hifi.colors.white
 
@@ -158,6 +159,15 @@ Rectangle {
 
             onClicked: {
                 restart();
+                statusText.color = hifi.colors.blueHighlight;
+                statusText.text = info.calibratingCountText;
+                directions.text = instructionText;
+                countDown.visible = true;
+                busyIndicator.running = true;
+                busyRotation.from = 0
+                busyRotation.to = 360
+                busyIndicator.source = blueIndicator;
+                closeWindow.stop();
                 numberAnimation.stop();
                 info.count = (timer.interval / 1000);
                 numberAnimation.start();
@@ -177,6 +187,7 @@ Rectangle {
             }
         }
     }
+    
     
     function start(interval, countNumber) {
         countDown.visible = true;
@@ -201,6 +212,7 @@ Rectangle {
         busyIndicator.running = false;
         statusText.text = info.calibrationSuccess
         statusText.color = hifi.colors.greenHighlight
+        directions.text = "SUCCESS"
         closeWindow.start();
     }
 

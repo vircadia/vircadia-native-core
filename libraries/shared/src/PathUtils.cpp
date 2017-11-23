@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PathUtils.h"
+
 #include <QCoreApplication>
 #include <QString>
 #include <QVector>
@@ -16,9 +18,9 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QUrl>
-#include "PathUtils.h"
 #include <QtCore/QStandardPaths>
 #include <mutex> // std::once
+#include "shared/GlobalAppProperties.h"
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
@@ -34,12 +36,8 @@ QString PathUtils::getAppDataPath() {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
 }
 
-QString PathUtils::getAppLocalDataPath(const QString& overridePath /* = "" */) {
-    static QString overriddenPath = "";
-    // set the overridden path if one was passed in
-    if (!overridePath.isEmpty()) {
-        overriddenPath = overridePath;
-    }
+QString PathUtils::getAppLocalDataPath() {
+    QString overriddenPath = qApp->property(hifi::properties::APP_LOCAL_DATA_PATH).toString();
     // return overridden path if set
     if (!overriddenPath.isEmpty()) {
         return overriddenPath;
@@ -55,6 +53,19 @@ QString PathUtils::getAppDataFilePath(const QString& filename) {
 
 QString PathUtils::getAppLocalDataFilePath(const QString& filename) {
     return QDir(getAppLocalDataPath()).absoluteFilePath(filename);
+}
+
+QString PathUtils::generateTemporaryDir() {
+    QDir rootTempDir = QDir::tempPath();
+    QString appName = qApp->applicationName();
+    for (auto i = 0; i < 64; ++i) {
+        auto now = std::chrono::system_clock::now().time_since_epoch().count();
+        QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
+        if (tempDir.mkpath(".")) {
+            return tempDir.absolutePath();
+        }
+    }
+    return "";
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
@@ -95,18 +106,17 @@ QUrl PathUtils::defaultScriptsLocation(const QString& newDefaultPath) {
     if (!overriddenDefaultScriptsLocation.isEmpty()) {
         path = overriddenDefaultScriptsLocation;
     } else {
-#ifdef Q_OS_WIN
-        path = QCoreApplication::applicationDirPath() + "/scripts";
-#elif defined(Q_OS_OSX)
+#if defined(Q_OS_OSX)
         path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#elif defined(Q_OS_ANDROID)
+        path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/scripts";
 #else
         path = QCoreApplication::applicationDirPath() + "/scripts";
 #endif
     }
 
     // turn the string into a legit QUrl
-    QFileInfo fileInfo(path);
-    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+    return QUrl::fromLocalFile(QFileInfo(path).canonicalFilePath());
 }
 
 QString PathUtils::stripFilename(const QUrl& url) {

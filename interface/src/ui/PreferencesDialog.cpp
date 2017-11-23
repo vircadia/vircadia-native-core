@@ -11,7 +11,6 @@
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
-#include <NetworkingConstants.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
@@ -52,7 +51,7 @@ void setupPreferences() {
 
     {
         auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
@@ -92,19 +91,15 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool { return qApp->getDesktopTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setDesktopTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Desktop Tablet Becomes Toolbar", getter, setter));
-    }
-    {
-        auto getter = []()->bool { return qApp->getHmdTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
-    }
-    {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
+    }
+    {
+        static const QString RETICLE_ICON_NAME = { Cursor::Manager::getIconName(Cursor::Icon::RETICLE) };
+        auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };
+        auto setter = [](bool value) { qApp->setPreferredCursor(value ? RETICLE_ICON_NAME : QString()); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
     // Snapshots
@@ -182,13 +177,31 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getUniformScale(); };
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getTargetScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
-        preference->setMin(0.01f);
-        preference->setMax(99.9f);
+        auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setStep(0.05f);
         preference->setDecimals(2);
-        preference->setStep(1);
+        preferences->addPreference(preference);
+        
+        // When the Interface is first loaded, this section setupPreferences(); is loaded - 
+        // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
+        // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
+        // is a way around this, therefore they're not specified here but in the QML.
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
+        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "User height (meters)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(2.2f);
+        preference->setDecimals(3);
+        preference->setStep(0.001f);
         preferences->addPreference(preference);
     }
     {
@@ -297,62 +310,27 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-
-    {
-        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
-        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
-        preference->setMin(0);
-        preference->setMax(100);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-
     {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-            if (ambientOcclusionConfig) {
-                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig) {
+                auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
+                auto setter = [mainViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
                 preferences->addPreference(preference);
             }
 
-            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-            if (shadowConfig) {
-                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            if (mainViewShadowConfig) {
+                auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
+                auto setter = [mainViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-                preference->setItems(shadowConfig->getPresetList());
+                preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
-        }
-        {
-            auto getter = []()->bool { return image::isColorTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setColorTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Color Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isNormalTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setNormalTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Normal Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isGrayscaleTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setGrayscaleTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Grayscale Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isCubeTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setCubeTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Cube Textures", getter, setter);
-            preferences->addPreference(preference);
         }
     }
     {

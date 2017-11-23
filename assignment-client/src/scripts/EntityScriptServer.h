@@ -54,6 +54,9 @@ private slots:
 
     void pushLogs();
 
+    void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -72,7 +75,7 @@ private:
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
-    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
+    ScriptEnginePointer _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

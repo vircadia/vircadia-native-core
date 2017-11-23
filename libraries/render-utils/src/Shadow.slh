@@ -68,6 +68,8 @@ vec2 PCFkernel[4] = vec2[4](
 );
 
 float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
+    // PCF is buggy so disable it for the time being
+#if 0
     float pcfRadius = 3.0;
 	float shadowScale = getShadowScale();
 
@@ -80,6 +82,9 @@ float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
         fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
         fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
     ));
+#else
+    float shadowAttenuation = fetchShadow(shadowTexcoord.xyz);
+#endif
 
     return shadowAttenuation;
 }

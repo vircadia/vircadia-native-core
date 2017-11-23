@@ -467,12 +467,14 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
         _demoteQueue = WorkQueue();
 
         // Populate the existing textures into the queue
-        for (const auto& texture : strongTextures) {
-            // Race conditions can still leave nulls in the list, so we need to check
-            if (!texture) {
-                continue;
+        if (_memoryPressureState != MemoryPressureState::Idle) {
+            for (const auto& texture : strongTextures) {
+                // Race conditions can still leave nulls in the list, so we need to check
+                if (!texture) {
+                    continue;
+                }
+                addToWorkQueue(texture);
             }
-            addToWorkQueue(texture);
         }
     }
 }

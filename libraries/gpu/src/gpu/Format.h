@@ -38,6 +38,7 @@ enum Type : uint8_t {
     NUINT16,
     NINT8,
     NUINT8,
+    NUINT2,
 
     COMPRESSED,
 
@@ -187,11 +188,13 @@ enum Semantic : uint8_t {
     COMPRESSED_BC3_SRGBA,
     COMPRESSED_BC4_RED,
     COMPRESSED_BC5_XY,
+    COMPRESSED_BC6_RGB,
     COMPRESSED_BC7_SRGBA,
 
     _LAST_COMPRESSED,
 
     R11G11B10,
+    RGB9E5,
 
     UNIFORM,
     UNIFORM_BUFFER,
@@ -240,11 +243,13 @@ static const int SEMANTIC_SIZE_FACTOR[NUM_SEMANTICS] = {
     16, //COMPRESSED_BC3_SRGBA, 1 byte/pixel * 4x4 pixels = 16 bytes
     8, //COMPRESSED_BC4_RED, 1/2 byte/pixel * 4x4 pixels = 8 bytes
     16, //COMPRESSED_BC5_XY, 1 byte/pixel * 4x4 pixels = 16 bytes
+    16, //COMPRESSED_BC6_RGB, 1 byte/pixel * 4x4 pixels = 16 bytes
     16, //COMPRESSED_BC7_SRGBA, 1 byte/pixel * 4x4 pixels = 16 bytes
 
     1, //_LAST_COMPRESSED,
 
     1, //R11G11B10,
+    1, //RGB9E5
 
     1, //UNIFORM,
     1, //UNIFORM_BUFFER,
@@ -305,13 +310,16 @@ public:
     static const Element COLOR_SRGBA_32;
     static const Element COLOR_BGRA_32;
     static const Element COLOR_SBGRA_32;
+    static const Element COLOR_RGBA_2;
     static const Element COLOR_R11G11B10;
+    static const Element COLOR_RGB9E5;
     static const Element COLOR_COMPRESSED_RED;
     static const Element COLOR_COMPRESSED_SRGB;
     static const Element COLOR_COMPRESSED_SRGBA_MASK;
     static const Element COLOR_COMPRESSED_SRGBA;
     static const Element COLOR_COMPRESSED_XY;
     static const Element COLOR_COMPRESSED_SRGBA_HIGH;
+    static const Element COLOR_COMPRESSED_HDR_RGB;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;

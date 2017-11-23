@@ -134,9 +134,9 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             // fetch the hand controller pose
             controller::Pose pose;
             if (isRightHand) {
-                pose = myAvatar->getRightHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::RIGHT_HAND);
             } else {
-                pose = myAvatar->getLeftHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::LEFT_HAND);
             }
 
             if (pose.isValid()) {
@@ -165,7 +165,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
                 Transform avatarTransform;
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(camRelPos / myAvatar->getDomainLimitedScale());
+                palmPosition = avatarTransform.transform(camRelPos);
                 palmRotation = avatarTransform.getRotation() * camRelRot;
             } else {
                 glm::vec3 avatarRigidBodyPosition;

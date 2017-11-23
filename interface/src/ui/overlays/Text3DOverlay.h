@@ -19,6 +19,7 @@ class TextRenderer3D;
 
 class Text3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
     static QString const TYPE;
@@ -43,6 +44,7 @@ public:
     xColor getBackgroundColor();
     float getTextAlpha() { return _textAlpha; }
     float getBackgroundAlpha() { return getAlpha(); }
+    bool isTransparent() override { return Overlay::isTransparent() || _textAlpha < 1.0f; }
 
     // setters
     void setText(const QString& text);

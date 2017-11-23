@@ -28,6 +28,10 @@
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 const int WAIT_FOR_CHILD_MSECS = 1000;
 
+#ifdef Q_OS_WIN
+HANDLE PROCESS_GROUP = createProcessGroup();
+#endif
+
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
@@ -91,9 +95,22 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
     }
 }
 
-void AssignmentClientMonitor::childProcessFinished(qint64 pid) {
+void AssignmentClientMonitor::childProcessFinished(qint64 pid, int exitCode, QProcess::ExitStatus exitStatus) {
+    auto message = "Child process " + QString::number(pid) + " has %1 with exit code " + QString::number(exitCode) + ".";
+
     if (_childProcesses.remove(pid)) {
-        qDebug() << "Child process" << pid << "has finished. Removed from internal map.";
+        message.append(" Removed from internal map.");
+    } else {
+        message.append(" Could not find process in internal map.");
+    }
+
+    switch (exitStatus) {
+        case QProcess::NormalExit:
+            qDebug() << qPrintable(message.arg("returned"));
+            break;
+        case QProcess::CrashExit:
+            qCritical() << qPrintable(message.arg("crashed"));
+            break;
     }
 }
 
@@ -131,7 +148,6 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
-
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -160,6 +176,9 @@ void AssignmentClientMonitor::spawnChildClient() {
     _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
     _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
 
+    _childArguments.append("--" + PARENT_PID_OPTION);
+    _childArguments.append(QString::number(QCoreApplication::applicationPid()));
+
     QString nowString, stdoutFilenameTemp, stderrFilenameTemp, stdoutPathTemp, stderrPathTemp;
 
 
@@ -186,6 +205,10 @@ void AssignmentClientMonitor::spawnChildClient() {
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
+
+#ifdef Q_OS_WIN
+    addProcessToGroup(PROCESS_GROUP, assignmentClient->processId());
+#endif
 
     QString stdoutPath, stderrPath;
 
@@ -219,7 +242,9 @@ void AssignmentClientMonitor::spawnChildClient() {
         auto pid = assignmentClient->processId();
         // make sure we hear that this process has finished when it does
         connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                this, [this, pid]() { childProcessFinished(pid); });
+                this, [this, pid](int exitCode, QProcess::ExitStatus exitStatus) {
+                    childProcessFinished(pid, exitCode, exitStatus);
+            });
 
         qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
 

@@ -30,7 +30,7 @@ const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new TextEntityItem(entityID) };
+    EntityItemPointer entity(new TextEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -136,7 +136,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getRotation();
     glm::vec3 position = getPosition() + rotation * 
-            (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
+            (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
 
     // FIXME - should set face and surfaceNormal
     return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);

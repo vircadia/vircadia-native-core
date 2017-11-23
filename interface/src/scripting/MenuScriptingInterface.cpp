@@ -14,6 +14,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 
+#include <shared/QtHelpers.h>
 #include <MenuItemProperties.h>
 #include "Menu.h"
 
@@ -43,7 +44,7 @@ bool MenuScriptingInterface::menuExists(const QString& menu) {
         return Menu::getInstance()->menuExists(menu);
     }
     bool result;
-    QMetaObject::invokeMethod(Menu::getInstance(), "menuExists", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuExists",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menu));
     return result;
@@ -86,7 +87,7 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
         return Menu::getInstance()->menuItemExists(menu, menuitem);
     }
     bool result;
-    QMetaObject::invokeMethod(Menu::getInstance(), "menuItemExists", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuItemExists",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menu),
         Q_ARG(const QString&, menuitem));
@@ -114,7 +115,7 @@ bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
     bool result;
-    QMetaObject::invokeMethod(Menu::getInstance(), "isOptionChecked", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isOptionChecked",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menuOption));
     return result;
@@ -131,7 +132,7 @@ bool MenuScriptingInterface::isMenuEnabled(const QString& menuOption) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
     bool result;
-    QMetaObject::invokeMethod(Menu::getInstance(), "isMenuEnabled", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isMenuEnabled",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menuOption));
     return result;
@@ -157,7 +158,7 @@ bool MenuScriptingInterface::isInfoViewVisible(const QString& path) {
     }
         
     bool result;
-    QMetaObject::invokeMethod(Menu::getInstance(), "isInfoViewVisible", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isInfoViewVisible",
         Q_RETURN_ARG(bool, result), Q_ARG(const QString&, path));
     return result;
 }

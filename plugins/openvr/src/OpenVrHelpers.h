@@ -82,6 +82,12 @@ struct PoseData {
             angularVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vAngularVelocity));
         }
     }
+
+    void resetToInvalid() {
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            vrPoses[i].bPoseIsValid = false;
+        }
+    }
 };
 
 // FIXME remove once OpenVR header is updated

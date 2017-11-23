@@ -22,26 +22,17 @@
 #include "PolyLineEntityItem.h"
 
 const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
-const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
+const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 60;
 
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new PolyLineEntityItem(entityID) };
+    EntityItemPointer entity(new PolyLineEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
-EntityItem(entityItemID),
-_lineWidth(DEFAULT_LINE_WIDTH),
-_pointsChanged(true),
-_normalsChanged(true),
-_strokeWidthsChanged(true),
-_points(QVector<glm::vec3>(0.0f)),
-_normals(QVector<glm::vec3>(0.0f)),
-_strokeWidths(QVector<float>(0.0f)),
-_textures("")
-{
+
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::PolyLine;
 }
 
@@ -52,12 +43,15 @@ EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desir
 
     properties._color = getXColor();
     properties._colorChanged = false;
+    
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeColors, getStrokeColors);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isUVModeStretch, getIsUVModeStretch);
     return properties;
 }
 
@@ -70,8 +64,10 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeColors, setStrokeColors);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isUVModeStretch, setIsUVModeStretch);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -92,13 +88,12 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
     }
-    glm::vec3 halfBox = getDimensions() * 0.5f;
-    if ((point.x < -halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < -halfBox.z || point.z > halfBox.z)) {
-        qCDebug(entities) << "Point is outside entity's bounding box";
-        return false;
-    }
+
     _points << point;
     _pointsChanged = true;
+
+    calculateScaleAndRegistrationPoint();
+
     return true;
 }
 
@@ -118,6 +113,15 @@ bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     });
     return true;
 }
+
+bool PolyLineEntityItem::setStrokeColors(const QVector<glm::vec3>& strokeColors) {
+    withWriteLock([&] {
+        _strokeColors = strokeColors;
+        _strokeColorsChanged = true;
+    });
+    return true;
+}
+
 
 bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
@@ -141,21 +145,54 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
             return;
         }
 
-        for (int i = 0; i < points.size(); i++) {
-            glm::vec3 point = points.at(i);
-            glm::vec3 halfBox = getDimensions() * 0.5f;
-            if ((point.x < -halfBox.x || point.x > halfBox.x) ||
-                (point.y < -halfBox.y || point.y > halfBox.y) ||
-                (point.z < -halfBox.z || point.z > halfBox.z)) {
-                qCDebug(entities) << "Point is outside entity's bounding box";
-                return;
-            }
-        }
         _points = points;
+
         result = true;
     });
 
+    if (result) {
+        calculateScaleAndRegistrationPoint();
+    }
+
     return result;
+}
+
+void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
+    glm::vec3 high(0.0f, 0.0f, 0.0f);
+    glm::vec3 low(0.0f, 0.0f, 0.0f);
+    int pointCount = 0;
+    glm::vec3 firstPoint;
+    withReadLock([&] {
+        pointCount = _points.size();
+        if (pointCount > 0) {
+            firstPoint = _points.at(0);
+        }
+        for (int i = 0; i < pointCount; i++) {
+            const glm::vec3& point = _points.at(i);
+            high = glm::max(point, high);
+            low = glm::min(point, low);
+        }
+    });
+
+    float magnitudeSquared = glm::length2(low - high);
+    vec3 newScale { 1 };
+    vec3 newRegistrationPoint { 0.5f };
+
+    const float EPSILON = 0.0001f;
+    const float EPSILON_SQUARED = EPSILON * EPSILON;
+    const float HALF_LINE_WIDTH = 0.075f; // sadly _strokeWidths() don't seem to correspond to reality, so just use a flat assumption of the stroke width
+    const vec3 QUARTER_LINE_WIDTH { HALF_LINE_WIDTH * 0.5f };
+    if (pointCount > 1 && magnitudeSquared > EPSILON_SQUARED) {
+        newScale = glm::abs(high) + glm::abs(low) + vec3(HALF_LINE_WIDTH);
+        // Center the poly line in the bounding box
+        glm::vec3 startPointInScaleSpace = firstPoint - low;
+        startPointInScaleSpace += QUARTER_LINE_WIDTH;
+        newRegistrationPoint = startPointInScaleSpace / newScale;
+    } 
+
+    // if Polyline has only one or fewer points, use default dimension settings
+    setDimensions(newScale);
+    EntityItem::setRegistrationPoint(newRegistrationPoint);
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -171,8 +208,10 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
+    READ_ENTITY_PROPERTY(PROP_STROKE_COLORS, QVector<glm::vec3>, setStrokeColors);
     READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+    READ_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
 
     return bytesRead;
 }
@@ -185,8 +224,10 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_LINE_WIDTH;
     requestedProperties += PROP_LINE_POINTS;
     requestedProperties += PROP_NORMALS;
+    requestedProperties += PROP_STROKE_COLORS;
     requestedProperties += PROP_STROKE_WIDTHS;
     requestedProperties += PROP_TEXTURES;
+    requestedProperties += PROP_IS_UV_MODE_STRETCH;
     return requestedProperties;
 }
 
@@ -205,8 +246,10 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
     APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
     APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
+    APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, getStrokeColors());
     APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, getIsUVModeStretch());
 }
 
 void PolyLineEntityItem::debugDump() const {
@@ -232,6 +275,14 @@ QVector<glm::vec3> PolyLineEntityItem::getNormals() const {
     QVector<glm::vec3> result;
     withReadLock([&] {
         result = _normals;
+    });
+    return result;
+}
+
+QVector<glm::vec3> PolyLineEntityItem::getStrokeColors() const {
+    QVector<glm::vec3> result;
+    withReadLock([&] {
+        result = _strokeColors;
     });
     return result;
 }

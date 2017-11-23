@@ -34,7 +34,6 @@ namespace entity {
     ::QString stringFromShape(Shape shape);
 }
 
-
 class ShapeEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<ShapeEntityItem>;
     static Pointer baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -42,6 +41,9 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    using ShapeInfoCalculator = std::function<void( const ShapeEntityItem * const shapeEntity, ShapeInfo& info)>;
+    static void setShapeInfoCalulator(ShapeInfoCalculator callback);
 
     ShapeEntityItem(const EntityItemID& entityItemID);
 
@@ -78,13 +80,14 @@ public:
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
 
+	void setDimensions(const glm::vec3& value) override;
+
     xColor getXColor() const;
     void setColor(const xColor& value);
 
     QColor getQColor() const;
     void setColor(const QColor& value);
 
-    ShapeType getShapeType() const override;
     bool shouldBePhysical() const override { return !isDead(); }
     
     bool supportsDetailedRayIntersection() const override;
@@ -95,11 +98,19 @@ public:
 
     void debugDump() const override;
 
+    virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual ShapeType getShapeType() const override;
+
 protected:
 
     float _alpha { 1 };
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
+
+    //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain
+    //! prior functionality where new or unsupported shapes are treated as
+    //! ellipsoids.
+    ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
 };
 
 #endif // hifi_ShapeEntityItem_h

@@ -57,6 +57,7 @@ public:
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     const QVector<float>& getSummedBlendshapeCoefficients();
+    int getNumSummedBlendshapeCoefficients() const;
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }

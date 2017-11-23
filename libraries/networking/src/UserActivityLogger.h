@@ -33,6 +33,7 @@ public:
     
 public slots:
     bool isEnabled() { return !_disabled.get(); }
+    bool isDisabledSettingSet() const { return _disabled.isSet(); }
 
     void disable(bool disable);
     void logAction(QString action, QJsonObject details = QJsonObject(), JSONCallbackParameters params = JSONCallbackParameters());
@@ -53,7 +54,7 @@ private slots:
     
 private:
     UserActivityLogger();
-    Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", false };
+    Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", true };
 
     QElapsedTimer _timer;
 };

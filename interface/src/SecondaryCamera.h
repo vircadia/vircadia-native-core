@@ -18,7 +18,6 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 
-
 class MainRenderTask {
 public:
     using JobModel = render::Task::Model<MainRenderTask>;
@@ -28,34 +27,40 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
-class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
+class SecondaryCameraJobConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT
-    Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
-    Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from
+    Q_PROPERTY(QUuid attachedEntityId MEMBER attachedEntityId NOTIFY dirty)  // entity whose properties define camera position and orientation
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)  // of viewpoint to render from
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)  // of viewpoint to render from
     Q_PROPERTY(float vFoV MEMBER vFoV NOTIFY dirty)  // Secondary camera's vertical field of view. In degrees.
     Q_PROPERTY(float nearClipPlaneDistance MEMBER nearClipPlaneDistance NOTIFY dirty)  // Secondary camera's near clip plane distance. In meters.
     Q_PROPERTY(float farClipPlaneDistance MEMBER farClipPlaneDistance NOTIFY dirty)  // Secondary camera's far clip plane distance. In meters.
 public:
-    glm::vec3 position{};
-    glm::quat orientation{};
-    float vFoV{ 45.0f };
-    float nearClipPlaneDistance{ 0.1f };
-    float farClipPlaneDistance{ 100.0f };
-    BeginSecondaryCameraFrameConfig() : render::Task::Config(false) {}
+    QUuid attachedEntityId;
+    glm::vec3 position;
+    glm::quat orientation;
+    float vFoV { DEFAULT_FIELD_OF_VIEW_DEGREES };
+    float nearClipPlaneDistance { DEFAULT_NEAR_CLIP };
+    float farClipPlaneDistance { DEFAULT_FAR_CLIP };
+    int textureWidth { TextureCache::DEFAULT_SPECTATOR_CAM_WIDTH };
+    int textureHeight { TextureCache::DEFAULT_SPECTATOR_CAM_HEIGHT };
+
+    SecondaryCameraJobConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
+public slots:
+    glm::vec3 getPosition() { return position; }
+    void setPosition(glm::vec3 pos);
+    glm::quat getOrientation() { return orientation; }
+    void setOrientation(glm::quat orient);
+    void enableSecondaryCameraRenderConfigs(bool enabled);
+    void resetSizeSpectatorCamera(int width, int height);
 };
 
 class SecondaryCameraRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
     SecondaryCameraRenderTaskConfig() : render::Task::Config(false) {}
-private:
-    void resetSize(int width, int height);
-signals:
-    void dirty();
-public slots:
-    void resetSizeSpectatorCamera(int width, int height);
 };
 
 class SecondaryCameraRenderTask {

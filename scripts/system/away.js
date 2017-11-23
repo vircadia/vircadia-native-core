@@ -14,6 +14,8 @@
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
 
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
+
 (function() { // BEGIN LOCAL_SCOPE
 
 var BASIC_TIMER_INTERVAL = 50; // 50ms = 20hz
@@ -28,18 +30,21 @@ var OVERLAY_DATA = {
 };
 var AVATAR_MOVE_FOR_ACTIVE_DISTANCE = 0.8; // meters -- no longer away if avatar moves this far while away
 
-var lastOverlayPosition = { x: 0, y: 0, z: 0};
+var CAMERA_MATRIX = -7;
+
 var OVERLAY_DATA_HMD = {
-    position: lastOverlayPosition,
+    localPosition: {x: 0, y: 0, z: -1 * MyAvatar.sensorToWorldScale},
+    localRotation: {x: 0, y: 0, z: 0, w: 1},
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
     url: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
     color: {red: 255, green: 255, blue: 255},
     alpha: 1,
-    scale: 2,
+    scale: 2 * MyAvatar.sensorToWorldScale,
     emissive: true,
-    isFacingAvatar: true,
-    drawInFront: true
+    drawInFront: true,
+    parentID: MyAvatar.SELF_ID,
+    parentJointIndex: CAMERA_MATRIX
 };
 
 var AWAY_INTRO = {
@@ -83,25 +88,11 @@ function stopAwayAnimation() {
 var overlay = Overlays.addOverlay("image", OVERLAY_DATA);
 var overlayHMD = Overlays.addOverlay("image3d", OVERLAY_DATA_HMD);
 
-function moveCloserToCamera(positionAtHUD) {
-    // we don't actually want to render at the slerped look at... instead, we want to render
-    // slightly closer to the camera than that.
-    var MOVE_CLOSER_TO_CAMERA_BY = -0.25;
-    var cameraForward = Quat.getForward(Camera.orientation);
-    var closerToCamera = Vec3.multiply(cameraForward, MOVE_CLOSER_TO_CAMERA_BY); // slightly closer to camera
-    var slightlyCloserPosition = Vec3.sum(positionAtHUD, closerToCamera);
-
-    return slightlyCloserPosition;
-}
-
 function showOverlay() {
     if (HMD.active) {
         // make sure desktop version is hidden
         Overlays.editOverlay(overlay, { visible: false });
-
-        lastOverlayPosition = HMD.getHUDLookAtPosition3D();
-        var actualOverlayPositon = moveCloserToCamera(lastOverlayPosition);
-        Overlays.editOverlay(overlayHMD, { visible: true, position: actualOverlayPositon });
+        Overlays.editOverlay(overlayHMD, { visible: true });
     } else {
         // make sure HMD is hidden
         Overlays.editOverlay(overlayHMD, { visible: false });
@@ -110,9 +101,11 @@ function showOverlay() {
         var screen = Controller.getViewportDimensions();
 
         // keep the overlay it's natural size and always center it...
-        Overlays.editOverlay(overlay, { visible: true,
-                    x: ((screen.x - OVERLAY_WIDTH) / 2),
-                    y: ((screen.y - OVERLAY_HEIGHT) / 2) });
+        Overlays.editOverlay(overlay, {
+            visible: true,
+            x: ((screen.x - OVERLAY_WIDTH) / 2),
+            y: ((screen.y - OVERLAY_HEIGHT) / 2)
+        });
     }
 }
 
@@ -132,16 +125,10 @@ function maybeMoveOverlay() {
         }
 
         if (HMD.active) {
-            // Note: instead of moving it directly to the lookAt, we will move it slightly toward the
-            // new look at. This will result in a more subtle slerp toward the look at and reduce jerkiness
-            var EASE_BY_RATIO = 0.1;
-            var lookAt = HMD.getHUDLookAtPosition3D();
-            var lookAtChange = Vec3.subtract(lookAt, lastOverlayPosition);
-            var halfWayBetweenOldAndLookAt = Vec3.multiply(lookAtChange, EASE_BY_RATIO);
-            var newOverlayPosition = Vec3.sum(lastOverlayPosition, halfWayBetweenOldAndLookAt);
-            lastOverlayPosition = newOverlayPosition;
-            var actualOverlayPositon = moveCloserToCamera(lastOverlayPosition);
-            Overlays.editOverlay(overlayHMD, { visible: true, position: actualOverlayPositon });
+
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+            var localPosition = {x: 0, y: 0, z: -1 * sensorScaleFactor};
+            Overlays.editOverlay(overlayHMD, { visible: true, localPosition: localPosition, scale: 2 * sensorScaleFactor });
 
             // make sure desktop version is hidden
             Overlays.editOverlay(overlay, { visible: false });
@@ -191,8 +178,8 @@ function goActive() {
     MyAvatar.isAway = false;
 }
 
-MyAvatar.wentAway.connect(setAwayProperties)
-MyAvatar.wentActive.connect(setActiveProperties)
+MyAvatar.wentAway.connect(setAwayProperties);
+MyAvatar.wentActive.connect(setActiveProperties);
 
 function setAwayProperties() {
     isAway = true;
@@ -254,7 +241,7 @@ function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
         return;
     }
-    if (!isAway && (event.text == 'ESC')) {
+    if (!isAway && (event.text === 'ESC')) {
         goAway();
     } else {
         goActive();
@@ -286,7 +273,7 @@ function maybeGoAway() {
     }
 
     // If you've removed your HMD from your head, and we can detect it, we will also go away...
-    if (HMD.mounted != wasHmdMounted) {
+    if (HMD.mounted !== wasHmdMounted) {
         wasHmdMounted = HMD.mounted;
         print("HMD mounted changed...");
 
@@ -317,7 +304,7 @@ var handleMessage = function(channel, message, sender) {
         print("away.js | Got message on Hifi-Away-Enable: ", message);
         setEnabled(message === 'enable');
     }
-}
+};
 Messages.subscribe(CHANNEL_AWAY_ENABLE);
 Messages.messageReceived.connect(handleMessage);
 

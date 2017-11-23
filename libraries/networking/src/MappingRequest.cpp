@@ -87,6 +87,20 @@ void GetMappingRequest::doStart() {
 
         if (!_error) {
             _hash = message->read(SHA256_HASH_LENGTH).toHex();
+
+            // check the boolean to see if this request got re-directed
+            quint8 wasRedirected;
+            message->readPrimitive(&wasRedirected);
+            _wasRedirected = wasRedirected;
+
+            // if it did grab that re-directed path
+            if (_wasRedirected) {
+                _redirectedPath = message->readString();
+                qDebug() << "Got redirected from " << _path << " to " << _redirectedPath;
+            } else {
+                qDebug() << "Not redirected: " << _path;
+            }
+
         }
         emit finished(this);
     });
@@ -117,12 +131,18 @@ void GetAllMappingsRequest::doStart() {
 
 
         if (!_error) {
-            int numberOfMappings;
+            uint32_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
-            for (auto i = 0; i < numberOfMappings; ++i) {
+            for (uint32_t i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->read(SHA256_HASH_LENGTH).toHex();
-                _mappings[path] = hash;
+                BakingStatus status;
+                QString lastBakeErrors;
+                message->readPrimitive(&status);
+                if (status == BakingStatus::Error) {
+                    lastBakeErrors = message->readString();
+                }
+                _mappings[path] = { hash, status, lastBakeErrors };
             }
         }
         emit finished(this);
@@ -257,3 +277,46 @@ void RenameMappingRequest::doStart() {
         emit finished(this);
     });
 }
+
+SetBakingEnabledRequest::SetBakingEnabledRequest(const AssetPathList& paths, bool enabled) : _paths(paths), _enabled(enabled) {
+    for (auto& path : _paths) {
+        path = path.trimmed();
+    }
+};
+
+void SetBakingEnabledRequest::doStart() {
+
+    // short circuit the request if any of the paths are invalid
+    for (auto& path : _paths) {
+        if (!isValidPath(path)) {
+            _error = MappingRequest::InvalidPath;
+            emit finished(this);
+            return;
+        }
+    }
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    _mappingRequestID = assetClient->setBakingEnabled(_paths, _enabled,
+        [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = INVALID_MESSAGE_ID;
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+            case AssetServerError::NoError:
+                _error = NoError;
+                break;
+            case AssetServerError::PermissionDenied:
+                _error = PermissionDenied;
+                break;
+            default:
+                _error = UnknownError;
+                break;
+            }
+        }
+
+        emit finished(this);
+    });
+};

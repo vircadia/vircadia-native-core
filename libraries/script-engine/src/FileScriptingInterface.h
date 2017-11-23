@@ -24,15 +24,15 @@ public:
 
 public slots:
     QString convertUrlToPath(QUrl url);
-    void runUnzip(QString path, QUrl url, bool autoAdd);
+    void runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks);
     QString getTempDir();
 
 signals:
-    void unzipResult(QString zipFile, QString unzipFile, bool autoAdd);
+    void unzipResult(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks);
 
 private:
     bool isTempDir(QString tempDir);
-    QString unzipFile(QString path, QString tempDir);
+    QStringList unzipFile(QString path, QString tempDir);
     void recursiveFileScan(QFileInfo file, QString* dirName);
     void downloadZip(QString path, const QString link);
 

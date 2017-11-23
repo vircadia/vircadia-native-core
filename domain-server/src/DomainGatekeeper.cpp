@@ -54,6 +54,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
+    
     QDataStream packetStream(message->getMessage());
 
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
@@ -268,24 +269,27 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
             userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
+            userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
         } else {
-            // this node is an agent
-            const QHostAddress& addr = node->getLocalSocket().getAddress();
-            bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
-                                addr == QHostAddress::LocalHost);
-
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
             HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
             QString hardwareAddress;
             QUuid machineFingerprint;
+            bool isLocalUser { false };
 
             DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
             if (nodeData) {
                 hardwareAddress = nodeData->getHardwareAddress();
                 machineFingerprint = nodeData->getMachineFingerprint();
+
+                auto sendingAddress = nodeData->getSendingSockAddr().getAddress();
+                isLocalUser = (sendingAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                               sendingAddress == QHostAddress::LocalHost);
             }
 
             userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
@@ -356,7 +360,10 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
     userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
+    userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
     newNode->setPermissions(userPerms);
     return newNode;
 }
@@ -385,7 +392,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             // user is attempting to prove their identity to us, but we don't have enough information
             sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
             // ask for their public key right now to make sure we have it
-            requestUserPublicKey(username);
+            requestUserPublicKey(username, true);
             getGroupMemberships(username); // optimistically get started on group memberships
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because we have no username-signature:" << username;
@@ -521,7 +528,10 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const HifiSockAddr& senderSockAddr) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
     auto lowerUsername = username.toLower();
-    QByteArray publicKeyArray = _userPublicKeys.value(lowerUsername);
+    KeyFlagPair publicKeyPair = _userPublicKeys.value(lowerUsername);
+
+    QByteArray publicKeyArray = publicKeyPair.first;
+    bool isOptimisticKey = publicKeyPair.second;
 
     const QUuid& connectionToken = _connectionTokenHash.value(lowerUsername);
 
@@ -555,10 +565,16 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                 return true;
 
             } else {
-                if (!senderSockAddr.isNull()) {
-                    qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
+                // we only send back a LoginError if this wasn't an "optimistic" key
+                // (a key that we hoped would work but is probably stale)
+
+                if (!senderSockAddr.isNull() && !isOptimisticKey) {
+                    qDebug() << "Error decrypting username signature for" << username << "- denying connection.";
                     sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr,
                         DomainHandler::ConnectionRefusedReason::LoginError);
+                } else if (!senderSockAddr.isNull()) {
+                    qDebug() << "Error decrypting username signature for" << username << "with optimisitic key -"
+                        << "re-requesting public key and delaying connection";
                 }
 
                 // free up the public key, we don't need it anymore
@@ -604,20 +620,7 @@ bool DomainGatekeeper::isWithinMaxCapacity() {
     return true;
 }
 
-
-void DomainGatekeeper::preloadAllowedUserPublicKeys() {
-    QStringList allowedUsers = _server->_settingsManager.getAllNames();
-
-    if (allowedUsers.size() > 0) {
-        // in the future we may need to limit how many requests here - for now assume that lists of allowed users are not
-        // going to create > 100 requests
-        foreach(const QString& username, allowedUsers) {
-            requestUserPublicKey(username);
-        }
-    }
-}
-
-void DomainGatekeeper::requestUserPublicKey(const QString& username) {
+void DomainGatekeeper::requestUserPublicKey(const QString& username, bool isOptimistic) {
     // don't request public keys for the standard psuedo-account-names
     if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
         return;
@@ -628,7 +631,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
         // public-key request for this username is already flight, not rerequesting
         return;
     }
-    _inFlightPublicKeyRequests += lowerUsername;
+    _inFlightPublicKeyRequests.insert(lowerUsername, isOptimistic);
 
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
@@ -640,7 +643,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
 
     const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
 
-    qDebug() << "Requesting public key for user" << username;
+    qDebug().nospace() << "Requesting " << (isOptimistic ? "optimistic " : " ") << "public key for user " << username;
 
     DependencyManager::get<AccountManager>()->sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                               AccountManagerAuth::None,
@@ -662,16 +665,21 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
+    bool isOptimisticKey = _inFlightPublicKeyRequests.take(username);
+
     if (jsonObject["status"].toString() == "success" && !username.isEmpty()) {
         // pull the public key as a QByteArray from this response
         const QString JSON_DATA_KEY = "data";
         const QString JSON_PUBLIC_KEY_KEY = "public_key";
 
-        _userPublicKeys[username.toLower()] =
-            QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
-    }
+        qDebug().nospace() << "Extracted " << (isOptimisticKey ? "optimistic " : " ") << "public key for " << username.toLower();
 
-    _inFlightPublicKeyRequests.remove(username);
+        _userPublicKeys[username.toLower()] =
+            {
+                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8()),
+                isOptimisticKey
+            };
+    }
 }
 
 void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply& requestReply) {
@@ -806,9 +814,15 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMe
 
 void DomainGatekeeper::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
 
-    limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    // before we respond to this ICE ping packet, make sure we have a peer in the list that matches
+    QUuid icePeerID = QUuid::fromRfc4122({ message->getRawMessage(), NUM_BYTES_RFC4122_UUID });
+    
+    if (_icePeers.contains(icePeerID)) {
+        auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
+
+        limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    }
 }
 
 void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
@@ -927,9 +941,12 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
 
     const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";
-    DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
-                                                          QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
-                                                          NULL, QVariantMap());
+    if (DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
+        DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
+                                                              QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
+                                                              NULL, QVariantMap());
+    }
+    
 }
 
 void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {

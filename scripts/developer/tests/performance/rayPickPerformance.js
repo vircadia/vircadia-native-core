@@ -96,7 +96,6 @@ function rayCastTest() {
                             color: color,
                             alpha: 1,
                             visible: visible,
-                            lineWidth: 2,
                             start: origin,
                             end: Vec3.sum(origin,Vec3.multiply(5,direction))
                         });

@@ -16,6 +16,7 @@ import "../../controls-uit" as HifiControls
 StackView {
     id: stack
     initialItem: inputConfiguration
+    property alias messageVisible: imageMessageBox.visible
     Rectangle {
         id: inputConfiguration
         anchors.fill: parent
@@ -25,6 +26,15 @@ StackView {
         color: hifi.colors.baseGray
 
         property var pluginSettings: null
+
+        HifiControls.ImageMessageBox {
+            id: imageMessageBox
+            anchors.fill: parent
+            z: 2000
+            imageWidth: 442
+            imageHeight: 670
+            source: "../../../images/calibration-help.png"
+        }
 
         Rectangle {
             width: inputConfiguration.width
@@ -167,7 +177,7 @@ StackView {
                         loader.item.pluginName = box.currentText;
                     }
                 }
-                
+
                 if (loader.item.hasOwnProperty("displayInformation")) {
                     loader.item.displayConfiguration();
                 }
@@ -183,20 +193,20 @@ StackView {
             return InputConfiguration.activeInputPlugins();
         }
     }
-    
+
     function initialize() {
         changeSource();
     }
-    
+
     function changeSource() {
         loader.source = "";
         var source = "";
         if (box.currentText == "Vive") {
             source = InputConfiguration.configurationLayout("OpenVR");
-        } else { 
+        } else {
             source = InputConfiguration.configurationLayout(box.currentText);
         }
-        
+
         loader.source = source;
         if (source === "") {
             box.label = "(not configurable)";
@@ -204,14 +214,14 @@ StackView {
             box.label = "";
         }
     }
-    
+
     Timer {
         id: timer
         repeat: false
         interval: 300
         onTriggered: initialize()
     }
-    
+
     Component.onCompleted: {
         timer.start();
     }

@@ -25,6 +25,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QUndoStack>
 
+#include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
@@ -36,7 +37,6 @@
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
 #include <plugins/Forward.h>
-#include <plugins/DisplayPlugin.h>
 #include <ui-plugins/PluginContainer.h>
 #include <ScriptEngine.h>
 #include <ShapeManager.h>
@@ -54,6 +54,7 @@
 #include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
+#include "CursorManager.h"
 #include "gpu/Context.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
@@ -69,9 +70,13 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "raypick/RayPickManager.h"
+#include "raypick/LaserPointerManager.h"
+
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
+#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -126,13 +131,6 @@ public:
 
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
 
-    enum Event {
-        Present = DisplayPlugin::Present,
-        Paint,
-        Idle,
-        Lambda
-    };
-
     // FIXME? Empty methods, do we still need them?
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
@@ -150,6 +148,8 @@ public:
 
     void initializeGL();
     void initializeUi();
+
+    void updateCamera(RenderArgs& renderArgs);
     void paintGL();
     void resizeGL();
 
@@ -160,11 +160,11 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
-    QRect getRecommendedOverlayRect() const;
+    QRect getRecommendedHUDRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
-    void showCursor(const QCursor& cursor);
+    void showCursor(const Cursor::Icon& cursor);
 
     bool isThrottleRendering() const;
 
@@ -176,7 +176,6 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -195,10 +194,9 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-
-    size_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _frameCounter.rate(); }
-    float getTargetFrameRate() const; // frames/second
+    size_t getRenderFrameCount() const { return _renderFrameCount; }
+    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -221,7 +219,7 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
-    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
+    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) override;
 
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
@@ -269,36 +267,27 @@ public:
 
     void updateMyAvatarLookAtPosition();
 
-    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
-    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSecondaryCameraSnapshot();
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
-
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
+    void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-    void setCacheOverrideDir(const QString& dirName) { _cacheDir = dirName; }
+
+    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
+    RayPickManager& getRayPickManager() { return _rayPickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -325,20 +314,21 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks);
     void addAssetToWorldUnzipFailure(QString filePath);
     void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
     void addAssetToWorldUpload(QString filePath, QString mapping);
     void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
-    void handleUnzip(QString sourceFile, QString destinationFile, bool autoAdd);
+    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip, bool isBlocks);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 
@@ -387,11 +377,10 @@ public slots:
     void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
 
     QUuid getKeyboardFocusEntity() const;  // thread-safe
-    void setKeyboardFocusEntity(QUuid id);
-    void setKeyboardFocusEntity(EntityItemID entityItemID);
+    void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID overlayID);
+    void setKeyboardFocusOverlay(const OverlayID& overlayID);
 
     void addAssetToWorldMessageClose();
 
@@ -400,11 +389,15 @@ public slots:
     void loadDomainConnectionDialog();
     void showScriptLogs();
 
+    const QString getPreferredCursor() const { return _preferredCursor.get(); }
+    void setPreferredCursor(const QString& cursor);
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
     void onAboutToQuit();
+    void onPresent(quint32 frameCount);
 
     void resettingDomain();
 
@@ -424,7 +417,8 @@ private slots:
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
-    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
+
+    bool askToReplaceDomainContent(const QString& url);
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
@@ -434,6 +428,7 @@ private slots:
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
+    static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
@@ -448,21 +443,20 @@ private slots:
 private:
     static void initDisplay();
     void init();
-
+    bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
+    bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
 
-    bool shouldPaint(float nsecsElapsed);
-    void idle(float nsecsElapsed);
+    bool shouldPaint() const;
+    void idle();
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD() const;
+    void updateLOD(float deltaTime) const;
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -473,10 +467,11 @@ private:
 
     void initializeAcceptedFiles();
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
+    bool importFromZIP(const QString& filePath);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -514,6 +509,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
+    QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
@@ -522,16 +518,18 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    uint32_t _frameCount { 0 };
+    uint32_t _renderFrameCount { 0 };
 
     // Frame Rate Measurement
-    RateCounter<> _frameCounter;
-    RateCounter<> _avatarSimCounter;
-    RateCounter<> _simCounter;
+    RateCounter<500> _renderLoopCounter;
+    RateCounter<500> _gameLoopCounter;
+
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
+    QElapsedTimer _lastTimeRendered;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
@@ -543,7 +541,6 @@ private:
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
@@ -564,6 +561,7 @@ private:
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
+    Setting::Handle<QString> _preferredCursor;
 
     float _scaleMirror;
     float _rotateMirror;
@@ -596,8 +594,7 @@ private:
 
     bool _notifiedPacketVersionMismatchThisDomain;
 
-    QThread _settingsThread;
-    QTimer _settingsTimer;
+    ConditionalGuard _settingsGuard;
 
     GLCanvas* _glWidget{ nullptr };
 
@@ -614,6 +611,24 @@ private:
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    struct AppRenderArgs {
+        render::Args _renderArgs;
+        glm::mat4 _eyeToWorld;
+        glm::mat4 _eyeOffsets[2];
+        glm::mat4 _eyeProjections[2];
+        glm::mat4 _headPose;
+        glm::mat4 _sensorToWorld;
+        float _sensorToWorldScale { 1.0f };
+        bool _isStereo{ false };
+    };
+    AppRenderArgs _appRenderArgs;
+
+
+    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
+    void editRenderArgs(RenderArgsEditor editor);
+
+
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     OverlayConductor _overlayConductor;
@@ -624,7 +639,6 @@ private:
     ThreadSafeValueCache<OverlayID> _keyboardFocusedOverlay;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
-    bool _inPaint = false;
     bool _isGLInitialized { false };
     bool _physicsEnabled { false };
 
@@ -638,10 +652,8 @@ private:
 
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
-    QCursor _desiredCursor{ Qt::BlankCursor };
+    Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
-
-    QThread* _deadlockWatchdogThread;
 
     std::map<void*, std::function<void()>> _postUpdateLambdas;
     std::mutex _postUpdateLambdasLock;
@@ -650,11 +662,9 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
-    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
+    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
-
-    bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
 
@@ -679,8 +689,9 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
-    AudioInjector* _snapshotSoundInjector { nullptr };
+    AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
+    SharedSoundPointer _sampleSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
@@ -690,7 +701,14 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
+    QObject* _renderEventHandler{ nullptr };
 
-    QString _cacheDir;
+    RayPickManager _rayPickManager;
+    LaserPointerManager _laserPointerManager;
+
+    friend class RenderEventHandler;
+
+    std::atomic<bool> _pendingIdleEvent { true };
+    std::atomic<bool> _pendingRenderEvent { true };
 };
 #endif // hifi_Application_h
