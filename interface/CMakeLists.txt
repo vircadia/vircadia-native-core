@@ -192,7 +192,6 @@ if (WIN32)
   add_dependency_external_projects(neuron)
   add_dependency_external_projects(wasapi)
   add_dependency_external_projects(steamworks)
-  add_dependency_external_projects(ITK)
 endif()
 
 # include OPENSSL
