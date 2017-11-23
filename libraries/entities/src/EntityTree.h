@@ -277,7 +277,6 @@ public:
 
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
     bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
-    static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
