@@ -550,6 +550,7 @@ void DomainServerSettingsManager::unpackPermissions() {
             } else {
                 // anonymous, logged in, and friend users get connect permissions by default
                 perms->set(NodePermissions::Permission::canConnectToDomain);
+                perms->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
             }
 
             // add the permissions to the standard map

@@ -39,7 +39,7 @@ glm::quat MyHead::getHeadOrientation() const {
         return headPose.rotation * Quaternions::Y_180;
     }
 
-    return myAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
+    return myAvatar->getWorldOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 void MyHead::simulate(float deltaTime) {

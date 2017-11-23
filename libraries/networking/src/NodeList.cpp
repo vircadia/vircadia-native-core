@@ -979,8 +979,8 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 }
 
 void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
-    // cannot set gain of yourself or nobody
-    if (!nodeID.isNull() && _sessionUUID != nodeID) {
+    // cannot set gain of yourself
+    if (_sessionUUID != nodeID) {
         auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
         if (audioMixer) {
             // setup the packet
@@ -988,10 +988,15 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
 
             // write the node ID to the packet
             setAvatarGainPacket->write(nodeID.toRfc4122());
-            // We need to convert the gain in dB (from the script) to an amplitude before packing it.
-            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.0206f)));
 
-            qCDebug(networking) << "Sending Set Avatar Gain packet UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+            // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.02059991f)));
+
+            if (nodeID.isNull()) {
+                qCDebug(networking) << "Sending Set MASTER Avatar Gain packet with Gain:" << gain;
+            } else {
+                qCDebug(networking) << "Sending Set Avatar Gain packet with UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+            }
 
             sendPacket(std::move(setAvatarGainPacket), *audioMixer);
             QWriteLocker{ &_avatarGainMapLock };
@@ -1001,7 +1006,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             qWarning() << "Couldn't find audio mixer to send set gain request";
         }
     } else {
-        qWarning() << "NodeList::setAvatarGain called with an invalid ID or an ID which matches the current session ID:" << nodeID;
+        qWarning() << "NodeList::setAvatarGain called with an ID which matches the current session ID:" << nodeID;
     }
 }
 

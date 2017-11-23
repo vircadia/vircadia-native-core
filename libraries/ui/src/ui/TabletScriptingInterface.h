@@ -248,7 +248,6 @@ protected:
     void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" };
     QVariant _currentPathLoaded { "" };
     QString _name;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
@@ -260,6 +259,8 @@ protected:
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
+    std::pair<QVariant, State> _initialPath { "", State::Uninitialized };
+    std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
 };
