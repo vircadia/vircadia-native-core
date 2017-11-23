@@ -364,8 +364,8 @@ void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (_inputMode == Touch) {
-        handlePointerEventAsTouch(event);
         handlePointerEventAsMouse(event);
+        handlePointerEventAsTouch(event);
     } else {
         handlePointerEventAsMouse(event);
     }
