@@ -123,8 +123,8 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     // now recalculate the bounds and registration
     model->setScaleToFit(true, getDimensions());
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-    model->setRotation(getRotation());
-    model->setTranslation(getPosition());
+    model->setRotation(getWorldOrientation());
+    model->setTranslation(getWorldPosition());
 
     if (_needsInitialSimulation) {
         model->simulate(0.0f);

@@ -223,7 +223,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                 if (numPoints > MAX_HULL_POINTS) {
                     qWarning() << "convex hull with" << numPoints
                         << "points for entity" << entity->getName()
-                        << "at" << entity->getPosition() << " will be reduced";
+                        << "at" << entity->getWorldPosition() << " will be reduced";
                 }
             }
             btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));

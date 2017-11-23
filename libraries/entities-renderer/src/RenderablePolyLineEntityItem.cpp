@@ -154,8 +154,8 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     entity->resetPolyLineChanged();
 
     _polylineTransform = Transform();
-    _polylineTransform.setTranslation(entity->getPosition());
-    _polylineTransform.setRotation(entity->getRotation());
+    _polylineTransform.setTranslation(entity->getWorldPosition());
+    _polylineTransform.setRotation(entity->getWorldOrientation());
 
     if (pointsChanged) {
         _lastPoints = entity->getLinePoints();

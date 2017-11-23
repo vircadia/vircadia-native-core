@@ -295,7 +295,7 @@ void ModelEntityItem::updateFrameCount() {
 void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
     qCDebug(entities) << "    edited ago:" << getEditedAgo();
-    qCDebug(entities) << "    position:" << getPosition();
+    qCDebug(entities) << "    position:" << getWorldPosition();
     qCDebug(entities) << "    dimensions:" << getDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
