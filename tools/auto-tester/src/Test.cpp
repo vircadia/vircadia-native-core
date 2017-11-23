@@ -62,7 +62,8 @@ void Test::evaluateTests() {
         messageBox.critical(0, 
             "Test failed", 
             "Found " + QString::number(resultImages.length()) + " images in directory" +
-            "\nExpected to find " + QString::number(expectedImages.length()) + " images");
+            "\nExpected to find " + QString::number(expectedImages.length()) + " images"
+        );
 
         exit(-1);
     }
@@ -138,11 +139,13 @@ void Test::createRecursiveScript() {
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test
-            textStream << "Script.include(\"" << testPathname << "/" << " ? raw = true\")" << endl;
+            textStream << "Script.include(\"" << testPathname + "\")" << endl;
         }
     }
 
     allTestsFilename.close();
+
+    messageBox.information(0, "Success", "Script has been created");
 }
 
 void Test::createTest() {
@@ -166,6 +169,8 @@ void Test::createTest() {
             ++i;
         }
     }
+
+    messageBox.information(0, "Success", "Test images have been created");
 }
 
 void Test::createListOfAllJPEGimagesInDirectory() {

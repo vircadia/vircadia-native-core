@@ -21,7 +21,7 @@ public:
          _actualImageFilename = actualImageFilename;
     }
 
-    float _error;
+    double _error;
     QString _pathname;
     QString _expectedImageFilename;
     QString _actualImageFilename;
