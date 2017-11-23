@@ -64,7 +64,6 @@ public slots:
 
     void setEnabled(bool enabled) { _isEnabled = enabled; }
     bool getEnabled() { return _isEnabled; }
-    const int getAudioScopeBackground() { return _audioScopeBackground; }
 
     QVector<int> getScopeInput() { return _scopeInputData; };
     QVector<int> getScopeOutputLeft() { return _scopeOutputLeftData; };
@@ -101,10 +100,12 @@ private:
     bool _isEnabled;
     bool _isPaused;
     bool _isTriggered;
+    bool _autoTrigger;
     int _scopeInputOffset;
     int _scopeOutputOffset;
     int _framesPerScope;
     int _samplesPerScope;
+
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;
     QByteArray* _scopeOutputRight;
@@ -118,7 +119,7 @@ private:
     QVector<int> _triggerOutputLeftData;
     QVector<int> _triggerOutputRightData;
 
-    bool _autoTrigger;
+    
     glm::vec2 _triggerValues;
 
     int _audioScopeBackground;
