@@ -26,7 +26,9 @@ TableView {
     model: ListModel { }
 
     Component.onCompleted: {
-        tableView.flickableItem.QQC2.ScrollBar.vertical = scrollbar
+        if (flickableItem !== null && flickableItem !== undefined) {
+            tableView.flickableItem.QQC2.ScrollBar.vertical = scrollbar
+        }
     }
 
     QQC2.ScrollBar {
@@ -36,16 +38,16 @@ TableView {
         orientation: Qt.Vertical
         visible: size < 1.0
         topPadding: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
-        anchors.top: tableView.flickableItem.top
-        anchors.left: tableView.flickableItem.right
-        anchors.bottom: tableView.flickableItem.bottom
+        anchors.top: tableView.top
+        anchors.left: tableView.right
+        anchors.bottom: tableView.bottom
 
         background: Item {
             implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
             Rectangle {
                 anchors {
                     fill: parent;
-                    topMargin: hifi.dimensions.tableHeaderHeight
+                    topMargin: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
                 }
                 color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
                                           : hifi.colors.tableScrollBackgroundDark
