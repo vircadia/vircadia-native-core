@@ -35,6 +35,12 @@ setupDependencies.dependsOn setupTBB
 apply from: 'setupGVR.gradle'
 setupDependencies.dependsOn setupGVR
 
+apply from: 'setupDraco.gradle'
+setupDependencies.dependsOn setupDraco
+
+apply from: 'setupBullet.gradle'
+setupDependencies.dependsOn setupBullet
+
 task copyDependencies(type: Copy) {
     from HIFI_ANDROID_PRECOMPILED + '/jni/arm64-v8a'
     into 'app/src/main/jniLibs/arm64-v8a'
