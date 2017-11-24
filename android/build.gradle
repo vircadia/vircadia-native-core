@@ -41,6 +41,9 @@ setupDependencies.dependsOn setupDraco
 apply from: 'setupBullet.gradle'
 setupDependencies.dependsOn setupBullet
 
+apply from: 'setupPolyvox.gradle'
+setupDependencies.dependsOn setupPolyvox
+
 task copyDependencies(type: Copy) {
     from HIFI_ANDROID_PRECOMPILED + '/jni/arm64-v8a'
     into 'app/src/main/jniLibs/arm64-v8a'

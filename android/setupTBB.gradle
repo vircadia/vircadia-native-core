@@ -24,7 +24,7 @@ task extractTBB(dependsOn: downloadTBB, type: Copy) {
 }
 
 task setupTBB(dependsOn: extractTBB, type: Copy) {
-    from 'build/tbb/lib/release'
+    from HIFI_ANDROID_PRECOMPILED + '/tbb/lib/release'
     include 'libtbb.so'
     include 'libtbbmalloc.so'
     into HIFI_ANDROID_PRECOMPILED + '/jni/arm64-v8a/'

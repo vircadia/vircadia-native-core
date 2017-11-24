@@ -12,9 +12,10 @@ target_link_libraries(native-lib "${HIFI_ANDROID_PRECOMPILED}/jni/arm64-v8a/libg
 # networking -> openssl, tbb
 # fbx -> draco
 # physics -> bullet
+# entities-renderer -> polyvox
 
 # unfinished libraries
 # image -> nvtt (doesn't look good, but can be made optional)
 # script-engine -> quazip (probably not required for the android client)
-# entities-renderer -> polyvox
+
 

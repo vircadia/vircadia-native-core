@@ -33,13 +33,13 @@ task extractQt(dependsOn: downloadQt, type: Copy) {
 }
 
 task copyQtJars(dependsOn: extractQt, type: Copy) {
-    from 'build/qt/jar'
+    from HIFI_ANDROID_PRECOMPILED + '/qt/jar'
     include '*.jar'
     into HIFI_ANDROID_PRECOMPILED + '/jar'
 }
 
 task copyQtLibs(dependsOn: extractQt, type: Copy) {
-    from 'build/qt/lib'
+    from HIFI_ANDROID_PRECOMPILED + '/qt/lib'
     include 'libQt5AndroidExtras.so'
     include 'libQt5Concurrent.so'
     include 'libQt5Core.so'
