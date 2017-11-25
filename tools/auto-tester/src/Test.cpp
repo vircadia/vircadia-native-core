@@ -7,26 +7,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-// Images are compared using the ImagMagick command line tool magick.exe
-// A number of comparison metrics are available, including:
-//      AE      Absolute error                  count of the number of different pixels (0=equal)
-//
-//      DSSIM   Stuctural dissimilarity index
-//
-//      PAE     Peak Absolute error             of any one pixel
-//
-//      PSNR    Peak Signal to Noise Ratio      The ratio of mean square difference to the maximum mean square
-//                                              that can exist between any two images, expressed as a decibel value.
-//                                              The higher the PSNR the closer the closer the images are, with
-//                                              a maximum difference occurring at 1.  A PSNR of 20 means
-//                                              differences are 1 / 100 of maximum.
-//
-//      MAE     Mean Absolute Error             average channel error distance
-//
-//      MSE     Mean Squared Error              average squared error distance
-//
-//      RMSE    squareRoot Mean Error           sqrt(MSE)
-//
 #include "Test.h"
 
 #include <assert.h>
@@ -70,14 +50,29 @@ void Test::evaluateTests() {
 
     // Now loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const float THRESHOLD{ 10.0f };
+    const double THRESHOLD{ 0.99999 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
-        float error = itkImageComparer.compareImages(resultImages[i], expectedImages[i]);
-        if (error > THRESHOLD) {
+        // First check that images are the same size
+        QImage resultImage(resultImages[i]);
+        QImage expectedImage(expectedImages[i]);
+        if (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height()) {
+            messageBox.critical(0, "Internal error", "Images are not the same size");
+            exit(-1);
+        }
+
+        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are the same
+        try {
+            similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
+        } catch (int ex) {
+            messageBox.critical(0, "Internal error", "Image not in expected format");
+            exit(-1);
+        }
+
+        if (similarityIndex < THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
-                error,                                                          // value of the error (float)
+                (float)similarityIndex,
                 expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
                 QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
                 QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image

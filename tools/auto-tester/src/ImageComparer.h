@@ -11,10 +11,11 @@
 #define hifi_ImageComparer_h
 
 #include <QtCore/QString>
+#include <QImage>
 
 class ImageComparer {
 public:
-    virtual float compareImages(QString resultImageFilename, QString expectedImageFilename) const = 0;
+    double compareImages(QImage resultImage, QImage expectedImage) const;
 };
 
 #endif // hifi_ImageComparer_h
