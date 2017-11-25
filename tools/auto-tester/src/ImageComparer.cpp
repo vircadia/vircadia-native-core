@@ -9,8 +9,6 @@
 //
 #include "ImageComparer.h"
 
-#include <glm/glm.hpp>
-
 // Computes SSIM - see https://en.wikipedia.org/wiki/Structural_similarity
 // The value is computed for the luminence component and the maximum value is returned
 double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) const {
