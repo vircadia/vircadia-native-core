@@ -8,7 +8,7 @@ SET(CMAKE_AUTOMOC ON)
 setup_hifi_project(Core Widgets)
 
 # Add compiler flags for building executables (-fPIE)
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+##set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Qt includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
