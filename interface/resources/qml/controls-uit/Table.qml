@@ -49,6 +49,7 @@ TableView {
                     fill: parent;
                     topMargin: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
                 }
+                radius: hifi.dimensions.scrollbarHandleWidth/2
                 color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
                                           : hifi.colors.tableScrollBackgroundDark
             }
@@ -60,8 +61,8 @@ TableView {
             implicitWidth: hifi.dimensions.scrollbarHandleWidth
             Rectangle {
                 anchors {
-                    fill: parent
-                    topMargin: 3
+                    fill: parent;
+                    topMargin: 3;
                     bottomMargin: 3     // ""
                     leftMargin: 1       // Move it right
                     rightMargin: -1     // ""

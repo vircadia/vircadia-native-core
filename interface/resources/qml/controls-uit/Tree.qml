@@ -61,6 +61,7 @@ TreeView {
                     fill: parent;
                     topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
                 }
+                radius: hifi.dimensions.scrollbarHandleWidth/2
                 color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
                                           : hifi.colors.tableScrollBackgroundDark
             }
