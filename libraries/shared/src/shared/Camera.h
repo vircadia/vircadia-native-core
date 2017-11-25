@@ -179,6 +179,7 @@ signals:
     /**jsdoc
      * Triggered when the camera mode changes.
      * @function Camera.modeUpdated
+     * @param {Camera.Mode} newMode - The new camera mode.
      * @returns {Signal}
      * @example <caption>Report camera mode changes.</caption>
      * function onCameraModeUpdated(newMode) {
