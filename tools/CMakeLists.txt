@@ -23,9 +23,7 @@ if (BUILD_TOOLS)
 
   add_subdirectory(oven)
   set_target_properties(oven PROPERTIES FOLDER "Tools")
-endif()
 
-if (DEFINED ENV{ITK_DIR})
   add_subdirectory(auto-tester)
   set_target_properties(auto-tester PROPERTIES FOLDER "Tools")
 endif()
