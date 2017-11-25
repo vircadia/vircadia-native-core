@@ -62,10 +62,10 @@ void Test::evaluateTests() {
             exit(-1);
         }
 
-        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are the same
+        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
         try {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-        } catch (int ex) {
+        } catch (...) {
             messageBox.critical(0, "Internal error", "Image not in expected format");
             exit(-1);
         }
