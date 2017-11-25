@@ -23,6 +23,7 @@ exports.handlers = {
             '../../libraries/controllers/src/controllers/',
             '../../libraries/entities/src',
             '../../libraries/networking/src',
+            '../../libraries/render-utils/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',
             '../../libraries/script-engine/src',
