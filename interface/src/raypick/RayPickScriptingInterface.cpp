@@ -13,83 +13,58 @@
 
 #include <QVariant>
 #include "GLMHelpers.h"
-#include "Application.h"
 
-QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
-    QVariantMap propMap = properties.toMap();
+#include <PickManager.h>
 
-    bool enabled = false;
-    if (propMap["enabled"].isValid()) {
-        enabled = propMap["enabled"].toBool();
+#include "StaticRayPick.h"
+#include "JointRayPick.h"
+#include "MouseRayPick.h"
+
+unsigned int RayPickScriptingInterface::createRayPick(const QVariant& properties) {
+    return DependencyManager::get<PickScriptingInterface>()->createRayPick(properties);
+}
+
+void RayPickScriptingInterface::enableRayPick(unsigned int uid) {
+    DependencyManager::get<PickManager>()->enablePick(uid);
+}
+
+void RayPickScriptingInterface::disableRayPick(unsigned int uid) {
+    DependencyManager::get<PickManager>()->disablePick(uid);
+}
+
+void RayPickScriptingInterface::removeRayPick(unsigned int uid) {
+    DependencyManager::get<PickManager>()->removePick(uid);
+}
+
+QVariantMap RayPickScriptingInterface::getPrevRayPickResult(unsigned int uid) {
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
     }
-
-    RayPickFilter filter = RayPickFilter();
-    if (propMap["filter"].isValid()) {
-        filter = RayPickFilter(propMap["filter"].toUInt());
-    }
-
-    float maxDistance = 0.0f;
-    if (propMap["maxDistance"].isValid()) {
-        maxDistance = propMap["maxDistance"].toFloat();
-    }
-
-    if (propMap["joint"].isValid()) {
-        std::string jointName = propMap["joint"].toString().toStdString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (propMap["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(propMap["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (propMap["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(propMap["dirOffset"]);
-            }
-
-            return qApp->getRayPickManager().createRayPick(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
-        } else {
-            return qApp->getRayPickManager().createRayPick(filter, maxDistance, enabled);
-        }
-    } else if (propMap["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(propMap["position"]);
-
-        glm::vec3 direction = -Vectors::UP;
-        if (propMap["direction"].isValid()) {
-            direction = vec3FromVariant(propMap["direction"]);
-        }
-
-        return qApp->getRayPickManager().createRayPick(position, direction, filter, maxDistance, enabled);
-    }
-
-    return QUuid();
+    return result;
 }
 
-void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().enableRayPick(uid);
+void RayPickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisionPicking) {
+    DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
-void RayPickScriptingInterface::disableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().disableRayPick(uid);
+void RayPickScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) {
+    DependencyManager::get<PickManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().removeRayPick(uid);
+void RayPickScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) {
+    DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-RayPickResult RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
-    return qApp->getRayPickManager().getPrevRayPickResult(uid);
+bool RayPickScriptingInterface::isLeftHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isLeftHand(uid);
 }
 
-void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {
-    qApp->getRayPickManager().setPrecisionPicking(uid, precisionPicking);
+bool RayPickScriptingInterface::isRightHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isRightHand(uid);
 }
 
-void RayPickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) {
-    qApp->getRayPickManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
-}
-
-void RayPickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
-    qApp->getRayPickManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
+bool RayPickScriptingInterface::isMouse(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isMouse(uid);
 }

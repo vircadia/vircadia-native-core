@@ -70,9 +70,6 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
-#include "raypick/RayPickManager.h"
-#include "raypick/LaserPointerManager.h"
-
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -285,9 +282,6 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-
-    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
-    RayPickManager& getRayPickManager() { return _rayPickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -543,7 +537,7 @@ private:
     ViewFrustum _displayViewFrustum;
     quint64 _lastQueriedTime;
 
-    OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+    OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
@@ -703,12 +697,9 @@ private:
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
 
-    RayPickManager _rayPickManager;
-    LaserPointerManager _laserPointerManager;
-
     friend class RenderEventHandler;
 
-    std::atomic<bool> _pendingIdleEvent { false };
-    std::atomic<bool> _pendingRenderEvent { false };
+    std::atomic<bool> _pendingIdleEvent { true };
+    std::atomic<bool> _pendingRenderEvent { true };
 };
 #endif // hifi_Application_h

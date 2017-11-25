@@ -70,11 +70,12 @@ Item {
             keyItem.state = "mouseOver";
 
             var globalPosition = keyItem.mapToGlobal(mouseArea1.mouseX, mouseArea1.mouseY);
-            var deviceId = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
-            var hand = deviceId - 1; // based on touchEventUtils.js, deviceId is 'hand + 1', so 'hand' is 'deviceId' - 1
+            var pointerID = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
 
-            if (hand == leftHand || hand == rightHand) {
-                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, hand);
+            if (Pointers.isLeftHand(pointerID)) {
+                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, leftHand);
+            } else if (Pointers.isRightHand(pointerID)) {
+                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, rightHand);
             }
         }
 

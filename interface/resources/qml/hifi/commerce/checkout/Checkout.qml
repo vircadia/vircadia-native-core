@@ -596,9 +596,7 @@ Rectangle {
             anchors.right: parent.right;
             text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
             }

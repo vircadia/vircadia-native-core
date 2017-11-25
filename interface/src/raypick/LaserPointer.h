@@ -14,12 +14,10 @@
 #include <QString>
 #include <glm/glm.hpp>
 
-#include <DependencyManager.h>
-#include <shared/ReadWriteLockable.h>
-
 #include "ui/overlays/Overlay.h"
 
-class RayPickResult;
+#include <Pointer.h>
+#include <Pick.h>
 
 struct LockEndObject {
     QUuid id { QUuid() };
@@ -43,6 +41,9 @@ public:
     void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
     const glm::vec3& getEndDim() const { return _endDim; }
 
+    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
+    const float& getLineWidth() const { return _lineWidth; }
+
     void deleteOverlays();
 
 private:
@@ -54,41 +55,41 @@ private:
     bool _endIgnoreRays;
 
     glm::vec3 _endDim;
+    float _lineWidth;
 };
 
-
-class LaserPointer : public ReadWriteLockable {
-
+class LaserPointer : public Pointer {
+    using Parent = Pointer;
 public:
-    using Pointer = std::shared_ptr<LaserPointer>;
-
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
-    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
+    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
+        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
     ~LaserPointer();
 
-    QUuid getRayUID() { return _rayPickUID; }
-    void enable();
-    void disable();
-    const RayPickResult getPrevRayPickResult();
-
-    void setRenderState(const std::string& state);
+    void setRenderState(const std::string& state) override;
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
-    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
+    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
-    void setPrecisionPicking(const bool precisionPicking);
-    void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4());
+    void setLength(float length) override;
+    void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
 
-    void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
-    void setIncludeItems(const QVector<QUuid>& includeItems) const;
+    void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 
-    void update();
+    static RenderState buildRenderState(const QVariantMap& propMap);
+
+protected:
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
+
+    PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
+    Pointer::Buttons getPressedButtons() override;
+
+    bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
+    bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
 
 private:
-    bool _renderingEnabled;
+    PointerTriggers _triggers;
     float _laserLength { 0.0f };
     std::string _currentRenderState { "" };
     RenderStateMap _renderStates;
@@ -97,12 +98,11 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
+    bool _scaleWithAvatar;
     LockEndObject _lockEndObject;
 
-    const QUuid _rayPickUID;
-
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
     void disableRenderState(const RenderState& renderState);
 
 };

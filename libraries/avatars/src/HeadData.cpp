@@ -49,11 +49,11 @@ void HeadData::setRawOrientation(const glm::quat& q) {
 
 
 glm::quat HeadData::getOrientation() const {
-    return _owningAvatar->getOrientation() * getRawOrientation();
+    return _owningAvatar->getWorldOrientation() * getRawOrientation();
 }
 
 void HeadData::setHeadOrientation(const glm::quat& orientation) {
-    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::quat bodyOrientation = _owningAvatar->getWorldOrientation();
     glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
     _basePitch = eulers.x;
     _baseYaw = eulers.y;
@@ -62,10 +62,10 @@ void HeadData::setHeadOrientation(const glm::quat& orientation) {
 
 void HeadData::setOrientation(const glm::quat& orientation) {
     // rotate body about vertical axis
-    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::quat bodyOrientation = _owningAvatar->getWorldOrientation();
     glm::vec3 newForward = glm::inverse(bodyOrientation) * (orientation * IDENTITY_FORWARD);
     bodyOrientation = bodyOrientation * glm::angleAxis(atan2f(-newForward.x, -newForward.z), glm::vec3(0.0f, 1.0f, 0.0f));
-    _owningAvatar->setOrientation(bodyOrientation);
+    _owningAvatar->setWorldOrientation(bodyOrientation);
 
     // the rest goes to the head
     setHeadOrientation(orientation);
@@ -154,8 +154,8 @@ QJsonObject HeadData::toJson() const {
     }
     auto lookat = getLookAtPosition();
     if (lookat != vec3()) {
-        vec3 relativeLookAt = glm::inverse(_owningAvatar->getOrientation()) *
-            (getLookAtPosition() - _owningAvatar->getPosition());
+        vec3 relativeLookAt = glm::inverse(_owningAvatar->getWorldOrientation()) *
+            (getLookAtPosition() - _owningAvatar->getWorldPosition());
         headJson[JSON_AVATAR_HEAD_LOOKAT] = toJsonValue(relativeLookAt);
     }
     return headJson;
@@ -185,7 +185,7 @@ void HeadData::fromJson(const QJsonObject& json) {
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {
         auto relativeLookAt = vec3FromJsonValue(json[JSON_AVATAR_HEAD_LOOKAT]);
         if (glm::length2(relativeLookAt) > 0.01f) {
-            setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getPosition());
+            setLookAtPosition((_owningAvatar->getWorldOrientation() * relativeLookAt) + _owningAvatar->getWorldPosition());
         }
     }
 
