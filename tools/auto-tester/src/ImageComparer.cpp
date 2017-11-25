@@ -45,8 +45,7 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     int x{ 0 };             // column index (start of block)
     int y{ 0 };             // row index (start of block
     double ssimMax{ 0.0 };
-    int w = expectedImage.width();
-    int h = expectedImage.height();
+
     while (x < expectedImage.width()) {
         int lastX = x + WIN_SIZE;
         if (lastX > expectedImage.width()) {
@@ -104,7 +103,7 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
             sigsqQ /= (WIN_SIZE * WIN_SIZE);
             sigPQ /= (WIN_SIZE * WIN_SIZE);
 
-            double numerator = (2.0f * mP * mQ + c1) * (2.0f * sigPQ + c2);
+            double numerator = (2.0 * mP * mQ + c1) * (2.0 * sigPQ + c2);
             double denominator = (mP * mP + mQ * mQ + c1) * (sigsqP + sigsqQ + c2);
 
             double ssim = numerator / denominator;
