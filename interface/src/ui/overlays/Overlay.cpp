@@ -103,18 +103,22 @@ void Overlay::setProperties(const QVariantMap& properties) {
 
 // JSDoc for copying to @typedefs of overlay types that inherit Base3DOverlay.
 /**jsdoc
- * @typedef
- * @property {string} type - TODO.
- * @property {RGB} color - TODO.
- * @property {number} alpha - TODO.
- * @property {number} pulseMax - TODO.
- * @property {number} pulseMin - TODO.
- * @property {number} pulsePeriod - TODO.
- * @property {number} alphaPulse - TODO.
- * @property {number} colorPulse - TODO.
- * @property {boolean} visible - TODO.
- * @property {string} anchor - TODO.
- */
+  * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
+  * @property {Color} color=255,255,255 - The color of the overlay.
+  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse goes from 
+  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the 
+  *     current pulse value each frame. (The magnitude of the property isn't otherwise used.)
+  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the 
+  *     current pulse value each frame. If > 0 the pulse is applied in phase with the alpha pulse; if < 0 the pulse is applied 
+  *     out of phase with the alpha pulse. (The magnitude of the property isn't otherwise used.)
+  * @property {boolean} visible=true - If <code>true</code> the overlay is rendered, otherwise it is not rendered.
+  * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
+  *     rotating as you move your avatar.
+  */
 QVariant Overlay::getProperty(const QString& property) {
     if (property == "type") {
         return QVariant(getType());

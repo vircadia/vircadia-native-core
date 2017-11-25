@@ -47,11 +47,11 @@ const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 /**jsdoc
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
- *     <code>false</code>. TODO: Only 3D overlay, really? What about the other properties?
- * @property {Uuid} overlayID - The UUID of the overlay that was intersected with.
+ *     <code>false</code>.
+ * @property {Uuid} overlayID - The UUID of the overlay that was intersected.
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
- * @property {Vec3} surfaceNormal - The normal of the surface that was intersected with.
- * @property {Vec3} intersection - The point at which the {@link PickRay} intersected with the overlay.
+ * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
+ * @property {Vec3} intersection - The position of the intersection point.
  */
 class RayToOverlayIntersectionResult {
 public:
@@ -72,9 +72,10 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 /**jsdoc
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
- * yourself and that aren't persisted to the domain. They are primarily used for UI.
+ * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
  * @property {Uuid} keyboardFocusOverlay - Get or set the [web3d]{@link Overlays.OverlayType} overlay that has keyboard focus.
+ *     If no overlay is set, get returns <code>null</code>; set <code>null</code> to clear keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -118,94 +119,114 @@ public slots:
      * @function Overlays.addOverlay
      * @param {Overlays.OverlayType} type - The type of the overlay to add.
      * @param {Overlays.OverlayProperties} properties - The properties of the overlay to add.
-     * @return {Uuid} The UUID of the newly created overlay.
+     * @returns {Uuid} The ID of the newly created overlay.
      */
     OverlayID addOverlay(const QString& type, const QVariant& properties);
 
     /**jsdoc
      * Create a clone of an existing overlay.
-     *
      * @function Overlays.cloneOverlay
-     * @param {Overlays.OverlayID} overlayID The ID of the overlay to clone.
-     * @return {Overlays.OverlayID} The ID of the new overlay.
+     * @param {Uuid} overlayID - The ID of the overlay to clone.
+     * @returns {Uuid} The ID of the new overlay.
      */
     OverlayID cloneOverlay(OverlayID id);
 
     /**jsdoc
      * Edit an overlay's properties.
-     *
      * @function Overlays.editOverlay
-     * @param {Overlays.OverlayID} overlayID The ID of the overlay to edit.
-     * @return {bool} `true` if the overlay was found and edited, otherwise false.
+     * @param {Uuid} overlayID - The ID of the overlay to edit.
+     * @param {Overlays.OverlayProperties} properties - The properties changes to make.
+     * @returns {boolean} <code>true</code> if the overlay was found and edited, otherwise <code>false</code>.
      */
     bool editOverlay(OverlayID id, const QVariant& properties);
 
-    /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
-    /// successful edit, if the input id is for an unknown overlay this function will have no effect
+    /**jsdoc
+     * Edit multiple overlays' properties.
+     * @function Overlays.editOverlays
+     * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - On object with overlay IDs as keys and 
+     *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make for each as values.
+     * @returns {boolean} <code>true</code> if all overlays were found and edited, otherwise <code>false</code>.
+     * @example <caption>Demonstrate creating the <code>propertiesById</code> parameter.</caption>
+     * var overlayEdits = {};
+     * overlayEdits[overlayA] = propertiesA; 
+     * overlayEdits[overlayB] = propertiesB;
+     * var success = Overlays.editOverlays(overlayEdits);
+     */
     bool editOverlays(const QVariant& propertiesById);
 
     /**jsdoc
      * Delete an overlay.
-     *
      * @function Overlays.deleteOverlay
-     * @param {Overlays.OverlayID} overlayID The ID of the overlay to delete.
+     * @param {Uuid} overlayID - The ID of the overlay to delete.
      */
     void deleteOverlay(OverlayID id);
 
     /**jsdoc
      * Get the type of an overlay.
-     *
      * @function Overlays.getOverlayType
-     * @param {Overlays.OverlayID} overlayID The ID of the overlay to get the type of.
-     * @return {string} The type of the overlay if found, otherwise the empty string.
+     * @param {Uuid} overlayID - The ID of the overlay to get the type of.
+     * @returns {Overlays.OverlayType} The type of the overlay if found, otherwise an empty string.
      */
     QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
-    * Get the overlay Script object.
-    *
-    * @function Overlays.getOverlayObject
-    * @param {Overlays.OverlayID} overlayID The ID of the overlay to get the script object of.
-    * @return {Object} The script object for the overlay if found.
-    */
+     * Get the overlay script object.
+     * @function Overlays.getOverlayObject
+     * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
+     * @returns {object} The script object for the overlay if found.
+     */
     QObject* getOverlayObject(OverlayID id);
 
     /**jsdoc
-     * Get the ID of the overlay at a particular point on the HUD/screen.
-     *
+     * Get the ID of the overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
-     * @param {Vec2} point The point to check for an overlay.
-     * @return {Overlays.OverlayID} The ID of the overlay at the point specified.
-     *     If no overlay is found, `0` will be returned.
+     * @param {Vec2} point - The point to check for an overlay.
+     * @returns {Uuid} The ID of the overlay at the specified point if found, otherwise <code>null</code>.
      */
     OverlayID getOverlayAtPoint(const glm::vec2& point);
 
     /**jsdoc
-     * Get the value of a an overlay's property.
-     *
+     * Get the value of an overlay's property.
      * @function Overlays.getProperty
-     * @param {Overlays.OverlayID} The ID of the overlay to get the property of.
-     * @param {string} The name of the property to get the value of.
-     * @return {Object} The value of the property. If the overlay or the property could
-     *     not be found, `undefined` will be returned.
+     * @param {Uuid} overlayID - The ID of the overlay.
+     * @param {string} property - The name of the property value to get.
+     * @returns {object} The value of the property if the overlay and property can be found, otherwise <code>undefined</code>.
      */
     OverlayPropertyResult getProperty(OverlayID id, const QString& property);
 
+    /**jsdoc
+     * Get the values of an overlay's properties.
+     * @function Overlays.getProperties
+     * @param {Uuid} overlayID - The ID of the overlay.
+     * @param {Array.<string>} properties - An array of names of properties to get the values of.
+     * @returns {Overlays.OverlayProperties} The values of valid properties if the overlay can be found, otherwise 
+     *     <code>undefined</code>.
+     */
     OverlayPropertyResult getProperties(const OverlayID& id, const QStringList& properties);
 
+    /**jsdoc
+     * Get the values of multiple overlays' properties.
+     * @function Overlays.getOverlaysProperties
+     * @param propertiesById {object.<Uuid, Array.<string>>} - An object with overlay IDs as keys and arrays of the names of 
+     *     properties to get for each as values.
+     * @returns {object.<Uuid, Overlays.OverlayProperties>} An object with overlay IDs as keys and
+     *     {@link Overlays.OverlayProperties|OverlayProperties} as values.
+     */
     OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
 
-    /*jsdoc
-     * Find the closest 3D overlay hit by a pick ray.
-     *
+    /**jsdoc
+     * Find the closest 3D overlay intersected by a {@link PickRay}.
      * @function Overlays.findRayIntersection
-     * @param {PickRay} The PickRay to use for finding overlays.
-     * @param {bool} Unused; Exists to match Entity interface
-     * @param {List of Overlays.OverlayID} Whitelist for intersection test.
-     * @param {List of Overlays.OverlayID} Blacklist for intersection test.
-     * @param {bool} Unused; Exists to match Entity interface
-     * @param {bool} Unused; Exists to match Entity interface
-     * @return {Overlays.RayToOverlayIntersectionResult} The result of the ray cast.
+     * @param {PickRay} pickRay - The PickRay to use for finding overlays.
+     * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
+     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - Whitelist for intersection test. If empty then the result isn't limited
+     *     to overlays in the list.
+     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Blacklist for intersection test. If empty then the result doesn't
+     *     exclude overlays in the list.
+     * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
+     * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
+     * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
+     *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
      */
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray,
                                                        bool precisionPicking = false,
@@ -214,61 +235,77 @@ public slots:
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
 
-    // Same as above but with QVectors
+    // TODO: Apart from the name, this function signature on JavaScript is identical to that of findRayIntersection() and should
+    // probably be removed from the JavaScript API so as not to cause confusion.
+    /**jsdoc
+     * Find the closest 3D overlay intersected by a {@link PickRay}.
+     * @function Overlays.findRayIntersectionVector
+     * @deprecated Use {@link Overlays.findRayIntersection} instead; it has identical parameters and results.
+     * @param {PickRay} pickRay - The PickRay to use for finding overlays.
+     * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
+     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - Whitelist for intersection test. If empty then the result isn't limited
+     *     to overlays in the list.
+     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Blacklist for intersection test. If empty then the result doesn't
+     *     exclude overlays in the list.
+     * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
+     * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
+     * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
+     *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
+     */
     RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
                                                              const QVector<OverlayID>& overlaysToInclude,
                                                              const QVector<OverlayID>& overlaysToDiscard,
                                                              bool visibleOnly = false, bool collidableOnly = false);
 
     /**jsdoc
-     * Return a list of 3d overlays with bounding boxes that touch the given sphere
-     *
+     * Return a list of 3D overlays with bounding boxes that touch a search sphere.
      * @function Overlays.findOverlays
-     * @param {Vec3} center the point to search from.
-     * @param {float} radius search radius
-     * @return {Overlays.OverlayID[]} list of overlays withing the radius
+     * @param {Vec3} center - The center of the search sphere.
+     * @param {number} radius - The radius of the search sphere.
+     * @returns {Uuid[]} An array of overlay IDs with bounding boxes that touch a search sphere.
      */
     QVector<QUuid> findOverlays(const glm::vec3& center, float radius);
 
     /**jsdoc
-     * Check whether an overlay's assets have been loaded. For example, if the
-     * overlay is an "image" overlay, this will indicate whether the its image
-     * has loaded.
+     * Check whether an overlay's assets have been loaded. For example, for an <code>image</code> overlay the result indicates
+     * whether its image has been loaded.
      * @function Overlays.isLoaded
-     * @param {Overlays.OverlayID} The ID of the overlay to check.
-     * @return {bool} `true` if the overlay's assets have been loaded, otherwise `false`.
+     * @param {Uuid} overlayID - The ID of the overlay to check.
+     * @returns {boolean} <code>true</code> if the overlay's assets have been loaded, otherwise <code>false</code>.
      */
     bool isLoaded(OverlayID id);
 
     /**jsdoc
      * Calculates the size of the given text in the specified overlay if it is a text overlay.
-     * If it is a 2D text overlay, the size will be in pixels.
-     * If it is a 3D text overlay, the size will be in meters.
-     *
      * @function Overlays.textSize
-     * @param {Overlays.OverlayID} The ID of the overlay to measure.
-     * @param {string} The string to measure.
-     * @return {Vec2} The size of the text.
+     * @param {Uuid} overlayID - The ID of the overlay to use for calculation.
+     * @param {string} text - The string to calculate the size of.
+     * @returns {Vec2} The size of the <code>text</code> if the overlay is a text overlay, otherwise 
+     *     <code>{ x: 0, y: 0 }</code>. If the overlay is a 2D overlay the size is in pixels; if the overlay if a 3D overlay the
+     *     size is in meters.
      */
     QSizeF textSize(OverlayID id, const QString& text);
 
     /**jsdoc
-     * Get the width of the virtual 2D HUD.
-     *
+     * Get the width of the window or HUD.
      * @function Overlays.width
-     * @return {float} The width of the 2D HUD.
+     * @returns {number} The width, in pixels, of the Interface window if in desktop mode or the HUD if in HMD mode.
      */
     float width();
 
     /**jsdoc
-     * Get the height of the virtual 2D HUD.
-     *
+     * Get the height of the window or HUD.
      * @function Overlays.height
-     * @return {float} The height of the 2D HUD.
+     * @returns {number} The height, in pixels, of the Interface window if in desktop mode or the HUD if in HMD mode.
      */
     float height();
 
-    /// return true if there is an overlay with that id else false
+    /**jsdoc
+     * Check if there is an overlay of a given ID.
+     * @function Overlays.isAddedOverly
+     * @param {Uuid} overlayID - The ID to check.
+     * @returns {boolean} <code>true</code> if an overlay with the given ID exists, <code>false</code> otherwise.
+     */
     bool isAddedOverlay(OverlayID id);
 
 #if OVERLAY_PANELS
@@ -295,12 +332,52 @@ public slots:
 
 #endif
 
+    /**jsdoc
+     * Generate a mouse press event on an overlay.
+     * @function Overlays.sendMousePressOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay to generate a mouse press event on.
+     * @param {PointerEvent} event - The mouse press event details.
+     */
     void sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Generate a mouse release event on an overlay.
+     * @function Overlays.sendMouseReleaseOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay to generate a mouse release event on.
+     * @param {PointerEvent} event - The mouse release event details.
+     */
     void sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Generate a mouse move event on an overlay.
+     * @function Overlays.sendMouseMoveOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay to generate a mouse move event on.
+     * @param {PointerEvent} event - The mouse moved event details.
+     */
     void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
+    /**jsdoc
+     * Generate a hover enter event on an overlay.
+     * @function Overlays.sendHoverEnterOverlay
+     * @param {Uuid} id - The ID of the overlay to generate a hover enter event on.
+     * @param {PointerEvent} event - The hover enter event details.
+     */
     void sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Generate a hover over event on an overlay.
+     * @function Overlays.sendHoverOverOverlay
+     * @param {Uuid} overlayID - The ID of the overlay to generate a hover over event on.
+     * @param {PointerEvent} event - The hover over event details.
+     */
     void sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Generate a hover leave event on an overlay.
+     * @function Overlays.sendHoverLeaveOverlay
+     * @param {Uuid} overlayID - The ID of the overlay to generate a hover leave event on.
+     * @param {PointerEvent} event - The hover leave event details.
+     */
     void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     /**jsdoc
@@ -312,19 +389,19 @@ public slots:
     OverlayID getKeyboardFocusOverlay();
 
     /**jsdoc
-    * Set the ID of the overlay that has keyboard focus.
-    * @function Overlays.setKeyboardFocusOverlay
-    * @param {Uuid} id - The ID of the [web3d]{@link Overlays.OverlayType} overlay to set keyboard focus to. Use 
-    *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
-    */
+     * Set the Web3D overlay that has keyboard focus.
+     * @function Overlays.setKeyboardFocusOverlay
+     * @param {Uuid} overlayID - The ID of the [web3d]{@link Overlays.OverlayType} overlay to set keyboard focus to. Use 
+     *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
+     */
     void setKeyboardFocusOverlay(const OverlayID& id);
 
 signals:
     /**jsdoc
-     * Emitted when an overlay is deleted
-     *
+     * Triggered when an overlay is deleted.
      * @function Overlays.overlayDeleted
-     * @param {OverlayID} The ID of the overlay that was deleted.
+     * @param {Uuid} overlayID - The ID of the overlay that was deleted.
+     * @returns {Signal}
      */
     void overlayDeleted(OverlayID id);
 
@@ -332,15 +409,87 @@ signals:
     void panelDeleted(OverlayID id);
 #endif
 
+    /**jsdoc
+     * Triggered when a mouse press event occurs on an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendMousePressOnOverlay|sendMousePressOnOverlay} for a 2D overlay).
+     * @function Overlays.mousePressOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the mouse press event occurred on.
+     * @param {PointerEvent} event - The mouse press event details.
+     * @returns {Signal}
+     */
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse double press event occurs on an overlay. Only occurs for 3D overlays.
+     * @function Overlays.mouseDoublePressOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the mouse double press event occurred on.
+     * @param {PointerEvent} event - The mouse double press event details.
+     * @returns {Signal}
+     */
     void mouseDoublePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse release event occurs on an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendMouseReleaseOnOverlay|sendMouseReleaseOnOverlay} for a 2D overlay).
+     * @function Overlays.mouseReleaseOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the mouse release event occurred on.
+     * @param {PointerEvent} event - The mouse release event details.
+     * @returns {Signal}
+     */
     void mouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse move event occurs on an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendMouseMoveOnOverlay|sendMouseMoveOnOverlay} for a 2D overlay).
+     * @function Overlays.mouseMoveOnOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the mouse moved event occurred on.
+     * @param {PointerEvent} event - The mouse move event details.
+     * @returns {Signal}
+     */
     void mouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse press event occurs on something other than an overlay. Only occurs for 3D overlays.
+     * @function Overlays.mousePressOffOverlay
+     * @returns {Signal}
+     */
     void mousePressOffOverlay();
+
+    /**jsdoc
+     * Triggered when a mouse double press event occurs on something other than an overlay. Only occurs for 3D overlays.
+     * @function Overlays.mouseDoublePressOffOverlay
+     * @returns {Signal}
+     */
     void mouseDoublePressOffOverlay();
 
+    /**jsdoc
+     * Triggered when a mouse cursor starts hovering over an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendHoverEnterOverlay|sendHoverEnterOverlay} for a 2D overlay).
+     * @function Overlays.hoverEnterOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the mouse moved event occurred on.
+     * @param {PointerEvent} event - The mouse move event details.
+     * @returns {Signal}
+     */
     void hoverEnterOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse cursor continues hovering over an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendHoverOverOverlay|sendHoverOverOverlay} for a 2D overlay).
+     * @function Overlays.hoverOverOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the hover over event occurred on.
+     * @param {PointerEvent} event - The hover over event details.
+     * @returns {Signal}
+     */
     void hoverOverOverlay(OverlayID overlayID, const PointerEvent& event);
+
+    /**jsdoc
+     * Triggered when a mouse cursor finishes hovering over an overlay. Only occurs for 3D overlays (unless you use 
+     *     {@link Overlays.sendHoverLeaveOverlay|sendHoverLeaveOverlay} for a 2D overlay).
+     * @function Overlays.hoverLeaveOverlay
+     * @param {Uuid} overlayID - The ID of the overlay the hover leave event occurred on.
+     * @param {PointerEvent} event - The hover leave event details.
+     * @returns {Signal}
+     */
     void hoverLeaveOverlay(OverlayID overlayID, const PointerEvent& event);
 
 private:

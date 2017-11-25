@@ -161,19 +161,18 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
     Overlay::Pointer thisOverlay = nullptr;
 
     /**jsdoc
-     * <p>Overlays may be one of the following types:</p>
+     * <p>An overlay may be one of the following types:</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>billboard</code></td><td>3D</td><td>Synonym for <code>image3d</code>.</td></td></tr>
      *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
      *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> to create a cube.</td></tr>
      *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
-     *     <tr><td><code>image</code></td><td>2D</td><td>An image.</td></tr>
+     *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
      *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
-     *     <tr><td><code>line3d</code></td><td>3D</td><td>A line</td></tr>
+     *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
      *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
      *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
      *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
@@ -184,6 +183,7 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
      *   </tbody>
      * </table>
+     * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
      * @typedef {string} Overlays.OverlayType
      */
 
@@ -191,12 +191,23 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      * <p>Different overlay types have different properties:</p>
      * <table>
      *   <thead>
-     *     <tr><th>Overlay Type</th><th>Overlay Properties</th></tr>
+     *     <tr><th>{@link Overlays.OverlayType|OverlayType}</th><th>Overlay Properties</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>cube3d</code></td><td>{@link Overlays.cube3dProperties|cube3dProperties}</td></tr>
-     *     <tr><td><code>sphere3d</code></td><td>{@link Overlays.sphere3dProperties|sphere3dProperties}</td></tr>
-     *     <tr><td>TODO</td><td>TODO</td></tr>
+     *     <tr><td><code>circle3d</code></td><td>{@link Overlays.Circle3DProperties|Circle3DProperties}</td></tr>
+     *     <tr><td><code>cube</code></td><td>{@link Overlays.CubeProperties|CubeProperties}</td></tr>
+     *     <tr><td><code>grid</code></td><td>{@link Overlays.GridProperties|GridProperties}</td></tr>
+     *     <tr><td><code>image</code></td><td>{@link Overlays.ImageProperties|ImageProperties}</td></tr>
+     *     <tr><td><code>image3d</code></td><td>{@link Overlays.Image3DProperties|Image3DProperties}</td></tr>
+     *     <tr><td><code>line3d</code></td><td>{@link Overlays.Line3DProperties|Line3DProperties}</td></tr>
+     *     <tr><td><code>model</code></td><td>{@link Overlays.ModelProperties|ModelProperties}</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>{@link Overlays.RectangleProperties|RectangleProperties}</td></tr>
+     *     <tr><td><code>rectangle3d</code></td><td>{@link Overlays.Rectangle3DProperties|Rectangle3DProperties}</td></tr>
+     *     <tr><td><code>shape</code></td><td>{@link Overlays.ShapeProperties|ShapeProperties}</td></tr>
+     *     <tr><td><code>sphere</code></td><td>{@link Overlays.SphereProperties|SphereProperties}</td></tr>
+     *     <tr><td><code>text</code></td><td>{@link Overlays.TextProperties|TextProperties}</td></tr>
+     *     <tr><td><code>text3d</code></td><td>{@link Overlays.Text3DProperties|Text3DProperties}</td></tr>
+     *     <tr><td><code>web3d</code></td><td>{@link Overlays.Web3DProperties|Web3DProperties}</td></tr>
      *   </tbody>
      * </table>
      * @typedef {object} Overlays.OverlayProperties
