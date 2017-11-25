@@ -22,8 +22,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     }
 
     const int L = 255; // (2^number of bits per pixel) - 1
-    const double c1 = pow((K1 * L), 2);
-    const double c2 = pow((K2 * L), 2);
+    const double c1 = (K1 * L) * (K1 * L);
+    const double c2 = (K2 * L) * (K2 * L);
 
     // Coefficients for luminosity calculation
     const double RED_COEFFICIENT = 0.212655f;
