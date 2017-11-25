@@ -11,7 +11,7 @@ $(document).ready(function(){
   $('#connect-account-btn').attr('href', URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
 
   $('[data-toggle="tooltip"]').tooltip();
-  
+
   $('.perms-link').on('click', function() {
     var modal_body = '<div>';
     modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
@@ -70,8 +70,8 @@ $(document).ready(function(){
     });
   });
 
-  $('body').on('click', '#explore-settings', function() {
-    exploreSettings();
+  $('body').on('click', '#visit-domain', function() {
+    $('#share-link')[0].click();
   });
 
   $('input[type=radio][name=connect-radio]').change(function() {
@@ -120,6 +120,14 @@ $(document).ready(function(){
   });
 });
 
+function copyToClipboard(element) {
+  var $temp = $("<input>");
+  $("body").append($temp);
+  $temp.val($(element).text()).select();
+  document.execCommand("copy");
+  $temp.remove();
+}
+
 function setupWizardSteps() {
   currentStepNumber = Settings.data.values.wizard.steps_completed;
   var steps = null;
@@ -155,7 +163,9 @@ function setupWizardSteps() {
 
 function updatePlaceNameLink(address) {
   if (address) {
-    $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + URLs.PLACE_URL + '/' + address + '">' + address + '</a>');
+    var url = URLs.PLACE_URL + '/' + address;
+    $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + url + '">' + address + '</a>');
+    $('#share-field a').attr('href', url).text(url);
   }
 }
 
@@ -506,15 +516,4 @@ function saveUsernamePassword() {
   postSettings(formJSON, function() {
     location.reload();
   });
-}
-
-function exploreSettings() {
-  if ($('#go-to-domain').is(":checked")) {
-    var link = $('#place-name-link a:first');
-    if (link.length > 0) {
-      window.open(link.attr("href"));
-    }
-  }
-
-  goToNextStep();
 }

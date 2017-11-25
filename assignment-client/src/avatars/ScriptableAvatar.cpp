@@ -20,7 +20,7 @@
 
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
-    _globalPosition = getPosition();
+    _globalPosition = getWorldPosition();
     return AvatarData::toByteArrayStateful(dataDetail);
 }
 
