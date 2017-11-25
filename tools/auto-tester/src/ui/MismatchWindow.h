@@ -1,5 +1,5 @@
 //
-//  MismatchWindow.cpp
+//  MismatchWindow.h
 //
 //  Created by Nissim Hadar on 9 Nov 2017.
 //  Copyright 2013 High Fidelity, Inc.
