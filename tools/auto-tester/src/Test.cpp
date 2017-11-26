@@ -122,6 +122,11 @@ void Test::createRecursiveScript() {
     QTextStream textStream(&allTestsFilename);
     textStream << "// This is an automatically generated file, created by auto-tester" << endl;
 
+    // The main will call each test after the previous test is completed
+    // This is implemented with an interval timer that periodically tests if a
+    // running test has increment a testNumber variable that it received as an input.
+    textStream << "var testNumber = 1;" << endl << endl;
+
     // Components of the test path are stored as these are used to call each specific test
     // Each test has a unique "run test" function.  The name of this function depends on the path to the test
     // For example:
@@ -132,6 +137,17 @@ void Test::createRecursiveScript() {
     QVector<QStringList> testPathComponents;
 
     const QString testFilename{ "test.js" };
+
+    // First test if top-level folder has a test.js file
+    const QString testPathname{ topLevelDirectory + "/" + testFilename };
+    QFileInfo fileInfo(testPathname);
+    if (fileInfo.exists()) {
+        // Current folder contains a test
+        textStream << "Script.include(\"" << testPathname + "\");" << endl;
+
+        testPathComponents << testPathname.split('/');
+    }
+
     while (it.hasNext()) {
         QString directory = it.next();
         if (directory[directory.length() - 1] == '.') {
@@ -140,11 +156,10 @@ void Test::createRecursiveScript() {
         }
 
         const QString testPathname{ directory + "/" + testFilename };
-
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test
-            textStream << "Script.include(\"" << testPathname + "\")" << endl;
+            textStream << "Script.include(\"" << testPathname + "\");" << endl;
 
             testPathComponents << testPathname.split('/');
         }
@@ -165,16 +180,48 @@ void Test::createRecursiveScript() {
         }
     }
 
+    // Leave a blank line in the main
     textStream << endl;
 
+    const int TEST_PERIOD = 1000; // in milliseconds
+    QString tab = "    ";
+
+    textStream << "var testTimer = Script.setInterval(" << endl;
+    textStream << tab << "function() {" << endl;
+
+    int stepNumber = 1;
     for (QStringList testPathComponent : testPathComponents) {
         QString testName = "tests";
         for (int i = firstComponent + 1; i < testPathComponent.length() - 1; ++i) {
             testName += "_" + testPathComponent[i];
         }
         
-        textStream << testName << "();" << endl;
+        textStream << tab << tab << "if (testNumber == " << stepNumber << ") {" << endl;
+        textStream << tab << tab << tab << testName << "();" << endl;
+
+        // Set stepNumber to 0 between tests to stop the same test being called twice
+        textStream << tab << tab << tab << "testNumber = 0;" << endl;
+
+        textStream << tab << tab << "}" << endl << endl;
+
+        ++stepNumber;
     }
+
+    // Add extra step to stop the script
+    textStream << tab << tab << "if (testNumber == " << stepNumber << ") {" << endl;
+    textStream << tab << tab << tab << "Script.stop();" << endl;
+    textStream << tab << tab << "}" << endl << endl;
+
+    textStream << tab << "}," << endl;
+    textStream << endl;
+    textStream << tab << TEST_PERIOD << endl;
+    textStream << ");" << endl << endl;
+
+    textStream << "Script.scriptEnding.connect(" << endl;
+    textStream << tab << "function() {" << endl;
+    textStream << tab << tab << "Script.clearInterval(testTimer);" << endl;
+    textStream << tab << "}" << endl;
+    textStream << ");" << endl;
 
     allTestsFilename.close();
 
