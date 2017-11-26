@@ -55,10 +55,6 @@ Rectangle {
 
     }
 
-
-
-
-
     MouseArea {
         id: mouseArea
 
@@ -101,6 +97,7 @@ Rectangle {
             onClicked: {
                 if (checked) {
                     headPuckBox.checked = false;
+                    hmdInDesktop.checked = false;
                 } else {
                     checked = true;
                 }
@@ -123,6 +120,7 @@ Rectangle {
             onClicked: {
                 if (checked) {
                     headBox.checked = false;
+                    hmdInDesktop.checked = false;
                 } else {
                     checked = true;
                 }
@@ -133,6 +131,37 @@ Rectangle {
         RalewayBold {
             size: 12
             text: "Tracker"
+            color: hifi.colors.lightGrayText
+        }
+
+        HifiControls.CheckBox {
+            id: hmdInDesktop
+            width: 15
+            height: 15
+            boxRadius: 7
+            visible: viveInDesktop.checked
+
+            anchors.top: viveInDesktop.bottom
+            anchors.topMargin: 5
+            anchors.left: openVrConfiguration.left
+            anchors.leftMargin: leftMargin + 10
+        
+            onClicked: {
+                if (checked) {
+                    headBox.checked = false;
+                    headPuckBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                sendConfigurationSettings();
+            }
+        }
+
+        RalewayBold {
+            id: hmdInDesktopLabel
+            size: 12
+            visible: viveInDesktop.checked
+            text: "None"
             color: hifi.colors.lightGrayText
         }
     }
@@ -800,34 +829,6 @@ Rectangle {
         to: 0
     }
 
-    HifiControls.CheckBox {
-        id: hmdInDesktop
-        width: 15
-        height: 15
-        boxRadius: 7
-
-        anchors.top: viveInDesktop.bottom
-        anchors.topMargin: 5
-        anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 10
-        
-        onClicked: {
-            sendConfigurationSettings();
-        }
-    }
-
-    RalewayBold {
-        id: hmdDesktopText
-        size: 10
-        text: "Use HMD in desktop mode"
-        color: hifi.colors.white
-        
-        anchors {
-            left: hmdInDesktop.right
-            leftMargin: 5
-            verticalCenter: hmdInDesktop.verticalCenter
-        }
-    }
 
     function logAction(action, status) {
         console.log("calibrated from ui");
