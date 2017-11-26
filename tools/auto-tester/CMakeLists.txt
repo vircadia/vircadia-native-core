@@ -7,10 +7,12 @@ SET(CMAKE_AUTOMOC ON)
 
 setup_hifi_project(Core Widgets)
 
-# Add compiler flags for building executables (-fPIE)
-##set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# FIX: Qt was built with -reduce-relocations
+if (Qt5_POSITION_INDEPENDENT_CODE)
+    SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
-# Qt includes
+ # Qt includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${Qt5Core_INCLUDE_DIRS})
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
