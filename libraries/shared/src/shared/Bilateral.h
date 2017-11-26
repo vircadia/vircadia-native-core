@@ -11,7 +11,8 @@
 namespace bilateral {
     enum class Side {
         Left = 0,
-        Right = 1
+        Right = 1,
+        Invalid = -1
     };
 
     using Indices = Side;
@@ -27,8 +28,10 @@ namespace bilateral {
                 return 0x01;
             case Side::Right:
                 return 0x02;
+            default:
+                break;
         }
-        return std::numeric_limits<uint8_t>::max();
+        return 0x00;
     }
 
     inline uint8_t index(Side side) {
@@ -37,8 +40,22 @@ namespace bilateral {
                 return 0;
             case Side::Right:
                 return 1;
+            default:
+                break;
         }
         return std::numeric_limits<uint8_t>::max();
+    }
+
+    inline Side side(int index) {
+        switch (index) {
+            case 0:
+                return Side::Left;
+            case 1:
+                return Side::Right;
+            default:
+                break;
+        }
+        return Side::Invalid;
     }
 
     template <typename F>

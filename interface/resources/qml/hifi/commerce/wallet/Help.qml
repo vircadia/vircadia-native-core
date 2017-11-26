@@ -55,41 +55,15 @@ Item {
         // Style
         color: hifi.colors.blueHighlight;
     }
-    HifiControlsUit.Button {
-        id: clearCachedPassphraseButton;
-        visible: root.showDebugButtons;
-        color: hifi.buttons.black;
-        colorScheme: hifi.colorSchemes.dark;
-        anchors.top: parent.top;
-        anchors.left: helpTitleText.right;
-        anchors.leftMargin: 20;
-        height: 40;
-        width: 150;
-        text: "DBG: Clear Pass";
-        onClicked: {
-            commerce.setPassphrase("");
-            sendSignalToWallet({method: 'passphraseReset'});
-        }
-    }
-    HifiControlsUit.Button {
-        id: resetButton;
-        visible: root.showDebugButtons;
-        color: hifi.buttons.red;
-        colorScheme: hifi.colorSchemes.dark;
-        anchors.top: clearCachedPassphraseButton.top;
-        anchors.left: clearCachedPassphraseButton.right;
-        height: 40;
-        width: 150;
-        text: "DBG: RST Wallet";
-        onClicked: {
-            commerce.reset();
-            sendSignalToWallet({method: 'walletReset'});
-        }
-    }
 
     ListModel {
         id: helpModel;
 
+        ListElement {
+            isExpanded: false;
+            question: "How can I get HFC?"
+            answer: qsTr("High Fidelity commerce is in closed beta right now.<br><br>To request entry and get free HFC, <b>please contact info@highfidelity.com with your High Fidelity account username and the email address registered to that account.</b>");
+        }
         ListElement {
             isExpanded: false;
             question: "What are private keys?"
@@ -118,12 +92,7 @@ Item {
         ListElement {
             isExpanded: false;
             question: "My HFC balance isn't what I expect it to be. Why?"
-            answer: qsTr('High Fidelity Coin (HFC) transactions are backed by a <b>blockchain</b>, which takes time to update. The status of a transaction usually updates within 90 seconds.<br><br><b><font color="#0093C5"><a href="#blockchain">Tap here to learn more about the blockchain.</a></font></b>');
-        }
-        ListElement {
-            isExpanded: false;
-            question: "My friend purchased my item from the Marketplace, but I still haven't received the money from the sale. Why not?"
-            answer: qsTr('High Fidelity Coin (HFC) transactions are backed by a <b>blockchain</b>, which takes time to update. The status of a transaction usually updates within 90 seconds, at which point you will receive your money.<br><br><b><font color="#0093C5"><a href="#blockchain">Tap here to learn more about the blockchain.</a></font></b>');
+            answer: qsTr('High Fidelity Coin (HFC) transactions are backed by a <b>blockchain</b>, which takes time to update. The status of a transaction usually updates within a few seconds.<br><br><b><font color="#0093C5"><a href="#blockchain">Tap here to learn more about the blockchain.</a></font></b>');
         }
         ListElement {
             isExpanded: false;
@@ -243,7 +212,7 @@ Item {
                         if (link === "#privateKeyPath") {
                             Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                         } else if (link === "#blockchain") {
-                            Qt.openUrlExternally("https://www.highfidelity.com/");
+                            Qt.openUrlExternally("https://docs.highfidelity.com/high-fidelity-commerce");
                         }
                     }
                 }

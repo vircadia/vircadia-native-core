@@ -33,7 +33,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js"
-    // "system/chat.js"
+    //"system/chat.js"
 ];
 
 // add a menu item for debugging

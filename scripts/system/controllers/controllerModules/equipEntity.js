@@ -773,6 +773,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         disableDispatcherModule("LeftEquipEntity");
         disableDispatcherModule("RightEquipEntity");
         clearAttachPoints();
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

@@ -69,7 +69,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         auto minCorner = glm::vec2(-0.5f, -0.5f);
         auto maxCorner = glm::vec2(0.5f, 0.5f);
 
-        auto position = getPosition();
+        auto position = getWorldPosition();
         if (_followCamera) {
             // Get the camera position rounded to the nearest major grid line
             // This grid is for UI and should lie on worldlines
@@ -146,7 +146,7 @@ void Grid3DOverlay::updateGrid() {
 
 Transform Grid3DOverlay::evalRenderTransform() {
     Transform transform;
-    transform.setRotation(getRotation());
+    transform.setRotation(getWorldOrientation());
     transform.setScale(glm::vec3(getDimensions(), 1.0f));
     return transform;
 }

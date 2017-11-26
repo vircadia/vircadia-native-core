@@ -129,6 +129,8 @@ namespace controller {
         template <typename F>
         void withLock(F&& f) { Locker locker(_lock); f(); }
 
+        EndpointPointer endpointFor(const Input& endpoint) const;
+
     signals:
         void actionEvent(int action, float state);
         void inputEvent(int input, float state);
@@ -161,7 +163,6 @@ namespace controller {
         void disableMapping(const MappingPointer& mapping);
         EndpointPointer endpointFor(const QJSValue& endpoint);
         EndpointPointer endpointFor(const QScriptValue& endpoint);
-        EndpointPointer endpointFor(const Input& endpoint) const;
         EndpointPointer compositeEndpointFor(EndpointPointer first, EndpointPointer second);
         ConditionalPointer conditionalFor(const QJSValue& endpoint);
         ConditionalPointer conditionalFor(const QScriptValue& endpoint);

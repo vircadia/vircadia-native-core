@@ -211,7 +211,7 @@ ScrollingWindow {
             WebEngineScript {
                 id: createGlobalEventBridge
                 sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.DocumentCreation
+                injectionPoint: WebEngineScript.Deferred
                 worldId: WebEngineScript.MainWorld
             }
 
@@ -232,9 +232,13 @@ ScrollingWindow {
             anchors.right: parent.right
 
             onFeaturePermissionRequested: {
-                permissionsBar.securityOrigin = securityOrigin;
-                permissionsBar.feature = feature;
-                root.showPermissionsBar();
+                if (feature == 2) { // QWebEnginePage::MediaAudioCapture
+                    grantFeaturePermission(securityOrigin, feature, true);
+                } else {
+                    permissionsBar.securityOrigin = securityOrigin;
+                    permissionsBar.feature = feature;
+                    root.showPermissionsBar();
+                }
             }
 
             onLoadingChanged: {
