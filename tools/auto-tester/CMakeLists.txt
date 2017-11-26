@@ -7,10 +7,11 @@ SET(CMAKE_AUTOMOC ON)
 
 setup_hifi_project(Core Widgets)
 link_hifi_libraries()
-## FIX: Qt was built with -reduce-relocations
-#if (Qt5_POSITION_INDEPENDENT_CODE)
-#    SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
-#endif()
+
+# FIX: Qt was built with -reduce-relocations
+if (Qt5_POSITION_INDEPENDENT_CODE)
+    SET(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
  # Qt includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -31,7 +32,7 @@ endif()
 
 add_executable(PROJECT_NAME ${SOURCES} ${HEADERS} ${UIS})
  
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+target_link_libraries(PROJECT_NAME ${QT_LIBRARIES})
 
 # Copy required dll's.
 add_custom_command(TARGET auto-tester POST_BUILD 
