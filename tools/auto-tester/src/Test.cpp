@@ -77,21 +77,21 @@ void Test::evaluateTests() {
                 QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
                 QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
             });
-            
+
             mismatchWindow.exec();
 
             switch (mismatchWindow.getUserResponse()) {
-                case USER_RESPONSE_PASS:
-                    break;
-                case USE_RESPONSE_FAIL:
-                    success = false;
-                    break;
-                case USER_RESPONSE_ABORT:
-                    keepOn = false;
-                    success = false;
-                    break;
-                default:
-                    assert(false);
+            case USER_RESPONSE_PASS:
+                break;
+            case USE_RESPONSE_FAIL:
+                success = false;
+                break;
+            case USER_RESPONSE_ABORT:
+                keepOn = false;
+                success = false;
+                break;
+            default:
+                assert(false);
             }
         }
     }
@@ -122,11 +122,21 @@ void Test::createRecursiveScript() {
     QTextStream textStream(&allTestsFilename);
     textStream << "// This is an automatically generated file, created by auto-tester" << endl;
 
+    // Components of the test path are stored as these are used to call each specific test
+    // Each test has a unique "run test" function.  The name of this function depends on the path to the test
+    // For example:
+    //      Test:           D:\GitHub\hifi-tests\tests\content\entity\zone\ambientLightInheritance\test.js
+    //      Function name:  tests_content_entity_zone_ambientLightInheritance()
+    // The last occurance of "tests" is assumed to be the top of the test hierarchy
+    //
+    QVector<QStringList> testPathComponents;
+
     const QString testFilename{ "test.js" };
     while (it.hasNext()) {
         QString directory = it.next();
         if (directory[directory.length() - 1] == '.') {
-            continue;   // ignore '.', '..' directories
+            // ignore '.', '..' directories
+            continue;
         }
 
         const QString testPathname{ directory + "/" + testFilename };
@@ -135,7 +145,35 @@ void Test::createRecursiveScript() {
         if (fileInfo.exists()) {
             // Current folder contains a test
             textStream << "Script.include(\"" << testPathname + "\")" << endl;
+
+            testPathComponents << testPathname.split('/');
         }
+    }
+
+    if (testPathComponents.length() <= 0) {
+        messageBox.information(0, "Failure", "No \"test.js\" files found");
+        allTestsFilename.close();
+        return;
+    }
+
+    // Find last occurance of tests in the first testPathname
+    int firstComponent{ 0 };
+    for (int i = testPathComponents[0].length() - 1; i >= 0; --i) {
+        if (testPathComponents[0][i] == "tests") {
+            firstComponent = i;
+            break;
+        }
+    }
+
+    textStream << endl;
+
+    for (QStringList testPathComponent : testPathComponents) {
+        QString testName = "tests";
+        for (int i = firstComponent + 1; i < testPathComponent.length() - 1; ++i) {
+            testName += "_" + testPathComponent[i];
+        }
+        
+        textStream << testName << "();" << endl;
     }
 
     allTestsFilename.close();
