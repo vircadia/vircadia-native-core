@@ -2579,7 +2579,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
 }
 
 bool EntityItemProperties::verifyStaticCertificateProperties() {
-    // True IIF a non-empty certificateID matches the static certificate json.
+    // True IFF a non-empty certificateID matches the static certificate json.
     // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }

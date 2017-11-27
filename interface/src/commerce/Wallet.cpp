@@ -768,7 +768,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
         textPacket->write(certID);
         textPacket->write(textByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for CertID" << certID;
 
         nodeList->sendPacket(std::move(textPacket), *sendingNode);
     }
