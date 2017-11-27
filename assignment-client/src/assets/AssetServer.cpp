@@ -36,8 +36,6 @@
 void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
 void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
 
-#include <BakingVersion.h>
-
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"
 #include "SendAssetTask.h"
