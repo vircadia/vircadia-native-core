@@ -19,7 +19,10 @@
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred) {
    // auto items = input.get<Input>();
 
-    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    // Shadows use an orthographic projection because they are linked to sunlights
+    // but the cullFunctor passed is probably tailored for perspective projection and culls too much.
+    // TODO : create a special cull functor for this. 
+    task.addJob<RenderShadowTask>("RenderShadowTask", nullptr);
 
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());

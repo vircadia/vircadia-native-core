@@ -25,7 +25,7 @@ namespace render {
         static const std::string& getName() { return _name; }
 
         using Index = indexed_container::Index;
-        static const Index INVALID_INDEX{ indexed_container::INVALID_INDEX };
+        static const Index INVALID_INDEX;
         using TransitionIdList = indexed_container::Indices;
 
         static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }

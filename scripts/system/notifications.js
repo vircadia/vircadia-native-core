@@ -210,11 +210,11 @@
             notificationOrientation,
             notificationPosition,
             buttonPosition;
-        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         // Notification plane positions
-        noticeY = -y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
+        noticeY = -sensorScaleFactor * (y * NOTIFICATION_3D_SCALE + 0.5 * noticeHeight);
         notificationPosition = { x: 0, y: noticeY, z: 0 };
-        buttonPosition = { x: (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH) / 2, y: noticeY, z: 0.001 };
+        buttonPosition = { x: 0.5 * sensorScaleFactor * (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH), y: noticeY, z: 0.001 };
 
         // Rotate plane
         notificationOrientation = Quat.fromPitchYawRollDegrees(NOTIFICATIONS_3D_PITCH,
@@ -245,7 +245,7 @@
             noticeHeight,
             positions,
             last;
-        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         if (isOnHMD) {
             // Calculate 3D values from 2D overlay properties.
 
@@ -369,7 +369,7 @@
             buttonProperties,
             i;
 
-        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         if (text.length >= breakPoint) {
             breaks = count;
         }
@@ -453,7 +453,7 @@
     }
 
     function updateNotificationsTexts() {
-        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        var sensorScaleFactor = isOnHMD ? MyAvatar.sensorToWorldScale : 1.0;
         for (var i = 0; i < notifications.length; i++) {
             var overlayType = Overlays.getOverlayType(notifications[i]);
 

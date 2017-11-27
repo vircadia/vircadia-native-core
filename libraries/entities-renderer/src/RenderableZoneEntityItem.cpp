@@ -40,22 +40,26 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     if (_stage) {
         if (!LightStage::isIndexInvalid(_sunIndex)) {
             _stage->removeLight(_sunIndex);
+            _sunIndex = INVALID_INDEX;
+            _shadowIndex = INVALID_INDEX;
         }
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex);
-
+            _ambientIndex = INVALID_INDEX;
         }
     }
 
     if (_backgroundStage) {
         if (!BackgroundStage::isIndexInvalid(_backgroundIndex)) {
             _backgroundStage->removeBackground(_backgroundIndex);
+            _backgroundIndex = INVALID_INDEX;
         }
     }
 
     if (_hazeStage) {
         if (!HazeStage::isIndexInvalid(_hazeIndex)) {
             _hazeStage->removeHaze(_hazeIndex);
+            _hazeIndex = INVALID_INDEX;
         }
     }
 }
@@ -200,8 +204,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     bool hazeChanged = entity->hazePropertiesChanged();
 
     entity->resetRenderingPropertiesChanged();
-    _lastPosition = entity->getPosition();
-    _lastRotation = entity->getRotation();
+    _lastPosition = entity->getWorldPosition();
+    _lastRotation = entity->getWorldOrientation();
     _lastDimensions = entity->getDimensions();
 
     _keyLightProperties = entity->getKeyLightProperties();
@@ -271,13 +275,13 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (entity->getPosition() != _lastPosition) {
+    if (entity->getWorldPosition() != _lastPosition) {
         return true;
     }
     if (entity->getDimensions() != _lastDimensions) {
         return true;
     }
-    if (entity->getRotation() != _lastRotation) {
+    if (entity->getWorldOrientation() != _lastRotation) {
         return true;
     }
 

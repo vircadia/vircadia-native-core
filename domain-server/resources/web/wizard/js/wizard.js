@@ -2,6 +2,8 @@ var Metaverse = {
   accessToken: null
 }
 
+var currentStepNumber;
+
 $(document).ready(function(){
   Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your High Fidelity places.<br><br>" +
     "Please go back and connect your account.";
@@ -9,6 +11,22 @@ $(document).ready(function(){
   $('#connect-account-btn').attr('href', URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
 
   $('[data-toggle="tooltip"]').tooltip();
+
+  $('.perms-link').on('click', function() {
+    var modal_body = '<div>';
+    modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
+    modal_body += '<b>Friends</b> - Users who are your Friends in High Fidelity.</br></br>';
+    modal_body += '<b>Users logged into High Fidelity</b> - Users who are currently logged into High Fidelity.</br></br>';
+    modal_body += '<b>Everyone</b> - Anyone who uses High Fidelity.';
+    modal_body += '</div>';
+
+    dialog = bootbox.dialog({
+      title: "User definition",
+      message: modal_body,
+      closeButton: true
+    });
+    return false;
+  });
 
   $('body').on('click', '.next-button', function() {
     goToNextStep();
@@ -52,8 +70,38 @@ $(document).ready(function(){
     });
   });
 
-  $('body').on('click', '#explore-settings', function() {
-    exploreSettings();
+  $('body').on('click', '#visit-domain', function() {
+    $('#share-link')[0].click();
+  });
+
+  $('input[type=radio][name=connect-radio]').change(function() {
+    var inputs = $('input[type=radio][name=rez-radio]');
+    var disabled = [];
+
+    switch (this.value) {
+      case 'none':
+        disabled = inputs.splice(1);
+        break;
+      case 'friends':
+        disabled = inputs.splice(2);
+        break;
+      case 'logged-in':
+        disabled = inputs.splice(3);
+        break;
+      case 'everyone':
+        disabled = inputs.splice(4);
+        break;
+    }
+
+    $.each(inputs, function() {
+      $(this).prop('disabled', false);
+    });
+    $.each(disabled, function() {
+      if ($(this).prop('checked')) {
+        $(inputs.last()).prop('checked', true);
+      }
+      $(this).prop('disabled', true);
+    });
   });
 
   reloadSettings(function(success) {
@@ -72,13 +120,21 @@ $(document).ready(function(){
   });
 });
 
+function copyToClipboard(element) {
+  var $temp = $("<input>");
+  $("body").append($temp);
+  $temp.val($(element).text()).select();
+  document.execCommand("copy");
+  $temp.remove();
+}
+
 function setupWizardSteps() {
-  var stepsCompleted = Settings.data.values.wizard.steps_completed;
+  currentStepNumber = Settings.data.values.wizard.steps_completed;
   var steps = null;
 
   if (Settings.data.values.wizard.cloud_domain) {
     $('.desktop-only').remove();
-    $('.wizard-step').find('.back-button').hide();
+    $('.wizard-step:first').find('.back-button').hide();
 
     steps = $('.wizard-step');
     $(steps).each(function(i) {
@@ -86,7 +142,7 @@ function setupWizardSteps() {
     });
 
     $('#permissions-description').html('You <span id="username-display"></span>have been assigned administrator privileges to this domain.');
-    $('#admin-description').html('Add more High Fidelity usernames to grant administrator privileges.');
+    $('#admin-description').html('Add more High Fidelity usernames');
   } else {
     $('.cloud-only').remove();
     $('#save-permissions').text("Finish");
@@ -96,18 +152,20 @@ function setupWizardSteps() {
       $(this).children(".step-title").text("Step " + (i + 1) + " of " + steps.length);
     });
 
-    if (stepsCompleted == 0) {
+    if (currentStepNumber == 0) {
       $('#skip-wizard-button').show();
     }
   }
 
-  var currentStep = steps[stepsCompleted];
+  var currentStep = steps[currentStepNumber];
   $(currentStep).show();
 }
 
 function updatePlaceNameLink(address) {
   if (address) {
-    $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + URLs.PLACE_URL + '/' + address + '">' + address + '</a>');
+    var url = URLs.PLACE_URL + '/' + address;
+    $('#place-name-link').html('Your domain is reachable at: <a target="_blank" href="' + url + '">' + address + '</a>');
+    $('#share-field a').attr('href', url).text(url);
   }
 }
 
@@ -204,7 +262,7 @@ function goToNextStep() {
     currentStep.hide();
     nextStep.show();
 
-    var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) + 1;
+    currentStepNumber += 1;
 
     postSettings({
       "wizard": {
@@ -233,7 +291,7 @@ function goToPreviousStep() {
     currentStep.hide();
     previousStep.show();
 
-    var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) - 1;
+    currentStepNumber -= 1;
 
     postSettings({
       "wizard": {
@@ -439,7 +497,7 @@ function saveUsernamePassword() {
     return;
   }
 
-  var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) + 1;
+  currentStepNumber += 1;
 
   var formJSON = {
     "security": {
@@ -458,15 +516,4 @@ function saveUsernamePassword() {
   postSettings(formJSON, function() {
     location.reload();
   });
-}
-
-function exploreSettings() {
-  if ($('#go-to-domain').is(":checked")) {
-    var link = $('#place-name-link a:first');
-    if (link.length > 0) {
-      window.open(link.attr("href"));
-    }
-  }
-
-  goToNextStep();
 }

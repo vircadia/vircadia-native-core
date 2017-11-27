@@ -16,13 +16,11 @@
 #include "Application.h"
 
 
-const float DEFAULT_LINE_WIDTH = 1.0f;
 const bool DEFAULT_IS_SOLID = false;
 const bool DEFAULT_IS_DASHED_LINE = false;
 
 Base3DOverlay::Base3DOverlay() :
     SpatiallyNestable(NestableType::Overlay, QUuid::createUuid()),
-    _lineWidth(DEFAULT_LINE_WIDTH),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
@@ -34,7 +32,6 @@ Base3DOverlay::Base3DOverlay() :
 Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     Overlay(base3DOverlay),
     SpatiallyNestable(NestableType::Overlay, QUuid::createUuid()),
-    _lineWidth(base3DOverlay->_lineWidth),
     _isSolid(base3DOverlay->_isSolid),
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
@@ -114,10 +111,10 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
             properties["parentJointIndex"] = getParentJointIndex();
         }
         if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
-            properties["position"] = vec3toVariant(getPosition());
+            properties["position"] = vec3toVariant(getWorldPosition());
         }
         if (!properties["orientation"].isValid() && !properties["localOrientation"].isValid()) {
-            properties["orientation"] = quatToVariant(getOrientation());
+            properties["orientation"] = quatToVariant(getWorldOrientation());
         }
     }
 
@@ -153,12 +150,6 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         setLocalOrientation(quatFromVariant(properties["orientation"]));
         needRenderItemUpdate = true;
     }
-
-    if (properties["lineWidth"].isValid()) {
-        setLineWidth(properties["lineWidth"].toFloat());
-        needRenderItemUpdate = true;
-    }
-
     if (properties["isSolid"].isValid()) {
         setIsSolid(properties["isSolid"].toBool());
     }
@@ -214,21 +205,18 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
         return _name;
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3toVariant(getPosition());
+        return vec3toVariant(getWorldPosition());
     }
     if (property == "localPosition") {
         return vec3toVariant(getLocalPosition());
     }
     if (property == "rotation" || property == "orientation") {
-        return quatToVariant(getOrientation());
+        return quatToVariant(getWorldOrientation());
     }
     if (property == "localRotation" || property == "localOrientation") {
         return quatToVariant(getLocalOrientation());
     }
-    if (property == "lineWidth") {
-        return _lineWidth;
-    }
-    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filled" || property == "filed") {
         return _isSolid;
     }
     if (property == "isWire" || property == "wire") {
@@ -265,7 +253,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
     // Force the actual update of the render transform through the notify call
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Base3DOverlay::parentDeleted() {
@@ -275,18 +263,21 @@ void Base3DOverlay::parentDeleted() {
 void Base3DOverlay::update(float duration) {
     // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
     // then the correct transform used for rendering is computed in the update transaction and assigned.
-    if (_renderTransformDirty) {
+    if (_renderVariableDirty) {
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             // Capture the render transform value in game loop before
             auto latestTransform = evalRenderTransform();
-            _renderTransformDirty = false;
+            bool latestVisible = getVisible();
+            _renderVariableDirty = false;
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [latestTransform, latestVisible](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
+                    // TODO: overlays need to communicate all relavent render properties through transactions
                     overlay3D->setRenderTransform(latestTransform);
+                    overlay3D->setRenderVisible(latestVisible);
                 }
             });
             scene->enqueueTransaction(transaction);
@@ -294,8 +285,8 @@ void Base3DOverlay::update(float duration) {
     }
 }
 
-void Base3DOverlay::notifyRenderTransformChange() const {
-    _renderTransformDirty = true;
+void Base3DOverlay::notifyRenderVariableChange() const {
+    _renderVariableDirty = true;
 }
 
 Transform Base3DOverlay::evalRenderTransform() {
@@ -306,8 +297,17 @@ void Base3DOverlay::setRenderTransform(const Transform& transform) {
     _renderTransform = transform;
 }
 
+void Base3DOverlay::setRenderVisible(bool visible) {
+    _renderVisible = visible;
+}
+
 SpatialParentTree* Base3DOverlay::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     return entityTree.get();
+}
+
+void Base3DOverlay::setVisible(bool visible) {
+    Parent::setVisible(visible);
+    notifyRenderVariableChange();
 }

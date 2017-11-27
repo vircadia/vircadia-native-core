@@ -170,6 +170,22 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class ExtractFrustums {
+public:
+
+    enum Frustum {
+        VIEW_FRUSTUM,
+        SHADOW_FRUSTUM,
+
+        FRUSTUM_COUNT
+    };
+
+    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+};
+
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
         Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)
@@ -198,6 +214,10 @@ public:
     void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
+private:
+
+    static const render::Varying addSelectItemJobs(JobModel& task, const char* selectionName, 
+                                                   const render::Varying& metas, const render::Varying& opaques, const render::Varying& transparents);
 };
 
 #endif // hifi_RenderDeferredTask_h

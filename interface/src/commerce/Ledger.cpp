@@ -90,7 +90,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -99,13 +99,7 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QSt
         return false; // We know right away that we will fail, so tell the caller.
     }
 
-    QJsonObject transaction;
-    transaction["hfc_key"] = hfc_key;
-    transaction["machine_fingerprint"] = machine_fingerprint;
-    QJsonDocument transactionDoc{ transaction };
-    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-
-    signedSend("transaction", transactionString, old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
@@ -117,14 +111,23 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
-QString nameFromKey(const QString& key, const QStringList& publicKeys) {
-    if (key.isNull() || key.isEmpty()) {
-        return "Marketplace";
+QString amountString(const QString& label, const QString&color, const QJsonValue& moneyValue, const QJsonValue& certsValue) {
+    int money = moneyValue.toInt();
+    int certs = certsValue.toInt();
+    if (money <= 0 && certs <= 0) {
+        return QString();
     }
-    if (publicKeys.contains(key)) {
-        return "You";
+    QString result(QString("<font color='#%1'> %2").arg(color, label));
+    if (money > 0) {
+        result += QString(" %1 HFC").arg(money);
     }
-    return "Someone";
+    if (certs > 0) {
+        if (money > 0) {
+            result += QString(",");
+        }
+        result += QString((certs == 1) ? " %1 certificate" : " %1 certificates").arg(certs);
+    }
+    return result + QString("</font>");
 }
 
 static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
@@ -135,6 +138,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     // public key(s) are.  Let's keep it that way
     QByteArray response = reply.readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
+    qInfo(commerce) << "history" << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
 
     // we will need the array of public keys from the wallet
     auto wallet = DependencyManager::get<Wallet>();
@@ -147,32 +151,15 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     // TODO: do this with 0 copies if possible
     for (auto it = historyArray.begin(); it != historyArray.end(); it++) {
         auto valueObject = (*it).toObject();
-        QString from = nameFromKey(valueObject["sender_key"].toString(), keys);
-        QString to = nameFromKey(valueObject["recipient_key"].toString(), keys);
-        bool isHfc = valueObject["asset_title"].toString() == "HFC";
-        bool iAmReceiving = to == "You";
-        QString coloredQuantityAndAssetTitle = QString::number(valueObject["quantity"].toInt()) + " " + valueObject["asset_title"].toString();
-        if (isHfc) {
-            if (iAmReceiving) {
-                coloredQuantityAndAssetTitle = QString("<font color='#1FC6A6'>") + coloredQuantityAndAssetTitle + QString("</font>");
-            } else {
-                coloredQuantityAndAssetTitle = QString("<font color='#EA4C5F'>") + coloredQuantityAndAssetTitle + QString("</font>");
-            }
-        } else {
-            coloredQuantityAndAssetTitle = QString("\"<font color='#0093C5'><a href='") +
-                MARKETPLACE_ITEMS_BASE_URL +
-                valueObject["asset_id"].toString() +
-                QString("'>") +
-                coloredQuantityAndAssetTitle +
-                QString("</a></font>\"");
-        }
+        QString sent = amountString("sent", "EA4C5F", valueObject["sent_money"], valueObject["sent_certs"]);
+        QString received = amountString("received", "1FC6A6", valueObject["received_money"], valueObject["received_certs"]);
+
         // turns out on my machine, toLocalTime convert to some weird timezone, yet the
         // systemTimeZone is correct.  To avoid a strange bug with other's systems too, lets
         // be explicit
         QDateTime createdAt = QDateTime::fromSecsSinceEpoch(valueObject["created_at"].toInt(), Qt::UTC);
         QDateTime localCreatedAt = createdAt.toTimeZone(QTimeZone::systemTimeZone());
-        valueObject["text"] = QString("%1 sent %2 %3 with message \"%4\"").
-            arg(from, to, coloredQuantityAndAssetTitle, valueObject["message"].toString());
+        valueObject["text"] = QString("%1%2%3").arg(valueObject["message"].toString(), sent, received);
         newHistoryArray.push_back(valueObject);
     }
     // now copy the rest of the json -- this is inefficient

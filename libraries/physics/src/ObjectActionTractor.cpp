@@ -54,8 +54,8 @@ bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, gl
 
         if (!_otherID.isNull()) {
             if (other) {
-                rotation = _desiredRotationalTarget * other->getRotation();
-                position = other->getRotation() * _desiredPositionalTarget + other->getPosition();
+                rotation = _desiredRotationalTarget * other->getWorldOrientation();
+                position = other->getWorldOrientation() * _desiredPositionalTarget + other->getWorldPosition();
             } else {
                 // we should have an "other" but can't find it, so disable the tractor.
                 linearTimeScale = FLT_MAX;

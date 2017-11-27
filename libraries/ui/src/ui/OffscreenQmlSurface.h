@@ -21,6 +21,9 @@
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
 
+#include <QTouchEvent>
+#include "PointerEvent.h"
+
 class QWindow;
 class QMyQuickRenderControl;
 class OffscreenGLCanvas;
@@ -79,11 +82,12 @@ public:
     QObject* getEventHandler();
     QQmlContext* getSurfaceContext();
 
-    QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
+    QPointF mapToVirtualScreen(const QPointF& originalPoint);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
     void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
+    Q_INVOKABLE void lowerKeyboard();
 
     using TextureAndFence = std::pair<uint32_t, void*>;
     // Checks to see if a new texture is available.  If one is, the function returns true and 
@@ -95,6 +99,10 @@ public:
     static std::function<void(uint32_t, void*)> getDiscardLambda();
     static size_t getUsedTextureMemory();
 
+    PointerEvent::EventType choosePointerEventType(QEvent::Type type);
+
+    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+
 signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
@@ -102,6 +110,14 @@ signals:
 public slots:
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
+
+    // audio output device
+public slots:
+    void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
+    void forceHtmlAudioOutputDeviceUpdate();
+    void forceQmlAudioOutputDeviceUpdate();
+signals:
+    void audioOutputDeviceChanged(const QString& deviceName);
 
     // event bridge
 public slots:
@@ -136,6 +152,11 @@ private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
 
+public slots:
+    void hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device);
+    void hoverEndEvent(const PointerEvent& event, class QTouchDevice& device);
+    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
+
 private:
     QQuickWindow* _quickWindow { nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
@@ -161,6 +182,16 @@ private:
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };
+
+    struct TouchState {
+        QTouchEvent::TouchPoint touchPoint;
+        bool hovering { false };
+        bool pressed { false };
+    };
+
+    bool _pressed;
+    bool _touchBeginAccepted { false };
+    std::map<uint32_t, TouchState> _activeTouchPoints;
 };
 
 #endif
