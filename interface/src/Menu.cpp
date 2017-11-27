@@ -689,7 +689,7 @@ Menu::Menu() {
     auto scope = DependencyManager::get<AudioScope>();
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
 
-    action = addActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false);
+    action = addActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope);
     connect(action, &QAction::triggered, [] {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
