@@ -8,6 +8,10 @@ buildscript {
     }
 }
 
+plugins {
+    id 'de.undercouch.download' version '3.3.0'
+}
+
 allprojects {
     repositories {
         jcenter()
@@ -15,42 +19,126 @@ allprojects {
     }
 }
 
-task setupDependencies(type: Copy) {
-    from HIFI_ANDROID_PRECOMPILED + '/jni/arm64-v8a'
-    into 'app/src/main/jniLibs/arm64-v8a'
+
+def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
+def jniFolder = new File('app/src/main/jniLibs/arm64-v8a')
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
+def qtFile='qt-5.9.3_linux_armv8-libcpp.tgz'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    qtFile = 'qt-5.9.3_osx_armv8-libcpp.tgz'
+} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    qtFile = 'qt-5.9.3_win_armv8-libcpp.tgz'
 }
 
-apply from: 'setupQt.gradle'
-setupDependencies.dependsOn setupQt
+def packages = [
+    qt: [ file: qtFile, sharedLibFolder: '', includeLibs: ['lib/*.so', 'plugins/*/*.so'] ],
+    bullet: [ file: 'bullet-2.83_armv8-libcpp.tgz' ],
+    draco: [ file: 'draco_armv8-libcpp.tgz' ],
+    gvr: [ file: 'gvrsdk_v1.101.0.tgz' ],
+    openssl: [ file: 'openssl-1.1.0g_armv8.tgz'],
+    polyvox: [ file: 'polyvox_armv8-libcpp.tgz', sharedLibFolder: 'lib', includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'] ],
+    tbb: [ file: 'tbb-2018_U1_armv8_libcpp.tgz', sharedLibFolder: 'lib/release', includeLibs: ['libtbb.so', 'libtbbmalloc.so'] ]
+]
 
-apply from: 'setupScribe.gradle'
-setupDependencies.dependsOn setupScribe
+task downloadDependencies {
+    doLast {
+        packages.each { entry ->
+            def filename = entry.value['file'];
+            def url = baseUrl + filename;
+            download {
+                src url
+                dest new File(baseFolder, filename)
+                onlyIfNewer true
+            } 
+        }
+    }
+}
 
-apply from: 'setupOpenSSL.gradle'
-setupDependencies.dependsOn setupOpenSSL
+task extractDependencies(dependsOn: downloadDependencies) {
+    doLast {
+        packages.each { entry ->
+            def folder = entry.key;
+            def filename = entry.value['file'];
+            def localFile = new File(HIFI_ANDROID_PRECOMPILED, filename)
+            def localFolder = new File(HIFI_ANDROID_PRECOMPILED, folder)
+            copy {
+                from tarTree(resources.gzip(localFile))
+                into localFolder
+            }
+        }
+    }
+}
 
-apply from: 'setupTBB.gradle'
-setupDependencies.dependsOn setupTBB
+task copyDependencies(dependsOn: extractDependencies) {
+    doLast {
+        packages.each { entry ->
+            def packageName = entry.key
+            def currentPackage = entry.value;
+            if (currentPackage.containsKey('sharedLibFolder')) {
+                def localFolder = new File(baseFolder, packageName + '/' + currentPackage['sharedLibFolder'])
+                def tree = fileTree(localFolder);
+                if (currentPackage.containsKey('includeLibs')) {
+                    currentPackage['includeLibs'].each { includeSpec -> tree.include includeSpec }
+                }
+                tree.visit { element -> 
+                    if (!element.file.isDirectory()) {
+                        copy {  from element.file; into jniFolder }
+                    } 
+                } 
+            }
+        }
+    }
+}
 
-apply from: 'setupGVR.gradle'
-setupDependencies.dependsOn setupGVR
+task setupScribe(type: Exec) {
+    def scribeFile='scribe_linux_x86_64'
+    def scribeLocalFile='scribe'
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        scribeFile = 'scribe_osx_x86_64'
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        scribeFile = 'scribe_win32_x86_64.exe'
+        scribeLocalFile = 'scribe.exe'
+    }
 
-apply from: 'setupDraco.gradle'
-setupDependencies.dependsOn setupDraco
+    doFirst {
+        download { 
+            src baseUrl + scribeFile
+            dest new File(baseFolder, scribeLocalFile)
+            onlyIfNewer true
+        }
+    }
+    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
+    }
+}
 
-apply from: 'setupBullet.gradle'
-setupDependencies.dependsOn setupBullet
-
-apply from: 'setupPolyvox.gradle'
-setupDependencies.dependsOn setupPolyvox
-
-task copyDependencies(type: Copy) {
-    from HIFI_ANDROID_PRECOMPILED + '/jni/arm64-v8a'
-    into 'app/src/main/jniLibs/arm64-v8a'
+task setupDependencies(dependsOn: [setupScribe, copyDependencies]) {
+    doLast {
+        def gvrLibFolder = new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries');
+	    zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar')).visit { element ->
+	        if (element.file.toString().endsWith('arm64-v8a/libgvr_audio.so')) {
+	            copy {  from element.file; into gvrLibFolder }
+	        } 
+	    } 
+	    zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-base-1.101.0.aar')).visit { element ->  
+	        if (element.file.toString().endsWith('arm64-v8a/libgvr.so')) {
+	            copy {  from element.file; into gvrLibFolder }
+	        }
+	    } 
+	    fileTree(gvrLibFolder).visit { element -> 
+            if (element.file.toString().endsWith('.so')) {
+                copy { from element.file; into jniFolder }
+            }
+	    }
+    }
 }
 
 task cleanDependencies(type: Delete) {
     delete HIFI_ANDROID_PRECOMPILED
+    delete 'app/src/main/jniLibs/arm64-v8a'
 }
 
 task clean(type: Delete) {
