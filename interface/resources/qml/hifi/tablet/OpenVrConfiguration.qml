@@ -158,7 +158,6 @@ Rectangle {
         }
 
         RalewayBold {
-            id: hmdInDesktopLabel
             size: 12
             visible: viveInDesktop.checked
             text: "None"

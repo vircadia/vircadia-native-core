@@ -168,7 +168,6 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
         }
 
         if (configurationSettings.contains("hmdDesktopTracking")) {
-
             _hmdDesktopTracking = configurationSettings["hmdDesktopTracking"].toBool();
         }
 
@@ -458,7 +457,7 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
             iter++;
         }
 
-        _hmdTrackingEnabled = !(hmdDesktopMode && !hmdDesktopTracking);
+        _hmdTrackingEnabled = !(hmdDesktopMode && hmdDesktopTracking);
     }
 }
 
