@@ -688,8 +688,15 @@ Menu::Menu() {
 
     auto scope = DependencyManager::get<AudioScope>();
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false,
-        scope.data(), SLOT(toggle()));
+
+    action = addActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_F2, false);
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/audio/audioScope.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
+    
     addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_F2, false,
         scope.data(), SLOT(togglePause()));
 

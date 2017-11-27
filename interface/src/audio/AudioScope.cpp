@@ -22,7 +22,6 @@
 #include "AudioScope.h"
 
 static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
-static const unsigned int SCOPE_WIDTH = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * DEFAULT_FRAMES_PER_SCOPE;
 static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
 static const unsigned int SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
 
@@ -46,6 +45,7 @@ AudioScope::AudioScope() :
     _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
     auto audioIO = DependencyManager::get<AudioClient>();
+    
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
             this, &AudioScope::addStereoSilenceToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
@@ -76,6 +76,14 @@ void AudioScope::selectAudioScopeTwentyFrames() {
 
 void AudioScope::selectAudioScopeFiftyFrames() {
     reallocateScope(50);
+}
+
+void AudioScope::setServerEcho(bool serverEcho) {
+    DependencyManager::get<AudioClient>()->setServerEcho(serverEcho);
+}
+
+float AudioScope::getFramesPerSecond(){
+    return AudioConstants::NETWORK_FRAMES_PER_SEC;
 }
 
 void AudioScope::allocateScope() {
@@ -109,11 +117,6 @@ void AudioScope::freeScope() {
         delete _scopeOutputRight;
         _scopeOutputRight = 0;
     }
-}
-
-void AudioScope::setTriggerValues(float x, float y) {
-    _triggerValues.x = x;
-    _triggerValues.y = y;
 }
 
 QVector<int> AudioScope::getScopeVector(const QByteArray* byteArray, int offset) {
@@ -171,7 +174,7 @@ QVector<int> AudioScope::getScopeVector(const QByteArray* byteArray, int offset)
 bool AudioScope::shouldTrigger(const QVector<int>& scope) {
     int threshold = 4;
     if (_autoTrigger && _triggerValues.x < scope.size()) {
-        for (int i = -2*threshold; i < +2*threshold*2; i++) {
+        for (int i = -4*threshold; i < +4*threshold; i++) {
             int idx = _triggerValues.x + i;
             idx = (idx < 0) ? 0 : (idx < scope.size() ? idx : scope.size() - 1);
             int dif = abs(_triggerValues.y - scope[idx]);
@@ -183,24 +186,28 @@ bool AudioScope::shouldTrigger(const QVector<int>& scope) {
     return false;
 }
 
+void AudioScope::storeTriggerValues() {
+    _triggerInputData = _scopeInputData;
+    _triggerOutputLeftData = _scopeOutputLeftData;
+    _triggerOutputRightData = _scopeOutputRightData;
+    _isTriggered = true;
+}
+
 void AudioScope::computeInputData() {
     _scopeInputData = getScopeVector(_scopeInput, _scopeInputOffset);
     if (shouldTrigger(_scopeInputData)) {
-        _triggerInputData = _scopeInputData;
-        _isTriggered = true;
+        storeTriggerValues();
     }
 }
 
 void AudioScope::computeOutputData() {
     _scopeOutputLeftData = getScopeVector(_scopeOutputLeft, _scopeOutputOffset);
     if (shouldTrigger(_scopeOutputLeftData)) {
-        _triggerOutputLeftData = _scopeOutputLeftData;
-        _isTriggered = true;
+        storeTriggerValues();
     }
     _scopeOutputRightData = getScopeVector(_scopeOutputRight, _scopeOutputOffset);
     if (shouldTrigger(_scopeOutputRightData)) {
-        _triggerOutputRightData = _scopeOutputRightData;
-        _isTriggered = true;
+        storeTriggerValues();
     }
 }
 
@@ -225,7 +232,7 @@ int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const i
 }
 
 int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples) {
-                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                 
     // Short int pointer to mapped samples in byte array
     int16_t* destination = (int16_t*)byteArray->data();
     

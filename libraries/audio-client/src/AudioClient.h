@@ -191,6 +191,9 @@ public slots:
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
+
+    bool getServerEcho() { return _shouldEchoToServer; }
+    void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
 
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);

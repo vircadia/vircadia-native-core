@@ -44,26 +44,24 @@ public slots:
     void setVisible(bool visible);
     bool getVisible() const { return _isEnabled; }
 
-    void togglePause() { _isPaused = !_isPaused; }
-    void setPause(bool paused) { _isPaused = paused; }
+    void togglePause() { setPause(!_isPaused); }
+    void setPause(bool paused) { _isPaused = paused; emit pauseChanged(); }
     bool getPause() { return _isPaused; }
 
     void toggleTrigger() { _autoTrigger = !_autoTrigger; }
     bool getAutoTrigger() { return _autoTrigger; }
-    void setAutoTrigger(bool autoTrigger) { 
-        _isTriggered = false;
-        _autoTrigger = autoTrigger; 
-    }
+    void setAutoTrigger(bool autoTrigger) { _isTriggered = false; _autoTrigger = autoTrigger; }
 
+    void setTriggerValues(int x, int y) { _triggerValues.x = x; _triggerValues.y = y; }
     void setTriggered(bool triggered) { _isTriggered = triggered; }
     bool getTriggered() { return _isTriggered; }
+
+    float getFramesPerSecond();
+    int getFramesPerScope() { return _framesPerScope; }
 
     void selectAudioScopeFiveFrames();
     void selectAudioScopeTwentyFrames();
     void selectAudioScopeFiftyFrames();
-
-    void setEnabled(bool enabled) { _isEnabled = enabled; }
-    bool getEnabled() { return _isEnabled; }
 
     QVector<int> getScopeInput() { return _scopeInputData; };
     QVector<int> getScopeOutputLeft() { return _scopeOutputLeftData; };
@@ -73,8 +71,11 @@ public slots:
     QVector<int> getTriggerOutputLeft() { return _triggerOutputLeftData; };
     QVector<int> getTriggerOutputRight() { return _triggerOutputRightData; };
 
-    void setTriggerValues(float x, float y);
-    
+    void setServerEcho(bool serverEcho);
+
+signals:
+    void pauseChanged();
+
 protected:
     AudioScope();
     
@@ -96,6 +97,8 @@ private:
     bool shouldTrigger(const QVector<int>& scope);
     void computeInputData();
     void computeOutputData();
+
+    void storeTriggerValues();
 
     bool _isEnabled;
     bool _isPaused;
@@ -120,7 +123,7 @@ private:
     QVector<int> _triggerOutputRightData;
 
     
-    glm::vec2 _triggerValues;
+    glm::ivec2 _triggerValues;
 
     int _audioScopeBackground;
     int _audioScopeGrid;

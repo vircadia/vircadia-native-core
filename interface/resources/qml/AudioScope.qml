@@ -17,33 +17,92 @@ Item {
     width: parent.width
     height: parent.height   
     
-    property var _scopedata 
-    property var _triggerdata
-    property var _triggerValues
-    property var _triggered
+    property var _scopeInputData 
+    property var _scopeOutputLeftData
+    property var _scopeOutputRightData
+    
+    property var _triggerInputData 
+    property var _triggerOutputLeftData
+    property var _triggerOutputRightData
+    
+    property var _triggerValues: QtObject{ 
+        property int x: parent.width/2 
+        property int y: parent.height/3
+    }
+    
+    property var _triggered: false
     property var _steps
+    property var _refreshMs: 10
+    property var _framesPerSecond: AudioScope.getFramesPerSecond()
+    property var _isFrameUnits: true
     
-    Component.onCompleted: {
-        // createValues();   
-        _triggerValues = { x: width/2, y: height/3 }
-        _triggered = false
-        _steps = 5
+    property var _holdStart: QtObject{ 
+        property int x: 0
+        property int y: 0
     }
     
+    property var _holdEnd: QtObject{ 
+        property int x: 0 
+        property int y: 0
+    }
     
+    property var _timeBeforeHold: 100;
+    property var _pressedTime: 0;
+    property var _isPressed: false;
+    
+    function isHolding() {
+        return (_pressedTime > _timeBeforeHold); 
+    }
+    
+    function updateMeasureUnits() {
+        timeButton.text = _isFrameUnits ? "Display Frames" : "Milliseconds";
+        fiveLabel.text = _isFrameUnits ? "5" : "" + (Math.round(1000 * 5.0/_framesPerSecond));
+        twentyLabel.text = _isFrameUnits ? "20" : "" + (Math.round(1000 * 20.0/_framesPerSecond));
+        fiftyLabel.text = _isFrameUnits ? "50" : "" + (Math.round(1000 * 50.0/_framesPerSecond));
+    }
+    
+    function collectScopeData() {
+        if (inputCh.checked) { 
+            _scopeInputData  = AudioScope.scopeInput;
+        }
+        if (outputLeftCh.checked) {
+            _scopeOutputLeftData  = AudioScope.scopeOutputLeft;
+        }
+        if (outputRightCh.checked) {
+            _scopeOutputRightData  = AudioScope.scopeOutputRight;
+        }
+    }
+    
+    function collectTriggerData() {
+        if (inputCh.checked) { 
+            _triggerInputData  = AudioScope.triggerInput;
+        }
+        if (outputLeftCh.checked) {
+            _triggerOutputLeftData  = AudioScope.triggerOutputLeft;
+        }
+        if (outputRightCh.checked) {
+            _triggerOutputRightData  = AudioScope.triggerOutputRight;
+        }
+    }
+        
     function pullFreshValues() {
-        if (!AudioScope.getPause()){
-            _scopedata = AudioScope.scopeInput
+        if (!AudioScope.getPause()){        
             if (AudioScope.getTriggered()) {
-                _triggered = true
-                _triggerdata = AudioScope.triggerInput
-            }
+                _triggered = true;
+                collectTriggerData();
+            } else {
+                collectScopeData();
+            }               
         } 
-        mycanvas.requestPaint()
+        if (inputCh.checked || outputLeftCh.checked || outputRightCh.checked) {
+            mycanvas.requestPaint();
+        }
     }
+    
+    
 
     Timer {
-        interval: 10; running: true; repeat: true
+        interval: _refreshMs; running: true; repeat: true
         onTriggered: pullFreshValues()
     }
 
@@ -52,51 +111,74 @@ Item {
         anchors.fill:parent
         
         onPaint: {
-            var lineHeight = 12;
-            
-            function displayTrigger(ctx) {
-                var size = 3;
-                ctx.lineWidth="3";
-                ctx.strokeStyle="#EFB400";
-                ctx.beginPath();
-                ctx.moveTo(_triggerValues.x - (size + 2), _triggerValues.y); 
-                ctx.lineTo(_triggerValues.x - 2, _triggerValues.y); 
-                ctx.moveTo(_triggerValues.x + 2, _triggerValues.y); 
-                ctx.lineTo(_triggerValues.x + (size + 2), _triggerValues.y); 
+        
+            function displayMeasureArea(ctx) {
                 
-                ctx.moveTo(_triggerValues.x, _triggerValues.y - (size + 2)); 
-                ctx.lineTo(_triggerValues.x, _triggerValues.y - 2); 
-                ctx.moveTo(_triggerValues.x, _triggerValues.y + 2); 
-                ctx.lineTo(_triggerValues.x, _triggerValues.y + (size + 2));
+                ctx.fillStyle = Qt.rgba(0.1, 0.1, 0.1, 1);
+                ctx.fillRect(_holdStart.x, 0, _holdEnd.x - _holdStart.x, height);
+                
+                ctx.lineWidth = "2";
+                ctx.strokeStyle = "#555555";
+                
+                ctx.beginPath();
+                ctx.moveTo(_holdStart.x, 0); 
+                ctx.lineTo(_holdStart.x, height);
+                ctx.moveTo(_holdEnd.x, 0); 
+                ctx.lineTo(_holdEnd.x, height); 
+                                
+                ctx.moveTo(_holdStart.x, _holdStart.y); 
+                ctx.lineTo(_holdEnd.x, _holdStart.y); 
+                ctx.moveTo(_holdEnd.x, _holdEnd.y); 
+                ctx.lineTo(_holdStart.x, _holdEnd.y);
+                
+                ctx.stroke();
+            }
+            
+            function displayTrigger(ctx, lineWidth, color) {
+                var crossSize = 3;
+                var holeSize = 2;
+                
+                ctx.lineWidth = lineWidth;
+                ctx.strokeStyle = color;
+                
+                ctx.beginPath();
+                ctx.moveTo(_triggerValues.x - (crossSize + holeSize), _triggerValues.y); 
+                ctx.lineTo(_triggerValues.x - holeSize, _triggerValues.y); 
+                ctx.moveTo(_triggerValues.x + holeSize, _triggerValues.y); 
+                ctx.lineTo(_triggerValues.x + (crossSize + holeSize), _triggerValues.y); 
+                
+                ctx.moveTo(_triggerValues.x, _triggerValues.y - (crossSize + holeSize)); 
+                ctx.lineTo(_triggerValues.x, _triggerValues.y - holeSize); 
+                ctx.moveTo(_triggerValues.x, _triggerValues.y + holeSize); 
+                ctx.lineTo(_triggerValues.x, _triggerValues.y + (crossSize + holeSize));
 
                 ctx.stroke();
             }
             
-            function displayBackground(ctx, datawidth, steps, color) {
-                ctx.fillStyle = Qt.rgba(0, 0, 0, 1);
-                ctx.fillRect(0, 0, width, height);
+            function displayBackground(ctx, datawidth, steps, lineWidth, color) {
+                var verticalPadding = 100;
                 
-                ctx.strokeStyle= color;
-                ctx.lineWidth="1";
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
  
                 ctx.moveTo(0, height/2); 
                 ctx.lineTo(datawidth, height/2);
                 
                 var gap = datawidth/steps;
                 for (var i = 0; i < steps; i++) {
-                    ctx.moveTo(i*gap + 1, 100); 
-                    ctx.lineTo(i*gap + 1, height-100); 
+                    ctx.moveTo(i*gap + 1, verticalPadding); 
+                    ctx.lineTo(i*gap + 1, height-verticalPadding); 
                 }
-                ctx.moveTo(datawidth-1, 100); 
-                ctx.lineTo(datawidth-1, height-100); 
-                ctx.stroke();
+                ctx.moveTo(datawidth-1, verticalPadding); 
+                ctx.lineTo(datawidth-1, height-verticalPadding); 
                 
+                ctx.stroke();
             }
             
             function drawScope(ctx, data, width, color) {
                 ctx.beginPath();
-                ctx.strokeStyle = color; // Green path
-                ctx.lineWidth=width;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = width;
                 var x = 0;
                 for (var i = 0; i < data.length-1; i++) {
                     ctx.moveTo(x, data[i] + height/2); 
@@ -105,18 +187,91 @@ Item {
                 ctx.stroke();
             }
             
+            function getMeasurementText(dist) {
+                var datasize = _scopeInputData.length;
+                var value = 0;
+                if (fiveFrames.checked) {
+                    value = (_isFrameUnits) ? 5.0*dist/datasize : (Math.round(1000 * 5.0/_framesPerSecond))*dist/datasize;
+                } else if (twentyFrames.checked) {
+                    value = (_isFrameUnits) ? 20.0*dist/datasize : (Math.round(1000 * 20.0/_framesPerSecond))*dist/datasize;
+                } else if (fiftyFrames.checked) {
+                    value = (_isFrameUnits) ? 50.0*dist/datasize : (Math.round(1000 * 50.0/_framesPerSecond))*dist/datasize;
+                }
+                value = Math.abs(Math.round(value*100)/100);
+                var measureText = "" + value + (_isFrameUnits ? " frames" : " milliseconds");
+                return measureText;
+            }
             
+            function drawMeasurements(ctx, color) {
+                ctx.fillStyle = color;
+                ctx.font = "normal 16px sans-serif";
+                var fontwidth = 8;
+                var measureText = getMeasurementText(_holdEnd.x - _holdStart.x);
+                if (_holdStart.x < _holdEnd.x) {
+                    ctx.fillText("" + height/2 - _holdStart.y, _holdStart.x-40, _holdStart.y);
+                    ctx.fillText("" + height/2 - _holdEnd.y, _holdStart.x-40, _holdEnd.y);  
+                    ctx.fillText(measureText, _holdEnd.x+10, _holdEnd.y);                   
+                } else {
+                    ctx.fillText("" + height/2 - _holdStart.y, _holdStart.x+10, _holdStart.y);
+                    ctx.fillText("" + height/2 - _holdEnd.y, _holdStart.x+10, _holdEnd.y); 
+                    ctx.fillText(measureText, _holdEnd.x-fontwidth*measureText.length, _holdEnd.y);  
+                }                               
+            }
             
             var ctx = getContext("2d");
-
-            displayBackground(ctx, _scopedata.length, _steps, "#555555");
+            
+            ctx.fillStyle = Qt.rgba(0, 0, 0, 1);
+            ctx.fillRect(0, 0, width, height);
                 
-            drawScope(ctx, _scopedata, "2", "#00B4EF");
-            if (_triggered) {
-                drawScope(ctx, _triggerdata, "1", "#EF0000");
+            if (isHolding()) {
+                displayMeasureArea(ctx);
             }
+
+            var guideLinesColor = "#555555"
+            var guideLinesWidth = "1"
+            
+            displayBackground(ctx, _scopeInputData.length, _steps, guideLinesWidth, guideLinesColor);
+                
+            var triggerWidth = "3"
+            var triggerColor = "#EFB400"
+            
             if (AudioScope.getAutoTrigger()) {
-                displayTrigger(ctx);
+                displayTrigger(ctx, triggerWidth, triggerColor);
+            }
+            
+            var scopeWidth = "2"
+            var scopeInputColor = "#00B4EF"
+            var scopeOutputLeftColor = "#BB0000"
+            var scopeOutputRightColor = "#00BB00"
+            
+            if (!_triggered) {
+                if (inputCh.checked) {
+                    drawScope(ctx, _scopeInputData, scopeWidth, scopeInputColor);
+                }
+                if (outputLeftCh.checked) {
+                    drawScope(ctx, _scopeOutputLeftData, scopeWidth, scopeOutputLeftColor);
+                }
+                if (outputRightCh.checked) {
+                    drawScope(ctx, _scopeOutputRightData, scopeWidth, scopeOutputRightColor);
+                }   
+            } else {
+                if (inputCh.checked) {
+                    drawScope(ctx, _triggerInputData, scopeWidth, scopeInputColor);
+                }
+                if (outputLeftCh.checked) {
+                    drawScope(ctx, _triggerOutputLeftData, scopeWidth, scopeOutputLeftColor);
+                }
+                if (outputRightCh.checked) {
+                    drawScope(ctx, _triggerOutputRightData, scopeWidth, scopeOutputRightColor);
+                }
+            }
+            
+            if (isHolding()) {
+                drawMeasurements(ctx, "#eeeeee");
+            }
+            
+            if (_isPressed) {
+                _pressedTime += _refreshMs;
             }
         }
     }
@@ -125,10 +280,24 @@ Item {
         id: hitbox
         anchors.fill: mycanvas
         hoverEnabled: true
-        onClicked: {
-            _triggerValues.x = mouseX
-            _triggerValues.y = mouseY
-            AudioScope.setTriggerValues(mouseX, mouseY-height/2);
+        onPressed: {
+            _isPressed = true;
+            _pressedTime = 0;
+            _holdStart.x = mouseX;
+            _holdStart.y = mouseY;
+        }
+        onPositionChanged: {
+            _holdEnd.x = mouseX;
+            _holdEnd.y = mouseY;
+        }
+        onReleased: {
+            if (!isHolding() && AudioScope.getAutoTrigger()) {
+                _triggerValues.x = mouseX
+                _triggerValues.y = mouseY
+                AudioScope.setTriggerValues(mouseX, mouseY-height/2);
+            }
+            _isPressed = false;
+            _pressedTime = 0;
         }
     }
     
@@ -139,18 +308,60 @@ Item {
         anchors.left: parent.left;
         anchors.topMargin: 20;
         anchors.leftMargin: 20;
-        checked: AudioScope.getEnabled();
+        checked: AudioScope.getVisible();
+        onCheckedChanged: {     
+            AudioScope.setVisible(!AudioScope.getVisible());
+            activelabel.text = AudioScope.getVisible() ? "On" : "Off"
+        }
+    }
+          
+    HifiControlsUit.Label {
+        id: activelabel
+        text: AudioScope.getVisible() ? "On" : "Off"
+        anchors.top: activated.top;
+        anchors.left: activated.right;
+    }
+    
+    HifiControlsUit.CheckBox {
+        id: outputLeftCh
+        boxSize: 20
+        text: "Output L"
+        anchors.horizontalCenter: parent.horizontalCenter;
+        anchors.top: parent.top;
+        anchors.topMargin: 8;
         onCheckedChanged: {
-            AudioScope.setEnabled(checked);
-            activelabel.text = AudioScope.getEnabled() ? "On" : "Off"
+            AudioScope.setServerEcho(outputLeftCh.checked || outputRightCh.checked);
+        }
+    }
+    HifiControlsUit.Label {
+        text: "Channels";
+        anchors.horizontalCenter: outputLeftCh.horizontalCenter;
+        anchors.bottom: outputLeftCh.top;
+        anchors.bottomMargin: 8;
+    }
+    
+    HifiControlsUit.CheckBox {
+        id: inputCh
+        boxSize: 20
+        text: "Input Mono"
+        anchors.bottom: outputLeftCh.bottom;
+        anchors.right: outputLeftCh.left;
+        anchors.rightMargin: 80;
+        checked: true;
+        onCheckedChanged: {
         }
     }
     
-    HifiControlsUit.Label {
-        id: activelabel
-        text: AudioScope.getEnabled() ? "On" : "Off"
-        anchors.top: activated.top;
-        anchors.left: activated.right;
+    HifiControlsUit.CheckBox {
+        id: outputRightCh
+        boxSize: 20
+        text: "Output R"
+        anchors.bottom: outputLeftCh.bottom;
+        anchors.left: outputLeftCh.right;
+        anchors.leftMargin: 80;
+        onCheckedChanged: {
+            AudioScope.setServerEcho(outputLeftCh.checked || outputRightCh.checked);
+        }
     }
     
     HifiControlsUit.Button {
@@ -162,19 +373,16 @@ Item {
         anchors.rightMargin: 30;
         anchors.bottomMargin: 8;
         height: 26;
-        text: "Pause Scope";
+        text: " Pause ";
         onClicked: {
             AudioScope.togglePause();
-            pauseButton.text = AudioScope.getPause() ? "Continue Scope" : "Pause Scope";
         }
     }
-    
-
     
     HifiControlsUit.CheckBox {
         id: twentyFrames
         boxSize: 20
-        anchors.horizontalCenter: parent.horizontalCenter;
+        anchors.left: parent.horizontalCenter;
         anchors.bottom: parent.bottom;
         anchors.bottomMargin: 8;
         onCheckedChanged: {
@@ -188,18 +396,35 @@ Item {
             }
         }
     }
+    
     HifiControlsUit.Label {
-        text: "20 Frames";
+        id:twentyLabel
+        anchors.left: twentyFrames.right;
+        anchors.verticalCenter: twentyFrames.verticalCenter;
+    }
+    
+    HifiControlsUit.Button {
+        id: timeButton;
+        color: hifi.buttons.black;
+        colorScheme: hifi.colorSchemes.dark;
+        text: "Display Frames";
         anchors.horizontalCenter: twentyFrames.horizontalCenter;
         anchors.bottom: twentyFrames.top;
+        anchors.bottomMargin: 8;
+        height: 26;
+        onClicked: {
+            _isFrameUnits = !_isFrameUnits;
+            updateMeasureUnits();
+        }
     }
     
     HifiControlsUit.CheckBox {
         id: fiveFrames
         boxSize: 20
-        anchors.bottom: twentyFrames.bottom;
-        anchors.right: twentyFrames.left;
-        anchors.rightMargin: 80;
+        anchors.horizontalCenter: parent.horizontalCenter;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: 8;
+        anchors.horizontalCenterOffset: -50;
         checked: true;
         onCheckedChanged: {
             if (checked) {
@@ -214,17 +439,18 @@ Item {
     }
     
     HifiControlsUit.Label {
-        text: "5 Frames";
-        anchors.horizontalCenter: fiveFrames.horizontalCenter;
-        anchors.bottom: fiveFrames.top;
+        id:fiveLabel
+        anchors.left: fiveFrames.right;
+        anchors.verticalCenter: fiveFrames.verticalCenter;
     }
     
     HifiControlsUit.CheckBox {
         id: fiftyFrames
         boxSize: 20
-        anchors.bottom: twentyFrames.bottom;
-        anchors.left: twentyFrames.right;
-        anchors.leftMargin: 80;
+        anchors.horizontalCenter: parent.horizontalCenter;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: 8;
+        anchors.horizontalCenterOffset: 70;
         onCheckedChanged: {
             if (checked) {
                 twentyFrames.checked = false;
@@ -238,9 +464,9 @@ Item {
     }
     
     HifiControlsUit.Label {
-        text: "50 Frames";
-        anchors.horizontalCenter: fiftyFrames.horizontalCenter;
-        anchors.bottom: fiftyFrames.top;
+        id:fiftyLabel
+        anchors.left: fiftyFrames.right;
+        anchors.verticalCenter: fiftyFrames.verticalCenter;
     }
     
     HifiControlsUit.Switch {
@@ -259,10 +485,29 @@ Item {
             AudioScope.setAutoTrigger(checked);
         }
     }
+    
     HifiControlsUit.Label {
         text: "Trigger";
         anchors.left: triggerSwitch.left;
         anchors.leftMargin: -15;
         anchors.bottom: triggerSwitch.top;
+    }
+    
+    Component.onCompleted: {  
+        _steps = AudioScope.getFramesPerScope();
+        AudioScope.setTriggerValues(_triggerValues.x, _triggerValues.y-root.height/2);
+        activated.checked = true;
+        updateMeasureUnits();
+    }
+        
+    Component.onDestruction: {
+        AudioScope.setVisible(false);
+    }
+    
+    Connections {
+        target: AudioScope
+        onPauseChanged: {
+            pauseButton.text = AudioScope.getPause() ? "Continue" : " Pause ";
+        }
     }
 }
