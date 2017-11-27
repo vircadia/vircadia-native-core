@@ -803,6 +803,11 @@ Rectangle {
         anchors.leftMargin: leftMargin + 10
         
         onClicked: {
+            if (!checked & hmdInDesktop.checked) {
+                headBox.checked = true;
+                headPuckBox.checked = false;
+                hmdInDesktop.checked = false;
+            }
             sendConfigurationSettings();
         }
     }
