@@ -39,72 +39,128 @@ FocusScope {
     implicitHeight: comboBox.height;
     focus: true
 
-    Rectangle {
-        id: background
-        gradient: Gradient {
-            GradientStop {
-                position: 0.2
-                color: popup.visible
-                       ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
-                       : (isLightColorScheme ? hifi.colors.dropDownLightStart : hifi.colors.dropDownDarkStart)
-            }
-            GradientStop {
-                position: 1.0
-                color: popup.visible
-                       ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
-                       : (isLightColorScheme ? hifi.colors.dropDownLightFinish : hifi.colors.dropDownDarkFinish)
-            }
-        }
-        anchors.fill: parent
-    }
-
-    SystemPalette { id: palette }
+    //SystemPalette { id: palette }
 
     ComboBox {
         id: comboBox
         anchors.fill: parent
-        visible: false
+        hoverEnabled: true
+        visible: true
+
         height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
-    }
-
-    FiraSansSemiBold {
-        id: textField
-        anchors {
-            left: parent.left
-            leftMargin: hifi.dimensions.textPadding
-            right: dropIcon.left
-            verticalCenter: parent.verticalCenter
-        }
-        size: hifi.fontSizes.textFieldInput
-        text: comboBox.currentText
-        elide: Text.ElideRight
-        color: controlHover.containsMouse || popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText )
-    }
-
-    Item {
-        id: dropIcon
-        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-        height: background.height
-        width: height
-        Rectangle {
-            width: 1
-            height: parent.height
-            anchors.top: parent.top
-            anchors.left: parent.left
-            color: isLightColorScheme ? hifi.colors.faintGray : hifi.colors.baseGray
-        }
-        HiFiGlyphs {
-            anchors {
-                top: parent.top
-                topMargin: -11
-                horizontalCenter: parent.horizontalCenter
+        background: Rectangle {
+            id: background
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.2
+                    color: comboBox.popup.visible
+                           ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
+                           : (isLightColorScheme ? hifi.colors.dropDownLightStart : hifi.colors.dropDownDarkStart)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: comboBox.popup.visible
+                           ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
+                           : (isLightColorScheme ? hifi.colors.dropDownLightFinish : hifi.colors.dropDownDarkFinish)
+                }
             }
-            size: hifi.dimensions.spinnerSize
-            text: hifi.glyphs.caratDn
-            color: controlHover.containsMouse || popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText)
         }
-    }
 
+        indicator: Item {
+            id: dropIcon
+            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+            height: background.height
+            width: height
+            Rectangle {
+                width: 1
+                height: parent.height
+                anchors.top: parent.top
+                anchors.left: parent.left
+                color: isLightColorScheme ? hifi.colors.faintGray : hifi.colors.baseGray
+            }
+            HiFiGlyphs {
+                anchors { top: parent.top; topMargin: -11; horizontalCenter: parent.horizontalCenter }
+                size: hifi.dimensions.spinnerSize
+                text: hifi.glyphs.caratDn
+                color: comboBox.hovered || comboBox.popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText)
+            }
+        }
+
+        contentItem: FiraSansSemiBold {
+            id: textField
+            anchors {
+                left: parent.left
+                leftMargin: hifi.dimensions.textPadding
+                verticalCenter: parent.verticalCenter
+            }
+            size: hifi.fontSizes.textFieldInput
+            text: comboBox.currentText
+            elide: Text.ElideRight
+            color: comboBox.hovered || comboBox.popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText )
+        }
+
+        delegate: ItemDelegate {
+            id: itemDelegate
+            hoverEnabled: true
+            width: root.width + 4
+            height: popupText.implicitHeight * 1.4
+
+            onHoveredChanged: {
+                itemDelegate.highlighted = hovered;
+            }
+
+            background: Rectangle {
+                color: itemDelegate.highlighted ? hifi.colors.primaryHighlight
+                                                : (isLightColorScheme ? hifi.colors.dropDownPressedLight
+                                                                      : hifi.colors.dropDownPressedDark)
+            }
+
+            contentItem: FiraSansSemiBold {
+                id: popupText
+                anchors.left: parent.left
+                anchors.leftMargin: hifi.dimensions.textPadding
+                anchors.verticalCenter: parent.verticalCenter
+                text: comboBox.model[index] ? comboBox.model[index] : (comboBox.model.get && comboBox.model.get(index).text ? comboBox.model.get(index).text : "")
+                size: hifi.fontSizes.textFieldInput
+                color: hifi.colors.baseGray
+            }
+        }
+        popup: Popup {
+            y: comboBox.height - 1
+            width: comboBox.width
+            implicitHeight: dropdownHeight
+            padding: 1
+
+            contentItem: ListView {
+                id: listView
+                clip: true
+                implicitHeight: dropdownHeight
+                model: comboBox.popup.visible ? comboBox.delegateModel : null
+                currentIndex: comboBox.highlightedIndex
+                delegate: comboBox.delegate
+                ScrollBar.vertical: HifiControls.ScrollBar {
+                    id: scrollbar
+                    parent: listView
+                    policy: ScrollBar.AsNeeded
+                    visible: size < 1.0
+                }
+            }
+
+            background: Rectangle {
+                color: hifi.colors.baseGray
+            }
+        }
+//            MouseArea {
+//                id: popupHover
+//                anchors.fill: parent;
+//                hoverEnabled: scrollView.hoverEnabled;
+//                onEntered: listView.currentIndex = index;
+//                onClicked: popup.selectSpecificItem(index);
+//            }
+//        }
+//        }
+    }
+/*
     MouseArea {
         id: controlHover
         hoverEnabled: true
@@ -178,28 +234,20 @@ FocusScope {
             width: root.width + 4
             hoverEnabled: false;
 
-//            style: ScrollViewStyle {
-//                decrementControl: Item {
-//                    visible: false
-//                }
-//                incrementControl: Item {
-//                    visible: false
-//                }
-                background: Rectangle{
-                    implicitWidth: 20
-                    color: hifi.colors.baseGray
-                }
+            background: Rectangle{
+                implicitWidth: 20
+                color: hifi.colors.baseGray
+            }
 
-                contentItem: Rectangle {
-                    implicitWidth: 16
-                    anchors.left: parent.left
-                    anchors.leftMargin: 3
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    radius: 6
-                    color: hifi.colors.lightGrayText
-                }
-//            }
+            contentItem: Rectangle {
+                implicitWidth: 16
+                anchors.left: parent.left
+                anchors.leftMargin: 3
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                radius: 6
+                color: hifi.colors.lightGrayText
+            }
 
             ListView {
                 id: listView
@@ -230,7 +278,7 @@ FocusScope {
             }
         }
     }
-
+*/
     HifiControls.Label {
         id: comboBoxLabel
         text: root.label
@@ -243,5 +291,9 @@ FocusScope {
 
     Component.onCompleted: {
         isDesktop = (typeof desktop !== "undefined");
+        comboBox.popup.closePolicy = Popup.CloseOnPressOutside
+        comboBox.popup.height = dropdownHeight
+        //TODO: do we need this?
+        comboBox.popup.z =  isDesktop ? desktop.zLevels.menu : 12
     }
 }
