@@ -39,15 +39,21 @@ FocusScope {
     implicitHeight: comboBox.height;
     focus: true
 
-    //SystemPalette { id: palette }
-
     ComboBox {
         id: comboBox
         anchors.fill: parent
         hoverEnabled: true
         visible: true
-
         height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
+
+        onPressedChanged: {
+            console.warn("on pressed", pressed, popup.visible)
+            if (!pressed && popup.visible) {
+                popup.visible = false
+                down = undefined
+            }
+        }
+
         background: Rectangle {
             id: background
             gradient: Gradient {
@@ -120,7 +126,9 @@ FocusScope {
                 anchors.left: parent.left
                 anchors.leftMargin: hifi.dimensions.textPadding
                 anchors.verticalCenter: parent.verticalCenter
-                text: comboBox.model[index] ? comboBox.model[index] : (comboBox.model.get && comboBox.model.get(index).text ? comboBox.model.get(index).text : "")
+                text: comboBox.model[index] ? comboBox.model[index]
+                                            : (comboBox.model.get && comboBox.model.get(index).text ?
+                                                   comboBox.model.get(index).text : "")
                 size: hifi.fontSizes.textFieldInput
                 color: hifi.colors.baseGray
             }
@@ -128,13 +136,16 @@ FocusScope {
         popup: Popup {
             y: comboBox.height - 1
             width: comboBox.width
-            implicitHeight: dropdownHeight
-            padding: 1
+            implicitHeight: listView.contentHeight > dropdownHeight ? dropdownHeight
+                                                                    : listView.contentHeight
+            padding: 0
+            topPadding: 1
+            closePolicy: Popup.NoAutoClose
+            onVisibleChanged: console.warn("popup", visible)
 
             contentItem: ListView {
                 id: listView
                 clip: true
-                implicitHeight: dropdownHeight
                 model: comboBox.popup.visible ? comboBox.delegateModel : null
                 currentIndex: comboBox.highlightedIndex
                 delegate: comboBox.delegate
@@ -291,8 +302,6 @@ FocusScope {
 
     Component.onCompleted: {
         isDesktop = (typeof desktop !== "undefined");
-        comboBox.popup.closePolicy = Popup.CloseOnPressOutside
-        comboBox.popup.height = dropdownHeight
         //TODO: do we need this?
         comboBox.popup.z =  isDesktop ? desktop.zLevels.menu : 12
     }
