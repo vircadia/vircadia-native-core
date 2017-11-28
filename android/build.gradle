@@ -24,8 +24,6 @@ def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def jniFolder = new File('app/src/main/jniLibs/arm64-v8a')
 
 import org.apache.tools.ant.taskdefs.condition.Os
-import de.undercouch.gradle.tasks.download.Verify
-
 
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
 def qtFile='qt-5.9.3_linux_armv8-libcpp.tgz'
@@ -89,6 +87,8 @@ task downloadDependencies {
     }
 }
 
+import de.undercouch.gradle.tasks.download.Verify
+
 task verifyQt(type: Verify) { def p = packages['qt'];  src new File(baseFolder, p['file']);  checksum p['checksum']; }
 task verifyBullet(type: Verify) { def p = packages['bullet']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyDraco(type: Verify) { def p = packages['draco']; src new File(baseFolder, p['file']); checksum p['checksum'] }
@@ -142,28 +142,41 @@ task copyDependencies(dependsOn: extractDependencies) {
     }
 }
 
-task setupScribe {
-    def scribeFile='scribe_linux_x86_64'
-    def scribeLocalFile='scribe'
-    if (Os.isFamily(Os.FAMILY_MAC)) {
-        scribeFile = 'scribe_osx_x86_64'
-    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        scribeFile = 'scribe_win32_x86_64.exe'
-        scribeLocalFile = 'scribe.exe'
-    }
+def scribeFile='scribe_linux_x86_64'
+def scribeLocalFile='scribe'
+def scribeChecksum='c98678d9726bd8bbf1bab792acf3ff6c'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    scribeFile = 'scribe_osx_x86_64'
+    scribeChecksum='a137ad62c1bf7cca739da219544a9a16'
+} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    scribeFile = 'scribe_win32_x86_64.exe'
+    scribeLocalFile = 'scribe.exe'
+    scribeChecksum='75c2ce9ed45d17de375e3988bfaba816'
 
-    doFirst {
-        download { 
-            src baseUrl + scribeFile
-            dest new File(baseFolder, scribeLocalFile)
-            onlyIfNewer true
-        }
-    }
-    doLast {
-        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
-            commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
-        }
-    }
+}
+
+import de.undercouch.gradle.tasks.download.Download
+
+task downloadScribe(type: Download) {
+    src baseUrl + scribeFile
+    dest new File(baseFolder, scribeLocalFile)
+    onlyIfNewer true
+}
+
+task verifyScribe (type: Verify, dependsOn: downloadScribe) {
+    src new File(baseFolder, scribeLocalFile);
+    checksum scribeChecksum
+}
+
+task fixScribePermissions(type: Exec, dependsOn: verifyScribe) {
+    commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
+}
+
+task setupScribe(dependsOn: verifyScribe) { }
+
+// On Windows, we don't need to set the executable bit, but on OSX and Unix we do
+if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+    setupScribe.dependsOn fixScribePermissions
 }
 
 task extractGvrBinaries(dependsOn: extractDependencies) {
