@@ -1006,14 +1006,11 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
         if (!_spectatorCameraNetworkTexture) {
             _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
         }
-        if (_spectatorCameraFramebuffer) {
-            texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
-            if (texture) {
-                texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
-                _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
-                return _spectatorCameraNetworkTexture;
-            }
+        if (!_spectatorCameraFramebuffer) {
+            getSpectatorCameraFramebuffer(); // initialize frame buffer
         }
+        updateSpectatorCameraNetworkTexture();
+        return _spectatorCameraNetworkTexture;
     }
     // FIXME: Generalize this, DRY up this code
     if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
@@ -1052,7 +1049,18 @@ const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer(int w
     // If we aren't taking a screenshot, we might need to resize or create the camera buffer
     if (!_spectatorCameraFramebuffer || _spectatorCameraFramebuffer->getWidth() != width || _spectatorCameraFramebuffer->getHeight() != height) {
         _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
+        updateSpectatorCameraNetworkTexture();
         emit spectatorCameraFramebufferReset();
     }
     return _spectatorCameraFramebuffer;
+}
+
+void TextureCache::updateSpectatorCameraNetworkTexture() {
+    if (_spectatorCameraFramebuffer && _spectatorCameraNetworkTexture) {
+        gpu::TexturePointer texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
+        if (texture) {
+            texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
+            _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+        }
+    }
 }
