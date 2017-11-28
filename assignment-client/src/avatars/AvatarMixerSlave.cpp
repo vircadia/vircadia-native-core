@@ -236,8 +236,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // ignore or sort
     const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
-    for (size_t i = 0; i < avatarsToSort.size(); ++i) {
-        const AvatarSharedPointer& avatar = avatarsToSort[i];
+    for (const auto& avatar : avatarsToSort) {
         if (avatar == thisAvatar) {
             // don't echo updates to self
             continue;
