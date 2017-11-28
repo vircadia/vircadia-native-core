@@ -32,6 +32,8 @@ public:
     bool isInSnapshotFilenameFormat(QString filename);
     bool isInExpectedImageFilenameFormat(QString filename);
 
+    void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
+
 private:
     QMessageBox messageBox;
 

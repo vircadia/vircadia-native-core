@@ -103,6 +103,10 @@ void Test::evaluateTests() {
     }
 }
 
+void Test::importTest(QTextStream& textStream, const QString& testPathname, int testNumber) {
+    textStream << "var Test" << testNumber << " = Script.require(\"" << "file:///" << testPathname + "\");" << endl;
+}
+
 // Creates a single script in a user-selected folder.
 // This script will run all text.js scripts in every applicable sub-folder
 void Test::createRecursiveScript() {
@@ -138,12 +142,14 @@ void Test::createRecursiveScript() {
 
     const QString testFilename{ "test.js" };
 
+    int testNumber = 1;
+
     // First test if top-level folder has a test.js file
     const QString testPathname{ topLevelDirectory + "/" + testFilename };
     QFileInfo fileInfo(testPathname);
     if (fileInfo.exists()) {
         // Current folder contains a test
-        textStream << "Script.include(\"" << testPathname + "\");" << endl;
+        importTest(textStream, testPathname, testNumber);
 
         testPathComponents << testPathname.split('/');
     }
@@ -159,7 +165,7 @@ void Test::createRecursiveScript() {
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test
-            textStream << "Script.include(\"" << testPathname + "\");" << endl;
+            importTest(textStream, testPathname, testNumber);
 
             testPathComponents << testPathname.split('/');
         }
@@ -186,29 +192,29 @@ void Test::createRecursiveScript() {
     const int TEST_PERIOD = 1000; // in milliseconds
     QString tab = "    ";
 
+    textStream << "// Check every second is the current test is complete and the next test can be run" << endl;
     textStream << "var testTimer = Script.setInterval(" << endl;
     textStream << tab << "function() {" << endl;
 
-    int stepNumber = 1;
     for (QStringList testPathComponent : testPathComponents) {
         QString testName = "tests";
         for (int i = firstComponent + 1; i < testPathComponent.length() - 1; ++i) {
             testName += "_" + testPathComponent[i];
         }
         
-        textStream << tab << tab << "if (testNumber == " << stepNumber << ") {" << endl;
-        textStream << tab << tab << tab << testName << "();" << endl;
+        textStream << tab << tab << "if (testNumber == " << testNumber << ") {" << endl;
+        textStream << tab << tab << tab << "Test" << testNumber << "." << testName << "();" << endl;
 
         // Set stepNumber to 0 between tests to stop the same test being called twice
         textStream << tab << tab << tab << "testNumber = 0;" << endl;
 
         textStream << tab << tab << "}" << endl << endl;
 
-        ++stepNumber;
+        ++testNumber;
     }
 
     // Add extra step to stop the script
-    textStream << tab << tab << "if (testNumber == " << stepNumber << ") {" << endl;
+    textStream << tab << tab << "if (testNumber == " << testNumber << ") {" << endl;
     textStream << tab << tab << tab << "Script.stop();" << endl;
     textStream << tab << tab << "}" << endl << endl;
 
@@ -217,9 +223,11 @@ void Test::createRecursiveScript() {
     textStream << tab << TEST_PERIOD << endl;
     textStream << ");" << endl << endl;
 
+    textStream << "// STop teh timer and clear the module cache" << endl;
     textStream << "Script.scriptEnding.connect(" << endl;
     textStream << tab << "function() {" << endl;
     textStream << tab << tab << "Script.clearInterval(testTimer);" << endl;
+    textStream << tab << tab << "require.cache = {};" << endl;
     textStream << tab << "}" << endl;
     textStream << ");" << endl;
 
