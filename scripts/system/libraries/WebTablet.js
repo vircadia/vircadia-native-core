@@ -514,31 +514,17 @@ WebTablet.prototype.getPosition = function () {
 };
 
 WebTablet.prototype.mousePressEvent = function (event) {
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var entityPickResults;
-    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
-                                         entityPickResults.overlayID === this.tabletEntityID)) {
-        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.webOverlayID, this.homeButtonID], []);
-        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            var onHomeScreen = tablet.onHomeScreen();
-            var isMessageOpen = tablet.isMessageDialogOpen();
-            if (onHomeScreen) {
-                if (isMessageOpen === false) {
-                    HMD.closeTablet();
-                }
-            } else {
-                if (isMessageOpen === false) {
-                    tablet.gotoHomeScreen();
-                    this.setHomeButtonTexture();
-                }
+    if (!HMD.active) {
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var tabletBackPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+        if (tabletBackPickResults.intersects) {
+            var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.webOverlayID, this.homeButtonID]);
+            if (!overlayPickResults.intersects) {
+                this.dragging = true;
+                var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
+                this.initialLocalIntersectionPoint = invCameraXform.xformPoint(tabletBackPickResults.intersection);
+                this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
             }
-        } else if (!HMD.active && (!overlayPickResults.intersects || overlayPickResults.overlayID !== this.webOverlayID)) {
-            this.dragging = true;
-            var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
-            this.initialLocalIntersectionPoint = invCameraXform.xformPoint(entityPickResults.intersection);
-            this.initialLocalPosition = Overlays.getProperty(this.tabletEntityID, "localPosition");
         }
     }
 };
