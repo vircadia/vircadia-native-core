@@ -111,10 +111,10 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
             properties["parentJointIndex"] = getParentJointIndex();
         }
         if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
-            properties["position"] = vec3toVariant(getPosition());
+            properties["position"] = vec3toVariant(getWorldPosition());
         }
         if (!properties["orientation"].isValid() && !properties["localOrientation"].isValid()) {
-            properties["orientation"] = quatToVariant(getOrientation());
+            properties["orientation"] = quatToVariant(getWorldOrientation());
         }
     }
 
@@ -230,18 +230,18 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
         return _name;
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3toVariant(getPosition());
+        return vec3toVariant(getWorldPosition());
     }
     if (property == "localPosition") {
         return vec3toVariant(getLocalPosition());
     }
     if (property == "rotation" || property == "orientation") {
-        return quatToVariant(getOrientation());
+        return quatToVariant(getWorldOrientation());
     }
     if (property == "localRotation" || property == "localOrientation") {
         return quatToVariant(getLocalOrientation());
     }
-    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filled" || property == "filed") {
         return _isSolid;
     }
     if (property == "isWire" || property == "wire") {

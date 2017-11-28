@@ -256,7 +256,7 @@ void PolyLineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   QUAD EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }

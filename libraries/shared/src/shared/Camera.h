@@ -37,65 +37,13 @@ class Camera : public QObject {
     Q_OBJECT
 
     /**jsdoc
-     * The Camera API provides access to the "camera" that defines your view in desktop and HMD modes.
-     *
-     * <p />
-     *
-     * <h5>Modes:</h5>
-     *
-     * <p>Camera modes affect the position of the camera and the controls for camera movement. The camera can be in one of the
-     * following modes:</p>
-     *
-     * <table>
-     *   <thead>
-     *     <tr>
-     *       <th>Mode</th>
-     *       <th>String</th>
-     *       <th>Description</th>
-     *     </tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr>
-     *       <td><strong>First&nbsp;Person</strong></td>
-     *       <td><code>"first&nbsp;person"</code></td>
-     *       <td>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with 
-     *       your avatar.</td>
-     *     </tr>
-     *     <tr>
-     *       <td><strong>Third&nbsp;Person</strong></td>
-     *       <td><code>"third&nbsp;person"</code></td>
-     *       <td>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates 
-     *       with your avatar.</td>
-     *     </tr>
-     *     <tr>
-     *       <td><strong>Mirror</strong></td>
-     *       <td><code>"mirror"</code></td>
-     *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with 
-     *       your avatar.</td>
-     *     </tr>
-     *     <tr>
-     *       <td><strong>Independent</strong></td>
-     *       <td><code>"independent"</code></td>
-     *       <td>The camera's position and orientation don't change with your avatar movement. Instead, they can be set via 
-     *       scripting.</td>
-     *     </tr>
-     *     <tr>
-     *       <td><strong>Entity</strong></td>
-     *       <td><code>"entity"</code></td>
-     *       <td>The camera's position and orientation are set to be the same as a specified entity's, and move with the entity
-     *       as it moves.
-     *     </tr>
-     *   </tbody>
-     * </table>
-     *
-     * <p>The camera mode can be changed using <code>Camera.mode</code> and {@link Camera.setModeString}, and Interface's "View" 
-     * menu.</p>
+     * The Camera API provides access to the "camera" that defines your view in desktop and HMD display modes.
      *
      * @namespace Camera
      * @property position {Vec3} The position of the camera. You can set this value only when the camera is in entity mode.
      * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in entity 
      *     mode.
-     * @property mode {string} The camera mode.
+     * @property mode {Camera.Mode} The camera mode.
      * @property frustum {ViewFrustum} The camera frustum.
      * @property cameraEntity {Uuid} The ID of the entity that is used for the camera position and orientation when the camera
      *     is in entity mode.
@@ -130,14 +78,14 @@ public slots:
     /**jsdoc
      * Get the current camera mode. You can also get the mode using the <code>Camera.mode</code> property.
      * @function Camera.getModeString
-     * @returns {string} The current camera mode.
+     * @returns {Camera.Mode} The current camera mode.
      */
     QString getModeString() const;
     
     /**jsdoc
     * Set the camera mode. You can also set the mode using the <code>Camera.mode</code> property.
     * @function Camera.setModeString
-    * @param {string} mode - The mode to set the camera to.
+    * @param {Camera.Mode} mode - The mode to set the camera to.
     */
     void setModeString(const QString& mode);
 
@@ -231,6 +179,7 @@ signals:
     /**jsdoc
      * Triggered when the camera mode changes.
      * @function Camera.modeUpdated
+     * @param {Camera.Mode} newMode - The new camera mode.
      * @returns {Signal}
      * @example <caption>Report camera mode changes.</caption>
      * function onCameraModeUpdated(newMode) {

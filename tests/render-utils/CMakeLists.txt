@@ -11,4 +11,8 @@ setup_memory_debugger()
 link_hifi_libraries(render-utils gl gpu gpu-gl shared)
 target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 
+if (WIN32)
+  add_dependency_external_projects(wasapi)
+endif ()
+
 package_libraries_for_deployment()

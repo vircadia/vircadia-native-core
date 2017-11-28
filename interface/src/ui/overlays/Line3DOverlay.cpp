@@ -45,7 +45,7 @@ Line3DOverlay::~Line3DOverlay() {
 }
 
 glm::vec3 Line3DOverlay::getStart() const {
-    return getPosition();
+    return getWorldPosition();
 }
 
 glm::vec3 Line3DOverlay::getEnd() const {
@@ -69,7 +69,7 @@ glm::vec3 Line3DOverlay::getEnd() const {
 }
 
 void Line3DOverlay::setStart(const glm::vec3& start) {
-    setPosition(start);
+    setWorldPosition(start);
 }
 
 void Line3DOverlay::setEnd(const glm::vec3& end) {

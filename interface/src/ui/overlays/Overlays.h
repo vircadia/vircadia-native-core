@@ -84,7 +84,7 @@ class Overlays : public QObject {
     Q_PROPERTY(OverlayID keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
 
 public:
-    Overlays() {};
+    Overlays();
 
     void init();
     void update(float deltatime);
@@ -105,11 +105,6 @@ public:
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
-
-    void mousePressEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event);
 
     void cleanupAllOverlays();
 
@@ -589,6 +584,13 @@ public slots:
      *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
      */
     void setKeyboardFocusOverlay(const OverlayID& id);
+
+    void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverEnterPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
 
 signals:
     /**jsdoc

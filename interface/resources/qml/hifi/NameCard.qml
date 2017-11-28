@@ -442,7 +442,7 @@ Item {
     Rectangle {
         id: nameCardVUMeter
         // Size
-        width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * (gainSlider.width);
+        width: ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * (gainSlider.width);
         height: 8
         // Anchors
         anchors.bottom: isMyCard ? avatarImage.bottom : parent.bottom;
@@ -526,16 +526,14 @@ Item {
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
         anchors.left: nameCardVUMeter.left;
         // Properties
-        visible: !isMyCard && selected && pal.activeTab == "nearbyTab" && isPresent;
+        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent;
         value: Users.getAvatarGain(uuid)
         minimumValue: -60.0
         maximumValue: 20.0
         stepSize: 5
         updateValueWhileDragging: true
         onValueChanged: {
-            if (uuid !== "") {
-                updateGainFromQML(uuid, value, false);
-            }
+            updateGainFromQML(uuid, value, false);
         }
         onPressedChanged: {
             if (!pressed) {
@@ -575,7 +573,19 @@ Item {
                 implicitHeight: 16
             }
         }
-    }
+         RalewayRegular {
+            // The slider for my card is special, it controls the master gain
+            id: gainSliderText;
+            visible: isMyCard;
+            text: "master volume";
+            size: hifi.fontSizes.tabularData;
+            anchors.left: parent.right;
+            anchors.leftMargin: 8;
+            color: hifi.colors.baseGrayHighlight;
+            horizontalAlignment: Text.AlignLeft;
+            verticalAlignment: Text.AlignTop;
+        }
+   }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
         Users.setAvatarGain(avatarUuid, sliderValue);

@@ -20,8 +20,28 @@ static bool areFlagsSet(uint32_t flags, uint32_t mask) {
     return (flags & mask) != 0;
 }
 
-PointerEvent::PointerEvent() {
-    ;
+PointerEvent::PointerEvent(EventType type, uint32_t id) :
+    _type(type),
+    _id(id)
+{
+}
+
+PointerEvent::PointerEvent(EventType type, uint32_t id, const glm::vec2& pos2D, Button button, uint32_t buttons, Qt::KeyboardModifiers keyboardModifiers) :
+    _type(type),
+    _id(id),
+    _pos2D(pos2D),
+    _button(button),
+    _buttons(buttons),
+    _keyboardModifiers(keyboardModifiers)
+{
+}
+
+PointerEvent::PointerEvent(const glm::vec2& pos2D, const glm::vec3& pos3D, const glm::vec3& normal, const glm::vec3& direction) :
+    _pos2D(pos2D),
+    _pos3D(pos3D),
+    _normal(normal),
+    _direction(direction)
+{
 }
 
 PointerEvent::PointerEvent(EventType type, uint32_t id,
@@ -38,7 +58,11 @@ PointerEvent::PointerEvent(EventType type, uint32_t id,
     _buttons(buttons),
     _keyboardModifiers(keyboardModifiers)
 {
-    ;
+}
+
+void PointerEvent::setButton(Button button) {
+    _button = button;
+    _buttons |= button;
 }
 
 /**jsdoc
