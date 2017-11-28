@@ -274,13 +274,13 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
-    if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
+    if (isDesktopMode() && _registeredWithInputMapper) {
         userInputMapper->removeDevice(_inputDevice->_deviceID);
         _registeredWithInputMapper = false;
         _inputDevice->_poseStateMap.clear();
     }
 
-    if (!_registeredWithInputMapper && _inputDevice->_trackedControllers > 0) {
+    if (!_registeredWithInputMapper && !isDesktopMode()) {
         userInputMapper->registerDevice(_inputDevice);
         _registeredWithInputMapper = true;
     }
