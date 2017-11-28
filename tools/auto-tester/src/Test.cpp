@@ -223,7 +223,7 @@ void Test::createRecursiveScript() {
     textStream << tab << TEST_PERIOD << endl;
     textStream << ");" << endl << endl;
 
-    textStream << "// STop teh timer and clear the module cache" << endl;
+    textStream << "// Stop the timer and clear the module cache" << endl;
     textStream << "Script.scriptEnding.connect(" << endl;
     textStream << tab << "function() {" << endl;
     textStream << tab << tab << "Script.clearInterval(testTimer);" << endl;
