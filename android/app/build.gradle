@@ -36,7 +36,9 @@ android {
     buildTypes {
         applicationVariants.all { variant ->
             variant.outputs.all {
-                outputFileName = "app_" + RELEASE_NUMBER + "_" + RELEASE_TYPE + ".apk"
+                if (RELEASE_NUMBER != '0') {
+                    outputFileName = "app_" + RELEASE_NUMBER + "_" + RELEASE_TYPE + ".apk"
+                }
             }
         }
 
