@@ -262,14 +262,23 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
     if (property == "end" || property == "endPoint" || property == "p2") {
         return vec3toVariant(getEnd());
     }
+    if (property == "length") {
+        return QVariant(getLength());
+    }
+    if (property == "endParentID") {
+        return _endParentID;
+    }
+    if (property == "endParentJointIndex") {
+        return _endParentJointIndex;
+    }
     if (property == "localStart") {
         return vec3toVariant(getLocalStart());
     }
     if (property == "localEnd") {
         return vec3toVariant(getLocalEnd());
     }
-    if (property == "length") {
-        return QVariant(getLength());
+    if (property == "glow") {
+        return getGlow();
     }
     if (property == "lineWidth") {
         return _lineWidth;
