@@ -147,6 +147,7 @@ static void CheckGLError(const char* label) {
 }
 
 // Contains vertex, normal and other data.
+#if 0
 namespace cube {
     const std::array<float, 108> CUBE_COORDS{{
                                                  // Front face
@@ -298,6 +299,7 @@ namespace cube {
                                                   0.0f, -1.0f, 0.0f
                                               }};
 }
+#endif
 
 namespace triangle {
     static std::array<float, 9> TRIANGLE_VERTS {{
