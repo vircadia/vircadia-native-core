@@ -53,29 +53,32 @@ TreeView {
         anchors.top: treeView.top
         anchors.left: treeView.right
         anchors.bottom: treeView.bottom
+
         background: Item {
             implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
             Rectangle {
-                color: isLightColorScheme ? hifi.colors.tableBackgroundLight
-                                          : hifi.colors.tableBackgroundDark
                 anchors {
                     fill: parent;
                     topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
                 }
-
-                Rectangle {
-                    anchors.fill: parent;
-                    radius: hifi.dimensions.scrollbarHandleWidth/2
-                    color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
-                                              : hifi.colors.tableScrollBackgroundDark
-                }
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
+                                          : hifi.colors.tableScrollBackgroundDark
             }
         }
 
-        contentItem: Rectangle {
+        contentItem: Item {
             implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            radius: hifi.dimensions.scrollbarHandleWidth/2
-            color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            Rectangle {
+                anchors {
+                    fill: parent
+                    topMargin: 3
+                    bottomMargin: 3     // ""
+                    leftMargin: 1       // Move it right
+                    rightMargin: -1     // ""
+                }
+                radius: hifi.dimensions.scrollbarHandleWidth/2
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            }
         }
     }
 
@@ -177,8 +180,8 @@ TreeView {
         color: styleData.selected
                ? hifi.colors.primaryHighlight
                : treeView.isLightColorScheme
-                   ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                   : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+                 ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                 : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 
     itemDelegate: FiraSansSemiBold {
@@ -193,9 +196,9 @@ TreeView {
         text: styleData.value
         size: hifi.fontSizes.tableText
         color: colorScheme == hifi.colorSchemes.light
-                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
+               ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+               : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+
         elide: Text.ElideRight
     }
 

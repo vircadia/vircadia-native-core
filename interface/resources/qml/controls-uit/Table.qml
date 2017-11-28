@@ -45,26 +45,28 @@ TableView {
         background: Item {
             implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
             Rectangle {
-                color: isLightColorScheme ? hifi.colors.tableBackgroundLight
-                                          : hifi.colors.tableBackgroundDark
                 anchors {
                     fill: parent;
                     topMargin: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
                 }
-
-                Rectangle {
-                    anchors.fill: parent;
-                    radius: hifi.dimensions.scrollbarHandleWidth/2
-                    color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
-                                              : hifi.colors.tableScrollBackgroundDark
-                }
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
+                                          : hifi.colors.tableScrollBackgroundDark
             }
         }
 
-        contentItem: Rectangle {
+        contentItem: Item {
             implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            radius: hifi.dimensions.scrollbarHandleWidth/2
-            color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            Rectangle {
+                anchors {
+                    fill: parent
+                    topMargin: 3
+                    bottomMargin: 3     // ""
+                    leftMargin: 1       // Move it right
+                    rightMargin: -1     // ""
+                }
+                radius: hifi.dimensions.scrollbarHandleWidth/2
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            }
         }
     }
 
