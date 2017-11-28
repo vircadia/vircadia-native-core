@@ -2387,7 +2387,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;
 
-float AvatarData::_avatarSortCoefficientSize { 0.5f };
+float AvatarData::_avatarSortCoefficientSize { 1.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 

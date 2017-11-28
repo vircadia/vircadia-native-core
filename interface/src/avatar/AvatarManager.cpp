@@ -147,7 +147,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     public:
         SortableAvatar() = delete;
         SortableAvatar(const AvatarSharedPointer& avatar) : _avatar(avatar) {}
-        glm::vec3 getPosition() const override { return _avatar->getPosition(); }
+        glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
         float getRadius() const override { return std::static_pointer_cast<Avatar>(_avatar)->getBoundingRadius(); }
         uint64_t getTimestamp() const override { return std::static_pointer_cast<Avatar>(_avatar)->getLastRenderUpdateTime(); }
         const AvatarSharedPointer& getAvatar() const { return _avatar; }
@@ -157,7 +157,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     ViewFrustum cameraView;
     qApp->copyDisplayViewFrustum(cameraView);
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView);
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+            AvatarData::_avatarSortCoefficientSize,
+            AvatarData::_avatarSortCoefficientCenter,
+            AvatarData::_avatarSortCoefficientAge);
 
     // sort
     auto avatarMap = getHashCopy();
