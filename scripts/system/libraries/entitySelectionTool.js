@@ -1123,9 +1123,7 @@ SelectionDisplay = (function() {
         var look = Vec3.normalize(Vec3.subtract(cameraPosition, objectCenter));
 
         // place yaw, pitch and roll rotations on the avatar referential
-        yawHandleRotation = Quat.multiply(MyAvatar.orientation , yawHandleRotation);
-        pitchHandleRotation = Quat.multiply(MyAvatar.orientation , pitchHandleRotation);
-        rollHandleRotation = Quat.multiply(MyAvatar.orientation , rollHandleRotation);
+        
         var avatarReferential = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({
             x: 0,
             y: 180,
@@ -1246,7 +1244,6 @@ SelectionDisplay = (function() {
         yawHandleRotation = Quat.lookAt(yawCorner, Vec3.sum(yawCorner, upVector), Vec3.subtract(yawCenter,yawCorner));
         yawHandleRotation = Quat.multiply(Quat.angleAxis(45, upVector), yawHandleRotation);
 		
-		
 		yawCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[0], projRIGHT[1]), projFRONT[1]));
 		
 		pitchCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[0]), projFRONT[1]));
@@ -1315,6 +1312,8 @@ SelectionDisplay = (function() {
             position: rollCorner,
             rotation: rollHandleRotation
         });
+		
+		
     };
 
     // FUNCTION: UPDATE HANDLE SIZES
