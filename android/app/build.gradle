@@ -2,8 +2,7 @@ apply plugin: 'com.android.application'
 
 ext.RELEASE_NUMBER = project.hasProperty('RELEASE_NUMBER') ? project.getProperty('RELEASE_NUMBER') : '0'
 ext.RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
-
-
+ext.BUILD_BRANCH = project.hasProperty('BUILD_BRANCH') ? project.getProperty('BUILD_BRANCH') : ''
 
 android {
     compileSdkVersion 26
@@ -24,7 +23,8 @@ android {
                     '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe',
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
-                    '-DRELEASE_TYPE=' + RELEASE_TYPE
+                    '-DRELEASE_TYPE=' + RELEASE_TYPE,
+                    '-DBUILD_BRANCH=' + BUILD_BRANCH
             }
         }
         compileOptions {
