@@ -93,7 +93,7 @@ task copyDependencies(dependsOn: extractDependencies) {
     }
 }
 
-task setupScribe(type: Exec) {
+task setupScribe {
     def scribeFile='scribe_linux_x86_64'
     def scribeLocalFile='scribe'
     if (Os.isFamily(Os.FAMILY_MAC)) {
@@ -110,30 +110,38 @@ task setupScribe(type: Exec) {
             onlyIfNewer true
         }
     }
-    if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
-        commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
+    doLast {
+        if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+            commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
+        }
     }
 }
 
-task setupDependencies(dependsOn: [setupScribe, copyDependencies]) {
+task extractGvrBinaries(dependsOn: extractDependencies) {
     doLast {
         def gvrLibFolder = new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries');
-	    zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar')).visit { element ->
-	        if (element.file.toString().endsWith('arm64-v8a/libgvr_audio.so')) {
-	            copy {  from element.file; into gvrLibFolder }
-	        } 
-	    } 
-	    zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-base-1.101.0.aar')).visit { element ->  
-	        if (element.file.toString().endsWith('arm64-v8a/libgvr.so')) {
-	            copy {  from element.file; into gvrLibFolder }
-	        }
-	    } 
-	    fileTree(gvrLibFolder).visit { element -> 
+        zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar')).visit { element ->
+            def fileName = element.file.toString();
+            if (fileName.endsWith('libgvr_audio.so') && fileName.contains('arm64-v8a')) {
+                copy {  from element.file; into gvrLibFolder }
+            }
+        }
+        zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-base-1.101.0.aar')).visit { element ->
+            def fileName = element.file.toString();
+            if (fileName.endsWith('libgvr.so') && fileName.contains('arm64-v8a')) {
+                copy {  from element.file; into gvrLibFolder }
+            }
+        }
+        fileTree(gvrLibFolder).visit { element ->
             if (element.file.toString().endsWith('.so')) {
                 copy { from element.file; into jniFolder }
             }
-	    }
+        }
     }
+
+}
+
+task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBinaries]) {
 }
 
 task cleanDependencies(type: Delete) {

@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+ext.RELEASE_NUMBER = project.hasProperty('RELEASE_NUMBER') ? project.getProperty('RELEASE_NUMBER') : '0'
+ext.RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
+
+
+
 android {
     compileSdkVersion 26
     defaultConfig {
@@ -17,7 +22,9 @@ android {
                     '-DANDROID_STL=c++_shared',
                     '-DQT_CMAKE_PREFIX_PATH=' + HIFI_ANDROID_PRECOMPILED + '/qt/lib/cmake',
                     '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe',
-                    '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED
+                    '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
+                    '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
+                    '-DRELEASE_TYPE=' + RELEASE_TYPE
             }
         }
         compileOptions {
@@ -27,6 +34,12 @@ android {
     }
 
     buildTypes {
+        applicationVariants.all { variant ->
+            variant.outputs.all {
+                outputFileName = "app_" + RELEASE_NUMBER + "_" + RELEASE_TYPE + ".apk"
+            }
+        }
+
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
