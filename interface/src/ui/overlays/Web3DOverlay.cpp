@@ -606,7 +606,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {string} url - The URL of the Web page to display.
  * @property {string} scriptURL="" - The URL of a file of JavaScript to inject into the Web page.
- * @property {Vec2} resolution=640,480 - The number of pixels
+ * @property {Vec2} resolution=640,480 - The number of pixels. <strong>Deprecated:</strong> This property is being removed.
  * @property {number} dpi=30.47 - The dots per inch to display the Web page at.
  * @property {Vec2} dimensions=1,1 - Scales the size of the overlay calculated from <code>resolution</code> and 
  *     <code>dpi</code>. Synonyms: <code>scale</code>, <code>size</code>.
