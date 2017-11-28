@@ -247,7 +247,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasHostname,
     HasProtocolVersions,
     HasMACAddress,
-    HasMachineFingerprint
+    HasMachineFingerprint,
+    AlwaysHasMachineFingerprint
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
