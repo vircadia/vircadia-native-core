@@ -38,10 +38,25 @@ Item {
         onHistoryResult : {
             historyReceived = true;
             if (result.status === 'success') {
-                transactionHistoryModel.clear();
-                transactionHistoryModel.append(result.data.history);
+                var sameItemCount = 0;
+                tempTransactionHistoryModel.clear();
+                
+                tempTransactionHistoryModel.append(result.data.history);
+        
+                for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                    if (!transactionHistoryModel.get(i)) {
+                        break;
+                    } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
+                    tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
+                        sameItemCount++;
+                    }
+                }
 
-                calculatePendingAndInvalidated();
+                if (sameItemCount !== tempTransactionHistoryModel.count) {
+                    transactionHistoryModel.clear();
+                    transactionHistoryModel.append(tempTransactionHistoryModel);
+                    calculatePendingAndInvalidated();
+                }
             }
             refreshTimer.start();
         }
@@ -186,6 +201,9 @@ Item {
             size: 22;
             // Style
             color: hifi.colors.baseGrayHighlight;
+        }
+        ListModel {
+            id: tempTransactionHistoryModel;
         }
         ListModel {
             id: transactionHistoryModel;

@@ -664,9 +664,7 @@ Rectangle {
 
         if (sameItemCount !== tempPurchasesModel.count) {
             filteredPurchasesModel.clear();
-            for (var i = 0; i < tempPurchasesModel.count; i++) {
-                filteredPurchasesModel.append(tempPurchasesModel.get(i));
-            }
+            filteredPurchasesModel.append(tempPurchasesModel);
 
             populateDisplayedItemCounts();
             sortByDate();
