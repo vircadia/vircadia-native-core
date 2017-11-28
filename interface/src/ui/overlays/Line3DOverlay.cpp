@@ -178,6 +178,8 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
         newStartSet = true;
     }
     properties.remove("start"); // so that Base3DOverlay doesn't respond to it
+    properties.remove("startPoint");
+    properties.remove("p1");
 
     auto end = properties["end"];
     // If "end" property was not there, check to see if they included aliases: endPoint, p2
@@ -192,6 +194,8 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
         newEndSet = true;
     }
     properties.remove("end"); // so that Base3DOverlay doesn't respond to it
+    properties.remove("endPoint");
+    properties.remove("p2");
 
     auto length = properties["length"];
     if (length.isValid()) {
