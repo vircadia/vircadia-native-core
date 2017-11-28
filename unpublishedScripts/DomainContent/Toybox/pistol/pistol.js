@@ -346,8 +346,7 @@
                 end:  { x: 0, y: 0, z: 0 },
                 color: COLORS.RED,
                 alpha: 1,
-                visible: true,
-                lineWidth: 2
+                visible: true
             });
         },
     };

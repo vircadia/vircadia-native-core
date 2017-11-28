@@ -41,7 +41,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainId READ getDomainId)
-    Q_PROPERTY(QUrl metaverseServerUrl READ getMetaverseServerUrl NOTIFY metaverseServerUrlChanged)
 public:
     Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
@@ -55,7 +54,8 @@ public:
         DomainPathResponse,
         Internal,
         AttemptedRefresh,
-        Suggestions
+        Suggestions,
+        VisitUserFromPAL
     };
 
     bool isConnected();
@@ -71,7 +71,6 @@ public:
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
     QString getDomainId() const;
-    const QUrl getMetaverseServerUrl() const;
 
     const QString& getHost() const { return _host; }
 
@@ -95,7 +94,7 @@ public slots:
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
     void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
-    void goToUser(const QString& username);
+    void goToUser(const QString& username, bool shouldMatchOrientation = true);
 
     void refreshPreviousLookup();
 
@@ -122,8 +121,6 @@ signals:
 
     void goBackPossible(bool isPossible);
     void goForwardPossible(bool isPossible);
-
-    void metaverseServerUrlChanged();
 
 protected:
     AddressManager();

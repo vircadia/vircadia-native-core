@@ -124,6 +124,8 @@ public:
         OctreeFileReplacementFromUrl,
         ChallengeOwnership,
         EntityScriptCallMethod,
+        ChallengeOwnershipRequest,
+        ChallengeOwnershipReply,
         NUM_PACKET_TYPE
     };
 
@@ -195,7 +197,9 @@ uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77
+    StrokeColorProperty = 77,
+    HasDynamicOwnershipTests,
+    HazeEffect
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -205,7 +209,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
-    JSONFilterWithFamilyTree = 19
+    JSONFilterWithFamilyTree = 19,
+    ConnectionIdentifier = 20
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
@@ -275,6 +280,10 @@ enum class AudioVersion : PacketVersion {
 
 enum class MessageDataVersion : PacketVersion {
     TextOrBinaryData = 18
+};
+
+enum class IcePingVersion : PacketVersion {
+    SendICEPeerID = 18
 };
 
 #endif // hifi_PacketHeaders_h

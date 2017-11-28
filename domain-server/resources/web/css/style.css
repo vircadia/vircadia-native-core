@@ -1,6 +1,21 @@
+/* cairo-regular - latin */
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/cairo-v2-latin-regular.eot'); /* IE9 Compat Modes */
+  src: local('Cairo'), local('Cairo-Regular'),
+       url('/fonts/cairo-v2-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+       url('/fonts/cairo-v2-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+       url('/fonts/cairo-v2-latin-regular.woff') format('woff'), /* Modern Browsers */
+       url('/fonts/cairo-v2-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+       url('/fonts/cairo-v2-latin-regular.svg#Cairo') format('svg'); /* Legacy iOS */
+}
+
 body {
   position: relative;
   padding-bottom: 30px;
+  margin-top: 70px;
 }
 
 [hidden] {
@@ -27,14 +42,14 @@ body {
 .table .value-row td,
 .table .value-category td,
 .table .inputs td {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 .table .table-checkbox {
-    /* Fix IE sizing checkboxes to fill table cell */
-    width: auto;
-    margin-left: auto;
-    margin-right: auto;
+  /* Fix IE sizing checkboxes to fill table cell */
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .value-category:not(.inputs) {
@@ -79,9 +94,23 @@ span.port {
   display: none;
 }
 
-#setup-sidebar.affix {
-  position: fixed;
-  top: 15px;
+@media (min-width: 768px) {
+  #setup-sidebar.affix {
+    /* This overrides a case where going to the bottom of the page,
+     * then scrolling up, causes `position: relative` to be added to the style
+     */
+    position: fixed !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #setup-sidebar.affix {
+    position: static !important;
+  }
+
+  #setup-sidebar {
+    margin-bottom: 20px;
+  }
 }
 
 #setup-sidebar button {
@@ -145,55 +174,55 @@ table {
 }
 
 caption {
-    color: #333;
-    font-weight: 700;
-    padding-top: 0;
+  color: #333;
+  font-weight: 700;
+  padding-top: 0;
 }
 
 table > tbody > .headers > td {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 table .headers + .headers td {
-    font-size: 13px;
-    color: #222;
+  font-size: 13px;
+  color: #222;
 }
 
 #security table .headers td + td {
-    text-align: center;
+  text-align: center;
 }
 
 .tooltip.top .tooltip-arrow {
-    border-top-color: #fff;
-    border-width: 10px 10px 0;
-    margin-bottom: -5px;
+  border-top-color: #fff;
+  border-width: 10px 10px 0;
+  margin-bottom: -5px;
 }
 
 .tooltip-inner {
-    padding: 20px 20px 10px 20px;
-    font-size: 14px;
-    text-align: left;
-    color: #333;
-    background-color: #fff;
-    box-shadow: 0 3px 8px 8px #e8e8e8;
+  padding: 20px 20px 10px 20px;
+  font-size: 14px;
+  text-align: left;
+  color: #333;
+  background-color: #fff;
+  box-shadow: 0 3px 8px 8px #e8e8e8;
 }
 
 .tooltip.in {
-    opacity: 1;
+  opacity: 1;
 }
 
 .tooltip-inner ul {
-    padding-left: 0;
-    margin-bottom: 15px;
+  padding-left: 0;
+  margin-bottom: 15px;
 }
 
 .tooltip-inner li {
-    list-style-type: none;
-    margin-bottom: 5px;
+  list-style-type: none;
+  margin-bottom: 5px;
 }
 
 #security .tooltip-inner {
-    max-width: 520px;
+  max-width: 520px;
 }
 
 #xs-advanced-container {
@@ -241,6 +270,20 @@ table .headers + .headers td {
   animation-delay: -0.16s;
 }
 
+.col-centered {
+  float: none;
+  margin: 0 auto;
+}
+
+.centered-hack-parent {
+  text-align: center;
+}
+
+.centered-hack {
+  text-align: left;
+  display: inline-block;
+}
+
 @-webkit-keyframes bouncedelay {
   0%, 80%, 100% { -webkit-transform: scale(0.0) }
   40% { -webkit-transform: scale(1.0) }
@@ -254,4 +297,51 @@ table .headers + .headers td {
     transform: scale(1.0);
     -webkit-transform: scale(1.0);
   }
+}
+
+/* From https://gist.github.com/alexandrevicenzi/680147013e902a4eaa5d */
+.glyphicon-refresh-animate {
+  -animation: spin .7s infinite linear;
+  -ms-animation: spin .7s infinite linear;
+  -webkit-animation: spinw .7s infinite linear;
+  -moz-animation: spinm .7s infinite linear;
+}
+
+@keyframes spin {
+  from { transform: scale(1) rotate(0deg); }
+  to { transform: scale(1) rotate(360deg); }
+}
+
+@-webkit-keyframes spinw {
+  from { -webkit-transform: rotate(0deg); }
+  to { -webkit-transform: rotate(360deg); }
+}
+
+@-moz-keyframes spinm {
+  from { -moz-transform: rotate(0deg); }
+  to { -moz-transform: rotate(360deg); }
+}
+
+.warning-text {
+  padding-top: 10px;
+  color: #EB5757;
+}
+
+.account-connected-header {
+  vertical-align: middle;
+  color: #6FCF97;
+  font-size: 30px;
+  margin-right: 20px;
+}
+
+.blue-link {
+  font-size: 14px;
+  text-decoration-line: underline;
+  font-weight: normal;
+  color: #00B3F8;
+}
+
+#manage-cloud-domains-link {
+  text-align: center;
+  margin-top: 20px;
 }

@@ -28,6 +28,10 @@
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 const int WAIT_FOR_CHILD_MSECS = 1000;
 
+#ifdef Q_OS_WIN
+HANDLE PROCESS_GROUP = createProcessGroup();
+#endif
+
 AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmentClientForks,
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
@@ -201,6 +205,10 @@ void AssignmentClientMonitor::spawnChildClient() {
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
+
+#ifdef Q_OS_WIN
+    addProcessToGroup(PROCESS_GROUP, assignmentClient->processId());
+#endif
 
     QString stdoutPath, stderrPath;
 

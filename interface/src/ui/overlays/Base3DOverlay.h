@@ -18,10 +18,13 @@
 
 class Base3DOverlay : public Overlay, public SpatiallyNestable {
     Q_OBJECT
+    using Parent = Overlay;
 
 public:
     Base3DOverlay();
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
+
+    void setVisible(bool visible) override;
 
     virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
     void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
@@ -33,9 +36,8 @@ public:
     virtual bool is3D() const override { return true; }
 
     // TODO: consider implementing registration points in this class
-    glm::vec3 getCenter() const { return getPosition(); }
+    glm::vec3 getCenter() const { return getWorldPosition(); }
 
-    float getLineWidth() const { return _lineWidth; }
     bool getIsSolid() const { return _isSolid; }
     bool getIsDashedLine() const { return _isDashedLine; }
     bool getIsSolidLine() const { return !_isDashedLine; }
@@ -44,7 +46,6 @@ public:
     bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
 
-    void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
@@ -56,7 +57,7 @@ public:
 
     void update(float deltatime) override;
 
-    void notifyRenderTransformChange() const;
+    void notifyRenderVariableChange() const;
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -76,18 +77,19 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
+    mutable bool _renderVisible;
     virtual Transform evalRenderTransform();
     virtual void setRenderTransform(const Transform& transform);
+    void setRenderVisible(bool visible);
     const Transform& getRenderTransform() const { return _renderTransform; }
 
-    float _lineWidth;
     bool _isSolid;
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
     bool _drawHUDLayer;
     bool _isGrabbable { false };
-    mutable bool _renderTransformDirty{ true };
+    mutable bool _renderVariableDirty { true };
 
     QString _name;
 };

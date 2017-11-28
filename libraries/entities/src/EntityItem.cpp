@@ -14,9 +14,10 @@
 #include <QtCore/QObject>
 #include <QtEndian>
 #include <QJsonDocument>
-#include <openssl/rsa.h>  // see comments for DEBUG_CERT
-#include <openssl/pem.h>
-#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
 
@@ -41,6 +42,7 @@ int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
+QString EntityItem::_marketplacePublicKey;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
@@ -81,7 +83,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ACCELERATION;
 
-    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
+    requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -239,7 +241,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
@@ -729,7 +731,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // reasons and the contract is that the client handles them in an idempotent manner.
         auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
-                updatePosition(value);
+                setPosition(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
@@ -737,7 +739,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value){
             if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
-                updateRotation(value);
+                setRotation(value);
                 _lastUpdatedRotationTimestamp = lastEdited;
                 _lastUpdatedRotationValue = value;
             }
@@ -745,7 +747,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
              if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
-                updateVelocity(value);
+                setVelocity(value);
                 _lastUpdatedVelocityTimestamp = lastEdited;
                 _lastUpdatedVelocityValue = value;
             }
@@ -753,7 +755,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
-                updateAngularVelocity(value);
+                setAngularVelocity(value);
                 _lastUpdatedAngularVelocityTimestamp = lastEdited;
                 _lastUpdatedAngularVelocityValue = value;
             }
@@ -774,14 +776,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
-    READ_ENTITY_PROPERTY(PROP_DENSITY, float, updateDensity);
-    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, updateGravity);
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setDimensions);
+    READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
+    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
 
-    READ_ENTITY_PROPERTY(PROP_DAMPING, float, updateDamping);
-    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, updateRestitution);
-    READ_ENTITY_PROPERTY(PROP_FRICTION, float, updateFriction);
-    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
+    READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
+    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, setRestitution);
+    READ_ENTITY_PROPERTY(PROP_FRICTION, float, setFriction);
+    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
 
@@ -797,14 +799,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
     }
 
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
 
-    READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
+    READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
-    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
-    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
+    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -827,7 +829,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     {   // parentID and parentJointIndex are also protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, updateParentID);
+        READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
         overwriteLocalData = oldOverwrite;
     }
@@ -888,7 +890,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 void EntityItem::debugDump() const {
-    auto position = getPosition();
+    auto position = getWorldPosition();
     qCDebug(entities) << "EntityItem id:" << getEntityItemID();
     qCDebug(entities, " edited ago:%f", (double)getEditedAgo());
     qCDebug(entities, " position:%f,%f,%f", (double)position.x, (double)position.y, (double)position.z);
@@ -922,12 +924,6 @@ float EntityItem::computeMass() const {
 }
 
 void EntityItem::setDensity(float density) {
-    withWriteLock([&] {
-        _density = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
-    });
-}
-
-void EntityItem::updateDensity(float density) {
     float clampedDensity = glm::max(glm::min(density, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     withWriteLock([&] {
         if (_density != clampedDensity) {
@@ -1174,8 +1170,8 @@ bool EntityItem::wantTerseEditLogging() const {
 }
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
-    glm::mat4 translation = glm::translate(getPosition());
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 translation = glm::translate(getWorldPosition());
+    glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
     glm::mat4 scale = glm::scale(getDimensions());
     glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
     return translation * rotation * scale * registration;
@@ -1315,30 +1311,30 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, updateSimulationOwner);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, setAcceleration);
 
     // these (along with "position" above) affect tree structure
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, updateRegistrationPoint);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
 
     // these (along with all properties above) affect the simulation
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, updateDamping);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(restitution, updateRestitution);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, updateFriction);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionless, updateCollisionless);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionMask, updateCollisionMask);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, updateLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, setDensity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(restitution, setRestitution);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, setFriction);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionless, setCollisionless);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionMask, setCollisionMask);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, setDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, setCreated);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1365,7 +1361,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setDynamicData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, updateParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
 
@@ -1430,23 +1426,12 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
     return result;
 }
 
-void EntityItem::setDimensions(const glm::vec3& value) {
-    if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
-        return;
-    }
-    if (_dimensions != value) {
-        _dimensions = value;
-        locationChanged();
-        dimensionsChanged();
-    }
-}
-
 /// The maximum bounding cube for the entity, independent of it's rotation.
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
 AACube EntityItem::getMaximumAACube(bool& success) const {
     if (_recalcMaxAACube) {
-        glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
+        glm::vec3 centerOfRotation = getWorldPosition(success); // also where _registration point is
         if (success) {
             _recalcMaxAACube = false;
             // we want to compute the furthestExtent that an entity can extend out from its "position"
@@ -1474,14 +1459,14 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 AACube EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
         // position represents the position of the registration point.
-        glm::vec3 position = getPosition(success);
+        glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcMinAACube = false;
             glm::vec3 dimensions = getDimensions();
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-            extents.rotate(getRotation());
+            extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
             extents.shiftBy(position);
@@ -1504,14 +1489,14 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
 AABox EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
         // position represents the position of the registration point.
-        glm::vec3 position = getPosition(success);
+        glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcAABox = false;
             glm::vec3 dimensions = getDimensions();
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-            extents.rotate(getRotation());
+            extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
             extents.shiftBy(position);
@@ -1542,132 +1527,12 @@ bool EntityItem::shouldPuffQueryAACube() const {
     return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
 }
 
-// NOTE: This should only be used in cases of old bitstreams which only contain radius data
-//    0,0,0 --> maxDimension,maxDimension,maxDimension
-//    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
-//    ... radius = cornerToCornerLength / 2.0f
-//    ... radius * 2.0f = cornerToCornerLength
-//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
-//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
-//    ... radius * 2.0f = sqrt(3 x maxDimension ^ 2)
-//    ... (radius * 2.0f) ^2 = 3 x maxDimension ^ 2
-//    ... ((radius * 2.0f) ^2) / 3 = maxDimension ^ 2
-//    ... sqrt(((radius * 2.0f) ^2) / 3) = maxDimension
-//    ... sqrt((diameter ^2) / 3) = maxDimension
-//
-void EntityItem::setRadius(float value) {
-    float diameter = value * 2.0f;
-    float maxDimension = sqrt((diameter * diameter) / 3.0f);
-    setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
-}
-
 // TODO: get rid of all users of this function...
 //    ... radius = cornerToCornerLength / 2.0f
 //    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
 float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
-}
-
-// Checking Certifiable Properties
-#define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
-#define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
-#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == (quint32) -1) ? -1.0 : ((double) propertySet.get##N())
-QByteArray EntityItem::getStaticCertificateJSON() const {
-    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
-    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
-    // of the entity as reviewed during the certification submission.
-
-    QJsonObject json;
-    EntityItemProperties propertySet = getProperties(); // Note: neither EntityItem nor EntityitemProperties "properties" are QObject "properties"!
-    // It is important that this be reproducible in the same order each time. Since we also generate these on the server, we do it alphabetically
-    // to help maintainence in two different code bases.
-    if (!propertySet.getAnimation().getURL().isEmpty()) {
-        json["animation.url"] = propertySet.getAnimation().getURL();
-    }
-    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
-    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
-    ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
-    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
-    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
-    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
-    ADD_STRING_PROPERTY(itemLicense, ItemLicense);
-    ADD_STRING_PROPERTY(itemName, ItemName);
-    ADD_INT_PROPERTY(limitedRun, LimitedRun);
-    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
-    ADD_STRING_PROPERTY(modelURL, ModelURL);
-    ADD_STRING_PROPERTY(script, Script);
-    ADD_ENUM_PROPERTY(shapeType, ShapeType);
-    json["type"] = EntityTypes::getEntityTypeName(propertySet.getType());
-
-    return QJsonDocument(json).toJson(QJsonDocument::Compact);
-}
-QByteArray EntityItem::getStaticCertificateHash() const {
-    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
-}
-
-#ifdef DEBUG_CERT
-QString EntityItem::computeCertificateID() {
-    // Until the marketplace generates it, compute and answer the certificateID here.
-    // Does not set it, as that will have to be done from script engine in order to update server, etc.
-    const auto hash = getStaticCertificateHash();
-    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
-    const unsigned int textLength = hash.length();
-
-    const char privateKey[] = "-----BEGIN RSA PRIVATE KEY-----\n\
-MIIBOQIBAAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7Zbi\n\
-MjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQJABvOlwhYwIhL+gr12jm2R\n\
-yPPzZ9nVEQ6kFxLlZfIT09119fd6OU1X5d4sHWfMfSIEgjwQIDS3ZU1kY3XKo87X\n\
-zQIhAOPHlYa1OC7BLhaTouy68qIU2vCKLP8mt4S31/TT0UOnAiEAxor6gU6yupTQ\n\
-yuyV3yHvr5LkZKBGqhjmOTmDfgtX7ncCIChGbgX3nQuHVOLhD/nTxHssPNozVGl5\n\
-KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
-3Kg2U+CVZr8/bDT/vXRrsKj1zfobYuvbfVH02QY=\n\
------END RSA PRIVATE KEY-----";
-    BIO* bio = BIO_new_mem_buf((void*)privateKey, sizeof(privateKey));
-    RSA* rsa = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
-
-    QByteArray signature(RSA_size(rsa), 0);
-    unsigned int signatureLength = 0;
-    const int signOK = RSA_sign(NID_sha256, text, textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, rsa);
-    BIO_free(bio);
-    RSA_free(rsa);
-    if (!signOK) {
-        qCWarning(entities) << "Unable to compute signature for" << getName() << getEntityItemID();
-        return "";
-    }
-    return signature.toBase64();
-#endif
-}
-
-bool EntityItem::verifyStaticCertificateProperties() {
-    // True IIF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
-
-    if (getCertificateID().isEmpty()) {
-        return false;
-    }
-    const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
-    const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
-    const unsigned int signatureLength = signatureBytes.length();
-
-    const auto hash = getStaticCertificateHash();
-    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
-    const unsigned int textLength = hash.length();
-
-    // After DEBUG_CERT ends, we will get/cache this once from the marketplace when needed, and it likely won't be RSA.
-    const char publicKey[] = "-----BEGIN PUBLIC KEY-----\n\
-MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgp\n\
-AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
------END PUBLIC KEY-----";
-    BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
-    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-    bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
-    BIO_free(bio);
-    RSA_free(rsa);
-    EVP_PKEY_free(evp_key);
-    return answer;
 }
 
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
@@ -1702,14 +1567,17 @@ float EntityItem::getVolumeEstimate() const {
     return dimensions.x * dimensions.y * dimensions.z;
 }
 
-void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
+void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
-        setRegistrationPoint(value);
+        withWriteLock([&] {
+            _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
+        });
+        dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
     }
 }
 
-void EntityItem::updatePosition(const glm::vec3& value) {
+void EntityItem::setPosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
 
@@ -1730,14 +1598,14 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updateParentID(const QUuid& value) {
+void EntityItem::setParentID(const QUuid& value) {
     QUuid oldParentID = getParentID();
     if (oldParentID != value) {
         EntityTreePointer tree = getTree();
-        if (!oldParentID.isNull()) {
+        if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
         }
-        setParentID(value);
+        SpatiallyNestable::setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
@@ -1749,16 +1617,20 @@ void EntityItem::updateParentID(const QUuid& value) {
     }
 }
 
-void EntityItem::updateDimensions(const glm::vec3& value) {
-    if (getDimensions() != value) {
-        setDimensions(value);
-        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        _queryAACubeSet = false;
+void EntityItem::setDimensions(const glm::vec3& value) {
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
+    if (getDimensions() != newDimensions) {
+        withWriteLock([&] {
+            _dimensions = newDimensions;
+            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+            _queryAACubeSet = false;
+        });
+        locationChanged();
         dimensionsChanged();
     }
 }
 
-void EntityItem::updateRotation(const glm::quat& rotation) {
+void EntityItem::setRotation(glm::quat rotation) {
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
@@ -1771,31 +1643,7 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     }
 }
 
-void EntityItem::updateMass(float mass) {
-    // Setting the mass actually changes the _density (at fixed volume), however
-    // we must protect the density range to help maintain stability of physics simulation
-    // therefore this method might not accept the mass that is supplied.
-
-    glm::vec3 dimensions = getDimensions();
-    float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
-
-    // compute new density
-    float newDensity = _density;
-    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
-    if (volume < 1.0e-6f) {
-        // avoid divide by zero
-        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
-    } else {
-        newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
-    }
-
-    if (_density != newDensity) {
-        _density = newDensity;
-        _dirtyFlags |= Simulation::DIRTY_MASS;
-    }
-}
-
-void EntityItem::updateVelocity(const glm::vec3& value) {
+void EntityItem::setVelocity(const glm::vec3& value) {
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
@@ -1821,34 +1669,38 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updateDamping(float value) {
+void EntityItem::setDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (_damping != clampedDamping) {
-        _damping = clampedDamping;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_damping != clampedDamping) {
+            _damping = clampedDamping;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
 }
 
-void EntityItem::updateGravity(const glm::vec3& value) {
-    if (_gravity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            _gravity = Vectors::ZERO;
-        } else {
-            float magnitude = glm::length(value);
-            if (!glm::isnan(magnitude)) {
-                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
-                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
-                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
-                } else {
-                    _gravity = value;
+void EntityItem::setGravity(const glm::vec3& value) {
+    withWriteLock([&] {
+        if (_gravity != value) {
+            if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+                _gravity = Vectors::ZERO;
+            } else {
+                float magnitude = glm::length(value);
+                if (!glm::isnan(magnitude)) {
+                    const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                    if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                        _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                    } else {
+                        _gravity = value;
+                    }
+                    _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
                 }
-                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
         }
-    }
+    });
 }
 
-void EntityItem::updateAngularVelocity(const glm::vec3& value) {
+void EntityItem::setAngularVelocity(const glm::vec3& value) {
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
@@ -1872,52 +1724,63 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updateAngularDamping(float value) {
+void EntityItem::setAngularDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (_angularDamping != clampedDamping) {
-        _angularDamping = clampedDamping;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_angularDamping != clampedDamping) {
+            _angularDamping = clampedDamping;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
 }
 
-void EntityItem::updateCollisionless(bool value) {
-    if (_collisionless != value) {
-        _collisionless = value;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
-    }
+void EntityItem::setCollisionless(bool value) {
+    withWriteLock([&] {
+        if (_collisionless != value) {
+            _collisionless = value;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+        }
+    });
 }
 
-void EntityItem::updateCollisionMask(uint8_t value) {
-    if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
-        _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
-    }
+void EntityItem::setCollisionMask(uint8_t value) {
+    withWriteLock([&] {
+        if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
+            _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+        }
+    });
 }
 
-void EntityItem::updateDynamic(bool value) {
+void EntityItem::setDynamic(bool value) {
     if (getDynamic() != value) {
-        // dynamic and STATIC_MESH are incompatible so we check for that case
-        if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            if (_dynamic) {
-                _dynamic = false;
+        withWriteLock([&] {
+            // dynamic and STATIC_MESH are incompatible so we check for that case
+            if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+                if (_dynamic) {
+                    _dynamic = false;
+                    _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+                }
+            } else {
+                _dynamic = value;
                 _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             }
-        } else {
-            _dynamic = value;
-            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-        }
+        });
     }
 }
 
-void EntityItem::updateRestitution(float value) {
+void EntityItem::setRestitution(float value) {
     float clampedValue = glm::max(glm::min(ENTITY_ITEM_MAX_RESTITUTION, value), ENTITY_ITEM_MIN_RESTITUTION);
-    if (_restitution != clampedValue) {
-        _restitution = clampedValue;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_restitution != clampedValue) {
+            _restitution = clampedValue;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
+
 }
 
-void EntityItem::updateFriction(float value) {
+void EntityItem::setFriction(float value) {
     float clampedValue = glm::max(glm::min(ENTITY_ITEM_MAX_FRICTION, value), ENTITY_ITEM_MIN_FRICTION);
     withWriteLock([&] {
         if (_friction != clampedValue) {
@@ -1927,32 +1790,22 @@ void EntityItem::updateFriction(float value) {
     });
 }
 
-void EntityItem::setRestitution(float value) {
-    float clampedValue = glm::max(glm::min(ENTITY_ITEM_MAX_RESTITUTION, value), ENTITY_ITEM_MIN_RESTITUTION);
+void EntityItem::setLifetime(float value) {
     withWriteLock([&] {
-        _restitution = clampedValue;
+        if (_lifetime != value) {
+            _lifetime = value;
+            _dirtyFlags |= Simulation::DIRTY_LIFETIME;
+        }
     });
 }
 
-void EntityItem::setFriction(float value) {
-    float clampedValue = glm::max(glm::min(ENTITY_ITEM_MAX_FRICTION, value), ENTITY_ITEM_MIN_FRICTION);
+void EntityItem::setCreated(quint64 value) {
     withWriteLock([&] {
-        _friction = clampedValue;
+        if (_created != value) {
+            _created = value;
+            _dirtyFlags |= Simulation::DIRTY_LIFETIME;
+        }
     });
-}
-
-void EntityItem::updateLifetime(float value) {
-    if (_lifetime != value) {
-        _lifetime = value;
-        _dirtyFlags |= Simulation::DIRTY_LIFETIME;
-    }
-}
-
-void EntityItem::updateCreated(uint64_t value) {
-    if (_created != value) {
-        _created = value;
-        _dirtyFlags |= Simulation::DIRTY_LIFETIME;
-    }
 }
 
 void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
@@ -2025,14 +1878,6 @@ void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
 }
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
-    if (wantTerseEditLogging() && _simulationOwner != owner) {
-        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
-    }
-
-    _simulationOwner.set(owner);
-}
-
-void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
     // NOTE: this method only used by EntityServer.  The Interface uses special code in readEntityDataFromBuffer().
     if (wantTerseEditLogging() && _simulationOwner != owner) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
@@ -2448,10 +2293,10 @@ void EntityItem::dimensionsChanged() {
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
     // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
-    auto globalPosition = getPosition(success);
+    auto globalPosition = getWorldPosition(success);
     if (success) {
         properties.setPosition(globalPosition + offset);
-        properties.setRotation(getRotation());
+        properties.setRotation(getWorldOrientation());
         properties.setDimensions(getDimensions());
         // Should we do velocities and accelerations, too? This could end up being quite involved, which is why the method exists.
     } else {
@@ -2618,12 +2463,6 @@ glm::vec3 EntityItem::getGravity() const {
     return result;
 }
 
-void EntityItem::setGravity(const glm::vec3& value) {
-    withWriteLock([&] {
-        _gravity = value;
-    });
-}
-
 glm::vec3 EntityItem::getAcceleration() const {
     glm::vec3 result;
     withReadLock([&] {
@@ -2644,11 +2483,6 @@ float EntityItem::getDamping() const {
         result = _damping;
     });
     return result;
-}
-void EntityItem::setDamping(float value) {
-    withWriteLock([&] {
-        _damping = value;
-    });
 }
 
 float EntityItem::getRestitution() const {
@@ -2676,24 +2510,12 @@ float EntityItem::getLifetime() const {
     return result;
 }
 
-void EntityItem::setLifetime(float value) {
-    withWriteLock([&] {
-        _lifetime = value;
-    });
-}
-
 quint64 EntityItem::getCreated() const {
     quint64 result;
     withReadLock([&] {
         result = _created;
     });
     return result;
-}
-
-void EntityItem::setCreated(quint64 value) {
-    withWriteLock([&] {
-        _created = value;
-    });
 }
 
 QString EntityItem::getScript() const {
@@ -2755,25 +2577,12 @@ glm::vec3 EntityItem::getRegistrationPoint() const {
     return result;
 }
 
-void EntityItem::setRegistrationPoint(const glm::vec3& value) {
-    withWriteLock([&] {
-        _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
-    });
-    dimensionsChanged(); // Registration Point affects the bounding box
-}
-
 float EntityItem::getAngularDamping() const {
     float result;
     withReadLock([&] {
         result = _angularDamping;
     });
     return result;
-}
-
-void EntityItem::setAngularDamping(float value) {
-    withWriteLock([&] {
-        _angularDamping = value;
-    });
 }
 
 QString EntityItem::getName() const {
@@ -2825,24 +2634,12 @@ bool EntityItem::getCollisionless() const {
     return result;
 }
 
-void EntityItem::setCollisionless(bool value) {
-    withWriteLock([&] {
-        _collisionless = value;
-    });
-}
-
 uint8_t EntityItem::getCollisionMask() const {
     uint8_t result;
     withReadLock([&] {
         result = _collisionMask;
     });
     return result;
-}
-
-void EntityItem::setCollisionMask(uint8_t value) {
-    withWriteLock([&] {
-        _collisionMask = value;
-    });
 }
 
 bool EntityItem::getDynamic() const {
@@ -2856,12 +2653,6 @@ bool EntityItem::getDynamic() const {
     return result;
 }
 
-void EntityItem::setDynamic(bool value) {
-    withWriteLock([&] {
-        _dynamic = value;
-    });
-}
-
 bool EntityItem::getLocked() const {
     bool result;
     withReadLock([&] {
@@ -2871,12 +2662,6 @@ bool EntityItem::getLocked() const {
 }
 
 void EntityItem::setLocked(bool value) {
-    withWriteLock([&] {
-        _locked = value;
-    });
-}
-
-void EntityItem::updateLocked(bool value) {
     bool changed { false };
     withWriteLock([&] {
         if (_locked != value) {
@@ -2984,5 +2769,36 @@ void EntityItem::somethingChangedNotification() {
         for (const auto& handler : _changeHandlers.values()) {
             handler(id);
         }
+    });
+}
+
+void EntityItem::retrieveMarketplacePublicKey() {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    requestURL.setPath("/api/v1/commerce/marketplace_key");
+    QJsonObject request;
+    networkRequest.setUrl(requestURL);
+
+    QNetworkReply* networkReply = NULL;
+    networkReply = networkAccessManager.get(networkRequest);
+
+    connect(networkReply, &QNetworkReply::finished, [=]() {
+        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+        jsonObject = jsonObject["data"].toObject();
+
+        if (networkReply->error() == QNetworkReply::NoError) {
+            if (!jsonObject["public_key"].toString().isEmpty()) {
+                EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
+                qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
+            } else {
+                qCWarning(entities) << "Marketplace public key is empty!";
+            }
+        } else {
+            qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
+        }
+
+        networkReply->deleteLater();
     });
 }

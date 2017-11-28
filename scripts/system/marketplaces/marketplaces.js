@@ -15,7 +15,8 @@
 
     Script.include("../libraries/WebTablet.js");
 
-    var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+    var METAVERSE_SERVER_URL = Account.metaverseServerURL;
+    var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
@@ -127,6 +128,12 @@
         } else {
             ContextOverlay.isInMarketplaceInspectionMode = false;
         }
+
+        if (!onCommerceScreen) {
+            tablet.sendToQml({
+                method: 'inspectionCertificate_resetCert'
+            });
+        }
     }
 
     function openWallet() {
@@ -135,7 +142,7 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
-        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID + "\n");
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
             certificateId: certificateId
@@ -153,11 +160,112 @@
             type: "marketplaces",
             action: "commerceSetting",
             data: {
-                commerceMode: Settings.getValue("commerce", false),
+                commerceMode: Settings.getValue("commerce", true),
                 userIsLoggedIn: Account.loggedIn,
-                walletNeedsSetup: Wallet.walletStatus === 1
+                walletNeedsSetup: Wallet.walletStatus === 1,
+                metaverseServerURL: Account.metaverseServerURL
             }
         }));
+    }
+
+    var HALF_TREE_SCALE = 16384;
+    function getPositionToCreateEntity(extra) {
+        var CREATE_DISTANCE = 2;
+        var position;
+        var delta = extra !== undefined ? extra : 0;
+        if (Camera.mode === "entity" || Camera.mode === "independent") {
+            position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE + delta));
+        } else {
+            position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE + delta));
+            position.y += 0.5;
+        }
+
+        if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
+            return null;
+        }
+        return position;
+    }
+
+    function rezEntity(itemHref, isWearable) {
+        var success = Clipboard.importEntities(itemHref);
+
+        if (success) {
+            var VERY_LARGE = 10000;
+            var isLargeImport = Clipboard.getClipboardContentsLargestDimension() >= VERY_LARGE;
+            var position = Vec3.ZERO;
+            if (!isLargeImport) {
+                position = getPositionToCreateEntity(Clipboard.getClipboardContentsLargestDimension() / 2);
+            }
+            if (position !== null && position !== undefined) {
+                var pastedEntityIDs = Clipboard.pasteEntities(position);
+                if (!isLargeImport) {
+                    // The first entity in Clipboard gets the specified position with the rest being relative to it. Therefore, move
+                    // entities after they're imported so that they're all the correct distance in front of and with geometric mean
+                    // centered on the avatar/camera direction.
+                    var deltaPosition = Vec3.ZERO;
+                    var entityPositions = [];
+                    var entityParentIDs = [];
+
+                    var propType = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]).type;
+                    var NO_ADJUST_ENTITY_TYPES = ["Zone", "Light", "ParticleEffect"];
+                    if (NO_ADJUST_ENTITY_TYPES.indexOf(propType) === -1) {
+                        var targetDirection;
+                        if (Camera.mode === "entity" || Camera.mode === "independent") {
+                            targetDirection = Camera.orientation;
+                        } else {
+                            targetDirection = MyAvatar.orientation;
+                        }
+                        targetDirection = Vec3.multiplyQbyV(targetDirection, Vec3.UNIT_Z);
+
+                        var targetPosition = getPositionToCreateEntity();
+                        var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
+                        var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
+                        for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                            var curLoopEntityProps = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
+                                "registrationPoint", "rotation", "parentID"]);
+                            var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
+                                curLoopEntityProps.registrationPoint, curLoopEntityProps.dimensions, curLoopEntityProps.rotation);
+                            var delta = Vec3.subtract(adjustedPosition, curLoopEntityProps.position);
+                            var distance = Vec3.dot(delta, targetDirection);
+                            deltaParallel = Math.min(distance, deltaParallel);
+                            deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
+                                deltaPerpendicular);
+                            entityPositions[i] = curLoopEntityProps.position;
+                            entityParentIDs[i] = curLoopEntityProps.parentID;
+                        }
+                        deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
+                        deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
+                    }
+
+                    if (grid.getSnapToGrid()) {
+                        var firstEntityProps = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
+                            "registrationPoint"]);
+                        var positionPreSnap = Vec3.sum(deltaPosition, firstEntityProps.position);
+                        position = grid.snapToSurface(grid.snapToGrid(positionPreSnap, false, firstEntityProps.dimensions,
+                                firstEntityProps.registrationPoint), firstEntityProps.dimensions, firstEntityProps.registrationPoint);
+                        deltaPosition = Vec3.subtract(position, firstEntityProps.position);
+                    }
+
+                    if (!Vec3.equal(deltaPosition, Vec3.ZERO)) {
+                        for (var editEntityIndex = 0, numEntities = pastedEntityIDs.length; editEntityIndex < numEntities; editEntityIndex++) {
+                            if (Uuid.isNull(entityParentIDs[editEntityIndex])) {
+                                Entities.editEntity(pastedEntityIDs[editEntityIndex], {
+                                    position: Vec3.sum(deltaPosition, entityPositions[editEntityIndex])
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (isActive) {
+                    selectionManager.setSelections(pastedEntityIDs);
+                }
+            } else {
+                Window.notifyEditError("Can't import entities: entities would be out of bounds.");
+            }
+        } else {
+            Window.notifyEditError("There was an error importing the entity file.");
+        }
     }
 
     marketplaceButton.clicked.connect(onClick);
@@ -321,6 +429,10 @@
                 if (itemId && itemId !== "") {
                     tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 }
+                break;
+            case 'checkout_rezClicked':
+            case 'purchases_rezClicked':
+                rezEntity(message.itemHref, message.isWearable);
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':

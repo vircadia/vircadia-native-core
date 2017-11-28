@@ -99,7 +99,7 @@ class PolyLineEntityItem : public EntityItem {
                                              void** intersectedObject, bool precisionPicking) const override { return false; }
 
     // disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
-    virtual void setRegistrationPoint(const glm::vec3& value) override {};
+    virtual void setRegistrationPoint(const glm::vec3& value) override {}; // FIXME: this is suspicious! 
 
     virtual void debugDump() const override;
     static const float DEFAULT_LINE_WIDTH;

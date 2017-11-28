@@ -12,30 +12,33 @@
 #include "EntityTreeRenderer.h"
 
 #include <glm/gtx/quaternion.hpp>
+#include <queue>
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
 #include <QThreadPool>
 
 #include <shared/QtHelpers.h>
-#include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
+#include <AddressManager.h>
+#include <ColorUtils.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
+#include <PrioritySortUtil.h>
+#include <Rig.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <AddressManager.h>
-#include <Rig.h>
 #include <EntitySimulation.h>
-#include <AddressManager.h>
 #include <ZoneRenderer.h>
 
 #include "EntitiesRendererLogging.h"
 #include "RenderableEntityItem.h"
 
 #include "RenderableWebEntityItem.h"
+
+#include <PointerManager.h>
 
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
@@ -49,14 +52,23 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _displayModelBounds(false),
     _layeredZones(this)
 {
-    setMouseRayPickResultOperator([](QUuid rayPickID) {
+    setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         return entityResult;
     });
-    setSetPrecisionPickingOperator([](QUuid rayPickID, bool value) {});
+    setSetPrecisionPickingOperator([](unsigned int rayPickID, bool value) {});
     EntityRenderer::initEntityRenderers();
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    connect(pointerManager.data(), &PointerManager::hoverBeginEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity);
+    connect(pointerManager.data(), &PointerManager::hoverContinueEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity);
+    connect(pointerManager.data(), &PointerManager::hoverEndEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity);
+    connect(pointerManager.data(), &PointerManager::triggerBeginEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerContinueEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerEndEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
 
     // Forward mouse events to web entities
     auto handlePointerEvent = [&](const EntityItemID& entityID, const PointerEvent& event) {
@@ -69,10 +81,20 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
             QMetaObject::invokeMethod(thisEntity.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
         }
     };
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, this, handlePointerEvent);
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, this, [&](const EntityItemID& entityID, const PointerEvent& event) {
+        std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
+        auto entity = getEntity(entityID);
+        if (entity && entity->getType() == EntityTypes::Web) {
+            thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
+        }
+        if (thisEntity) {
+            QMetaObject::invokeMethod(thisEntity.get(), "hoverEnterEntity", Q_ARG(PointerEvent, event));
+        }
+    });
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, this, handlePointerEvent);
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, [&](const EntityItemID& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
@@ -100,7 +122,11 @@ EntityRendererPointer EntityTreeRenderer::renderableForEntityId(const EntityItem
 
 render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const {
     auto renderable = renderableForEntityId(id);
-    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID;
+    if (renderable) {
+        return renderable->getRenderItemID();
+    } else {
+        return render::Item::INVALID_ITEM_ID;
+    }
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
@@ -179,6 +205,7 @@ void EntityTreeRenderer::clear() {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
     _entitiesInScene.clear();
+    _renderablesToUpdate.clear();
 
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
@@ -268,7 +295,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -282,21 +309,91 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 #endif
     });
 
-    for (const auto& entityId : changedEntities) {
-        auto renderable = renderableForEntityId(entityId);
-        if (!renderable) {
-            continue;
+    {
+        PROFILE_RANGE_EX(simulation_physics, "CopyRenderables", 0xffff00ff, (uint64_t)changedEntities.size());
+        for (const auto& entityId : changedEntities) {
+            auto renderable = renderableForEntityId(entityId);
+            if (renderable) {
+                // only add valid renderables _renderablesToUpdate
+                _renderablesToUpdate.insert({ entityId, renderable });
+            }
         }
-        _renderablesToUpdate.insert({ entityId, renderable });
     }
 
-    if (!_renderablesToUpdate.empty()) {
+    float expectedUpdateCost = _avgRenderableUpdateCost * _renderablesToUpdate.size();
+    if (expectedUpdateCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET) {
+        // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+        uint64_t updateStart = usecTimestampNow();
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
+            assert(renderable); // only valid renderables are added to _renderablesToUpdate
             renderable->updateInScene(scene, transaction);
         }
+        size_t numRenderables = _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
         _renderablesToUpdate.clear();
+
+        // compute average per-renderable update cost
+        float cost = (float)(usecTimestampNow() - updateStart) / (float)(numRenderables);
+        const float blend = 0.1f;
+        _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+    } else {
+        // we expect the cost to updating all renderables to exceed available time budget
+        // so we first sort by priority and update in order until out of time
+
+        class SortableRenderer: public PrioritySortUtil::Sortable {
+        public:
+            SortableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
+
+            glm::vec3 getPosition() const override { return _renderer->getEntity()->getWorldPosition(); }
+            float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
+            uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
+
+            const EntityRendererPointer& getRenderer() const { return _renderer; }
+        private:
+            EntityRendererPointer _renderer;
+        };
+
+        // prioritize and sort the renderables
+        uint64_t sortStart = usecTimestampNow();
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
+        {
+            PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
+            while (itr != _renderablesToUpdate.end()) {
+                assert(itr->second); // only valid renderables are added to _renderablesToUpdate
+                sortedRenderables.push(SortableRenderer(itr->second));
+                ++itr;
+            }
+        }
+        {
+            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, sortedRenderables.size());
+
+            // compute remaining time budget
+            uint64_t updateStart = usecTimestampNow();
+            uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
+            uint64_t sortCost = updateStart - sortStart;
+            if (sortCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
+                timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - sortCost;
+            }
+            uint64_t expiry = updateStart + timeBudget;
+
+            // process the sorted renderables
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
+            size_t numSorted = sortedRenderables.size();
+            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
+                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                renderable->updateInScene(scene, transaction);
+                _renderablesToUpdate.erase(renderable->getEntity()->getID());
+                sortedRenderables.pop();
+            }
+
+            // compute average per-renderable update cost
+            size_t numUpdated = numSorted - sortedRenderables.size() + 1; // add one to avoid divide by zero
+            float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
+            const float blend = 0.1f;
+            _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+        }
     }
 }
 
@@ -315,7 +412,9 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
-                updateChangedEntities(scene, transaction);
+                ViewFrustum view;
+                _viewState->copyCurrentViewFrustum(view);
+                updateChangedEntities(scene, view, transaction);
                 scene->enqueueTransaction(transaction);
             }
         }
@@ -509,8 +608,8 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
 
     if (entity) {
 
-        glm::vec3 entityPosition = entity->getPosition();
-        glm::quat entityRotation = entity->getRotation();
+        glm::vec3 entityPosition = entity->getWorldPosition();
+        glm::quat entityRotation = entity->getWorldOrientation();
         glm::vec3 entityDimensions = entity->getDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 
@@ -556,8 +655,6 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-static const uint32_t MOUSE_POINTER_ID = 0;
-
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
@@ -578,7 +675,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         }
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -610,7 +707,7 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects && rayPickResult.entity) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
             pos2D, rayPickResult.intersection,
             rayPickResult.surfaceNormal, ray.direction,
             toPointerButton(*event), toPointerButtons(*event), Qt::NoModifier);
@@ -642,7 +739,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -658,7 +755,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     // we're releasing the button, then this is considered a clickReleaseOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -684,7 +781,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects && rayPickResult.entity) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -698,7 +795,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
             glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+            PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                       pos2D, rayPickResult.intersection,
                                       rayPickResult.surfaceNormal, ray.direction,
                                       toPointerButton(*event), toPointerButtons(*event),
@@ -729,7 +826,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
             glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+            PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                       toPointerButton(*event), toPointerButtons(*event),
@@ -745,7 +842,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    // If it's in the pending queue, remove it
+    // If it's in a pending queue, remove it
+    _renderablesToUpdate.erase(entityID);
     _entitiesToAdd.erase(entityID);
 
     auto itr = _entitiesInScene.find(entityID);
@@ -753,7 +851,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         // Not in the scene, and no longer potentially in the pending queue, we're done
         return;
     }
-        
+
     if (_tree && !_shuttingDown && _entitiesScriptEngine) {
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }

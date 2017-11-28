@@ -39,6 +39,7 @@ public:
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
+    Q_INVOKABLE void hoverEnterOverlay(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveOverlay(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
     void handlePointerEventAsTouch(const PointerEvent& event);
@@ -66,6 +67,8 @@ public:
     void buildWebSurface();
     void destroyWebSurface();
     void onResizeWebSurface();
+
+    Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -95,9 +98,6 @@ private:
     int _geometryId { 0 };
     bool _showKeyboardFocusHighlight{ true };
 
-    bool _pressed{ false };
-    bool _touchBeginAccepted { false };
-    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
     QTouchDevice _touchDevice;
 
     uint8_t _desiredMaxFPS { 10 };

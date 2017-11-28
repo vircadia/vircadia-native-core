@@ -107,6 +107,8 @@ public:
     TexturePointer getRenderBuffer(uint32 slot) const;
     uint32 getRenderBufferSubresource(uint32 slot) const;
 
+    bool setDepthBuffer(const TexturePointer& texture, const Format& format, uint32 subresource = 0);
+    bool setStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource = 0);
     bool setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource = 0);
     TexturePointer getDepthStencilBuffer() const;
     uint32 getDepthStencilBufferSubresource() const;
@@ -168,6 +170,7 @@ protected:
     uint16 _numSamples = 0;
 
     void updateSize(const TexturePointer& texture);
+    bool assignDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource);
 
     // Non exposed
     Framebuffer(const Framebuffer& framebuffer) = delete;

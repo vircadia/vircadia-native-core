@@ -585,7 +585,7 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems;
+            enabled: root.canRezCertifiedItems || root.isWearable;
             buttonGlyph: hifi.glyphs.lightning;
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -596,9 +596,7 @@ Rectangle {
             anchors.right: parent.right;
             text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
             }
@@ -634,7 +632,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: explainRezText;
-            //visible: !root.isWearable;
+            visible: !root.isWearable;
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
             // Text size
             size: 16;

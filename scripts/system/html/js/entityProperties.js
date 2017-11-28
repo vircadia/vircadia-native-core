@@ -678,14 +678,14 @@ function loaded() {
         var elZoneHazeModeEnabled = document.getElementById("property-zone-haze-mode-enabled");
         
         var elZoneHazeRange = document.getElementById("property-zone-haze-range");
-        var elZoneHazeColor = document.getElementById("property-zone-haze-blend-in-color");
-        var elZoneHazeColorRed = document.getElementById("property-zone-haze-blend-in-color-red");
-        var elZoneHazeColorGreen = document.getElementById("property-zone-haze-blend-in-color-green");
-        var elZoneHazeColorBlue = document.getElementById("property-zone-haze-blend-in-color-blue");
-        var elZoneHazeGlareColor = document.getElementById("property-zone-haze-blend-out-color");
-        var elZoneHazeGlareColorRed = document.getElementById("property-zone-haze-blend-out-color-red");
-        var elZoneHazeGlareColorGreen = document.getElementById("property-zone-haze-blend-out-color-green");
-        var elZoneHazeGlareColorBlue = document.getElementById("property-zone-haze-blend-out-color-blue");
+        var elZoneHazeColor = document.getElementById("property-zone-haze-color");
+        var elZoneHazeColorRed = document.getElementById("property-zone-haze-color-red");
+        var elZoneHazeColorGreen = document.getElementById("property-zone-haze-color-green");
+        var elZoneHazeColorBlue = document.getElementById("property-zone-haze-color-blue");
+        var elZoneHazeGlareColor = document.getElementById("property-zone-haze-glare-color");
+        var elZoneHazeGlareColorRed = document.getElementById("property-zone-haze-glare-color-red");
+        var elZoneHazeGlareColorGreen = document.getElementById("property-zone-haze-glare-color-green");
+        var elZoneHazeGlareColorBlue = document.getElementById("property-zone-haze-glare-color-blue");
         var elZoneHazeEnableGlare = document.getElementById("property-zone-haze-enable-light-blend");
         var elZonehazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
         
@@ -1069,9 +1069,9 @@ function loaded() {
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
-                            elZoneHazeAttenuateKeyLight.checked = properties.haze.hazeAttenuateKeyLight;
-                            elZoneHazeKeyLightRange.value = properties.haze.hazeKeyLightRange.toFixed(0);
-                            elZoneHazeKeyLightAltitude.value = properties.haze.hazeKeyLightAltitude.toFixed(0);
+//                            elZoneHazeAttenuateKeyLight.checked = properties.haze.hazeAttenuateKeyLight;
+//                            elZoneHazeKeyLightRange.value = properties.haze.hazeKeyLightRange.toFixed(0);
+//                            elZoneHazeKeyLightAltitude.value = properties.haze.hazeKeyLightAltitude.toFixed(0);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1474,15 +1474,15 @@ function loaded() {
 
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
 
-        colorPickers.push($('#property-zone-haze-blend-in-color').colpick({
+        colorPickers.push($('#property-zone-haze-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             onShow: function(colpick) {
-                $('#property-zone-haze-blend-in-color').attr('active', 'true');
+                $('#property-zone-haze-color').attr('active', 'true');
             },
             onHide: function(colpick) {
-                $('#property-zone-haze-blend-in-color').attr('active', 'false');
+                $('#property-zone-haze-color').attr('active', 'false');
             },
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
@@ -1499,15 +1499,15 @@ function loaded() {
         elZoneHazeColorGreen.addEventListener('change', zoneHazeColorChangeFunction);
         elZoneHazeColorBlue.addEventListener('change', zoneHazeColorChangeFunction);
 
-        colorPickers.push($('#property-zone-haze-blend-out-color').colpick({
+        colorPickers.push($('#property-zone-haze-glare-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             onShow: function(colpick) {
-                $('#property-zone-haze-blend-out-color').attr('active', 'true');
+                $('#property-zone-haze-glare-color').attr('active', 'true');
             },
             onHide: function(colpick) {
-                $('#property-zone-haze-blend-out-color').attr('active', 'false');
+                $('#property-zone-haze-glare-color').attr('active', 'false');
             },
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
@@ -1533,9 +1533,9 @@ function loaded() {
 
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
 
-        elZoneHazeAttenuateKeyLight.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAttenuateKeyLight'));
-        elZoneHazeKeyLightRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightRange'));
-        elZoneHazeKeyLightAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightAltitude'));
+//        elZoneHazeAttenuateKeyLight.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAttenuateKeyLight'));
+//        elZoneHazeKeyLightRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightRange'));
+//        elZoneHazeKeyLightAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightAltitude'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
