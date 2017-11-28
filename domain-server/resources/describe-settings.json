@@ -916,6 +916,14 @@
               "default": false
             }
           ]
+        },
+        {
+          "name": "multi_kick_logged_in",
+          "type": "checkbox",
+          "label": "Multi-Kick for Logged In Users",
+          "help": "Kick logged in users by machine fingerprint (in addition to the default kick by username)",
+          "default": false,
+          "advanced": true
         }
       ]
     },
