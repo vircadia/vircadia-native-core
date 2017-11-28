@@ -1956,11 +1956,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     // Use head/HMD roll to turn while flying, but not when standing still.
     if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
+
         // Turn with head roll.
         const float MIN_CONTROL_SPEED = 0.01f;
         float speed = glm::length(getWorldVelocity());
         if (speed >= MIN_CONTROL_SPEED) {
             // Feather turn when stopping moving.
+
+            /* AJT hack
             float speedFactor;
             if (getDriveKey(TRANSLATE_Z) != 0.0f || _lastDrivenSpeed == 0.0f) {
                 _lastDrivenSpeed = speed;
@@ -1968,15 +1971,28 @@ void MyAvatar::updateOrientation(float deltaTime) {
             } else {
                 speedFactor = glm::min(speed / _lastDrivenSpeed, 1.0f);
             }
+            */
 
             float direction = glm::dot(getWorldVelocity(), getWorldOrientation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
 
-            float rollAngle = glm::degrees(asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT)));
+            float rollAngle = asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT));
             float rollSign = rollAngle < 0.0f ? -1.0f : 1.0f;
             rollAngle = fabsf(rollAngle);
-            rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
+            //rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
 
-            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlRate;
+            const float MAX_ROLL_ANGLE = PI / 2.0f;
+            const float MAX_ANGULAR_SPEED = 1.5f;  // radians per sec
+
+            // apply a quadratic ease in curve. giving less roll and shallow angles and more roll at extreme angles.
+            float t = glm::clamp(rollAngle, 0.0f, MAX_ROLL_ANGLE) / MAX_ROLL_ANGLE;
+            float newT = t;//t < 0.5f ? 2.0f * t * t : -1 + (4.0f - 2.0f * t) * t;
+            float angularSpeed = rollSign * newT * MAX_ANGULAR_SPEED;
+
+            qDebug() << "AJT: rollAngle =" << rollAngle << ", t =" << t << ", newT =" << newT << ", angularSpeed =" << angularSpeed;
+
+            // AJT: remove _hmdRollControlDeadZone, _hmdRollControlRate, _lastDrivenSpeed
+
+            totalBodyYaw += direction * glm::degrees(angularSpeed) * deltaTime;
         }
     }
 
