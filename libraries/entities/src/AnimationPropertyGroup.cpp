@@ -53,7 +53,6 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, Animation, animation, CurrentlyPlayingFrame, currentlyPlayingFrame);
 }
 
 
@@ -74,9 +73,6 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, lastFrame, float, setLastFrame);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, hold, bool, setHold);
 
-    //angus added
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, currentlyPlayingFrame, quint64, setCurrentlyPlayingFrame);
-
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFPS, float, setFPS, getFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, setRunning, getRunning);
@@ -93,7 +89,6 @@ void AnimationPropertyGroup::merge(const AnimationPropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(firstFrame);
     COPY_PROPERTY_IF_CHANGED(lastFrame);
     COPY_PROPERTY_IF_CHANGED(hold);
-    COPY_PROPERTY_IF_CHANGED(currentlyPlayingFrame);
 }
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
@@ -109,7 +104,6 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     bool loop = getLoop();
     bool hold = getHold();
     bool allowTranslation = getAllowTranslation();
-    quint64 currentlyPlayingFrame = getCurrentlyPlayingFrame();
 
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
@@ -148,9 +142,6 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
         allowTranslation = settingsMap["allowTranslation"].toBool();
     }
 
-    if (settingsMap.contains("currentlyPlayingFrame")) {
-        currentlyPlayingFrame = settingsMap["currentlyPlayingFrame"].toULongLong();
-    }
 
     setAllowTranslation(allowTranslation);
     setFPS(fps);
@@ -160,7 +151,6 @@ void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
     setLastFrame(lastFrame);
     setLoop(loop);
     setHold(hold);
-    setCurrentlyPlayingFrame(currentlyPlayingFrame);
 }
 
 
@@ -185,9 +175,6 @@ void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {
     if (allowTranslationChanged()) {
         out << "animation-allowTranslation";
     }
-    if (currentlyPlayingFrameChanged()) {
-        out << "animation-currentlyPlayingFrame";
-    }
 }
 
 
@@ -209,8 +196,6 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
-    //angus
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, getCurrentlyPlayingFrame());
 
     return true;
 }
@@ -232,7 +217,6 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, quint64, setCurrentlyPlayingFrame);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_URL, URL);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_FPS, FPS);
@@ -243,7 +227,6 @@ bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyF
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_LAST_FRAME, LastFrame);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_HOLD, Hold);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_ALLOW_TRANSLATION, AllowTranslation);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, CurrentlyPlayingFrame);
     
     processedBytes += bytesRead;
 
@@ -276,7 +259,6 @@ EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_LAST_FRAME, lastFrame);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_HOLD, hold);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_ALLOW_TRANSLATION, allowTranslation);
-    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, currentlyPlayingFrame);
 
     return changedProperties;
 }
@@ -291,7 +273,6 @@ void AnimationPropertyGroup::getProperties(EntityItemProperties& properties) con
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, FirstFrame, getFirstFrame);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, LastFrame, getLastFrame);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, Hold, getHold);
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Animation, CurrentlyPlayingFrame, getCurrentlyPlayingFrame);
 }
 
 bool AnimationPropertyGroup::setProperties(const EntityItemProperties& properties) {
@@ -306,7 +287,6 @@ bool AnimationPropertyGroup::setProperties(const EntityItemProperties& propertie
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, FirstFrame, firstFrame, setFirstFrame);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, LastFrame, lastFrame, setLastFrame);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, Hold, hold, setHold);
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Animation, CurrentlyPlayingFrame, currentlyPlayingFrame, setCurrentlyPlayingFrame);
     return somethingChanged;
 }
 
@@ -322,8 +302,6 @@ EntityPropertyFlags AnimationPropertyGroup::getEntityProperties(EncodeBitstreamP
     requestedProperties += PROP_ANIMATION_LAST_FRAME;
     requestedProperties += PROP_ANIMATION_HOLD;
     requestedProperties += PROP_ANIMATION_ALLOW_TRANSLATION;
-    //angus
-    requestedProperties += PROP_ANIMATION_CURRENTLY_PLAYING_FRAME;
 
     return requestedProperties;
 }
@@ -347,7 +325,6 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, getFirstFrame());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, getCurrentlyPlayingFrame());
 }
 
 int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -367,6 +344,5 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FIRST_FRAME, float, setFirstFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, quint64, setCurrentlyPlayingFrame);
     return bytesRead;
 }

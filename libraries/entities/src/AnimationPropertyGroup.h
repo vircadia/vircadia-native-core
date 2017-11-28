@@ -86,7 +86,6 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float, MAXIMUM_POSSIBLE_FRAME); // was animationSettings.lastFrame
     DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool, false); // was animationSettings.hold
     DEFINE_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, AllowTranslation, allowTranslation, bool, true); 
-    DEFINE_PROPERTY(PROP_ANIMATION_CURRENTLY_PLAYING_FRAME, CurrentlyPlayingFrame, currentlyPlayingFrame, quint64, 0);
 
 protected:
     friend bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b);

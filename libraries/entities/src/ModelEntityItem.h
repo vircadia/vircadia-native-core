@@ -47,11 +47,11 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    //angus
+    //update and needstocallupdate added back for the entity property fix
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override;
     void updateFrameCount();
-    //angus
+
     virtual void debugDump() const override;
 
     void setShapeType(ShapeType type) override;
@@ -87,7 +87,6 @@ public:
     void setAnimationURL(const QString& url);
 
     void setAnimationCurrentFrame(float value);
-    void setAnimationCurrentlyPlayingFrame(quint64 value);
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value); 
 
@@ -111,7 +110,6 @@ public:
     float getAnimationFPS() const;
     bool isAnimatingSomething() const;
 
-    quint64 getCurrentlyPlayingFrame() const;
     int getLastKnownCurrentFrame() const;
 
     static const QString DEFAULT_TEXTURES;
@@ -173,12 +171,8 @@ protected:
 
 private:
     //angus
-    quint64 _currentlyPlayingFrame{ 0 };
-    float _endAnim{ 0 };
     uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;
-    bool _propTestFlag{ true };
-    bool _propTestFlag2{ true };
     float _currentFrame{ -1 };
     //angus
 };
