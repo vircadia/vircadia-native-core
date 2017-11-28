@@ -108,6 +108,7 @@ public:
 
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;
+    float getAnimationFPS() const;
     bool isAnimatingSomething() const;
 
     quint64 getCurrentlyPlayingFrame() const;
@@ -178,7 +179,7 @@ private:
     AnimationPropertyGroup _previousAnimationProperties;
     bool _propTestFlag{ true };
     bool _propTestFlag2{ true };
-    float _currentFrame{ 0 };
+    float _currentFrame{ -1 };
     //angus
 };
 

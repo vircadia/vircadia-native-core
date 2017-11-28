@@ -133,7 +133,10 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
     friend class EntityRenderer;
 
 public:
-    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
+    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+        _lastAnimated = usecTimestampNow();
+        qCDebug(entitiesrenderer) << "set the last animated here" << _lastAnimated;
+    }
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
@@ -184,7 +187,7 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
-    float _currentFrame { 0 };
+    float _currentFrame { -1 };
     float _endAnim{ 0 };
     bool tempbool{ false };
     quint64 _currentlyPlayingFrame{ 0 };

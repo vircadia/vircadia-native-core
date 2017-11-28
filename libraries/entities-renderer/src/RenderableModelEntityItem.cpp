@@ -63,13 +63,17 @@ bool ModelEntityWrapper::isModelLoaded() const {
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
                              [](EntityItem* ptr) { ptr->deleteLater(); });
+    
     entity->setProperties(properties);
+
     return entity;
 }
 
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
     ModelEntityWrapper(entityItemID),
     _dimensionsInitialized(dimensionsInitialized) {
+    
+    
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() { }
@@ -987,34 +991,22 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     }
 
     //get entity model anim props
-    bool isLooping = entity->getAnimationLoop();
-    int firstFrame = entity->getAnimationFirstFrame();
-    int lastFrame = entity->getAnimationLastFrame();
-    bool isHolding = entity->getAnimationHold();
-    int updatedFrameCount = lastFrame - firstFrame + 1;
-
-    //get the updated frame from the ModelEntity 
-    auto modelAnimProperties = entity->getAnimationProperties();
-
     
-    //_currentFrame = modelAnimProperties.getCurrentFrame();
+    int updatedFrameCount = entity->getAnimationLastFrame() - entity->getAnimationFirstFrame() + 1;
+    
 
-    //tempbool = modelAnimProperties.getRunning();
-    //qCDebug(entitiesrenderer) << "is playing is: " << tempbool;
-
-    qCDebug(entitiesrenderer) << "the client frame count is the following " << _currentFrame;
-
-    if ((firstFrame >= 0) && (firstFrame < lastFrame) && (lastFrame <= frameCount)) {
-        //length of animation in now determined by first and last frame
-        updatedFrameCount = (lastFrame - firstFrame + 1);
+    if ((entity->getAnimationFirstFrame() < 0) && (entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())){// && (lastFrame <= frameCount)) {
+        //we don't increment currentframe if the first frame is < zero or > than last frame.
+        //return;
     }
+
 
     
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
     }
-
+    
     auto now = usecTimestampNow();
 
     //find out how long it has been since this animation started.
@@ -1022,46 +1014,38 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
-    float oldCurrentFrame = _currentFrame;
-    float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-    _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+    
 
     //here we implement the looping animation property
     //if we have played through the animation once then we hold on the last frame
-   
-    if( isLooping || (_currentFrame < _renderAnimationProperties.getLastFrame() ) ){
-        //else advance the current frame.
-        //if hold or not playing don't advance the current frame.
-        //also if the animFrame is outside of first or last frame then don't advance the motion.
-        if (!isHolding && entity->getAnimationIsPlaying() && !( _renderAnimationProperties.getCurrentFrame() > _renderAnimationProperties.getLastFrame() ) && !( _renderAnimationProperties.getCurrentFrame() < _renderAnimationProperties.getFirstFrame() ) ) {
-            float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-            _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
-            while ((_currentFrame - _renderAnimationProperties.getFirstFrame()) > updatedFrameCount) {
-                _currentFrame -= updatedFrameCount;
+    if (!(entity->getAnimationHold()) && entity->getAnimationIsPlaying()) {
+        float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+        _currentFrame += (deltaTime * entity->getAnimationFPS());
+        if (_currentFrame > entity->getAnimationLastFrame()) {
+            if (entity->getAnimationLoop()) {
+                while ((_currentFrame - entity->getAnimationFirstFrame()) > (updatedFrameCount - 1)) {
+                    _currentFrame -= (updatedFrameCount - 1);
+                }
+            }else{
+                _currentFrame = entity->getAnimationLastFrame();
+            }
+        }else if (_currentFrame < entity->getAnimationFirstFrame()) {
+            if (entity->getAnimationFirstFrame() < 0) {
+                _currentFrame = 0;
+            }else {
+                _currentFrame = entity->getAnimationFirstFrame();
             }
         }
-        else {
-            //use old currentFrame
-            _currentFrame = oldCurrentFrame;
-        }
-    }else {
-        //make current frame the endanim frame
-        _currentFrame = _renderAnimationProperties.getLastFrame();
     }
-    //save the last place that we rendered ourselves.
-    //entity->setAnimationCurrentFrame(_currentFrame);
-    
-    {
+    qCDebug(entitiesrenderer) << "_currentFrame " << _currentFrame;
+
+
+   {
         //where are we in the currently defined animation segment?       
-       // int animationCurrentFrame = (int)(glm::floor(_currentFrame - firstFrame)) % updatedFrameCount;
-        //this gives us the absolute frame value to use by adding the first frame value.
-       // animationCurrentFrame += firstFrame;
         int animationCurrentFrame = (int)(glm::floor(_currentFrame));
-
-        
-
-        
-
+        //in the case where the last frame is greater than the framecount then clamp
+        //it to the end of the animation until it loops around. 
+       
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
         }
@@ -1382,23 +1366,65 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // make a copy of the animation properites
         auto newAnimationProperties = entity->getAnimationProperties();
         if (newAnimationProperties != _renderAnimationProperties) {
-            qCDebug(entitiesrenderer) << "this is where the change is currently handled in the rendering code";
-            qCDebug(entitiesrenderer) << "getting the currently playing frame from the modelentityitem update" << newAnimationProperties.getCurrentFrame();
             withWriteLock([&] {
-                if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
-                    if (!(newAnimationProperties.getCurrentFrame() > newAnimationProperties.getLastFrame()) && !(newAnimationProperties.getCurrentFrame() < newAnimationProperties.getFirstFrame())) {
+                if ((newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
+                    if (_currentFrame < 0) {
+                        qCDebug(entitiesrenderer) << "point A before assign" << _currentFrame;
                         _currentFrame = newAnimationProperties.getCurrentFrame();// +((float)newAnimationProperties.getCurrentlyPlayingFrame() / (float)USECS_PER_SECOND)*(newAnimationProperties.getFPS());
-                        _endAnim = _currentFrame + ( newAnimationProperties.getLastFrame() - newAnimationProperties.getFirstFrame() );
-                        _lastAnimated = 0;
+                        qCDebug(entitiesrenderer) << "point A after assign" << _currentFrame;
+                        qCDebug(entitiesrenderer) << "current " <<newAnimationProperties.getCurrentFrame()<< " first "<< newAnimationProperties.getFirstFrame()<< " last " << newAnimationProperties.getLastFrame() <<" running "<< newAnimationProperties.getRunning();
+                        qCDebug(entitiesrenderer) << "The previous current Frame " << newAnimationProperties.getCurrentFrame() << " or " << _renderAnimationProperties.getCurrentFrame();
+                        qCDebug(entitiesrenderer) << "last animated before resume animating" << _lastAnimated;
+                        //_lastAnimated = usecTimestampNow();
+                        //qCDebug(entitiesrenderer) << "last animated" << _lastAnimated;
+                        //tempbool = true;
+                    }else {
+                        _currentFrame = newAnimationProperties.getFirstFrame();
+                        _lastAnimated =  usecTimestampNow();
+                        qCDebug(entitiesrenderer) << "point A.2 reset start";
                     }
-                }else if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
-                     //int currentframe_mod_length = (int)(_currentFrame  - (int)(glm::floor(newAnimationProperties.getCurrentFrame()))) % ((int)(glm::floor(newAnimationProperties.getLastFrame())) - (int)(glm::floor(newAnimationProperties.getFirstFrame())) + 1);
-                    //_endAnim = _currentFrame + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - (float)currentframe_mod_length;
+                }else if ( !_renderAnimationProperties.getLoop() && newAnimationProperties.getLoop()) {
+                    //_currentFrame = newAnimationProperties.getCurrentFrame();
+                    qCDebug(entitiesrenderer) << "turn on loop " << _currentFrame;
+                }else if (_renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
+                    //_currentFrame = newAnimationProperties.getCurrentFrame();
+                    qCDebug(entitiesrenderer) << "turn off loop " << _currentFrame;
+                }else if (_renderAnimationProperties.getHold() != newAnimationProperties.getHold()) {
+                    //_currentFrame = newAnimationProperties.getCurrentFrame();
+                    qCDebug(entitiesrenderer) << "get hold " << _currentFrame;
+                    //_lastAnimated = 0;
+                }else if (_renderAnimationProperties.getCurrentFrame() != newAnimationProperties.getCurrentFrame()){
+                    _currentFrame = newAnimationProperties.getCurrentFrame();
+                    //_lastAnimated = usecTimestampNow();
+                    qCDebug(entitiesrenderer) << "point C " << _currentFrame;
+                }else {
+                 //do nothing
                 }
-                _currentFrame = newAnimationProperties.getCurrentFrame();
-                qCDebug(entitiesrenderer) << "renderable update to current frame " << _currentFrame;
-                _renderAnimationProperties = newAnimationProperties;
+                
             });
+            _renderAnimationProperties = entity->getAnimationProperties();
+        } else {
+            //if first frame is less than zero then don't do anything.
+            if (!(entity->getAnimationFirstFrame() < 0)) {
+                // if the current frame is less than zero, this is from the initialization.
+                if (_currentFrame < 0) {
+                    qCDebug(entitiesrenderer) << "point D property current frame " << entity->getName() << newAnimationProperties.getCurrentFrame();
+                    if ((newAnimationProperties.getCurrentFrame() < newAnimationProperties.getLastFrame()) && (newAnimationProperties.getCurrentFrame() > newAnimationProperties.getFirstFrame())) {
+                        
+                        _currentFrame = newAnimationProperties.getCurrentFrame();
+                        qCDebug(entitiesrenderer) << "point D.1 " << _currentFrame;
+                        qCDebug(entitiesrenderer) << "last animated " << _lastAnimated;
+                        _lastAnimated = usecTimestampNow();
+                    }
+                    else {
+                        _currentFrame = newAnimationProperties.getFirstFrame();
+                        qCDebug(entitiesrenderer) << "point D.2 " << _currentFrame;
+                        _lastAnimated =  usecTimestampNow();
+                        qCDebug(entitiesrenderer) << entity->getName() << "last animated " << _lastAnimated;
+                    }
+                }
+            }
+
         }
     }
    //angus
@@ -1410,9 +1436,12 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
-        animate(entity);
+        if (!(entity->getAnimationFirstFrame() < 0) && !(entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())) {
+            animate(entity);
+        }
         emit requestRenderUpdate();
     }
+    
 }
 
 void ModelEntityRenderer::flagForCollisionGeometryUpdate() {
