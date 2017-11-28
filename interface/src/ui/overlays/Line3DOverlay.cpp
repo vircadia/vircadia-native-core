@@ -166,9 +166,12 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     bool newEndSet { false };
 
     auto start = properties["start"];
-    // if "start" property was not there, check to see if they included aliases: startPoint
+    // If "start" property was not there, check to see if they included aliases: startPoint, p1
     if (!start.isValid()) {
         start = properties["startPoint"];
+    }
+    if (!start.isValid()) {
+        start = properties["p1"];
     }
     if (start.isValid()) {
         newStart = vec3FromVariant(start);
@@ -177,9 +180,12 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     properties.remove("start"); // so that Base3DOverlay doesn't respond to it
 
     auto end = properties["end"];
-    // if "end" property was not there, check to see if they included aliases: endPoint
+    // If "end" property was not there, check to see if they included aliases: endPoint, p2
     if (!end.isValid()) {
         end = properties["endPoint"];
+    }
+    if (!end.isValid()) {
+        end = properties["p2"];
     }
     if (end.isValid()) {
         newEnd = vec3FromVariant(end);
