@@ -24,23 +24,55 @@ def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def jniFolder = new File('app/src/main/jniLibs/arm64-v8a')
 
 import org.apache.tools.ant.taskdefs.condition.Os
+import de.undercouch.gradle.tasks.download.Verify
+
 
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
 def qtFile='qt-5.9.3_linux_armv8-libcpp.tgz'
+def qtChecksum='547da3547d5690144e23d6504c6d6e91'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     qtFile = 'qt-5.9.3_osx_armv8-libcpp.tgz'
+    qtChecksum='6fa3e068cfdee863fc909b294a3a0cc6'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp.tgz'
+    qtChecksum='3a757378a7e9dbbfc662177e0eb46408'
 }
 
 def packages = [
-    qt: [ file: qtFile, sharedLibFolder: '', includeLibs: ['lib/*.so', 'plugins/*/*.so'] ],
-    bullet: [ file: 'bullet-2.83_armv8-libcpp.tgz' ],
-    draco: [ file: 'draco_armv8-libcpp.tgz' ],
-    gvr: [ file: 'gvrsdk_v1.101.0.tgz' ],
-    openssl: [ file: 'openssl-1.1.0g_armv8.tgz'],
-    polyvox: [ file: 'polyvox_armv8-libcpp.tgz', sharedLibFolder: 'lib', includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'] ],
-    tbb: [ file: 'tbb-2018_U1_armv8_libcpp.tgz', sharedLibFolder: 'lib/release', includeLibs: ['libtbb.so', 'libtbbmalloc.so'] ]
+    qt: [
+        file: qtFile,
+        checksum: qtChecksum,
+        sharedLibFolder: '',
+        includeLibs: ['lib/*.so', 'plugins/*/*.so']
+    ],
+    bullet: [
+        file: 'bullet-2.83_armv8-libcpp.tgz',
+        checksum: '2c558d604fce337f5eba3eb7ec1252fd'
+    ],
+    draco: [
+        file: 'draco_armv8-libcpp.tgz',
+        checksum: '617a80d213a5ec69fbfa21a1f2f738cd'
+    ],
+    gvr: [
+        file: 'gvrsdk_v1.101.0.tgz',
+        checksum: '57fd02baa069176ba18597a29b6b4fc7'
+    ],
+    openssl: [
+        file: 'openssl-1.1.0g_armv8.tgz',
+        checksum: 'cabb681fbccd79594f65fcc266e02f32'
+    ],
+    polyvox: [
+        file: 'polyvox_armv8-libcpp.tgz',
+        checksum: '5c918288741ee754c16aeb12bb46b9e1',
+        sharedLibFolder: 'lib',
+        includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so']
+    ],
+    tbb: [
+        file: 'tbb-2018_U1_armv8_libcpp.tgz',
+        checksum: '20768f298f53b195e71b414b0ae240c4',
+        sharedLibFolder: 'lib/release',
+        includeLibs: ['libtbb.so', 'libtbbmalloc.so']
+    ]
 ]
 
 task downloadDependencies {
@@ -52,12 +84,29 @@ task downloadDependencies {
                 src url
                 dest new File(baseFolder, filename)
                 onlyIfNewer true
-            } 
+            }
         }
     }
 }
 
-task extractDependencies(dependsOn: downloadDependencies) {
+task verifyQt(type: Verify) { def p = packages['qt'];  src new File(baseFolder, p['file']);  checksum p['checksum']; }
+task verifyBullet(type: Verify) { def p = packages['bullet']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyDraco(type: Verify) { def p = packages['draco']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyGvr(type: Verify) { def p = packages['gvr']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyOpenSSL(type: Verify) { def p = packages['openssl']; src new File(baseFolder, p['file']);  checksum p['checksum'] }
+task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+
+task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
+verifyDependencyDownloads.dependsOn verifyQt
+verifyDependencyDownloads.dependsOn verifyBullet
+verifyDependencyDownloads.dependsOn verifyDraco
+verifyDependencyDownloads.dependsOn verifyGvr
+verifyDependencyDownloads.dependsOn verifyOpenSSL
+verifyDependencyDownloads.dependsOn verifyPolyvox
+verifyDependencyDownloads.dependsOn verifyTBB
+
+task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {
         packages.each { entry ->
             def folder = entry.key;
