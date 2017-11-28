@@ -73,6 +73,8 @@ public:
     void setScanCallback(std::function<void (VisibleElement&)> cb);
     void traverse(uint64_t timeBudget);
 
+    void reset() { _path.clear(); _completedView.startTime = 0; } // resets our state to force a new "First" traversal
+
 private:
     void getNextVisibleElement(VisibleElement& next);
 

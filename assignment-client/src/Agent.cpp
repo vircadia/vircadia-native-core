@@ -441,7 +441,7 @@ void Agent::executeScript() {
 
         Transform audioTransform;
         auto headOrientation = scriptedAvatar->getHeadOrientation();
-        audioTransform.setTranslation(scriptedAvatar->getPosition());
+        audioTransform.setTranslation(scriptedAvatar->getWorldPosition());
         audioTransform.setRotation(headOrientation);
 
         QByteArray encodedBuffer;
@@ -452,7 +452,7 @@ void Agent::executeScript() {
         }
 
         AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
-            audioTransform, scriptedAvatar->getPosition(), glm::vec3(0),
+            audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
             packetType, _selectedCodecName);
     });
 
@@ -742,10 +742,10 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive(numAvailableSamples);
 
             // use the orientation and position of this avatar for the source of this audio
-            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(scriptedAvatar->getWorldPosition());
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
-            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(scriptedAvatar->getWorldPosition());
             audioPacket->writePrimitive(glm::vec3(0));
 
             // no matter what, the loudness should be set to 0
@@ -759,10 +759,10 @@ void Agent::processAgentAvatarAudio() {
             audioPacket->writePrimitive((quint8)0);
 
             // use the orientation and position of this avatar for the source of this audio
-            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(scriptedAvatar->getWorldPosition());
             glm::quat headOrientation = scriptedAvatar->getHeadOrientation();
             audioPacket->writePrimitive(headOrientation);
-            audioPacket->writePrimitive(scriptedAvatar->getPosition());
+            audioPacket->writePrimitive(scriptedAvatar->getWorldPosition()); // HUH? why do we write this twice??
             audioPacket->writePrimitive(glm::vec3(0));
 
             QByteArray encodedBuffer;

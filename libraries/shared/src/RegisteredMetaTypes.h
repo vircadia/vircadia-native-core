@@ -21,6 +21,7 @@
 
 #include "AACube.h"
 #include "SharedUtil.h"
+#include "shared/Bilateral.h"
 
 class QColor;
 class QUrl;
@@ -125,6 +126,14 @@ QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
 void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
+// MathPicks also have to overide operator== for their type
+class MathPick {
+public:
+    virtual ~MathPick() {}
+    virtual operator bool() const = 0;
+    virtual QVariantMap toVariantMap() const = 0;
+};
+
 /**jsdoc
  * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
  * mouse click or intersect a laser beam.
@@ -133,41 +142,121 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
  * @property {Vec3} origin - The starting position of the PickRay.
  * @property {Quat} direction - The direction that the PickRay travels.
  */
-class PickRay {
+class PickRay : public MathPick {
 public:
-    PickRay() : origin(0.0f), direction(0.0f)  { }
+    PickRay() : origin(NAN), direction(NAN)  { }
+    PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
+
+    operator bool() const override {
+        return !(glm::any(glm::isnan(origin)) || glm::any(glm::isnan(direction)));
+    }
+    bool operator==(const PickRay& other) const {
+        return (origin == other.origin && direction == other.direction);
+    }
+    QVariantMap toVariantMap() const override {
+        QVariantMap pickRay;
+        pickRay["origin"] = vec3toVariant(origin);
+        pickRay["direction"] = vec3toVariant(direction);
+        return pickRay;
+    }
 };
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
-enum IntersectionType {
-    NONE = 0,
-    ENTITY,
-    OVERLAY,
-    AVATAR,
-    HUD
+/**jsdoc
+ * A StylusTip defines the tip of a stylus.
+ *
+ * @typedef {object} StylusTip
+ * @property {number} side - The hand the tip is attached to: <code>0</code> for left, <code>1</code> for right.
+ * @property {Vec3} position - The position of the stylus tip.
+ * @property {Quat} orientation - The orientation of the stylus tip.
+ * @property {Vec3} velocity - The velocity of the stylus tip.
+ */
+class StylusTip : public MathPick {
+public:
+    StylusTip() : position(NAN), velocity(NAN) {}
+    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
+        orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
+
+    bilateral::Side side { bilateral::Side::Invalid };
+    glm::vec3 position;
+    glm::quat orientation;
+    glm::vec3 velocity;
+
+    operator bool() const override { return side != bilateral::Side::Invalid; }
+
+    bool operator==(const StylusTip& other) const {
+        return (side == other.side && position == other.position && orientation == other.orientation && velocity == other.velocity);
+    }
+
+    QVariantMap toVariantMap() const override {
+        QVariantMap stylusTip;
+        stylusTip["side"] = (int)side;
+        stylusTip["position"] = vec3toVariant(position);
+        stylusTip["orientation"] = quatToVariant(orientation);
+        stylusTip["velocity"] = vec3toVariant(velocity);
+        return stylusTip;
+    }
 };
 
-class RayPickResult {
-public:
-    RayPickResult() {}
-    RayPickResult(const PickRay& searchRay) : searchRay(searchRay) {}
-    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        type(type), objectID(objectID), distance(distance), intersection(intersection), searchRay(searchRay), surfaceNormal(surfaceNormal) {}
-    IntersectionType type { NONE };
-    QUuid objectID;
-    float distance { FLT_MAX };
-    glm::vec3 intersection { NAN };
-    PickRay searchRay;
-    glm::vec3 surfaceNormal { NAN };
-};
-Q_DECLARE_METATYPE(RayPickResult)
-QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult);
-void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult);
+
+namespace std {
+    inline void hash_combine(std::size_t& seed) { }
+
+    template <typename T, typename... Rest>
+    inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        hash_combine(seed, rest...);
+    }
+
+    template <>
+    struct hash<bilateral::Side> {
+        size_t operator()(const bilateral::Side& a) const {
+            return std::hash<int>()((int)a);
+        }
+    };
+
+    template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& a) const {
+            size_t result = 0;
+            hash_combine(result, a.x, a.y, a.z);
+            return result;
+        }
+    };
+
+    template <>
+    struct hash<glm::quat> {
+        size_t operator()(const glm::quat& a) const {
+            size_t result = 0;
+            hash_combine(result, a.x, a.y, a.z, a.w);
+            return result;
+        }
+    };
+
+    template <>
+    struct hash<PickRay> {
+        size_t operator()(const PickRay& a) const {
+            size_t result = 0;
+            hash_combine(result, a.origin, a.direction);
+            return result;
+        }
+    };
+
+    template <>
+    struct hash<StylusTip> {
+        size_t operator()(const StylusTip& a) const {
+            size_t result = 0;
+            hash_combine(result, a.side, a.position, a.orientation, a.velocity);
+            return result;
+        }
+    };
+}
 
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,

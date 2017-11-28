@@ -110,11 +110,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     enableDispatcherModule("LeftNearTriggerEntity", leftNearTriggerEntity);
     enableDispatcherModule("RightNearTriggerEntity", rightNearTriggerEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftNearTriggerEntity.cleanup();
         rightNearTriggerEntity.cleanup();
         disableDispatcherModule("LeftNearTriggerEntity");
         disableDispatcherModule("RightNearTriggerEntity");
-    };
-    Script.scriptEnding.connect(this.cleanup);
+    }
+    Script.scriptEnding.connect(cleanup);
 }());

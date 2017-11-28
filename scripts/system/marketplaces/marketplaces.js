@@ -160,7 +160,7 @@
             type: "marketplaces",
             action: "commerceSetting",
             data: {
-                commerceMode: Settings.getValue("commerce", false),
+                commerceMode: Settings.getValue("commerce", true),
                 userIsLoggedIn: Account.loggedIn,
                 walletNeedsSetup: Wallet.walletStatus === 1,
                 metaverseServerURL: Account.metaverseServerURL
