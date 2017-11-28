@@ -826,6 +826,12 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
+/**jsdoc
+ * A 2D size value.
+ * @typedef {object} Size
+ * @property {number} height - The height value.
+ * @property {number} width - The width value.
+ */
 QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("width", qSizeF.width());

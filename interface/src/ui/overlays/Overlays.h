@@ -280,9 +280,9 @@ public slots:
      * @function Overlays.textSize
      * @param {Uuid} overlayID - The ID of the overlay to use for calculation.
      * @param {string} text - The string to calculate the size of.
-     * @returns {Vec2} The size of the <code>text</code> if the overlay is a text overlay, otherwise 
-     *     <code>{ x: 0, y: 0 }</code>. If the overlay is a 2D overlay the size is in pixels; if the overlay if a 3D overlay the
-     *     size is in meters.
+     * @returns {Size} The size of the <code>text</code> if the overlay is a text overlay, otherwise
+     *     <code>{ height: 0, width : 0 }</code>. If the overlay is a 2D overlay the size is in pixels; if the overlay if a 3D
+     *     overlay the size is in meters.
      */
     QSizeF textSize(OverlayID id, const QString& text);
 
