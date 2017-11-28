@@ -74,7 +74,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
- * @property {Uuid} keyboardFocusOverlay - Get or set the [web3d]{@link Overlays.OverlayType} overlay that has keyboard focus.
+ * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
  *     If no overlay is set, get returns <code>null</code>; set <code>null</code> to clear keyboard focus.
  */
 
@@ -120,6 +120,13 @@ public slots:
      * @param {Overlays.OverlayType} type - The type of the overlay to add.
      * @param {Overlays.OverlayProperties} properties - The properties of the overlay to add.
      * @returns {Uuid} The ID of the newly created overlay.
+     * @example <caption>Add a cube overlay in front of your avatar.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
      */
     OverlayID addOverlay(const QString& type, const QVariant& properties);
 
@@ -128,6 +135,20 @@ public slots:
      * @function Overlays.cloneOverlay
      * @param {Uuid} overlayID - The ID of the overlay to clone.
      * @returns {Uuid} The ID of the new overlay.
+     * @example <caption>Add an overlay in front of your avatar, clone it, and move the clone to be above the 
+     *     original.</caption>
+     * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 }));
+     * var original = Overlays.addOverlay("cube", {
+     *     position: position,
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     *
+     * var clone = Overlays.cloneOverlay(original);
+     * Overlays.editOverlay(clone, {
+     *     position: Vec3.sum({ x: 0, y: 0.5, z: 0}, position)
+     * });
      */
     OverlayID cloneOverlay(OverlayID id);
 
@@ -137,6 +158,18 @@ public slots:
      * @param {Uuid} overlayID - The ID of the overlay to edit.
      * @param {Overlays.OverlayProperties} properties - The properties changes to make.
      * @returns {boolean} <code>true</code> if the overlay was found and edited, otherwise <code>false</code>.
+     * @example <caption>Add an overlay in front of your avatar then change its color.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     *
+     * var success = Overlays.editOverlay(overlay, {
+     *     color: { red: 255, green: 0, blue: 0 }
+     * });
+     * print("Success: " + success);
      */
     bool editOverlay(OverlayID id, const QVariant& properties);
 
@@ -146,11 +179,25 @@ public slots:
      * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - On object with overlay IDs as keys and 
      *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make for each as values.
      * @returns {boolean} <code>true</code> if all overlays were found and edited, otherwise <code>false</code>.
-     * @example <caption>Demonstrate creating the <code>propertiesById</code> parameter.</caption>
+     * @example <caption>Create two overlays in front of your avatar then change their colors.</caption>
+     * var overlayA = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var overlayB = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     *
      * var overlayEdits = {};
-     * overlayEdits[overlayA] = propertiesA; 
-     * overlayEdits[overlayB] = propertiesB;
+     * overlayEdits[overlayA] = { color: { red: 255, green: 0, blue: 0 } };
+     * overlayEdits[overlayB] = { color: { red: 0, green: 255, blue: 0 } };
      * var success = Overlays.editOverlays(overlayEdits);
+     * print("Success: " + success);
      */
     bool editOverlays(const QVariant& propertiesById);
 
@@ -158,6 +205,15 @@ public slots:
      * Delete an overlay.
      * @function Overlays.deleteOverlay
      * @param {Uuid} overlayID - The ID of the overlay to delete.
+     * @example <caption>Create an overlay in front of your avatar then delete it.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay: " + overlay);
+     * Overlays.deleteOverlay(overlay);
      */
     void deleteOverlay(OverlayID id);
 
@@ -166,6 +222,15 @@ public slots:
      * @function Overlays.getOverlayType
      * @param {Uuid} overlayID - The ID of the overlay to get the type of.
      * @returns {Overlays.OverlayType} The type of the overlay if found, otherwise an empty string.
+     * @example <caption>Create an overlay in front of your avatar then get and report its type.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var type = Overlays.getOverlayType(overlay);
+     * print("Type: " + type);
      */
     QString getOverlayType(OverlayID overlayId);
 
@@ -178,10 +243,21 @@ public slots:
     QObject* getOverlayObject(OverlayID id);
 
     /**jsdoc
-     * Get the ID of the overlay at a particular point on the screen or HUD.
+     * Get the ID of the 2D overlay at a particular point on the screen or HUD.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.
-     * @returns {Uuid} The ID of the overlay at the specified point if found, otherwise <code>null</code>.
+     * @returns {Uuid} The ID of the 2D overlay at the specified point if found, otherwise <code>null</code>.
+     * @example <caption>Create a 2D overlay and add an event function that reports the overlay clicked on, if any.</caption>
+     * var overlay = Overlays.addOverlay("rectangle", {
+     *     bounds: { x: 100, y: 100, width: 200, height: 100 },
+     *     color: { red: 255, green: 255, blue: 255 }
+     * });
+     * print("Created: " + overlay);
+     *
+     * Controller.mousePressEvent.connect(function (event) {
+     *     var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+     *     print("Clicked: " + overlay);
+     * });
      */
     OverlayID getOverlayAtPoint(const glm::vec2& point);
 
@@ -191,6 +267,15 @@ public slots:
      * @param {Uuid} overlayID - The ID of the overlay.
      * @param {string} property - The name of the property value to get.
      * @returns {object} The value of the property if the overlay and property can be found, otherwise <code>undefined</code>.
+     * @example <caption>Create an overlay in front of your avatar then report its alpha property value.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var alpha = Overlays.getProperty(overlay, "alpha");
+     * print("Overlay alpha: " + alpha);
      */
     OverlayPropertyResult getProperty(OverlayID id, const QString& property);
 
@@ -201,6 +286,15 @@ public slots:
      * @param {Array.<string>} properties - An array of names of properties to get the values of.
      * @returns {Overlays.OverlayProperties} The values of valid properties if the overlay can be found, otherwise 
      *     <code>undefined</code>.
+     * @example <caption>Create an overlay in front of your avatar then report some of its properties.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var properties = Overlays.getProperties(overlay, ["color", "alpha", "grabbable"]);
+     * print("Overlay properties: " + JSON.stringify(properties));
      */
     OverlayPropertyResult getProperties(const OverlayID& id, const QStringList& properties);
 
@@ -211,6 +305,24 @@ public slots:
      *     properties to get for each as values.
      * @returns {object.<Uuid, Overlays.OverlayProperties>} An object with overlay IDs as keys and
      *     {@link Overlays.OverlayProperties|OverlayProperties} as values.
+     * @example <caption>Create two cube overlays in front of your avatar then get some of their properties.</caption>
+     * var overlayA = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var overlayB = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * var propertiesToGet = {};
+     * propertiesToGet[overlayA] = ["color", "alpha"];
+     * propertiesToGet[overlayB] = ["dimensions"];
+     * var properties = Overlays.getOverlaysProperties(propertiesToGet);
+     * print("Overlays properties: " + JSON.stringify(properties));
      */
     OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
 
@@ -227,6 +339,20 @@ public slots:
      * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
      *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
+     * @example <caption>Create a cube overlay in front of your avatar. Report 3D overlay intersection details for mouse 
+     *     clicks.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     *
+     * Controller.mousePressEvent.connect(function (event) {
+     *     var pickRay = Camera.computePickRay(event.x, event.y);
+     *     var intersection = Overlays.findRayIntersection(pickRay);
+     *     print("Intersection: " + JSON.stringify(intersection));
+     * });
      */
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray,
                                                        bool precisionPicking = false,
@@ -263,6 +389,24 @@ public slots:
      * @param {Vec3} center - The center of the search sphere.
      * @param {number} radius - The radius of the search sphere.
      * @returns {Uuid[]} An array of overlay IDs with bounding boxes that touch a search sphere.
+     * @example <caption>Create two cube overlays in front of your avatar then search for overlays near your avatar.</caption>
+     * var overlayA = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay A: " + overlayA);
+     * var overlayB = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0.3, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay B: " + overlayB);
+     *
+     * var overlaysFound = Overlays.findOverlays(MyAvatar.position, 5.0);
+     * print("Overlays found: " + JSON.stringify(overlaysFound));
      */
     QVector<QUuid> findOverlays(const glm::vec3& center, float radius);
 
@@ -272,6 +416,15 @@ public slots:
      * @function Overlays.isLoaded
      * @param {Uuid} overlayID - The ID of the overlay to check.
      * @returns {boolean} <code>true</code> if the overlay's assets have been loaded, otherwise <code>false</code>.
+     * @example <caption>Create an image overlay and report whether its image is loaded after 1s.</caption>
+     * var overlay = Overlays.addOverlay("image", {
+     *     bounds: { x: 100, y: 100, width: 200, height: 200 },
+     *     imageURL: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
+     * });
+     * Script.setTimeout(function () {
+     *     var isLoaded = Overlays.isLoaded(overlay);
+     *     print("Image loaded: " + isLoaded);
+     * }, 1000);
      */
     bool isLoaded(OverlayID id);
 
@@ -283,6 +436,15 @@ public slots:
      * @returns {Size} The size of the <code>text</code> if the overlay is a text overlay, otherwise
      *     <code>{ height: 0, width : 0 }</code>. If the overlay is a 2D overlay the size is in pixels; if the overlay if a 3D
      *     overlay the size is in meters.
+     * @example <caption>Calculate the size of "hello" in a 3D text overlay.</caption>
+     * var overlay = Overlays.addOverlay("text3d", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -2 })),
+     *     rotation: MyAvatar.orientation,
+     *     text: "hello",
+     *     lineHeight: 0.2
+     * });
+     * var textSize = Overlays.textSize(overlay, "hello");
+     * print("Size of \"hello\": " + JSON.stringify(textSize));
      */
     QSizeF textSize(OverlayID id, const QString& text);
 
@@ -337,6 +499,38 @@ public slots:
      * @function Overlays.sendMousePressOnOverlay
      * @param {Uuid} overlayID - The ID of the overlay to generate a mouse press event on.
      * @param {PointerEvent} event - The mouse press event details.
+     * @example <caption>Create a 2D rectangle overlay plus a 3D cube overlay and generate mousePressOnOverlay events for the 2D
+     * overlay.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("3D overlay: " + overlay);
+     *
+     * var overlay = Overlays.addOverlay("rectangle", {
+     *     bounds: { x: 100, y: 100, width: 200, height: 100 },
+     *     color: { red: 255, green: 255, blue: 255 }
+     * });
+     * print("2D overlay: " + overlay);
+     *
+     * // Overlays.mousePressOnOverlay by default applies only to 3D overlays.
+     * Overlays.mousePressOnOverlay.connect(function(overlayID, event) {
+     *     print("Clicked: " + overlayID);
+     * });
+     *
+     * Controller.mousePressEvent.connect(function (event) {
+     *     // Overlays.getOverlayAtPoint applies only to 2D overlays.
+     *     var overlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
+     *     if (overlay) {
+     *         Overlays.sendMousePressOnOverlay(overlay, {
+     *             type: "press",
+     *             id: 0,
+     *             pos2D: event
+     *         });
+     *     }
+     * });
      */
     void sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
@@ -383,7 +577,7 @@ public slots:
     /**jsdoc
      * Get the ID of the Web3D overlay that has keyboard focus.
      * @function Overlays.getKeyboardFocusOverlay
-     * @returns {Uuid} The ID of the [web3d]{@link Overlays.OverlayType} overlay that has focus, if any, otherwise 
+     * @returns {Uuid} The ID of the {@link Overlays.OverlayType|web3d} overlay that has focus, if any, otherwise 
      *     <code>null</code>.
      */
     OverlayID getKeyboardFocusOverlay();
@@ -391,7 +585,7 @@ public slots:
     /**jsdoc
      * Set the Web3D overlay that has keyboard focus.
      * @function Overlays.setKeyboardFocusOverlay
-     * @param {Uuid} overlayID - The ID of the [web3d]{@link Overlays.OverlayType} overlay to set keyboard focus to. Use 
+     * @param {Uuid} overlayID - The ID of the {@link Overlays.OverlayType|web3d} overlay to set keyboard focus to. Use 
      *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
      */
     void setKeyboardFocusOverlay(const OverlayID& id);
@@ -402,6 +596,21 @@ signals:
      * @function Overlays.overlayDeleted
      * @param {Uuid} overlayID - The ID of the overlay that was deleted.
      * @returns {Signal}
+     * @example <caption>Create an overlay then delete it after 1s.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay: " + overlay);
+     *
+     * Overlays.overlayDeleted.connect(function(overlayID) {
+     *     print("Deleted: " + overlayID);
+     * });
+     * Script.setTimeout(function () {
+     *     Overlays.deleteOverlay(overlay);
+     * }, 1000);
      */
     void overlayDeleted(OverlayID id);
 
@@ -416,6 +625,17 @@ signals:
      * @param {Uuid} overlayID - The ID of the overlay the mouse press event occurred on.
      * @param {PointerEvent} event - The mouse press event details.
      * @returns {Signal}
+     * // Create a cube overlay in front of your avatar and report mouse clicks on it.
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay: " + overlay);
+     * Overlays.mousePressOnOverlay.connect(function(overlayID, event) {
+     *     print("Clicked: " + overlayID);
+     * });
      */
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
 
@@ -469,6 +689,18 @@ signals:
      * @param {Uuid} overlayID - The ID of the overlay the mouse moved event occurred on.
      * @param {PointerEvent} event - The mouse move event details.
      * @returns {Signal}
+     * @example <caption>Create a cube overlay in front of your avatar and report when you start hovering your mouse over
+     *     it.</caption>
+     * var overlay = Overlays.addOverlay("cube", {
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
+     *     solid: true
+     * });
+     * print("Overlay: " + overlay);
+     * Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
+     *     print("Hover enter: " + overlayID);
+     * });
      */
     void hoverEnterOverlay(OverlayID overlayID, const PointerEvent& event);
 
