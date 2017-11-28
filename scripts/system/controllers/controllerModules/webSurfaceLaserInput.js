@@ -9,7 +9,7 @@
    makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD,
    INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, LaserPointers, RayPick, ContextOverlay, Picks
+   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, LaserPointers, RayPick, ContextOverlay, Picks, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -25,7 +25,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
-            this.hand);
+            makeLaserParams(hand, true));
 
         this.grabModuleWantsNearbyOverlay = function(controllerData) {
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
@@ -80,16 +80,14 @@ Script.include("/~/system/libraries/controllers.js");
             var otherModuleRunning = this.getOtherModule().running;
             if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) &&
                 !otherModuleRunning) {
-                if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
-                    return makeRunningValues(true, [], []);
-                }
+                return makeRunningValues(true, [], []);
             }
             return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE && !grabModuleNeedsToRun) {
+            if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) && !grabModuleNeedsToRun) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
