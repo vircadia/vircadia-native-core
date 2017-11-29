@@ -1065,29 +1065,25 @@ SelectionDisplay = (function() {
         return [refMin, refMax];
     }
 
+    // Function: Project Bounding Box Points
     // Projects all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto 
     // one of the basis of the new avatar referencial
     // dimensions - dimensions of the AABB (axis aligned bounding box) on the standard basis 
     // [1, 0, 0], [0, 1, 0], [0, 0, 1]
     // v - projection vector
     // rotateHandleOffset - offset for the rotation handle gizmo position
-    that.projectBoundingBoxPoints = function(dimensions, v, rotateHandleOffset){
-        //project all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto the new avatar referential
-    
+    that.projectBoundingBoxPoints = function(dimensions, v, rotateHandleOffset) {
         var projT_v = Vec3.dot(Vec3.multiply((dimensions.y / 2) + rotateHandleOffset, Vec3.UNIT_Y), v);
         projT_v = Vec3.multiply(projT_v, v);
         
-        
         var projB_v = Vec3.dot(Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, Vec3.UNIT_Y), v);
         projB_v = Vec3.multiply(projB_v, v);
-        
         
         var projL_v = Vec3.dot(Vec3.multiply((dimensions.x / 2) + rotateHandleOffset, Vec3.UNIT_X), v);
         projL_v = Vec3.multiply(projL_v, v);
         
         var projR_v = Vec3.dot(Vec3.multiply(-1.0 * (dimensions.x / 2) - 1.0 * rotateHandleOffset, Vec3.UNIT_X), v);
         projR_v = Vec3.multiply(projR_v, v);
-
         
         var projN_v = Vec3.dot(Vec3.multiply((dimensions.z / 2) + rotateHandleOffset, Vec3.FRONT), v);
         projN_v = Vec3.multiply(projN_v, v);
@@ -1147,7 +1143,9 @@ SelectionDisplay = (function() {
         var rightVector = Vec3.multiply(-1, Quat.getRight(avatarReferential));
         var frontVector = Quat.getFront(avatarReferential);
         
-        //project all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto the new avatar referential 
+        // project all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) 
+        // onto the new avatar referential
+
         // UP
         var projUP = that.projectBoundingBoxPoints(dimensions, upVector, rotateHandleOffset);
         // RIGHT
@@ -1155,30 +1153,36 @@ SelectionDisplay = (function() {
         // FRONT
         var projFRONT = that.projectBoundingBoxPoints(dimensions, frontVector, rotateHandleOffset);
         
-        /////
-        
         // YAW
         yawCenter = Vec3.sum(boundsCenter, projUP[0]); 
         yawCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[0], projRIGHT[1]), projFRONT[1]));
         
-        yawHandleRotation = Quat.lookAt(yawCorner, Vec3.sum(yawCorner, upVector), Vec3.subtract(yawCenter,yawCorner));
+        yawHandleRotation = Quat.lookAt(
+            yawCorner, 
+            Vec3.sum(yawCorner, upVector), 
+            Vec3.subtract(yawCenter,yawCorner));
         yawHandleRotation = Quat.multiply(Quat.angleAxis(45, upVector), yawHandleRotation);
         
         // PTCH
         pitchCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[0]), projFRONT[1]));
         pitchCenter = Vec3.sum(boundsCenter, projRIGHT[0]); 
         
-        pitchHandleRotation = Quat.lookAt(pitchCorner, Vec3.sum(pitchCorner, rightVector), Vec3.subtract(pitchCenter,pitchCorner));
+        pitchHandleRotation = Quat.lookAt(
+            pitchCorner, 
+            Vec3.sum(pitchCorner, rightVector), 
+            Vec3.subtract(pitchCenter,pitchCorner));
         pitchHandleRotation = Quat.multiply(Quat.angleAxis(45, rightVector), pitchHandleRotation);
         
         // ROLL
         rollCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[1]), projFRONT[0]));
         rollCenter = Vec3.sum(boundsCenter, projFRONT[0]); 
         
-        rollHandleRotation = Quat.lookAt(rollCorner, Vec3.sum(rollCorner, frontVector), Vec3.subtract(rollCenter,rollCorner));
+        rollHandleRotation = Quat.lookAt(
+            rollCorner, 
+            Vec3.sum(rollCorner, frontVector), 
+            Vec3.subtract(rollCenter,rollCorner));
         rollHandleRotation = Quat.multiply(Quat.angleAxis(45, frontVector), rollHandleRotation);
         
-        ///////////
 
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
