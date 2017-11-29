@@ -73,9 +73,9 @@ void Test::evaluateTests() {
         if (similarityIndex < THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 (float)similarityIndex,
-                expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
-                QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
-                QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
+expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
+QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
+QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
             });
 
             mismatchWindow.exec();
@@ -98,13 +98,14 @@ void Test::evaluateTests() {
 
     if (success) {
         messageBox.information(0, "Success", "All images are as expected");
-    } else {
+    }
+    else {
         messageBox.information(0, "Failure", "One or more images are not as expected");
     }
 }
 
 void Test::importTest(QTextStream& textStream, const QString& testPathname, int testNumber) {
-    textStream << "var Test" << testNumber << " = Script.require(\"" << "file:///" << testPathname + "\");" << endl;
+    textStream << "var test" << testNumber << " = Script.require(\"" << "file:///" << testPathname + "\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -129,20 +130,9 @@ void Test::createRecursiveScript() {
     // The main will call each test after the previous test is completed
     // This is implemented with an interval timer that periodically tests if a
     // running test has increment a testNumber variable that it received as an input.
-    textStream << "var testNumber = 1;" << endl << endl;
-
-    // Components of the test path are stored as these are used to call each specific test
-    // Each test has a unique "run test" function.  The name of this function depends on the path to the test
-    // For example:
-    //      Test:           D:\GitHub\hifi-tests\tests\content\entity\zone\ambientLightInheritance\test.js
-    //      Function name:  tests_content_entity_zone_ambientLightInheritance()
-    // The last occurance of "tests" is assumed to be the top of the test hierarchy
-    //
-    QVector<QStringList> testPathComponents;
-
-    const QString testFilename{ "test.js" };
-
     int testNumber = 1;
+    QVector<QString> testPathnames;
+    const QString testFilename{ "test.js" };
 
     // First test if top-level folder has a test.js file
     const QString testPathname{ topLevelDirectory + "/" + testFilename };
@@ -150,8 +140,9 @@ void Test::createRecursiveScript() {
     if (fileInfo.exists()) {
         // Current folder contains a test
         importTest(textStream, testPathname, testNumber);
+        ++testNumber;
 
-        testPathComponents << testPathname.split('/');
+        testPathnames << testPathname;
     }
 
     while (it.hasNext()) {
@@ -166,55 +157,51 @@ void Test::createRecursiveScript() {
         if (fileInfo.exists()) {
             // Current folder contains a test
             importTest(textStream, testPathname, testNumber);
+            ++testNumber;
 
-            testPathComponents << testPathname.split('/');
+            testPathnames << testPathname;
         }
     }
 
-    if (testPathComponents.length() <= 0) {
+    if (testPathnames.length() <= 0) {
         messageBox.information(0, "Failure", "No \"test.js\" files found");
         allTestsFilename.close();
         return;
     }
 
-    // Find last occurance of tests in the first testPathname
-    int firstComponent{ 0 };
-    for (int i = testPathComponents[0].length() - 1; i >= 0; --i) {
-        if (testPathComponents[0][i] == "tests") {
-            firstComponent = i;
-            break;
-        }
+    textStream << endl;
+
+    // Define flags for each test
+    for (int i = 1; i <= testPathnames.length(); ++i) {
+        textStream << "var test" << i << "HasNotStarted = true;" << endl;
     }
 
     // Leave a blank line in the main
     textStream << endl;
 
     const int TEST_PERIOD = 1000; // in milliseconds
-    QString tab = "    ";
+    const QString tab = "    ";
 
-    textStream << "// Check every second is the current test is complete and the next test can be run" << endl;
+    textStream << "// Check every second if the current test is complete and the next test can be run" << endl;
     textStream << "var testTimer = Script.setInterval(" << endl;
     textStream << tab << "function() {" << endl;
 
-    for (QStringList testPathComponent : testPathComponents) {
-        QString testName = "tests";
-        for (int i = firstComponent + 1; i < testPathComponent.length() - 1; ++i) {
-            testName += "_" + testPathComponent[i];
-        }
-        
-        textStream << tab << tab << "if (testNumber == " << testNumber << ") {" << endl;
-        textStream << tab << tab << tab << "Test" << testNumber << "." << testName << "();" << endl;
+    const QString testFunction = "test";
+    for (int i = 1; i <= testPathnames.length(); ++i) {
 
-        // Set stepNumber to 0 between tests to stop the same test being called twice
-        textStream << tab << tab << tab << "testNumber = 0;" << endl;
+        if (i == 1) {
+            textStream << tab << tab << "if (test1HasNotStarted) {" << endl;
+        } else {
+            textStream << tab << tab << "if (test" << i - 1 << "complete && test" << i << "HasNotStarted) {" << endl;
+        }
+        textStream << tab << tab << tab << "test" << i << "HasNotStarted = false;" << endl;
+        textStream << tab << tab << tab << "test" << i << "." << testFunction << "();" << endl;
 
         textStream << tab << tab << "}" << endl << endl;
-
-        ++testNumber;
     }
 
     // Add extra step to stop the script
-    textStream << tab << tab << "if (testNumber == " << testNumber << ") {" << endl;
+    textStream << tab << tab << "if (test" << testPathnames.length() << ".complete) {" << endl;
     textStream << tab << tab << tab << "Script.stop();" << endl;
     textStream << tab << tab << "}" << endl << endl;
 
@@ -227,7 +214,7 @@ void Test::createRecursiveScript() {
     textStream << "Script.scriptEnding.connect(" << endl;
     textStream << tab << "function() {" << endl;
     textStream << tab << tab << "Script.clearInterval(testTimer);" << endl;
-    textStream << tab << tab << "require.cache = {};" << endl;
+    textStream << tab << tab << "Script.require.cache = {};" << endl;
     textStream << tab << "}" << endl;
     textStream << ");" << endl;
 
