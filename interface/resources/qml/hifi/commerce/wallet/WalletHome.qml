@@ -161,10 +161,9 @@ Item {
 
     Timer {
         id: refreshTimer;
-        interval: 4000; // Remove this after demo?
+        interval: 4000;
         onTriggered: {
             console.log("Refreshing Wallet Home...");
-            historyReceived = false;
             commerce.balance();
             commerce.history();
         }
