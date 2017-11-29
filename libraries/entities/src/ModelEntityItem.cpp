@@ -34,8 +34,7 @@ EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const E
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
     _lastAnimated = usecTimestampNow();
-    qCDebug(entities) << "init last animated " << _lastAnimated;
-    //set the last animated when interface (re)starts
+    // set the last animated when interface (re)starts
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -190,79 +189,71 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 
-//added update for property fix
+// added update for property fix
 void ModelEntityItem::update(const quint64& now) {
-
 
     {
         auto currentAnimationProperties = this->getAnimationProperties();
 
         if (_previousAnimationProperties != currentAnimationProperties) {
-
             withWriteLock([&] {                
-                if ( (currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
+                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
                     if (_currentFrame < 0) {
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
                         setAnimationCurrentFrame(_currentFrame);
-                        qCDebug(entities) << "restart code hit " << _currentFrame;
-                    }
-                    else {
+                        qCDebug(entities) << "restart code hit last animated is " << _lastAnimated << " now is " << now;
+                    } else {
                         _lastAnimated = usecTimestampNow();
                         qCDebug(entities) << "last animated 1" << _lastAnimated;
                         _currentFrame = currentAnimationProperties.getFirstFrame();
                         qCDebug(entities) << "point 2 " << _currentFrame;
                         setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
                     }
-                }else if (currentAnimationProperties.getHold() && !_previousAnimationProperties.getHold()) {
+                } else if (currentAnimationProperties.getHold() && !_previousAnimationProperties.getHold()) {
                     qCDebug(entities) << "hold is pressed" << _currentFrame;
-                }else if (!currentAnimationProperties.getHold() && _previousAnimationProperties.getHold()) {
+                } else if (!currentAnimationProperties.getHold() && _previousAnimationProperties.getHold()) {
                     qCDebug(entities) << "hold is unpressed" << _currentFrame;
-                }else if (!currentAnimationProperties.getLoop() && _previousAnimationProperties.getLoop()) {
+                } else if (!currentAnimationProperties.getLoop() && _previousAnimationProperties.getLoop()) {
                     qCDebug(entities) << "loop is unpressed" << _currentFrame;
-                }else if (currentAnimationProperties.getLoop() && !_previousAnimationProperties.getLoop()) {
+                } else if (currentAnimationProperties.getLoop() && !_previousAnimationProperties.getLoop()) {
                     qCDebug(entities) << "loop is pressed" << _currentFrame;
-                }else if(currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()){
+                } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
                     _currentFrame = currentAnimationProperties.getCurrentFrame();
                     qCDebug(entities)  << "point 3 " << _currentFrame;
                 }
                 
             });
             _previousAnimationProperties = this->getAnimationProperties();
-        }
-        else {
+        } else {
              
-            //if the first frame is less than zero that is an error, so don't do anything. 
+            // if the first frame is less than zero that is an error, so don't do anything. 
             if (!(getAnimationFirstFrame() < 0)) {
-                //if the current frame is less than zero then we are restarting the server.
+                // if the current frame is less than zero then we are restarting the server.
                 if (_currentFrame < 0) {
-                    qCDebug(entities) << "point 3.5 " << _currentFrame;
-                    //_previousAnimationProperties = currentAnimationProperties;
                     if ((currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getLastFrame()) && (currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getFirstFrame())) {
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
-                        qCDebug(entities) << "current frame less than zero " << _currentFrame;
-                    }
-                    else {
+                    } else {
                         _currentFrame = currentAnimationProperties.getFirstFrame();
                         setAnimationCurrentFrame(_currentFrame);
                         _lastAnimated = usecTimestampNow();
-                        qCDebug(entities) << "last animated 2" << _lastAnimated;
                     }
                 }
             }
         }
-        //_previousAnimationProperties = currentAnimationProperties;
+        // _previousAnimationProperties = currentAnimationProperties;
         if (isAnimatingSomething()) {
-            if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame()) ) {
+            if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
                 updateFrameCount();
             }
         }
     }
-
+    EntityItem::update(now);
 }
 
 bool ModelEntityItem::needsToCallUpdate() const {
 
-    return true;
+    //return isAnimatingSomething() || EntityItem::needsToCallUpdate();
+     return true;
 }
 
 void ModelEntityItem::updateFrameCount() {
@@ -276,7 +267,7 @@ void ModelEntityItem::updateFrameCount() {
 
     auto now = usecTimestampNow();
 
-    //this is now getting the time since the server started the animation.
+    // this is now getting the time since the server started the animation.
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
@@ -291,23 +282,20 @@ void ModelEntityItem::updateFrameCount() {
                 while ((_currentFrame - getAnimationFirstFrame()) > (updatedFrameCount - 1)) {
                     _currentFrame -= (updatedFrameCount - 1);
                 }
-            }
-            else {
+            } else {
                 _currentFrame = getAnimationLastFrame();
             }
-        }
-        else if (_currentFrame < getAnimationFirstFrame()) {
+        } else if (_currentFrame < getAnimationFirstFrame()) {
             if (getAnimationFirstFrame() < 0) {
                 _currentFrame = 0;
-            }
-            else {
+            } else {
                 _currentFrame = getAnimationFirstFrame();
             }
         }
         setAnimationCurrentFrame(_currentFrame);
     }
 
-    //qCDebug(entities) << "_currentFrame is " << _currentFrame;
+    
 }
 
 
@@ -709,7 +697,7 @@ float ModelEntityItem::getAnimationLastFrame() const {
         return _animationProperties.getLastFrame();
     });
 }
-//angus change
+
 bool ModelEntityItem::getAnimationIsPlaying() const { 
     return resultWithReadLock<bool>([&] {
         return _animationProperties.getRunning();

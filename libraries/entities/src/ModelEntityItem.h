@@ -47,7 +47,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    //update and needstocallupdate added back for the entity property fix
+    // update() and needstocallupdate() added back for the entity property fix
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override;
     void updateFrameCount();
@@ -170,11 +170,9 @@ protected:
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
 private:
-    //angus
     uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;
     float _currentFrame{ -1 };
-    //angus
 };
 
 #endif // hifi_ModelEntityItem_h

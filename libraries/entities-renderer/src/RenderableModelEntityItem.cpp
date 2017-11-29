@@ -465,7 +465,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // TODO: assert we never fall in here when model not fully loaded
-        //assert(_model && _model->isLoaded());
+        // assert(_model && _model->isLoaded());
 
         updateModelBounds();
         model->updateGeometry();
@@ -992,10 +992,10 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     //the code to find the current frame is now in modelEntityItem.cpp and we access it below -Angus
    {
-        //where are we in the currently defined animation segment?       
+        // where are we in the currently defined animation segment?       
         int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
-        //in the case where the last frame is greater than the framecount then clamp
-        //it to the end of the animation until it loops around. 
+        // in the case where the last frame is greater than the framecount then clamp
+        // it to the end of the animation until it loops around. 
        
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
@@ -1032,10 +1032,10 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
             glm::mat4 translationMat;
 
             if (allowTranslation) {
-                if(index < translations.size()){
+                if (index < translations.size()) {
                     translationMat = glm::translate(translations[index]);
                 }
-            } else if (index < animationJointNames.size()){
+            } else if (index < animationJointNames.size()) {
                 QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
                 
                 if (originalFbxIndices.contains(jointName)) {
@@ -1312,8 +1312,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->updateRenderItems();
     }
     
-    //The code to deal with the change of properties is now in ModelEntityItem.cpp
-    //That is where _currentFrame and _lastAnimated are updated.
+    // The code to deal with the change of properties is now in ModelEntityItem.cpp
+    // That is where _currentFrame and _lastAnimated are updated.
 
 
     if (_animating) {

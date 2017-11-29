@@ -33,7 +33,7 @@ namespace render { namespace entities {
 class ModelEntityRenderer;
 } }
 
-//#define MODEL_ENTITY_USE_FADE_EFFECT
+// #define MODEL_ENTITY_USE_FADE_EFFECT
 class ModelEntityWrapper : public ModelEntityItem {
     using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
@@ -185,8 +185,6 @@ private:
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
     float _currentFrame { -1 };
-    float _endAnim{ 0 };
-    bool tempbool{ false };
 };
 
 } } // namespace 
