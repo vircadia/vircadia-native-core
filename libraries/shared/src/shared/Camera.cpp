@@ -50,7 +50,7 @@
  *       <td><strong>Entity</strong></td>
  *       <td><code>"entity"</code></td>
  *       <td>The camera's position and orientation are set to be the same as a specified entity's, and move with the entity as
- (       it moves.
+ *       it moves.
  *     </tr>
  *   </tbody>
  * </table>
