@@ -194,7 +194,7 @@ private:
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
-        bool _hmdTrackingEnabled { false };
+        bool _hmdTrackingEnabled { true };
 
         QString configToString(Config config);
         friend class ViveControllerManager;
