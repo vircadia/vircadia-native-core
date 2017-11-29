@@ -610,7 +610,7 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
 
         glm::vec3 entityPosition = entity->getWorldPosition();
         glm::quat entityRotation = entity->getWorldOrientation();
-        glm::vec3 entityDimensions = entity->getDimensions();
+        glm::vec3 entityDimensions = entity->getScaledDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 
         // project the intersection point onto the local xy plane of the object.

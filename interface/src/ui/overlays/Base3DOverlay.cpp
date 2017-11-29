@@ -42,7 +42,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     setTransform(base3DOverlay->getTransform());
 }
 
-QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties) {
+QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties, bool scalesWithParent) {
     // the position and rotation in _transform are relative to the parent (aka local).  The versions coming from
     // scripts are in world-frame, unless localPosition or localRotation are used.  Patch up the properties
     // so that "position" and "rotation" are relative-to-parent values.
@@ -56,7 +56,7 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
         result["position"] = result["localPosition"];
     } else if (result["position"].isValid()) {
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(vec3FromVariant(result["position"]),
-                                                                  parentID, parentJointIndex, success);
+                                                                  parentID, parentJointIndex, scalesWithParent, success);
         if (success) {
             result["position"] = vec3toVariant(localPosition);
         }
@@ -66,7 +66,7 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
         result["orientation"] = result["localOrientation"];
     } else if (result["orientation"].isValid()) {
         glm::quat localOrientation = SpatiallyNestable::worldToLocal(quatFromVariant(result["orientation"]),
-                                                                     parentID, parentJointIndex, success);
+                                                                     parentID, parentJointIndex, scalesWithParent, success);
         if (success) {
             result["orientation"] = quatToVariant(localOrientation);
         }
@@ -118,7 +118,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         }
     }
 
-    properties = convertOverlayLocationFromScriptSemantics(properties);
+    properties = convertOverlayLocationFromScriptSemantics(properties, getScalesWithParent());
     Overlay::setProperties(properties);
 
     bool needRenderItemUpdate = false;

@@ -56,12 +56,12 @@ glm::vec3 Line3DOverlay::getEnd() const {
     if (_endParentID != QUuid()) {
         glm::vec3 localOffset = _direction * _length;
         bool success;
-        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, success);
+        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, getScalesWithParent(), success);
         return worldEnd;
     }
 
     localEnd = getLocalEnd();
-    worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), success);
+    worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), getScalesWithParent(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::getEnd failed";
     }
@@ -79,10 +79,10 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
     glm::vec3 offset;
 
     if (_endParentID != QUuid()) {
-        offset = worldToLocal(end, _endParentID, _endParentJointIndex, success);
+        offset = worldToLocal(end, _endParentID, _endParentJointIndex, getScalesWithParent(), success);
     } else {
         localStart = getLocalStart();
-        localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), success);
+        localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), getScalesWithParent(), success);
         offset = localEnd - localStart;
     }
     if (!success) {

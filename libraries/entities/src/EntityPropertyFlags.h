@@ -219,6 +219,8 @@ enum EntityPropertyList {
     PROP_HAZE_KEYLIGHT_RANGE,
     PROP_HAZE_KEYLIGHT_ALTITUDE,
 
+    PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
