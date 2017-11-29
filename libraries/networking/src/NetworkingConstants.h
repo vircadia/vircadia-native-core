@@ -20,7 +20,7 @@ namespace NetworkingConstants {
     // <hifi repo>\domain-server\resources\web\js\shared.js
     const QUrl METAVERSE_SERVER_URL_STABLE("https://metaverse.highfidelity.com");
     const QUrl METAVERSE_SERVER_URL_STAGING("https://staging.highfidelity.com");
-    const QUrl METAVERSE_SERVER_URL = METAVERSE_SERVER_URL_STABLE;
+    const QUrl METAVERSE_SERVER_URL = METAVERSE_SERVER_URL_STAGING;
 }
 
 #endif // hifi_NetworkingConstants_h
