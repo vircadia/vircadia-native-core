@@ -654,6 +654,7 @@ Rectangle {
         
         for (var i = 0; i < tempPurchasesModel.count; i++) {
             if (!filteredPurchasesModel.get(i)) {
+                sameItemCount = -1;
                 break;
             } else if (tempPurchasesModel.get(i).itemId === filteredPurchasesModel.get(i).itemId &&
             tempPurchasesModel.get(i).edition_number === filteredPurchasesModel.get(i).edition_number &&
@@ -664,7 +665,9 @@ Rectangle {
 
         if (sameItemCount !== tempPurchasesModel.count) {
             filteredPurchasesModel.clear();
-            filteredPurchasesModel.append(tempPurchasesModel);
+            for (var i = 0; i < tempPurchasesModel.count; i++) {
+                filteredPurchasesModel.append(tempPurchasesModel.get(i));
+            }
 
             populateDisplayedItemCounts();
             sortByDate();

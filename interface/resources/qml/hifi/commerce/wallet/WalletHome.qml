@@ -45,6 +45,7 @@ Item {
         
                 for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
                     if (!transactionHistoryModel.get(i)) {
+                        sameItemCount = -1;
                         break;
                     } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
                     tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
@@ -54,7 +55,9 @@ Item {
 
                 if (sameItemCount !== tempTransactionHistoryModel.count) {
                     transactionHistoryModel.clear();
-                    transactionHistoryModel.append(tempTransactionHistoryModel);
+                    for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                        transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                    }
                     calculatePendingAndInvalidated();
                 }
             }
