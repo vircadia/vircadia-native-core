@@ -283,7 +283,7 @@ public slots:
     void setModelURLFinished(bool success);
 
 protected:
-    float Avatar::getUnscaledEyeHeightFromSkeleton() const;
+    float getUnscaledEyeHeightFromSkeleton() const;
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
