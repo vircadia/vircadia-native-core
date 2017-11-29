@@ -34,7 +34,9 @@ Rectangle {
     readonly property bool hmdHead: headBox.checked
     readonly property bool headPuck: headPuckBox.checked
     readonly property bool handController: handBox.checked
+    
     readonly property bool handPuck: handPuckBox.checked
+    readonly property bool hmdDesktop: hmdInDesktop.checked
 
     property int state: buttonState.disabled
     property var lastConfiguration: null
@@ -93,6 +95,7 @@ Rectangle {
             onClicked: {
                 if (checked) {
                     headPuckBox.checked = false;
+                    hmdInDesktop.checked = false;
                 } else {
                     checked = true;
                 }
@@ -115,6 +118,7 @@ Rectangle {
             onClicked: {
                 if (checked) {
                     headBox.checked = false;
+                    hmdInDesktop.checked = false;
                 } else {
                     checked = true;
                 }
@@ -125,6 +129,36 @@ Rectangle {
         RalewayBold {
             size: 12
             text: "Tracker"
+            color: hifi.colors.lightGrayText
+        }
+
+        HifiControls.CheckBox {
+            id: hmdInDesktop
+            width: 15
+            height: 15
+            boxRadius: 7
+            visible: viveInDesktop.checked
+
+            anchors.top: viveInDesktop.bottom
+            anchors.topMargin: 5
+            anchors.left: openVrConfiguration.left
+            anchors.leftMargin: leftMargin + 10
+        
+            onClicked: {
+                if (checked) {
+                    headBox.checked = false;
+                    headPuckBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                sendConfigurationSettings();
+            }
+        }
+
+        RalewayBold {
+            size: 12
+            visible: viveInDesktop.checked
+            text: "None"
             color: hifi.colors.lightGrayText
         }
     }
@@ -763,6 +797,11 @@ Rectangle {
         anchors.leftMargin: leftMargin + 10
         
         onClicked: {
+            if (!checked & hmdInDesktop.checked) {
+                headBox.checked = true;
+                headPuckBox.checked = false;
+                hmdInDesktop.checked = false;
+            }
             sendConfigurationSettings();
         }
     }
@@ -779,6 +818,7 @@ Rectangle {
             verticalCenter: viveInDesktop.verticalCenter
         }
     }
+
     
     NumberAnimation {
         id: numberAnimation
@@ -786,6 +826,7 @@ Rectangle {
         property: "countDown"
         to: 0
     }
+
 
     function logAction(action, status) {
         console.log("calibrated from ui");
@@ -867,6 +908,7 @@ Rectangle {
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
         var desktopMode = settings["desktopMode"];
+        var hmdDesktopPosition = settings["hmdDesktopTracking"];
 
         armCircumference.value = settings.armCircumference;
         shoulderWidth.value = settings.shoulderWidth;
@@ -888,6 +930,7 @@ Rectangle {
         }
 
         viveInDesktop.checked = desktopMode;
+        hmdInDesktop.checked = hmdDesktopPosition;
 
         initializeButtonState();
         updateCalibrationText();
@@ -1048,7 +1091,8 @@ Rectangle {
             "handConfiguration": handObject,
             "armCircumference": armCircumference.value,
             "shoulderWidth": shoulderWidth.value,
-            "desktopMode": viveInDesktop.checked
+            "desktopMode": viveInDesktop.checked,
+            "hmdDesktopTracking": hmdInDesktop.checked
         }
 
         return settingsObject;
