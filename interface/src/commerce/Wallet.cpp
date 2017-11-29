@@ -166,7 +166,7 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
 }
 
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
-    
+
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
     QPair<QByteArray*, QByteArray*> retval;
     EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
@@ -212,8 +212,8 @@ QPair<QByteArray*, QByteArray*> generateECKeypair() {
     // prepare the return values.  TODO: Fix this - we probably don't really even want the
     // private key at all (better to read it when we need it?).  Or maybe we do, when we have
     // multiple keys?
-    retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength ),
-    retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength );
+    retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
+    retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
 
     // cleanup the publicKeyDER and publicKeyDER data
     OPENSSL_free(publicKeyDER);
@@ -255,7 +255,7 @@ QByteArray readPublicKey(const char* filename) {
 }
 
 // the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
-// so I'll return that. 
+// so I'll return that.
 EC_KEY* readPrivateKey(const char* filename) {
     FILE* fp;
     EC_KEY* key = NULL;
@@ -540,20 +540,21 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     qCInfo(commerce) << "Signing text" << text << "with key" << key;
     EC_KEY* ecPrivateKey = NULL;
     if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
-        QByteArray signature(ECDSA_size(ecPrivateKey), 0);
+        unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
+
         unsigned int signatureBytes = 0;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
 
-        int retrn = ECDSA_sign(0, 
-            reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()), 
+        int retrn = ECDSA_sign(0,
+            reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
             hashedPlaintext.size(),
-            reinterpret_cast<unsigned char*>(signature.data()), 
+            sig,
             &signatureBytes, ecPrivateKey);
 
         EC_KEY_free(ecPrivateKey);
-
+        QByteArray signature(reinterpret_cast<const char*>(sig), signatureBytes);
         if (retrn != -1) {
             return signature.toBase64();
         }
@@ -733,11 +734,11 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
         qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
         status = -1;
     }
-    
+
     EC_KEY_free(ec);
     QByteArray ba = sig.toLocal8Bit();
     const char *sigChar = ba.data();
-  
+
     QByteArray textByteArray;
     if (status > -1) {
         textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
