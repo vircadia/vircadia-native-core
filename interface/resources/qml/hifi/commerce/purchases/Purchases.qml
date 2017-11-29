@@ -668,8 +668,6 @@ Rectangle {
 
             populateDisplayedItemCounts();
             sortByDate();
-        } else {
-            console.log("ZRF HERE NOT REFRESHING");
         }
     }
 
