@@ -73,9 +73,9 @@ void Test::evaluateTests() {
         if (similarityIndex < THRESHOLD) {
             mismatchWindow.setTestFailure(TestFailure{
                 (float)similarityIndex,
-expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /
-QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
-QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
+                expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
+                QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
+                QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
             });
 
             mismatchWindow.exec();
@@ -188,20 +188,43 @@ void Test::createRecursiveScript() {
 
     const QString testFunction = "test";
     for (int i = 1; i <= testPathnames.length(); ++i) {
-
+        // First test starts immediately, all other tests wait for the previous test to complete.
+        // The script produced will look as follows:
+        //      if (test1HasNotStarted) {
+        //          test1HasNotStarted = false;
+        //          test1.test();
+        //          print("******started test 1******");
+        //      }
+        //      |
+        //      |
+        //      if (test5.complete && test6HasNotStarted) {
+        //          test6HasNotStarted = false;
+        //          test7.test();
+        //          print("******started test 6******");
+        //      }
+        //      |
+        //      |
+        //      if (test12.complete) {
+        //          print("******stopping******");
+        //          Script.stop();
+        //      }
+        //
         if (i == 1) {
             textStream << tab << tab << "if (test1HasNotStarted) {" << endl;
         } else {
-            textStream << tab << tab << "if (test" << i - 1 << "complete && test" << i << "HasNotStarted) {" << endl;
+            textStream << tab << tab << "if (test" << i - 1 << ".complete && test" << i << "HasNotStarted) {" << endl;
         }
         textStream << tab << tab << tab << "test" << i << "HasNotStarted = false;" << endl;
         textStream << tab << tab << tab << "test" << i << "." << testFunction << "();" << endl;
+        textStream << tab << tab << tab << "print(\"******started test " << i << "******\");" << endl;
 
         textStream << tab << tab << "}" << endl << endl;
+
     }
 
     // Add extra step to stop the script
     textStream << tab << tab << "if (test" << testPathnames.length() << ".complete) {" << endl;
+    textStream << tab << tab << tab << "print(\"******stopping******\");" << endl;
     textStream << tab << tab << tab << "Script.stop();" << endl;
     textStream << tab << tab << "}" << endl << endl;
 
