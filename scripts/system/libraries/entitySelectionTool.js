@@ -1031,40 +1031,75 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
-	// Function: Calculate New Bound Extremes
-	// uses dot product to discover new top and bottom on the new referential (max and min)
-	that.calculateNewBoundExtremes = function(boundPointList, referenceVector) {
-		
-		if (boundPointList.length < 2) {
-			return [null, null];
-		}
-		
-		var refMax = boundPointList[0];
-		var refMin = boundPointList[1];
-		
-		var dotMax = Vec3.dot(boundPointList[0], referenceVector);
-		var dotMin = Vec3.dot(boundPointList[1], referenceVector);
-		
-		if (dotMin > dotMax) {
-			dotMax = dotMin;
-			dotMin = Vec3.dot(boundPointList[0], referenceVector);
-			refMax = boundPointList[1];
-			refMin = boundPointList[0];
-		}
-		
-		for (var i = 2; i < boundPointList.length ; i++) {
-			var dotAux = Vec3.dot(boundPointList[i], referenceVector);
-			if (dotAux > dotMax) {
-				dotMax = dotAux;
-				refMax = boundPointList[i];
-			} else if (dotAux < dotMin) {
-				dotMin = dotAux;
-				refMin = boundPointList[i];
-			}
-		}
-		return [refMin, refMax];
-	}
-	
+    // Function: Calculate New Bound Extremes
+    // uses dot product to discover new top and bottom on the new referential (max and min)
+    that.calculateNewBoundExtremes = function(boundPointList, referenceVector) {
+        
+        if (boundPointList.length < 2) {
+            return [null, null];
+        }
+        
+        var refMax = boundPointList[0];
+        var refMin = boundPointList[1];
+        
+        var dotMax = Vec3.dot(boundPointList[0], referenceVector);
+        var dotMin = Vec3.dot(boundPointList[1], referenceVector);
+        
+        if (dotMin > dotMax) {
+            dotMax = dotMin;
+            dotMin = Vec3.dot(boundPointList[0], referenceVector);
+            refMax = boundPointList[1];
+            refMin = boundPointList[0];
+        }
+        
+        for (var i = 2; i < boundPointList.length ; i++) {
+            var dotAux = Vec3.dot(boundPointList[i], referenceVector);
+            if (dotAux > dotMax) {
+                dotMax = dotAux;
+                refMax = boundPointList[i];
+            } else if (dotAux < dotMin) {
+                dotMin = dotAux;
+                refMin = boundPointList[i];
+            }
+        }
+        return [refMin, refMax];
+    }
+
+    // Projects all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto 
+    // one of the basis of the new avatar referencial
+    // dimensions - dimensions of the AABB (axis aligned bounding box) on the standard basis 
+    // [1, 0, 0], [0, 1, 0], [0, 0, 1]
+    // v - projection vector
+    // rotateHandleOffset - offset for the rotation handle gizmo position
+    that.projectBoundingBoxPoints = function(dimensions, v, rotateHandleOffset){
+        //project all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto the new avatar referential
+    
+        var projT_v = Vec3.dot(Vec3.multiply((dimensions.y / 2) + rotateHandleOffset, Vec3.UNIT_Y), v);
+        projT_v = Vec3.multiply(projT_v, v);
+        
+        
+        var projB_v = Vec3.dot(Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, Vec3.UNIT_Y), v);
+        projB_v = Vec3.multiply(projB_v, v);
+        
+        
+        var projL_v = Vec3.dot(Vec3.multiply((dimensions.x / 2) + rotateHandleOffset, Vec3.UNIT_X), v);
+        projL_v = Vec3.multiply(projL_v, v);
+        
+        var projR_v = Vec3.dot(Vec3.multiply(-1.0 * (dimensions.x / 2) - 1.0 * rotateHandleOffset, Vec3.UNIT_X), v);
+        projR_v = Vec3.multiply(projR_v, v);
+
+        
+        var projN_v = Vec3.dot(Vec3.multiply((dimensions.z / 2) + rotateHandleOffset, Vec3.FRONT), v);
+        projN_v = Vec3.multiply(projN_v, v);
+        
+        var projF_v = Vec3.dot(Vec3.multiply(-1.0 * (dimensions.z / 2) - 1.0 * rotateHandleOffset, Vec3.FRONT), v);
+        projF_v = Vec3.multiply(projF_v, v);
+        
+        var projList = [projT_v, projB_v, projL_v, projR_v, projN_v, projF_v];
+
+        return that.calculateNewBoundExtremes(projList, v);
+    };
+    
     // FUNCTION: UPDATE ROTATION HANDLES
     that.updateRotationHandles = function() {
         var diagonal = (Vec3.length(SelectionManager.worldDimensions) / 2) * 1.1;
@@ -1080,7 +1115,7 @@ SelectionDisplay = (function() {
             // prev 0.05
         var rotateHandleOffset = 0.05;
 
-        var top, far, left, bottom, near, right, boundsCenter, objectCenter, BLN, BRN, BLF, TLN, TRN, TLF, TRF;
+        var boundsCenter, objectCenter;
 
         var dimensions, rotation;
         if (spaceMode === SPACE_LOCAL) {
@@ -1092,32 +1127,11 @@ SelectionDisplay = (function() {
         dimensions = SelectionManager.worldDimensions;
         var position = objectCenter;
 
-        top = objectCenter.y + (dimensions.y / 2);
-        far = objectCenter.z + (dimensions.z / 2);
-        left = objectCenter.x + (dimensions.x / 2);
-
-        bottom = objectCenter.y - (dimensions.y / 2);
-        near = objectCenter.z - (dimensions.z / 2);
-        right = objectCenter.x - (dimensions.x / 2);
-
         boundsCenter = objectCenter;
 
         var yawCorner;
         var pitchCorner;
         var rollCorner;
-
-        // determine which bottom corner we are closest to
-        /*------------------------------
-          example:
-
-            BRF +--------+ BLF
-                |        |
-                |        |
-            BRN +--------+ BLN
-
-                   *
-
-        ------------------------------*/
 
         var cameraPosition = Camera.getPosition();
         var look = Vec3.normalize(Vec3.subtract(cameraPosition, objectCenter));
@@ -1132,136 +1146,39 @@ SelectionDisplay = (function() {
         var upVector = Quat.getUp(avatarReferential);
         var rightVector = Vec3.multiply(-1, Quat.getRight(avatarReferential));
         var frontVector = Quat.getFront(avatarReferential);
-        // Centers
-        var xSign = -1.0;
-        var zSign = -1.0;
-        if (Vec3.dot(look, rightVector) > 0) {
-            xSign = 1.0;
-        }
-        if (Vec3.dot(look, frontVector) > 0) {
-            zSign = 1.0;
-        }
-
         
-		
-		
-		//project all 8 bounding box points (assumes center 0,0,0) onto the new avatar referential
-		
-		var projT_UP = Vec3.dot(Vec3.multiply((dimensions.y / 2) + rotateHandleOffset, Vec3.UNIT_Y), upVector);
-		projT_UP = Vec3.multiply(projT_UP, upVector);
-		
-		
-		var projB_UP = Vec3.dot(Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, Vec3.UNIT_Y), upVector);
-		projB_UP = Vec3.multiply(projB_UP, upVector);
-		
-		
-		var projL_UP = Vec3.dot(Vec3.multiply(xSign * (dimensions.x / 2) + xSign * rotateHandleOffset, Vec3.UNIT_X), upVector);
-		projL_UP = Vec3.multiply(projL_UP, upVector);
-		
-		var projR_UP = Vec3.dot(Vec3.multiply(-xSign * (dimensions.x / 2) - xSign * rotateHandleOffset, Vec3.UNIT_X), upVector);
-		projR_UP = Vec3.multiply(projR_UP, upVector);
-
-		
-		var projN_UP = Vec3.dot(Vec3.multiply(zSign * (dimensions.z / 2) + zSign * rotateHandleOffset, Vec3.FRONT), upVector);
-		projN_UP = Vec3.multiply(projN_UP, upVector);
-		
-		var projF_UP = Vec3.dot(Vec3.multiply(-zSign * (dimensions.z / 2) - zSign * rotateHandleOffset, Vec3.FRONT), upVector);
-		projF_UP = Vec3.multiply(projF_UP, upVector);
-		
-		var projUPList = [projT_UP, projB_UP, projL_UP, projR_UP, projN_UP, projF_UP];
-		
-		var projUP = that.calculateNewBoundExtremes(projUPList, upVector);
-		
-		//// RIGHT
-		
-		var projT_RIGHT = Vec3.dot(Vec3.multiply((dimensions.y / 2) + rotateHandleOffset, Vec3.UNIT_Y), rightVector);
-		projT_RIGHT = Vec3.multiply(projT_RIGHT, rightVector);
-		
-		
-		var projB_RIGHT = Vec3.dot(Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, Vec3.UNIT_Y), rightVector);
-		projB_RIGHT = Vec3.multiply(projB_RIGHT, rightVector);
-		
-		
-		var projL_RIGHT = Vec3.dot(Vec3.multiply(xSign * (dimensions.x / 2) + xSign * rotateHandleOffset, Vec3.UNIT_X), rightVector);
-		projL_RIGHT = Vec3.multiply(projL_RIGHT, rightVector);
-		
-		var projR_RIGHT = Vec3.dot(Vec3.multiply(-xSign * (dimensions.x / 2) - xSign * rotateHandleOffset, Vec3.UNIT_X), rightVector);
-		projR_RIGHT = Vec3.multiply(projR_RIGHT, rightVector);
-
-		
-		var projN_RIGHT = Vec3.dot(Vec3.multiply(zSign * (dimensions.z / 2) + zSign * rotateHandleOffset, Vec3.FRONT), rightVector);
-		projN_RIGHT = Vec3.multiply(projN_RIGHT, rightVector);
-		
-		var projF_RIGHT = Vec3.dot(Vec3.multiply(-zSign * (dimensions.z / 2) - zSign * rotateHandleOffset, Vec3.FRONT), rightVector);
-		projF_RIGHT = Vec3.multiply(projF_RIGHT, rightVector);
-		
-		
-		var projRIGHTList = [projT_RIGHT, projB_RIGHT, projL_RIGHT, projR_RIGHT, projN_RIGHT, projF_RIGHT];
-		
-		var projRIGHT = that.calculateNewBoundExtremes(projRIGHTList, rightVector);
-		
-		//FRONT
-		
-		var projT_FRONT = Vec3.dot(Vec3.multiply((dimensions.y / 2) + rotateHandleOffset, Vec3.UNIT_Y), frontVector);
-		projT_FRONT = Vec3.multiply(projT_FRONT, frontVector);
-		
-		
-		var projB_FRONT = Vec3.dot(Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, Vec3.UNIT_Y), frontVector);
-		projB_FRONT = Vec3.multiply(projB_FRONT, frontVector);
-		
-		
-		var projL_FRONT = Vec3.dot(Vec3.multiply(xSign * (dimensions.x / 2) + xSign * rotateHandleOffset, Vec3.UNIT_X), frontVector);
-		projL_FRONT = Vec3.multiply(projL_FRONT, frontVector);
-		
-		var projR_FRONT = Vec3.dot(Vec3.multiply(-xSign * (dimensions.x / 2) - xSign * rotateHandleOffset, Vec3.UNIT_X), frontVector);
-		projR_FRONT = Vec3.multiply(projR_FRONT, frontVector);
-
-		
-		var projN_FRONT = Vec3.dot(Vec3.multiply(zSign * (dimensions.z / 2) + zSign * rotateHandleOffset, Vec3.FRONT), frontVector);
-		projN_FRONT = Vec3.multiply(projN_FRONT, frontVector);
-		
-		var projF_FRONT = Vec3.dot(Vec3.multiply(-zSign * (dimensions.z / 2) - zSign * rotateHandleOffset, Vec3.FRONT), frontVector);
-		projF_FRONT = Vec3.multiply(projF_FRONT, frontVector); 
-		
-		var projFRONTList = [projT_FRONT, projB_FRONT, projL_FRONT, projR_FRONT, projN_FRONT, projF_FRONT];
-		
-		var projFRONT = that.calculateNewBoundExtremes(projFRONTList, frontVector);
-		
-		
-		/////
-		
-		Overlays.editOverlay(pitchHandle, {
-                    url: ROTATE_ARROW_WEST_NORTH_URL
-                });
-                Overlays.editOverlay(rollHandle, {
-                    url: ROTATE_ARROW_WEST_NORTH_URL
-                });
-		
-		yawCenter = Vec3.sum(boundsCenter, projUP[0]); 
+        //project all 6 bounding box points: Top, Bottom, Left, Right, Near, Far (assumes center 0,0,0) onto the new avatar referential 
+        // UP
+        var projUP = that.projectBoundingBoxPoints(dimensions, upVector, rotateHandleOffset);
+        // RIGHT
+        var projRIGHT = that.projectBoundingBoxPoints(dimensions, rightVector, rotateHandleOffset);
+        // FRONT
+        var projFRONT = that.projectBoundingBoxPoints(dimensions, frontVector, rotateHandleOffset);
+        
+        /////
+        
+        // YAW
+        yawCenter = Vec3.sum(boundsCenter, projUP[0]); 
         yawCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[0], projRIGHT[1]), projFRONT[1]));
-        
         
         yawHandleRotation = Quat.lookAt(yawCorner, Vec3.sum(yawCorner, upVector), Vec3.subtract(yawCenter,yawCorner));
         yawHandleRotation = Quat.multiply(Quat.angleAxis(45, upVector), yawHandleRotation);
-		
-		yawCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[0], projRIGHT[1]), projFRONT[1]));
-		
-		pitchCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[0]), projFRONT[1]));
-		
-		pitchCenter = Vec3.sum(boundsCenter, projRIGHT[0]); 
-		
-		pitchHandleRotation = Quat.lookAt(pitchCorner, Vec3.sum(pitchCorner, rightVector), Vec3.subtract(pitchCenter,pitchCorner));
+        
+        // PTCH
+        pitchCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[0]), projFRONT[1]));
+        pitchCenter = Vec3.sum(boundsCenter, projRIGHT[0]); 
+        
+        pitchHandleRotation = Quat.lookAt(pitchCorner, Vec3.sum(pitchCorner, rightVector), Vec3.subtract(pitchCenter,pitchCorner));
         pitchHandleRotation = Quat.multiply(Quat.angleAxis(45, rightVector), pitchHandleRotation);
-		
-		
-		rollCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[1]), projFRONT[0]));
-		rollCenter = Vec3.sum(boundsCenter, projFRONT[0]); 
-		
-		rollHandleRotation = Quat.lookAt(rollCorner, Vec3.sum(rollCorner, frontVector), Vec3.subtract(rollCenter,rollCorner));
-		
-		rollHandleRotation = Quat.multiply(Quat.angleAxis(45, frontVector), rollHandleRotation);
-		
-		///////////
+        
+        // ROLL
+        rollCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(projUP[1], projRIGHT[1]), projFRONT[0]));
+        rollCenter = Vec3.sum(boundsCenter, projFRONT[0]); 
+        
+        rollHandleRotation = Quat.lookAt(rollCorner, Vec3.sum(rollCorner, frontVector), Vec3.subtract(rollCenter,rollCorner));
+        rollHandleRotation = Quat.multiply(Quat.angleAxis(45, frontVector), rollHandleRotation);
+        
+        ///////////
 
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
@@ -1312,8 +1229,8 @@ SelectionDisplay = (function() {
             position: rollCorner,
             rotation: rollHandleRotation
         });
-		
-		
+        
+        
     };
 
     // FUNCTION: UPDATE HANDLE SIZES
@@ -3326,7 +3243,7 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
     function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
-        var wantDebug = true;
+        var wantDebug = false;
         if (wantDebug) {
             print("---> updateRotationDegreesOverlay ---");
             print("    AngleFromZero: " + angleFromZero);
@@ -3354,7 +3271,7 @@ SelectionDisplay = (function() {
                 y: innerRadius * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
             },
             lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
-            text: normalizeDegrees(angleFromZero) + "°"
+            text: normalizeDegrees(-angleFromZero) + "°"
         };
         if (wantDebug) {
             print("    TranslatedPos: " + position.x + ", " + position.y + ", " + position.z);
@@ -3418,7 +3335,7 @@ SelectionDisplay = (function() {
         //get the correct axis according to the avatar referencial
         var avatarReferential = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({
             x: 0,
-            y: 180,
+            y: 0,
             z: 0
         }));
         rotationNormal = Vec3.multiplyQbyV(avatarReferential, rotationNormal);
@@ -3526,7 +3443,8 @@ SelectionDisplay = (function() {
             
             var rotChange = Quat.angleAxis(angleFromZero, rotationNormal);
             updateSelectionsRotation(rotChange);
-
+            //present angle in avatar referencial
+            angleFromZero = -angleFromZero;
             updateRotationDegreesOverlay(angleFromZero, handleRotation, rotCenter);
 
             // update the rotation display accordingly...
