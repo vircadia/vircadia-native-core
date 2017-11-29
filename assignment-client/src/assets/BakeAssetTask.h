@@ -17,6 +17,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QRunnable>
+#include <QDir>
 
 #include <AssetUtils.h>
 #include <Baker.h>
@@ -44,6 +45,7 @@ private:
     AssetHash _assetHash;
     AssetPath _assetPath;
     QString _filePath;
+    QDir _outputDir;
     std::unique_ptr<Baker> _baker;
     std::atomic<bool> _wasAborted { false };
     std::atomic<bool> _didFinish { false };

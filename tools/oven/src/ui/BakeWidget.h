@@ -13,6 +13,7 @@
 #define hifi_BakeWidget_h
 
 #include <QtWidgets/QWidget>
+#include <memory>
 
 #include <Baker.h>
 
