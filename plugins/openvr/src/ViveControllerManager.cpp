@@ -382,7 +382,6 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
 
     updateCalibratedLimbs(inputCalibrationData);
     _lastSimPoseData = _nextSimPoseData;
-    qDebug() << _trackedControllers;
 }
 
 void ViveControllerManager::InputDevice::calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData) {
