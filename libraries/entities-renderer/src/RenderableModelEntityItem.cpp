@@ -981,7 +981,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-
     QVector<JointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
@@ -990,13 +989,12 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    //the code to find the current frame is now in modelEntityItem.cpp and we access it below -Angus
    {
-        // where are we in the currently defined animation segment?       
+        // the current frame is set on the server in update() in ModelEntityItem.cpp     
         int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
+        
         // in the case where the last frame is greater than the framecount then clamp
         // it to the end of the animation until it loops around. 
-       
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
         }
@@ -1314,8 +1312,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     
     // The code to deal with the change of properties is now in ModelEntityItem.cpp
     // That is where _currentFrame and _lastAnimated are updated.
-
-
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
@@ -1326,7 +1322,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
         emit requestRenderUpdate();
     }
-    
 }
 
 void ModelEntityRenderer::flagForCollisionGeometryUpdate() {

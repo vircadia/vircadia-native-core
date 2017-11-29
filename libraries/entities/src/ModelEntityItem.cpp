@@ -189,48 +189,47 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 
 
-// added update for property fix
+// added update function back for property fix
 void ModelEntityItem::update(const quint64& now) {
 
     {
         auto currentAnimationProperties = this->getAnimationProperties();
 
         if (_previousAnimationProperties != currentAnimationProperties) {
-            withWriteLock([&] {                
-                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
+            withWriteLock([&] {
+                // if we hit start animation or change the first or last frame then restart the animation
+                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || 
+                    (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || 
+                    (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
+
+                    // when we start interface and the property is are set then the current frame is initialized to -1
                     if (_currentFrame < 0) {
+                        // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
                         setAnimationCurrentFrame(_currentFrame);
-                        qCDebug(entities) << "restart code hit last animated is " << _lastAnimated << " now is " << now;
                     } else {
                         _lastAnimated = usecTimestampNow();
-                        qCDebug(entities) << "last animated 1" << _lastAnimated;
                         _currentFrame = currentAnimationProperties.getFirstFrame();
-                        qCDebug(entities) << "point 2 " << _currentFrame;
                         setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
                     }
-                } else if (currentAnimationProperties.getHold() && !_previousAnimationProperties.getHold()) {
-                    qCDebug(entities) << "hold is pressed" << _currentFrame;
-                } else if (!currentAnimationProperties.getHold() && _previousAnimationProperties.getHold()) {
-                    qCDebug(entities) << "hold is unpressed" << _currentFrame;
-                } else if (!currentAnimationProperties.getLoop() && _previousAnimationProperties.getLoop()) {
-                    qCDebug(entities) << "loop is unpressed" << _currentFrame;
-                } else if (currentAnimationProperties.getLoop() && !_previousAnimationProperties.getLoop()) {
-                    qCDebug(entities) << "loop is pressed" << _currentFrame;
                 } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
+                    // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
                     _currentFrame = currentAnimationProperties.getCurrentFrame();
-                    qCDebug(entities)  << "point 3 " << _currentFrame;
+                    // qCDebug(entities)  << "point 3 " << _currentFrame;
                 }
                 
             });
             _previousAnimationProperties = this->getAnimationProperties();
+
         } else {
-             
-            // if the first frame is less than zero that is an error, so don't do anything. 
+            // else the animation properties have not changed.
+            // if the first frame is less than zero don't do anything. 
             if (!(getAnimationFirstFrame() < 0)) {
-                // if the current frame is less than zero then we are restarting the server.
+
+                // if the current frame is less than zero then we have restarted the server.
                 if (_currentFrame < 0) {
-                    if ((currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getLastFrame()) && (currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getFirstFrame())) {
+                    if ((currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getLastFrame()) && 
+                        (currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getFirstFrame())) {
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
                     } else {
                         _currentFrame = currentAnimationProperties.getFirstFrame();
@@ -240,38 +239,40 @@ void ModelEntityItem::update(const quint64& now) {
                 }
             }
         }
-        // _previousAnimationProperties = currentAnimationProperties;
+        
         if (isAnimatingSomething()) {
             if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
                 updateFrameCount();
             }
         }
     }
+
     EntityItem::update(now);
 }
 
 bool ModelEntityItem::needsToCallUpdate() const {
 
-    //return isAnimatingSomething() || EntityItem::needsToCallUpdate();
      return true;
 }
 
 void ModelEntityItem::updateFrameCount() {
-    
     
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
     }
 
-
     auto now = usecTimestampNow();
 
-    // this is now getting the time since the server started the animation.
+    // update the interval since the last animation.
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
 
-    
+    // if fps is negative then increment timestamp and return.
+    if (getAnimationFPS() < 0.0) {
+        return;
+    }
+
     int updatedFrameCount = getAnimationLastFrame() - getAnimationFirstFrame() + 1;
     
     if (!getAnimationHold() && getAnimationIsPlaying()) {
@@ -297,11 +298,6 @@ void ModelEntityItem::updateFrameCount() {
 
     
 }
-
-
-
-
-
 
 void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
