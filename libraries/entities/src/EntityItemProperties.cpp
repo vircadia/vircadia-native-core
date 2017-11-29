@@ -2553,8 +2553,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
                 EVP_PKEY_free(evp_key);
             }
             return answer;
-        }
-        else {
+        } else {
             if (bio) {
                 BIO_free(bio);
             }
@@ -2566,8 +2565,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC key error:" << error_str;
             return false;
         }
-    }
-    else {
+    } else {
         if (bio) {
             BIO_free(bio);
         }
