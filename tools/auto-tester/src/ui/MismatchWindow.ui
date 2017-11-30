@@ -135,9 +135,9 @@
   <widget class="QLabel" name="errorLabel">
    <property name="geometry">
     <rect>
-     <x>960</x>
+     <x>810</x>
      <y>600</y>
-     <width>181</width>
+     <width>720</width>
      <height>28</height>
     </rect>
    </property>
@@ -147,7 +147,7 @@
     </font>
    </property>
    <property name="text">
-    <string>error</string>
+    <string>similarity</string>
    </property>
   </widget>
  </widget>

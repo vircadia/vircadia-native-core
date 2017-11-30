@@ -24,7 +24,7 @@ Test::Test() {
 bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages) {
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD{ 0.99999 };
+    const double THRESHOLD{ 0.98 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {

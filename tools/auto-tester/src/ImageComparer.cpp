@@ -26,9 +26,9 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const double c2 = (K2 * L) * (K2 * L);
 
     // Coefficients for luminosity calculation
-    const double RED_COEFFICIENT = 0.212655;
-    const double GREEN_COEFFICIENT = 0.715158;
-    const double BLUE_COEFFICIENT = 0.072187;
+    const double R_Y = 0.212655f;
+    const double G_Y = 0.715158f;
+    const double B_Y = 0.072187f;
 
     // First go over all full 8x8 blocks
     // This is done in 3 loops
@@ -42,7 +42,11 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const int WIN_SIZE = 8;
     int x{ 0 };             // column index (start of block)
     int y{ 0 };             // row index (start of block
-    double ssimMax{ 0.0 };
+    double ssimMin{ 1.0 };
+    
+    // Pixels are processed in sqare blocks
+    double p[WIN_SIZE * WIN_SIZE];
+    double q[WIN_SIZE * WIN_SIZE];
 
     while (x < expectedImage.width()) {
         int lastX = x + WIN_SIZE;
@@ -56,22 +60,17 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
                 y -= (lastY - expectedImage.height());
             }
 
-            // Collect pixels
+            // Collect pixels into linear arrays
             int i{ 0 };
-            double p[WIN_SIZE * WIN_SIZE];
-            double q[WIN_SIZE * WIN_SIZE];
             for (int xx = 0; xx < WIN_SIZE; ++xx) {
                 for (int yy = 0; yy < WIN_SIZE; ++yy) {
                     // Get pixels
-                    QRgb pixelP = expectedImage.pixel(QPoint(xx, yy));
-                    QRgb pixelQ = resultImage.pixel(QPoint(xx, yy));
+                    QRgb pixelP = expectedImage.pixel(QPoint(x + xx, y + yy));
+                    QRgb pixelQ = resultImage.pixel(QPoint(x + xx, y + yy));
 
-                    // Convert to vec3
-                    p[i] = 
-                        RED_COEFFICIENT * qRed(pixelP) + GREEN_COEFFICIENT * qGreen(pixelP) + BLUE_COEFFICIENT * qBlue(pixelP);
-
-                    q[i] = 
-                        RED_COEFFICIENT * qRed(pixelQ) + GREEN_COEFFICIENT * qGreen(pixelQ) + BLUE_COEFFICIENT * qBlue(pixelQ);
+                    // Convert to luminence
+                    p[i] = R_Y * qRed(pixelP) + G_Y * qGreen(pixelP) + B_Y * qBlue(pixelP);
+                    q[i] = R_Y * qRed(pixelQ) + G_Y * qGreen(pixelQ) + B_Y * qBlue(pixelQ);
 
                     ++i;
                 }
@@ -106,8 +105,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
 
             double ssim = numerator / denominator;
 
-            if (ssim > ssimMax) {
-                ssimMax = ssim;
+            if (ssim < ssimMin) {
+                ssimMin = ssim;
             }
 
             y += WIN_SIZE;
@@ -115,5 +114,5 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
         x += WIN_SIZE;
     }
 
-    return ssimMax;
+    return ssimMin;
 };
