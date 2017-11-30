@@ -15,6 +15,11 @@ Item {
     property string scriptURL
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
+    onKeyboardRaisedChanged: {
+        if(!keyboardRaised) {
+            webroot.unfocus();
+        }
+    }
     property bool punctuationMode: false
     property bool passwordField: false
     property bool isDesktop: false

@@ -209,7 +209,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
-    JSONFilterWithFamilyTree = 19
+    JSONFilterWithFamilyTree = 19,
+    ConnectionIdentifier = 20
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
@@ -246,7 +247,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasHostname,
     HasProtocolVersions,
     HasMACAddress,
-    HasMachineFingerprint
+    HasMachineFingerprint,
+    AlwaysHasMachineFingerprint
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {

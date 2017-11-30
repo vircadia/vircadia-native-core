@@ -255,7 +255,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
     qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "           position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
@@ -297,7 +297,7 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
             const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
             if (diameter > MIN_DIAMETER
                 && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
-                _collisionShapeType = SHAPE_TYPE_SPHERE;
+                _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
             } else if (hullShapeCalculator) {
                 hullShapeCalculator(this, info);
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;

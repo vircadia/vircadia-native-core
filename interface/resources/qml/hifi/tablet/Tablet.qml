@@ -9,8 +9,8 @@ import "../audio" as HifiAudio
 Item {
     id: tablet
     objectName: "tablet"
-    property int rowIndex: 0
-    property int columnIndex: 0
+    property int rowIndex: 6 // by default
+    property int columnIndex: 1 // point to 'go to location'
     property int count: 0
 
     //timeout for press delay before swipe occurs

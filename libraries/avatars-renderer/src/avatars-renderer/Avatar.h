@@ -265,6 +265,8 @@ public:
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
 
+    virtual void setAvatarEntityDataChanged(bool value) override;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -318,8 +320,8 @@ protected:
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
-    glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3 getBodyRightDirection() const { return getWorldOrientation() * IDENTITY_RIGHT; }
+    glm::vec3 getBodyUpDirection() const { return getWorldOrientation() * IDENTITY_UP; }
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;
