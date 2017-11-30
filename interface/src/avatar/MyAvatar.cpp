@@ -669,6 +669,12 @@ void MyAvatar::updateSensorToWorldMatrix() {
     glm::mat4 desiredMat = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), getWorldOrientation(), getWorldPosition());
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
+    bool hasSensorToWorldScaleChanged = false;
+    
+    if (abs(AvatarData::getSensorToWorldScale() - sensorToWorldScale) > 0.001f) {
+        hasSensorToWorldScaleChanged = true;
+    }
+
     lateUpdatePalms();
 
     if (_enableDebugDrawSensorToWorldMatrix) {
@@ -677,9 +683,15 @@ void MyAvatar::updateSensorToWorldMatrix() {
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
-
+    
     updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
+    
+    if (hasSensorToWorldScaleChanged) {
+        emit sensorToWorldScaleChanged(sensorToWorldScale);
+        //qDebug() << "Debug: emit sensorToWorldScaleChanged " << sensorToWorldScale;
+    }
+    
 }
 
 //  Update avatar head rotation with sensor data
@@ -1404,6 +1416,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
     _headBoneSet.clear();
     emit skeletonChanged();
+
 }
 
 
@@ -1439,6 +1452,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
     markIdentityDataChanged();
+    
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
