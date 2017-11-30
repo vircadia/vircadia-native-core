@@ -87,7 +87,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function (controllerData, deltaTime) {
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) && !grabModuleNeedsToRun) {
+            if ((controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE || (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) && !grabModuleNeedsToRun) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
