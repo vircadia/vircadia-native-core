@@ -21,34 +21,8 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-void Test::evaluateTests() {
-    createListOfAllJPEGimagesInDirectory();
-
-    // Separate images into two lists.  The first is the expected images, the second is the test results
-    // Images that are in the wrong format are ignored.
-    QStringList expectedImages;
-    QStringList resultImages;
-    foreach(QString currentFilename, sortedImageFilenames) {
-        QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
-        if (isInExpectedImageFilenameFormat(currentFilename)) {
-            expectedImages << fullCurrentFilename;
-        } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            resultImages << fullCurrentFilename;
-        }
-    }
-
-    // The number of images in each list should be identical
-    if (expectedImages.length() != resultImages.length()) {
-        messageBox.critical(0, 
-            "Test failed", 
-            "Found " + QString::number(resultImages.length()) + " images in directory" +
-            "\nExpected to find " + QString::number(expectedImages.length()) + " images"
-        );
-
-        exit(-1);
-    }
-
-    // Now loop over both lists and compare each pair of images
+bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages) {
+    // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
     const double THRESHOLD{ 0.99999 };
     bool success{ true };
@@ -65,7 +39,8 @@ void Test::evaluateTests() {
         double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
         try {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-        } catch (...) {
+        }
+        catch (...) {
             messageBox.critical(0, "Internal error", "Image not in expected format");
             exit(-1);
         }
@@ -96,10 +71,98 @@ void Test::evaluateTests() {
         }
     }
 
+    return success;
+}
+
+void Test::evaluateTests() {
+    // Get list of JPEG images in folder, sorted by name
+    QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
+
+    // Separate images into two lists.  The first is the expected images, the second is the test results
+    // Images that are in the wrong format are ignored.
+    QStringList expectedImages;
+    QStringList resultImages;
+    foreach(QString currentFilename, sortedImageFilenames) {
+        QString fullCurrentFilename = pathToImageDirectory + "/" + currentFilename;
+        if (isInExpectedImageFilenameFormat(currentFilename)) {
+            expectedImages << fullCurrentFilename;
+        } else if (isInSnapshotFilenameFormat(currentFilename)) {
+            resultImages << fullCurrentFilename;
+        }
+    }
+
+    // The number of images in each list should be identical
+    if (expectedImages.length() != resultImages.length()) {
+        messageBox.critical(0, 
+            "Test failed", 
+            "Found " + QString::number(resultImages.length()) + " images in directory" +
+            "\nExpected to find " + QString::number(expectedImages.length()) + " images"
+        );
+
+        exit(-1);
+    }
+
+    bool success = compareImageLists(expectedImages, resultImages);
+
     if (success) {
         messageBox.information(0, "Success", "All images are as expected");
+    } else {
+        messageBox.information(0, "Failure", "One or more images are not as expected");
     }
-    else {
+}
+
+// Two criteria are used to decide if a folder contains valid test results.
+//      1) a 'test'js' file exists in the folder
+//      2) the folder has the same number of anual and expected images
+void Test::evaluateTestsRecursively() {
+    // Select folder to start recursing from
+    QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
+
+    bool success{ true };
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+        if (directory[directory.length() - 1] == '.') {
+            // ignore '.', '..' directories
+            continue;
+        }
+
+        // 
+        const QString testPathname{ directory + "/" + testFilename };
+        QFileInfo fileInfo(testPathname);
+        if (!fileInfo.exists()) {
+            // Folder does not contain 'test.js'
+            continue;
+        }
+
+        QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(directory);
+
+        // Separate images into two lists.  The first is the expected images, the second is the test results
+        // Images that are in the wrong format are ignored.
+        QStringList expectedImages;
+        QStringList resultImages;
+        foreach(QString currentFilename, sortedImageFilenames) {
+            QString fullCurrentFilename = directory + "/" + currentFilename;
+            if (isInExpectedImageFilenameFormat(currentFilename)) {
+                expectedImages << fullCurrentFilename;
+            } else if (isInSnapshotFilenameFormat(currentFilename)) {
+                resultImages << fullCurrentFilename;
+            }
+        }
+
+        if (expectedImages.length() != resultImages.length()) {
+            // Number of images doesn't match
+            continue;
+        }
+
+        // Set success to false if any test has failed
+        success &= compareImageLists(expectedImages, resultImages);
+    }
+
+    if (success) {
+        messageBox.information(0, "Success", "All images are as expected");
+    } else {
         messageBox.information(0, "Failure", "One or more images are not as expected");
     }
 }
@@ -113,7 +176,6 @@ void Test::importTest(QTextStream& textStream, const QString& testPathname, int 
 void Test::createRecursiveScript() {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
 
     QFile allTestsFilename(topLevelDirectory + "/" + "allTests.js");
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -132,7 +194,6 @@ void Test::createRecursiveScript() {
     // running test has increment a testNumber variable that it received as an input.
     int testNumber = 1;
     QVector<QString> testPathnames;
-    const QString testFilename{ "test.js" };
 
     // First test if top-level folder has a test.js file
     const QString testPathname{ topLevelDirectory + "/" + testFilename };
@@ -145,6 +206,7 @@ void Test::createRecursiveScript() {
         testPathnames << testPathname;
     }
 
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
         if (directory[directory.length() - 1] == '.') {
@@ -249,7 +311,8 @@ void Test::createRecursiveScript() {
 void Test::createTest() {
     // Rename files sequentially, as ExpectedResult_1.jpeg, ExpectedResult_2.jpg and so on
     // Any existing expected result images will be deleted
-    createListOfAllJPEGimagesInDirectory();
+    QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
 
     int i = 1;
     foreach (QString currentFilename, sortedImageFilenames) {
@@ -271,15 +334,12 @@ void Test::createTest() {
     messageBox.information(0, "Success", "Test images have been created");
 }
 
-void Test::createListOfAllJPEGimagesInDirectory() {
-    // Get list of JPEG images in folder, sorted by name
-    pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
-
+QStringList Test::createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory) {
     imageDirectory = QDir(pathToImageDirectory);
     QStringList nameFilters;
     nameFilters << "*.jpg";
 
-    sortedImageFilenames = imageDirectory.entryList(nameFilters, QDir::Files, QDir::Name);
+    return imageDirectory.entryList(nameFilters, QDir::Files, QDir::Name);
 }
 
 bool Test::isInSnapshotFilenameFormat(QString filename) {

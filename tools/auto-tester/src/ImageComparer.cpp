@@ -26,9 +26,9 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const double c2 = (K2 * L) * (K2 * L);
 
     // Coefficients for luminosity calculation
-    const double RED_COEFFICIENT = 0.212655f;
-    const double GREEN_COEFFICIENT = 0.715158f;
-    const double BLUE_COEFFICIENT = 0.072187f;
+    const double RED_COEFFICIENT = 0.212655;
+    const double GREEN_COEFFICIENT = 0.715158;
+    const double BLUE_COEFFICIENT = 0.072187;
 
     // First go over all full 8x8 blocks
     // This is done in 3 loops

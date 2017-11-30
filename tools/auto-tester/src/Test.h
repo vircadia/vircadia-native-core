@@ -24,10 +24,11 @@ public:
     Test();
 
     void evaluateTests();
+    void evaluateTestsRecursively();
     void createRecursiveScript();
     void createTest();
 
-    void createListOfAllJPEGimagesInDirectory();
+    QStringList createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory);
 
     bool isInSnapshotFilenameFormat(QString filename);
     bool isInExpectedImageFilenameFormat(QString filename);
@@ -35,11 +36,11 @@ public:
     void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
 
 private:
+    const QString testFilename{ "test.js" };
+
     QMessageBox messageBox;
 
-    QString pathToImageDirectory;
     QDir imageDirectory;
-    QStringList sortedImageFilenames;
 
     QRegularExpression snapshotFilenameFormat;
     QRegularExpression expectedImageFilenameFormat;
@@ -47,6 +48,8 @@ private:
     MismatchWindow mismatchWindow;
 
     ImageComparer imageComparer;
+
+    bool compareImageLists(QStringList expectedImages, QStringList resultImages);
 };
 
 #endif // hifi_test_h

@@ -21,7 +21,7 @@ MismatchWindow::MismatchWindow(QWidget *parent)
 }
 
 void MismatchWindow::setTestFailure(TestFailure testFailure) {
-    errorLabel->setText("Error: " + QString::number((int)testFailure._error));
+    errorLabel->setText("Similarity: " + QString::number(testFailure._error));
 
     imagePath->setText("Path to test: " + testFailure._pathname);
 
