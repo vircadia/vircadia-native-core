@@ -225,6 +225,7 @@ Item {
             height: 50;
             text: "Set Up Wallet";
             onClicked: {
+                commerce.account();
                 root.activeView = "step_2";
             }
         }
@@ -371,7 +372,7 @@ Item {
 
     Item {
         id: securityImageTip;
-        visible: false;
+        visible: !root.hasShownSecurityImageTip && root.activeView === "step_3";
         z: 999;
         anchors.fill: root;
         
@@ -421,7 +422,6 @@ Item {
             text: "Got It";
             onClicked: {
                 root.hasShownSecurityImageTip = true;
-                securityImageTip.visible = false;
                 passphraseSelection.focusFirstTextField();
             }
         }
@@ -439,9 +439,6 @@ Item {
         onVisibleChanged: {
             if (visible) {
                 commerce.getWalletAuthenticatedStatus();
-                if (!root.hasShownSecurityImageTip) {
-                    securityImageTip.visible = true;
-                }
             }
         }
 
@@ -732,6 +729,7 @@ Item {
                 text: "Finish";
                 onClicked: {
                     root.visible = false;
+                    root.hasShownSecurityImageTip = false;
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
                 }
             }
