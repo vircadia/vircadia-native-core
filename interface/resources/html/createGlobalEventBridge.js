@@ -68,21 +68,18 @@ var EventBridge;
         window.addEventListener("load",function(event) {
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
-                console.log(":: Window Loaded");
             }, 1200);
         }, false);
         
         document.addEventListener("click",function(){
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
-                console.log(":: Window Clicked");
             }, 1200);
         }, false);
         
         document.addEventListener("change",function(){
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
-                console.log(":: Window Changes");
             }, 1200);
         }, false);
         
