@@ -318,7 +318,7 @@ public slots:
      * @example <caption>Animate between one rotation and another.</caption>
      * var dt = amountOfTimeThatHasPassed;
      * var mixFactor = amountOfTimeThatHasPassed / TIME_TO_COMPLETE;
-     * if (mixFactor) > 1) {
+     * if (mixFactor > 1) {
      *     mixFactor = 1;
      * }
      * var newRotation = Quat.mix(startRotation, endRotation, mixFactor);
