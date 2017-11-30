@@ -138,8 +138,6 @@ public:
         if (_runDelayMs > 0) {
             QThread::msleep(_runDelayMs);
         }
-        auto audioIO = DependencyManager::get<AudioClient>();
-
         auto rootItem = _surface->getRootItem();
         if (rootItem) {
             for (auto player : rootItem->findChildren<QMediaPlayer*>()) {
