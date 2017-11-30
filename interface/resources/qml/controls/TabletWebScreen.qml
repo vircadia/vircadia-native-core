@@ -10,6 +10,11 @@ Item {
     property alias urlTag: webroot.urlTag
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
+    onKeyboardRaisedChanged: {
+        if(!keyboardRaised) {
+            webroot.unfocus();
+        }
+    }
     property bool punctuationMode: false
 
     // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface

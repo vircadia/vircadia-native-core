@@ -350,8 +350,7 @@
                 end: ZERO_VECTOR,
                 color: { red: 255, green: 0, blue: 0},
                 alpha: 1,
-                visible: true,
-                lineWidth: 2
+                visible: true
             });
         },
     };

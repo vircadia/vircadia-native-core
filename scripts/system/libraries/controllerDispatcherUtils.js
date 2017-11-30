@@ -35,12 +35,15 @@
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
+   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
+   makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
    BUMPER_ON_VALUE:true,
+   getEntityParents:true,
    findHandChildEntities:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
@@ -100,27 +103,43 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData"
+    "userData",
+    "type"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
 // requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
-makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns) {
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns, enableLaserForHand) {
+    if (enableLaserForHand === undefined) {
+        enableLaserForHand = -1;
+    }
+
     return {
         priority: priority,
         activitySlots: activitySlots,
         requiredDataForReady: requiredDataForReady,
-        sleepMSBetweenRuns: sleepMSBetweenRuns
+        sleepMSBetweenRuns: sleepMSBetweenRuns,
+        handLaser: enableLaserForHand
     };
 };
 
-makeRunningValues = function (active, targets, requiredDataForRun) {
+makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
+    return {
+        targetID: targetID,
+        isOverlay: isOverlay,
+        hand: hand,
+        offset: offset
+    };
+};
+
+makeRunningValues = function (active, targets, requiredDataForRun, laserLockInfo) {
     return {
         active: active,
         targets: targets,
-        requiredDataForRun: requiredDataForRun
+        requiredDataForRun: requiredDataForRun,
+        laserLockInfo: laserLockInfo
     };
 };
 
@@ -304,6 +323,23 @@ findGroupParent = function (controllerData, targetProps) {
     }
 
     return targetProps;
+};
+
+getEntityParents = function(targetProps) {
+    var parentProperties = [];
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        parentProperties.push(parentProps);
+    }
+
+    return parentProperties;
 };
 
 

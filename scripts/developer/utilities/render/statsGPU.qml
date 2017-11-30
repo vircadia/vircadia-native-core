@@ -65,6 +65,13 @@ Item {
                    label: "tone and post",
                    color: "#FF0000"
                }
+               ,
+               {
+                   object: Render.getConfig("RenderMainView.OutlineRangeTimer"),
+                   prop: "gpuRunTime",
+                   label: "outline",
+                   color: "#FFFF00"
+               }
            ]
         }
         PlotPerf {
@@ -104,6 +111,13 @@ Item {
                    prop: "batchRunTime",
                    label: "tone and post",
                    color: "#FF0000"
+               }
+               ,
+               {
+                   object: Render.getConfig("RenderMainView.OutlineRangeTimer"),
+                   prop: "batchRunTime",
+                   label: "outline",
+                   color: "#FFFF00"
                }
            ]
         }

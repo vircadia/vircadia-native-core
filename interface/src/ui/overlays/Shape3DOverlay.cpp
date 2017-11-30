@@ -24,7 +24,7 @@ Shape3DOverlay::Shape3DOverlay(const Shape3DOverlay* Shape3DOverlay) :
 }
 
 void Shape3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -121,9 +121,9 @@ QVariant Shape3DOverlay::getProperty(const QString& property) {
 
 Transform Shape3DOverlay::evalRenderTransform() {
     // TODO: handle registration point??
-    glm::vec3 position = getPosition();
+    glm::vec3 position = getWorldPosition();
     glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
+    glm::quat rotation = getWorldOrientation();
 
     Transform transform;
     transform.setScale(dimensions);

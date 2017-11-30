@@ -29,6 +29,12 @@ Item {
         id: hifi
     }
 
+    function unfocus() {
+        webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
+            console.log('unfocus completed: ', result);
+        });
+    }
+
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
 
@@ -97,6 +103,10 @@ Item {
             } else {
                 webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
             }
+            // Ensure the JS from the web-engine makes it to our logging
+            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+            });
         }
 
         onFeaturePermissionRequested: {
@@ -126,5 +136,11 @@ Item {
         visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
+    }
+
+    Keys.onPressed: {
+        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false;
+        }
     }
 }

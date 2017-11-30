@@ -419,7 +419,7 @@ var toolBar = (function () {
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            captionColorOverride: hasRezPermissions ? "" : "#888888",
+            captionColor: hasRezPermissions ? "#ffffff" : "#888888",
             icon: createButtonIconRsrc,
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
@@ -792,7 +792,7 @@ function handleDomainChange() {
     var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColorOverride: (hasRezPermissions ? "" : "#888888"),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
     });
 }
 
@@ -1333,7 +1333,7 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList) {
+function recursiveDelete(entities, childrenList, deletedIDs) {
     var entitiesLength = entities.length;
     for (var i = 0; i < entitiesLength; i++) {
         var entityID = entities[i];
@@ -1346,6 +1346,7 @@ function recursiveDelete(entities, childrenList) {
             properties: initialProperties,
             children: grandchildrenList
         });
+        deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
@@ -1413,6 +1414,8 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
+        var deletedIDs = [];
+
         selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
@@ -1421,18 +1424,29 @@ function deleteSelectedEntities() {
         for (var i = 0; i < newSortedSelection.length; i++) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            var children = Entities.getChildrenIDs(entityID);
-            var childList = [];
-            recursiveDelete(children, childList);
-            savedProperties.push({
-                entityID: entityID,
-                properties: initialProperties,
-                children: childList
-            });
-            Entities.deleteEntity(entityID);
+            if (!initialProperties.locked) {
+                var children = Entities.getChildrenIDs(entityID);
+                var childList = [];
+                recursiveDelete(children, childList, deletedIDs);
+                savedProperties.push({
+                    entityID: entityID,
+                    properties: initialProperties,
+                    children: childList
+                });
+                deletedIDs.push(entityID);
+                Entities.deleteEntity(entityID);
+            }
         }
-        SelectionManager.clearSelections();
-        pushCommandForSelections([], savedProperties);
+
+        if (savedProperties.length > 0) {
+            SelectionManager.clearSelections();
+            pushCommandForSelections([], savedProperties);
+
+            entityListTool.webView.emitScriptEvent(JSON.stringify({
+                type: "deleted",
+                ids: deletedIDs
+            }));
+        }
     }
 }
 
@@ -1533,7 +1547,7 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {

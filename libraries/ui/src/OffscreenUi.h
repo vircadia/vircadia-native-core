@@ -249,6 +249,11 @@ signals:
 public slots:
     void removeModalDialog(QObject* modal);
 
+private slots:
+    void hoverBeginEvent(const PointerEvent& event);
+    void hoverEndEvent(const PointerEvent& event);
+    void handlePointerEvent(const PointerEvent& event);
+
 private:
     QString fileDialog(const QVariantMap& properties);
     ModalDialogListener *fileDialogAsync(const QVariantMap &properties);

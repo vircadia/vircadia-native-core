@@ -290,11 +290,17 @@
             }
         });
 
-        // change pricing to GET on button hover
+        // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
             $this.data('initialHtml', $this.html());
-            $this.text('GET');
+
+            var cost = $(this).parent().siblings().text();
+            if (parseInt(cost) > 0) {
+                $this.text('BUY');
+            } else {
+                $this.text('GET');
+            }
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
@@ -309,6 +315,15 @@
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'));
+        });
+    }
+
+    function injectUnfocusOnSearch() {
+        // unfocus input field on search, thus hiding virtual keyboard
+        $('#search-box').on('submit', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
         });
     }
 
@@ -341,6 +356,8 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
     }
 
     function injectHiFiItemPageCode() {
@@ -380,6 +397,8 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
     }
 
     function updateClaraCode() {

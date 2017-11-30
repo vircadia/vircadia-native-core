@@ -35,7 +35,13 @@ OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
 
 void OctreePacketData::changeSettings(bool enableCompression, unsigned int targetSize) {
     _enableCompression = enableCompression;
-    _targetSize = std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
+    _targetSize = targetSize;
+    _uncompressedByteArray.resize(_targetSize);
+    _compressedByteArray.resize(_targetSize);
+
+    _uncompressed = (unsigned char*)_uncompressedByteArray.data();
+    _compressed = (unsigned char*)_compressedByteArray.data();
+
     reset();
 }
 
@@ -68,8 +74,8 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         _dirty = true;
     } 
     
-    const bool wantDebug = false;
-    if (wantDebug && !success) {
+    #ifdef WANT_DEBUG
+    if (!success) {
         qCDebug(octree) << "OctreePacketData::append(const unsigned char* data, int length) FAILING....";
         qCDebug(octree) << "    length=" << length;
         qCDebug(octree) << "    _bytesAvailable=" << _bytesAvailable;
@@ -77,6 +83,7 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         qCDebug(octree) << "    _targetSize=" << _targetSize;
         qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
     }
+    #endif
     return success;
 }
 
@@ -647,6 +654,13 @@ void OctreePacketData::debugContent() {
     printf("\n");
 }
 
+void OctreePacketData::debugBytes() {
+    qCDebug(octree) << "    _bytesAvailable=" << _bytesAvailable;
+    qCDebug(octree) << "    _bytesInUse=" << _bytesInUse;
+    qCDebug(octree) << "    _targetSize=" << _targetSize;
+    qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
+}
+
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
@@ -681,6 +695,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(glm::vec3) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -694,6 +710,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(glm::quat) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -712,6 +730,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -725,6 +745,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length / 8 > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);

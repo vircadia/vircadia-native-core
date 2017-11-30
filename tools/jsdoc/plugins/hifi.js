@@ -18,11 +18,13 @@ exports.handlers = {
             '../../interface/src/avatar',
             '../../interface/src/scripting',
             '../../interface/src/ui/overlays',
+            '../../interface/src/raypick',
             '../../libraries/animation/src',
             '../../libraries/avatars/src',
             '../../libraries/controllers/src/controllers/',
             '../../libraries/entities/src',
             '../../libraries/networking/src',
+            '../../libraries/pointers/src',
             '../../libraries/shared/src',
             '../../libraries/script-engine/src',
         ];
