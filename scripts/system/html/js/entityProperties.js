@@ -6,6 +6,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+/* global alert, clearTimeout, console, document, Element, EventBridge, 
+    HifiEntityUI, JSONEditor, openEventBridge, setTimeout, window, _ $ */
+
 var PI = 3.14159265358979;
 var DEGREES_TO_RADIANS = PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / PI;
@@ -22,33 +25,33 @@ var ICON_FOR_TYPE = {
     PolyVox: "&#xe005;",
     Multiple: "&#xe000;",
     PolyLine: "&#xe01b;"
-}
+};
 
 var EDITOR_TIMEOUT_DURATION = 1500;
-const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
+var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
 
-debugPrint = function(message) {
+function debugPrint(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
             type: "print",
             message: message
         })
     );
-};
+}
 
 function enableChildren(el, selector) {
-    els = el.querySelectorAll(selector);
-    for (var i = 0; i < els.length; i++) {
-        els[i].removeAttribute('disabled');
+    var elSelectors = el.querySelectorAll(selector);
+    for (var selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
+        elSelectors[selectorIndex].removeAttribute('disabled');
     }
 }
 
 function disableChildren(el, selector) {
-    els = el.querySelectorAll(selector);
-    for (var i = 0; i < els.length; i++) {
-        els[i].setAttribute('disabled', 'disabled');
+    var elSelectors = el.querySelectorAll(selector);
+    for (var selectorIndex = 0; selectorIndex < elSelectors.length; ++selectorIndex) {
+        elSelectors[selectorIndex].setAttribute('disabled', 'disabled');
     }
 }
 
@@ -103,16 +106,6 @@ function createEmitCheckedPropertyUpdateFunction(propertyName) {
     };
 }
 
-function createEmitCheckedToStringPropertyUpdateFunction(checkboxElement, name, propertyName) {
-    var newString = "";
-    if (checkboxElement.checked) {
-        newString += name + "";
-    } else {
-
-    }
-
-}
-
 function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
     return function() {
         var properties = {};
@@ -123,7 +116,7 @@ function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
 }
 
 function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
-    decimals = decimals == undefined ? 4 : decimals;
+    decimals = ((decimals === undefined) ? 4 : decimals);
     return function() {
         var value = parseFloat(this.value).toFixed(decimals);
         updateProperty(propertyName, value);
@@ -146,7 +139,9 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
     };
 }
 
-function createZoneComponentModeChangedFunction(zoneComponent, zoneComponentModeInherit, zoneComponentModeDisabled, zoneComponentModeEnabled) {
+function createZoneComponentModeChangedFunction(zoneComponent, zoneComponentModeInherit,
+    zoneComponentModeDisabled, zoneComponentModeEnabled) {
+
     return function() {
         var zoneComponentMode;
 
@@ -159,7 +154,7 @@ function createZoneComponentModeChangedFunction(zoneComponent, zoneComponentMode
         }
 
         updateProperty(zoneComponent, zoneComponentMode);
-    }
+    };
 }
 
 function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
@@ -177,11 +172,11 @@ function createEmitVec3PropertyUpdateFunction(property, elX, elY, elZ) {
         properties[property] = {
             x: elX.value,
             y: elY.value,
-            z: elZ.value,
+            z: elZ.value
         };
         updateProperties(properties);
-    }
-};
+    };
+}
 
 function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, elZ) {
     return function() {
@@ -190,11 +185,11 @@ function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, el
         properties[group][property] = {
             x: elX.value,
             y: elY.value,
-            z: elZ ? elZ.value : 0,
+            z: elZ ? elZ.value : 0
         };
         updateProperties(properties);
-    }
-};
+    };
+}
 
 function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, elZ, multiplier) {
     return function() {
@@ -202,17 +197,17 @@ function createEmitVec3PropertyUpdateFunctionWithMultiplier(property, elX, elY, 
         properties[property] = {
             x: elX.value * multiplier,
             y: elY.value * multiplier,
-            z: elZ.value * multiplier,
+            z: elZ.value * multiplier
         };
         updateProperties(properties);
-    }
-};
+    };
+}
 
 function createEmitColorPropertyUpdateFunction(property, elRed, elGreen, elBlue) {
     return function() {
         emitColorPropertyUpdate(property, elRed.value, elGreen.value, elBlue.value);
-    }
-};
+    };
+}
 
 function emitColorPropertyUpdate(property, red, green, blue, group) {
     var properties = {};
@@ -221,17 +216,17 @@ function emitColorPropertyUpdate(property, red, green, blue, group) {
         properties[group][property] = {
             red: red,
             green: green,
-            blue: blue,
+            blue: blue
         };
     } else {
         properties[property] = {
             red: red,
             green: green,
-            blue: blue,
+            blue: blue
         };
     }
     updateProperties(properties);
-};
+}
 
 
 function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGreen, elBlue) {
@@ -241,11 +236,11 @@ function createEmitGroupColorPropertyUpdateFunction(group, property, elRed, elGr
         properties[group][property] = {
             red: elRed.value,
             green: elGreen.value,
-            blue: elBlue.value,
+            blue: elBlue.value
         };
         updateProperties(properties);
-    }
-};
+    };
+}
 
 function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
     if (subPropertyElement.checked) {
@@ -264,12 +259,12 @@ function setUserDataFromEditor(noUpdate) {
     try {
         json = editor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e)
+        alert('Invalid JSON code - look for red X in your code ', +e);
     }
     if (json === null) {
         return;
     } else {
-        var text = editor.getText()
+        var text = editor.getText();
         if (noUpdate === true) {
             EventBridge.emitWebEvent(
                 JSON.stringify({
@@ -277,7 +272,7 @@ function setUserDataFromEditor(noUpdate) {
                     type: "saveUserData",
                     properties: {
                         userData: text
-                    },
+                    }
                 })
             );
             return;
@@ -292,22 +287,24 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
     var parsedData = {};
     try {
         if ($('#userdata-editor').css('height') !== "0px") {
-            //if there is an expanded, we want to use its json.
+            // if there is an expanded, we want to use its json.
             parsedData = getEditorJSON();
         } else {
             parsedData = JSON.parse(userDataElement.value);
         }
-    } catch (e) {}
+    } catch (e) {
+        // TODO: Should an alert go here?
+    }
 
     if (!(groupName in parsedData)) {
-        parsedData[groupName] = {}
+        parsedData[groupName] = {};
     }
     var keys = Object.keys(updateKeyPair);
     keys.forEach(function (key) {
         delete parsedData[groupName][key];
         if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
             if (updateKeyPair[key] instanceof Element) {
-                if(updateKeyPair[key].type === "checkbox") {
+                if (updateKeyPair[key].type === "checkbox") {
                     if (updateKeyPair[key].checked !== defaults[key]) {
                         parsedData[groupName][key] = updateKeyPair[key].checked;
                     }
@@ -322,16 +319,16 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
             }
         }
     });
-    if (Object.keys(parsedData[groupName]).length == 0) {
+    if (Object.keys(parsedData[groupName]).length === 0) {
         delete parsedData[groupName];
     }
     if (Object.keys(parsedData).length > 0) {
-        properties['userData'] = JSON.stringify(parsedData);
+        properties.userData = JSON.stringify(parsedData);
     } else {
-        properties['userData'] = '';
+        properties.userData = '';
     }
 
-    userDataElement.value = properties['userData'];
+    userDataElement.value = properties.userData;
 
     updateProperties(properties);
 }
@@ -340,13 +337,12 @@ function userDataChanger(groupName, keyName, values, userDataElement, defaultVal
     val[keyName] = values;
     def[keyName] = defaultValue;
     multiDataUpdater(groupName, val, userDataElement, def);
-};
+}
 
 function setTextareaScrolling(element) {
     var isScrolling = element.scrollHeight > element.offsetHeight;
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
-};
-
+}
 
 
 var editor = null;
@@ -364,7 +360,7 @@ function createJSONEditor() {
             $('.jsoneditor-poweredBy').remove();
         },
         onError: function(e) {
-            alert('JSON editor:' + e)
+            alert('JSON editor:' + e);
         },
         onChange: function() {
             var currentJSONString = editor.getText();
@@ -372,22 +368,22 @@ function createJSONEditor() {
             if (currentJSONString === '{"":""}') {
                 return;
             }
-            $('#userdata-save').attr('disabled', false)
+            $('#userdata-save').attr('disabled', false);
 
 
         }
     };
     editor = new JSONEditor(container, options);
-};
+}
 
 function hideNewJSONEditorButton() {
     $('#userdata-new-editor').hide();
 
-};
+}
 
 function hideClearUserDataButton() {
     $('#userdata-clear').hide();
-};
+}
 
 function showSaveUserDataButton() {
     $('#userdata-save').show();
@@ -401,65 +397,65 @@ function hideSaveUserDataButton() {
 function showNewJSONEditorButton() {
     $('#userdata-new-editor').show();
 
-};
+}
 
 function showClearUserDataButton() {
     $('#userdata-clear').show();
 
-};
+}
 
 function showUserDataTextArea() {
     $('#property-user-data').show();
-};
+}
 
 function hideUserDataTextArea() {
     $('#property-user-data').hide();
-};
+}
 
 function showStaticUserData() {
     if (editor !== null) {
         $('#static-userdata').show();
-        $('#static-userdata').css('height', $('#userdata-editor').height())
+        $('#static-userdata').css('height', $('#userdata-editor').height());
         $('#static-userdata').text(editor.getText());
     }
-};
+}
 
 function removeStaticUserData() {
     $('#static-userdata').hide();
-};
+}
 
 function setEditorJSON(json) {
-    editor.set(json)
+    editor.set(json);
     if (editor.hasOwnProperty('expandAll')) {
         editor.expandAll();
     }
 
-};
+}
 
 function getEditorJSON() {
     return editor.get();
-};
+}
 
 function deleteJSONEditor() {
     if (editor !== null) {
         editor.destroy();
         editor = null;
     }
-};
+}
 
 var savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
     setUserDataFromEditor(noUpdate);
     $('#userdata-saved').show();
-    $('#userdata-save').attr('disabled', true)
+    $('#userdata-save').attr('disabled', true);
     if (savedJSONTimer !== null) {
         clearTimeout(savedJSONTimer);
     }
     savedJSONTimer = setTimeout(function() {
         $('#userdata-saved').hide();
 
-    }, 1500)
+    }, 1500);
 }
 
 function bindAllNonJSONEditorElements() {
@@ -468,6 +464,8 @@ function bindAllNonJSONEditorElements() {
     for (i = 0; i < inputs.length; i++) {
         var input = inputs[i];
         var field = $(input);
+        // TODO FIXME: (JSHint) Functions declared within loops referencing 
+        //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
             if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
                 return;
@@ -477,7 +475,7 @@ function bindAllNonJSONEditorElements() {
 
                 }
             }
-        })
+        });
     }
 }
 
@@ -492,12 +490,12 @@ function unbindAllInputs() {
 }
 
 function clearSelection() {
-	if(document.selection && document.selection.empty) {
-		document.selection.empty();
-	} else if(window.getSelection) {
-		var sel = window.getSelection();
-		sel.removeAllRanges();
-	}
+    if (document.selection && document.selection.empty) {
+        document.selection.empty();
+    } else if (window.getSelection) {
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+    }
 }
 
 function loaded() {
@@ -752,9 +750,9 @@ function loaded() {
                     } else {
                         elServerScriptStatus.innerText = "Not running";
                     }
-                } else if (data.type == "update") {
+                } else if (data.type === "update") {
 
-                    if (!data.selections || data.selections.length == 0) {
+                    if (!data.selections || data.selections.length === 0) {
                         if (editor !== null && lastEntityID !== null) {
                             saveJSONUserData(true);
                             deleteJSONEditor();
@@ -774,20 +772,19 @@ function loaded() {
 
                         for (var i = 0; i < selections.length; i++) {
                             ids.push(selections[i].id);
-                            var type = selections[i].properties.type;
-                            if (types[type] === undefined) {
-                                types[type] = 0;
+                            var curSelectedType = selections[i].properties.type;
+                            if (types[curSelectedType] === undefined) {
+                                types[curSelectedType] = 0;
                                 numTypes += 1;
                             }
-                            types[type]++;
+                            types[curSelectedType]++;
                         }
 
-                        var type;
+                        var type = "Multiple";
                         if (numTypes === 1) {
                             type = selections[0].properties.type;
-                        } else {
-                            type = "Multiple";
                         }
+
                         elType.innerHTML = type + " (" + data.selections.length + ")";
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[type];
                         elTypeIcon.style.display = "inline-block";
@@ -882,13 +879,13 @@ function loaded() {
                         elCloneableLifetime.value = 300;
 
                         var grabbablesSet = false;
-                        var parsedUserData = {}
+                        var parsedUserData = {};
                         try {
                             parsedUserData = JSON.parse(properties.userData);
 
                             if ("grabbableKey" in parsedUserData) {
                                 grabbablesSet = true;
-                                var grabbableData = parsedUserData["grabbableKey"];
+                                var grabbableData = parsedUserData.grabbableKey;
                                 if ("grabbable" in grabbableData) {
                                     elGrabbable.checked = grabbableData.grabbable;
                                 } else {
@@ -906,27 +903,28 @@ function loaded() {
                                 }
                                 if ("cloneable" in grabbableData) {
                                     elCloneable.checked = grabbableData.cloneable;
-                                    elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
+                                    elCloneableGroup.style.display = elCloneable.checked ? "block" : "none";
                                     elCloneableDynamic.checked =
                                         grabbableData.cloneDynamic ? grabbableData.cloneDynamic : properties.dynamic;
                                     if (elCloneable.checked) {
-                                      if ("cloneLifetime" in grabbableData) {
-                                          elCloneableLifetime.value =
-                                              grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
-                                      }
-                                      if ("cloneLimit" in grabbableData) {
-                                          elCloneableLimit.value = grabbableData.cloneLimit ? grabbableData.cloneLimit : 0;
-                                      }
-                                      if ("cloneAvatarEntity" in grabbableData) {
-                                          elCloneableAvatarEntity.checked =
-                                              grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
-                                      }
+                                        if ("cloneLifetime" in grabbableData) {
+                                            elCloneableLifetime.value =
+                                                grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
+                                        }
+                                        if ("cloneLimit" in grabbableData) {
+                                            elCloneableLimit.value = grabbableData.cloneLimit ? grabbableData.cloneLimit : 0;
+                                        }
+                                        if ("cloneAvatarEntity" in grabbableData) {
+                                            elCloneableAvatarEntity.checked =
+                                                grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
+                                        }
                                     }
                                 } else {
                                     elCloneable.checked = false;
                                 }
                             }
                         } catch (e) {
+                            // TODO:  What should go here?
                         }
                         if (!grabbablesSet) {
                             elGrabbable.checked = true;
@@ -967,19 +965,19 @@ function loaded() {
                         elDescription.value = properties.description;
 
 
-                        if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
+                        if (properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
                             elShape.value = properties.shape;
                             setDropdownText(elShape);
                         }
 
-                        if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
+                        if (properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere" || properties.type === "ParticleEffect") {
                             elColorRed.value = properties.color.red;
                             elColorGreen.value = properties.color.green;
                             elColorBlue.value = properties.color.blue;
                             elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
                         }
 
-                        if (properties.type == "Model") {
+                        if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
                             elShapeType.value = properties.shapeType;
                             setDropdownText(elShapeType);
@@ -997,10 +995,10 @@ function loaded() {
                             setTextareaScrolling(elModelTextures);
                             elModelOriginalTextures.value = properties.originalTextures;
                             setTextareaScrolling(elModelOriginalTextures);
-                        } else if (properties.type == "Web") {
+                        } else if (properties.type === "Web") {
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
-                        } else if (properties.type == "Text") {
+                        } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
@@ -1011,7 +1009,7 @@ function loaded() {
                             elTextBackgroundColorRed.value = properties.backgroundColor.red;
                             elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                             elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
-                        } else if (properties.type == "Light") {
+                        } else if (properties.type === "Light") {
                             elLightSpotLight.checked = properties.isSpotlight;
 
                             elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
@@ -1023,7 +1021,7 @@ function loaded() {
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
-                        } else if (properties.type == "Zone") {
+                        } else if (properties.type === "Zone") {
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
@@ -1095,7 +1093,7 @@ function loaded() {
                             elZoneFilterURL.value = properties.filterURL;
 
                             showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
-                        } else if (properties.type == "PolyVox") {
+                        } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
                             elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
@@ -1278,7 +1276,7 @@ function loaded() {
             showUserDataTextArea();
             showNewJSONEditorButton();
             hideSaveUserDataButton();
-            updateProperty('userData', elUserData.value)
+            updateProperty('userData', elUserData.value);
         });
 
         elSaveUserData.addEventListener("click", function() {
@@ -1445,7 +1443,7 @@ function loaded() {
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        var hazeModeChanged = createZoneComponentModeChangedFunction('hazeMode', elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled)
+        var hazeModeChanged = createZoneComponentModeChangedFunction('hazeMode', elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled);
         elZoneHazeModeInherit.addEventListener('change', hazeModeChanged);
         elZoneHazeModeDisabled.addEventListener('change', hazeModeChanged);
         elZoneHazeModeEnabled.addEventListener('change', hazeModeChanged);
@@ -1565,26 +1563,26 @@ function loaded() {
         elMoveSelectionToGrid.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
-                action: "moveSelectionToGrid",
+                action: "moveSelectionToGrid"
             }));
         });
         elMoveAllToGrid.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
-                action: "moveAllToGrid",
+                action: "moveAllToGrid"
             }));
         });
         elResetToNaturalDimensions.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
-                action: "resetToNaturalDimensions",
+                action: "resetToNaturalDimensions"
             }));
         });
         elRescaleDimensionsButton.addEventListener("click", function() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "rescaleDimensions",
-                percentage: parseFloat(elRescaleDimensionsPct.value),
+                percentage: parseFloat(elRescaleDimensionsPct.value)
             }));
         });
         elReloadScriptsButton.addEventListener("click", function() {
@@ -1603,20 +1601,20 @@ function loaded() {
         });
 
         document.addEventListener("keydown", function (keyDown) {
-          if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-              if (keyDown.shiftKey) {
-                  EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-              } else {
-                  EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-              }
-          }
+            if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
+                if (keyDown.shiftKey) {
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
+                } else {
+                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
+                }
+            }
         });
         window.onblur = function() {
             // Fake a change event
             var ev = document.createEvent("HTMLEvents");
             ev.initEvent("change", true, true);
             document.activeElement.dispatchEvent(ev);
-        }
+        };
 
         // For input and textarea elements, select all of the text on focus
         // WebKit-based browsers, such as is used with QWebView, have a quirk
@@ -1631,13 +1629,17 @@ function loaded() {
         for (var i = 0; i < els.length; i++) {
             var clicked = false;
             var originalText;
+            // TODO FIXME: (JSHint) Functions declared within loops referencing 
+            //             an outer scoped variable may lead to confusing semantics.
             els[i].onfocus = function(e) {
                 originalText = this.value;
                 this.select();
                 clicked = false;
             };
+            // TODO FIXME: (JSHint) Functions declared within loops referencing 
+            //             an outer scoped variable may lead to confusing semantics.
             els[i].onmouseup = function(e) {
-                if (!clicked && originalText == this.value) {
+                if (!clicked && originalText === this.value) {
                     e.preventDefault();
                 }
                 clicked = true;
@@ -1652,15 +1654,15 @@ function loaded() {
     var toggleCollapsedEvent = function(event) {
         var element = event.target.parentNode.parentNode;
         var isCollapsed = element.dataset.collapsed !== "true";
-        element.dataset.collapsed = isCollapsed ? "true" : false
+        element.dataset.collapsed = isCollapsed ? "true" : false;
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
         element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
     };
 
-    for (var i = 0, length = elCollapsible.length; i < length; i++) {
-        var element = elCollapsible[i];
-        element.addEventListener("click", toggleCollapsedEvent, true);
-    };
+    for (var collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
+        var curCollapsibleElement = elCollapsible[collapseIndex];
+        curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
+    }
 
 
     // Textarea scrollbars
@@ -1668,17 +1670,17 @@ function loaded() {
 
     var textareaOnChangeEvent = function(event) {
         setTextareaScrolling(event.target);
-    }
+    };
 
-    for (var i = 0, length = elTextareas.length; i < length; i++) {
-        var element = elTextareas[i];
-        setTextareaScrolling(element);
-        element.addEventListener("input", textareaOnChangeEvent, false);
-        element.addEventListener("change", textareaOnChangeEvent, false);
+    for (var textAreaIndex = 0, numTextAreas = elTextareas.length; textAreaIndex < numTextAreas; ++textAreaIndex) {
+        var curTextAreaElement = elTextareas[textAreaIndex];
+        setTextareaScrolling(curTextAreaElement);
+        curTextAreaElement.addEventListener("input", textareaOnChangeEvent, false);
+        curTextAreaElement.addEventListener("change", textareaOnChangeEvent, false);
         /* FIXME: Detect and update textarea scrolling attribute on resize. Unfortunately textarea doesn't have a resize
         event; mouseup is a partial stand-in but doesn't handle resizing if mouse moves outside textarea rectangle. */
-        element.addEventListener("mouseup", textareaOnChangeEvent, false);
-    };
+        curTextAreaElement.addEventListener("mouseup", textareaOnChangeEvent, false);
+    }
 
     // Dropdowns
     // For each dropdown the following replacement is created in place of the oriringal dropdown...
@@ -1727,22 +1729,23 @@ function loaded() {
     }
 
     var elDropdowns = document.getElementsByTagName("select");
-    for (var i = 0; i < elDropdowns.length; i++) {
-        var options = elDropdowns[i].getElementsByTagName("option");
+    for (var dropDownIndex = 0; dropDownIndex < elDropdowns.length; ++dropDownIndex) {
+        var options = elDropdowns[dropDownIndex].getElementsByTagName("option");
         var selectedOption = 0;
-        for (var j = 0; j < options.length; j++) {
-            if (options[j].getAttribute("selected") === "selected") {
-                selectedOption = j;
+        for (var optionIndex = 0; optionIndex < options.length; ++optionIndex) {
+            if (options[optionIndex].getAttribute("selected") === "selected") {
+                selectedOption = optionIndex;
+                // TODO:  Shouldn't there be a break here?
             }
         }
-        var div = elDropdowns[i].parentNode;
+        var div = elDropdowns[dropDownIndex].parentNode;
 
         var dl = document.createElement("dl");
         div.appendChild(dl);
 
         var dt = document.createElement("dt");
-        dt.name = elDropdowns[i].name;
-        dt.id = elDropdowns[i].id;
+        dt.name = elDropdowns[dropDownIndex].name;
+        dt.id = elDropdowns[dropDownIndex].id;
         dt.addEventListener("click", toggleDropdown, true);
         dl.appendChild(dt);
 
@@ -1751,9 +1754,9 @@ function loaded() {
         span.textContent = options[selectedOption].firstChild.textContent;
         dt.appendChild(span);
 
-        var span = document.createElement("span");
-        span.textContent = "5"; // caratDn
-        dt.appendChild(span);
+        var spanCaratDn = document.createElement("span");
+        spanCaratDn.textContent = "5"; // caratDn
+        dt.appendChild(spanCaratDn);
 
         var dd = document.createElement("dd");
         dl.appendChild(dd);
@@ -1761,10 +1764,10 @@ function loaded() {
         var ul = document.createElement("ul");
         dd.appendChild(ul);
 
-        for (var j = 0; j < options.length; j++) {
+        for (var listOptionIndex = 0; listOptionIndex < options.length; ++listOptionIndex) {
             var li = document.createElement("li");
-            li.setAttribute("value", options[j].value);
-            li.textContent = options[j].firstChild.textContent;
+            li.setAttribute("value", options[listOptionIndex].value);
+            li.textContent = options[listOptionIndex].firstChild.textContent;
             li.addEventListener("click", setDropdownValue);
             ul.appendChild(li);
         }
