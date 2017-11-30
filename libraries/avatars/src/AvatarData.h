@@ -483,8 +483,22 @@ public:
     virtual void setTargetScale(float targetScale);
 
     float getDomainLimitedScale() const;
-    float getDomainMinScale() const;
-    float getDomainMaxScale() const;
+
+    /**jsdoc
+     * returns the minimum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMinScale
+     * @returns {number} minimum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMinScale() const;
+
+    /**jsdoc
+     * returns the maximum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMaxScale
+     * @returns {number} maximum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMaxScale() const;
 
     // returns eye height of avatar in meters, ignoreing avatar scale.
     // if _targetScale is 1 then this will be identical to getEyeHeight;
