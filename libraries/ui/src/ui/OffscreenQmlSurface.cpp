@@ -140,9 +140,7 @@ public:
         }
         auto rootItem = _surface->getRootItem();
         if (rootItem) {
-            auto children = rootItem->findChildren<QMediaPlayer*>();
-            for (int i = 0; i < children.size(); i++) {
-                auto player = children[i];
+            for (auto player : rootItem->findChildren<QMediaPlayer*>()) {
                 auto mediaState = player->state();
                 QMediaService *svc = player->service();
                 if (nullptr == svc) {
@@ -704,7 +702,7 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
     } else {
         auto audioIO = DependencyManager::get<AudioClient>();
         QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-        int waitForAudioQmlMs = 500;
+        int waitForAudioQmlMs = 200;
         // The audio device need to be change using oth
         new AudioHandler(this, deviceName, waitForAudioQmlMs);
     }
