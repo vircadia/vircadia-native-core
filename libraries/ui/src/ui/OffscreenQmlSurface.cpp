@@ -139,7 +139,7 @@ public:
             QThread::msleep(_runDelayMs);
         }
         auto rootItem = _surface->getRootItem();
-        if (rootItem) {
+        if (rootItem && !_surface->getCleaned()) {
             for (auto player : rootItem->findChildren<QMediaPlayer*>()) {
                 auto mediaState = player->state();
                 QMediaService *svc = player->service();
@@ -165,12 +165,7 @@ public:
                 svc->releaseControl(out);
                 // if multimedia was paused, it will start playing automatically after changing audio device
                 // this will reset it back to a paused state
-                if (mediaState == QMediaPlayer::State::PausedState) {
-                    player->pause();
-                }
-                else if (mediaState == QMediaPlayer::State::StoppedState) {
-                    player->stop();
-                }
+
             }
         }
         qDebug() << "QML Audio changed to " << _newTargetDevice;
@@ -504,6 +499,7 @@ QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
 }
 
 void OffscreenQmlSurface::cleanup() {
+    _isCleaned = true;
     _canvas->makeCurrent();
 
     _renderControl->invalidate();

@@ -75,6 +75,7 @@ public:
     void pause();
     void resume();
     bool isPaused() const;
+    bool getCleaned() { return _isCleaned; }
 
     void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
@@ -177,6 +178,7 @@ private:
     bool _polish { true };
     bool _paused { true };
     bool _focusText { false };
+    bool _isCleaned{ false };
     uint8_t _maxFps { 60 };
     MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
