@@ -208,7 +208,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     PrioritySortUtil::getAvatarAgeCallback = [&] (const AvatarSharedPointer& avatar) {
             auto avatarNode = avatarDataToNodes[avatar];
             assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
-            return nodeData->getLastBroadcastTime(avatarNode->getUUID());
+            return nodeData->getLastOtherAvatarEncodeTime(avatarNode->getUUID());
         };
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
@@ -429,7 +429,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 // set the last sent sequence number for this sender on the receiver
                 nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                          otherNodeData->getLastReceivedSequenceNumber());
+                nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
             }
+        } else {
+            // TODO? this avatar is not included now, and will probably not be included next frame.
+            // It would be nice if we could tweak its future sort priority to put it at the back of the list.
         }
 
         avatarPacketList->endSegment();
