@@ -22,7 +22,7 @@ Item {
             return -1;
         }
         for (var gridIndex = 0;  gridIndex < swipeView.count; gridIndex++) {
-            var grid = swipeView.itemAt(gridIndex)
+            var grid = swipeView.itemAt(gridIndex).children[0]
             for (var i in grid.children) {
                 var child = grid.children[i];
                 if (child.uuid === uuid) {
@@ -35,7 +35,8 @@ Item {
 
     function sortButtons(gridIndex) {
         var children = [];
-        var grid = swipeView.itemAt(gridIndex)
+        var grid = swipeView.itemAt(gridIndex).children[0]
+
         for (var i = 0; i < grid.children.length; i++) {
             children[i] = grid.children[i];
         }
@@ -53,7 +54,7 @@ Item {
     }
 
     function doAddButton(grid, gridIndex, component, properties) {
-        var button = component.createObject(grid);
+        var button = component.createObject(grid.children[0]);
 
         // copy all properites to button
         var keys = Object.keys(properties).forEach(function (key) {
@@ -75,14 +76,26 @@ Item {
 
     Component {
         id: pageComponent
-        Grid { rows: 4; columns: 3; rowSpacing: 16; columnSpacing: 16; }
+        Item {
+            visible: SwipeView.isCurrentItem
+            Grid {
+                anchors {
+                    fill: parent
+                    topMargin: 20
+                    leftMargin: 30
+                    rightMargin: 30
+                    bottomMargin: 0
+                }
+                rows: 4; columns: 3; rowSpacing: 16; columnSpacing: 16;
+            }
+        }
     }
 
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
         var component = Qt.createComponent("TabletButton.qml");
         var grid = swipeView.itemAt(swipeView.count - 1)
-        if (grid === null || grid.children.length === 12) {
+        if (grid === null || grid.children[0].children.length === 12) {
             grid = pageComponent.createObject(swipeView)
             swipeView.addItem(grid)
         }
@@ -95,7 +108,7 @@ Item {
         if (index.index < 0) {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
         } else {
-            var grid = swipeView.itemAt(index.page)
+            var grid = swipeView.itemAt(index.page).children[0]
             grid.children[index.index].destroy();
             tablet.count--
         }
@@ -190,27 +203,19 @@ Item {
             }
         }
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
         anchors.right: parent.right
-        anchors.rightMargin: 0
         anchors.left: parent.left
-        anchors.leftMargin: 0
         anchors.top: bgTopBar.bottom
-        anchors.topMargin: 0
 
         SwipeView {
             id: swipeView
-            clip: true
+            clip: false
             currentIndex: pageIndicator.currentIndex
             anchors {
                 left: parent.left
                 right: parent.right
                 top: parent.top
                 bottom: pageIndicator.top
-                topMargin: 20
-                leftMargin: 30
-                rightMargin: 30
-                bottomMargin: 0
             }
             Component.onCompleted: {
                 if (contentItem !== null) {
@@ -261,7 +266,7 @@ Item {
     function getPage(row, column) {
         var pageIndex = Math.floor((row + column) / 12)
         var index = (row + column) % 12
-        var page = swipeView.itemAt(pageIndex)
+        var page = swipeView.itemAt(pageIndex).children[0]
         return { page: page, index: index, pageIndex: pageIndex }
     }
 
