@@ -165,7 +165,12 @@ public:
                 svc->releaseControl(out);
                 // if multimedia was paused, it will start playing automatically after changing audio device
                 // this will reset it back to a paused state
-
+                if (mediaState == QMediaPlayer::State::PausedState) {
+                    player->pause();
+                }
+                else if (mediaState == QMediaPlayer::State::StoppedState) {
+                    player->stop();
+                }
             }
         }
         qDebug() << "QML Audio changed to " << _newTargetDevice;
