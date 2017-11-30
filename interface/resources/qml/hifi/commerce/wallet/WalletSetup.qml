@@ -225,7 +225,6 @@ Item {
             height: 50;
             text: "Set Up Wallet";
             onClicked: {
-                commerce.account();
                 root.activeView = "step_2";
             }
         }

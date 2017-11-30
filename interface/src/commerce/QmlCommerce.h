@@ -65,6 +65,7 @@ protected:
     Q_INVOKABLE void history();
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
+    Q_INVOKABLE void resetLocalWalletOnly();
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);

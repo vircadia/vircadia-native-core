@@ -128,6 +128,11 @@ void QmlCommerce::reset() {
     wallet->reset();
 }
 
+void QmlCommerce::resetLocalWalletOnly() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->reset();
+}
+
 void QmlCommerce::account() {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->account();
