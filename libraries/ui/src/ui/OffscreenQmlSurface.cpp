@@ -139,7 +139,6 @@ public:
             QThread::msleep(_runDelayMs);
         }
         auto audioIO = DependencyManager::get<AudioClient>();
-        QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
         for (auto player : _container->findChildren<QMediaPlayer*>()) {
             auto mediaState = player->state();
             QMediaService *svc = player->service();
@@ -156,7 +155,7 @@ public:
             for (int i = 0; i < outputs.size(); i++) {
                 QString output = outputs[i];
                 QString description = out->outputDescription(output);
-                if (description == deviceName) {
+                if (description == _newTargetDevice) {
                     deviceOuput = output;
                     break;
                 }
@@ -171,7 +170,7 @@ public:
                 player->stop();
             }
         }
-        qDebug() << "QML Audio changed to " << deviceName;
+        qDebug() << "QML Audio changed to " << _newTargetDevice;
     }
 
 private:
@@ -700,7 +699,7 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
     } else {
         auto audioIO = DependencyManager::get<AudioClient>();
         QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-        int waitForAudioQmlMs = 500;
+        int waitForAudioQmlMs = 200;
         // The audio device need to be change using oth
         new AudioHandler(_rootItem, deviceName, waitForAudioQmlMs);        
     }
