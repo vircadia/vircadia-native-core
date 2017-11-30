@@ -49,7 +49,7 @@ TreeView {
         policy: QQC2.ScrollBar.AsNeeded
         orientation: Qt.Vertical
         visible: size < 1.0
-        topPadding: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
+        topPadding: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight + 1 : 1
         anchors.top: treeView.top
         anchors.left: treeView.right
         anchors.bottom: treeView.bottom
@@ -59,7 +59,7 @@ TreeView {
             Rectangle {
                 anchors {
                     fill: parent;
-                    topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
+                    topMargin: treeView.headerVisible ? hifi.dimensions.tableHeaderHeight: 0
                 }
                 color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
                                           : hifi.colors.tableScrollBackgroundDark
@@ -69,14 +69,8 @@ TreeView {
         contentItem: Item {
             implicitWidth: hifi.dimensions.scrollbarHandleWidth
             Rectangle {
-                anchors {
-                    fill: parent
-                    topMargin: 3
-                    bottomMargin: 3     // ""
-                    leftMargin: 1       // Move it right
-                    rightMargin: -1     // ""
-                }
-                radius: hifi.dimensions.scrollbarHandleWidth/2
+                anchors.fill: parent
+                radius: (width - 4)/2
                 color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
             }
         }
