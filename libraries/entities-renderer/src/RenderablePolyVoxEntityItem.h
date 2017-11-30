@@ -98,7 +98,7 @@ public:
     std::shared_ptr<RenderablePolyVoxEntityItem> getYPNeighbor();
     std::shared_ptr<RenderablePolyVoxEntityItem> getZPNeighbor();
 
-    virtual void updateRegistrationPoint(const glm::vec3& value) override;
+    virtual void setRegistrationPoint(const glm::vec3& value) override;
 
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
     void forEachVoxelValue(const ivec3& voxelSize, std::function<void(const ivec3&, uint8_t)> thunk);

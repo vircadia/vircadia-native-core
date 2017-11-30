@@ -166,8 +166,7 @@ void GLESBackend::do_drawIndexedInstanced(const Batch& batch, size_t paramOffset
 void GLESBackend::do_multiDrawIndirect(const Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
     uint commandCount = batch._params[paramOffset + 0]._uint;
-    GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
-
+    //GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
     //glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     qDebug() << "TODO: GLESBackend.cpp:do_multiDrawIndirect do_multiDrawIndirect";
     _stats._DSNumDrawcalls += commandCount;
@@ -183,9 +182,8 @@ void GLESBackend::do_multiDrawIndirect(const Batch& batch, size_t paramOffset) {
 void GLESBackend::do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) {
 //#if (GPU_INPUT_PROFILE == GPU_CORE_43)
     uint commandCount = batch._params[paramOffset + 0]._uint;
-    GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
-    GLenum indexType = gl::ELEMENT_TYPE_TO_GL[_input._indexBufferType];
-  
+    //GLenum mode = gl::PRIMITIVE_TO_GL[(Primitive)batch._params[paramOffset + 1]._uint];
+    //GLenum indexType = gl::ELEMENT_TYPE_TO_GL[_input._indexBufferType];
     //glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
     qDebug() << "TODO: GLESBackend.cpp:do_multiDrawIndexedIndirect glMultiDrawElementsIndirect";
     _stats._DSNumDrawcalls += commandCount;

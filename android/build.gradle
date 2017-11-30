@@ -1,91 +1,216 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.3'
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath 'com.android.tools.build:gradle:3.0.1'
     }
+}
+
+plugins {
+    id 'de.undercouch.download' version '3.3.0'
 }
 
 allprojects {
     repositories {
         jcenter()
+        google()
     }
+}
+
+
+def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
+def jniFolder = new File('app/src/main/jniLibs/arm64-v8a')
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+def baseUrl = 'https://hifi-public.s3.amazonaws.com/austin/android/'
+def qtFile='qt-5.9.3_linux_armv8-libcpp.tgz'
+def qtChecksum='547da3547d5690144e23d6504c6d6e91'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    qtFile = 'qt-5.9.3_osx_armv8-libcpp.tgz'
+    qtChecksum='6fa3e068cfdee863fc909b294a3a0cc6'
+} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    qtFile = 'qt-5.9.3_win_armv8-libcpp.tgz'
+    qtChecksum='3a757378a7e9dbbfc662177e0eb46408'
+}
+
+def packages = [
+    qt: [
+        file: qtFile,
+        checksum: qtChecksum,
+        sharedLibFolder: '',
+        includeLibs: ['lib/*.so', 'plugins/*/*.so']
+    ],
+    bullet: [
+        file: 'bullet-2.83_armv8-libcpp.tgz',
+        checksum: '2c558d604fce337f5eba3eb7ec1252fd'
+    ],
+    draco: [
+        file: 'draco_armv8-libcpp.tgz',
+        checksum: '617a80d213a5ec69fbfa21a1f2f738cd'
+    ],
+    gvr: [
+        file: 'gvrsdk_v1.101.0.tgz',
+        checksum: '57fd02baa069176ba18597a29b6b4fc7'
+    ],
+    openssl: [
+        file: 'openssl-1.1.0g_armv8.tgz',
+        checksum: 'cabb681fbccd79594f65fcc266e02f32'
+    ],
+    polyvox: [
+        file: 'polyvox_armv8-libcpp.tgz',
+        checksum: '5c918288741ee754c16aeb12bb46b9e1',
+        sharedLibFolder: 'lib',
+        includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so']
+    ],
+    tbb: [
+        file: 'tbb-2018_U1_armv8_libcpp.tgz',
+        checksum: '20768f298f53b195e71b414b0ae240c4',
+        sharedLibFolder: 'lib/release',
+        includeLibs: ['libtbb.so', 'libtbbmalloc.so']
+    ]
+]
+
+task downloadDependencies {
+    doLast {
+        packages.each { entry ->
+            def filename = entry.value['file'];
+            def url = baseUrl + filename;
+            download {
+                src url
+                dest new File(baseFolder, filename)
+                onlyIfNewer true
+            }
+        }
+    }
+}
+
+import de.undercouch.gradle.tasks.download.Verify
+
+task verifyQt(type: Verify) { def p = packages['qt'];  src new File(baseFolder, p['file']);  checksum p['checksum']; }
+task verifyBullet(type: Verify) { def p = packages['bullet']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyDraco(type: Verify) { def p = packages['draco']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyGvr(type: Verify) { def p = packages['gvr']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyOpenSSL(type: Verify) { def p = packages['openssl']; src new File(baseFolder, p['file']);  checksum p['checksum'] }
+task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+
+task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
+verifyDependencyDownloads.dependsOn verifyQt
+verifyDependencyDownloads.dependsOn verifyBullet
+verifyDependencyDownloads.dependsOn verifyDraco
+verifyDependencyDownloads.dependsOn verifyGvr
+verifyDependencyDownloads.dependsOn verifyOpenSSL
+verifyDependencyDownloads.dependsOn verifyPolyvox
+verifyDependencyDownloads.dependsOn verifyTBB
+
+task extractDependencies(dependsOn: verifyDependencyDownloads) {
+    doLast {
+        packages.each { entry ->
+            def folder = entry.key;
+            def filename = entry.value['file'];
+            def localFile = new File(HIFI_ANDROID_PRECOMPILED, filename)
+            def localFolder = new File(HIFI_ANDROID_PRECOMPILED, folder)
+            copy {
+                from tarTree(resources.gzip(localFile))
+                into localFolder
+            }
+        }
+    }
+}
+
+task copyDependencies(dependsOn: extractDependencies) {
+    doLast {
+        packages.each { entry ->
+            def packageName = entry.key
+            def currentPackage = entry.value;
+            if (currentPackage.containsKey('sharedLibFolder')) {
+                def localFolder = new File(baseFolder, packageName + '/' + currentPackage['sharedLibFolder'])
+                def tree = fileTree(localFolder);
+                if (currentPackage.containsKey('includeLibs')) {
+                    currentPackage['includeLibs'].each { includeSpec -> tree.include includeSpec }
+                }
+                tree.visit { element -> 
+                    if (!element.file.isDirectory()) {
+                        copy {  from element.file; into jniFolder }
+                    } 
+                } 
+            }
+        }
+    }
+}
+
+def scribeFile='scribe_linux_x86_64'
+def scribeLocalFile='scribe'
+def scribeChecksum='c98678d9726bd8bbf1bab792acf3ff6c'
+if (Os.isFamily(Os.FAMILY_MAC)) {
+    scribeFile = 'scribe_osx_x86_64'
+    scribeChecksum='a137ad62c1bf7cca739da219544a9a16'
+} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    scribeFile = 'scribe_win32_x86_64.exe'
+    scribeLocalFile = 'scribe.exe'
+    scribeChecksum='75c2ce9ed45d17de375e3988bfaba816'
+
+}
+
+import de.undercouch.gradle.tasks.download.Download
+
+task downloadScribe(type: Download) {
+    src baseUrl + scribeFile
+    dest new File(baseFolder, scribeLocalFile)
+    onlyIfNewer true
+}
+
+task verifyScribe (type: Verify, dependsOn: downloadScribe) {
+    src new File(baseFolder, scribeLocalFile);
+    checksum scribeChecksum
+}
+
+task fixScribePermissions(type: Exec, dependsOn: verifyScribe) {
+    commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
+}
+
+task setupScribe(dependsOn: verifyScribe) { }
+
+// On Windows, we don't need to set the executable bit, but on OSX and Unix we do
+if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
+    setupScribe.dependsOn fixScribePermissions
+}
+
+task extractGvrBinaries(dependsOn: extractDependencies) {
+    doLast {
+        def gvrLibFolder = new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries');
+        zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar')).visit { element ->
+            def fileName = element.file.toString();
+            if (fileName.endsWith('libgvr_audio.so') && fileName.contains('arm64-v8a')) {
+                copy {  from element.file; into gvrLibFolder }
+            }
+        }
+        zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-base-1.101.0.aar')).visit { element ->
+            def fileName = element.file.toString();
+            if (fileName.endsWith('libgvr.so') && fileName.contains('arm64-v8a')) {
+                copy {  from element.file; into gvrLibFolder }
+            }
+        }
+        fileTree(gvrLibFolder).visit { element ->
+            if (element.file.toString().endsWith('.so')) {
+                copy { from element.file; into jniFolder }
+            }
+        }
+    }
+
+}
+
+task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBinaries]) {
+}
+
+task cleanDependencies(type: Delete) {
+    delete HIFI_ANDROID_PRECOMPILED
+    delete 'app/src/main/jniLibs/arm64-v8a'
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
-task extractQt5jars(type: Copy) {
-    from fileTree(QT5_ROOT + "/jar")
-    into("${project.rootDir}/libraries/jar")
-    include("*.jar")
-}
-
-task extractQt5so(type: Copy) {
-    from fileTree(QT5_ROOT + "/lib")
-    into("${project.rootDir}/libraries/jni/armeabi-v7a/")
-    include("libQt5AndroidExtras.so")
-    include("libQt5Concurrent.so")
-    include("libQt5Core.so")
-    include("libQt5Gamepad.so")
-    include("libQt5Gui.so")
-    include("libQt5Location.so")
-    include("libQt5Multimedia.so")
-    include("libQt5MultimediaQuick_p.so")
-    include("libQt5Network.so")
-    include("libQt5NetworkAuth.so")
-    include("libQt5OpenGL.so")
-    include("libQt5Positioning.so")
-    include("libQt5Qml.so")
-    include("libQt5Quick.so")
-    include("libQt5QuickControls2.so")
-    include("libQt5QuickParticles.so")
-    include("libQt5QuickTemplates2.so")
-    include("libQt5QuickWidgets.so")
-    include("libQt5Script.so")
-    include("libQt5ScriptTools.so")
-    include("libQt5Sensors.so")
-    include("libQt5Svg.so")
-    include("libQt5WebChannel.so")
-    include("libQt5WebSockets.so")
-    include("libQt5WebView.so")
-    include("libQt5Widgets.so")
-    include("libQt5Xml.so")
-    include("libQt5XmlPatterns.so")
-}
-
-task extractAudioSo(type: Copy) {
-    from zipTree(GVR_ROOT + "/libraries/sdk-audio-1.80.0.aar")
-    into "${project.rootDir}/libraries/"
-    include "jni/armeabi-v7a/libgvr_audio.so"
-}
-
-task extractGvrSo(type: Copy) {
-    from zipTree(GVR_ROOT + "/libraries/sdk-base-1.80.0.aar")
-    into "${project.rootDir}/libraries/"
-    include "jni/armeabi-v7a/libgvr.so"
-}
-
-task extractNdk { }
-extractNdk.dependsOn extractAudioSo
-extractNdk.dependsOn extractGvrSo
-
-task extractQt5 { }
-extractQt5.dependsOn extractQt5so
-extractQt5.dependsOn extractQt5jars
-
-task extractBinaries { }
-extractBinaries.dependsOn extractQt5
-extractBinaries.dependsOn extractNdk
-
-task deleteBinaries(type: Delete) {
-    delete "${project.rootDir}/libraries/jni"
-}
-
-//clean.dependsOn(deleteBinaries)

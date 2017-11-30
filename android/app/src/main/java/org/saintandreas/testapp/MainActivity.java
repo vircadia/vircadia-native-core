@@ -26,10 +26,9 @@ public class MainActivity extends Activity {
     }
 
     private long nativeRenderer;
-    private GvrLayout gvrLayout;
     private GLSurfaceView surfaceView;
 
-    private native long nativeCreateRenderer(ClassLoader appClassLoader, Context context, long nativeGvrContext);
+    private native long nativeCreateRenderer(ClassLoader appClassLoader, Context context);
     private native void nativeDestroyRenderer(long renderer);
     private native void nativeInitializeGl(long renderer);
     private native void nativeDrawFrame(long renderer);
@@ -55,30 +54,21 @@ public class MainActivity extends Activity {
                 if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) { setImmersiveSticky(); }
             });
 
-        gvrLayout = new GvrLayout(this);
         nativeRenderer = nativeCreateRenderer(
             getClass().getClassLoader(),
-            getApplicationContext(),
-            gvrLayout.getGvrApi().getNativeGvrContext());
+            getApplicationContext());
 
         surfaceView = new GLSurfaceView(this);
         surfaceView.setEGLContextClientVersion(3);
         surfaceView.setEGLConfigChooser(8, 8, 8, 0, 0, 0);
         surfaceView.setPreserveEGLContextOnPause(true);
         surfaceView.setRenderer(new NativeRenderer());
-
-        gvrLayout.setPresentationView(surfaceView);
-        setContentView(gvrLayout);
-        if (gvrLayout.setAsyncReprojectionEnabled(true)) {
-            AndroidCompat.setSustainedPerformanceMode(this, true);
-        }
-        AndroidCompat.setVrModeEnabled(this, true);
+        setContentView(surfaceView);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        gvrLayout.shutdown();
         nativeDestroyRenderer(nativeRenderer);
         nativeRenderer = 0;
     }
@@ -87,14 +77,12 @@ public class MainActivity extends Activity {
     protected void onPause() {
         surfaceView.queueEvent(()->nativeOnPause(nativeRenderer));
         surfaceView.onPause();
-        gvrLayout.onPause();
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        gvrLayout.onResume();
         surfaceView.onResume();
         surfaceView.queueEvent(()->nativeOnResume(nativeRenderer));
     }

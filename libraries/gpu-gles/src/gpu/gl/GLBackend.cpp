@@ -37,7 +37,7 @@ static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 BackendPointer GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
-    auto version = QOpenGLContextWrapper::currentContextVersion();
+    //auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
     
     qDebug() << "Using OpenGL ES backend";
