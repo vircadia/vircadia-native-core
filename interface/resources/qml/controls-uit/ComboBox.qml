@@ -46,16 +46,18 @@ FocusScope {
         visible: true
         height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
 
-        onPressedChanged: {
-            console.warn("on pressed", pressed, popup.visible)
-            if (!pressed && popup.visible) {
-                popup.visible = false
-                down = undefined
-            }
-        }
+        function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
+        function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
+        function selectCurrentItem() { root.currentIndex = listView.currentIndex; close(); /*hideList();*/ }
+        function selectSpecificItem(index) { root.currentIndex = index; close();/*hideList();*/ }
+
+        Keys.onUpPressed: previousItem();
+        Keys.onDownPressed: nextItem();
+        Keys.onSpacePressed: selectCurrentItem();
+        Keys.onRightPressed: selectCurrentItem();
+        Keys.onReturnPressed: selectCurrentItem();
 
         background: Rectangle {
-            id: background
             gradient: Gradient {
                 GradientStop {
                     position: 0.2
@@ -75,7 +77,7 @@ FocusScope {
         indicator: Item {
             id: dropIcon
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            height: background.height
+            height: root.height
             width: height
             Rectangle {
                 width: 1
@@ -140,8 +142,10 @@ FocusScope {
                                                                     : listView.contentHeight
             padding: 0
             topPadding: 1
-            closePolicy: Popup.NoAutoClose
-            onVisibleChanged: console.warn("popup", visible)
+
+            onClosed: {
+                root.accepted()
+            }
 
             contentItem: ListView {
                 id: listView
@@ -303,6 +307,6 @@ FocusScope {
     Component.onCompleted: {
         isDesktop = (typeof desktop !== "undefined");
         //TODO: do we need this?
-        comboBox.popup.z =  isDesktop ? desktop.zLevels.menu : 12
+        //comboBox.popup.z =  isDesktop ? desktop.zLevels.menu : 12
     }
 }
