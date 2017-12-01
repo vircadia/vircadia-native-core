@@ -23,8 +23,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const int L = 255; // (2^number of bits per pixel) - 1
     const double K1{ 0.01 };
     const double K2{ 0.03 };
-    const double c1 = pow((K1 * L), 2.0);
-    const double c2 = pow((K2 * L), 2.0);
+    const double c1 = pow((K1 * L), 2);
+    const double c2 = pow((K2 * L), 2);
 
     // Coefficients for luminosity calculation
     const double R_Y = 0.212655f;
@@ -93,8 +93,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
             double sigsqQ{ 0.0 };
             double sigPQ{ 0.0 };
             for (int j = 0; j < WIN_SIZE * WIN_SIZE; ++j) {
-                sigsqP += pow((p[j] - mP), 2.0);
-                sigsqQ += pow((q[j] - mQ), 2.0);
+                sigsqP += pow((p[j] - mP), 2);
+                sigsqQ += pow((q[j] - mQ), 2);
 
                 sigPQ += (p[j] - mP) * (q[j] - mQ);
             }
