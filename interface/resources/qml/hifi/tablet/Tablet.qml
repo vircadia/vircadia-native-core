@@ -19,7 +19,7 @@ Item {
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
         if (!uuid) {
-            return -1;
+            return { page: -1, index: -1};
         }
         for (var gridIndex = 0;  gridIndex < swipeView.count; gridIndex++) {
             var grid = swipeView.itemAt(gridIndex).children[0]
@@ -30,7 +30,7 @@ Item {
                 }
             }
         }
-        return -1;
+        return { page: -1, index: -1};
     }
 
     function sortButtons(gridIndex) {
