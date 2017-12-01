@@ -780,7 +780,9 @@ function loaded() {
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
+                        // Create class name for css ruleset filtering
                         elPropertiesList.className = properties.type + 'Menu';
+
                         elType.innerHTML = properties.type;
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[properties.type];
                         elTypeIcon.style.display = "inline-block";

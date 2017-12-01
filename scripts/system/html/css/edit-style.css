@@ -1415,6 +1415,9 @@ input#reset-to-natural-dimensions {
 }
 
 /* -----   Order of Menu items for Primitive   ----- */
+/* Entity Menu classes are specified by selected entity
+    within entityProperties.js
+*/
 #properties-list.ShapeMenu #general,
 #properties-list.BoxMenu #general,
 #properties-list.SphereMenu #general {
@@ -1469,6 +1472,34 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 
+/* -----   ParticleEffectMenu   ----- */
+#properties-list.ParticleEffectMenu #general {
+    order: 1;
+}
+#properties-list.ParticleEffectMenu #collision-info {
+    order: 2;
+}
+#properties-list.ParticleEffectMenu #physical {
+    order: 3;
+}
+#properties-list.ParticleEffectMenu #spatial {
+    order: 4;
+}
+#properties-list.ParticleEffectMenu #behavior {
+    order: 5;
+}
+
+/* items to hide    */
+#properties-list.ParticleEffectMenu #base-color-section,
+#properties-list.ParticleEffectMenu #hyperlink,
+#properties-list.ParticleEffectMenu #light,
+#properties-list.ParticleEffectMenu #model,
+#properties-list.ParticleEffectMenu #shape-list,
+#properties-list.ParticleEffectMenu #text,
+#properties-list.ParticleEffectMenu #web,
+#properties-list.ParticleEffectMenu #zone {
+    display: none;
+}
 
 /* -----   Order of Menu items for Light   ----- */
 #properties-list.LightMenu #general {
