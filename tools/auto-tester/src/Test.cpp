@@ -114,7 +114,7 @@ void Test::evaluateTests() {
 
 // Two criteria are used to decide if a folder contains valid test results.
 //      1) a 'test'js' file exists in the folder
-//      2) the folder has the same number of anual and expected images
+//      2) the folder has the same number of actual and expected images
 void Test::evaluateTestsRecursively() {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
