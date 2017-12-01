@@ -10,11 +10,8 @@
 #include "ImageComparer.h"
 
 // Computes SSIM - see https://en.wikipedia.org/wiki/Structural_similarity
-// The value is computed for the luminence component and the maximum value is returned
+// The value is computed for the luminance component and the average value is returned
 double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) const {
-    const double K1{ 0.01 };
-    const double K2{ 0.03 };
-
     // Make sure the image is 8 bits per colour
     QImage::Format format = expectedImage.format();
     if (format != QImage::Format::Format_RGB32) {
@@ -22,8 +19,10 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     }
 
     const int L = 255; // (2^number of bits per pixel) - 1
-    const double c1 = (K1 * L) * (K1 * L);
-    const double c2 = (K2 * L) * (K2 * L);
+    const double K1{ 0.01 };
+    const double K2{ 0.03 };
+    const double c1 = pow((K1 * L), 2.0);
+    const double c2 = pow((K2 * L), 2.0);
 
     // Coefficients for luminosity calculation
     const double R_Y = 0.212655f;
@@ -42,21 +41,22 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
     const int WIN_SIZE = 8;
     int x{ 0 };             // column index (start of block)
     int y{ 0 };             // row index (start of block
-    double ssimMin{ 1.0 };
     
-    // Pixels are processed in sqare blocks
+    // Pixels are processed in square blocks
     double p[WIN_SIZE * WIN_SIZE];
     double q[WIN_SIZE * WIN_SIZE];
 
+    int windowCounter{ 0 };
+    double ssim{ 0.0 };
     while (x < expectedImage.width()) {
-        int lastX = x + WIN_SIZE;
-        if (lastX > expectedImage.width()) {
+        int lastX = x + WIN_SIZE - 1;
+        if (lastX > expectedImage.width() - 1) {
             x -= (lastX - expectedImage.width());
         }
 
         while (y < expectedImage.height()) {
-            int lastY = y + WIN_SIZE;
-            if (lastY > expectedImage.height()) {
+            int lastY = y + WIN_SIZE - 1;
+            if (lastY > expectedImage.height() - 1) {
                 y -= (lastY - expectedImage.height());
             }
 
@@ -68,7 +68,7 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
                     QRgb pixelP = expectedImage.pixel(QPoint(x + xx, y + yy));
                     QRgb pixelQ = resultImage.pixel(QPoint(x + xx, y + yy));
 
-                    // Convert to luminence
+                    // Convert to luminance
                     p[i] = R_Y * qRed(pixelP) + G_Y * qGreen(pixelP) + B_Y * qBlue(pixelP);
                     q[i] = R_Y * qRed(pixelQ) + G_Y * qGreen(pixelQ) + B_Y * qBlue(pixelQ);
 
@@ -91,8 +91,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
             double sigsqQ{ 0.0 };
             double sigPQ{ 0.0 };
             for (int j = 0; j < WIN_SIZE * WIN_SIZE; ++j) {
-                sigsqP += (p[j] - mP) * (p[j] - mP);
-                sigsqQ += (q[j] - mQ) * (q[j] - mQ);
+                sigsqP += pow((p[j] - mP), 2.0);
+                sigsqQ += pow((q[j] - mQ), 2.0);
 
                 sigPQ += (p[j] - mP) * (q[j] - mQ);
             }
@@ -103,16 +103,15 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
             double numerator = (2.0 * mP * mQ + c1) * (2.0 * sigPQ + c2);
             double denominator = (mP * mP + mQ * mQ + c1) * (sigsqP + sigsqQ + c2);
 
-            double ssim = numerator / denominator;
-
-            if (ssim < ssimMin) {
-                ssimMin = ssim;
-            }
+            ssim += numerator / denominator;
+            ++windowCounter;
 
             y += WIN_SIZE;
         }
+
         x += WIN_SIZE;
+        y = 0;
     }
 
-    return ssimMin;
+    return ssim / windowCounter;
 };
