@@ -501,7 +501,6 @@ function clearSelection() {
 function loaded() {
     openEventBridge(function() {
 
-        var allSections = [];
         var elPropertiesList = document.getElementById("properties-list");
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
@@ -587,20 +586,14 @@ function loaded() {
         var elUserData = document.getElementById("property-user-data");
         var elClearUserData = document.getElementById("userdata-clear");
         var elSaveUserData = document.getElementById("userdata-save");
-        var elJSONEditor = document.getElementById("userdata-editor");
         var elNewJSONEditor = document.getElementById('userdata-new-editor');
-        var elColorSections = document.querySelectorAll(".color-section");
         var elColorControlVariant2 = document.getElementById("property-color-control2");
         var elColorRed = document.getElementById("property-color-red");
         var elColorGreen = document.getElementById("property-color-green");
         var elColorBlue = document.getElementById("property-color-blue");
 
-        var elShapeSections = document.querySelectorAll(".shape-section");
-        allSections.push(elShapeSections);
         var elShape = document.getElementById("property-shape");
 
-        var elLightSections = document.querySelectorAll(".light-section");
-        allSections.push(elLightSections);
         var elLightSpotLight = document.getElementById("property-light-spot-light");
         var elLightColor = document.getElementById("property-light-color");
         var elLightColorRed = document.getElementById("property-light-color-red");
@@ -612,8 +605,6 @@ function loaded() {
         var elLightExponent = document.getElementById("property-light-exponent");
         var elLightCutoff = document.getElementById("property-light-cutoff");
 
-        var elModelSections = document.querySelectorAll(".model-section");
-        allSections.push(elModelSections);
         var elModelURL = document.getElementById("property-model-url");
         var elShapeType = document.getElementById("property-shape-type");
         var elCompoundShapeURL = document.getElementById("property-compound-shape-url");
@@ -629,8 +620,6 @@ function loaded() {
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
-        var elWebSections = document.querySelectorAll(".web-section");
-        allSections.push(elWebSections);
         var elWebSourceURL = document.getElementById("property-web-source-url");
         var elWebDPI = document.getElementById("property-web-dpi");
 
@@ -638,11 +627,7 @@ function loaded() {
 
         var elHyperlinkHref = document.getElementById("property-hyperlink-href");
 
-        var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
 
-
-        var elTextSections = document.querySelectorAll(".text-section");
-        allSections.push(elTextSections);
         var elTextText = document.getElementById("property-text-text");
         var elTextLineHeight = document.getElementById("property-text-line-height");
         var elTextTextColor = document.getElementById("property-text-text-color");
@@ -650,13 +635,10 @@ function loaded() {
         var elTextTextColorRed = document.getElementById("property-text-text-color-red");
         var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
         var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
-        var elTextBackgroundColor = document.getElementById("property-text-background-color");
         var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
         var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
         var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
 
-        var elZoneSections = document.querySelectorAll(".zone-section");
-        allSections.push(elZoneSections);
         var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
 
         var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
@@ -667,7 +649,6 @@ function loaded() {
         var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-ambient-intensity");
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
-        var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
         var elZoneHazeModeInherit = document.getElementById("property-zone-haze-mode-inherit");
@@ -691,11 +672,7 @@ function loaded() {
         var elZoneHazeCeiling = document.getElementById("property-zone-haze-ceiling");
 
         var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
-        
-        var elZoneHazeAttenuateKeyLight = document.getElementById("property-zone-haze-attenuate-keylight");
-        var elZoneHazeKeyLightRange = document.getElementById("property-zone-haze-keylight-range");
-        var elZoneHazeKeyLightAltitude = document.getElementById("property-zone-haze-keylight-altitude");
-       
+
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
         var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
         var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
@@ -715,8 +692,6 @@ function loaded() {
         var elZoneGhostingAllowed = document.getElementById("property-zone-ghosting-allowed");
         var elZoneFilterURL = document.getElementById("property-zone-filter-url");
 
-        var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
-        allSections.push(elPolyVoxSections);
         var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
         var elVoxelVolumeSizeY = document.getElementById("property-voxel-volume-size-y");
         var elVoxelVolumeSizeZ = document.getElementById("property-voxel-volume-size-z");
@@ -1065,10 +1040,6 @@ function loaded() {
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
-
-//                            elZoneHazeAttenuateKeyLight.checked = properties.haze.hazeAttenuateKeyLight;
-//                            elZoneHazeKeyLightRange.value = properties.haze.hazeKeyLightRange.toFixed(0);
-//                            elZoneHazeKeyLightAltitude.value = properties.haze.hazeKeyLightAltitude.toFixed(0);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1508,10 +1479,6 @@ function loaded() {
         elZoneHazeBaseRef.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBaseRef'));
 
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
-
-//        elZoneHazeAttenuateKeyLight.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAttenuateKeyLight'));
-//        elZoneHazeKeyLightRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightRange'));
-//        elZoneHazeKeyLightAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightAltitude'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
