@@ -9,6 +9,8 @@
 //
 #include "ImageComparer.h"
 
+#include <cmath>
+
 // Computes SSIM - see https://en.wikipedia.org/wiki/Structural_similarity
 // The value is computed for the luminance component and the average value is returned
 double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) const {
