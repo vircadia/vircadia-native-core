@@ -121,7 +121,7 @@ uint64_t uvec2ToUint64(const uvec2& v) {
 class AudioHandler : public QObject, QRunnable {
     Q_OBJECT
 public:
-    AudioHandler(OffscreenQmlSurface* surface, const QString& deviceName, int runDelayMs = 0, QObject* parent = nullptr) : QObject(parent) {
+    AudioHandler(QSharedPointer<OffscreenQmlSurface> surface, const QString& deviceName, int runDelayMs = 0, QObject* parent = nullptr) : QObject(parent) {
         _newTargetDevice = deviceName;
         _runDelayMs = runDelayMs;
         _surface = surface;
@@ -138,9 +138,8 @@ public:
         if (_runDelayMs > 0) {
             QThread::msleep(_runDelayMs);
         }
-        auto rootItem = _surface->getRootItem();
-        if (rootItem && !_surface->getCleaned()) {
-            for (auto player : rootItem->findChildren<QMediaPlayer*>()) {
+        if (!_surface.isNull() && _surface->getRootItem() && !_surface->getCleaned()) {
+            for (auto player : _surface->getRootItem()->findChildren<QMediaPlayer*>()) {
                 auto mediaState = player->state();
                 QMediaService *svc = player->service();
                 if (nullptr == svc) {
@@ -178,7 +177,7 @@ public:
 
 private:
     QString _newTargetDevice;
-    OffscreenQmlSurface* _surface;
+    QSharedPointer<OffscreenQmlSurface> _surface;
     int _runDelayMs;
 };
 
@@ -705,7 +704,7 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
         int waitForAudioQmlMs = 200;
         // The audio device need to be change using oth
-        new AudioHandler(this, deviceName, waitForAudioQmlMs);
+        new AudioHandler(sharedFromThis(), deviceName, waitForAudioQmlMs);
     }
 }
 

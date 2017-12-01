@@ -40,7 +40,7 @@ class QQuickItem;
 
 using QmlContextCallback = std::function<void(QQmlContext*, QObject*)>;
 
-class OffscreenQmlSurface : public QObject {
+class OffscreenQmlSurface : public QObject, public QEnableSharedFromThis<OffscreenQmlSurface> {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
