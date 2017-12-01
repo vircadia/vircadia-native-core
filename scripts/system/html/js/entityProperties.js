@@ -945,11 +945,13 @@ function loaded() {
                             setDropdownText(elShape);
                         }
 
-                        if (properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere" || properties.type === "ParticleEffect") {
+                        if (properties.type === "Shape" || properties.type === "Box" || 
+                                properties.type === "Sphere" || properties.type === "ParticleEffect") {
                             elColorRed.value = properties.color.red;
                             elColorGreen.value = properties.color.green;
                             elColorBlue.value = properties.color.blue;
-                            elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
+                            elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + 
+                                                                     properties.color.green + "," + properties.color.blue + ")";
                         }
 
                         if (properties.type === "Model") {
@@ -977,7 +979,8 @@ function loaded() {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
-                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + properties.textColor.green + "," + properties.textColor.blue + ")";
+                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + 
+                                                             properties.textColor.green + "," + properties.textColor.blue + ")";
                             elTextTextColorRed.value = properties.textColor.red;
                             elTextTextColorGreen.value = properties.textColor.green;
                             elTextTextColorBlue.value = properties.textColor.blue;
@@ -987,7 +990,8 @@ function loaded() {
                         } else if (properties.type === "Light") {
                             elLightSpotLight.checked = properties.isSpotlight;
 
-                            elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
+                            elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + 
+                                                                     properties.color.green + "," + properties.color.blue + ")";
                             elLightColorRed.value = properties.color.red;
                             elLightColorGreen.value = properties.color.green;
                             elLightColorBlue.value = properties.color.blue;
@@ -998,7 +1002,8 @@ function loaded() {
                             elLightCutoff.value = properties.cutoff.toFixed(2);
                         } else if (properties.type === "Zone") {
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
-                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
+                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
+                                                   properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
                             elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
                             elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
@@ -1053,7 +1058,8 @@ function loaded() {
                             elZoneBackgroundMode.value = properties.backgroundMode;
                             setDropdownText(elZoneBackgroundMode);
 
-                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red + "," + properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
+                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red + "," + 
+                                                       properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
                             elZoneSkyboxColorRed.value = properties.skybox.color.red;
                             elZoneSkyboxColorGreen.value = properties.skybox.color.green;
                             elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
@@ -1063,7 +1069,8 @@ function loaded() {
                             elZoneGhostingAllowed.checked = properties.ghostingAllowed;
                             elZoneFilterURL.value = properties.filterURL;
 
-                            showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value === 'skybox');
+                            showElements(document.getElementsByClassName('skybox-section'), 
+                                elZoneBackgroundMode.value === 'skybox');
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1218,7 +1225,8 @@ function loaded() {
         });
 
         var numberListener = function (event) {
-            userDataChanger("grabbableKey", event.target.getAttribute("data-user-data-type"), parseInt(event.target.value), elUserData, false);
+            userDataChanger("grabbableKey", 
+                event.target.getAttribute("data-user-data-type"), parseInt(event.target.value), elUserData, false);
         };
         elCloneableLifetime.addEventListener('change', numberListener);
         elCloneableLimit.addEventListener('change', numberListener);
@@ -1327,14 +1335,18 @@ function loaded() {
         elCompoundShapeURL.addEventListener('change', createEmitTextPropertyUpdateFunction('compoundShapeURL'));
 
         elModelAnimationURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('animation', 'url'));
-        elModelAnimationPlaying.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'running'));
+        elModelAnimationPlaying.addEventListener('change',createEmitGroupCheckedPropertyUpdateFunction('animation', 'running'));
         elModelAnimationFPS.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'fps'));
-        elModelAnimationFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
-        elModelAnimationFirstFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
-        elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
+        elModelAnimationFrame.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('animation', 'currentFrame'));
+        elModelAnimationFirstFrame.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('animation', 'firstFrame'));
+        elModelAnimationLastFrame.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
         elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
         elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
-        elModelAnimationAllowTranslation.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'allowTranslation'));
+        elModelAnimationAllowTranslation.addEventListener('change', 
+            createEmitGroupCheckedPropertyUpdateFunction('animation', 'allowTranslation'));
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
@@ -1386,7 +1398,8 @@ function loaded() {
             }
         }));
 
-        elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
+        elZoneStageSunModelEnabled.addEventListener('change', 
+            createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
         colorPickers.push($('#property-zone-key-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
@@ -1403,18 +1416,26 @@ function loaded() {
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
         }));
-        var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
+        var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', 
+            elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
         elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
-        elZoneKeyLightIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight', 'intensity'));
-        elZoneKeyLightAmbientIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('keyLight', 'ambientIntensity'));
-        elZoneKeyLightAmbientURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('keyLight', 'ambientURL'));
-        var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
+        elZoneKeyLightIntensity.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('keyLight', 'intensity'));
+        elZoneKeyLightAmbientIntensity.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('keyLight', 'ambientIntensity'));
+        elZoneKeyLightAmbientURL.addEventListener('change', 
+            createEmitGroupTextPropertyUpdateFunction('keyLight', 'ambientURL'));
+        var zoneKeyLightDirectionChangeFunction = 
+            createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', 
+                elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        var hazeModeChanged = createZoneComponentModeChangedFunction('hazeMode', elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled);
+        var hazeModeChanged = 
+            createZoneComponentModeChangedFunction('hazeMode', elZoneHazeModeInherit, 
+                elZoneHazeModeDisabled, elZoneHazeModeEnabled);
         elZoneHazeModeInherit.addEventListener('change', hazeModeChanged);
         elZoneHazeModeDisabled.addEventListener('change', hazeModeChanged);
         elZoneHazeModeEnabled.addEventListener('change', hazeModeChanged);
@@ -1471,19 +1492,23 @@ function loaded() {
         elZoneHazeGlareColorGreen.addEventListener('change', zoneHazeGlareColorChangeFunction);
         elZoneHazeGlareColorBlue.addEventListener('change', zoneHazeGlareColorChangeFunction);
 
-        elZoneHazeEnableGlare.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableGlare'));
+        elZoneHazeEnableGlare.addEventListener('change', 
+            createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableGlare'));
         elZonehazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
 
-        elZoneHazeAltitudeEffect.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
+        elZoneHazeAltitudeEffect.addEventListener('change', 
+            createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
         elZoneHazeCeiling.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeCeiling'));
         elZoneHazeBaseRef.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBaseRef'));
 
-        elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
+        elZoneHazeBackgroundBlend.addEventListener('change', 
+            createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
         elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'altitude'));
-        elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
+        elZoneStageAutomaticHourDay.addEventListener('change', 
+            createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
         elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'day'));
         elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'hour'));
 
