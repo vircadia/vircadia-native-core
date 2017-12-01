@@ -339,7 +339,7 @@ Item {
 
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = addLeadingZero(a.getMonth());
+        var month = addLeadingZero(a.getMonth() + 1);
         var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;
