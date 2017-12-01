@@ -117,6 +117,7 @@ public slots:
     void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
     void forceHtmlAudioOutputDeviceUpdate();
     void forceQmlAudioOutputDeviceUpdate();
+
 signals:
     void audioOutputDeviceChanged(const QString& deviceName);
 
@@ -148,6 +149,7 @@ private:
     void render();
     void cleanup();
     QJsonObject getGLContextData();
+    void disconnectAudioOutputTimer();
 
 private slots:
     void updateQuick();
@@ -170,6 +172,9 @@ private:
     uint32_t _depthStencil { 0 };
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
+
+    QTimer _audioOutputUpdateTimer;
+    QString _currentAudioOutputDevice;
 
     // Texture management
     TextureAndFence _latestTextureAndFence { 0, 0 };

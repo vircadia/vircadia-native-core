@@ -121,23 +121,18 @@ uint64_t uvec2ToUint64(const uvec2& v) {
 class AudioHandler : public QObject, QRunnable {
     Q_OBJECT
 public:
-    AudioHandler(QSharedPointer<OffscreenQmlSurface> surface, const QString& deviceName, int runDelayMs = 0, QObject* parent = nullptr) : QObject(parent) {
+    AudioHandler(QSharedPointer<OffscreenQmlSurface> surface, const QString& deviceName, QObject* parent = nullptr) : QObject(parent) {
         _newTargetDevice = deviceName;
-        _runDelayMs = runDelayMs;
         _surface = surface;
         setAutoDelete(true);
-        QThreadPool::globalInstance()->start(this);
+        if (deviceName.size() > 0) {
+            QThreadPool::globalInstance()->start(this);
+        }
     }
     virtual ~AudioHandler() {
         qDebug() << "Audio Handler Destroyed";
     }
     void run() override {
-        if (_newTargetDevice.isEmpty()) {
-            return;
-        }
-        if (_runDelayMs > 0) {
-            QThread::msleep(_runDelayMs);
-        }
         if (!_surface.isNull() && _surface->getRootItem() && !_surface->getCleaned()) {
             for (auto player : _surface->getRootItem()->findChildren<QMediaPlayer*>()) {
                 auto mediaState = player->state();
@@ -602,6 +597,7 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
+    disconnectAudioOutputTimer();
     QObject::disconnect(qApp);
 
     cleanup();
@@ -615,6 +611,15 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 void OffscreenQmlSurface::onAboutToQuit() {
     _paused = true;
     QObject::disconnect(&_updateTimer);
+    disconnectAudioOutputTimer();
+    
+}
+
+void OffscreenQmlSurface::disconnectAudioOutputTimer() {
+    if (_audioOutputUpdateTimer.isActive()) {
+        _audioOutputUpdateTimer.stop();
+    }
+    QObject::disconnect(&_audioOutputUpdateTimer);
 }
 
 void OffscreenQmlSurface::create() {
@@ -673,6 +678,14 @@ void OffscreenQmlSurface::create() {
         }
     });
 
+    // Setup the update of the QML media components with the current audio output device
+    QObject::connect(&_audioOutputUpdateTimer, &QTimer::timeout, this, [this]() {
+        new AudioHandler(sharedFromThis(), _currentAudioOutputDevice);
+    });
+    int waitForAudioQmlMs = 200;
+    _audioOutputUpdateTimer.setInterval(waitForAudioQmlMs);
+    _audioOutputUpdateTimer.setSingleShot(true);
+
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
@@ -701,10 +714,11 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     } else {
         auto audioIO = DependencyManager::get<AudioClient>();
-        QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-        int waitForAudioQmlMs = 200;
-        // The audio device need to be change using oth
-        new AudioHandler(sharedFromThis(), deviceName, waitForAudioQmlMs);
+        _currentAudioOutputDevice = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
+        if (_audioOutputUpdateTimer.isActive()) {
+            _audioOutputUpdateTimer.stop();
+        }
+        _audioOutputUpdateTimer.start();
     }
 }
 
