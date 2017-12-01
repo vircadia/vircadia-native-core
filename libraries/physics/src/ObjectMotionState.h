@@ -47,7 +47,7 @@ enum MotionStateType {
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled
 // and re-added to the physics engine and "easy" which just updates the body properties.
 const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_SHAPE |
-                                                     Simulation::DIRTY_COLLISION_GROUP);
+                                                     Simulation::DIRTY_COLLISION_GROUP | Simulation::DIRTY_IGNORE_MY_AVATAR);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES |
                                                      Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL |
                                                      Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY |

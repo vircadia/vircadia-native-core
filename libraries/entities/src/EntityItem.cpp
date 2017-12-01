@@ -1832,39 +1832,8 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             }
         }
 
-        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
-            bool iAmHoldingThis = false;
-            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
-            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
-            // and holding it against your own avatar.
-            if (isChildOfMyAvatar()) {
-                iAmHoldingThis = true;
-            }
-            // also, don't bootstrap our own avatar with a hold action
-            QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
-            QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
-            while (i != holdActions.end()) {
-                EntityDynamicPointer action = *i;
-                if (action->isMine()) {
-                    iAmHoldingThis = true;
-                    break;
-                }
-                i++;
-            }
-            QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
-            i = farGrabActions.begin();
-            while (i != farGrabActions.end()) {
-                EntityDynamicPointer action = *i;
-                if (action->isMine()) {
-                    iAmHoldingThis = true;
-                    break;
-                }
-                i++;
-            }
-
-            if (iAmHoldingThis) {
-                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
-            }
+        if (_dirtyFlags & Simulation::DIRTY_IGNORE_MY_AVATAR) {
+            userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
         mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
     }
@@ -1960,6 +1929,17 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        auto actionType = action->getType();
+        if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
+            _dirtyFlags |= Simulation::DIRTY_IGNORE_MY_AVATAR;
+            forEachDescendant([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                    entity->markDirtyFlags(Simulation::DIRTY_IGNORE_MY_AVATAR);
+                }
+            });
+        }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
@@ -2000,6 +1980,32 @@ bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& a
     return success;
 }
 
+bool EntityItem::stillHasGrabActions() {
+    bool stillHasGrabAction = false;
+    QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
+    QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
+    while (i != holdActions.end()) {
+        EntityDynamicPointer action = *i;
+        if (action->isMine()) {
+            stillHasGrabAction = true;
+            break;
+        }
+        i++;
+    }
+    QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
+    i = farGrabActions.begin();
+    while (i != farGrabActions.end()) {
+        EntityDynamicPointer action = *i;
+        if (action->isMine()) {
+            stillHasGrabAction = true;
+            break;
+        }
+        i++;
+    }
+
+    return stillHasGrabAction;
+}
+
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation) {
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
@@ -2023,6 +2029,15 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        if (stillHasGrabActions()) {
+            _dirtyFlags |= Simulation::DIRTY_IGNORE_MY_AVATAR;
+            forEachDescendant([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                    entity->markDirtyFlags(Simulation::DIRTY_IGNORE_MY_AVATAR);
+                }
+            });
+        }
         setDynamicDataNeedsTransmit(true);
         return success;
     }
