@@ -704,10 +704,10 @@ function loaded() {
             var properties;
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
-                if (data.type == "server_script_status") {
+                if (data.type === "server_script_status") {
                     elServerScriptError.value = data.errorInfo;
                     // If we just set elServerScriptError's diplay to block or none, we still end up with
-                    //it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
+                    // it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
                     // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
                     if (data.statusRetrieved === false) {
@@ -719,7 +719,7 @@ function loaded() {
                             error_loading_script: "Error loading script",
                             error_running_script: "Error running script",
                             running: "Running",
-                            unloaded: "Unloaded",
+                            unloaded: "Unloaded"
                         };
                         elServerScriptStatus.innerText = ENTITY_SCRIPT_STATUS[data.status] || data.status;
                     } else {
@@ -775,7 +775,7 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        //the event bridge and json parsing handle our avatar id string differently.
+                        // the event bridge and json parsing handle our avatar id string differently.
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
@@ -918,7 +918,7 @@ function loaded() {
                         try {
                             json = JSON.parse(properties.userData);
                         } catch (e) {
-                            //normal text
+                            // normal text
                             deleteJSONEditor();
                             elUserData.value = properties.userData;
                             showUserDataTextArea();
@@ -1008,9 +1008,9 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
                             elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
 
-                            elZoneHazeModeInherit.checked = (properties.hazeMode == 'inherit');
-                            elZoneHazeModeDisabled.checked = (properties.hazeMode == 'disabled');
-                            elZoneHazeModeEnabled.checked = (properties.hazeMode == 'enabled');
+                            elZoneHazeModeInherit.checked = (properties.hazeMode === 'inherit');
+                            elZoneHazeModeDisabled.checked = (properties.hazeMode === 'disabled');
+                            elZoneHazeModeEnabled.checked = (properties.hazeMode === 'enabled');
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
                             elZoneHazeColor.style.backgroundColor = "rgb(" + 
@@ -1063,7 +1063,7 @@ function loaded() {
                             elZoneGhostingAllowed.checked = properties.ghostingAllowed;
                             elZoneFilterURL.value = properties.filterURL;
 
-                            showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
+                            showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value === 'skybox');
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1196,23 +1196,23 @@ function loaded() {
             var checked = event.target.checked;
             if (checked) {
                 multiDataUpdater("grabbableKey", {
-                        cloneLifetime: elCloneableLifetime,
-                        cloneLimit: elCloneableLimit,
-                        cloneDynamic: elCloneableDynamic,
-                        cloneAvatarEntity: elCloneableAvatarEntity,
-                        cloneable: event.target,
-                        grabbable: null
-                    }, elUserData, {});
+                    cloneLifetime: elCloneableLifetime,
+                    cloneLimit: elCloneableLimit,
+                    cloneDynamic: elCloneableDynamic,
+                    cloneAvatarEntity: elCloneableAvatarEntity,
+                    cloneable: event.target,
+                    grabbable: null
+                }, elUserData, {});
                 elCloneableGroup.style.display = "block";
                 updateProperty('dynamic', false);
             } else {
                 multiDataUpdater("grabbableKey", {
-                        cloneLifetime: null,
-                        cloneLimit: null,
-                        cloneDynamic: null,
-                        cloneAvatarEntity: null,
-                        cloneable: false
-                    }, elUserData, {});
+                    cloneLifetime: null,
+                    cloneLimit: null,
+                    cloneDynamic: null,
+                    cloneAvatarEntity: null,
+                    cloneable: false
+                }, elUserData, {});
                 elCloneableGroup.style.display = "none";
             }
         });
