@@ -173,7 +173,6 @@ public:
 private:
     QString _newTargetDevice;
     QSharedPointer<OffscreenQmlSurface> _surface;
-    int _runDelayMs;
 };
 
 class OffscreenTextures {
