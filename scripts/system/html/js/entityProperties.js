@@ -716,8 +716,8 @@ function loaded() {
                         var ENTITY_SCRIPT_STATUS = {
                             pending: "Pending",
                             loading: "Loading",
-                            error_loading_script: "Error loading script",
-                            error_running_script: "Error running script",
+                            error_loading_script: "Error loading script", // eslint-disable-line camelcase
+                            error_running_script: "Error running script", // eslint-disable-line camelcase
                             running: "Running",
                             unloaded: "Unloaded"
                         };
