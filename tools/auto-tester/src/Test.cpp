@@ -77,6 +77,10 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
 void Test::evaluateTests() {
     // Get list of JPEG images in folder, sorted by name
     QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    if (pathToImageDirectory == "") {
+        return;
+    }
+
     QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
 
     // Separate images into two lists.  The first is the expected images, the second is the test results
@@ -118,6 +122,9 @@ void Test::evaluateTests() {
 void Test::evaluateTestsRecursively() {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
+    if (topLevelDirectory == "") {
+        return;
+    }
 
     bool success{ true };
     QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
@@ -176,6 +183,9 @@ void Test::importTest(QTextStream& textStream, const QString& testPathname, int 
 void Test::createRecursiveScript() {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
+    if (topLevelDirectory == "") {
+        return;
+    }
 
     QFile allTestsFilename(topLevelDirectory + "/" + "allTests.js");
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -312,6 +322,10 @@ void Test::createTest() {
     // Rename files sequentially, as ExpectedResult_1.jpeg, ExpectedResult_2.jpg and so on
     // Any existing expected result images will be deleted
     QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
+    if (pathToImageDirectory == "") {
+        return;
+    }
+
     QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
 
     int i = 1;
