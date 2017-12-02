@@ -437,7 +437,6 @@ public:
     // if this entity is client-only, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
-    bool stillHasGrabActions();
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }
@@ -471,6 +470,7 @@ protected:
     void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getDynamicDataInternal() const;
+    bool stillHasGrabActions() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
     virtual void dimensionsChanged() override;
