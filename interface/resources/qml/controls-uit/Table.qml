@@ -11,6 +11,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.2 as QQC2
 
 import "../styles-uit"
 
@@ -23,6 +24,45 @@ TableView {
     property bool centerHeaderText: false
 
     model: ListModel { }
+
+    Component.onCompleted: {
+        if (flickableItem !== null && flickableItem !== undefined) {
+            tableView.flickableItem.QQC2.ScrollBar.vertical = scrollbar
+        }
+    }
+
+    QQC2.ScrollBar {
+        id: scrollbar
+        parent: tableView.flickableItem
+        policy: QQC2.ScrollBar.AsNeeded
+        orientation: Qt.Vertical
+        visible: size < 1.0
+        topPadding: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight + 1 : 1
+        anchors.top: tableView.top
+        anchors.left: tableView.right
+        anchors.bottom: tableView.bottom
+
+        background: Item {
+            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
+            Rectangle {
+                anchors {
+                    fill: parent;
+                    topMargin: tableView.headerVisible ? hifi.dimensions.tableHeaderHeight : 0
+                }
+                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight
+                                          : hifi.colors.tableScrollBackgroundDark
+            }
+        }
+
+        contentItem: Item {
+            implicitWidth: hifi.dimensions.scrollbarHandleWidth
+            Rectangle {
+                anchors.fill: parent
+                radius: (width - 4)/2
+                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
+            }
+        }
+    }
 
     headerVisible: false
     headerDelegate: Rectangle {
@@ -98,74 +138,13 @@ TableView {
     backgroundVisible: true
 
     horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
-    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+    verticalScrollBarPolicy: Qt.ScrollBarAlwaysOff
 
     style: TableViewStyle {
         // Needed in order for rows to keep displaying rows after end of table entries.
         backgroundColor: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
         alternateBackgroundColor: tableView.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
-
         padding.top: headerVisible ? hifi.dimensions.tableHeaderHeight: 0
-
-        handle: Item {
-            id: scrollbarHandle
-            implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    topMargin: 3
-                    bottomMargin: 3     // ""
-                    leftMargin: 1       // Move it right
-                    rightMargin: -1     // ""
-                }
-                radius: hifi.dimensions.scrollbarHandleWidth/2
-                color: isLightColorScheme ? hifi.colors.tableScrollHandleLight : hifi.colors.tableScrollHandleDark
-            }
-        }
-
-        scrollBarBackground: Item {
-            implicitWidth: hifi.dimensions.scrollbarBackgroundWidth
-            Rectangle {
-                anchors {
-                    fill: parent
-                    margins: -1     // Expand
-                    topMargin: -1
-                }
-                color: isLightColorScheme ? hifi.colors.tableScrollBackgroundLight : hifi.colors.tableScrollBackgroundDark
-                
-                // Extend header color above scrollbar background
-                Rectangle {
-                    anchors {
-                        top: parent.top
-                        topMargin: -hifi.dimensions.tableHeaderHeight
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: hifi.dimensions.tableHeaderHeight
-                    color: tableView.isLightColorScheme ? hifi.colors.tableBackgroundLight : hifi.colors.tableBackgroundDark
-                    visible: headerVisible
-                }
-                Rectangle {
-                    // Extend header bottom border
-                    anchors {
-                        top: parent.top
-                        left: parent.left
-                        right: parent.right
-                    }
-                    height: 1
-                    color: isLightColorScheme ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight
-                    visible: headerVisible
-                }
-            }
-        }
-
-        incrementControl: Item {
-            visible: false
-        }
-
-        decrementControl: Item {
-            visible: false
-        }
     }
 
     rowDelegate: Rectangle {
