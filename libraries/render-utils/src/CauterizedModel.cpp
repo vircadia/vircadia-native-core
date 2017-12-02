@@ -211,6 +211,6 @@ void CauterizedModel::updateRenderItems() {
 }
 
 const Model::MeshState& CauterizedModel::getCauterizeMeshState(int index) const {
-    assert(index < _meshStates.size());
+    assert((size_t)index < _meshStates.size());
     return _cauterizeMeshStates.at(index);
 }
