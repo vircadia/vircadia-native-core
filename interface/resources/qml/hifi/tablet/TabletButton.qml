@@ -23,10 +23,21 @@ Item {
     property double sortOrder: 100
     property int stableOrder: 0
     property var tabletRoot;
+    property var flickable: null
     width: 129
     height: 129
 
     signal clicked()
+
+    Connections {
+        target: flickable
+        onMovingChanged: {
+            //when flick/move started, and hover is on, clean hove state
+            if (flickable.moving && tabletButton.state.indexOf("hover") !== -1) {
+                tabletButton.state = (tabletButton.isActive) ? "active state" : "base state";
+            }
+        }
+    }
 
     function changeProperty(key, value) {
         tabletButton[key] = value;
@@ -121,7 +132,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         enabled: true
-        preventStealing: true
+        preventStealing: false
         onClicked: {
             console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {
@@ -136,6 +147,7 @@ Item {
                 tabletInterface.playSound(TabletEnums.ButtonClick);
             }
         }
+
         onEntered: {
             tabletButton.isEntered = true;
             tabletInterface.playSound(TabletEnums.ButtonHover);

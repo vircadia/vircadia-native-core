@@ -13,9 +13,6 @@ Item {
     property int columnIndex: 1 // point to 'go to location'
     property int count: 0
 
-    //timeout for press delay before swipe occurs
-    readonly property int pressDelayTime: HMD.active ? 150 : 100
-
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
         if (!uuid) {
@@ -67,6 +64,7 @@ Item {
         } else {
             button.tabletRoot = parent.parent;
         }
+        button.flickable = swipeView.contentItem
 
         sortButtons(gridIndex);
 
@@ -216,11 +214,6 @@ Item {
                 right: parent.right
                 top: parent.top
                 bottom: pageIndicator.top
-            }
-            Component.onCompleted: {
-                if (contentItem !== null) {
-                    contentItem.pressDelay = tablet.pressDelayTime
-                }
             }
         }
 
