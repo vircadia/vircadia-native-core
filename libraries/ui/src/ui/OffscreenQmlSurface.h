@@ -40,7 +40,7 @@ class QQuickItem;
 
 using QmlContextCallback = std::function<void(QQmlContext*, QObject*)>;
 
-class OffscreenQmlSurface : public QObject {
+class OffscreenQmlSurface : public QObject, public QEnableSharedFromThis<OffscreenQmlSurface> {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
@@ -75,6 +75,7 @@ public:
     void pause();
     void resume();
     bool isPaused() const;
+    bool getCleaned() { return _isCleaned; }
 
     void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
@@ -116,6 +117,7 @@ public slots:
     void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
     void forceHtmlAudioOutputDeviceUpdate();
     void forceQmlAudioOutputDeviceUpdate();
+
 signals:
     void audioOutputDeviceChanged(const QString& deviceName);
 
@@ -147,6 +149,7 @@ private:
     void render();
     void cleanup();
     QJsonObject getGLContextData();
+    void disconnectAudioOutputTimer();
 
 private slots:
     void updateQuick();
@@ -170,6 +173,9 @@ private:
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
 
+    QTimer _audioOutputUpdateTimer;
+    QString _currentAudioOutputDevice;
+
     // Texture management
     TextureAndFence _latestTextureAndFence { 0, 0 };
 
@@ -177,6 +183,7 @@ private:
     bool _polish { true };
     bool _paused { true };
     bool _focusText { false };
+    bool _isCleaned{ false };
     uint8_t _maxFps { 60 };
     MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
