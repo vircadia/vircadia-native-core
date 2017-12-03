@@ -23,6 +23,7 @@ FocusScope {
     property alias comboBox: comboBox
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;
+    property int currentHighLightedIndex: comboBox.currentIndex;
 
     property int dropdownHeight: 480
     property int colorScheme: hifi.colorSchemes.light
@@ -46,9 +47,9 @@ FocusScope {
         visible: true
         height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
 
-        function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
-        function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
-        function selectCurrentItem() { root.currentIndex = listView.currentIndex; close(); /*hideList();*/ }
+        function previousItem() { root.currentHighLightedIndex = (root.currentHighLightedIndex + comboBox.count - 1) % comboBox.count; }
+        function nextItem() { root.currentHighLightedIndex = (root.currentHighLightedIndex + comboBox.count + 1) % comboBox.count; }
+        function selectCurrentItem() { root.currentIndex = root.currentHighLightedIndex; close(); /*hideList();*/ }
         function selectSpecificItem(index) { root.currentIndex = index; close();/*hideList();*/ }
 
         Keys.onUpPressed: previousItem();
@@ -112,9 +113,12 @@ FocusScope {
             hoverEnabled: true
             width: root.width + 4
             height: popupText.implicitHeight * 1.4
+            highlighted: root.currentHighLightedIndex == index
 
             onHoveredChanged: {
-                itemDelegate.highlighted = hovered;
+                if (hovered) {
+                    root.currentHighLightedIndex = index
+                }
             }
 
             background: Rectangle {
@@ -151,7 +155,7 @@ FocusScope {
                 id: listView
                 clip: true
                 model: comboBox.popup.visible ? comboBox.delegateModel : null
-                currentIndex: comboBox.highlightedIndex
+                currentIndex: root.currentHighLightedIndex
                 delegate: comboBox.delegate
                 ScrollBar.vertical: HifiControls.ScrollBar {
                     id: scrollbar
@@ -165,135 +169,8 @@ FocusScope {
                 color: hifi.colors.baseGray
             }
         }
-//            MouseArea {
-//                id: popupHover
-//                anchors.fill: parent;
-//                hoverEnabled: scrollView.hoverEnabled;
-//                onEntered: listView.currentIndex = index;
-//                onClicked: popup.selectSpecificItem(index);
-//            }
-//        }
-//        }
-    }
-/*
-    MouseArea {
-        id: controlHover
-        hoverEnabled: true
-        anchors.fill: parent
-        onClicked: toggleList();
     }
 
-    function toggleList() {
-        if (popup.visible) {
-            hideList();
-        } else {
-            showList();
-        }
-    }
-
-    function showList() {
-        var r;
-        if (isDesktop) {
-            r = desktop.mapFromItem(root, 0, 0, root.width, root.height);
-        } else {
-            r = mapFromItem(root, 0, 0, root.width, root.height);
-        }
-        var y = r.y + r.height;
-        var bottom = y + scrollView.height;
-        var height = isDesktop ? desktop.height : tabletRoot.height;
-        if (bottom > height) {
-            y -= bottom - height + 8;
-        }
-        scrollView.x = r.x;
-        scrollView.y = y;
-        popup.visible = true;
-        popup.forceActiveFocus();
-        listView.currentIndex = root.currentIndex;
-        scrollView.hoverEnabled = true;
-    }
-
-    function hideList() {
-        popup.visible = false;
-        scrollView.hoverEnabled = false;
-        root.accepted();
-    }
-
-    FocusScope {
-        id: popup
-        parent: isDesktop ? desktop : root
-        anchors.fill: parent
-        z: isDesktop ? desktop.zLevels.menu : 12
-        visible: false
-        focus: true
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: hideList();
-        }
-
-        function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
-        function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
-        function selectCurrentItem() { root.currentIndex = listView.currentIndex; hideList(); }
-        function selectSpecificItem(index) { root.currentIndex = index; hideList(); }
-
-        Keys.onUpPressed: previousItem();
-        Keys.onDownPressed: nextItem();
-        Keys.onSpacePressed: selectCurrentItem();
-        Keys.onRightPressed: selectCurrentItem();
-        Keys.onReturnPressed: selectCurrentItem();
-        Keys.onEscapePressed: hideList();
-
-        ScrollView {
-            id: scrollView
-            height: root.dropdownHeight
-            width: root.width + 4
-            hoverEnabled: false;
-
-            background: Rectangle{
-                implicitWidth: 20
-                color: hifi.colors.baseGray
-            }
-
-            contentItem: Rectangle {
-                implicitWidth: 16
-                anchors.left: parent.left
-                anchors.leftMargin: 3
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                radius: 6
-                color: hifi.colors.lightGrayText
-            }
-
-            ListView {
-                id: listView
-                height: textField.height * count * 1.4
-                model: root.model
-                delegate: Rectangle {
-                    width: root.width + 4
-                    height: popupText.implicitHeight * 1.4
-                    color: (listView.currentIndex === index) ? hifi.colors.primaryHighlight :
-                           (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
-                    FiraSansSemiBold {
-                        anchors.left: parent.left
-                        anchors.leftMargin: hifi.dimensions.textPadding
-                        anchors.verticalCenter: parent.verticalCenter
-                        id: popupText
-                        text: listView.model[index] ? listView.model[index] : (listView.model.get && listView.model.get(index).text ? listView.model.get(index).text : "")
-                        size: hifi.fontSizes.textFieldInput
-                        color: hifi.colors.baseGray
-                    }
-                    MouseArea {
-                        id: popupHover
-                        anchors.fill: parent;
-                        hoverEnabled: scrollView.hoverEnabled;
-                        onEntered: listView.currentIndex = index;
-                        onClicked: popup.selectSpecificItem(index);
-                    }
-                }
-            }
-        }
-    }
-*/
     HifiControls.Label {
         id: comboBoxLabel
         text: root.label
@@ -306,7 +183,5 @@ FocusScope {
 
     Component.onCompleted: {
         isDesktop = (typeof desktop !== "undefined");
-        //TODO: do we need this?
-        //comboBox.popup.z =  isDesktop ? desktop.zLevels.menu : 12
     }
 }
