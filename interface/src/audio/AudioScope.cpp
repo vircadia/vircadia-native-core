@@ -78,6 +78,10 @@ void AudioScope::selectAudioScopeFiftyFrames() {
     reallocateScope(50);
 }
 
+void AudioScope::setLocalEcho(bool localEcho) {
+    DependencyManager::get<AudioClient>()->setLocalEcho(localEcho);
+}
+
 void AudioScope::setServerEcho(bool serverEcho) {
     DependencyManager::get<AudioClient>()->setServerEcho(serverEcho);
 }
@@ -191,6 +195,7 @@ void AudioScope::storeTriggerValues() {
     _triggerOutputLeftData = _scopeOutputLeftData;
     _triggerOutputRightData = _scopeOutputRightData;
     _isTriggered = true;
+    emit triggered();
 }
 
 void AudioScope::computeInputData() {

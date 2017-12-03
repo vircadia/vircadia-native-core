@@ -71,10 +71,12 @@ public slots:
     QVector<int> getTriggerOutputLeft() { return _triggerOutputLeftData; };
     QVector<int> getTriggerOutputRight() { return _triggerOutputRightData; };
 
+    void setLocalEcho(bool serverEcho);
     void setServerEcho(bool serverEcho);
 
 signals:
     void pauseChanged();
+    void triggered();
 
 protected:
     AudioScope();

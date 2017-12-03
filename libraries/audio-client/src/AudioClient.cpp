@@ -222,8 +222,7 @@ AudioClient::AudioClient() :
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
     getAvailableDevices(QAudio::AudioOutput);
-
-
+    
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     connect(_checkDevicesTimer, &QTimer::timeout, [this] {
@@ -1845,11 +1844,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
-
         for (int i = 0; i < networkSamplesPopped; i++) {
             mixBuffer[i] = convertToFloat(scratchBuffer[i]);
         }
-
         samplesRequested = networkSamplesPopped;
     }
 
@@ -1910,6 +1907,10 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         memset(data, 0, maxSize);
         bytesWritten = maxSize;
     }
+
+    // send output buffer for recording
+    QByteArray outputBuffer(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+    emit _audio->outputBufferReceived(outputBuffer);
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);

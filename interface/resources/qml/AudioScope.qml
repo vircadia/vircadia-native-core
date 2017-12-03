@@ -7,6 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "styles-uit"
@@ -32,7 +33,7 @@ Item {
     
     property var _triggered: false
     property var _steps
-    property var _refreshMs: 10
+    property var _refreshMs: 32
     property var _framesPerSecond: AudioScope.getFramesPerSecond()
     property var _isFrameUnits: true
     
@@ -46,9 +47,17 @@ Item {
         property int y: 0
     }
     
-    property var _timeBeforeHold: 100;
-    property var _pressedTime: 0;
-    property var _isPressed: false;
+    property var _timeBeforeHold: 300
+    property var _pressedTime: 0
+    property var _isPressed: false
+
+    property var _recOpacity : 0.0
+    property var _recSign : 0.05
+
+    property var _outputLeftState: false
+    property var _outputRightState: false
+    
+    property var _wavFilePath: ""
     
     function isHolding() {
         return (_pressedTime > _timeBeforeHold); 
@@ -84,13 +93,29 @@ Item {
             _triggerOutputRightData  = AudioScope.triggerOutputRight;
         }
     }
+
+    function setRecordingLabelOpacity(opacity) {
+        _recOpacity = opacity;
+        recCircle.opacity = _recOpacity;
+        recText.opacity = _recOpacity;
+    }
+
+    function updateRecordingLabel() {
+        _recOpacity += _recSign;
+        if (_recOpacity > 1.0 || _recOpacity < 0.0) {
+            _recOpacity = _recOpacity > 1.0 ? 1.0 : 0.0;
+            _recSign *= -1;
+        }
+        setRecordingLabelOpacity(_recOpacity);
+    }
         
     function pullFreshValues() {
-        if (!AudioScope.getPause()){        
-            if (AudioScope.getTriggered()) {
-                _triggered = true;
-                collectTriggerData();
-            } else {
+        if (Audio.getRecording()) {
+            updateRecordingLabel();
+        }
+
+        if (!AudioScope.getPause()) {        
+            if (!_triggered) {
                 collectScopeData();
             }               
         } 
@@ -99,8 +124,49 @@ Item {
         }
     }
     
-    
+    function startRecording() {
+        _wavFilePath = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
+        _wavFilePath = _wavFilePath.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".wav";
+        // Using controller recording default directory
+        _wavFilePath = Recording.getDefaultRecordingSaveDirectory() + _wavFilePath;
+        if (!Audio.startRecording(_wavFilePath)) {
+            Messages.sendMessage("Hifi-Notifications", JSON.stringify({message:"Error creating: "+_wavFilePath}));
+            updateRecordingUI(false);
+        }
+    }
 
+    function stopRecording() {
+        Audio.stopRecording();
+        setRecordingLabelOpacity(0.0);
+        Messages.sendMessage("Hifi-Notifications", JSON.stringify({message:"Saved: "+_wavFilePath}));
+    }
+
+    function updateRecordingUI(isRecording) {
+        if (!isRecording) {
+            recordButton.text = "Record";
+            recordButton.color = hifi.buttons.black;
+            outputLeftCh.checked = _outputLeftState;
+            outputRightCh.checked = _outputRightState;
+        } else {
+            recordButton.text = "Stop";
+            recordButton.color = hifi.buttons.red;
+            _outputLeftState = outputLeftCh.checked;
+            _outputRightState = outputRightCh.checked;
+            outputLeftCh.checked = true;
+            outputRightCh.checked = true;
+        }
+    }
+    
+    function toggleRecording() {
+        if (Audio.getRecording()) {
+            updateRecordingUI(false);
+            stopRecording();
+        } else {
+            updateRecordingUI(true);
+            startRecording();
+        }
+    }
+    
     Timer {
         interval: _refreshMs; running: true; repeat: true
         onTriggered: pullFreshValues()
@@ -306,7 +372,7 @@ Item {
         boxSize: 20
         anchors.top: parent.top;
         anchors.left: parent.left;
-        anchors.topMargin: 20;
+        anchors.topMargin: 8;
         anchors.leftMargin: 20;
         checked: AudioScope.getVisible();
         onCheckedChanged: {     
@@ -333,6 +399,7 @@ Item {
             AudioScope.setServerEcho(outputLeftCh.checked || outputRightCh.checked);
         }
     }
+	
     HifiControlsUit.Label {
         text: "Channels";
         anchors.horizontalCenter: outputLeftCh.horizontalCenter;
@@ -346,9 +413,9 @@ Item {
         text: "Input Mono"
         anchors.bottom: outputLeftCh.bottom;
         anchors.right: outputLeftCh.left;
-        anchors.rightMargin: 80;
-        checked: true;
+        anchors.rightMargin: 40;
         onCheckedChanged: {
+			AudioScope.setLocalEcho(checked);
         }
     }
     
@@ -358,9 +425,25 @@ Item {
         text: "Output R"
         anchors.bottom: outputLeftCh.bottom;
         anchors.left: outputLeftCh.right;
-        anchors.leftMargin: 80;
+        anchors.leftMargin: 40;
         onCheckedChanged: {
             AudioScope.setServerEcho(outputLeftCh.checked || outputRightCh.checked);
+        }
+    }
+    
+    HifiControlsUit.Button {
+        id: recordButton;
+        text: "Record";
+        color: hifi.buttons.black;
+        colorScheme: hifi.colorSchemes.dark;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
+        anchors.rightMargin: 30;
+        anchors.bottomMargin: 8;
+        width: 95;
+        height: 55;
+        onClicked: {
+            toggleRecording();
         }
     }
     
@@ -368,11 +451,12 @@ Item {
         id: pauseButton;
         color: hifi.buttons.black;
         colorScheme: hifi.colorSchemes.dark;
-        anchors.right: parent.right;
+        anchors.right: recordButton.left;
         anchors.bottom: parent.bottom;
         anchors.rightMargin: 30;
         anchors.bottomMargin: 8;
-        height: 26;
+        height: 55;
+        width: 95;
         text: " Pause ";
         onClicked: {
             AudioScope.togglePause();
@@ -391,8 +475,7 @@ Item {
                 fiveFrames.checked = false;
                 AudioScope.selectAudioScopeTwentyFrames();
                 _steps = 20;
-                _triggered = false;
-                AudioScope.setTriggered(false);
+                AudioScope.setPause(false);
             }
         }
     }
@@ -432,8 +515,7 @@ Item {
                 twentyFrames.checked = false;
                 AudioScope.selectAudioScopeFiveFrames();
                 _steps = 5;
-                _triggered = false;
-                AudioScope.setTriggered(false);
+                AudioScope.setPause(false);
             }
         }
     }
@@ -457,8 +539,7 @@ Item {
                 fiveFrames.checked = false;
                 AudioScope.selectAudioScopeFiftyFrames();
                 _steps = 50;
-                _triggered = false;
-                AudioScope.setTriggered(false);
+                AudioScope.setPause(false);            
             }
         }
     }
@@ -480,9 +561,9 @@ Item {
         labelTextOn: "On";
         onCheckedChanged: {
             if (!checked) AudioScope.setPause(false);
-            _triggered = false;
-            AudioScope.setTriggered(false);
+            AudioScope.setPause(false);
             AudioScope.setAutoTrigger(checked);
+            AudioScope.setTriggerValues(_triggerValues.x, _triggerValues.y-root.height/2);
         }
     }
     
@@ -493,21 +574,68 @@ Item {
         anchors.bottom: triggerSwitch.top;
     }
     
+    Rectangle {
+        id: recordIcon;
+        width:110;
+        height:40;
+        anchors.right: parent.right;
+        anchors.top: parent.top;
+        anchors.topMargin: 8;
+        color: "transparent"
+        
+        Text {
+            id: recText
+            text: "REC"
+            color: "red"
+            font.pixelSize: 30;
+            anchors.left: recCircle.right;
+            anchors.leftMargin: 10;
+            opacity: _recOpacity;
+            y: -8;
+        }       
+        
+        Rectangle {
+            id: recCircle;
+            width: 25;
+            height: 25;
+            radius: width*0.5
+            opacity: _recOpacity;
+            color: "red";
+        }
+    }
+    
     Component.onCompleted: {  
         _steps = AudioScope.getFramesPerScope();
         AudioScope.setTriggerValues(_triggerValues.x, _triggerValues.y-root.height/2);
         activated.checked = true;
+		inputCh.checked = true;
         updateMeasureUnits();
     }
         
     Component.onDestruction: {
+        if (Audio.getRecording()) {
+            stopRecording();
+        }
         AudioScope.setVisible(false);
     }
     
     Connections {
         target: AudioScope
         onPauseChanged: {
-            pauseButton.text = AudioScope.getPause() ? "Continue" : " Pause ";
+            if (!AudioScope.getPause()) {
+                pauseButton.text = "Pause";
+                pauseButton.color = hifi.buttons.black;
+                AudioScope.setTriggered(false);
+                _triggered = false;
+            } else {
+                pauseButton.text = "Continue";
+                pauseButton.color = hifi.buttons.blue;
+            }           
+        }
+        onTriggered: {
+            _triggered = true;
+            collectTriggerData();
+            AudioScope.setPause(true);
         }
     }
 }
