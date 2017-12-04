@@ -1605,6 +1605,25 @@ void EntityItem::setParentID(const QUuid& value) {
         if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
         }
+
+        bool enableNoBootStrapping = false;
+        if (!value.isNull() && tree) {
+            EntityItemPointer entity = tree->findEntityByEntityItemID(value);
+            if (entity) {
+                enableNoBootStrapping = (bool)(entity->getDirtyFlags() & Simulation::NO_BOOTSTRAPPING);
+            }
+        }
+
+        enableNoBootStrapping ? markDirtyFlags(Simulation::NO_BOOTSTRAPPING) : clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            if (object->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                enableNoBootStrapping ? entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING) :
+                    entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+            }
+        });
+
         SpatiallyNestable::setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
