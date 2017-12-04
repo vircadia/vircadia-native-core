@@ -611,17 +611,6 @@ Item {
 		inputCh.checked = true;
         updateMeasureUnits();
     }
-        
-    Component.onDestruction: {
-        if (Audio.getRecording()) {
-            stopRecording();
-        }
-        AudioScope.setVisible(false);
-        AudioScope.setLocalEcho(false);
-        AudioScope.setServerEcho(false);
-        AudioScope.selectAudioScopeFiveFrames();
-        console.log("Component Destroyed");
-    }
     
     Connections {
         target: AudioScope
