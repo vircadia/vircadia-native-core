@@ -47,6 +47,7 @@ Rectangle {
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
+                    commerce.resetLocalWalletOnly();
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
