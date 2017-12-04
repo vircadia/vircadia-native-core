@@ -78,6 +78,7 @@ Overlay {
                 case "imageURL": image.source = value; break;
                 case "subImage": updateSubImage(value); break;
                 case "color": color.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, root.opacity); break;
+                case "bounds": break; // The bounds property is handled in C++.
                 default: console.log("OVERLAY Unhandled image property " + key);
             }
         }
