@@ -239,16 +239,14 @@ void OctreeStatsProvider::updateOctreeStatsData() {
 void OctreeStatsProvider::updateOctreeServers() {
     int serverCount = 0;
 
-    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
-                            qApp->getEntityServerJurisdictions());
+    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity");
     if (m_serversNum != serverCount) {
         m_serversNum = serverCount;
         emit serversNumChanged(m_serversNum);
     }
 }
 
-void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
-                                                  NodeToJurisdictionMap& serverJurisdictions) {
+void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName) {
 
     m_servers.clear();
 
@@ -270,35 +268,7 @@ void OctreeStatsProvider::showOctreeServersOfType(int& serverCount, NodeType_t s
             }
             
             QUuid nodeUUID = node->getUUID();
-            
-            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
-            // missing at least one jurisdiction
-            serverJurisdictions.withReadLock([&] {
-                if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
-                    lesserDetails += " unknown jurisdiction ";
-                    return;
-                }
-                const JurisdictionMap& map = serverJurisdictions[nodeUUID];
 
-                auto rootCode = map.getRootOctalCode();
-
-                if (rootCode) {
-                    QString rootCodeHex = octalCodeToHexString(rootCode.get());
-
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode.get(), rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    lesserDetails += QString(" jurisdiction: %1 [%2, %3, %4: %5]")
-                            .arg(rootCodeHex)
-                            .arg(rootDetails.x)
-                            .arg(rootDetails.y)
-                            .arg(rootDetails.z)
-                            .arg(rootDetails.s);
-                } else {
-                    lesserDetails += " jurisdiction has no rootCode";
-                } // root code
-            });
-            
             // now lookup stats details for this server...
             NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
             sceneStats->withReadLock([&] {

@@ -48,7 +48,7 @@ protected:
     void showAllOctreeServers();
 
     void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
-                    const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
+                    const char* serverTypeName);
 
 private:
 

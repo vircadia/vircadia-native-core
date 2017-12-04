@@ -121,8 +121,7 @@ private slots:
     void updateOctreeStatsData();
 protected:
     void updateOctreeServers();
-    void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
-                    const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
+    void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, const char* serverTypeName);
 
 private:
     NodeToOctreeSceneStats* _model;

@@ -378,8 +378,7 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 void OctreeStatsDialog::showAllOctreeServers() {
     int serverCount = 0;
 
-    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
-            qApp->getEntityServerJurisdictions());
+    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity");
 
     if (_octreeServerLabelsCount > serverCount) {
         for (int i = serverCount; i < _octreeServerLabelsCount; i++) {
@@ -391,8 +390,7 @@ void OctreeStatsDialog::showAllOctreeServers() {
     }
 }
 
-void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
-                                                NodeToJurisdictionMap& serverJurisdictions) {
+void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName) {
                                                 
     QLocale locale(QLocale::English);
     
@@ -423,35 +421,6 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
             }
             
             QUuid nodeUUID = node->getUUID();
-            
-            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
-            // missing at least one jurisdiction
-            serverJurisdictions.withReadLock([&] {
-                if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
-                    serverDetails << " unknown jurisdiction ";
-                    return;
-                } 
-                const JurisdictionMap& map = serverJurisdictions[nodeUUID];
-
-                auto rootCode = map.getRootOctalCode();
-
-                if (rootCode) {
-                    QString rootCodeHex = octalCodeToHexString(rootCode.get());
-
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode.get(), rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverDetails << " jurisdiction: "
-                        << qPrintable(rootCodeHex)
-                        << " ["
-                        << rootDetails.x << ", "
-                        << rootDetails.y << ", "
-                        << rootDetails.z << ": "
-                        << rootDetails.s << "] ";
-                } else {
-                    serverDetails << " jurisdiction has no rootCode";
-                } // root code
-            });
             
             // now lookup stats details for this server...
             if (_extraServerDetails[serverCount-1] != LESS) {
