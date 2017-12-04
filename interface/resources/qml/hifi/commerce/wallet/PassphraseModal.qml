@@ -206,16 +206,6 @@ Item {
                 root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = true;
-                    root.isPasswordField = (passphraseField.echoMode === TextInput.Password);
-                    mouse.accepted = false;
-                }
-            }
-
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
                 commerce.setPassphrase(passphraseField.text);

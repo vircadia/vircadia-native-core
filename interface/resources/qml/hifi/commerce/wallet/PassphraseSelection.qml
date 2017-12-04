@@ -87,15 +87,6 @@ Item {
             }
         }
 
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                var hidePassword = (currentPassphraseField.echoMode === TextInput.Password);
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-                mouse.accepted = false;
-            }
-        }
-
         onAccepted: {
             passphraseField.focus = true;
         }
@@ -114,15 +105,6 @@ Item {
         placeholderText: root.isShowingTip ? "" : "enter new passphrase";
         activeFocusOnPress: true;
         activeFocusOnTab: true;
-
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                var hidePassword = (passphraseField.echoMode === TextInput.Password);
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-                mouse.accepted = false;
-            }
-        }
 
         onFocusChanged: {
             if (focus) {
@@ -150,15 +132,6 @@ Item {
         placeholderText: root.isShowingTip ? "" : "re-enter new passphrase";
         activeFocusOnPress: true;
         activeFocusOnTab: true;
-
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                var hidePassword = (passphraseFieldAgain.echoMode === TextInput.Password);
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-                mouse.accepted = false;
-            }
-        }
 
         onFocusChanged: {
             if (focus) {
