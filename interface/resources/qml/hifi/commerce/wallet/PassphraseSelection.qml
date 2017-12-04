@@ -82,8 +82,6 @@ Item {
             if (focus) {
                 var hidePassword = (currentPassphraseField.echoMode === TextInput.Password);
                 sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-            } else if (!passphraseFieldAgain.focus) {
-                sendSignalToWallet({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 
@@ -110,8 +108,6 @@ Item {
             if (focus) {
                 var hidePassword = (passphraseField.echoMode === TextInput.Password);
                 sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-            } else if (!passphraseFieldAgain.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 
@@ -137,8 +133,6 @@ Item {
             if (focus) {
                 var hidePassword = (passphraseFieldAgain.echoMode === TextInput.Password);
                 sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
-            } else if (!passphraseField.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 
