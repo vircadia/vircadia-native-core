@@ -1,0 +1,162 @@
+label {
+  font-style: normal;
+  font-weight: normal;
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #373A3C;
+}
+
+.step-title {
+  margin-bottom: 20px;
+  line-height: 26px;
+  font-size: 24px;
+
+  color: #373A3C;
+}
+
+.step-description {
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #818A91;
+}
+
+.step-info {
+  font-style: normal;
+  font-weight: normal;
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #373A3C;
+}
+
+.wizard-link {
+  font-size: 16px;
+  font-weight: normal;
+  color: #2F80ED;
+}
+
+#admin-row {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#connect-question {
+  margin-top: 10px;
+}
+
+#connect-account-btn {
+  margin-top: 30px;
+  margin-bottom: 205px;
+}
+
+#place-name-group {
+  margin-top: 42px;
+  margin-bottom: 140px;
+  display: inline-block;
+}
+
+#place-name-link {
+  line-height: 38px;
+  font-size: 32px;
+
+  display: inline-block;
+
+  color: #373A3C;
+}
+
+#place-name-edit {
+  text-align: right;
+}
+
+#change-place-name {
+  line-height: 24px;
+  font-size: 18px;
+}
+
+#rez-options-row {
+  margin-bottom: 60px;
+}
+
+#verify-password-row {
+  margin-bottom: 33px;
+}
+
+.btn.btn-square {
+  border-radius: 0;
+}
+
+.header {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  margin-left: -720px; /* Half of the width */
+  min-width: 1440px;
+  z-index: -1;
+}
+
+.title {
+  font-family: 'Cairo';
+  color: white;
+  margin-top: 260px;
+}
+
+#main-description {
+  margin-top: 32px;
+  margin-bottom: 35px;
+}
+
+#share-box {
+  background-color: rgb(240, 240, 240);
+  padding: 20px 20px;
+  margin-top: 15px;
+  margin-bottom: 70px;
+  white-space: nowrap;
+}
+
+#share-box > span {
+  vertical-align: middle;
+  display: table-cell;
+  height: 100%;
+}
+
+#share-box button {
+  border-color: rgb(225, 225, 225);
+  font-size: 18px;
+}
+
+#share-box img {
+  padding-right: 10px;
+}
+
+#share-text {
+  font-size: 22px;
+  padding-right: 15px;
+}
+
+#share-field {
+  background-color: rgb(255, 255, 255);
+  padding: 0 10px;
+  width: 100%;
+}
+
+#share-link {
+  font-size: 28px;
+}
+
+#congrats-list > div > div {
+  margin-bottom: 30px;
+}
+
+#congrats-list ul {
+  padding-left: 16px;
+}
+
+#congrats-list {
+  margin-bottom: 60px;
+}
+
+#open-settings {
+  border-color: black;
+}

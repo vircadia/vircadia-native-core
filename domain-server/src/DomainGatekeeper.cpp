@@ -184,6 +184,11 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #ifdef WANT_DEBUG
             qDebug() << "|  user-permissions: specific MAC matches, so:" << userPerms;
 #endif
+        } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
+            userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
+#ifdef WANT_DEBUG
+            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+#endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
             userPerms = _server->_settingsManager.getPermissionsForIP(senderAddress);
@@ -814,9 +819,15 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMe
 
 void DomainGatekeeper::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
 
-    limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    // before we respond to this ICE ping packet, make sure we have a peer in the list that matches
+    QUuid icePeerID = QUuid::fromRfc4122({ message->getRawMessage(), NUM_BYTES_RFC4122_UUID });
+    
+    if (_icePeers.contains(icePeerID)) {
+        auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
+
+        limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    }
 }
 
 void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {

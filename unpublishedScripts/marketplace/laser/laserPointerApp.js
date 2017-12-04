@@ -99,7 +99,6 @@
                 lifetime: 360,
                 type: 'Line',
                 glow: 1.0,
-                lineWidth: 5,
                 alpha: 0.5,
                 ignoreRayIntersection: true,
                 drawInFront: true,

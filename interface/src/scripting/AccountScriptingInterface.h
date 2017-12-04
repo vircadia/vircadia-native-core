@@ -24,6 +24,21 @@ class AccountScriptingInterface : public QObject {
     Q_PROPERTY(QString username READ getUsername)
     Q_PROPERTY(bool loggedIn READ loggedIn)
 
+public:
+
+    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
+    QUrl getMetaverseServerURL() { return DependencyManager::get<AccountManager>()->getMetaverseServerURL(); }
+
+signals:
+
+    /**jsdoc
+     * Triggered when username has changed.
+     * @function Account.usernameChanged
+     * @return {Signal}
+     */
+    void usernameChanged();
+    void loggedInChanged(bool loggedIn);
+
 public slots:
     static AccountScriptingInterface* getInstance();
 

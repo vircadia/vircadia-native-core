@@ -21,8 +21,7 @@ enum EntityPropertyList {
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
-    PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
-    PROP_DIMENSIONS = PROP_RADIUS,
+    PROP_DIMENSIONS,
     PROP_ROTATION,
     PROP_DENSITY,
     PROP_VELOCITY,
@@ -47,13 +46,13 @@ enum EntityPropertyList {
     PROP_ANGULAR_VELOCITY,
     PROP_ANGULAR_DAMPING,
     PROP_COLLISIONLESS,
-    PROP_DYNAMIC,
+    PROP_DYNAMIC, // 24
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
     PROP_DIFFUSE_COLOR,
-    PROP_AMBIENT_COLOR_UNUSED,
-    PROP_SPECULAR_COLOR_UNUSED,
+    PROP_AMBIENT_COLOR_UNUSED, // FIXME - No longer used, can remove and bump protocol
+    PROP_SPECULAR_COLOR_UNUSED, // FIXME - No longer used, can remove and bump protocol
     PROP_INTENSITY, // Previously PROP_CONSTANT_ATTENUATION
     PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_QUADRATIC_ATTENUATION_UNUSED,
@@ -61,30 +60,30 @@ enum EntityPropertyList {
     PROP_CUTOFF,
 
     // available to all entities
-    PROP_LOCKED,
+    PROP_LOCKED,  // 34
 
     PROP_TEXTURES,  // used by Model entities
-    PROP_ANIMATION_SETTINGS,  // used by Model entities
-    PROP_USER_DATA,  // all entities
+    PROP_ANIMATION_SETTINGS_UNUSED,  // FIXME - No longer used, can remove and bump protocol
+    PROP_USER_DATA,  // all entities -- 37
     PROP_SHAPE_TYPE, // used by Model + zones entities
 
     // used by ParticleEffect entities
-    PROP_MAX_PARTICLES,
-    PROP_LIFESPAN,
+    PROP_MAX_PARTICLES, // 39
+    PROP_LIFESPAN, // 40 -- used by all entities
     PROP_EMIT_RATE,
     PROP_EMIT_SPEED,
     PROP_EMIT_STRENGTH,
-    PROP_EMIT_ACCELERATION,
-    PROP_PARTICLE_RADIUS,
+    PROP_EMIT_ACCELERATION, // FIXME - doesn't seem to get set in mark all changed????
+    PROP_PARTICLE_RADIUS,  // 45!!
 
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
     PROP_MARKETPLACE_ID, // all entities
     PROP_ACCELERATION, // all entities
     PROP_SIMULATION_OWNER, // formerly known as PROP_SIMULATOR_ID
-    PROP_NAME, // all entities
+    PROP_NAME, // all entities -- 50
     PROP_COLLISION_SOUND_URL,
     PROP_RESTITUTION,
-    PROP_FRICTION,
+    PROP_FRICTION, // 53
 
     PROP_VOXEL_VOLUME_SIZE,
     PROP_VOXEL_DATA,
@@ -96,7 +95,7 @@ enum EntityPropertyList {
 
     // used by hyperlinks
     PROP_HREF,
-    PROP_DESCRIPTION,
+    PROP_DESCRIPTION, // 61
 
     PROP_FACE_CAMERA,
     PROP_SCRIPT_TIMESTAMP,
@@ -202,6 +201,24 @@ enum EntityPropertyList {
     PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
 
+    PROP_HAZE_MODE,
+
+    PROP_HAZE_RANGE,
+    PROP_HAZE_COLOR,
+    PROP_HAZE_GLARE_COLOR,
+    PROP_HAZE_ENABLE_GLARE,
+    PROP_HAZE_GLARE_ANGLE,
+
+    PROP_HAZE_ALTITUDE_EFFECT,
+    PROP_HAZE_CEILING,
+    PROP_HAZE_BASE_REF,
+
+    PROP_HAZE_BACKGROUND_BLEND,
+
+    PROP_HAZE_ATTENUATE_KEYLIGHT,
+    PROP_HAZE_KEYLIGHT_RANGE,
+    PROP_HAZE_KEYLIGHT_ALTITUDE,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -233,24 +250,6 @@ enum EntityPropertyList {
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
     PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
-
-    PROP_HAZE_MODE = PROP_COLOR,
-
-    PROP_HAZE_RANGE = PROP_INTENSITY,
-    PROP_HAZE_COLOR = PROP_CUTOFF,
-    PROP_HAZE_GLARE_COLOR = PROP_EXPONENT,
-    PROP_HAZE_ENABLE_GLARE = PROP_IS_SPOTLIGHT,
-    PROP_HAZE_GLARE_ANGLE = PROP_DIFFUSE_COLOR,
-    
-    PROP_HAZE_ALTITUDE_EFFECT = PROP_AMBIENT_COLOR_UNUSED,
-    PROP_HAZE_CEILING = PROP_SPECULAR_COLOR_UNUSED,
-    PROP_HAZE_BASE_REF = PROP_LINEAR_ATTENUATION_UNUSED,
-
-    PROP_HAZE_BACKGROUND_BLEND = PROP_QUADRATIC_ATTENUATION_UNUSED,
-
-    PROP_HAZE_ATTENUATE_KEYLIGHT = PROP_ANIMATION_FRAME_INDEX,
-    PROP_HAZE_KEYLIGHT_RANGE = PROP_MODEL_URL,
-    PROP_HAZE_KEYLIGHT_ALTITUDE = PROP_ANIMATION_URL,
 
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,

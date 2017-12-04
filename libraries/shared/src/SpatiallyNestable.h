@@ -78,39 +78,35 @@ public:
 
     virtual Transform getParentTransform(bool& success, int depth = 0) const;
 
-    virtual glm::vec3 getPosition(bool& success) const;
-    virtual glm::vec3 getPosition() const;
-    virtual void setPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
-    virtual void setPosition(const glm::vec3& position);
+    virtual glm::vec3 getWorldPosition(bool& success) const;
+    virtual glm::vec3 getWorldPosition() const;
+    virtual void setWorldPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
+    virtual void setWorldPosition(const glm::vec3& position);
 
-    virtual glm::quat getOrientation(bool& success) const;
-    virtual glm::quat getOrientation() const;
-    virtual glm::quat getOrientation(int jointIndex, bool& success) const;
-    virtual void setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
-    virtual void setOrientation(const glm::quat& orientation);
+    virtual glm::quat getWorldOrientation(bool& success) const;
+    virtual glm::quat getWorldOrientation() const;
+    virtual glm::quat getWorldOrientation(int jointIndex, bool& success) const;
+    virtual void setWorldOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
+    virtual void setWorldOrientation(const glm::quat& orientation);
 
-    // these are here because some older code uses rotation rather than orientation
-    virtual const glm::quat getRotation() const { return getOrientation(); }
-    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
-
-    virtual glm::vec3 getVelocity(bool& success) const;
-    virtual glm::vec3 getVelocity() const;
-    virtual void setVelocity(const glm::vec3& velocity, bool& success);
-    virtual void setVelocity(const glm::vec3& velocity);
+    virtual glm::vec3 getWorldVelocity(bool& success) const;
+    virtual glm::vec3 getWorldVelocity() const;
+    virtual void setWorldVelocity(const glm::vec3& velocity, bool& success);
+    virtual void setWorldVelocity(const glm::vec3& velocity);
     virtual glm::vec3 getParentVelocity(bool& success) const;
 
-    virtual glm::vec3 getAngularVelocity(bool& success) const;
-    virtual glm::vec3 getAngularVelocity() const;
-    virtual void setAngularVelocity(const glm::vec3& angularVelocity, bool& success);
-    virtual void setAngularVelocity(const glm::vec3& angularVelocity);
+    virtual glm::vec3 getWorldAngularVelocity(bool& success) const;
+    virtual glm::vec3 getWorldAngularVelocity() const;
+    virtual void setWorldAngularVelocity(const glm::vec3& angularVelocity, bool& success);
+    virtual void setWorldAngularVelocity(const glm::vec3& angularVelocity);
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
-    bool checkAndMaybeUpdateQueryAACube();
-    void updateQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
+    virtual bool shouldPuffQueryAACube() const { return false; }
+    bool updateQueryAACube();
     void forceQueryAACubeUpdate() { _queryAACubeSet = false; }
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
@@ -122,7 +118,7 @@ public:
 
     // get world-frame values for a specific joint
     virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
-    virtual glm::vec3 getPosition(int jointIndex, bool& success) const;
+    virtual glm::vec3 getWorldPosition(int jointIndex, bool& success) const;
     virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame
@@ -234,6 +230,7 @@ private:
     glm::vec3 _angularVelocity;
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
+    bool _queryAACubeIsPuffed { false };
 };
 
 

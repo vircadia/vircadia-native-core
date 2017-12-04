@@ -74,9 +74,9 @@ public:
     static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
-    void setMouseRayPickID(QUuid rayPickID) { _mouseRayPickID = rayPickID; }
-    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(QUuid)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
-    void setSetPrecisionPickingOperator(std::function<void(QUuid, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
+    void setMouseRayPickID(unsigned int rayPickID) { _mouseRayPickID = rayPickID; }
+    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(unsigned int)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
+    void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
     void update(bool simulate);
@@ -117,21 +117,6 @@ public:
     void onEntityChanged(const EntityItemID& id);
 
 signals:
-    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mousePressOffEntity();
-    void mouseDoublePressOffEntity();
-
-    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
-    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -159,7 +144,7 @@ protected:
 
 private:
     void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
-    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
@@ -197,9 +182,9 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    QUuid _mouseRayPickID;
-    std::function<RayToEntityIntersectionResult(QUuid)> _getPrevRayPickResultOperator;
-    std::function<void(QUuid, bool)> _setPrecisionPickingOperator;
+    unsigned int _mouseRayPickID;
+    std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
+    std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
 
     class LayeredZone {
     public:
@@ -250,11 +235,12 @@ private:
     NetworkTexturePointer _skyboxTexture;
     QString _ambientTextureURL;
     QString _skyboxTextureURL;
+    float _avgRenderableUpdateCost { 0.0f };
     bool _pendingAmbientTexture { false };
     bool _pendingSkyboxTexture { false };
 
-    quint64 _lastZoneCheck { 0 };
-    const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
+    uint64_t _lastZoneCheck { 0 };
+    const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
 
     ReadWriteLockable _changedEntitiesGuard;

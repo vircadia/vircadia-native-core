@@ -241,7 +241,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "                  position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
@@ -330,103 +330,3 @@ void ZoneEntityItem::setHazeMode(const uint32_t value) {
 uint32_t ZoneEntityItem::getHazeMode() const {
     return _hazeMode;
 }
-
-void ZoneEntityItem::setHazeRange(const float hazeRange) {
-    _hazeRange = hazeRange;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeRange() const {
-    return _hazeRange;
-}
-
-void ZoneEntityItem::setHazeColor(const xColor hazeColor) {
-    _hazeColor = hazeColor;
-    _hazePropertiesChanged = true;
-}
-
-xColor ZoneEntityItem::getHazeColor() const {
-    return _hazeColor;
-}
-
-void ZoneEntityItem::setHazeGlareColor(const xColor hazeGlareColor) {
-    _hazeGlareColor = hazeGlareColor;
-    _hazePropertiesChanged = true;
-}
-
-xColor ZoneEntityItem::getHazeGlareColor()const {
-    return _hazeGlareColor;
-}
-
-void ZoneEntityItem::setHazeEnableGlare(const bool hazeEnableGlare) {
-    _hazeEnableGlare = hazeEnableGlare;
-    _hazePropertiesChanged = true;
-}
-
-bool ZoneEntityItem::getHazeEnableGlare()const {
-    return _hazeEnableGlare;
-}
-
-void ZoneEntityItem::setHazeGlareAngle(const float hazeGlareAngle) {
-    _hazeGlareAngle = hazeGlareAngle;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeGlareAngle() const {
-    return _hazeGlareAngle;
-}
-
-void ZoneEntityItem::setHazeCeiling(const float hazeCeiling) {
-    _hazeCeiling = hazeCeiling;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeCeiling() const {
-    return _hazeCeiling;
-}
-
-void ZoneEntityItem::setHazeBaseRef(const float hazeBaseRef) {
-    _hazeBaseRef = hazeBaseRef;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeBaseRef() const {
-    return _hazeBaseRef;
-}
-
-void ZoneEntityItem::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
-    _hazeBackgroundBlend = hazeBackgroundBlend;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeBackgroundBlend() const {
-    return _hazeBackgroundBlend;
-}
-
-void ZoneEntityItem::setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight) {
-    _hazeAttenuateKeyLight = hazeAttenuateKeyLight;
-    _hazePropertiesChanged = true;
-}
-
-bool ZoneEntityItem::getHazeAttenuateKeyLight() const {
-    return _hazeAttenuateKeyLight;
-}
-
-void ZoneEntityItem::setHazeKeyLightRange(const float hazeKeyLightRange) {
-    _hazeKeyLightRange = hazeKeyLightRange;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeKeyLightRange() const {
-    return _hazeKeyLightRange;
-}
-
-void ZoneEntityItem::setHazeKeyLightAltitude(const float hazeKeyLightAltitude) {
-    _hazeKeyLightAltitude = hazeKeyLightAltitude;
-    _hazePropertiesChanged = true;
-}
-
-float ZoneEntityItem::getHazeKeyLightAltitude() const {
-    return _hazeKeyLightAltitude;
-}
-

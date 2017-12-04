@@ -19,6 +19,7 @@
 
 #include "InjectedAudioStream.h"
 
+#include "AudioLogging.h"
 #include "AudioHelpers.h"
 #include "AudioMixer.h"
 #include "AudioMixerClientData.h"
@@ -132,7 +133,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
             if (PacketTypeEnum::getReplicatedPacketMapping().key(message.getType()) != PacketType::Unknown) {
                 mirroredType = message.getType();
             } else {
-                qDebug() << "Packet passed to optionallyReplicatePacket was not a replicatable type - returning";
+                qCDebug(audio) << "Packet passed to optionallyReplicatePacket was not a replicatable type - returning";
                 return;
             }
         }
@@ -189,8 +190,16 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
     uint8_t packedGain;
     message.readPrimitive(&packedGain);
     float gain = unpackFloatGainFromByte(packedGain);
-    hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
-    qDebug() << "Setting gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+
+    if (avatarUuid.isNull()) {
+        // set the MASTER avatar gain
+        setMasterAvatarGain(gain);
+        qCDebug(audio) << "Setting MASTER avatar gain for " << uuid << " to " << gain;
+    } else {
+        // set the per-source avatar gain
+        hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+        qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+    }
 }
 
 void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
@@ -276,7 +285,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
-                qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
+                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
                 connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
                         this, &AudioMixerClientData::handleMismatchAudioFormat);
@@ -315,7 +324,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
 #if INJECTORS_SUPPORT_CODECS
                 injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
-                qDebug() << "creating new injectorStream... codec:" << _selectedCodecName;
+                qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName;
 #endif
 
                 auto emplaced = _audioStreams.emplace(
@@ -339,8 +348,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         auto parseResult = matchingStream->parseData(message);
 
         if (matchingStream->getOverflowCount() > overflowBefore) {
-            qDebug() << "Just overflowed on stream from" << message.getSourceID() << "at" << message.getSenderSockAddr();
-            qDebug() << "This stream is for" << (isMicStream ? "microphone audio" : "injected audio");
+            qCDebug(audio) << "Just overflowed on stream from" << message.getSourceID() << "at" << message.getSenderSockAddr();
+            qCDebug(audio) << "This stream is for" << (isMicStream ? "microphone audio" : "injected audio");
         }
 
         return parseResult;
@@ -689,7 +698,7 @@ void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedM
     auto codecString = message->readString();
 
     if (codecString != _selectedCodecName) {
-        qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
+        qCDebug(audio) << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
         << "-" << codecString;
 
         const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });

@@ -3,6 +3,7 @@
 //  interface/src/ui/overlays
 //
 //  Created by Zander Otavka on 8/7/15.
+//  Modified by Daniela Fontes on 24/10/17.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -13,6 +14,7 @@
 
 #include <Application.h>
 #include <Transform.h>
+#include "avatar/AvatarManager.h"
 
 void Billboardable::setProperties(const QVariantMap& properties) {
     auto isFacingAvatar = properties["isFacingAvatar"];
@@ -32,10 +34,11 @@ bool Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offse
     if (isFacingAvatar()) {
         glm::vec3 billboardPos = transform.getTranslation();
         glm::vec3 cameraPos = qApp->getCamera().getPosition();
-        glm::vec3 look = cameraPos - billboardPos;
-        float elevation = -asinf(look.y / glm::length(look));
-        float azimuth = atan2f(look.x, look.z);
-        glm::quat rotation(glm::vec3(elevation, azimuth, 0));
+        // use the referencial from the avatar, y isn't always up
+        glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation()*Vectors::UP;
+        
+        glm::quat rotation(conjugate(toQuat(glm::lookAt(cameraPos, billboardPos, avatarUP))));
+        
         transform.setRotation(rotation);
         transform.postRotate(offsetRotation);
         return true;

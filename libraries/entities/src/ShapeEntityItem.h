@@ -34,7 +34,6 @@ namespace entity {
     ::QString stringFromShape(Shape shape);
 }
 
-
 class ShapeEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<ShapeEntityItem>;
     static Pointer baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -42,6 +41,9 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    using ShapeInfoCalculator = std::function<void( const ShapeEntityItem * const shapeEntity, ShapeInfo& info)>;
+    static void setShapeInfoCalulator(ShapeInfoCalculator callback);
 
     ShapeEntityItem(const EntityItemID& entityItemID);
 
@@ -77,6 +79,8 @@ public:
 
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
+
+	void setDimensions(const glm::vec3& value) override;
 
     xColor getXColor() const;
     void setColor(const xColor& value);

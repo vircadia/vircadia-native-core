@@ -35,16 +35,17 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
-#include "OutlineEffect.h"
+#include "BloomEffect.h"
+#include "HighlightEffect.h"
 
-#include <gpu/StandardShaderLib.h>
-
+#include <sstream>
 
 using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
@@ -56,6 +57,18 @@ RenderDeferredTask::RenderDeferredTask()
 
 void RenderDeferredTask::configure(const Config& config)
 {
+}
+
+const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
+                                                            const render::Varying& metas, 
+                                                            const render::Varying& opaques, 
+                                                            const render::Varying& transparents) {
+    const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
+    const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
+    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, std::string()).asVarying();
+    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput, selectionName);
+    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, std::string()).asVarying();
+    return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -94,15 +107,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
-
-    // Select items that need to be outlined
-    const auto selectionName = "contextOverlayHighlightList";
-    const auto selectMetaInput = SelectItems::Inputs(metas, Varying()).asVarying();
-    const auto selectedMetas = task.addJob<SelectItems>("PassTestMetaSelection", selectMetaInput, selectionName);
-    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas).asVarying();
-    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("PassTestOpaqueSelection", selectMetaAndOpaqueInput, selectionName);
-    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques).asVarying();
-    const auto selectedItems = task.addJob<SelectItems>("PassTestTransparentSelection", selectItemInput, selectionName);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
@@ -163,7 +167,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    // LIght Cluster Grid Debuging job
+    // Light Cluster Grid Debuging job
     {
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
@@ -174,22 +178,39 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
+    // Add bloom
+    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
+    task.addJob<Bloom>("Bloom", bloomInputs);
+
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
-    const auto outlineInputs = DrawOutlineTask::Inputs(selectedItems, shapePlumber, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
-    task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
-    task.addJob<EndGPURangeTimer>("EndOutlineRangeTimer", outlineRangeTimer);
+    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
+    // Select items that need to be outlined
+    const auto selectionBaseName = "contextOverlayHighlightList";
+    const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
 
-    { // DEbug the bounds of the rendered items, still look at the zbuffer
+    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
+
+    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
+
+    { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
+        const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums");
+        const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
+        const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_FRUSTUM);
+        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(1.0f, 1.0f, 0.0f));
+        task.addJob<DrawFrustum>("DrawShadowFrustum", shadowFrustum, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
+        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
     // Layered Overlays
@@ -236,9 +257,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         }
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
-        
-        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
-        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
     // AA job to be revisited
@@ -438,10 +456,15 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
+    // We do not want to render HUD elements in secondary camera
+    if (renderContext->args->_renderMode == RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) {
+        return;
+    }
+
     // Grab the HUD texture
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
         if (renderContext->args->_hudOperator) {
-            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture);
+            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
     });
 }
@@ -454,6 +477,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     auto blitFbo = renderArgs->_blitFramebuffer;
 
     if (!blitFbo) {
+        qCWarning(renderutils) << "Blit::run - no blit frame buffer.";
         return;
     }
 
@@ -516,3 +540,32 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
+void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Output& output) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    RenderArgs* args = renderContext->args;
+
+    // Return view frustum
+    auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
+    if (!viewFrustum) {
+        viewFrustum = std::make_shared<ViewFrustum>(args->getViewFrustum());
+    } else {
+        *viewFrustum = args->getViewFrustum();
+    }
+
+    // Return shadow frustum
+    auto& shadowFrustum = output[SHADOW_FRUSTUM].edit<ViewFrustumPointer>();
+    auto lightStage = args->_scene->getStage<LightStage>(LightStage::getName());
+    if (lightStage) {
+        auto globalShadow = lightStage->getCurrentKeyShadow();
+
+        if (globalShadow) {
+            shadowFrustum = globalShadow->getFrustum();
+        } else {
+            shadowFrustum.reset();
+        }
+    } else {
+        shadowFrustum.reset();
+    }
+}

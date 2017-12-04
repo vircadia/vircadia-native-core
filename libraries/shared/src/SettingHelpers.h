@@ -14,12 +14,13 @@
 
 #include <QSettings>
 
+extern const QSettings::Format JSON_FORMAT;
+
+QString settingsFilename();
+
 bool readJSONFile(QIODevice& device, QSettings::SettingsMap& map);
 bool writeJSONFile(QIODevice& device, const QSettings::SettingsMap& map);
 
-static const auto JSON_FORMAT = QSettings::registerFormat("json", readJSONFile, writeJSONFile);
-
 void loadOldINIFile(QSettings& settings);
-
 
 #endif // hifi_SettingHelpers_h

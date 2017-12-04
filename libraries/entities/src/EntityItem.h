@@ -36,9 +36,6 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
-// FIXME: The server-side marketplace will soon create the certificateID. At that point, all of the DEBUG_CERT stuff will go away.
-#define DEBUG_CERT 1
-
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -195,7 +192,7 @@ public:
 
     float getDensity() const;
 
-    bool hasVelocity() const { return getVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasVelocity() const { return getWorldVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalVelocity() const { return getLocalVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     glm::vec3 getGravity() const; /// get gravity in meters
@@ -240,6 +237,7 @@ public:
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
+    virtual bool shouldPuffQueryAACube() const override;
 
     QString getScript() const;
     void setScript(const QString& value);
@@ -256,10 +254,12 @@ public:
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value);
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
 
-    bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+
+    virtual void setAngularVelocity(const glm::vec3& angularVelocity);
 
     float getAngularDamping() const;
     void setAngularDamping(float value);
@@ -272,6 +272,8 @@ public:
     void setVisible(bool value);
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
+
+    bool isChildOfMyAvatar() const;
 
     bool getCollisionless() const;
     void setCollisionless(bool value);
@@ -288,10 +290,9 @@ public:
 
     bool getLocked() const;
     void setLocked(bool value);
-    void updateLocked(bool value);
 
     QString getUserData() const;
-    virtual void setUserData(const QString& value);
+    virtual void setUserData(const QString& value); // FIXME: This is suspicious
 
     // FIXME not thread safe?
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
@@ -301,7 +302,6 @@ public:
 
     quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
-    void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
@@ -328,12 +328,6 @@ public:
     void setEntityInstanceNumber(const quint32&);
     QString getCertificateID() const;
     void setCertificateID(const QString& value);
-    QByteArray getStaticCertificateJSON() const;
-    QByteArray getStaticCertificateHash() const;
-    bool verifyStaticCertificateProperties();
-#ifdef DEBUG_CERT
-    QString computeCertificateID();
-#endif
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -350,31 +344,12 @@ public:
 
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
-    // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    virtual void updateRegistrationPoint(const glm::vec3& value);
-    void updatePosition(const glm::vec3& value);
-    void updateParentID(const QUuid& value);
-    void updatePositionFromNetwork(const glm::vec3& value);
-    void updateDimensions(const glm::vec3& value);
-    void updateRotation(const glm::quat& rotation);
-    void updateRotationFromNetwork(const glm::quat& rotation);
-    void updateDensity(float value);
-    void updateMass(float value);
-    void updateVelocity(const glm::vec3& value);
-    void updateVelocityFromNetwork(const glm::vec3& value);
-    void updateDamping(float value);
-    void updateRestitution(float value);
-    void updateFriction(float value);
-    void updateGravity(const glm::vec3& value);
-    void updateAngularVelocity(const glm::vec3& value);
-    void updateAngularVelocityFromNetwork(const glm::vec3& value);
-    void updateAngularDamping(float value);
-    void updateCollisionless(bool value);
-    void updateCollisionMask(uint8_t value);
-    void updateDynamic(bool value);
-    void updateLifetime(float value);
-    void updateCreated(uint64_t value);
+    void setPosition(const glm::vec3& value);
+    virtual void setParentID(const QUuid& parentID) override;
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
+
+    void setRotation(glm::quat orientation);
+    void setVelocity(const glm::vec3& velocity);
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);
@@ -484,6 +459,9 @@ public:
     ChangeHandlerId registerChangeHandler(const ChangeHandlerCallback& handler);
     void deregisterChangeHandler(const ChangeHandlerId& changeHandlerId);
 
+    static QString _marketplacePublicKey;
+    static void retrieveMarketplacePublicKey();
+
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
 
@@ -580,12 +558,6 @@ protected:
     // damping = 1 - exp(-1 / timescale)
     //
 
-    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to
-    //       parse old data streams
-
-    /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
-    void setRadius(float value);
-
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
@@ -629,12 +601,14 @@ protected:
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
+    AACube _lastUpdatedQueryAACubeValue;
 
     quint64 _lastUpdatedPositionTimestamp { 0 };
     quint64 _lastUpdatedRotationTimestamp { 0 };
     quint64 _lastUpdatedVelocityTimestamp { 0 };
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
+    quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
 };
 

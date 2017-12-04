@@ -13,12 +13,18 @@
 #include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
-
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/ecdsa.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
-
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -84,28 +90,11 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {
-    "none",
-    "box",
-    "sphere",
-    "capsule-x",
-    "capsule-y",
-    "capsule-z",
-    "cylinder-x",
-    "cylinder-y",
-    "cylinder-z",
-    "hull",
-    "plane",
-    "compound",
-    "simple-hull",
-    "simple-compound",
-    "static-mesh"
-};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
 void addShapeType(ShapeType type) {
-    stringToShapeTypeLookup[shapeTypeNames[type]] = type;
+    stringToShapeTypeLookup[ShapeInfo::getNameForShapeType(type)] = type;
 }
 
 void buildStringToShapeTypeLookup() {
@@ -180,9 +169,7 @@ void EntityItemProperties::setCollisionMaskFromString(const QString& maskString)
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
-    if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
-        return QString(shapeTypeNames[_shapeType]);
-    return QString(shapeTypeNames[SHAPE_TYPE_NONE]);
+    return ShapeInfo::getNameForShapeType(_shapeType);
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
@@ -1231,8 +1218,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                                  QByteArray& buffer) {
+OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+                QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties) {
+
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -1274,16 +1262,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         QByteArray encodedUpdateDelta = updateDeltaCoder;
 
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
-        EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
-
-        // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
-        //
-        // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
-        // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-        //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
-        //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
-        //}
 
         LevelDetails entityLevel = packetData->startLevel();
 
@@ -1312,7 +1291,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         int propertyCount = 0;
 
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
-        && successLastUpdatedFits && successPropertyFlagsFits;
+                && successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1326,7 +1305,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
@@ -1482,6 +1461,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1532,12 +1512,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-            // TODO: handle mechanism for handling partial fitting data!
-            // add this item into our list for the next appendElementData() pass
-            //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-
-            // for now, if it's not complete, it's not successful
-            success = false;
+            didntFitProperties = propertiesDidntFit;
         }
     }
 
@@ -1553,11 +1528,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             success = false;
+            appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
+            // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-    return success;
+
+
+    return appendState;
 }
 
 QByteArray EntityItemProperties::getPackedNormals() const {
@@ -1683,7 +1662,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
@@ -2489,4 +2468,116 @@ bool EntityItemProperties::parentRelatedPropertyChanged() const {
 
 bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
     return parentRelatedPropertyChanged() || dimensionsChanged();
+}
+
+// Checking Certifiable Properties
+#define ADD_STRING_PROPERTY(n, N) if (!get##N().isEmpty()) json[#n] = get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (get##N() != 0) json[#n] = (get##N() == (quint32) -1) ? -1.0 : ((double) get##N())
+QByteArray EntityItemProperties::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+
+    QJsonObject json;
+    if (!getAnimation().getURL().isEmpty()) {
+        json["animationURL"] = getAnimation().getURL();
+    }
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicenseUrl, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
+QByteArray EntityItemProperties::getStaticCertificateHash() const {
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
+}
+
+// FIXME: This is largely copied from EntityItemProperties::verifyStaticCertificateProperties, which should be refactored to use this.
+// I also don't like the nested-if style, but for this step I'm deliberately preserving the similarity.
+bool EntityItemProperties::verifySignature(const QString& publicKey, const QByteArray& digestByteArray, const QByteArray& signatureByteArray) {
+
+    if (digestByteArray.isEmpty()) {
+        return false;
+    }
+
+    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    int keyLength = publicKey.length();
+
+    BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    if (evp_key) {
+        EC_KEY* ec = EVP_PKEY_get1_EC_KEY(evp_key);
+        if (ec) {
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
+            bool answer = ECDSA_verify(0,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                ec);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+                    << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
+            EC_KEY_free(ec);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        } else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC key error:" << error_str;
+            return false;
+        }
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC PEM error:" << error_str;
+        return false;
+    }
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IFF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+    return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }

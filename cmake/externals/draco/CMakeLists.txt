@@ -13,7 +13,7 @@ ExternalProject_Add(
   ${EXTERNAL_NAME}
   URL http://hifi-public.s3.amazonaws.com/dependencies/draco-1.1.0.zip
   URL_MD5 208f8b04c91d5f1c73d731a3ea37c5bb
-  CONFIGURE_COMMAND CMAKE_ARGS  ${ANDROID_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> ${EXTRA_CMAKE_FLAGS}
+  CONFIGURE_COMMAND CMAKE_ARGS  ${ANDROID_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>-$<CONFIG> ${EXTRA_CMAKE_FLAGS}
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
@@ -23,10 +23,11 @@ ExternalProject_Add(
 set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
+set(SUFFIXED_INSTALL_DIR "${INSTALL_DIR}-$<CONFIG>")
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of Draco include directories")
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SUFFIXED_INSTALL_DIR}/include CACHE PATH "List of Draco include directories")
 
 if (UNIX)
   set(LIB_PREFIX "lib")
@@ -35,6 +36,6 @@ elseif (WIN32)
   set(LIB_EXT "lib")
 endif ()
 
-set(${EXTERNAL_NAME_UPPER}_LIBRARY ${INSTALL_DIR}/lib/${LIB_PREFIX}draco.${LIB_EXT} CACHE FILEPATH "Path to Draco release library")
-set(${EXTERNAL_NAME_UPPER}_ENCODER_LIBRARY ${INSTALL_DIR}/lib/${LIB_PREFIX}dracoenc.${LIB_EXT} CACHE FILEPATH "Path to Draco encoder release library")
-set(${EXTERNAL_NAME_UPPER}_DECODER_LIBRARY ${INSTALL_DIR}/lib/${LIB_PREFIX}dracodec.${LIB_EXT} CACHE FILEPATH "Path to Draco decoder release library")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY ${SUFFIXED_INSTALL_DIR}/lib/${LIB_PREFIX}draco.${LIB_EXT} CACHE FILEPATH "Path to Draco release library")
+set(${EXTERNAL_NAME_UPPER}_ENCODER_LIBRARY ${SUFFIXED_INSTALL_DIR}/lib/${LIB_PREFIX}dracoenc.${LIB_EXT} CACHE FILEPATH "Path to Draco encoder release library")
+set(${EXTERNAL_NAME_UPPER}_DECODER_LIBRARY ${SUFFIXED_INSTALL_DIR}/lib/${LIB_PREFIX}dracodec.${LIB_EXT} CACHE FILEPATH "Path to Draco decoder release library")

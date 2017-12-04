@@ -85,7 +85,7 @@ class Overlays : public QObject {
     Q_PROPERTY(OverlayID keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
 
 public:
-    Overlays() {};
+    Overlays();
 
     void init();
     void update(float deltatime);
@@ -298,12 +298,19 @@ public slots:
     void sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
-    void sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event);
+    void sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID id);
+    void setKeyboardFocusOverlay(const OverlayID& id);
+
+    void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverEnterPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
 
 signals:
     /**jsdoc

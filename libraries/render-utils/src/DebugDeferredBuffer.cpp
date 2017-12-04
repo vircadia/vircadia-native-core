@@ -11,7 +11,8 @@
 
 #include "DebugDeferredBuffer.h"
 
-#include <QFile>
+#include <QtCore/QFile>
+#include <QtCore/QDateTime>
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -435,7 +436,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getLightAndShadow(0);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Shadow, globalShadow->map);
