@@ -376,7 +376,7 @@ Item {
         anchors.leftMargin: 20;
         checked: AudioScope.getVisible();
         onCheckedChanged: {     
-            AudioScope.setVisible(!AudioScope.getVisible());
+            AudioScope.setVisible(checked);
             activelabel.text = AudioScope.getVisible() ? "On" : "Off"
         }
     }
@@ -617,6 +617,10 @@ Item {
             stopRecording();
         }
         AudioScope.setVisible(false);
+        AudioScope.setLocalEcho(false);
+        AudioScope.setServerEcho(false);
+        AudioScope.selectAudioScopeFiveFrames();
+        console.log("Component Destroyed");
     }
     
     Connections {
