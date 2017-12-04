@@ -1834,7 +1834,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             }
         }
 
-        if (_dirtyFlags & Simulation::NO_BOOTSTRAPPING) {
+        if ((bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
         mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
@@ -2028,7 +2028,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-        if (stillHasGrabActions() && !(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
+        if (stillHasGrabActions()) {
             _dirtyFlags |= Simulation::NO_BOOTSTRAPPING;
             forEachDescendant([&](SpatiallyNestablePointer child) {
                 if (child->getNestableType() == NestableType::Entity) {
@@ -2036,7 +2036,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
                     entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING | Simulation::DIRTY_COLLISION_GROUP);
                 }
             });
-        } else if (_dirtyFlags & Simulation::NO_BOOTSTRAPPING) {
+        } else if ((bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
             forEachDescendant([&](SpatiallyNestablePointer child) {
                 if (child->getNestableType() == NestableType::Entity) {
