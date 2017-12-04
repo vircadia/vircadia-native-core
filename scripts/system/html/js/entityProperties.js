@@ -455,7 +455,7 @@ function saveJSONUserData(noUpdate) {
     savedJSONTimer = setTimeout(function() {
         $('#userdata-saved').hide();
 
-    }, 1500);
+    }, EDITOR_TIMEOUT_DURATION);
 }
 
 function bindAllNonJSONEditorElements() {
@@ -747,12 +747,12 @@ function loaded() {
 
                         for (var i = 0; i < selections.length; i++) {
                             ids.push(selections[i].id);
-                            var curSelectedType = selections[i].properties.type;
-                            if (types[curSelectedType] === undefined) {
-                                types[curSelectedType] = 0;
+                            var currentSelectedType = selections[i].properties.type;
+                            if (types[currentSelectedType] === undefined) {
+                                types[currentSelectedType] = 0;
                                 numTypes += 1;
                             }
-                            types[curSelectedType]++;
+                            types[currentSelectedType]++;
                         }
 
                         var type = "Multiple";
@@ -1748,9 +1748,9 @@ function loaded() {
         span.textContent = options[selectedOption].firstChild.textContent;
         dt.appendChild(span);
 
-        var spanCaratDn = document.createElement("span");
-        spanCaratDn.textContent = "5"; // caratDn
-        dt.appendChild(spanCaratDn);
+        var spanCaratDown = document.createElement("span");
+        spanCaratDown.textContent = "5"; // caratDn
+        dt.appendChild(spanCaratDown);
 
         var dd = document.createElement("dd");
         dl.appendChild(dd);
