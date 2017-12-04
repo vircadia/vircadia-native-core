@@ -352,25 +352,6 @@ Item {
             right: parent.right;
         }
 
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
-        }
-
         HifiControlsUit.Keyboard {
             id: keyboard;
             raised: HMD.mounted && root.keyboardRaised;
