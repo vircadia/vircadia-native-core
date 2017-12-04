@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
@@ -19,11 +18,42 @@ SpinBox {
     id: spinBox
 
     property int colorScheme: hifi.colorSchemes.light
-    readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
+    readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
     property string labelInside: ""
     property color colorLabelInside: hifi.colors.white
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
+    property int decimals: 2;
+    property real factor: Math.pow(10, decimals)
+
+    property real minimumValue: 0.0
+    property real maximumValue: 0.0
+
+    property real realValue: 0.0
+    property real realFrom: 0.0
+    property real realTo: 100.0
+    property real realStepSize: 1.0
+
+    locale: Qt.locale("en_US")
+
+    onValueModified: {
+        realValue = value/factor
+        console.warn("rv (value mod)", realValue)
+    }
+
+    onValueChanged: {
+        realValue = value/factor
+        console.warn("rv (value)", realValue)
+    }
+
+    padding: 0
+    leftPadding: 0
+    rightPadding: 0
+
+    stepSize: realStepSize*factor
+    value: realValue*factor
+    to : realTo*factor
+    from : realFrom*factor
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
@@ -32,43 +62,60 @@ SpinBox {
 
     y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
-    style: SpinBoxStyle {
-        id: spinStyle
-        background: Rectangle {
-            color: isLightColorScheme
-                   ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
-                   : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
-            border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
-            border.width: spinBox.activeFocus ? spinBoxLabelInside.visible ? 2 : 1 : 0
-        }
+    background: Rectangle {
+        color: isLightColorScheme
+               ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
+               : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
+        border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
+        border.width: spinBox.activeFocus ? spinBoxLabelInside.visible ? 2 : 1 : 0
+    }
 
-        textColor: isLightColorScheme
-                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
-                   : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
+    validator: DoubleValidator {
+        bottom: Math.min(spinBox.from, spinBox.to)*spinBox.factor
+        top:  Math.max(spinBox.from, spinBox.to)*spinBox.factor
+    }
+
+    textFromValue: function(value, locale) {
+        return parseFloat(value*1.0/factor).toFixed(decimals);
+    }
+
+    valueFromText: function(text, locale) {
+        console.warn("valueFromText", text)
+        return Number.fromLocaleString(locale, text);
+    }
+
+
+    contentItem: TextInput {
+        color: isLightColorScheme
+               ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+               : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
+        text: spinBox.textFromValue(spinBox.value, spinBox.locale)
+        verticalAlignment: Qt.AlignVCenter
+        leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
+        //rightPadding: hifi.dimensions.spinnerSize
+        width: spinBox.width - hifi.dimensions.spinnerSize
+    }
 
-        horizontalAlignment: Qt.AlignLeft
-        padding.left: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
-        padding.right: hifi.dimensions.spinnerSize
-        padding.top: 0
+    up.indicator: HiFiGlyphs {
+        x: spinBox.mirrored ? 0 : spinBox.width - implicitWidth + 10
+        y: 1
+        height: parent.height/2
+        width: height
+        text: hifi.glyphs.caratUp
+        size: hifi.dimensions.spinnerSize
+        color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+    }
 
-        incrementControl: HiFiGlyphs {
-            id: incrementButton
-            text: hifi.glyphs.caratUp
-            x: 10
-            y: 1
-            size: hifi.dimensions.spinnerSize
-            color: styleData.upPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
-        }
-
-        decrementControl: HiFiGlyphs {
+    down.indicator: HiFiGlyphs {
+            x: spinBox.mirrored ? 0 : spinBox.width - implicitWidth + 10
+            height: parent.height/2
+            width: height
+            y: height - 1
             text: hifi.glyphs.caratDn
-            x: 10
-            y: -1
             size: hifi.dimensions.spinnerSize
-            color: styleData.downPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
-        }
+            color: spinBox.down.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
     }
 
     HifiControls.Label {
@@ -92,26 +139,26 @@ SpinBox {
         visible: spinBox.labelInside != ""
     }
 
-    MouseArea {
-        anchors.fill: parent
-        propagateComposedEvents: true
-        onWheel: {
-            if(spinBox.activeFocus)
-                wheel.accepted = false
-            else
-                wheel.accepted = true
-        }
-        onPressed: {
-            mouse.accepted = false
-        }
-        onReleased: {
-            mouse.accepted = false
-        }
-        onClicked: {
-            mouse.accepted = false
-        }
-        onDoubleClicked: {
-            mouse.accepted = false
-        }
-    }
+//    MouseArea {
+//        anchors.fill: parent
+//        propagateComposedEvents: true
+//        onWheel: {
+//            if(spinBox.activeFocus)
+//                wheel.accepted = false
+//            else
+//                wheel.accepted = true
+//        }
+//        onPressed: {
+//            mouse.accepted = false
+//        }
+//        onReleased: {
+//            mouse.accepted = false
+//        }
+//        onClicked: {
+//            mouse.accepted = false
+//        }
+//        onDoubleClicked: {
+//            mouse.accepted = false
+//        }
+//    }
 }

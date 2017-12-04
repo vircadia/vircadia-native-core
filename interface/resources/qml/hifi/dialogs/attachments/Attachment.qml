@@ -180,7 +180,7 @@ Item {
                     decimals: 2;
                     minimumValue: 0.01
                     maximumValue: 10
-                    stepSize: 0.05;
+                    realStepSize: 0.05;
                     value: attachment ? attachment.scale : 1.0
                     colorScheme: hifi.colorSchemes.dark
                     onValueChanged: {
