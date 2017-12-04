@@ -209,7 +209,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
         return nodeData->getLastBroadcastTime(avatarNode->getUUID());
     }, [&](AvatarSharedPointer avatar)->float{
-        glm::vec3 nodeBoxHalfScale = (avatar->getPosition() - avatar->getGlobalBoundingBoxCorner() * avatar->getSensorToWorldScale());
+        glm::vec3 nodeBoxHalfScale = (avatar->getWorldPosition() - avatar->getGlobalBoundingBoxCorner() * avatar->getSensorToWorldScale());
         return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
     }, [&](AvatarSharedPointer avatar)->bool {
         if (avatar == thisAvatar) {
