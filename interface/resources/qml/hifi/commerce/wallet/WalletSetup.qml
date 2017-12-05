@@ -31,6 +31,9 @@ Item {
     property bool hasShownSecurityImageTip: false;
     property string referrer;
     property string keyFilePath;
+    property date startingTimestamp;
+    readonly property int setupFlowVersion: 1;
+    readonly property var setupStepNames: [ "Setup Prompt", "Security Image Selection", "Passphrase Selection", "Private Keys Ready" ];
 
     Image {
         anchors.fill: parent;
@@ -65,6 +68,18 @@ Item {
         id: lightboxPopup;
         visible: false;
         anchors.fill: parent;
+    }
+
+    onActiveViewChanged: {
+        var timestamp = new Date();
+        var currentStepNumber = root.activeView.substring(5);
+        var data = {
+            "timestamp": timestamp,
+            "secondsElapsed": (root.startingTimestamp - timestamp),
+            "currentStepNumber": currentStepNumber,
+            "currentStepName": root.setupStepNames[currentStepNumber]
+        }
+        UserActivityLogger.logAction("commerceWalletSetupProgress", data);
     }
 
     //
@@ -730,6 +745,13 @@ Item {
                     root.visible = false;
                     root.hasShownSecurityImageTip = false;
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
+                    
+                    var timestamp = new Date();
+                    var data = {
+                        "timestamp": timestamp,
+                        "secondsToComplete": (root.startingTimestamp - timestamp)
+                    }
+                    UserActivityLogger.logAction("commerceWalletSetupFinished", data);
                 }
             }
         }

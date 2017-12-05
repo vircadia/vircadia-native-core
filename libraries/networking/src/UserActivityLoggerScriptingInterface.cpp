@@ -113,3 +113,32 @@ void UserActivityLoggerScriptingInterface::commerceEntityRezzed(QString marketpl
     payload["type"] = type;
     doLogAction("commerceEntityRezzed", payload);
 }
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupStarted(float timestamp, QString setupAttemptID, int setupFlowVersion, QString referrer, QString currentDomain) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
+    payload["setupFlowVersion"] = setupFlowVersion;
+    payload["referrer"] = referrer;
+    payload["currentDomain"] = currentDomain;
+    qDebug() << "ZRF" << payload;
+    //doLogAction("commerceWalletSetupStarted", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(float timestamp, float secondsElapsed, int currentStepNumber, QString currentStepName) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["secondsElapsed"] = secondsElapsed;
+    payload["currentStepNumber"] = currentStepNumber;
+    payload["currentStepName"] = currentStepName;
+    qDebug() << "ZRF" << payload;
+    //doLogAction("commerceWalletSetupProgress", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(float timestamp, float secondsToComplete) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["secondsToComplete"] = secondsToComplete;
+    qDebug() << "ZRF" << payload;
+    //doLogAction("commerceWalletSetupFinished", payload);
+}

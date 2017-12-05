@@ -48,6 +48,16 @@ Rectangle {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
                     commerce.resetLocalWalletOnly();
+                    var timestamp = new Date();
+                    walletSetup.startingTimestamp = timestamp;
+                    var data = {
+                        "timestamp": timestamp,
+                        "setupAttemptID": guid(),
+                        "setupFlowVersion": walletSetup.setupFlowVersion,
+                        "referrer": walletSetup.referrer,
+                        "currentDomain": (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '')
+                    }
+                    UserActivityLogger.logAction("commerceWalletSetupStarted", data);
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
