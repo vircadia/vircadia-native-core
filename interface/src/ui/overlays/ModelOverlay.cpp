@@ -121,8 +121,8 @@ void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
-    auto origPosition = getPosition();
-    auto origRotation = getRotation();
+    auto origPosition = getWorldPosition();
+    auto origRotation = getWorldOrientation();
     auto origDimensions = getDimensions();
     auto origScale = getSNScale();
 
@@ -134,6 +134,9 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     }
 
     auto dimensions = properties["dimensions"];
+    if (!dimensions.isValid()) {
+        dimensions = properties["size"];
+    }
     if (dimensions.isValid()) {
         _scaleToFit = true;
         setDimensions(vec3FromVariant(dimensions));
@@ -143,7 +146,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _scaleToFit = false;
     }
 
-    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getSNScale()) {
+    if (origPosition != getWorldPosition() || origRotation != getWorldOrientation() || origDimensions != getDimensions() || origScale != getSNScale()) {
         _updateModel = true;
     }
 
@@ -383,8 +386,8 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
 
     // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
     if (_model && _model->isActive()) {
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
+        _model->setRotation(getWorldOrientation());
+        _model->setTranslation(getWorldPosition());
     }
 }
 

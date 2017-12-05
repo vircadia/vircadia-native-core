@@ -15,6 +15,9 @@ function setUpKeyboardControl() {
     var KEYBOARD_HEIGHT = 200;
 
     function raiseKeyboard() {
+        window.isKeyboardRaised = true;
+        window.isNumericKeyboard = this.type === "number";
+
         if (lowerTimer !== null) {
             clearTimeout(lowerTimer);
             lowerTimer = null;
@@ -35,6 +38,9 @@ function setUpKeyboardControl() {
     }
 
     function doLowerKeyboard() {
+        window.isKeyboardRaised = false;
+        window.isNumericKeyboard = false;
+
         EventBridge.emitWebEvent("_LOWER_KEYBOARD");
         lowerTimer = null;
         isRaised = false;

@@ -253,7 +253,7 @@ void Head::setScale (float scale) {
 }
 
 glm::quat Head::getFinalOrientationInWorldFrame() const {
-    return _owningAvatar->getOrientation() * getFinalOrientationInLocalFrame();
+    return _owningAvatar->getWorldOrientation() * getFinalOrientationInLocalFrame();
 }
 
 glm::quat Head::getFinalOrientationInLocalFrame() const {

@@ -204,8 +204,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     bool hazeChanged = entity->hazePropertiesChanged();
 
     entity->resetRenderingPropertiesChanged();
-    _lastPosition = entity->getPosition();
-    _lastRotation = entity->getRotation();
+    _lastPosition = entity->getWorldPosition();
+    _lastRotation = entity->getWorldOrientation();
     _lastDimensions = entity->getDimensions();
 
     _keyLightProperties = entity->getKeyLightProperties();
@@ -275,13 +275,13 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-    if (entity->getPosition() != _lastPosition) {
+    if (entity->getWorldPosition() != _lastPosition) {
         return true;
     }
     if (entity->getDimensions() != _lastDimensions) {
         return true;
     }
-    if (entity->getRotation() != _lastRotation) {
+    if (entity->getWorldOrientation() != _lastRotation) {
         return true;
     }
 

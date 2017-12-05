@@ -51,19 +51,23 @@ FocusScope {
 
     // The VR version of the primary menu
     property var rootMenu: Menu { 
+        id: rootMenuId
         objectName: "rootMenu" 
 
-        // for some reasons it is not possible to use just '({})' here as it gets empty when passed to TableRoot/DesktopRoot
-        property var exclusionGroupsByMenuItem : ListModel {}
+        property var exclusionGroups: ({});
+        property Component exclusiveGroupMaker: Component {
+            ExclusiveGroup {
+            }
+        }
 
-        function addExclusionGroup(menuItem, exclusionGroup)
-        {
-            exclusionGroupsByMenuItem.append(
-                {
-                    'menuItem' : menuItem.toString(), 
-                    'exclusionGroup' : exclusionGroup.toString()
-                }
-            );
+        function addExclusionGroup(qmlAction, exclusionGroup) {
+
+            var exclusionGroupId = exclusionGroup.toString();
+            if(!exclusionGroups[exclusionGroupId]) {
+                exclusionGroups[exclusionGroupId] = exclusiveGroupMaker.createObject(rootMenuId);
+            }
+
+            qmlAction.exclusiveGroup = exclusionGroups[exclusionGroupId]
         }
     }
 

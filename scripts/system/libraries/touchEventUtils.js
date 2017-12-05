@@ -130,7 +130,7 @@ function sendTouchMoveEventToTouchTarget(hand, touchTarget) {
 }
 
 function composeTouchTargetFromIntersection(intersection) {
-    var isEntity = (intersection.type === RayPick.INTERSECTED_ENTITY);
+    var isEntity = (intersection.type === Picks.INTERSECTED_ENTITY);
     var objectID = intersection.objectID;
     var worldPos = intersection.intersection;
     var props = null;

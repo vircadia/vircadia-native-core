@@ -189,7 +189,6 @@ function HighlightedEntity(id, entityProperties) {
             green: 0x91,
             blue: 0x29
         },
-        lineWidth: 1.0,
         ignoreRayIntersection: true,
         drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
     });

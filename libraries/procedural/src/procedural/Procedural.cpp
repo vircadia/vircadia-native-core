@@ -13,6 +13,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QDateTime>
 
 #include <gpu/Batch.h>
 #include <SharedUtil.h>

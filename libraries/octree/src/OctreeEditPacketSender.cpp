@@ -115,6 +115,22 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
     });
 }
 
+// This method is called when the edit packet layer has determined that it has a fully formed packet destined for
+// a known nodeID.
+void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
+        // only send to the NodeTypes that are getMyNodeType()
+        if (node->getType() == getMyNodeType()
+            && ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))
+            && node->getActiveSocket()) {
+
+            // NOTE: unlike packets, the packet lists don't get rewritten sequence numbers.
+            // or do history for resend
+            queuePacketListForSending(node, std::move(packetList));
+        }
+    });
+}
+
 void OctreeEditPacketSender::processPreServerExistsPackets() {
     assert(serversExist()); // we should only be here if we have jurisdictions
 
@@ -247,33 +263,65 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
                 });
             }
             if (isMyJurisdiction) {
-                std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
 
-                if (!bufferedPacket) {
-                    bufferedPacket = initializePacket(type, node->getClockSkewUsec());
-                } else {
-                    // If we're switching type, then we send the last one and start over
-                    if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
-                        (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
+                // for edit messages, we will attempt to combine multiple edit commands where possible, we
+                // don't do this for add because we send those reliably
+                if (type == PacketType::EntityAdd) {
 
-                        // create the new packet and swap it with the packet in _pendingEditPackets
-                        auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
-                        bufferedPacket.swap(packetToRelease);
+                    auto newPacket = NLPacketList::create(type, QByteArray(), true, true);
+                    auto nodeClockSkew = node->getClockSkewUsec();
 
-                        // release the previously buffered packet
-                        releaseQueuedPacket(nodeUUID, std::move(packetToRelease));
+                    // pack sequence number
+                    quint16 sequence = _outgoingSequenceNumbers[nodeUUID]++;
+                    newPacket->writePrimitive(sequence);
+
+                    // pack in timestamp
+                    quint64 now = usecTimestampNow() + nodeClockSkew;
+                    newPacket->writePrimitive(now);
+
+
+                    // We call this virtual function that allows our specific type of EditPacketSender to
+                    // fixup the buffer for any clock skew
+                    if (nodeClockSkew != 0) {
+                        adjustEditPacketForClockSkew(type, editMessage, nodeClockSkew);
                     }
-                }
 
-                // This is really the first time we know which server/node this particular edit message
-                // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
-                // We call this virtual function that allows our specific type of EditPacketSender to
-                // fixup the buffer for any clock skew
-                if (node->getClockSkewUsec() != 0) {
-                    adjustEditPacketForClockSkew(type, editMessage, node->getClockSkewUsec());
-                }
+                    newPacket->write(editMessage);
 
-                bufferedPacket->write(editMessage);
+                    // release the new packet
+                    releaseQueuedPacketList(nodeUUID, std::move(newPacket));
+
+                } else {
+
+                    std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID].first; //only a NLPacket for now
+
+                    if (!bufferedPacket) {
+                        bufferedPacket = initializePacket(type, node->getClockSkewUsec());
+                    } else {
+                        // If we're switching type, then we send the last one and start over
+                        if ((type != bufferedPacket->getType() && bufferedPacket->getPayloadSize() > 0) ||
+                            (editMessage.size() >= bufferedPacket->bytesAvailableForWrite())) {
+
+                            // create the new packet and swap it with the packet in _pendingEditPackets
+                            auto packetToRelease = initializePacket(type, node->getClockSkewUsec());
+                            bufferedPacket.swap(packetToRelease);
+
+                            // release the previously buffered packet
+                            releaseQueuedPacket(nodeUUID, std::move(packetToRelease));
+                        }
+                    }
+
+                    // This is really the first time we know which server/node this particular edit message
+                    // is going to, so we couldn't adjust for clock skew till now. But here's our chance.
+                    // We call this virtual function that allows our specific type of EditPacketSender to
+                    // fixup the buffer for any clock skew
+                    if (node->getClockSkewUsec() != 0) {
+                        adjustEditPacketForClockSkew(type, editMessage, node->getClockSkewUsec());
+                    }
+
+                    bufferedPacket->write(editMessage);
+
+                }
             }
         }
     });
@@ -291,15 +339,24 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
     } else {
         _packetsQueueLock.lock();
         for (auto& i : _pendingEditPackets) {
-            if (i.second) {
+            if (i.second.first) {
                 // construct a null unique_ptr to an NL packet
                 std::unique_ptr<NLPacket> releasedPacket;
                 
                 // swap the null ptr with the packet we want to release
-                i.second.swap(releasedPacket);
+                i.second.first.swap(releasedPacket);
                 
                 // move and release the queued packet
                 releaseQueuedPacket(i.first, std::move(releasedPacket));
+            } else if (i.second.second) {
+                // construct a null unique_ptr to an NLPacketList
+                std::unique_ptr<NLPacketList> releasedPacketList;
+
+                // swap the null ptr with the NLPacketList we want to release
+                i.second.second.swap(releasedPacketList);
+
+                // move and release the queued NLPacketList
+                releaseQueuedPacketList(i.first, std::move(releasedPacketList));
             }
             
         }
@@ -311,6 +368,14 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
     _releaseQueuedPacketMutex.lock();
     if (packet->getPayloadSize() > 0 && packet->getType() != PacketType::Unknown) {
         queuePacketToNode(nodeID, std::move(packet));
+    }
+    _releaseQueuedPacketMutex.unlock();
+}
+
+void OctreeEditPacketSender::releaseQueuedPacketList(const QUuid& nodeID, std::unique_ptr<NLPacketList> packetList) {
+    _releaseQueuedPacketMutex.lock();
+    if (packetList->getMessageSize() > 0 && packetList->getType() != PacketType::Unknown) {
+        queuePacketListToNode(nodeID, std::move(packetList));
     }
     _releaseQueuedPacketMutex.unlock();
 }

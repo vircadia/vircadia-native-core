@@ -415,11 +415,11 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
     // Scale the dimensions by the diameter
     glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();
-    bool intersects = findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
+    bool intersects = findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), dimensions, distance);
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
-        glm::vec3 localHitPosition = glm::inverse(getRotation()) * (hitPosition - getPosition());
+        glm::vec3 localHitPosition = glm::inverse(getWorldOrientation()) * (hitPosition - getWorldPosition());
         localHitPosition.x /= getDimensions().x;
         localHitPosition.y /= getDimensions().y;
         float distanceToHit = glm::length(localHitPosition);

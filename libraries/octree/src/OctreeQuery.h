@@ -27,7 +27,7 @@ class OctreeQuery : public NodeData {
     Q_OBJECT
 
 public:
-    OctreeQuery();
+    OctreeQuery(bool randomizeConnectionID = false);
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
@@ -68,6 +68,13 @@ public:
     bool getUsesFrustum() { return _usesFrustum; }
     void setUsesFrustum(bool usesFrustum) { _usesFrustum = usesFrustum; }
 
+    void incrementConnectionID() { ++_connectionID; }
+
+    bool hasReceivedFirstQuery() const  { return _hasReceivedFirstQuery; }
+
+signals:
+    void incomingConnectionIDChanged();
+
 public slots:
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
@@ -90,9 +97,12 @@ protected:
     int _boundaryLevelAdjust = 0; /// used for LOD calculations
     
     uint8_t _usesFrustum = true;
+    uint16_t _connectionID; // query connection ID, randomized to start, increments with each new connection to server
     
     QJsonObject _jsonParameters;
     QReadWriteLock _jsonParametersLock;
+
+    bool _hasReceivedFirstQuery { false };
     
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

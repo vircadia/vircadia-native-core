@@ -42,6 +42,7 @@
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
+#include "BloomEffect.h"
 #include "HighlightEffect.h"
 
 #include <sstream>
@@ -166,7 +167,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    // LIght Cluster Grid Debuging job
+    // Light Cluster Grid Debuging job
     {
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
@@ -176,6 +177,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHaze", drawHazeInputs);
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
+
+    // Add bloom
+    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
+    task.addJob<Bloom>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();

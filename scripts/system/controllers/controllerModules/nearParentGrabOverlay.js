@@ -224,11 +224,11 @@ Script.include("/~/system/libraries/utils.js");
     enableDispatcherModule("LeftNearParentingGrabOverlay", leftNearParentingGrabOverlay);
     enableDispatcherModule("RightNearParentingGrabOverlay", rightNearParentingGrabOverlay);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftNearParentingGrabOverlay.cleanup();
         rightNearParentingGrabOverlay.cleanup();
         disableDispatcherModule("LeftNearParentingGrabOverlay");
         disableDispatcherModule("RightNearParentingGrabOverlay");
-    };
-    Script.scriptEnding.connect(this.cleanup);
+    }
+    Script.scriptEnding.connect(cleanup);
 }());
