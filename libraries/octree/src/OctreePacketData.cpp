@@ -35,7 +35,13 @@ OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
 
 void OctreePacketData::changeSettings(bool enableCompression, unsigned int targetSize) {
     _enableCompression = enableCompression;
-    _targetSize = std::min(MAX_OCTREE_UNCOMRESSED_PACKET_SIZE, targetSize);
+    _targetSize = targetSize;
+    _uncompressedByteArray.resize(_targetSize);
+    _compressedByteArray.resize(_targetSize);
+
+    _uncompressed = (unsigned char*)_uncompressedByteArray.data();
+    _compressed = (unsigned char*)_compressedByteArray.data();
+
     reset();
 }
 
@@ -689,6 +695,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(glm::vec3) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -702,6 +710,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(glm::quat) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -720,6 +730,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length * sizeof(float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
@@ -733,6 +745,8 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
+
+    // FIXME - this size check is wrong if we allow larger packets
     if (length / 8 > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);

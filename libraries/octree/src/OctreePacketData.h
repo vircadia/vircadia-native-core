@@ -279,7 +279,8 @@ private:
     unsigned int _targetSize;
     bool _enableCompression;
     
-    unsigned char _uncompressed[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
+    QByteArray _uncompressedByteArray;
+    unsigned char* _uncompressed { nullptr };
     int _bytesInUse;
     int _bytesAvailable;
     int _subTreeAt;
@@ -288,7 +289,8 @@ private:
 
     bool compressContent();
     
-    unsigned char _compressed[MAX_OCTREE_UNCOMRESSED_PACKET_SIZE];
+    QByteArray _compressedByteArray;
+    unsigned char* _compressed { nullptr };
     int _compressedBytes;
     int _bytesInUseLastCheck;
     bool _dirty;
