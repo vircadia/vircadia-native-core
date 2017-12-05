@@ -53,6 +53,41 @@ const glm::mat4& LightStage::Shadow::Cascade::getProjection() const {
     return _frustum->getProjection();
 }
 
+float LightStage::Shadow::Cascade::computeFarDistance(const ViewFrustum& viewFrustum, const Transform& shadowViewInverse,
+                                                      float left, float right, float bottom, float top, float viewMaxShadowDistance) const {
+    // Far distance should be extended to the intersection of the infinitely extruded shadow frustum 
+    // with the view frustum side planes. To do so, we generate 10 triangles in shadow space which are the result of
+    // tesselating the side and far faces of the view frustum and clip them with the 4 side planes of the
+    // shadow frustum. The resulting clipped triangle vertices with the farthest Z gives the desired
+    // shadow frustum far distance.
+    std::array<Triangle, 10> viewFrustumTriangles;
+    Plane shadowClipPlanes[4] = {
+        Plane(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, top, 0.0f)),
+        Plane(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, bottom, 0.0f)),
+        Plane(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(left, 0.0f, 0.0f)),
+        Plane(glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(right, 0.0f, 0.0f))
+    };
+
+    viewFrustum.tesselateSidesAndFar(shadowViewInverse, viewFrustumTriangles.data(), viewMaxShadowDistance);
+
+    static const int MAX_TRIANGLE_COUNT = 16;
+    auto far = 0.0f;
+
+    for (auto& triangle : viewFrustumTriangles) {
+        Triangle clippedTriangles[MAX_TRIANGLE_COUNT];
+        auto clippedTriangleCount = clipTriangleWithPlanes(triangle, shadowClipPlanes, 4, clippedTriangles, MAX_TRIANGLE_COUNT);
+
+        for (auto i = 0; i < clippedTriangleCount; i++) {
+            const auto& clippedTriangle = clippedTriangles[i];
+            far = glm::max(far, -clippedTriangle.v0.z);
+            far = glm::max(far, -clippedTriangle.v1.z);
+            far = glm::max(far, -clippedTriangle.v2.z);
+        }
+    }
+
+    return far;
+}
+
 LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount) : _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
     Schema schema;
@@ -62,11 +97,12 @@ LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount)
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                            float viewMinShadowDistance, float viewMaxShadowDistance, float viewOverlapDistance,
+                                            float viewMinCascadeShadowDistance, float viewMaxCascadeShadowDistance,
+                                            float viewCascadeOverlapDistance, float viewMaxShadowDistance,
                                             float nearDepth, float farDepth) {
-    assert(viewMinShadowDistance < viewMaxShadowDistance);
+    assert(viewMinCascadeShadowDistance < viewMaxCascadeShadowDistance);
     assert(nearDepth < farDepth);
-    assert(viewOverlapDistance > 0.0f);
+    assert(viewCascadeOverlapDistance > 0.0f);
     assert(cascadeIndex < _cascades.size());
 
     // Orient the keylight frustum
@@ -89,17 +125,17 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     // Position the keylight frustum
     cascade._frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*direction);
 
-    const Transform view{ cascade._frustum->getView()};
-    const Transform viewInverse{ view.getInverseMatrix() };
+    const Transform shadowView{ cascade._frustum->getView()};
+    const Transform shadowViewInverse{ shadowView.getInverseMatrix() };
 
-    auto nearCorners = viewFrustum.getCorners(viewMinShadowDistance);
-    auto farCorners = viewFrustum.getCorners(viewMaxShadowDistance);
+    auto nearCorners = viewFrustum.getCorners(viewMinCascadeShadowDistance);
+    auto farCorners = viewFrustum.getCorners(viewMaxCascadeShadowDistance);
 
-    vec3 min{ viewInverse.transform(nearCorners.bottomLeft) };
+    vec3 min{ shadowViewInverse.transform(nearCorners.bottomLeft) };
     vec3 max{ min };
     // Expand keylight frustum  to fit view frustum
-    auto fitFrustum = [&min, &max, &viewInverse](const vec3& viewCorner) {
-        const auto corner = viewInverse.transform(viewCorner);
+    auto fitFrustum = [&min, &max, &shadowViewInverse](const vec3& viewCorner) {
+        const auto corner = shadowViewInverse.transform(viewCorner);
 
         min.x = glm::min(min.x, corner.x);
         min.y = glm::min(min.y, corner.y);
@@ -116,13 +152,11 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     fitFrustum(farCorners.bottomRight);
     fitFrustum(farCorners.topLeft);
     fitFrustum(farCorners.topRight);
-    
-    // TODO: Far distance should be extended to the intersection of the exteruded shadow frustum far plane 
-    // with the view frustum.
 
     // Re-adjust near shadow distance
     auto near = glm::min(-max.z, nearDepth);
-    auto far = -min.z;
+    auto far = cascade.computeFarDistance(viewFrustum, shadowViewInverse, min.x, max.x, min.y, max.y, viewMaxShadowDistance);
+
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, near, far);
     cascade._frustum->setProjection(ortho);
 
@@ -132,10 +166,10 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
     if (cascadeIndex == getCascadeCount() - 1) {
-        schema.maxDistance = viewMaxShadowDistance;
-        schema.invFalloffDistance = 1.0f / viewOverlapDistance;
+        schema.maxDistance = viewMaxCascadeShadowDistance;
+        schema.invFalloffDistance = 1.0f / viewCascadeOverlapDistance;
     }
-    schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
+    schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
 }
 
 void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {

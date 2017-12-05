@@ -89,24 +89,7 @@ static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum
     for (i = 0; i < 8; i++) {
         sceneBoundVertices[i] = shadowViewInverse.transform(inShapeBounds.getVertex(static_cast<BoxVertex>(i)));
     }
-    // This indirection array is just a protection in case the ViewFrustum::PlaneIndex enum
-    // changes order especially as we don't need to test the NEAR and FAR planes.
-    static const ViewFrustum::PlaneIndex planeIndices[4] = {
-        ViewFrustum::TOP_PLANE,
-        ViewFrustum::BOTTOM_PLANE,
-        ViewFrustum::LEFT_PLANE,
-        ViewFrustum::RIGHT_PLANE
-    };
-    // Same goes for the shadow frustum planes.
-    for (i = 0; i < 4; i++) {
-        const auto& worldPlane = shadowFrustum.getPlanes()[planeIndices[i]];
-        // We assume the transform doesn't have a non uniform scale component to apply the 
-        // transform to the normal without using the correct transpose of inverse, which should be the
-        // case for a view matrix.
-        auto planeNormal = shadowViewInverse.transformDirection(worldPlane.getNormal());
-        auto planePoint = shadowViewInverse.transform(worldPlane.getPoint());
-        shadowClipPlanes[i].setNormalAndPoint(planeNormal, planePoint);
-    }
+    shadowFrustum.getUniformlyTransformedSidePlanes(shadowViewInverse, shadowClipPlanes);
 
     float near = std::numeric_limits<float>::max();
     float far = 0.0f;
@@ -278,7 +261,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
             minCascadeDistance = std::max(minCascadeDistance, nearClip);
         }
         maxCascadeDistance = std::min(maxCascadeDistance, farClip);
-        globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), minCascadeDistance, maxCascadeDistance, shadowOverlapDistance, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), minCascadeDistance, maxCascadeDistance, 
+                                         shadowOverlapDistance, HIGH_CASCADE_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));

@@ -65,12 +65,16 @@ public:
         private:
 
             std::shared_ptr<ViewFrustum> _frustum;
+
+            float computeFarDistance(const ViewFrustum& viewFrustum, const Transform& shadowViewInverse,
+                                     float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
         };
 
         Shadow(model::LightPointer light, unsigned int cascadeCount = 1);
 
         void setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum, 
-                                float viewMinShadowDistance, float viewMaxShadowDistance, float viewOverlapDistance,
+                                float viewMinCascadeShadowDistance, float viewMaxCascadeShadowDistance, 
+                                float viewCascadeOverlapDistance, float viewMaxShadowDistance,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
         void setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
