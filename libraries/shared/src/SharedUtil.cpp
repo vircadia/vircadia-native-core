@@ -44,6 +44,11 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
+
+#if defined(Q_OS_LINUX) || defined(__APPLE__)
+#include <signal.h>
+#endif
+
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
@@ -1075,6 +1080,21 @@ void setMaxCores(uint8_t maxCores) {
         maxCores--;
     }
     SetProcessAffinityMask(process, newProcessAffinity);
+#endif
+}
+
+bool processIsRunning(int64_t pid) {
+#ifdef Q_OS_WIN
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (process) {
+        DWORD exitCodeOut;
+        if (GetExitCodeProcess(process, &exitCodeOut) != 0) {
+            return exitCodeOut == STILL_ACTIVE;
+        }
+    }
+    return false;
+#elif defined(Q_OS_LINUX) || defined(__APPLE__)
+    return kill(pid, 0) != ESRCH;
 #endif
 }
 

@@ -39,6 +39,8 @@ public:
 
     static QString generateTemporaryDir();
 
+    static int removeTemporaryDirs(QString appName = QString::null);
+
     static Qt::CaseSensitivity getFSCaseSensitivity();
     static QString stripFilename(const QUrl& url);
     // note: this is FS-case-sensitive version of parentURL.isParentOf(childURL)

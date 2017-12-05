@@ -19,8 +19,14 @@
 #include <QDir>
 #include <QUrl>
 #include <QtCore/QStandardPaths>
+#include <QRegularExpression>
 #include <mutex> // std::once
 #include "shared/GlobalAppProperties.h"
+#include "SharedUtil.h"
+
+// Format: AppName-PID-Timestamp
+// Example: ...
+QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
@@ -60,12 +66,53 @@ QString PathUtils::generateTemporaryDir() {
     QString appName = qApp->applicationName();
     for (auto i = 0; i < 64; ++i) {
         auto now = std::chrono::system_clock::now().time_since_epoch().count();
+        auto dirName = TEMP_DIR_FORMAT.arg(appName).arg(qApp->applicationPid()).arg(now);
         QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
         if (tempDir.mkpath(".")) {
             return tempDir.absolutePath();
         }
     }
     return "";
+}
+
+// Delete all temporary directories for an application
+int PathUtils::removeTemporaryDirs(QString appName) {
+    if (appName.isNull()) {
+        appName = qApp->applicationName();
+    }
+
+    auto dirName = TEMP_DIR_FORMAT.arg(appName).arg("*").arg("*");
+    qDebug() << "Dirname format is: " << dirName;
+
+    QDir rootTempDir = QDir::tempPath();
+    qDebug() << "Temp dir is: " << rootTempDir;
+    auto dirs = rootTempDir.entryInfoList({ dirName }, QDir::Dirs);
+    int removed = 0;
+    for (auto& dir : dirs) {
+        auto dirName = dir.fileName();
+        auto absoluteDirPath = QDir(dir.absoluteFilePath());
+        qDebug() << "  Deleting: " << dirName << absoluteDirPath;
+        QRegularExpression re { "^" + QRegularExpression::escape(appName) + "\\-(?<pid>\\d+)\\-(?<timestamp>\\d+)$" };
+
+        auto match = re.match(dirName);
+        if (match.hasMatch()) {
+            qDebug() << "  Got match";
+            auto pid = match.capturedRef("pid").toLongLong();
+            auto timestamp = match.capturedRef("timestamp");
+            qDebug() << "  Is " << pid << " running?" << processIsRunning(pid);
+            if (!processIsRunning(pid)) {
+                qDebug() << "  Removing: " << absoluteDirPath;
+                absoluteDirPath.removeRecursively();
+                removed++;
+            } else {
+                qDebug() << "  Not removing (process is running): " << dir.absoluteDir();
+            }
+        } else {
+            qDebug() << "  NO MATCH";
+        }
+    }
+
+    return removed;
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
