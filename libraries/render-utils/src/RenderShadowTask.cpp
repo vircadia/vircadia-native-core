@@ -240,26 +240,33 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         const auto nearClip = args->getViewFrustum().getNearClip();
         const auto farClip = args->getViewFrustum().getFarClip();
 
-        static const float HIGH_CASCADE_MAX_DISTANCE = 20.0f;
+        // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
+        static const auto HIGH_CASCADE_MAX_DISTANCE = 40.0f;
+        static const auto LOW_CASCADE_MAX_DISTANCE = 1.5f;
+        // Power distribution. Lower the steepness to 1.0 for a more linear distribution or increase it for a
+        // tighter distribution around the view position.
+        static const auto CASCADE_DISTRIBUTION_STEEPNESS = 3.0f;
+
         float maxCascadeDistance = HIGH_CASCADE_MAX_DISTANCE;
         float minCascadeDistance = nearClip;
         float shadowOverlapDistance = 0.0f;
 
         if (globalShadow->getCascadeCount() > 1) {
-            static const float LOW_CASCADE_MAX_DISTANCE = 3.0f;
-            const float cascadeLevelScale = powf(HIGH_CASCADE_MAX_DISTANCE / LOW_CASCADE_MAX_DISTANCE, 1.0f / (globalShadow->getCascadeCount() - 1));
+            const auto deltaCascadeMaxDistance = (HIGH_CASCADE_MAX_DISTANCE - LOW_CASCADE_MAX_DISTANCE);
+            const auto maxAlpha = powf(_cascadeIndex / float(globalShadow->getCascadeCount() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
+            const auto minAlpha = powf(std::max<float>(_cascadeIndex-1, 0) / float(globalShadow->getCascadeCount() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
 
-            maxCascadeDistance = HIGH_CASCADE_MAX_DISTANCE / powf(cascadeLevelScale, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
-            minCascadeDistance = maxCascadeDistance / cascadeLevelScale;
+            maxCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * maxAlpha;
+            minCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * minAlpha;
         }
 
-        shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 4.0f;
-        maxCascadeDistance += shadowOverlapDistance;
         if (_cascadeIndex == 0) {
             minCascadeDistance = nearClip;
         } else {
             minCascadeDistance = std::max(minCascadeDistance, nearClip);
         }
+        shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
+        maxCascadeDistance += shadowOverlapDistance;
         maxCascadeDistance = std::min(maxCascadeDistance, farClip);
         globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), minCascadeDistance, maxCascadeDistance, 
                                          shadowOverlapDistance, HIGH_CASCADE_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
