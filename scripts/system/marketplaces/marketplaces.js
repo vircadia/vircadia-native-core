@@ -14,8 +14,9 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    Script.include("../libraries/WebTablet.js");
-    Script.include("../libraries/gridTool.js");
+    Script.include("/~/system/libraries/accountUtils.js");
+    Script.include("/~/system/libraries/WebTablet.js");
+    Script.include("/~/system/libraries/gridTool.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
