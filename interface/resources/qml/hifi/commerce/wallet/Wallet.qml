@@ -47,6 +47,7 @@ Rectangle {
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
+                    commerce.resetLocalWalletOnly();
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
@@ -664,25 +665,6 @@ Rectangle {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
         }
 
         HifiControlsUit.Keyboard {
