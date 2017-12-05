@@ -399,6 +399,7 @@
                     referrer: "purchases"
                 });
                 openWallet();
+                break;
             case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
                 tablet.sendToQml({

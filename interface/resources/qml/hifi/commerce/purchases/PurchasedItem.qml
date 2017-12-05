@@ -349,12 +349,7 @@ Item {
                 sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
-                var data = {
-                    "marketplaceID": root.itemId,
-                    "source": "purchases",
-                    "type": root.isWearable ? "rez" : "wear"
-                }
-                UserActivityLogger.logAction("commerceEntityRezzed", data);
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.isWearable ? "rez" : "wear");
             }
 
             style: ButtonStyle {

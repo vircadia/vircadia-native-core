@@ -55,6 +55,38 @@ Item {
         // Style
         color: hifi.colors.blueHighlight;
     }
+    
+    HifiControlsUit.Button {		
+        id: clearCachedPassphraseButton;		
+        visible: root.showDebugButtons;		
+        color: hifi.buttons.black;		
+        colorScheme: hifi.colorSchemes.dark;		
+        anchors.top: parent.top;		
+        anchors.left: helpTitleText.right;		
+        anchors.leftMargin: 20;		
+        height: 40;		
+        width: 150;		
+        text: "DBG: Clear Pass";		
+        onClicked: {		
+            commerce.setPassphrase("");		
+            sendSignalToWallet({method: 'passphraseReset'});		
+        }		
+    }		
+    HifiControlsUit.Button {		
+        id: resetButton;		
+        visible: root.showDebugButtons;		
+        color: hifi.buttons.red;		
+        colorScheme: hifi.colorSchemes.dark;		
+        anchors.top: clearCachedPassphraseButton.top;		
+        anchors.left: clearCachedPassphraseButton.right;		
+        height: 40;		
+        width: 150;		
+        text: "DBG: RST Wallet";		
+        onClicked: {		
+            commerce.reset();		
+            sendSignalToWallet({method: 'walletReset'});		
+        }		
+    }
 
     ListModel {
         id: helpModel;
@@ -147,7 +179,7 @@ Item {
                     text: model.isExpanded ? "-" : "+";
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.topMargin: model.isExpanded ? -9 : 0;
+                    anchors.topMargin: model.isExpanded ?9 : 0;
                     anchors.bottom: parent.bottom;
                     anchors.left: parent.left;
                     width: 60;

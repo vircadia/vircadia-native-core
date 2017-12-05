@@ -79,23 +79,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
-                var data = {
-                    "marketplaceID": root.itemId,
-                    "cost": root.itemPrice,
-                    "firstPurchaseOfThisItem": !root.alreadyOwned,
-                    "errorDetails": result.message
-                }
-                UserActivityLogger.logAction("commercePurchaseFailure", data);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
                 root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
-                var data = {
-                    "marketplaceID": root.itemId,
-                    "cost": root.itemPrice,
-                    "firstPurchaseOfThisItem": !root.alreadyOwned
-                }
-                UserActivityLogger.logAction("commercePurchaseSuccess", data);
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -612,12 +601,7 @@ Rectangle {
                 sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
-                var data = {
-                    "marketplaceID": root.itemId,
-                    "source": "checkout",
-                    "type": root.isWearable ? "rez" : "wear"
-                }
-                UserActivityLogger.logAction("commerceEntityRezzed", data);
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
             }
         }
         RalewaySemiBold {

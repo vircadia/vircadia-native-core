@@ -73,13 +73,7 @@ Item {
     onActiveViewChanged: {
         var timestamp = new Date();
         var currentStepNumber = root.activeView.substring(5);
-        var data = {
-            "timestamp": timestamp,
-            "secondsElapsed": (root.startingTimestamp - timestamp),
-            "currentStepNumber": currentStepNumber,
-            "currentStepName": root.setupStepNames[currentStepNumber]
-        }
-        UserActivityLogger.logAction("commerceWalletSetupProgress", data);
+        UserActivityLogger.commerceWalletSetupProgress(timestamp, Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
     }
 
     //
@@ -747,11 +741,7 @@ Item {
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
                     
                     var timestamp = new Date();
-                    var data = {
-                        "timestamp": timestamp,
-                        "secondsToComplete": (root.startingTimestamp - timestamp)
-                    }
-                    UserActivityLogger.logAction("commerceWalletSetupFinished", data);
+                    UserActivityLogger.commerceWalletSetupFinished(timestamp, Math.round((timestamp - root.startingTimestamp)/1000));
                 }
             }
         }
