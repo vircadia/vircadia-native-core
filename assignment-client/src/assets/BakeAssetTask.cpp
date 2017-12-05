@@ -53,9 +53,7 @@ void BakeAssetTask::run() {
     QString tempOutputDir = PathUtils::generateTemporaryDir();
     _outputDir = tempOutputDir;
     auto base = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
-    QString path = base.absolutePath() + "/../../tools/oven/RelWithDebInfo/oven.exe";
-    path = base.absolutePath() + "/../tools/oven/oven";
-    //path = "C:/Users/huffm/dev/hifi/build17/tools/oven/RelWithDebInfo/oven.exe"; 
+    QString path = base.absolutePath() + "/oven";
     QString extension = _assetPath.mid(_assetPath.lastIndexOf('.') + 1);
     QStringList args {
         "-i", _filePath,
