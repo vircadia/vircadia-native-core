@@ -1968,17 +1968,19 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         auto actionType = action->getType();
         if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
-            _dirtyFlags |= Simulation::NO_BOOTSTRAPPING;
-            forEachDescendant([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                    entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING | Simulation::DIRTY_COLLISION_GROUP);
-                }
-            });
+            if (!(bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
+                _dirtyFlags |= Simulation::NO_BOOTSTRAPPING;
+                _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+                forEachDescendant([&](SpatiallyNestablePointer child) {
+                    if (child->getNestableType() == NestableType::Entity) {
+                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                        entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING | Simulation::DIRTY_COLLISION_GROUP);
+                    }
+                });
+            }
         }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
@@ -2056,7 +2058,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
 
         action->setOwnerEntity(nullptr);
         action->setIsMine(false);
-        _objectActions.remove(actionID);
 
         if (simulation) {
             action->removeFromSimulation(simulation);
@@ -2065,17 +2066,10 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-        if (stillHasGrabActions()) {
-            _dirtyFlags |= Simulation::NO_BOOTSTRAPPING;
-            forEachDescendant([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                    entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING | Simulation::DIRTY_COLLISION_GROUP);
-                }
-            });
-        } else if ((bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
+        auto removedActionType = action->getType();
+        if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
             forEachDescendant([&](SpatiallyNestablePointer child) {
                 if (child->getNestableType() == NestableType::Entity) {
                     EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
@@ -2083,7 +2077,12 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
                     entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
                 }
             });
+        } else {
+            // NO-OP: we assume NO_BOOTSTRAPPING bits and collision group are correct
+            // because they should have been set correctly when the action was added
+            // and/or when children were linked
         }
+        _objectActions.remove(actionID);
         setDynamicDataNeedsTransmit(true);
         return success;
     }
