@@ -23,9 +23,7 @@ Rectangle {
     color: hifi.colors.baseGray;
     anchors.margins: hifi.dimensions.contentMargin.x
 
-    //property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
-    //property var highlightConfig: Render.getConfig("UpdateScene.HighlightStageSetup")
-    
+   
     signal sendToScript(var message);
 
     Column {
@@ -35,40 +33,27 @@ Rectangle {
         anchors.right: parent.right       
         anchors.margins: hifi.dimensions.contentMargin.x  
 
-        Row {
-            spacing: 10
-            anchors.left: parent.left
-            anchors.right: parent.right 
-
-            HifiControls.CheckBox {
-                id: debug
-                text: "View Mask"
-                checked: root.debugConfig["viewMask"]
-                onCheckedChanged: {
-                    root.debugConfig["viewMask"] = checked;
-                }
-            }
-            HifiControls.CheckBox {
-                text: "Hover select"
-                checked: false
-                onCheckedChanged: {
-                    sendToScript("pick "+checked.toString())
-                }
-            }
-            HifiControls.CheckBox {
-                text: "Add to selection"
-                checked: false
-                onCheckedChanged: {
-                    sendToScript("add "+checked.toString())
-                }
-            }        
-        }
         Separator {}
-
-        XColor {
-            color: { "red": 0, "green": 255, "blue": 0}
+        Row  {
+            height: 24
+            anchors.left: parent.left
+            anchors.right: parent.right       
+            HifiControls.Label {
+                    height: 24
+                    width: parent.width / 2
+                    id: labelControl
+                    text: "Color"
+                    enabled: true
+                    anchors.left: parent.left
+                    anchors.right: parent.horizontalCenter
+            }   
+            XColor {
+               // width: parent.width / 2
+                anchors.left: parent.horizontalCenter
+                anchors.right: parent.right
+                color: { "red": 0, "green": 255, "blue": 0}
+            }   
         }
-
         Separator {}
 
 /*
