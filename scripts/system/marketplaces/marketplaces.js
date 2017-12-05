@@ -9,7 +9,7 @@
 //
 
 /* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
-   Quat, MyAvatar, Clipboard, Menu */
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () { // BEGIN LOCAL_SCOPE
@@ -337,10 +337,6 @@
                     }
                     // we currently assume a wearable is a single entity
                     Entities.editEntity(pastedEntityIDs[0], offsets);
-                }
-
-                if (isActive) {
-                    selectionManager.setSelections(pastedEntityIDs);
                 }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
