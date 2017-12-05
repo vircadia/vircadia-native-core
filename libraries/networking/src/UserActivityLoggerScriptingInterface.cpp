@@ -88,3 +88,28 @@ void UserActivityLoggerScriptingInterface::doLogAction(QString action, QJsonObje
                               Q_ARG(QString, action),
                               Q_ARG(QJsonObject, details));
 }
+
+void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, int cost, bool firstPurchaseOfThisItem) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["cost"] = cost;
+    payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
+    doLogAction("commercePurchaseSuccess", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["cost"] = cost;
+    payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
+    payload["errorDetails"] = errorDetails;
+    doLogAction("commercePurchaseFailure", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceEntityRezzed(QString marketplaceID, QString source, QString type) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["source"] = source;
+    payload["type"] = type;
+    doLogAction("commerceEntityRezzed", payload);
+}
