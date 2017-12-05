@@ -177,7 +177,7 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_finished') {
-                    if (msg.referrer === '') {
+                    if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
                         root.activeView = "initialize";
                         commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {

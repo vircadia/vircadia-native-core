@@ -110,8 +110,9 @@
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
-        wireEventBridge(onCommerceScreen);
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1 || url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1);
+        wireEventBridge(onMarketplaceScreen || onCommerceScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             tablet.sendToQml({
@@ -322,6 +323,11 @@
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'updateWalletReferrer',
+                    referrer: "marketplace cta"
+                });
                 openWallet();
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
