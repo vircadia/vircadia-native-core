@@ -77,12 +77,23 @@ void BakeAssetTask::run() {
         }
 
         if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
+            _didFinish.store(true);
             emit bakeComplete(_assetHash, _assetPath, tempOutputDir, outputFiles);
         } else if (exitCode == OVEN_STATUS_CODE_ABORT) {
+            _wasAborted.store(true);
             emit bakeAborted(_assetHash, _assetPath);
         } else {
             QString errors;
             if (exitCode == OVEN_STATUS_CODE_FAIL) {
+                _didFinish.store(true);
+                auto errorFilePath = _outputDir.absoluteFilePath("errors.txt");
+                QFile errorFile { errorFilePath };
+                if (errorFile.open(QIODevice::ReadOnly)) {
+                    errors = errorFile.readAll();
+                    errorFile.close();
+                } else {
+                    errors = "Unknown error occurred";
+                }
             }
             emit bakeFailed(_assetHash, _assetPath, errors);
         }
@@ -95,12 +106,9 @@ void BakeAssetTask::run() {
         qDebug() << "Process started";
     });
 
-    qDebug() << "Starting process!";
     proc->start(path, args, QIODevice::ReadOnly);
     proc->waitForStarted();
-    qDebug() << "Started";
     proc->waitForFinished();
-    qDebug() << "Finished";
 
     return;
 

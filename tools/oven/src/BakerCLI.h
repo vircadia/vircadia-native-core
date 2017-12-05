@@ -13,6 +13,7 @@
 #define hifi_BakerCLI_h
 
 #include <QtCore/QObject>
+#include <QDir>
 
 #include <memory>
 
@@ -36,6 +37,7 @@ private slots:
     void handleFinishedBaker();  
 
 private:
+    QDir _outputPath;
     std::unique_ptr<Baker> _baker;
 };
 
