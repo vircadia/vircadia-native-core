@@ -132,8 +132,48 @@ public:
     */
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
+    /**jsdoc
+    * Enable highlighting for the named selection.
+    * If the Selection doesn't exist, it will be created.
+    * All objects in the list will be displayed with the highlight effect as specified from the highlightStyle.
+    * The function can be called several times with different values in the style to modify it.
+    * 
+    * @function Selection.enableListHighlight
+    * @param listName {string} name of the selection
+    * @param highlightStyle {jsObject} highlight style fields (see Selection.getListHighlightStyle for a detailed description of the highlightStyle).
+    * @returns {bool} true if the selection was successfully enabled for highlight.
+    */
     Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
+    /**jsdoc
+    * Disable highlighting for the named selection.
+    * If the Selection doesn't exist or wasn't enabled for highliting then nothing happens simply returning false.
+    *
+    * @function Selection.disableListHighlight
+    * @param listName {string} name of the selection
+    * @returns {bool} true if the selection was successfully disabled for highlight, false otherwise.
+    */
     Q_INVOKABLE bool disableListHighlight(const QString& listName);
+    /**jsdoc
+    * Query the highlight style values for the named selection.
+    * If the Selection doesn't exist or hasn't been highlight enabled yet, it will return an empty object.
+    * Otherwise, the jsObject describes the highlight style properties:
+    * - outlineUnoccludedColor: {xColor} Color of the specified highlight region
+    * - outlineOccludedColor: {xColor} "
+    * - fillUnoccludedColor: {xColor} "
+    * - fillOccludedColor: {xColor} "
+    *
+    * - outlineUnoccludedOpacity: {float} Opacity value ranging from 0.0 (not visible) to 1.0 (fully opaque) for the specified highlight region
+    * - outlineOccludedOpacity: {float} "
+    * - fillUnoccludedOpacity: {float} "
+    * - fillOccludedOpacity: {float} "
+    *
+    * - outlineWidth: {float} width of the outline expressed in pixels
+    * - isOutlineSmooth: {bool} true to enable oultine smooth falloff
+    *
+    * @function Selection.getListHighlightStyle
+    * @param listName {string} name of the selection
+    * @returns {jsObject} highlight style as described above
+    */
     Q_INVOKABLE QVariantMap getListHighlightStyle(const QString& listName) const;
 
     render::HighlightStyle getHighlightStyle(const QString& listName) const;

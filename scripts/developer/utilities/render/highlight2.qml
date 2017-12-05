@@ -15,6 +15,7 @@ import QtQuick.Layouts 1.3
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import  "configSlider"
+import  "../lib/plotperf"
 
 Rectangle {
     id: root
@@ -22,8 +23,8 @@ Rectangle {
     color: hifi.colors.baseGray;
     anchors.margins: hifi.dimensions.contentMargin.x
 
-    property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
-    property var highlightConfig: Render.getConfig("UpdateScene.HighlightStageSetup")
+    //property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
+    //property var highlightConfig: Render.getConfig("UpdateScene.HighlightStageSetup")
     
     signal sendToScript(var message);
 
@@ -60,9 +61,17 @@ Rectangle {
                 onCheckedChanged: {
                     sendToScript("add "+checked.toString())
                 }
-            }
+            }        
+        }
+        Separator {}
+
+        XColor {
+            color: { "red": 0, "green": 255, "blue": 0}
         }
 
+        Separator {}
+
+/*
         HifiControls.ComboBox {
             id: box
             width: 350
@@ -112,7 +121,7 @@ Rectangle {
                 Column {
                     spacing: 10
                     anchors.left: parent.left
-                    anchors.right: parent.right 
+                    anchors.right: parent.right
                     HifiControls.CheckBox {
                         text: "Smooth"
                         checked: root.highlightConfig["isOutlineSmooth"]
@@ -173,5 +182,6 @@ Rectangle {
                 }
             }
         }
+        */
     }
 }
