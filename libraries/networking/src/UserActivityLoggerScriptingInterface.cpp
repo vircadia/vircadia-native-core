@@ -121,8 +121,7 @@ void UserActivityLoggerScriptingInterface::commerceWalletSetupStarted(int timest
     payload["setupFlowVersion"] = setupFlowVersion;
     payload["referrer"] = referrer;
     payload["currentDomain"] = currentDomain;
-    qDebug() << "ZRF" << payload;
-    //doLogAction("commerceWalletSetupStarted", payload);
+    doLogAction("commerceWalletSetupStarted", payload);
 }
 
 void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(int timestamp, int secondsElapsed, int currentStepNumber, QString currentStepName) {
@@ -131,14 +130,12 @@ void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(int times
     payload["secondsElapsed"] = secondsElapsed;
     payload["currentStepNumber"] = currentStepNumber;
     payload["currentStepName"] = currentStepName;
-    qDebug() << "ZRF" << payload;
-    //doLogAction("commerceWalletSetupProgress", payload);
+    doLogAction("commerceWalletSetupProgress", payload);
 }
 
 void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int timestamp, int secondsToComplete) {
     QJsonObject payload;
     payload["timestamp"] = timestamp;
     payload["secondsToComplete"] = secondsToComplete;
-    qDebug() << "ZRF" << payload;
-    //doLogAction("commerceWalletSetupFinished", payload);
+    doLogAction("commerceWalletSetupFinished", payload);
 }
