@@ -1909,8 +1909,11 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     // send output buffer for recording
-    QByteArray outputBuffer(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
-    emit _audio->outputBufferReceived(outputBuffer);
+    if (_audio->_isRecording) {
+        QByteArray outputBuffer(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+        emit _audio->outputBufferReceived(outputBuffer);
+    }
+
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);

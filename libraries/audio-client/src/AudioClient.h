@@ -158,6 +158,9 @@ public:
 
     bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
 
+    void setRecording(bool isRecording) { _isRecording = isRecording; };
+    bool getRecording() { return _isRecording; };
+
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
 #endif
@@ -420,6 +423,8 @@ private:
     
     QTimer* _checkDevicesTimer { nullptr };
     QTimer* _checkPeakValuesTimer { nullptr };
+
+    bool _isRecording { false };
 };
 
 

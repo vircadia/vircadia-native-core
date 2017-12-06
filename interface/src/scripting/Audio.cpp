@@ -59,9 +59,7 @@ Audio::Audio() : _devices(_contextIsHMD) {
 }
 
 void Audio::onOutputBufferReceived(const QByteArray outputBuffer) {
-    if (_isRecording) {
-        _audioFileWav.addRawAudioChunk((char*)outputBuffer.data(), outputBuffer.size());
-    }
+    _audioFileWav.addRawAudioChunk((char*)outputBuffer.data(), outputBuffer.size());
 }
 
 bool Audio::startRecording(const QString& filepath) {
@@ -71,15 +69,21 @@ bool Audio::startRecording(const QString& filepath) {
         return false;
     }
     connect(client, &AudioClient::outputBufferReceived, this, &Audio::onOutputBufferReceived);
-    _isRecording = true;
+    client->setRecording(true);
     return true;
+}
+
+bool Audio::getRecording() {
+    auto client = DependencyManager::get<AudioClient>().data();
+    return client->getRecording();
 }
 
 void Audio::stopRecording() {
     auto client = DependencyManager::get<AudioClient>().data();
     disconnect(client, &AudioClient::outputBufferReceived, this, 0);
-    if (_isRecording) {
-        _isRecording = false;
+    
+    if (client->getRecording()) {
+        client->setRecording(false);
         _audioFileWav.close();
     }
 }

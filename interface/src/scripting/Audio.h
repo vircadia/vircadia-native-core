@@ -58,7 +58,7 @@ public:
 
     Q_INVOKABLE bool startRecording(const QString& filename);
     Q_INVOKABLE void stopRecording();
-    Q_INVOKABLE bool getRecording() { return _isRecording; };
+    Q_INVOKABLE bool getRecording();
 
 signals:
     void nop();
@@ -89,7 +89,6 @@ private:
     bool _isMuted { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _contextIsHMD { false };
-    bool _isRecording { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
     AudioFileWav _audioFileWav;
