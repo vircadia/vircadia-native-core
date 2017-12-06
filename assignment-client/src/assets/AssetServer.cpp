@@ -1485,7 +1485,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash)
         if (error.error == QJsonParseError::NoError && doc.isObject()) {
             auto root = doc.object();
 
-            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(INITIAL_BAKE_VERSION);
+            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
             auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
 
