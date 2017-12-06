@@ -29,10 +29,6 @@ macro(GENERATE_INSTALLERS)
 
 
   if (WIN32)
-    # Do not install the Visual Studio C runtime libraries.  The installer will do this automatically
-    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-    
-    include(InstallRequiredSystemLibraries)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
     # install and reference the Add/Remove icon
@@ -84,4 +80,3 @@ macro(GENERATE_INSTALLERS)
 
   include(CPack)
 endmacro()
-
