@@ -138,9 +138,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
                 var dimensions;
                 if (overlayInfoSet.type === "sphere") {
-                    dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize * EQUIP_SPHERE_SCALE_FACTOR;
+                    dimensions = (overlayInfoSet.hotspot.radius / 2) *  overlayInfoSet.currentSize * EQUIP_SPHERE_SCALE_FACTOR;
                 } else {
-                    dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize;
+                    dimensions = (overlayInfoSet.hotspot.radius / 2) * overlayInfoSet.currentSize;
                 }
 
                 overlayInfoSet.overlays.forEach(function(overlay) {
@@ -162,7 +162,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
     var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 
-    var EQUIP_RADIUS = 0.25; // radius used for palm vs equip-hotspot for equipping.
+    var EQUIP_RADIUS = 1.0; // radius used for palm vs equip-hotspot for equipping.
 
     var HAPTIC_PULSE_STRENGTH = 1.0;
     var HAPTIC_PULSE_DURATION = 13.0;
@@ -322,7 +322,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 }
             } else {
                 var wearableProps = getWearableData(props);
+                var sensorToScaleFactor = MyAvatar.sensorToWorldScale;
                 if (wearableProps && wearableProps.joints) {
+
                     result.push({
                         key: entityID.toString() + "0",
                         entityID: entityID,
@@ -332,7 +334,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                             z: 0
                         },
                         worldPosition: entityXform.pos,
-                        radius: EQUIP_RADIUS,
+                        radius: EQUIP_RADIUS * sensorToScaleFactor,
                         joints: wearableProps.joints,
                         modelURL: null,
                         modelScale: null
