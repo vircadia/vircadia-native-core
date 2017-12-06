@@ -176,6 +176,8 @@ public:
     */
     Q_INVOKABLE QVariantMap getListHighlightStyle(const QString& listName) const;
 
+    Q_INVOKABLE QStringList getHighlightStyles() const;
+
     render::HighlightStyle getHighlightStyle(const QString& listName) const;
 
     void onSelectedItemsListChanged(const QString& listName);

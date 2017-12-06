@@ -146,6 +146,14 @@ QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& li
     }
 }
 
+
+QStringList SelectionScriptingInterface::getHighlightStyles() const {
+    QStringList list;
+    QReadLocker lock(&_highlightStylesLock);
+    list = _highlightStyleMap.keys();
+    return list;
+}
+
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
     QReadLocker lock(&_highlightStylesLock);
     auto highlightStyle = _highlightStyleMap.find(listName);

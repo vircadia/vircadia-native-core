@@ -1,5 +1,5 @@
 //
-//  XColor.qml
+//  Color.qml
 //
 //  Created by Sam Gateau 12/4/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -20,48 +20,57 @@ Item {
     HifiConstants { id: hifi }
     id: root
 
-    anchors.left: parent.left
-    anchors.right: parent.right    
     height: 24
-    property var color
+
+    property var _color: Qt.rgba(1.0, 1.0, 1.0, 1.0 );
     property var zoneWidth: width / 3;
     property var hoveredOn: 0.0;
-    property var sliderHeight: height / 3;
+    property var sliderHeight: height / 2;
 
-    signal newColor( color la_color)
-    function getColor() {
-        return Qt.rgba(color.red / 255.0, color.green / 255.0, color.blue / 255.0, 1.0 );
-    }
+    signal newColor(color __color)
 
-    function repaint() {
-        current.color = getColor()
-    }
+    function setColor(color) {
+        _color = Qt.rgba(color.r, color.g, color.b, 1.0)
+        updateColor()
+    }  
     function setRed(r) {
-        color.red = r * 255;
-        repaint()
-        print("set red " + r)
+        _color.r = r;
+        updateColor()
     }
     function setGreen(g) {
-        color.green = g * 255;
-        repaint()
-        print("set green " + g)
+        _color.g = g;
+        updateColor()
     }
     function setBlue(b) {
-        color.blue = b * 255;
+        _color.b = b;
+        updateColor()
+    }
+
+    function updateColor() {
         repaint()
-        print("set blue " + b)
+        newColor(_color)
+    } 
+    function repaint() {
+        current.color = _color
     }
 
     function resetSliders() {
-        redZone.set(color.red / 255) 
-        greenZone.set(color.green / 255) 
-        blueZone.set(color.blue / 255)          
+        redZone.set(_color.r) 
+        greenZone.set(_color.g) 
+        blueZone.set(_color.b)          
+    }
+
+    function setXColor(xcolor) {
+        setColor(Qt.rgba(xcolor.red/255, xcolor.green/255, color.blue/255, 1.0))
+    }
+    function getXColor() {
+        return {red:_color.r * 255, green:_color.g * 255, blue:_color.b * 255}
     }
 
     Rectangle {
         id: current
         anchors.fill: root
-        color: root.getColor();
+        color: root._color;
     }
     Rectangle {
         id: sliderBack
@@ -87,8 +96,6 @@ Item {
     } 
 
     Component.onCompleted: {
-        // Binding favors qml value, so set it first
-        bindingControl.when = true;
     }
 
     Item {
@@ -98,13 +105,16 @@ Item {
         anchors.left: root.left
         width: root.zoneWidth  
 
-        function set(r) {
+        function update(r) {
             if (r < 0.0) {
                 r = 0.0
             } else if (r > 1.0) {
                 r = 1.0
             }
             root.setRed(r)
+            set(r)
+        }
+        function set(r) {
             redRect.width = r * redZone.width
             redRect.color = Qt.rgba(r, 0, 0, 1) 
         }
@@ -121,7 +131,7 @@ Item {
             id: redArea
             anchors.fill: parent
             onPositionChanged: {
-                redZone.set(mouse.x / redArea.width)
+                redZone.update(mouse.x / redArea.width)
             }   
         }
     }
@@ -129,17 +139,19 @@ Item {
         id: greenZone
         anchors.top: root.top
         anchors.bottom: root.bottom
-        anchors.left: redZone.right
-        
+        anchors.horizontalCenter: root.horizontalCenter
         width: root.zoneWidth  
 
-        function set(g) {
+        function update(g) {
             if (g < 0.0) {
                 g = 0.0
             } else if (g > 1.0) {
                 g = 1.0
             }
             root.setGreen(g)
+            set(g)
+        }
+        function set(g) {
             greenRect.width = g * greenZone.width
             greenRect.color = Qt.rgba(0, g, 0, 1) 
         }
@@ -156,7 +168,7 @@ Item {
             id: greenArea
             anchors.fill: parent
             onPositionChanged: {
-                greenZone.set(mouse.x / greenArea.width)
+                greenZone.update(mouse.x / greenArea.width)
             }     
         }
     }
@@ -164,18 +176,19 @@ Item {
         id: blueZone
         anchors.top: root.top
         anchors.bottom: root.bottom
-        anchors.right: root.right
-       // anchors.left: greenZone.right
-        
+        anchors.right: root.right     
         width: root.zoneWidth  
 
-        function set(b) {
+        function update(b) {
             if (b < 0.0) {
                 b = 0.0
             } else if (b > 1.0) {
                 b = 1.0
             }
             root.setBlue(b)
+            set(b)
+        }
+        function set(b) {
             blueRect.width = b * blueZone.width
             blueRect.color = Qt.rgba(0, 0, b, 1) 
         }
@@ -192,7 +205,7 @@ Item {
             id: blueArea
             anchors.fill: parent
             onPositionChanged: {
-                blueZone.set(mouse.x / blueArea.width)
+                blueZone.update(mouse.x / blueArea.width)
             }
         }
     }    
