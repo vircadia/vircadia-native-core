@@ -45,7 +45,7 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #endif
 
 
-#if defined(Q_OS_LINUX) || defined(__APPLE__)
+#if defined(Q_OS_LINUX) || defined(Q_OS_MAC)
 #include <signal.h>
 #include <cerrno>
 #endif
@@ -1088,19 +1088,17 @@ bool processIsRunning(int64_t pid) {
 #ifdef Q_OS_WIN
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (process) {
-        DWORD exitCodeOut;
-        if (GetExitCodeProcess(process, &exitCodeOut) != 0) {
-            return exitCodeOut == STILL_ACTIVE;
+        DWORD exitCode;
+        if (GetExitCodeProcess(process, &exitCode) != 0) {
+            return exitCode == STILL_ACTIVE;
         }
     }
     return false;
-#elif defined(Q_OS_LINUX) || defined(__APPLE__)
+#else
     if (kill(pid, 0) == -1) {
         return errno != ESRCH;
     }
     return true;
-#else
-    static_assert(false);
 #endif
 }
 

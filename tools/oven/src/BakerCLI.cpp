@@ -30,7 +30,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
         inputUrl.setScheme("file");
     }
 
-    qDebug() << "Type: " << type;
+    qDebug() << "Baking file type: " << type;
 
     static const QString MODEL_EXTENSION { "fbx" };
 
@@ -57,7 +57,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
         _baker->moveToThread(qApp->getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
-        QApplication::exit(1);
+        QApplication::exit(OVEN_STATUS_CODE_FAIL);
     }
 
     // invoke the bake method on the baker thread

@@ -62,16 +62,20 @@ void BakeAssetTask::run() {
         "-t", extension,
     };
 
-    auto _ovenProcess = new QProcess(this);
+    _ovenProcess.reset(new QProcess());
 
-    connect(_ovenProcess, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+    connect(_ovenProcess.get(), static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
             this, [this, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
         qDebug() << "Baking process finished: " << exitCode << exitStatus;
 
         if (exitStatus == QProcess::CrashExit) {
-            _didFinish.store(true);
-            QString errors = "Fatal error occurred while baking";
-            emit bakeFailed(_assetHash, _assetPath, errors);
+            if (_wasAborted) {
+                emit bakeAborted(_assetHash, _assetPath);
+            } else {
+                _didFinish.store(true);
+                QString errors = "Fatal error occurred while baking";
+                emit bakeFailed(_assetHash, _assetPath, errors);
+            }
         } else if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
             auto files = _outputDir.entryInfoList(QDir::Files);
             QVector<QString> outputFiles;
@@ -111,6 +115,6 @@ void BakeAssetTask::run() {
 
 void BakeAssetTask::abort() {
     if (!_wasAborted.exchange(true)) {
-        _ovenProcess.terminate();
+        _ovenProcess->terminate();
     }
 }

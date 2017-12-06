@@ -46,7 +46,7 @@ private:
     AssetPath _assetPath;
     QString _filePath;
     QDir _outputDir;
-    QProcess _ovenProcess { nullptr };
+    std::unique_ptr<QProcess> _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
     std::atomic<bool> _didFinish { false };
 };

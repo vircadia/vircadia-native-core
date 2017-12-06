@@ -29,11 +29,11 @@
 #include <QtCore/QUrlQuery>
 
 #include <ClientServerUtils.h>
-#include <FBXBaker.h>
-#include <JSBaker.h>
 #include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
+#include <image/Image.h>
+#include <TextureBaker.h>
 
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"
