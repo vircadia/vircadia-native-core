@@ -161,6 +161,10 @@ public:
     void setRecording(bool isRecording) { _isRecording = isRecording; };
     bool getRecording() { return _isRecording; };
 
+    bool startRecording(const QString& filename);
+    void stopRecording();
+
+
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
 #endif
@@ -401,6 +405,8 @@ private:
 
     QList<QAudioDeviceInfo> _inputDevices;
     QList<QAudioDeviceInfo> _outputDevices;
+
+    AudioFileWav _audioFileWav;
 
     bool _hasReceivedFirstPacket { false };
 

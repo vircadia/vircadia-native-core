@@ -76,7 +76,6 @@ private slots:
     void onNoiseReductionChanged();
     void onInputVolumeChanged(float volume);
     void onInputLoudnessChanged(float loudness);
-    void onOutputBufferReceived(const QByteArray outputBuffer);
 
 protected:
     // Audio must live on a separate thread from AudioClient to avoid deadlocks
@@ -91,7 +90,6 @@ private:
     bool _contextIsHMD { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
-    AudioFileWav _audioFileWav;
 };
 
 };

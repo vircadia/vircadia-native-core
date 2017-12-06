@@ -79,6 +79,7 @@ Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
+Mutex _recordMutex;
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -1910,8 +1911,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
     // send output buffer for recording
     if (_audio->_isRecording) {
-        QByteArray outputBuffer(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
-        emit _audio->outputBufferReceived(outputBuffer);
+        Lock lock(_recordMutex);
+        _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
     }
 
 
@@ -1924,6 +1925,22 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     return bytesWritten;
+}
+
+bool AudioClient::startRecording(const QString& filepath) {
+    if (!_audioFileWav.create(_outputFormat, filepath)) {
+        qDebug() << "Error creating audio file: " + filepath;
+        return false;
+    }
+    _isRecording = true;
+    return true;
+}
+
+void AudioClient::stopRecording() {
+    if (_isRecording) {
+        _isRecording = false;
+        _audioFileWav.close();
+    }
 }
 
 void AudioClient::loadSettings() {

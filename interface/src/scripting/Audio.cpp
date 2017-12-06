@@ -58,19 +58,9 @@ Audio::Audio() : _devices(_contextIsHMD) {
     enableNoiseReduction(enableNoiseReductionSetting.get());
 }
 
-void Audio::onOutputBufferReceived(const QByteArray outputBuffer) {
-    _audioFileWav.addRawAudioChunk((char*)outputBuffer.data(), outputBuffer.size());
-}
-
 bool Audio::startRecording(const QString& filepath) {
     auto client = DependencyManager::get<AudioClient>().data();
-    if (!_audioFileWav.create(client->getOutputFormat(), filepath)) {
-        qDebug() << "Error creating audio file: "+filepath;
-        return false;
-    }
-    connect(client, &AudioClient::outputBufferReceived, this, &Audio::onOutputBufferReceived);
-    client->setRecording(true);
-    return true;
+    return client->startRecording(filepath);
 }
 
 bool Audio::getRecording() {
@@ -80,12 +70,7 @@ bool Audio::getRecording() {
 
 void Audio::stopRecording() {
     auto client = DependencyManager::get<AudioClient>().data();
-    disconnect(client, &AudioClient::outputBufferReceived, this, 0);
-    
-    if (client->getRecording()) {
-        client->setRecording(false);
-        _audioFileWav.close();
-    }
+    client->stopRecording();
 }
 
 void Audio::setMuted(bool isMuted) {
