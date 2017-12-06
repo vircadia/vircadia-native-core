@@ -31,8 +31,6 @@ public:
     static std::string _stageName;
     static const std::string& getName() { return _stageName; }
 
-    static const unsigned int SUN_SHADOW_CASCADE_COUNT;
-
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
@@ -62,19 +60,24 @@ public:
             const glm::mat4& getView() const;
             const glm::mat4& getProjection() const;
 
+            void setMinDistance(float value) { _minDistance = value; }
+            void setMaxDistance(float value) { _maxDistance = value; }
+            float getMinDistance() const { return _minDistance; }
+            float getMaxDistance() const { return _maxDistance; }
+
         private:
 
             std::shared_ptr<ViewFrustum> _frustum;
+            float _minDistance;
+            float _maxDistance;
 
             float computeFarDistance(const ViewFrustum& viewFrustum, const Transform& shadowViewInverse,
                                      float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
         };
 
-        Shadow(model::LightPointer light, unsigned int cascadeCount = 1);
+        Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
 
         void setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum, 
-                                float viewMinCascadeShadowDistance, float viewMaxCascadeShadowDistance, 
-                                float viewCascadeOverlapDistance, float viewMaxShadowDistance,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
         void setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
@@ -82,6 +85,9 @@ public:
 
         unsigned int getCascadeCount() const { return (unsigned int)_cascades.size(); }
         const Cascade& getCascade(unsigned int index) const { return _cascades[index]; }
+
+        float getMaxDistance() const { return _maxDistance; }
+        void setMaxDistance(float value);
 
         const model::LightPointer& getLight() const { return _light; }
 
@@ -94,6 +100,7 @@ public:
         static const glm::mat4 _biasMatrix;
 
         model::LightPointer _light;
+        float _maxDistance;
         Cascades _cascades;
 
         class Schema : public ShadowParameters {
@@ -111,7 +118,7 @@ public:
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 
-    Index addShadow(Index lightIndex, unsigned int cascadeCount = 1U);
+    Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
     LightPointer removeLight(Index index);
     

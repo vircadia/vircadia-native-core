@@ -23,7 +23,6 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.5, 0.5, 0.5, 1.0 };
 const int LightStage::Shadow::MAP_SIZE = 1024;
 
-const unsigned int LightStage::SUN_SHADOW_CASCADE_COUNT{ 4 };
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
@@ -40,7 +39,10 @@ LightStage::Shadow::Schema::Schema() {
     maxDistance = 20.0f;
 }
 
-LightStage::Shadow::Cascade::Cascade() : _frustum{ std::make_shared<ViewFrustum>() } {
+LightStage::Shadow::Cascade::Cascade() : 
+    _frustum{ std::make_shared<ViewFrustum>() },
+    _minDistance{ 0.0f },
+    _maxDistance{ 20.0f } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
 }
@@ -88,21 +90,66 @@ float LightStage::Shadow::Cascade::computeFarDistance(const ViewFrustum& viewFru
     return far;
 }
 
-LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount) : _light{ light } {
+LightStage::Shadow::Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
+    _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
     Schema schema;
     schema.cascadeCount = cascadeCount;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
     _cascades.resize(cascadeCount);
+
+    setMaxDistance(maxDistance);
+}
+
+void LightStage::Shadow::setMaxDistance(float value) {
+    _maxDistance = std::max(0.0f, value);
+
+    // Distribute the cascades along that distance
+    // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
+    static const auto LOW_CASCADE_MAX_DISTANCE = 1.5f;
+    // Power distribution. Lower the steepness to 1.0 for a more linear distribution or increase it for a
+    // tighter distribution around the view position.
+    static const auto CASCADE_DISTRIBUTION_STEEPNESS = 3.0f;
+
+    if (_cascades.size() == 1) {
+        _cascades.front().setMinDistance(0.0f);
+        _cascades.front().setMaxDistance(_maxDistance);
+    } else {
+        for (auto cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
+            float maxCascadeDistance;
+            float minCascadeDistance;
+            float shadowOverlapDistance;
+
+            const auto deltaCascadeMaxDistance = (_maxDistance - LOW_CASCADE_MAX_DISTANCE);
+            const auto maxAlpha = powf(cascadeIndex / float(_cascades.size() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
+            const auto minAlpha = powf(std::max<float>(cascadeIndex - 1, 0) / float(_cascades.size() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
+
+            maxCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * maxAlpha;
+            minCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * minAlpha;
+
+            if (cascadeIndex == 0) {
+                minCascadeDistance = 0.0f;
+            } else {
+                minCascadeDistance = std::max(minCascadeDistance, 0.0f);
+            }
+            shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
+            maxCascadeDistance += shadowOverlapDistance;
+
+            _cascades[cascadeIndex].setMinDistance(minCascadeDistance);
+            _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance);
+        }
+    }
+
+    // Update the buffer
+    const auto& lastCascade = _cascades.back();
+    auto& schema = _schemaBuffer.edit<Schema>();
+    schema.maxDistance = _maxDistance;
+    schema.invFalloffDistance = 3.0f / (lastCascade.getMaxDistance() - lastCascade.getMinDistance());
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                            float viewMinCascadeShadowDistance, float viewMaxCascadeShadowDistance,
-                                            float viewCascadeOverlapDistance, float viewMaxShadowDistance,
                                             float nearDepth, float farDepth) {
-    assert(viewMinCascadeShadowDistance < viewMaxCascadeShadowDistance);
     assert(nearDepth < farDepth);
-    assert(viewCascadeOverlapDistance > 0.0f);
     assert(cascadeIndex < _cascades.size());
 
     // Orient the keylight frustum
@@ -119,6 +166,9 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     }
 
     auto& cascade = _cascades[cascadeIndex];
+    const auto viewMinCascadeShadowDistance = std::max(viewFrustum.getNearClip(), cascade.getMinDistance());
+    const auto viewMaxCascadeShadowDistance = std::min(viewFrustum.getFarClip(), cascade.getMaxDistance());
+    const auto viewMaxShadowDistance = _cascades.back().getMaxDistance();
 
     cascade._frustum->setOrientation(orientation);
 
@@ -165,10 +215,6 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
 
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
-    if (cascadeIndex == getCascadeCount() - 1) {
-        schema.maxDistance = viewMaxCascadeShadowDistance;
-        schema.invFalloffDistance = 1.0f / viewCascadeOverlapDistance;
-    }
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
 }
 
@@ -218,12 +264,12 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
     }
 }
 
-LightStage::Index LightStage::addShadow(Index lightIndex, unsigned int cascadeCount) {
+LightStage::Index LightStage::addShadow(Index lightIndex, float maxDistance, unsigned int cascadeCount) {
     auto light = getLight(lightIndex);
     Index shadowId = INVALID_INDEX;
     if (light) {
         assert(_descs[lightIndex].shadowId == INVALID_INDEX);
-        shadowId = _shadows.newElement(std::make_shared<Shadow>(light, cascadeCount));
+        shadowId = _shadows.newElement(std::make_shared<Shadow>(light, maxDistance, cascadeCount));
         _descs[lightIndex].shadowId = shadowId;
     }
     return shadowId;
