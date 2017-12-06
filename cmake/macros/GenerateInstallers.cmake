@@ -45,6 +45,10 @@ macro(GENERATE_INSTALLERS)
     set(_UNINSTALLER_HEADER_BAD_PATH "${HF_CMAKE_DIR}/installer/uninstaller-header.bmp")
     set(UNINSTALLER_HEADER_IMAGE "")
     fix_path_for_nsis(${_UNINSTALLER_HEADER_BAD_PATH} UNINSTALLER_HEADER_IMAGE)
+
+    # grab the latest VC redist (2017) and add it to the installer, our NSIS template
+    # will call it during the install
+    install(CODE "file(DOWNLOAD https://go.microsoft.com/fwlink/?LinkId=746572 \"\${CMAKE_INSTALL_PREFIX}/vcredist_x64.exe\")")
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")
