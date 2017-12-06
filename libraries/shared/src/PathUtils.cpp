@@ -76,7 +76,7 @@ QString PathUtils::generateTemporaryDir() {
 }
 
 // Delete all temporary directories for an application
-int PathUtils::removeTemporaryDirs(QString appName) {
+int PathUtils::removeTemporaryApplicationDirs(QString appName) {
     if (appName.isNull()) {
         appName = qApp->applicationName();
     }

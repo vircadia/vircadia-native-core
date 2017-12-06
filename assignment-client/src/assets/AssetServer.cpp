@@ -417,8 +417,8 @@ void AssetServer::completeSetup() {
         _filesizeLimit = assetsFilesizeLimit * BITS_PER_MEGABITS;
     }
 
-    PathUtils::removeTemporaryDirs();
-    PathUtils::removeTemporaryDirs("Oven");
+    PathUtils::removeTemporaryApplicationDirs();
+    PathUtils::removeTemporaryApplicationDirs("Oven");
 }
 
 void AssetServer::cleanupUnmappedFiles() {
