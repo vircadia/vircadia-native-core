@@ -114,7 +114,7 @@ void LightStage::Shadow::setMaxDistance(float value) {
     } else {
         // Distribute the cascades along that distance
         // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
-        static const auto LOW_MAX_DISTANCE = 2.0f;
+        static const auto LOW_MAX_DISTANCE = 1.5f;
         static const auto MAX_RESOLUTION_LOSS = 0.6f; // Between 0 and 1, 0 giving tighter distributions
 
         // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
@@ -214,7 +214,7 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     fitFrustum(farCorners.topLeft);
     fitFrustum(farCorners.topRight);
 
-    // Re-adjust near shadow distance
+    // Re-adjust near and far shadow distance
     auto near = glm::min(-max.z, nearDepth);
     auto far = cascade.computeFarDistance(viewFrustum, shadowViewInverse, min.x, max.x, min.y, max.y, viewMaxShadowDistance);
 
@@ -229,7 +229,7 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
     // Adapt shadow bias to shadow resolution with a totally empirical formula
     const auto maxShadowFrustumDim = std::max(fabsf(min.x - max.x), fabsf(min.y - max.y));
-    const auto REFERENCE_TEXEL_DENSITY = 20.0f;
+    const auto REFERENCE_TEXEL_DENSITY = 10.0f;
     const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
     schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
 }
