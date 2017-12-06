@@ -102,41 +102,50 @@ LightStage::Shadow::Shadow(model::LightPointer light, float maxDistance, unsigne
 }
 
 void LightStage::Shadow::setMaxDistance(float value) {
-    _maxDistance = std::max(0.0f, value);
+    static const auto OVERLAP_FACTOR = 1.0f / 4.0f;
 
-    // Distribute the cascades along that distance
-    // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
-    static const auto LOW_CASCADE_MAX_DISTANCE = 1.5f;
-    // Power distribution. Lower the steepness to 1.0 for a more linear distribution or increase it for a
-    // tighter distribution around the view position.
-    static const auto CASCADE_DISTRIBUTION_STEEPNESS = 3.0f;
+    _maxDistance = std::max(0.0f, value);
 
     if (_cascades.size() == 1) {
         _cascades.front().setMinDistance(0.0f);
         _cascades.front().setMaxDistance(_maxDistance);
     } else {
+        // Distribute the cascades along that distance
+        // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
+        static const auto LOW_MAX_DISTANCE = 2.0f;
+        static const auto MAX_RESOLUTION_LOSS = 0.6f; // Between 0 and 1, 0 giving tighter distributions
+
+        // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
+        // factor. There is a "user" factor that is computed from a desired max resolution loss in the shadow
+        // and an optimal own based on the global min and max shadow distance, all cascades considered. The final
+        // distance is a gradual blend between the two
+        const auto userDistanceScale = 1.0f / (1.0f - MAX_RESOLUTION_LOSS);
+        const auto optimalDistanceScale = powf(_maxDistance / LOW_MAX_DISTANCE, 1.0f / (_cascades.size() - 1));
+
+        float maxCascadeUserDistance = LOW_MAX_DISTANCE;
+        float maxCascadeOptimalDistance = LOW_MAX_DISTANCE;
+        float minCascadeDistance = 0.0f;
+
         for (auto cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
+            float blendFactor = cascadeIndex / float(_cascades.size() - 1);
             float maxCascadeDistance;
-            float minCascadeDistance;
-            float shadowOverlapDistance;
 
-            const auto deltaCascadeMaxDistance = (_maxDistance - LOW_CASCADE_MAX_DISTANCE);
-            const auto maxAlpha = powf(cascadeIndex / float(_cascades.size() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
-            const auto minAlpha = powf(std::max<float>(cascadeIndex - 1, 0) / float(_cascades.size() - 1), CASCADE_DISTRIBUTION_STEEPNESS);
-
-            maxCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * maxAlpha;
-            minCascadeDistance = LOW_CASCADE_MAX_DISTANCE + deltaCascadeMaxDistance * minAlpha;
-
-            if (cascadeIndex == 0) {
-                minCascadeDistance = 0.0f;
+            if (cascadeIndex == _cascades.size() - 1) {
+                maxCascadeDistance = _maxDistance;
             } else {
-                minCascadeDistance = std::max(minCascadeDistance, 0.0f);
+                maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor;
             }
-            shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) / 3.0f;
-            maxCascadeDistance += shadowOverlapDistance;
+
+            float shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) * OVERLAP_FACTOR;
 
             _cascades[cascadeIndex].setMinDistance(minCascadeDistance);
-            _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance);
+            _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance + shadowOverlapDistance);
+
+            // Compute distances for next cascade
+            minCascadeDistance = maxCascadeDistance;
+            maxCascadeUserDistance = maxCascadeUserDistance * userDistanceScale;
+            maxCascadeOptimalDistance = maxCascadeOptimalDistance * optimalDistanceScale;
+            maxCascadeUserDistance = std::min(maxCascadeUserDistance, _maxDistance);
         }
     }
 
@@ -144,7 +153,7 @@ void LightStage::Shadow::setMaxDistance(float value) {
     const auto& lastCascade = _cascades.back();
     auto& schema = _schemaBuffer.edit<Schema>();
     schema.maxDistance = _maxDistance;
-    schema.invFalloffDistance = 3.0f / (lastCascade.getMaxDistance() - lastCascade.getMinDistance());
+    schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*(lastCascade.getMaxDistance() - lastCascade.getMinDistance()));
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
