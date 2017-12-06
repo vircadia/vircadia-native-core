@@ -11,6 +11,8 @@
 
 #include "BakeAssetTask.h"
 
+#include <mutex>
+
 #include <QtCore/QThread>
 #include <QCoreApplication>
 
@@ -20,14 +22,18 @@ static const int OVEN_STATUS_CODE_SUCCESS { 0 };
 static const int OVEN_STATUS_CODE_FAIL { 1 };
 static const int OVEN_STATUS_CODE_ABORT { 2 };
 
+std::once_flag registerMetaTypesFlag;
+
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) :
     _assetHash(assetHash),
     _assetPath(assetPath),
     _filePath(filePath)
 {
-    qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
-    qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");
 
+    std::call_once(registerMetaTypesFlag, []() {
+        qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
+        qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");
+    });
 }
 
 void cleanupTempFiles(QString tempOutputDir, std::vector<QString> files) {

@@ -98,11 +98,11 @@ int PathUtils::removeTemporaryApplicationDirs(QString appName) {
             auto pid = match.capturedRef("pid").toLongLong();
             auto timestamp = match.capturedRef("timestamp");
             if (!processIsRunning(pid)) {
-                qDebug() << "  Removing old temporary directory: " << absoluteDirPath;
+                qDebug() << "  Removing old temporary directory: " << dir.absoluteFilePath();
                 absoluteDirPath.removeRecursively();
                 removed++;
             } else {
-                qDebug() << "  Not removing (process is running): " << dir.absoluteDir();
+                qDebug() << "  Not removing (process is running): " << dir.absoluteFilePath();
             }
         }
     }
