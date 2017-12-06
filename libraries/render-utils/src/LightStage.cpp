@@ -131,11 +131,11 @@ void LightStage::Shadow::setMaxDistance(float value) {
         float maxCascadeOptimalDistance = LOW_MAX_DISTANCE;
         float minCascadeDistance = 0.0f;
 
-        for (auto cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
+        for (size_t cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
             float blendFactor = cascadeIndex / float(_cascades.size() - 1);
             float maxCascadeDistance;
 
-            if (cascadeIndex == _cascades.size() - 1) {
+            if (cascadeIndex == size_t(_cascades.size() - 1)) {
                 maxCascadeDistance = _maxDistance;
             } else {
                 maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor*blendFactor;

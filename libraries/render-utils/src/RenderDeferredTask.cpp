@@ -566,7 +566,7 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Out
         if (lightStage) {
             auto globalShadow = lightStage->getCurrentKeyShadow();
 
-            if (globalShadow && i<globalShadow->getCascadeCount()) {
+            if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
                 auto& cascade = globalShadow->getCascade(i);
                 shadowFrustum = cascade.getFrustum();
             } else {

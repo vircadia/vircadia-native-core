@@ -503,7 +503,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Bind the shadow buffers
         if (globalShadow) {
-            for (auto i = 0; i < globalShadow->getCascadeCount(); i++) {
+            for (unsigned int i = 0; i < globalShadow->getCascadeCount(); i++) {
                 batch.setResourceTexture(SHADOW_MAP_UNIT+i, globalShadow->getCascade(i).map);
             }
         }
