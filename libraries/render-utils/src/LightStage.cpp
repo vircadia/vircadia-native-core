@@ -23,6 +23,8 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.5, 0.5, 0.5, 1.0 };
 const int LightStage::Shadow::MAP_SIZE = 1024;
 
+static const auto MAX_BIAS = 0.006f;
+
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
@@ -30,7 +32,7 @@ LightStage::LightStage() {
 
 LightStage::Shadow::Schema::Schema() {
     ShadowTransform defaultTransform;
-    defaultTransform.bias = 0.005f;
+    defaultTransform.bias = MAX_BIAS;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
     cascadeCount = 1;
@@ -225,6 +227,11 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
+    // Adapt shadow bias to shadow resolution with a totally empirical formula
+    const auto maxShadowFrustumDim = std::max(fabsf(min.x - max.x), fabsf(min.y - max.y));
+    const auto REFERENCE_TEXEL_DENSITY = 20.0f;
+    const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
+    schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
 }
 
 void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
