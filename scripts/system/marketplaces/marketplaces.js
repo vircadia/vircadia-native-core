@@ -421,7 +421,8 @@
                 break;
             case 'checkout_itemLinkClicked':
             case 'checkout_continueShopping':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                //tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
             case 'purchases_itemInfoClicked':
