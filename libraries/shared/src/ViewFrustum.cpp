@@ -71,6 +71,8 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     glm::vec4 top = inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
     top /= top.w;
     _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
+    _height = _corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_RIGHT_NEAR].y;
+    _width = _corners[TOP_RIGHT_NEAR].x - _corners[TOP_LEFT_NEAR].x;
 }
 
 // ViewFrustum::calculate()

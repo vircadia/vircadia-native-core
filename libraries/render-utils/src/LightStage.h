@@ -118,7 +118,7 @@ public:
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 
-    Index addShadow(Index lightIndex, float maxDistance = 16.0f, unsigned int cascadeCount = 1U);
+    Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
     LightPointer removeLight(Index index);
     

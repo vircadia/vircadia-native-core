@@ -22,6 +22,8 @@
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
+#include "RenderUtilsLogging.h"
+
 // These values are used for culling the objects rendered in the shadow map
 // but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
@@ -123,7 +125,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         return;
     }
 
-    const auto& fbo = shadow->getCascade(_cascadeIndex).framebuffer;
+    auto& cascade = shadow->getCascade(_cascadeIndex);
+    auto& fbo = cascade.framebuffer;
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder defaultKeyBuilder;
@@ -162,6 +165,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+        std::vector<ShapeKey> ownPipelineShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
         args->_shapePipeline = shadowPipeline;
@@ -169,8 +173,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
-            } else {
+            } else if (!items.first.hasOwnPipeline()) {
                 renderItems(renderContext, items.second);
+            } else {
+                ownPipelineShapeKeys.push_back(items.first);
             }
         }
 
@@ -181,7 +187,15 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
             renderItems(renderContext, inShapes.at(key));
         }
 
+        // Finally render the items with their own pipeline last to prevent them from breaking the
+        // render state. This is probably a temporary code as there is probably something better
+        // to do in the render call of objects that have their own pipeline.
         args->_shapePipeline = nullptr;
+        for (const auto& key : ownPipelineShapeKeys) {
+            args->_itemShapeKey = key._flags.to_ulong();
+            renderItems(renderContext, inShapes.at(key));
+        }
+
         args->_batch = nullptr;
     });
 }

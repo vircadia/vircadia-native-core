@@ -119,7 +119,7 @@ void LightStage::Shadow::setMaxDistance(float value) {
 
         // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
         // factor. There is a "user" factor that is computed from a desired max resolution loss in the shadow
-        // and an optimal own based on the global min and max shadow distance, all cascades considered. The final
+        // and an optimal one based on the global min and max shadow distance, all cascades considered. The final
         // distance is a gradual blend between the two
         const auto userDistanceScale = 1.0f / (1.0f - MAX_RESOLUTION_LOSS);
         const auto optimalDistanceScale = powf(_maxDistance / LOW_MAX_DISTANCE, 1.0f / (_cascades.size() - 1));
@@ -229,7 +229,7 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
     // Adapt shadow bias to shadow resolution with a totally empirical formula
     const auto maxShadowFrustumDim = std::max(fabsf(min.x - max.x), fabsf(min.y - max.y));
-    const auto REFERENCE_TEXEL_DENSITY = 10.0f;
+    const auto REFERENCE_TEXEL_DENSITY = 12.0f;
     const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
     schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
 }
