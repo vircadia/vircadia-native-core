@@ -12,11 +12,9 @@
 #include "BakeAssetTask.h"
 
 #include <QtCore/QThread>
-#include <QProcess>
+#include <QCoreApplication>
 
-#include <FBXBaker.h>
 #include <PathUtils.h>
-#include <JSBaker.h>
 
 static const int OVEN_STATUS_CODE_SUCCESS { 0 };
 static const int OVEN_STATUS_CODE_FAIL { 1 };
@@ -48,7 +46,10 @@ void cleanupTempFiles(QString tempOutputDir, std::vector<QString> files) {
 };
 
 void BakeAssetTask::run() {
-    _isBaking.store(true);
+    if (_isBaking.exchange(true)) {
+        qWarning() << "Tried to start bake asset task while already baking";
+        return;
+    }
 
     QString tempOutputDir = PathUtils::generateTemporaryDir();
     _outputDir = tempOutputDir;
@@ -61,25 +62,27 @@ void BakeAssetTask::run() {
         "-t", extension,
     };
 
-    qDebug().noquote() << "Path: " << path << args.join(' ');
-    QProcess* proc = new QProcess();
+    auto _ovenProcess = new QProcess(this);
 
-    connect(proc, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-            this, [this, proc, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
-        qDebug() << "Finished process: " << exitCode << exitStatus;
-        qDebug() << "stdout: " << proc->readAllStandardOutput();
+    connect(_ovenProcess, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, [this, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
+        qDebug() << "Baking process finished: " << exitCode << exitStatus;
 
-        auto files = _outputDir.entryInfoList(QDir::Files);
-        QVector<QString> outputFiles;
-        for (auto& file : files) {
-            qDebug() << "Output file: " << file.absoluteFilePath();
-            outputFiles.push_back(file.absoluteFilePath());
-        }
+        if (exitStatus == QProcess::CrashExit) {
+            _didFinish.store(true);
+            QString errors = "Fatal error occurred while baking";
+            emit bakeFailed(_assetHash, _assetPath, errors);
+        } else if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
+            auto files = _outputDir.entryInfoList(QDir::Files);
+            QVector<QString> outputFiles;
+            for (auto& file : files) {
+                qDebug() << "  Output file: " << file.absoluteFilePath();
+                outputFiles.push_back(file.absoluteFilePath());
+            }
 
-        if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
             _didFinish.store(true);
             emit bakeComplete(_assetHash, _assetPath, tempOutputDir, outputFiles);
-        } else if (exitCode == OVEN_STATUS_CODE_ABORT) {
+        } else if (exitStatus == QProcess::NormalExit && exitCode == OVEN_STATUS_CODE_ABORT) {
             _wasAborted.store(true);
             emit bakeAborted(_assetHash, _assetPath);
         } else {
@@ -92,81 +95,22 @@ void BakeAssetTask::run() {
                     errors = errorFile.readAll();
                     errorFile.close();
                 } else {
-                    errors = "Unknown error occurred";
+                    errors = "Unknown error occurred while baking";
                 }
             }
             emit bakeFailed(_assetHash, _assetPath, errors);
         }
 
     });
-    connect(proc, &QProcess::errorOccurred, this, []() {
-        qDebug() << "Error occurred :(";
-    });
-    connect(proc, &QProcess::started, this, []() {
-        qDebug() << "Process started";
-    });
 
-    proc->start(path, args, QIODevice::ReadOnly);
-    proc->waitForStarted();
-    proc->waitForFinished();
-
-    return;
-
-    qRegisterMetaType<QVector<QString> >("QVector<QString>");
-    TextureBakerThreadGetter fn = []() -> QThread* { return QThread::currentThread();  };
-
-    if (_assetPath.endsWith(".fbx")) {
-        _baker = std::unique_ptr<FBXBaker> {
-            new FBXBaker(QUrl("file:///" + _filePath), fn, tempOutputDir)
-        };
-    } else if (_assetPath.endsWith(".js", Qt::CaseInsensitive)) {
-        _baker = std::unique_ptr<JSBaker>{
-            new JSBaker(QUrl("file:///" + _filePath), tempOutputDir)
-        };
-    } else {
-        _baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE,
-                             tempOutputDir)
-        };
-    }
-
-    QEventLoop loop;
-    connect(_baker.get(), &Baker::finished, &loop, &QEventLoop::quit);
-    connect(_baker.get(), &Baker::aborted, &loop, &QEventLoop::quit);
-    QMetaObject::invokeMethod(_baker.get(), "bake", Qt::QueuedConnection);
-    loop.exec();
-
-    if (_baker->wasAborted()) {
-        qDebug() << "Aborted baking: " << _assetHash << _assetPath;
-
-        _wasAborted.store(true);
-
-        cleanupTempFiles(tempOutputDir, _baker->getOutputFiles());
-
-        emit bakeAborted(_assetHash, _assetPath);
-    } else if (_baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath << _baker->getErrors();
-
-        auto errors = _baker->getErrors().join('\n'); // Join error list into a single string for convenience
-
-        _didFinish.store(true);
-
-        cleanupTempFiles(tempOutputDir, _baker->getOutputFiles());
-
-        emit bakeFailed(_assetHash, _assetPath, errors);
-    } else {
-        auto vectorOutputFiles = QVector<QString>::fromStdVector(_baker->getOutputFiles());
-
-        qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
-
-        _didFinish.store(true);
-
-        emit bakeComplete(_assetHash, _assetPath, tempOutputDir, vectorOutputFiles);
-    }
+    qDebug() << "Starting oven for " << _assetPath;
+    _ovenProcess->start(path, args, QIODevice::ReadOnly);
+    _ovenProcess->waitForStarted();
+    _ovenProcess->waitForFinished();
 }
 
 void BakeAssetTask::abort() {
-    if (_baker) {
-        _baker->abort();
+    if (!_wasAborted.exchange(true)) {
+        _ovenProcess.terminate();
     }
 }

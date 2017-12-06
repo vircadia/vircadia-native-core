@@ -47,6 +47,7 @@ extern "C" FILE * __cdecl __iob_func(void) {
 
 #if defined(Q_OS_LINUX) || defined(__APPLE__)
 #include <signal.h>
+#include <cerrno>
 #endif
 
 #include <QtCore/QDebug>
@@ -1094,7 +1095,12 @@ bool processIsRunning(int64_t pid) {
     }
     return false;
 #elif defined(Q_OS_LINUX) || defined(__APPLE__)
-    return kill(pid, 0) != ESRCH;
+    if (kill(pid, 0) == -1) {
+        return errno != ESRCH;
+    }
+    return true;
+#else
+    static_assert(false);
 #endif
 }
 

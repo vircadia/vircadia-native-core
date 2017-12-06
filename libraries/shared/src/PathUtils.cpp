@@ -67,7 +67,7 @@ QString PathUtils::generateTemporaryDir() {
     for (auto i = 0; i < 64; ++i) {
         auto now = std::chrono::system_clock::now().time_since_epoch().count();
         auto dirName = TEMP_DIR_FORMAT.arg(appName).arg(qApp->applicationPid()).arg(now);
-        QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
+        QDir tempDir = rootTempDir.filePath(dirName);
         if (tempDir.mkpath(".")) {
             return tempDir.absolutePath();
         }
@@ -83,32 +83,27 @@ int PathUtils::removeTemporaryDirs(QString appName) {
 
     auto dirName = TEMP_DIR_FORMAT.arg(appName).arg("*").arg("*");
     qDebug() << "Dirname format is: " << dirName;
+    auto pid = qApp->applicationPid();
 
     QDir rootTempDir = QDir::tempPath();
-    qDebug() << "Temp dir is: " << rootTempDir;
     auto dirs = rootTempDir.entryInfoList({ dirName }, QDir::Dirs);
     int removed = 0;
     for (auto& dir : dirs) {
         auto dirName = dir.fileName();
         auto absoluteDirPath = QDir(dir.absoluteFilePath());
-        qDebug() << "  Deleting: " << dirName << absoluteDirPath;
         QRegularExpression re { "^" + QRegularExpression::escape(appName) + "\\-(?<pid>\\d+)\\-(?<timestamp>\\d+)$" };
 
         auto match = re.match(dirName);
         if (match.hasMatch()) {
-            qDebug() << "  Got match";
             auto pid = match.capturedRef("pid").toLongLong();
             auto timestamp = match.capturedRef("timestamp");
-            qDebug() << "  Is " << pid << " running?" << processIsRunning(pid);
             if (!processIsRunning(pid)) {
-                qDebug() << "  Removing: " << absoluteDirPath;
+                qDebug() << "  Removing old temporary directory: " << absoluteDirPath;
                 absoluteDirPath.removeRecursively();
                 removed++;
             } else {
                 qDebug() << "  Not removing (process is running): " << dir.absoluteDir();
             }
-        } else {
-            qDebug() << "  NO MATCH";
         }
     }
 

@@ -18,9 +18,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QRunnable>
 #include <QDir>
+#include <QProcess>
 
 #include <AssetUtils.h>
-#include <Baker.h>
 
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
@@ -46,7 +46,7 @@ private:
     AssetPath _assetPath;
     QString _filePath;
     QDir _outputDir;
-    std::unique_ptr<Baker> _baker;
+    QProcess _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
     std::atomic<bool> _didFinish { false };
 };
