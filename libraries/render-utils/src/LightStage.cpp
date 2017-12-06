@@ -36,7 +36,7 @@ LightStage::Shadow::Schema::Schema() {
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
     cascadeCount = 1;
-    invCascadeBlendWidth = 1.0f / 0.1f;
+    invCascadeBlendWidth = 1.0f / 0.2f;
     invFalloffDistance = 1.0f / 2.0f;
     maxDistance = 20.0f;
 }
@@ -104,7 +104,10 @@ LightStage::Shadow::Shadow(model::LightPointer light, float maxDistance, unsigne
 }
 
 void LightStage::Shadow::setMaxDistance(float value) {
-    static const auto OVERLAP_FACTOR = 1.0f / 4.0f;
+    // This overlaping factor isn't really used directly for blending of shadow cascades. It
+    // just there to be sure the cascades do overlap. The blending width used is relative
+    // to the UV space and is set in the Schema with invCascadeBlendWidth.
+    static const auto OVERLAP_FACTOR = 1.0f / 5.0f;
 
     _maxDistance = std::max(0.0f, value);
 
@@ -114,7 +117,7 @@ void LightStage::Shadow::setMaxDistance(float value) {
     } else {
         // Distribute the cascades along that distance
         // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
-        static const auto LOW_MAX_DISTANCE = 1.5f;
+        static const auto LOW_MAX_DISTANCE = 2.0f;
         static const auto MAX_RESOLUTION_LOSS = 0.6f; // Between 0 and 1, 0 giving tighter distributions
 
         // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
@@ -135,10 +138,10 @@ void LightStage::Shadow::setMaxDistance(float value) {
             if (cascadeIndex == _cascades.size() - 1) {
                 maxCascadeDistance = _maxDistance;
             } else {
-                maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor;
+                maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor*blendFactor;
             }
 
-            float shadowOverlapDistance = (maxCascadeDistance - minCascadeDistance) * OVERLAP_FACTOR;
+            float shadowOverlapDistance = maxCascadeDistance * OVERLAP_FACTOR;
 
             _cascades[cascadeIndex].setMinDistance(minCascadeDistance);
             _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance + shadowOverlapDistance);
@@ -155,7 +158,7 @@ void LightStage::Shadow::setMaxDistance(float value) {
     const auto& lastCascade = _cascades.back();
     auto& schema = _schemaBuffer.edit<Schema>();
     schema.maxDistance = _maxDistance;
-    schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*(lastCascade.getMaxDistance() - lastCascade.getMinDistance()));
+    schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*lastCascade.getMaxDistance());
 }
 
 void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
@@ -164,16 +167,16 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     assert(cascadeIndex < _cascades.size());
 
     // Orient the keylight frustum
-    const auto& direction = glm::normalize(_light->getDirection());
+    const auto& lightDirection = glm::normalize(_light->getDirection());
     glm::quat orientation;
-    if (direction == IDENTITY_UP) {
+    if (lightDirection == IDENTITY_UP) {
         orientation = glm::quat(glm::mat3(-IDENTITY_RIGHT, IDENTITY_FORWARD, -IDENTITY_UP));
-    } else if (direction == -IDENTITY_UP) {
+    } else if (lightDirection == -IDENTITY_UP) {
         orientation = glm::quat(glm::mat3(IDENTITY_RIGHT, IDENTITY_FORWARD, IDENTITY_UP));
     } else {
-        auto side = glm::normalize(glm::cross(direction, IDENTITY_UP));
-        auto up = glm::normalize(glm::cross(side, direction));
-        orientation = glm::quat_cast(glm::mat3(side, up, -direction));
+        auto side = glm::normalize(glm::cross(lightDirection, IDENTITY_UP));
+        auto up = glm::normalize(glm::cross(side, lightDirection));
+        orientation = glm::quat_cast(glm::mat3(side, up, -lightDirection));
     }
 
     auto& cascade = _cascades[cascadeIndex];
@@ -184,7 +187,7 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     cascade._frustum->setOrientation(orientation);
 
     // Position the keylight frustum
-    cascade._frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*direction);
+    cascade._frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*lightDirection);
 
     const Transform shadowView{ cascade._frustum->getView()};
     const Transform shadowViewInverse{ shadowView.getInverseMatrix() };
@@ -229,9 +232,12 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
     // Adapt shadow bias to shadow resolution with a totally empirical formula
     const auto maxShadowFrustumDim = std::max(fabsf(min.x - max.x), fabsf(min.y - max.y));
-    const auto REFERENCE_TEXEL_DENSITY = 12.0f;
+    const auto REFERENCE_TEXEL_DENSITY = 7.5f;
     const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
     schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
+    // TODO: this isn't the best place to do this as this is common for all cascades and this is called for 
+    // each cascade at each frame.
+    schema.lightDirInViewSpace = Transform(Transform(viewFrustum.getView()).getInverseMatrix()).transformDirection(lightDirection);
 }
 
 void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {

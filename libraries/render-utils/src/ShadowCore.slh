@@ -41,11 +41,14 @@ float getShadowBias(int cascadeIndex) {
 	return shadow.cascades[cascadeIndex].bias;
 }
 
+vec3 getShadowDirInViewSpace() {
+    return shadow.lightDirInViewSpace;
+}
+
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
 	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
-	float bias = getShadowBias(cascadeIndex);
-	return vec4(shadowCoord.xy, shadowCoord.z  - bias, 1.0);
+	return vec4(shadowCoord.xyz, 1.0);
 }
 
 bool isShadowCascadeProjectedOnPixel(vec4 cascadeTexCoords) {
