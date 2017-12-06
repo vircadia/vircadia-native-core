@@ -125,13 +125,13 @@ void Transaction::merge(std::vector<Transaction>&& transactionContainer) {
 
 template <typename T>
 void moveElements(T& target, T& source) {
-    target.insert(target.end(), std::make_move_iterator(source.begin()), std::make_move_iterator(source.begin()));
+    target.insert(target.end(), std::make_move_iterator(source.begin()), std::make_move_iterator(source.end()));
     source.clear();
 }
 
 template <typename T>
 void copyElements(T& target, const T& source) {
-    target.insert(target.end(), source.begin(), source.begin());
+    target.insert(target.end(), source.begin(), source.end());
 }
 
 
