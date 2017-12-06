@@ -136,7 +136,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     // the minimal Z range.
     adjustNearFar(inShapeBounds, adjustedShadowFrustum);
     // Reapply the frustum as it has been adjusted
-    shadow->setFrustum(_cascadeIndex, adjustedShadowFrustum);
+    shadow->setCascadeFrustum(_cascadeIndex, adjustedShadowFrustum);
     args->popViewFrustum();
     args->pushViewFrustum(adjustedShadowFrustum);
 
@@ -213,9 +213,11 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
+    task.addJob<RenderShadowSetup>("ShadowSetup");
+
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", i);
-        const auto shadowFilter = setupOutput.getN<RenderShadowSetup::Outputs>(1);
+        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i);
+        const auto shadowFilter = setupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
 
         // CPU jobs:
         // Fetch and cull the items from the scene
@@ -229,7 +231,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
         // GPU jobs: Render to shadow map
         task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber, i);
-        task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
+        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", setupOutput);
     }
 }
 
@@ -239,7 +241,19 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
+    // Cache old render args
+    RenderArgs* args = renderContext->args;
+
+    const auto globalShadow = lightStage->getCurrentKeyShadow();
+    if (globalShadow) {
+        globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+    }
+}
+
+void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
     // Cache old render args
@@ -251,7 +265,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
         output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
-        globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
@@ -261,7 +275,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
     }
 }
 
-void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
+void RenderShadowCascadeTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
     RenderArgs* args = renderContext->args;
 
     if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE && !input.get1().selectsNothing()) {

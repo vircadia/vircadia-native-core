@@ -77,9 +77,11 @@ public:
 
         Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
 
-        void setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum, 
+        void setKeylightFrustum(const ViewFrustum& viewFrustum,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
-        void setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
+        void setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
+                                float nearDepth = 1.0f, float farDepth = 1000.0f);
+        void setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
 

@@ -161,13 +161,11 @@ void LightStage::Shadow::setMaxDistance(float value) {
     schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*lastCascade.getMaxDistance());
 }
 
-void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
+void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
                                             float nearDepth, float farDepth) {
     assert(nearDepth < farDepth);
-    assert(cascadeIndex < _cascades.size());
-
     // Orient the keylight frustum
-    const auto& lightDirection = glm::normalize(_light->getDirection());
+    auto lightDirection = glm::normalize(_light->getDirection());
     glm::quat orientation;
     if (lightDirection == IDENTITY_UP) {
         orientation = glm::quat(glm::mat3(-IDENTITY_RIGHT, IDENTITY_FORWARD, -IDENTITY_UP));
@@ -179,15 +177,26 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
         orientation = glm::quat_cast(glm::mat3(side, up, -lightDirection));
     }
 
+    // Position the keylight frustum
+    auto position = viewFrustum.getPosition() - (nearDepth + farDepth)*lightDirection;
+    for (auto& cascade : _cascades) {
+        cascade._frustum->setOrientation(orientation);
+        cascade._frustum->setPosition(position);
+    }
+    // Update the buffer
+    auto& schema = _schemaBuffer.edit<Schema>();
+    schema.lightDirInViewSpace = Transform(Transform(viewFrustum.getView()).getInverseMatrix()).transformDirection(lightDirection);
+}
+
+void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
+                                            float nearDepth, float farDepth) {
+    assert(nearDepth < farDepth);
+    assert(cascadeIndex < _cascades.size());
+
     auto& cascade = _cascades[cascadeIndex];
     const auto viewMinCascadeShadowDistance = std::max(viewFrustum.getNearClip(), cascade.getMinDistance());
     const auto viewMaxCascadeShadowDistance = std::min(viewFrustum.getFarClip(), cascade.getMaxDistance());
     const auto viewMaxShadowDistance = _cascades.back().getMaxDistance();
-
-    cascade._frustum->setOrientation(orientation);
-
-    // Position the keylight frustum
-    cascade._frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*lightDirection);
 
     const Transform shadowView{ cascade._frustum->getView()};
     const Transform shadowViewInverse{ shadowView.getInverseMatrix() };
@@ -235,12 +244,9 @@ void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const Vie
     const auto REFERENCE_TEXEL_DENSITY = 7.5f;
     const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
     schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
-    // TODO: this isn't the best place to do this as this is common for all cascades and this is called for 
-    // each cascade at each frame.
-    schema.lightDirInViewSpace = Transform(Transform(viewFrustum.getView()).getInverseMatrix()).transformDirection(lightDirection);
 }
 
-void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
+void LightStage::Shadow::setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
     assert(cascadeIndex < _cascades.size());
     const Transform view{ shadowFrustum.getView() };
     const Transform viewInverse{ view.getInverseMatrix() };
