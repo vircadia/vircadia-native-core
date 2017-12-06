@@ -38,12 +38,14 @@ class GlobalServicesScriptingInterface : public QObject {
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
+    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
     
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
     const QString getUsername() const;
     bool loggedIn() const { return _loggedIn; }
+    QUrl getMetaverseServerURL() { return DependencyManager::get<AccountManager>()->getMetaverseServerURL(); }
     
 public slots:
     DownloadInfoResult getDownloadInfo();
