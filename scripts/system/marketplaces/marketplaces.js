@@ -110,8 +110,9 @@
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+        onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
         onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
-            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1 || url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1);
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1 || onWalletScreen);
         wireEventBridge(onMarketplaceScreen || onCommerceScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
@@ -123,7 +124,7 @@
         }
 
         // for toolbar mode: change button to active when window is first openend, false otherwise.
-        marketplaceButton.editProperties({ isActive: onMarketplaceScreen || onCommerceScreen });
+        marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
             ContextOverlay.isInMarketplaceInspectionMode = true;
         } else {

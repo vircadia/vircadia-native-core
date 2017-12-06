@@ -32,6 +32,7 @@ Item {
     property string referrer;
     property string keyFilePath;
     property date startingTimestamp;
+    property string setupAttemptID;
     readonly property int setupFlowVersion: 1;
     readonly property var setupStepNames: [ "Setup Prompt", "Security Image Selection", "Passphrase Selection", "Private Keys Ready" ];
 
@@ -73,7 +74,8 @@ Item {
     onActiveViewChanged: {
         var timestamp = new Date();
         var currentStepNumber = root.activeView.substring(5);
-        UserActivityLogger.commerceWalletSetupProgress(timestamp, Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
+        UserActivityLogger.commerceWalletSetupProgress(timestamp, root.setupAttemptID,
+            Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
     }
 
     //
@@ -741,7 +743,7 @@ Item {
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
                     
                     var timestamp = new Date();
-                    UserActivityLogger.commerceWalletSetupFinished(timestamp, Math.round((timestamp - root.startingTimestamp)/1000));
+                    UserActivityLogger.commerceWalletSetupFinished(timestamp, setupAttemptID, Math.round((timestamp - root.startingTimestamp)/1000));
                 }
             }
         }

@@ -50,7 +50,8 @@ Rectangle {
                     commerce.resetLocalWalletOnly();
                     var timestamp = new Date();
                     walletSetup.startingTimestamp = timestamp;
-                    UserActivityLogger.commerceWalletSetupStarted(timestamp, generateUUID(), walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
+                    walletSetup.setupAttemptID = generateUUID();
+                    UserActivityLogger.commerceWalletSetupStarted(timestamp, setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
                         (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
                 }
             } else if (walletStatus === 2) {

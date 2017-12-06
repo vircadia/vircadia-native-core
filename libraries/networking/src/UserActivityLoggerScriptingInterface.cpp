@@ -124,18 +124,20 @@ void UserActivityLoggerScriptingInterface::commerceWalletSetupStarted(int timest
     doLogAction("commerceWalletSetupStarted", payload);
 }
 
-void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(int timestamp, int secondsElapsed, int currentStepNumber, QString currentStepName) {
+void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(int timestamp, QString setupAttemptID, int secondsElapsed, int currentStepNumber, QString currentStepName) {
     QJsonObject payload;
     payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
     payload["secondsElapsed"] = secondsElapsed;
     payload["currentStepNumber"] = currentStepNumber;
     payload["currentStepName"] = currentStepName;
     doLogAction("commerceWalletSetupProgress", payload);
 }
 
-void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int timestamp, int secondsToComplete) {
+void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int timestamp, QString setupAttemptID, int secondsToComplete) {
     QJsonObject payload;
     payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
     payload["secondsToComplete"] = secondsToComplete;
     doLogAction("commerceWalletSetupFinished", payload);
 }
