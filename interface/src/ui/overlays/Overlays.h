@@ -75,7 +75,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
- *     If no overlay is set, get returns <code>null</code>; set <code>null</code> to clear keyboard focus.
+ *     If no overlay is set, get returns <code>null</code>; set to <code>null</code> to clear keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -171,9 +171,10 @@ public slots:
     /**jsdoc
      * Edit multiple overlays' properties.
      * @function Overlays.editOverlays
-     * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - On object with overlay IDs as keys and 
-     *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make for each as values.
-     * @returns {boolean} <code>true</code> if all overlays were found and edited, otherwise <code>false</code>.
+     * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - An object with overlay IDs as keys and
+     *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make as values.
+     * @returns {boolean} <code>true</code> if all overlays were found and edited, otherwise <code>false</code> (some may have
+     *     been found and edited).
      * @example <caption>Create two overlays in front of your avatar then change their colors.</caption>
      * var overlayA = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
@@ -429,8 +430,8 @@ public slots:
      * @param {Uuid} overlayID - The ID of the overlay to use for calculation.
      * @param {string} text - The string to calculate the size of.
      * @returns {Size} The size of the <code>text</code> if the overlay is a text overlay, otherwise
-     *     <code>{ height: 0, width : 0 }</code>. If the overlay is a 2D overlay the size is in pixels; if the overlay if a 3D
-     *     overlay the size is in meters.
+     *     <code>{ height: 0, width : 0 }</code>. If the overlay is a 2D overlay, the size is in pixels; if the overlay is a 3D
+     *     overlay, the size is in meters.
      * @example <caption>Calculate the size of "hello" in a 3D text overlay.</caption>
      * var overlay = Overlays.addOverlay("text3d", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -2 })),
@@ -541,7 +542,7 @@ public slots:
      * Generate a mouse move event on an overlay.
      * @function Overlays.sendMouseMoveOnOverlay
      * @param {Uuid} overlayID - The ID of the overlay to generate a mouse move event on.
-     * @param {PointerEvent} event - The mouse moved event details.
+     * @param {PointerEvent} event - The mouse move event details.
      */
     void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
@@ -627,16 +628,19 @@ signals:
      * @param {Uuid} overlayID - The ID of the overlay the mouse press event occurred on.
      * @param {PointerEvent} event - The mouse press event details.
      * @returns {Signal}
-     * // Create a cube overlay in front of your avatar and report mouse clicks on it.
+     * @example <caption>Create a cube overlay in front of your avatar and report mouse clicks on it.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
      *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
      *     solid: true
      * });
-     * print("Overlay: " + overlay);
+     * print("My overlay: " + overlay);
+     *
      * Overlays.mousePressOnOverlay.connect(function(overlayID, event) {
-     *     print("Clicked: " + overlayID);
+     *     if (overlayID === overlay) {
+     *         print("Clicked on my overlay");
+     *     }
      * });
      */
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
@@ -671,14 +675,14 @@ signals:
     void mouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
 
     /**jsdoc
-     * Triggered when a mouse press event occurs on something other than an overlay. Only occurs for 3D overlays.
+     * Triggered when a mouse press event occurs on something other than a 3D overlay.
      * @function Overlays.mousePressOffOverlay
      * @returns {Signal}
      */
     void mousePressOffOverlay();
 
     /**jsdoc
-     * Triggered when a mouse double press event occurs on something other than an overlay. Only occurs for 3D overlays.
+     * Triggered when a mouse double press event occurs on something other than a 3D overlay.
      * @function Overlays.mouseDoublePressOffOverlay
      * @returns {Signal}
      */

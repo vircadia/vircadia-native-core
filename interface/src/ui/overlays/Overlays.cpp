@@ -180,7 +180,8 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      *   </thead>
      *   <tbody>
      *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
-     *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> to create a cube.</td></tr>
+     *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a 
+     *     cube.</td></tr>
      *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
      *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
      *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
@@ -189,12 +190,15 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
      *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
      *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
      *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
-     *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> to create a sphere.</td></tr>
+     *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a 
+     *     sphere.</td></tr>
      *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
      *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
      *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
      *   </tbody>
      * </table>
+     * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
+     * rendered at a position and orientation in-world.<p>
      * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
      * @typedef {string} Overlays.OverlayType
      */

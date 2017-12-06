@@ -30,7 +30,7 @@ QUrl const RectangleOverlay::URL(QString("hifi/overlays/RectangleOverlay.qml"));
  * @property {Color} borderColor=0,0,0 - The color of the border. <em>Write-only.</em>
  * @property {number} borderAlpha=1.0 - The opacity of the border, <code>0.0</code> - <code>1.0</code>.
  *     <em>Write-only.</em>
- * @property {boolean} visible=true - If <code>true</code> the overlay is rendered, otherwise it is not rendered.
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  *     <em>Write-only.</em>
  */
 

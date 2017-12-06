@@ -25,7 +25,7 @@ void Billboardable::setProperties(const QVariantMap& properties) {
 
 // JSDoc for copying to @typedefs of overlay types that inherit Billboardable.
 /**jsdoc
- * @property {boolean} isFacingAvatar - If <code>true</code> then the overlay is rotated to face the user's camera about an axis
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
  *     parallel to the user's avatar's "up" direction.
  */
 QVariant Billboardable::getProperty(const QString &property) {

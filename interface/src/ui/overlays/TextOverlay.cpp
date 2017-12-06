@@ -50,7 +50,7 @@ QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
  * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
  * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle. <em>Write-only.</em>
  * @property {number} backgroundAlpha=0.7 - The opacity of the background rectangle. <em>Write-only.</em>
- * @property {boolean} visible=true - If <code>true</code> the overlay is rendered, otherwise it is not rendered.
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  *     <em>Write-only.</em>
  */
 

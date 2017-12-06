@@ -214,12 +214,12 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
  *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
  *     be removed.
- * @property {boolean} isDashedLine=false - If <code>true</code> a dashed line is drawn on the overlay's edges. Synonym:
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
  *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
- *     have <code>drawInFront</code> set to <code>true</code> and in front of entities.
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if

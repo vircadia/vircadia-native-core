@@ -368,7 +368,7 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
-// Overlay's color and alpha properties are overridden.
+// Overlay's color and alpha properties are overridden. And the dimensions property is not used.
 /**jsdoc
  * These are the properties of a <code>circle3d</code> {@link Overlays.OverlayType|OverlayType}.
  * @typedef {object} Overlays.Circle3DProperties
@@ -376,14 +376,17 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {string} type=circle3d - Has the value <code>"circle3d"</code>. <em>Read-only.</em>
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
- * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse goes from
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
- *     current pulse value each frame. (The magnitude of the property isn't otherwise used.)
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
- *     current pulse value each frame. If > 0 the pulse is applied in phase with the alpha pulse; if < 0 the pulse is applied
- *     out of phase with the alpha pulse. (The magnitude of the property isn't otherwise used.)
- * @property {boolean} visible=true - If <code>true</code> the overlay is rendered, otherwise it is not rendered.
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
  *     rotating as you move your avatar.
  *
@@ -399,12 +402,12 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
  *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
  *     be removed.
- * @property {boolean} isDashedLine=false - If <code>true</code> a dashed line is drawn on the overlay's edges. Synonym:
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
  *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
- *     have <code>drawInFront</code> set to <code>true</code> and in front of entities.
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
@@ -412,7 +415,7 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {Vec2} dimensions=1,1 - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
  *     <em>Not used.</em>
-  *
+ *
  * @property {number} startAt=0 - The counter-clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
  * @property {number} endAt=360 - The counter-clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
  * @property {number} outerRadius=1 - The outer radius of the overlay, in meters. Synonym: <code>radius</code>.
@@ -447,12 +450,12 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {number} outerStartAlpha=0 - The alpha at the outer start point of the overlay. <em>Write-only.</em>
  * @property {number} outerEndAlpha=0 - The alpha at the outer end point of the overlay. <em>Write-only.</em>
 
- * @property {boolean} hasTickMarks=false - If <code>true</code> then tick marks are drawn.
+ * @property {boolean} hasTickMarks=false - If <code>true</code>, tick marks are drawn.
  * @property {number} majorTickMarksAngle=0 - The angle between major tick marks, in degrees.
  * @property {number} minorTickMarksAngle=0 - The angle between minor tick marks, in degrees.
  * @property {number} majorTickMarksLength=0 - The length of the major tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {number} minorTickMarksLength=0 - The length of the minor tick arks, in meters. A positive value draws tick marks
+ * @property {number} minorTickMarksLength=0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
  * @property {Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
  * @property {Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
