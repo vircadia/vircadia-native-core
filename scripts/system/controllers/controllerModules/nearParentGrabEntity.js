@@ -81,7 +81,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         };
 
         this.otherHandIsParent = function(props) {
-            return this.getOtherModule().thisHandIsParent(props);
+            var otherModule = this.getOtherModule();
+            return (otherModule.thisHandIsParent(props) && otherModule.grabbing);
         };
 
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {

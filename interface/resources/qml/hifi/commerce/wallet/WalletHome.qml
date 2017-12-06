@@ -68,6 +68,7 @@ Item {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
+            transactionHistoryModel.clear();
             usernameText.text = Account.username;
         }
     }
