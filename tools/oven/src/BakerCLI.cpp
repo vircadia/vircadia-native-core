@@ -42,7 +42,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     }
 
     // check what kind of baker we should be creating
-    bool isFBX = extension == MODEL_EXTENSION;//inputUrl.toDisplayString().endsWith(MODEL_EXTENSION, Qt::CaseInsensitive);
+    bool isFBX = extension == MODEL_EXTENSION;
 
     bool isSupportedImage = QImageReader::supportedImageFormats().contains(extension.toLatin1());
 
@@ -75,7 +75,7 @@ void BakerCLI::handleFinishedBaker() {
         exitCode = OVEN_STATUS_CODE_ABORT;
     } else if (_baker->hasErrors()) {
         exitCode = OVEN_STATUS_CODE_FAIL;
-        QFile errorFile { _outputPath.absoluteFilePath("errors.txt") };
+        QFile errorFile { _outputPath.absoluteFilePath(OVEN_ERROR_FILENAME) };
         if (errorFile.open(QFile::WriteOnly)) {
             errorFile.write(_baker->getErrors().join('\n').toUtf8());
             errorFile.close();
