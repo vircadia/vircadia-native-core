@@ -94,7 +94,6 @@ public:
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
-    void recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName);
 
     /// \brief bump any objects that touch this one, then remove contact info
     void bumpAndPruneContacts(ObjectMotionState* motionState);

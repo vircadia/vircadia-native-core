@@ -10,6 +10,7 @@
 //
 
 #include <PhysicsCollisionGroups.h>
+#include <functional>
 
 #include <PerfStat.h>
 
@@ -328,6 +329,33 @@ void PhysicsEngine::stepSimulation() {
     }
 }
 
+using CProfileOperator = std::function<void(CProfileIterator*, QString)>;
+
+CProfileOperator harvestProfile = [](CProfileIterator* profileIterator, QString contextName) {
+        QString childContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Name());
+        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
+        PerformanceTimer::addTimerRecord(childContextName, time);
+    };
+
+void recurseOpOnPerformanceStats(CProfileOperator op, CProfileIterator* profileIterator, QString contextName) {
+    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
+    // get the stats for the children
+    int32_t numChildren = 0;
+    profileIterator->First();
+    while (!profileIterator->Is_Done()) {
+        op(profileIterator, contextName);
+        profileIterator->Next();
+        ++numChildren;
+    }
+    // recurse the children
+    for (int32_t i = 0; i < numChildren; ++i) {
+        profileIterator->Enter_Child(i);
+        recurseOpOnPerformanceStats(op, profileIterator, parentContextName);
+    }
+    // retreat back to parent
+    profileIterator->Enter_Parent();
+}
+
 void PhysicsEngine::harvestPerformanceStats() {
     // unfortunately the full context names get too long for our stats presentation format
     //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
@@ -340,33 +368,12 @@ void PhysicsEngine::harvestPerformanceStats() {
         for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
             if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
                 profileIterator->Enter_Child(childIndex);
-                recursivelyHarvestPerformanceStats(profileIterator, contextName);
+                recurseOpOnPerformanceStats(harvestProfile, profileIterator, contextName);
                 break;
             }
             profileIterator->Next();
         }
     }
-}
-
-void PhysicsEngine::recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName) {
-    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
-    // get the stats for the children
-    int32_t numChildren = 0;
-    profileIterator->First();
-    while (!profileIterator->Is_Done()) {
-        QString childContextName = parentContextName + QString("/") + QString(profileIterator->Get_Current_Name());
-        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
-        PerformanceTimer::addTimerRecord(childContextName, time);
-        profileIterator->Next();
-        ++numChildren;
-    }
-    // recurse the children
-    for (int32_t i = 0; i < numChildren; ++i) {
-        profileIterator->Enter_Child(i);
-        recursivelyHarvestPerformanceStats(profileIterator, contextName);
-    }
-    // retreat back to parent
-    profileIterator->Enter_Parent();
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
@@ -515,6 +522,7 @@ const VectorOfMotionStates& PhysicsEngine::getChangedMotionStates() {
 void PhysicsEngine::dumpStatsIfNecessary() {
     if (_dumpNextStats) {
         _dumpNextStats = false;
+        CProfileManager::Increment_Frame_Counter();
         CProfileManager::dumpAll();
     }
 }
