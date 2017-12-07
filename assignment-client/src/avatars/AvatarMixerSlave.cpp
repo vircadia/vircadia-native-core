@@ -22,6 +22,7 @@
 #include <NodeList.h>
 #include <Node.h>
 #include <OctreeConstants.h>
+#include <PrioritySortUtil.h>
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
@@ -32,6 +33,10 @@
 #include "AvatarMixerClientData.h"
 #include "AvatarMixerSlave.h"
 
+namespace PrioritySortUtil {
+    // we declare this callback here but override it later
+    std::function<uint64_t(const AvatarSharedPointer&)> getAvatarAgeCallback = [] (const AvatarSharedPointer& avatar) { return 0; };
+}
 
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
@@ -184,10 +189,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    // for calling the AvatarData::sortAvatars() function and getting our sorted list of client nodes
-    QList<AvatarSharedPointer> avatarList;
+    std::vector<AvatarSharedPointer> avatarsToSort;
     std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
-
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         // make sure this is an agent that we have avatar data for before considering it for inclusion
         if (otherNode->getType() == NodeType::Agent
@@ -195,36 +198,61 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
             AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
-            avatarList << otherAvatar;
+            avatarsToSort.push_back(otherAvatar);
             avatarDataToNodes[otherAvatar] = otherNode;
         }
     });
 
-    AvatarSharedPointer thisAvatar = nodeData->getAvatarSharedPointer();
-    ViewFrustum cameraView = nodeData->getViewFrustom();
-    std::priority_queue<AvatarPriority> sortedAvatars;
-    AvatarData::sortAvatars(avatarList, cameraView, sortedAvatars,
-                            [&](AvatarSharedPointer avatar)->uint64_t {
-        auto avatarNode = avatarDataToNodes[avatar];
-        assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
-        return nodeData->getLastBroadcastTime(avatarNode->getUUID());
-    }, [&](AvatarSharedPointer avatar)->float{
-        glm::vec3 nodeBoxHalfScale = (avatar->getWorldPosition() - avatar->getGlobalBoundingBoxCorner() * avatar->getSensorToWorldScale());
-        return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
-    }, [&](AvatarSharedPointer avatar)->bool {
+    // now that we've assembled the avatarDataToNodes map we can replace PrioritySortUtil::getAvatarAgeCallback
+    // with the true implementation
+    PrioritySortUtil::getAvatarAgeCallback = [&] (const AvatarSharedPointer& avatar) {
+            auto avatarNode = avatarDataToNodes[avatar];
+            assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
+            return nodeData->getLastOtherAvatarEncodeTime(avatarNode->getUUID());
+        };
+
+    class SortableAvatar: public PrioritySortUtil::Sortable {
+    public:
+        SortableAvatar() = delete;
+        SortableAvatar(const AvatarSharedPointer& avatar) : _avatar(avatar) {}
+        glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
+        float getRadius() const override {
+            glm::vec3 nodeBoxHalfScale = (_avatar->getWorldPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
+            return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
+        }
+        uint64_t getTimestamp() const override {
+            // use the callback implemented above
+            return PrioritySortUtil::getAvatarAgeCallback(_avatar);
+        }
+        const AvatarSharedPointer& getAvatar() const { return _avatar; }
+
+    private:
+        AvatarSharedPointer _avatar;
+    };
+
+    // prepare to sort
+    ViewFrustum cameraView = nodeData->getViewFrustum();
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+            AvatarData::_avatarSortCoefficientSize,
+            AvatarData::_avatarSortCoefficientCenter,
+            AvatarData::_avatarSortCoefficientAge);
+
+    // ignore or sort
+    const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
+    for (const auto& avatar : avatarsToSort) {
         if (avatar == thisAvatar) {
-            return true; // ignore ourselves...
+            // don't echo updates to self
+            continue;
         }
 
         bool shouldIgnore = false;
-
-        // We will also ignore other nodes for a couple of different reasons:
+        // We ignore other nodes for a couple of reasons:
         //   1) ignore bubbles and ignore specific node
         //   2) the node hasn't really updated it's frame data recently, this can
         //      happen if for example the avatar is connected on a desktop and sending
         //      updates at ~30hz. So every 3 frames we skip a frame.
-        auto avatarNode = avatarDataToNodes[avatar];
 
+        auto avatarNode = avatarDataToNodes[avatar];
         assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
 
         const AvatarMixerClientData* avatarNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
@@ -240,7 +268,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
             shouldIgnore = true;
         } else {
-
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (node->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
@@ -267,8 +294,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 nodeData->removeFromRadiusIgnoringSet(node, avatarNode->getUUID());
             }
         }
-        quint64 endIgnoreCalculation = usecTimestampNow();
-        _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
 
         if (!shouldIgnore) {
             AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getUUID());
@@ -292,20 +317,21 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 ++numAvatarsWithSkippedFrames;
             }
         }
-        return shouldIgnore;
-    });
+        quint64 endIgnoreCalculation = usecTimestampNow();
+        _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
+
+        if (!shouldIgnore) {
+            // sort this one for later
+            sortedAvatars.push(SortableAvatar(avatar));
+        }
+    }
 
     // loop through our sorted avatars and allocate our bandwidth to them accordingly
-    int avatarRank = 0;
 
-    // this is overly conservative, because it includes some avatars we might not consider
     int remainingAvatars = (int)sortedAvatars.size();
-
     while (!sortedAvatars.empty()) {
-        AvatarPriority sortData = sortedAvatars.top();
+        const auto& avatarData = sortedAvatars.top().getAvatar();
         sortedAvatars.pop();
-        const auto& avatarData = sortData.avatar;
-        avatarRank++;
         remainingAvatars--;
 
         auto otherNode = avatarDataToNodes[avatarData];
@@ -332,10 +358,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
         }
 
+        // determine if avatar is in view which determines how much data to send
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
-
-        
-        // determine if avatar is in view, to determine how much data to include...
         glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f * otherAvatar->getSensorToWorldScale();
         AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
         bool isInView = nodeData->otherAvatarInView(otherNodeBox);
@@ -405,14 +429,18 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 // set the last sent sequence number for this sender on the receiver
                 nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                          otherNodeData->getLastReceivedSequenceNumber());
+                nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
             }
+        } else {
+            // TODO? this avatar is not included now, and will probably not be included next frame.
+            // It would be nice if we could tweak its future sort priority to put it at the back of the list.
         }
 
         avatarPacketList->endSegment();
 
         quint64 endAvatarDataPacking = usecTimestampNow();
         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
-    };
+    }
 
     quint64 startPacketSending = usecTimestampNow();
 
