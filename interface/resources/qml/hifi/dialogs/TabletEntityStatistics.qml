@@ -154,86 +154,90 @@ Rectangle {
                 color: OctreeStats.getColor()
             }
 
-            Column {
-                id: serverColumn
-                width: scrollView.width - 10
-                x: 5
-                spacing: 5
+            Repeater {
+                model: OctreeStats.serversNum
 
-                state: "less"
+                delegate: Column {
+                    id: serverColumn
+                    width: scrollView.width - 10
+                    x: 5
+                    spacing: 5
 
-                TabletEntityStatisticsItem {
-                    id: serverStats
-                    width: parent.width
-                    titleText: qsTr("Entity Server") + ":"
-                    colorScheme: root.colorScheme
-                    color: OctreeStats.getColor()
-                }
+                    state: "less"
 
-                Row {
-                    id: buttonsRow
-                    width: parent.width
-                    height: 30
-                    spacing: 10
-
-                    HifiControls.Button {
-                        id: moreButton
-                        color: hifi.buttons.blue
+                    TabletEntityStatisticsItem {
+                        id: serverStats
+                        width: parent.width
+                        titleText: qsTr("Entity Server ") + (index+1) + ":"
                         colorScheme: root.colorScheme
-                        width: parent.width / 2 - 10
+                        color: OctreeStats.getColor()
+                    }
+
+                    Row {
+                        id: buttonsRow
+                        width: parent.width
                         height: 30
-                        onClicked: {
-                            if (serverColumn.state === "less") {
-                                serverColumn.state = "more"
-                            } else if (serverColumn.state === "more") {
-                                serverColumn.state = "most"
-                            } else {
-                                serverColumn.state = "more"
+                        spacing: 10
+
+                        HifiControls.Button {
+                            id: moreButton
+                            color: hifi.buttons.blue
+                            colorScheme: root.colorScheme
+                            width: parent.width / 2 - 10
+                            height: 30
+                            onClicked: {
+                                if (serverColumn.state === "less") {
+                                    serverColumn.state = "more"
+                                } else if (serverColumn.state === "more") {
+                                    serverColumn.state = "most"
+                                } else {
+                                    serverColumn.state = "more"
+                                }
                             }
                         }
-                    }
-                    HifiControls.Button {
-                        id: mostButton
-                        color: hifi.buttons.blue
-                        colorScheme: root.colorScheme
-                        height: 30
-                        width: parent.width / 2 - 10
-                        onClicked: {
-                            if (serverColumn.state === "less") {
-                                serverColumn.state = "most"
-                            } else if (serverColumn.state === "more") {
-                                serverColumn.state = "less"
-                            } else {
-                                serverColumn.state = "less"
+                        HifiControls.Button {
+                            id: mostButton
+                            color: hifi.buttons.blue
+                            colorScheme: root.colorScheme
+                            height: 30
+                            width: parent.width / 2 - 10
+                            onClicked: {
+                                if (serverColumn.state === "less") {
+                                    serverColumn.state = "most"
+                                } else if (serverColumn.state === "more") {
+                                    serverColumn.state = "less"
+                                } else {
+                                    serverColumn.state = "less"
+                                }
                             }
-                        }
 
+                        }
                     }
-                }
-                states: [
-                    State {
-                        name: "less"
-                        PropertyChanges { target: moreButton; text: qsTr("more..."); }
-                        PropertyChanges { target: mostButton; text: qsTr("most..."); }
-                        PropertyChanges { target: serverStats; text: OctreeStats.servers[0]; }
-                    },
-                    State {
-                        name: "more"
-                        PropertyChanges { target: moreButton; text: qsTr("most..."); }
-                        PropertyChanges { target: mostButton; text: qsTr("less..."); }
-                        PropertyChanges { target: serverStats; text: OctreeStats.servers[0] +
-                                                                     OctreeStats.servers[1]; }
-                    },
-                    State {
-                        name: "most"
-                        PropertyChanges { target: moreButton; text: qsTr("less..."); }
-                        PropertyChanges { target: mostButton; text: qsTr("least..."); }
-                        PropertyChanges { target: serverStats; text: OctreeStats.servers[0] +
-                                                                     OctreeStats.servers[1] +
-                                                                     OctreeStats.servers[2]; }
-                    }
-                ]
-            } //servers column
+                    states: [
+                        State {
+                            name: "less"
+                            PropertyChanges { target: moreButton; text: qsTr("more..."); }
+                            PropertyChanges { target: mostButton; text: qsTr("most..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3]; }
+                        },
+                        State {
+                            name: "more"
+                            PropertyChanges { target: moreButton; text: qsTr("most..."); }
+                            PropertyChanges { target: mostButton; text: qsTr("less..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3] +
+                                                                         OctreeStats.servers[index*3 + 1]; }
+                        },
+                        State {
+                            name: "most"
+                            PropertyChanges { target: moreButton; text: qsTr("less..."); }
+                            PropertyChanges { target: mostButton; text: qsTr("least..."); }
+                            PropertyChanges { target: serverStats; text: OctreeStats.servers[index*3] +
+                                                                         OctreeStats.servers[index*3 + 1] +
+                                                                         OctreeStats.servers[index*3 + 2]; }
+                        }
+                    ]
+                } //servers column
+            } //repeater
         } //column
     } //flickable
 }

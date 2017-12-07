@@ -22,6 +22,7 @@ class OctreeStatsProvider : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    Q_PROPERTY(int serversNum READ serversNum NOTIFY serversNumChanged)
     Q_PROPERTY(QString serverElements READ serverElements NOTIFY serverElementsChanged)
     Q_PROPERTY(QString localElements READ localElements NOTIFY localElementsChanged)
     Q_PROPERTY(QString localElementsMemory READ localElementsMemory NOTIFY localElementsMemoryChanged)
@@ -39,6 +40,8 @@ class OctreeStatsProvider : public QObject, public Dependency {
 public:
     OctreeStatsProvider(QObject* parent, NodeToOctreeSceneStats* model);
     ~OctreeStatsProvider();
+
+    int serversNum() const;
 
     QString serverElements() const {
         return m_serverElements;
@@ -89,6 +92,8 @@ public:
     }
 
 signals:
+
+    void serversNumChanged(int serversNum);
     void serverElementsChanged(const QString &serverElements);
     void localElementsChanged(const QString &localElements);
     void sendingModeChanged(const QString &sendingMode);
@@ -126,7 +131,7 @@ private:
     quint64 _lastRefresh = 0;
 
     QTimer _updateTimer;
-
+    int m_serversNum { 0 };
     QString m_serverElements;
     QString m_localElements;
     QString m_localElementsMemory;

@@ -57,6 +57,10 @@ OctreeStatsProvider::~OctreeStatsProvider() {
     _updateTimer.stop();
 }
 
+int OctreeStatsProvider::serversNum() const {
+    return m_serversNum;
+}
+
 void OctreeStatsProvider::updateOctreeStatsData() {
 
     // Processed Entities Related stats
@@ -238,9 +242,12 @@ void OctreeStatsProvider::updateOctreeServers() {
 
 void OctreeStatsProvider::showOctreeServersOfType(NodeType_t serverType) {
     m_servers.clear();
+    int serverCount = 0;
 
     auto node = DependencyManager::get<NodeList>()->soloNodeOfType(serverType);
     if (node) {
+        ++serverCount;
+
         QString lesserDetails;
         QString moreDetails;
         QString mostDetails;
@@ -323,6 +330,11 @@ void OctreeStatsProvider::showOctreeServersOfType(NodeType_t serverType) {
         m_servers.append(lesserDetails);
         m_servers.append(moreDetails);
         m_servers.append(mostDetails);
+    }
+
+    if (serverCount != m_serversNum) {
+        m_serversNum = serverCount;
+        emit serversNumChanged(m_serversNum);
     }
     emit serversChanged(m_servers);
 }
