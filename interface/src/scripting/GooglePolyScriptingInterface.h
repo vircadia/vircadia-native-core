@@ -22,6 +22,18 @@ public:
 
 public slots:
     void testPrint();
+    void setAPIKey(QString key);
+
+    //QJsonArray GooglePolyScriptingInterface::getAssetList();
+    void getAssetList();
+
+private:
+    QByteArray getHTTPRequest(QUrl url);
+    QJsonObject makeJSONObject(QByteArray* response, bool isList);
+    //void onResult(QNetworkReply* reply);
+
+    QString authCode;
+    
 
 };
 
