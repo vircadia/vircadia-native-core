@@ -24,7 +24,7 @@ Test::Test() {
 bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages) {
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD{ 0.995 };
+    const double THRESHOLD{ 0.9995 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
@@ -337,7 +337,12 @@ void Test::createTest() {
                 exit(-1);
             }
         } else if (isInSnapshotFilenameFormat(currentFilename)) {
-            QString newFilename = "ExpectedImage_" + QString::number(i) + ".jpg";
+            const int MAX_IMAGES = 100000;
+            if (i >= MAX_IMAGES) {
+                messageBox.critical(0, "Error", "More than 100,000 images not supported");
+                exit(-1);
+            }
+            QString newFilename = "ExpectedImage_" + QString::number(i-1).rightJustified(5, '0') + ".jpg";
             QString fullNewFileName = pathToImageDirectory + "/" + newFilename;
 
             imageDirectory.rename(fullCurrentFilename, newFilename);
