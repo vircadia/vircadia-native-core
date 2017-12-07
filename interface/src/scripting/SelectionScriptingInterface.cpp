@@ -80,6 +80,20 @@ bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName
     return true;
 }
 
+QStringList SelectionScriptingInterface::getListNames() const {
+    QStringList list;
+    QReadLocker lock(&_selectionListsLock);
+    list = _selectedItemsListMap.keys();
+    return list;
+}
+
+QStringList SelectionScriptingInterface::getHighlightedListNames() const {
+    QStringList list;
+    QReadLocker lock(&_highlightStylesLock);
+    list = _highlightStyleMap.keys();
+    return list;
+}
+
 bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
     QWriteLocker lock(&_highlightStylesLock);
 
@@ -144,14 +158,6 @@ QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& li
     } else {
         return (*highlightStyle).toVariantMap();
     }
-}
-
-
-QStringList SelectionScriptingInterface::getHighlightStyles() const {
-    QStringList list;
-    QReadLocker lock(&_highlightStylesLock);
-    list = _highlightStyleMap.keys();
-    return list;
 }
 
 render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
@@ -231,6 +237,43 @@ void SelectionScriptingInterface::printList(const QString& listName) {
         }
     } else {
         qDebug() << "List named " << listName << " doesn't exist.";
+    }
+}
+
+QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
+    QReadLocker lock(&_selectionListsLock);
+    QVariantMap list;
+    auto currentList = _selectedItemsListMap.find(listName);
+    if (currentList != _selectedItemsListMap.end()) {
+        if ((*currentList).getContainsData()) {
+
+            if (!(*currentList).getAvatarIDs().empty()) {
+                QList<QUuid> avatarIDs = QList<QUuid>::fromVector(QVector<QUuid>::fromStdVector((*currentList).getAvatarIDs()));
+                list["avatars"].fromValue( avatarIDs);
+            }
+            if (!(*currentList).getEntityIDs().empty()) {
+              //  QList<EntityItemID> entityIDs = QList<EntityItemID>::fromVector(QVector<EntityItemID>::fromStdVector((*currentList).getEntityIDs()));
+                QList<QVariant> entityIDs;
+                for (auto j : (*currentList).getEntityIDs()) {
+                    entityIDs.push_back( j );
+                }
+                list["entities"] = (entityIDs);
+            }
+            if (!(*currentList).getOverlayIDs().empty()) {
+                QList<OverlayID> overlayIDs = QList<OverlayID>::fromVector(QVector<OverlayID>::fromStdVector((*currentList).getOverlayIDs()));
+                list["overlays"].fromValue(overlayIDs);
+            }
+
+            return list;
+        }
+        else {
+            //qDebug() << "List named " << listName << " empty";
+            return list;
+        }
+    }
+    else {
+     //   qDebug() << "List named " << listName << " doesn't exist.";
+        return list;
     }
 }
 

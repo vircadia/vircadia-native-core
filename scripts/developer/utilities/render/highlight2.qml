@@ -24,7 +24,7 @@ Item {
     anchors.margins: 0
     property var listName: "contextOverlayHighlightList"
     
-    property var styleList: Selection.getHighlightStyles()
+    property var styleList: Selection.getHighlightedListNames()
 
     signal sendToScript(var message);
 
@@ -50,10 +50,9 @@ Item {
                 id: debug
                 text: "Refresh"
                 height: 24
-                width: 128
                 onClicked: {
                     print("list of highlight styles")
-                    root.styleList = Selection.getHighlightStyles()
+                    root.styleList = Selection.getHighlightedListNames()
 
                     print(root.styleList)
                     styleSelectorLoader.sourceComponent = undefined;
@@ -71,7 +70,6 @@ Item {
                 id: selectorWidget
                 HifiControls.ComboBox {
                     id: box
-                    width: 350
                     z: 999
                     editable: true
                     colorScheme: hifi.colorSchemes.dark

@@ -27,17 +27,17 @@ class GameplayObjects {
 public:
     GameplayObjects();
 
-    bool getContainsData() { return containsData; }
+    bool getContainsData() const { return containsData; }
 
-    std::vector<QUuid> getAvatarIDs() { return _avatarIDs; }
+    std::vector<QUuid> getAvatarIDs() const { return _avatarIDs; }
     bool addToGameplayObjects(const QUuid& avatarID);
     bool removeFromGameplayObjects(const QUuid& avatarID);
 
-    std::vector<EntityItemID> getEntityIDs() { return _entityIDs; }
+    std::vector<EntityItemID> getEntityIDs() const { return _entityIDs; }
     bool addToGameplayObjects(const EntityItemID& entityID);
     bool removeFromGameplayObjects(const EntityItemID& entityID);
 
-    std::vector<OverlayID> getOverlayIDs() { return _overlayIDs; }
+    std::vector<OverlayID> getOverlayIDs() const { return _overlayIDs; }
     bool addToGameplayObjects(const OverlayID& overlayID);
     bool removeFromGameplayObjects(const OverlayID& overlayID);
 
@@ -90,14 +90,8 @@ class SelectionScriptingInterface : public QObject, public Dependency {
 public:
     SelectionScriptingInterface();
 
-    GameplayObjects getList(const QString& listName);
+    Q_INVOKABLE QStringList getListNames() const;
 
-    /**jsdoc
-    * Prints out the list of avatars, entities and overlays stored in a particular selection.
-    * @function Selection.printList
-    * @param listName {string} name of the selection
-    */
-    Q_INVOKABLE void printList(const QString& listName);
     /**jsdoc
     * Removes a named selection from the list of selections.
     * @function Selection.removeListFromMap
@@ -131,6 +125,26 @@ public:
     * @returns {bool} true if the item was successfully cleared.
     */
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
+
+    
+
+    /**jsdoc
+    * Prints out the list of avatars, entities and overlays stored in a particular selection.
+    * @function Selection.printList
+    * @param listName {string} name of the selection
+    */
+    Q_INVOKABLE void printList(const QString& listName);
+
+    /**jsdoc
+    * Query the list of avatars, entities and overlays stored in a particular selection.
+    * @function Selection.getList
+    * @param listName {string} name of the selection
+    * @return
+    */
+    Q_INVOKABLE QVariantMap getSelectedItemsList(const QString& listName) const;
+
+    //
+    Q_INVOKABLE QStringList getHighlightedListNames() const;
 
     /**jsdoc
     * Enable highlighting for the named selection.
@@ -176,7 +190,8 @@ public:
     */
     Q_INVOKABLE QVariantMap getListHighlightStyle(const QString& listName) const;
 
-    Q_INVOKABLE QStringList getHighlightStyles() const;
+
+    GameplayObjects getList(const QString& listName);
 
     render::HighlightStyle getHighlightStyle(const QString& listName) const;
 
