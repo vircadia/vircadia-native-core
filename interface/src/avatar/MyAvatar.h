@@ -741,7 +741,7 @@ private:
     bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
-    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0; // degrees
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
     const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
 
     bool _hmdRollControlEnabled { true };

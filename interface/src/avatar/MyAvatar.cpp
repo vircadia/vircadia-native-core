@@ -1969,7 +1969,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
 
         // Turn with head roll.
-        const float MIN_CONTROL_SPEED = 2.0f;  // meters / sec
+        const float MIN_CONTROL_SPEED = 2.0f * getSensorToWorldScale();  // meters / sec
         const glm::vec3 characterForward = getWorldOrientation() * Vectors::UNIT_NEG_Z;
         float forwardSpeed = glm::dot(characterForward, getWorldVelocity());
 
@@ -1985,13 +1985,13 @@ void MyAvatar::updateOrientation(float deltaTime) {
             const float MAX_ROLL_ANGLE = 90.0f;  // degrees
 
             if (rollAngle > MIN_ROLL_ANGLE) {
-                // rate of turning is linearly proportional to rolAngle
+                // rate of turning is linearly proportional to rollAngle
                 rollAngle = glm::clamp(rollAngle, MIN_ROLL_ANGLE, MAX_ROLL_ANGLE);
 
                 // scale rollAngle into a value from zero to one.
-                float t = (rollAngle - MIN_ROLL_ANGLE) / (MAX_ROLL_ANGLE - MIN_ROLL_ANGLE);
+                float rollFactor = (rollAngle - MIN_ROLL_ANGLE) / (MAX_ROLL_ANGLE - MIN_ROLL_ANGLE);
 
-                float angularSpeed = rollSign * t * _hmdRollControlRate;
+                float angularSpeed = rollSign * rollFactor * _hmdRollControlRate;
                 totalBodyYaw += direction * angularSpeed * deltaTime;
             }
         }
