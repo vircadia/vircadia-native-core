@@ -12,9 +12,10 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <qjsondocument.h>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QDebug>
 #include <QtCore/QDataStream>
+#include <QtCore/QCryptographicHash>
 
 #include <UUID.h>
 

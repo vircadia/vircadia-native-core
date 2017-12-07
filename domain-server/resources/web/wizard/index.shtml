@@ -1,0 +1,266 @@
+<!--#include virtual="wizard/header.html"-->
+<div class="wizard-step desktop-only col-md-6 col-centered" style="display: none;">
+  <h4 class="step-title"></h4>
+  <dl class="row">
+    <dd class="col-md-12">
+      <span class='step-description'>By connecting your High Fidelity Account you will be granting access to your account information.</span>
+    </dd>
+  </dl>
+  <dl class="row">
+    <dd class="col-md-12">
+      <a id="connect-account-btn" role="button" class="btn btn-primary btn-md btn-block" target="_blank">Connect your High Fidelity account</a>
+    </dd>
+  </dl>
+
+  <dl class="row">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default next-button">Skip</button>
+    </dd>
+  </dl>
+</div>
+
+<div class="wizard-step col-md-8 col-centered" style="display: none;">
+  <h4 class="step-title"></h4>
+  <div class="row">
+    <div class="col-md-12">
+      <span class='step-description'>
+        <a target='_blank' href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/place-names'>Place names</a> are similar to web addresses. Users who want to visit your domain can
+        enter its Place Name in High Fidelity's Interface. You can choose a Place Name for your domain.</br>
+        People can also use your <b>domain's IP address (shown below)</b> to visit your High Fidelity domain.
+      </span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="centered-hack-parent">
+      <div id="place-name-group" class="centered-hack">
+        <p id="place-name-link"></p>
+          <div id="place-name-edit">
+            <span class='glyphicon glyphicon-pencil'></span>
+            <a href="#" id="change-place-name">Choose a custom Place Name instead</a>
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <dl class="row">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
+      <button type="button" class="btn btn-md btn-block btn-primary next-button">Next</button>
+    </dd>
+  </dl>
+</div>
+
+<div class="wizard-step col-md-9 col-centered" style="display: none;">
+  <h4 class="step-title"></h4>
+  <div class="row">
+    <p id="permissions-description" class="col-md-12 step-info"><b>Localhost</b> has been granted administrator privileges to this domain. (Localhost is any</br>user on the same machine as the High Fidelity Server)</p>
+  </div>
+  <div id="admin-row" class="row">
+    <p class="col-md-6">
+      <span class="step-info"><span id="admin-description"><b>Add your High Fidelity username</b> and any other usernames</span> to grant <span class='wizard-link' data-toggle="tooltip" title="Users who will have all the permissions for this domain.">administrator privileges</span></span>
+    </p>
+    <div class="col-md-6">
+      <input id="admin-usernames" type="text" class="form-control">
+      <span class="help-block text-right">separate by commas (user1, user2,..)</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <span class="step-description">Grant basic permissions to other users. You can change these later.</span>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <p id="connect-question" class="step-info">
+        Who can <a href='#' class='wizard-link  perms-link'>connect</a> to your domain?
+        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='You can set this to allow a user to connect to this domain.'></span>
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <p class="col-md-2">
+      <label>
+        <input id="connect-none" name="connect-radio" type="radio" value="none" checked> None
+      </label>
+    </p>
+    <p class="col-md-3">
+      <label>
+        <input id="connect-friends" name="connect-radio" type="radio" value="friends"> Friends
+      </label>
+    </p>
+    <p class="col-md-5">
+      <label>
+        <input id="connect-logged-in" name="connect-radio" type="radio" value="logged-in"> Users logged into High Fidelity
+      </label>
+    </p>
+    <p class="col-md-2">
+      <label>
+        <input id="connect-everyone" name="connect-radio" type="radio" value="everyone"> Everyone
+      </label>
+    </p>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <p class="step-info">
+        Who can <a href='#' class='wizard-link perms-link'>rez items</a> in your domain?
+        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='You can set this to allow a user to create entities in this domain.'></span>
+      </p>
+    </div>
+  </div>
+  <div id="rez-options-row" class="row">
+    <p class="col-md-2">
+      <label>
+        <input id="rez-none" name="rez-radio" type="radio" value="none" checked> None
+      </label>
+    </p>
+    <p class="col-md-3">
+      <label>
+        <input id="rez-friends" name="rez-radio" type="radio" value="friends" disabled> Friends
+      </label>
+    </p>
+    <p class="col-md-5">
+      <label>
+        <input id="rez-logged-in" name="rez-radio" type="radio" value="logged-in" disabled> Users logged into High Fidelity
+      </label>
+    </p>
+    <p class="col-md-2">
+      <label>
+        <input id="rez-everyone" name="rez-radio" type="radio" value="everyone" disabled> Everyone
+      </label>
+    </p>
+  </div>
+
+  <div class="row">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
+      <button id="save-permissions" type="button" class="btn btn-md btn-block btn-primary">Next</button>
+    </dd>
+  </div>
+</div>
+
+<div class="wizard-step cloud-only col-md-7 col-centered" style="display: none;">
+  <h4 class="step-title"></h4>
+  <dl class="row">
+    <dd class="col-md-12">
+      <span class='step-description'>
+        Your server settings are currently accessible without a username and password.
+        Adding credentials will ensure that only authorized users have access to modify the settings.
+      </span>
+    </dd>
+  </dl>
+
+  <div class="row">
+    <p class="col-md-12 step-info">Create a username and password to secure the access to your domain server settings.</p>
+  </div>
+  <dl class="row">
+    <dt class="col-md-4 step-info">Username</dt>
+    <dd class="col-md-8">
+      <input id="http_username" type="text" class="form-control">
+      <span class='help-block'>This does not have to be your High Fidelity username</span>
+    </dd>
+  </dl>
+  <dl class="row">
+    <dt class="col-md-4 step-info">Enter password</dt>
+    <dd class="col-md-8">
+      <input id="http_password" type="password" class="form-control">
+      <span class='help-block'>This should not be the same as your High Fidelity password</span>
+    </dd>
+  </dl>
+  <dl id="verify-password-row" class="row">
+    <dt class="col-md-4 step-info">Re-enter password</dt>
+    <dd class="col-md-8">
+      <input id="verify_http_password" type="password" class="form-control">
+    </dd>
+  </dl>
+
+  <dl class="row">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
+      <button id="save-username-password" type="button" class="btn btn-md btn-block btn-primary">Finish</button>
+    </dd>
+  </dl>
+</div>
+
+<div id="congratulation-step" class="wizard-step cloud-only col-xs-12 col-centered" style="display: none;">
+  <div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+      <img class="header" src="/images/wizard-congratulation-header.jpg" alt="Header" width="1440" height="339">
+      <h1 class="title">Congratulations!</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+      <p id="main-description" class="step-info">You have successfully setup and configured your cloud hosted domain.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-xs-10 col-xs-offset-1">
+      <div class="step-info">
+        <b>Invite people in!</b>
+      </div>
+      <div id="share-box">
+        <span id="share-text" class="step-info">Share your domain:</span>
+        <span id="share-field">
+          <a id="share-link" class="blue-link" target="_blank"></a>
+        </span>
+        <span>
+          <button type="button" class="btn btn-md btn-default btn-square" onclick="copyToClipboard('#share-link')">
+            <img src="/images/copy-icon.svg" alt="cpy icon" height="30" width="30">copy
+          </button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="congrats-list" class="row">
+    <div class="col-xs-4 col-xs-offset-1">
+      <div class="step-info">
+        <b>Go to your Domain:</b>
+      </div>
+      <ul>
+        <li class="step-info">Browse environments in the Marketplace to select the perfect content set for your VR world.</li>
+        <li class="step-info">Invite people to your domain right now.</li>
+        <li class="step-info">Meet new people and explore other domains.</li>
+      </ul>
+    </div>
+    <div class="col-xs-3 col-xs-offset-1">
+      <div class="step-info">
+        <b>Continue to Domain settings:</b>
+      </div>
+      <ul>
+        <li class="step-info">Set additional permissions for who can visit and make changes.</li>
+        <li class="step-info">Adjust audio settings.</li>
+        <li class="step-info">Back up your domain's content.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-xs-4 col-xs-offset-1">
+      <button id="visit-domain" type="button" class="btn btn-md btn-primary btn-square">Visit Your VR World</button>
+    </div>
+    <div class="col-xs-3 col-xs-offset-1">
+      <button id="open-settings" type="button" class="btn btn-md btn-default btn-square next-button">Open Domain Settings</button>
+    </div>
+  </div>
+</div>
+
+<!--#include virtual="footer.html"-->
+<script src='/js/underscore-min.js'></script>
+<script src='/js/bootbox.min.js'></script>
+<script src='/js/sha256.js'></script>
+<script src='/js/shared.js'></script>
+<script src='js/wizard.js'></script>
+<!--#include virtual="page-end.html"-->

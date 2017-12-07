@@ -47,10 +47,12 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
+
     ContextOverlayInterface();
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
+    void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
     void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
@@ -70,10 +72,19 @@ public slots:
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
 
+private slots:
+    void handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+
 private:
+
+    enum {
+        MAX_SELECTION_COUNT = 16
+    };
+
     bool _verboseLogging { true };
     bool _enabled { true };
-    QUuid _currentEntityWithContextOverlay{};
+    EntityItemID _currentEntityWithContextOverlay{};
+    EntityItemID _lastInspectedEntity{};
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 
@@ -85,8 +96,12 @@ private:
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
     void deletingEntity(const EntityItemID& entityItemID);
+    void initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction);
 
-    SelectionToSceneHandler _selectionToSceneHandler;
+    SelectionToSceneHandler _selectionToSceneHandlers[MAX_SELECTION_COUNT];
+
+    Q_INVOKABLE void startChallengeOwnershipTimer();
+    QTimer _challengeOwnershipTimeoutTimer;
 };
 
 #endif // hifi_ContextOverlayInterface_h

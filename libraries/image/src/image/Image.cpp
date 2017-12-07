@@ -11,7 +11,6 @@
 
 #include "Image.h"
 
-#include <nvtt/nvtt.h>
 #include <glm/gtc/packing.hpp>
 
 #include <QtCore/QtGlobal>
@@ -19,6 +18,15 @@
 #include <QImage>
 #include <QBuffer>
 #include <QImageReader>
+
+
+#if defined(Q_OS_ANDROID)
+#define CPU_MIPMAPS 0
+#else
+#define CPU_MIPMAPS 1
+#include <nvtt/nvtt.h>
+#endif
+
 
 #include <Finally.h>
 #include <Profile.h>
@@ -28,13 +36,6 @@
 #include "ImageLogging.h"
 
 using namespace gpu;
-
-#if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
-#else
-#define CPU_MIPMAPS 1
-#include <nvtt/nvtt.h>
-#endif
 
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
@@ -410,7 +411,6 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
         qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
     }
 };
-#endif
 
 class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
 public:
@@ -636,6 +636,10 @@ void generateLDRMips(gpu::Texture* texture, QImage& image, const std::atomic<boo
     compressor.setTaskDispatcher(&dispatcher);
     compressor.process(inputOptions, compressionOptions, outputOptions);
 }
+
+#endif
+
+
 
 void generateMips(gpu::Texture* texture, QImage& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS
@@ -983,6 +987,9 @@ public:
         glm::vec2 dstCoord;
         glm::ivec2 srcPixel;
         for (int y = 0; y < faceWidth; ++y) {
+            QRgb* destScanLineBegin = reinterpret_cast<QRgb*>( image.scanLine(y) );
+            QRgb* destPixelIterator = destScanLineBegin;
+
             dstCoord.y = 1.0f - (y + 0.5f) * dstInvSize.y; // Fill cube face images from top to bottom
             for (int x = 0; x < faceWidth; ++x) {
                 dstCoord.x = (x + 0.5f) * dstInvSize.x;
@@ -995,13 +1002,19 @@ public:
                 srcPixel.y = floor((1.0f - srcCoord.y) * srcFaceHeight);
 
                 if (((uint32)srcPixel.x < (uint32)source.width()) && ((uint32)srcPixel.y < (uint32)source.height())) {
-                    image.setPixel(x, y, source.pixel(QPoint(srcPixel.x, srcPixel.y)));
+                    // We can't directly use the pixel() method because that launches a pixel color conversion to output
+                    // a correct RGBA8 color. But in our case we may have stored HDR values encoded in a RGB30 format which
+                    // are not convertible by Qt. The same goes with the setPixel method, by the way.
+                    const QRgb* sourcePixelIterator = reinterpret_cast<const QRgb*>(source.scanLine(srcPixel.y));
+                    sourcePixelIterator += srcPixel.x;
+                    *destPixelIterator = *sourcePixelIterator;
 
                     // Keep for debug, this is showing the dir as a color
                     //  glm::u8vec4 rgba((xyzDir.x + 1.0)*0.5 * 256, (xyzDir.y + 1.0)*0.5 * 256, (xyzDir.z + 1.0)*0.5 * 256, 256);
                     //  unsigned int val = 0xff000000 | (rgba.r) | (rgba.g << 8) | (rgba.b << 16);
-                    //  image.setPixel(x, y, val);
+                    //  *destPixelIterator = val;
                 }
+                ++destPixelIterator;
             }
         }
         return image;
@@ -1192,6 +1205,10 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
 
+        if (image.format() != QIMAGE_HDR_FORMAT) {
+            image = convertToHDRFormat(image, HDR_FORMAT);
+        }
+
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isCubeTexturesCompressionEnabled()) {
@@ -1200,10 +1217,6 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
         } else {
             formatMip = HDR_FORMAT;
             formatGPU = HDR_FORMAT;
-        }
-
-        if (image.format() != QIMAGE_HDR_FORMAT) {
-            image = convertToHDRFormat(image, HDR_FORMAT);
         }
 
         // Find the layout of the cubemap in the 2D image

@@ -80,17 +80,8 @@ Item {
 
         onFocusChanged: {
             if (focus) {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-            } else if (!passphraseFieldAgain.focus) {
-                sendSignalToWallet({method: 'walletSetup_lowerKeyboard'});
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false;
+                var hidePassword = (currentPassphraseField.echoMode === TextInput.Password);
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             }
         }
 
@@ -113,19 +104,10 @@ Item {
         activeFocusOnPress: true;
         activeFocusOnTab: true;
 
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false;
-            }
-        }
-
         onFocusChanged: {
             if (focus) {
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
-            } else if (!passphraseFieldAgain.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+                var hidePassword = (passphraseField.echoMode === TextInput.Password);
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             }
         }
 
@@ -147,19 +129,10 @@ Item {
         activeFocusOnPress: true;
         activeFocusOnTab: true;
 
-        MouseArea {
-            anchors.fill: parent;
-            onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false;
-            }
-        }
-
         onFocusChanged: {
             if (focus) {
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
-            } else if (!passphraseField.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+                var hidePassword = (passphraseFieldAgain.echoMode === TextInput.Password);
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             }
         }
 

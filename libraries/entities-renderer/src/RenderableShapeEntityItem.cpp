@@ -30,23 +30,6 @@ using namespace render::entities;
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
-static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING { {
-    GeometryCache::Triangle,
-    GeometryCache::Quad,
-    GeometryCache::Hexagon,
-    GeometryCache::Octagon,
-    GeometryCache::Circle,
-    GeometryCache::Cube,
-    GeometryCache::Sphere,
-    GeometryCache::Tetrahedron,
-    GeometryCache::Octahedron,
-    GeometryCache::Dodecahedron,
-    GeometryCache::Icosahedron,
-    GeometryCache::Torus,
-    GeometryCache::Cone,
-    GeometryCache::Cylinder,
-} };
-
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _procedural._vertexSource = simple_vert;
@@ -76,6 +59,14 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
+    if (_shape != entity->getShape()) {
+        return true;
+    }
+
+    if (_dimensions != entity->getDimensions()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -90,15 +81,16 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
 
         _shape = entity->getShape();
-        _position = entity->getPosition();
+        _position = entity->getWorldPosition();
         _dimensions = entity->getDimensions();
-        _orientation = entity->getOrientation();
+        _orientation = entity->getWorldOrientation();
+        _renderTransform = getModelTransform();
 
         if (_shape == entity::Sphere) {
-            _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
         }
 
-        _modelTransform.postScale(_dimensions);
+        _renderTransform.postScale(_dimensions);
     });
 }
 
@@ -128,12 +120,13 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
 
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
     bool proceduralRender = false;
     glm::vec4 outColor;
     withReadLock([&] {
-        geometryShape = MAPPING[_shape];
-        batch.setModelTransform(_modelTransform); // use a transform with scale, rotation, registration point and translation
+        geometryShape = geometryCache->getShapeForEntityShape(_shape);
+        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
         outColor = _color;
         if (_procedural.isReady()) {
             _procedural.prepare(batch, _position, _dimensions, _orientation);
@@ -146,14 +139,13 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     if (proceduralRender) {
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            DependencyManager::get<GeometryCache>()->renderWireShape(batch, geometryShape);
+            geometryCache->renderWireShape(batch, geometryShape);
         } else {
-            DependencyManager::get<GeometryCache>()->renderShape(batch, geometryShape);
+            geometryCache->renderShape(batch, geometryShape);
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
@@ -162,6 +154,6 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-    static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(geometryShape);
+    const auto triCount = geometryCache->getShapeTriangleCount(geometryShape);
     args->_details._trianglesRendered += (int)triCount;
 }

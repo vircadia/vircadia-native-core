@@ -15,6 +15,8 @@ import QtQuick.Controls.Styles 1.4
 import "../styles-uit"
 import "../controls-uit" as HifiControls
 
+import TabletScriptingInterface 1.0
+
 Original.RadioButton {
     id: radioButton
     HifiConstants { id: hifi }
@@ -26,6 +28,15 @@ Original.RadioButton {
     readonly property int boxRadius: 3
     readonly property int checkSize: 10
     readonly property int checkRadius: 2
+
+    onClicked: {
+        tabletInterface.playSound(TabletEnums.ButtonClick);
+    }
+
+// TODO: doesnt works for QQC1. check with QQC2
+//    onHovered: {
+//        tabletInterface.playSound(TabletEnums.ButtonHover);
+//    }
 
     style: RadioButtonStyle {
         indicator: Rectangle {

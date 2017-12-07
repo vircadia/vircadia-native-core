@@ -70,9 +70,6 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
-#include "raypick/RayPickManager.h"
-#include "raypick/LaserPointerManager.h"
-
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -277,18 +274,6 @@ public:
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
-
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
@@ -297,9 +282,6 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-
-    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
-    RayPickManager& getRayPickManager() { return _rayPickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -326,6 +308,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
@@ -388,11 +371,10 @@ public slots:
     void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
 
     QUuid getKeyboardFocusEntity() const;  // thread-safe
-    void setKeyboardFocusEntity(QUuid id);
-    void setKeyboardFocusEntity(EntityItemID entityItemID);
+    void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID overlayID);
+    void setKeyboardFocusOverlay(const OverlayID& overlayID);
 
     void addAssetToWorldMessageClose();
 
@@ -440,6 +422,7 @@ private slots:
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
+    static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
@@ -554,7 +537,7 @@ private:
     ViewFrustum _displayViewFrustum;
     quint64 _lastQueriedTime;
 
-    OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
+    OctreeQuery _octreeQuery { true }; // NodeData derived class for querying octee cells from octree servers
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
@@ -702,6 +685,7 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
+    SharedSoundPointer _sampleSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
@@ -713,9 +697,9 @@ private:
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
 
-    RayPickManager _rayPickManager;
-    LaserPointerManager _laserPointerManager;
-
     friend class RenderEventHandler;
+
+    std::atomic<bool> _pendingIdleEvent { true };
+    std::atomic<bool> _pendingRenderEvent { true };
 };
 #endif // hifi_Application_h

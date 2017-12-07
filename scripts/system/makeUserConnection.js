@@ -444,7 +444,7 @@
         }, WAITING_INTERVAL);
     }
 
-    var pollCount = 0, requestUrl = location.metaverseServerUrl + '/api/v1/user/connection_request';
+    var pollCount = 0, requestUrl = Account.metaverseServerURL + '/api/v1/user/connection_request';
     // As currently implemented, we select the closest waiting avatar (if close enough) and send
     // them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
     // connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
@@ -569,7 +569,7 @@
         // IWBNI we also did some fail sound/visual effect.
         Window.makeConnection(false, result.connection);
         if (Account.isLoggedIn()) { // Give extra failure info
-            request(location.metaverseServerUrl + '/api/v1/users/' + Account.username + '/location', function (error, response) {
+            request(Account.metaverseServerURL + '/api/v1/users/' + Account.username + '/location', function (error, response) {
                 var message = '';
                 if (error || response.status !== 'success') {
                     message = 'Unable to get location.';

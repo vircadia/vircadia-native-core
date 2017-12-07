@@ -53,8 +53,6 @@ Item {
         onWalletAuthenticatedStatusResult: {
             if (isAuthenticated) {
                 root.activeView = "step_4";
-            } else {
-                root.activeView = "step_3";
             }
         }
 
@@ -373,7 +371,7 @@ Item {
 
     Item {
         id: securityImageTip;
-        visible: false;
+        visible: !root.hasShownSecurityImageTip && root.activeView === "step_3";
         z: 999;
         anchors.fill: root;
         
@@ -423,7 +421,6 @@ Item {
             text: "Got It";
             onClicked: {
                 root.hasShownSecurityImageTip = true;
-                securityImageTip.visible = false;
                 passphraseSelection.focusFirstTextField();
             }
         }
@@ -441,9 +438,6 @@ Item {
         onVisibleChanged: {
             if (visible) {
                 commerce.getWalletAuthenticatedStatus();
-                if (!root.hasShownSecurityImageTip) {
-                    securityImageTip.visible = true;
-                }
             }
         }
 
@@ -679,7 +673,7 @@ Item {
                     anchors.right: parent.right;
                     anchors.rightMargin: 30;
                     height: 40;
-                    text: "Open Instructions for Later";
+                    text: "Open Backup Instructions for Later";
                     onClicked: {
                         instructions01Container.visible = false;
                         instructions02Container.visible = true;
@@ -734,6 +728,7 @@ Item {
                 text: "Finish";
                 onClicked: {
                     root.visible = false;
+                    root.hasShownSecurityImageTip = false;
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
                 }
             }

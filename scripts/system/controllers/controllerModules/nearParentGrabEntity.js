@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
@@ -33,6 +33,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.lastUnequipCheckTime = 0;
         this.autoUnequipCounter = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
+        this.robbed = false;
 
         this.parameters = makeDispatcherModuleParameters(
             500,
@@ -50,7 +51,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 return false;
             }
 
-            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
+            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== MyAvatar.SELF_ID) {
                 return false;
             }
 
@@ -75,6 +76,15 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             return false;
         };
 
+        this.getOtherModule = function() {
+            return this.hand === RIGHT_HAND ? leftNearParentingGrabEntity : rightNearParentingGrabEntity;
+        };
+
+        this.otherHandIsParent = function(props) {
+            var otherModule = this.getOtherModule();
+            return (otherModule.thisHandIsParent(props) && otherModule.grabbing);
+        };
+
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
@@ -90,7 +100,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 localVelocity: {x: 0, y: 0, z: 0},
                 localAngularVelocity: {x: 0, y: 0, z: 0}
@@ -100,6 +110,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 // this should never happen, but if it does, don't set previous parent to be this hand.
                 this.previousParentID[targetProps.id] = null;
                 this.previousParentJointIndex[targetProps.id] = -1;
+            } else if (this.otherHandIsParent(targetProps)) {
+                var otherModule = this.getOtherModule();
+                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.grabbedThingID];
+                this.previousParentJointIndex[this.grabbedThingID] = otherModule.previousParentJointIndex[this.grabbedThingID];
+                otherModule.robbed = true;
             } else {
                 this.previousParentID[targetProps.id] = targetProps.parentID;
                 this.previousParentJointIndex[targetProps.id] = targetProps.parentJointIndex;
@@ -119,8 +134,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.endNearParentingGrabEntity = function (controllerData) {
             this.hapticTargetID = null;
             var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
-            if (this.thisHandIsParent(props)) {
-                if (this.previousParentID[this.targetEntityID] === NULL_UUID || this.previousParentID === undefined) {
+            if (this.thisHandIsParent(props) && !this.robbed) {
+                if (this.previousParentID[this.targetEntityID] === Uuid.NULL || this.previousParentID === undefined) {
                     Entities.editEntity(this.targetEntityID, {
                         parentID: this.previousParentID[this.targetEntityID],
                         parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
@@ -138,8 +153,14 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
             this.grabbing = false;
             this.targetEntityID = null;
+            this.robbed = false;
         };
 
         this.checkForChildTooFarAway = function (controllerData) {
@@ -147,7 +168,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             var now = Date.now();
             if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * TEAR_AWAY_CHECK_TIME) {
                 this.lastUnequipCheckTime = now;
-                if (props.parentID == AVATAR_SELF_ID) {
+                if (props.parentID === MyAvatar.SELF_ID) {
                     var sensorScaleFactor = MyAvatar.sensorToWorldScale;
                     var handPosition = controllerData.controllerLocations[this.hand].position;
                     var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
@@ -193,7 +214,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         var UNHOOK_LOOP_DETECT_MS = 200;
                         if (_this.previouslyUnhooked[childID]) {
                             if (now - _this.previouslyUnhooked[childID] < UNHOOK_LOOP_DETECT_MS) {
-                                previousParentID = NULL_UUID;
+                                previousParentID = Uuid.NULL;
                                 previousParentJointIndex = -1;
                             }
                         }
@@ -204,7 +225,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                             parentJointIndex: previousParentJointIndex
                         });
                     } else {
-                        Entities.editEntity(childID, { parentID: NULL_UUID });
+                        Entities.editEntity(childID, { parentID: Uuid.NULL });
                     }
                 });
             }
@@ -248,12 +269,14 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE &&
                 controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 this.checkForUnexpectedChildren(controllerData);
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
 
             if (targetProps) {
                 if ((propsArePhysical(targetProps) || propsAreCloneDynamic(targetProps)) &&
-                    targetProps.parentID == NULL_UUID) {
+                    targetProps.parentID === Uuid.NULL) {
+                    this.robbed = false;
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
@@ -261,6 +284,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 }
             } else {
                 this.hapticTargetID = null;
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
         };
@@ -268,7 +292,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
-                    controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
+                    controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                     this.endNearParentingGrabEntity(controllerData);
                     return makeRunningValues(false, [], []);
                 }
@@ -279,6 +303,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     this.grabbing = false;
                     this.targetEntityID = null;
                     this.hapticTargetID = null;
+                    this.robbed = false;
                     return makeRunningValues(false, [], []);
                 }
 
@@ -295,6 +320,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 // still searching / highlighting
                 var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
+                    this.robbed = false;
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
@@ -333,11 +359,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
     enableDispatcherModule("LeftNearParentingGrabEntity", leftNearParentingGrabEntity);
     enableDispatcherModule("RightNearParentingGrabEntity", rightNearParentingGrabEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftNearParentingGrabEntity.cleanup();
         rightNearParentingGrabEntity.cleanup();
         disableDispatcherModule("LeftNearParentingGrabEntity");
         disableDispatcherModule("RightNearParentingGrabEntity");
-    };
-    Script.scriptEnding.connect(this.cleanup);
+    }
+    Script.scriptEnding.connect(cleanup);
 }());

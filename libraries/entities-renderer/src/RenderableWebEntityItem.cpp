@@ -24,7 +24,6 @@
 #include <ui/TabletScriptingInterface.h>
 #include <EntityScriptingInterface.h>
 
-#include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
 
@@ -70,7 +69,7 @@ void WebEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity)
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_contextPosition != entity->getPosition()) {
+    if (_contextPosition != entity->getWorldPosition()) {
         return true;
     }
 
@@ -83,6 +82,10 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
     }
 
     if (_lastDPI != entity->getDPI()) {
+        return true;
+    }
+
+    if (_lastLocked != entity->getLocked()) {
         return true;
     }
 
@@ -124,9 +127,9 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
             buildWebSurface(entity);
         }
 
-        if (_contextPosition != entity->getPosition()) {
+        if (_contextPosition != entity->getWorldPosition()) {
             // update globalPosition
-            _contextPosition = entity->getPosition();
+            _contextPosition = entity->getWorldPosition();
             _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
         }
 
@@ -136,11 +139,12 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         }
 
         _lastDPI = entity->getDPI();
+        _lastLocked = entity->getLocked();
 
         glm::vec2 windowSize = getWindowSize(entity);
         _webSurface->resize(QSize(windowSize.x, windowSize.y));
-
-        _modelTransform.postScale(entity->getDimensions());
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(entity->getDimensions());
     });
 }
 
@@ -180,7 +184,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     withReadLock([&] {
-        batch.setModelTransform(_modelTransform);
+        batch.setModelTransform(_renderTransform);
     });
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
@@ -223,6 +227,8 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
     _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
+    // Let us interact with the keyboard
+    _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     _fadeStartTime = usecTimestampNow();
     loadSourceURL();
     _webSurface->resume();
@@ -232,38 +238,6 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     const EntityItemID entityItemID = entity->getID();
     QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, [=](const QVariant& message) {
         emit entities->webEventReceived(entityItemID, message);
-    });
-
-    auto forwardPointerEvent = [=](const EntityItemID& entityItemID, const PointerEvent& event) {
-        if (entityItemID == entity->getID()) {
-            handlePointerEvent(entity, event);
-        }
-    };
-
-    auto renderer = DependencyManager::get<EntityTreeRenderer>();
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity, this,
-        [=](const EntityItemID& entityItemID, const PointerEvent& event) {
-        if (this->_pressed && entity->getID() == entityItemID) {
-            // If the user mouses off the entity while the button is down, simulate a touch end.
-            QTouchEvent::TouchPoint point;
-            point.setId(event.getID());
-            point.setState(Qt::TouchPointReleased);
-            glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _lastDPI);
-            QPointF windowPoint(windowPos.x, windowPos.y);
-            point.setScenePos(windowPoint);
-            point.setPos(windowPoint);
-            QList<QTouchEvent::TouchPoint> touchPoints;
-            touchPoints.push_back(point);
-            QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr,
-                Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
-            touchEvent->setWindow(_webSurface->getWindow());
-            touchEvent->setDevice(&_touchDevice);
-            touchEvent->setTarget(_webSurface->getRootItem());
-            QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
-        }
     });
 
     return true;
@@ -295,13 +269,6 @@ void WebEntityRenderer::destroyWebSurface() {
         }
 
         webSurface->pause();
-        auto renderer = DependencyManager::get<EntityTreeRenderer>();
-        if (renderer) {
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity, this, nullptr);
-        }
         webSurface.reset();
     }
 }
@@ -347,62 +314,28 @@ void WebEntityRenderer::loadSourceURL() {
     }
 }
 
-void WebEntityRenderer::handlePointerEvent(const TypedEntityPointer& entity, const PointerEvent& event) {
+void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->hoverBeginEvent(webEvent, _touchDevice);
+    }
+}
+
+void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->hoverEndEvent(webEvent, _touchDevice);
+    }
+}
+
+void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
     // Ignore mouse interaction if we're locked
-    if (entity->getLocked() || !_webSurface) {
-        return;
-    }
-
-    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * entity->getDPI());
-    QPointF windowPoint(windowPos.x, windowPos.y);
-    if (event.getType() == PointerEvent::Move) {
-        // Forward a mouse move event to webSurface
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-    }
-
-    {
-        // Forward a touch update event to webSurface
-        if (event.getType() == PointerEvent::Press) {
-            this->_pressed = true;
-        } else if (event.getType() == PointerEvent::Release) {
-            this->_pressed = false;
-        }
-
-        QEvent::Type type;
-        Qt::TouchPointState touchPointState;
-        switch (event.getType()) {
-            case PointerEvent::Press:
-                type = QEvent::TouchBegin;
-                touchPointState = Qt::TouchPointPressed;
-                break;
-            case PointerEvent::Release:
-                type = QEvent::TouchEnd;
-                touchPointState = Qt::TouchPointReleased;
-                break;
-            case PointerEvent::Move:
-            default:
-                type = QEvent::TouchUpdate;
-                touchPointState = Qt::TouchPointMoved;
-                break;
-        }
-
-        QTouchEvent::TouchPoint point;
-        point.setId(event.getID());
-        point.setState(touchPointState);
-        point.setPos(windowPoint);
-        point.setScreenPos(windowPoint);
-        QList<QTouchEvent::TouchPoint> touchPoints;
-        touchPoints.push_back(point);
-
-        QTouchEvent* touchEvent = new QTouchEvent(type);
-        touchEvent->setWindow(_webSurface->getWindow());
-        touchEvent->setDevice(&_touchDevice);
-        touchEvent->setTarget(_webSurface->getRootItem());
-        touchEvent->setTouchPoints(touchPoints);
-        touchEvent->setTouchPointStates(touchPointState);
-
-        QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->handlePointerEvent(webEvent, _touchDevice);
     }
 }
 

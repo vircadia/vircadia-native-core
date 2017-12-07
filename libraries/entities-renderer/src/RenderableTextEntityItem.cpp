@@ -93,10 +93,11 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    auto transformToTopLeft = _modelTransform;
+    const auto& modelTransform = getModelTransform();
+    auto transformToTopLeft = modelTransform;
     if (_faceCamera) {
         //rotate about vertical to face the camera
-        glm::vec3 dPosition = args->getViewFrustum().getPosition() - _modelTransform.getTranslation();
+        glm::vec3 dPosition = args->getViewFrustum().getPosition() - modelTransform.getTranslation();
         // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
         float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));

@@ -11,45 +11,35 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "../lib/hifi-qml/styles-uit"
-import "../lib/hifi-qml/controls-uit" as HifiControls
-import "../lib/configprop"
-import "."
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
+import  "configSlider"
+
 Rectangle {
     HifiConstants { id: hifi;}
     id: render;   
     anchors.margins: hifi.dimensions.contentMargin.x
     
     color: hifi.colors.baseGray;
-       property var mainViewTask: Render.getConfig("RenderMainView")
+    property var mainViewTask: Render.getConfig("RenderMainView")
    
-    Row {
-        anchors.left: parent.left
-        anchors.right: parent.right 
-        anchors.margins: 10      
     Column {
-        padding: 10
         spacing: 5
-
         anchors.left: parent.left
         anchors.right: parent.right       
-       // padding: hifi.dimensions.contentMargin.x
-
-         ConfigSlider {                    
-            label: qsTr("ToneMapping")
-            integral: false
-            config: render.mainViewTask.getConfig("ToneMapping")
-            property: "exposure"
-            max: 2
-            min: 0
+        anchors.margins: hifi.dimensions.contentMargin.x  
+        //padding: hifi.dimensions.contentMargin.x
+        HifiControls.Label {
+                    text: "Shading"       
         }
-      
         Row {
-            
+            anchors.left: parent.left
+            anchors.right: parent.right 
+              
             spacing: 20
-            padding: 10
             Column { 
                 spacing: 10
+           // padding: 10
                 Repeater {
                     model: [
                          "Unlit:LightingModel:enableUnlit", 
@@ -112,6 +102,8 @@ Rectangle {
         }
         Separator {}          
         Column {
+            anchors.left: parent.left
+            anchors.right: parent.right 
             spacing: 10 
             Repeater {
                 model: [ "Tone Mapping Exposure:ToneMapping:exposure:5.0:-5.0"
@@ -123,17 +115,24 @@ Rectangle {
                         property: modelData.split(":")[2]
                         max: modelData.split(":")[3]
                         min: modelData.split(":")[4]
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
                 }
             }
 
-            Row {
+            Item {
+                height: childrenRect.height
+                anchors.left: parent.left
+                anchors.right: parent.right 
+
                 HifiControls.Label {
                     text: "Tone Mapping Curve"
-                    anchors.left: root.left           
+                    anchors.left: parent.left           
                 }
 
                 HifiControls.ComboBox {
-                    anchors.right: root.right           
+                    anchors.right: parent.right           
                     currentIndex: 1
                     model: ListModel {
                         id: cbItems
@@ -147,15 +146,18 @@ Rectangle {
                 }
             }
         }
-        Row {
+        Separator {}          
+        
+        Item {
+            height: childrenRect.height
+            anchors.left: parent.left
+            anchors.right: parent.right 
+
             id: framebuffer
-            spacing: 10 
-            height: 24
 
             HifiControls.Label {
                 text: "Debug Framebuffer"
-                height: 24
-                anchors.left: root.left           
+                anchors.left: parent.left           
             }
             
             property var config: render.mainViewTask.getConfig("DebugDeferredBuffer")
@@ -166,8 +168,7 @@ Rectangle {
             }
 
             HifiControls.ComboBox {
-                height: 24
-                anchors.right: root.right           
+                anchors.right: parent.right           
                 currentIndex: 0
                 model: ListModel {
                     id: cbItemsFramebuffer
@@ -269,5 +270,5 @@ Rectangle {
             }
         }
     }
-    }
+    //}
 }

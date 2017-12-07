@@ -32,7 +32,7 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
@@ -241,7 +241,7 @@ Rectangle {
         }
     }
 
-    FirstUseTutorial {
+    HifiCommerceCommon.FirstUseTutorial {
         id: firstUseTutorial;
         z: 999;
         visible: root.activeView === "firstUseTutorial";
@@ -344,6 +344,9 @@ Rectangle {
             id: previousPurchasesModel;
         }
         HifiCommerceCommon.SortableListModel {
+            id: tempPurchasesModel;
+        }
+        HifiCommerceCommon.SortableListModel {
             id: filteredPurchasesModel;
         }
 
@@ -434,6 +437,7 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                isWearable: model.categories.indexOf("Wearables") > -1;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -441,6 +445,8 @@ Rectangle {
                     onSendToPurchases: {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
+                        } else if (msg.method === "purchases_rezClicked") {
+                            sendToScript({method: 'purchases_rezClicked', itemHref: itemHref, isWearable: isWearable});
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
                             inspectionCertificate.visible = true;
                             inspectionCertificate.isLightbox = true;
@@ -582,9 +588,11 @@ Rectangle {
 
     Timer {
         id: inventoryTimer;
-        interval: 90000;
+        interval: 4000; // Change this back to 90000 after demo
+        //interval: 90000;
         onTriggered: {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
                 commerce.inventory();
             }
@@ -630,19 +638,40 @@ Rectangle {
     }
 
     function buildFilteredPurchasesModel() {
-        filteredPurchasesModel.clear();
+        var sameItemCount = 0;
+        
+        tempPurchasesModel.clear();
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
                 if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
-                    filteredPurchasesModel.insert(0, purchasesModel.get(i));
-                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === -1) || !root.isShowingMyItems) {
-                    filteredPurchasesModel.append(purchasesModel.get(i));
+                    tempPurchasesModel.insert(0, purchasesModel.get(i));
+                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === "0") ||
+                (!root.isShowingMyItems && purchasesModel.get(i).edition_number !== "0")) {
+                    tempPurchasesModel.append(purchasesModel.get(i));
                 }
             }
         }
+        
+        for (var i = 0; i < tempPurchasesModel.count; i++) {
+            if (!filteredPurchasesModel.get(i)) {
+                sameItemCount = -1;
+                break;
+            } else if (tempPurchasesModel.get(i).itemId === filteredPurchasesModel.get(i).itemId &&
+            tempPurchasesModel.get(i).edition_number === filteredPurchasesModel.get(i).edition_number &&
+            tempPurchasesModel.get(i).status === filteredPurchasesModel.get(i).status) {
+                sameItemCount++;
+            }
+        }
 
-        populateDisplayedItemCounts();
-        sortByDate();
+        if (sameItemCount !== tempPurchasesModel.count) {
+            filteredPurchasesModel.clear();
+            for (var i = 0; i < tempPurchasesModel.count; i++) {
+                filteredPurchasesModel.append(tempPurchasesModel.get(i));
+            }
+
+            populateDisplayedItemCounts();
+            sortByDate();
+        }
     }
 
     function checkIfAnyItemStatusChanged() {
@@ -660,6 +689,8 @@ Rectangle {
                     currentPurchasesModelStatus !== previousPurchasesModelStatus) {
                     
                     purchasesModel.setProperty(i, "statusChanged", true);
+                } else {
+                    purchasesModel.setProperty(i, "statusChanged", false);
                 }
             }
         }

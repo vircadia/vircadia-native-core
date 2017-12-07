@@ -30,7 +30,7 @@ const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
 bool LightEntityItem::_lightsArePickable = false;
 
 EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new LightEntityItem(entityID) };
+    EntityItemPointer entity(new LightEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -175,35 +175,12 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_LIGHT_HAS_INTENSITY_AND_COLOR_PROPERTIES) {
-        READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-
-        // _diffuseColor has been renamed to _color
-        READ_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, rgbColor, setColor);
-
-        // Ambient and specular color are from an older format and are no longer supported.
-        // Their values will be ignored.
-        READ_ENTITY_PROPERTY(PROP_AMBIENT_COLOR_UNUSED, rgbColor, setIgnoredColor);
-        READ_ENTITY_PROPERTY(PROP_SPECULAR_COLOR_UNUSED, rgbColor, setIgnoredColor);
-
-        // _constantAttenuation has been renamed to _intensity
-        READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
-
-        // Linear and quadratic attenuation are from an older format and are no longer supported.
-        // Their values will be ignored.
-        READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION_UNUSED, float, setIgnoredAttenuation);
-        READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION_UNUSED, float, setIgnoredAttenuation);
-
-        READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
-        READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
-    } else {
-        READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-        READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
-        READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
-        READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
-        READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
-        READ_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
-    }
+    READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
+    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
+    READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
+    READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
+    READ_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
 
     return bytesRead;
 }

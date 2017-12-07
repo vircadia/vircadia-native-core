@@ -26,7 +26,7 @@ const int LineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
 EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new LineEntityItem(entityID) };
+    EntityItemPointer entity(new LineEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -156,7 +156,7 @@ void LineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   LINE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }

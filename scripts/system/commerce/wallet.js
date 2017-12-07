@@ -16,7 +16,7 @@
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
 
-    var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+    var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 
     // Function Name: onButtonClicked()
     //
@@ -145,7 +145,7 @@
     var button;
     var buttonName = "WALLET";
     var tablet = null;
-    var walletEnabled = Settings.getValue("commerce", false);
+    var walletEnabled = Settings.getValue("commerce", true);
     function startup() {
         if (walletEnabled) {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

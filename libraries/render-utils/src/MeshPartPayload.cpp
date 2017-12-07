@@ -337,7 +337,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     if (state.clusterMatrices.size() == 1) {
         renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
     }
-    updateTransformForSkinnedMesh(renderTransform, transform, state.clusterBuffer);
+    updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache();
 }
@@ -367,12 +367,25 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform,
-        const gpu::BufferPointer& buffer) {
+
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+    // Once computed the cluster matrices, update the buffer(s)
+    if (clusterMatrices.size() > 1) {
+        if (!_clusterBuffer) {
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.data());
+        }
+        else {
+            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.data());
+        }
+    }
+}
+
+void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
     _worldBound.transform(boundTransform);
-    _clusterBuffer = buffer;
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
@@ -416,7 +429,6 @@ int ModelMeshPartPayload::getLayer() const {
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
-
     // guard against partially loaded meshes
     ModelPointer model = _model.lock();
     if (!model || !model->isLoaded() || !model->getGeometry()) {
@@ -582,11 +594,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
         _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < clusterMatrices.size(); ++i) {
+        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;

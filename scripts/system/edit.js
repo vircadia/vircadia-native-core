@@ -112,8 +112,8 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Edit Mode";
-var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
+var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
+var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
 
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
@@ -163,7 +163,7 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
     visible: false
 });
 
-var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
     title: 'Marketplace',
     source: "about:blank",
@@ -415,11 +415,11 @@ var toolBar = (function () {
             }
         });
 
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            captionColorOverride: hasRezPermissions ? "" : "#888888",
+            captionColor: hasRezPermissions ? "#ffffff" : "#888888",
             icon: createButtonIconRsrc,
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
@@ -434,7 +434,7 @@ var toolBar = (function () {
         tablet.fromQml.connect(fromQml);
 
         createButton.clicked.connect(function() {
-            if ( ! (Entities.canRez() || Entities.canRezTmp()) ) {
+            if ( ! (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified()) ) {
                 Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
                 return;
             }
@@ -634,7 +634,7 @@ var toolBar = (function () {
         if (active === isActive) {
             return;
         }
-        if (active && !Entities.canRez() && !Entities.canRezTmp()) {
+        if (active && !Entities.canRez() && !Entities.canRezTmp() && !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
             Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             return;
         }
@@ -789,10 +789,10 @@ function handleDomainChange() {
         return;
     }
 
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColorOverride: (hasRezPermissions ? "" : "#888888"),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
     });
 }
 
@@ -1333,7 +1333,7 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList) {
+function recursiveDelete(entities, childrenList, deletedIDs) {
     var entitiesLength = entities.length;
     for (var i = 0; i < entitiesLength; i++) {
         var entityID = entities[i];
@@ -1346,6 +1346,7 @@ function recursiveDelete(entities, childrenList) {
             properties: initialProperties,
             children: grandchildrenList
         });
+        deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
@@ -1360,7 +1361,7 @@ function unparentSelectedEntities() {
         }
         selectedEntities.forEach(function (id, index) {
             var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
-            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+            if (parentId !== null && parentId.length > 0 && parentId !== Uuid.NULL) {
                 parentCheck = true;
             }
             Entities.editEntity(id, {parentID: null});
@@ -1413,6 +1414,8 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
+        var deletedIDs = [];
+
         selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
@@ -1421,18 +1424,29 @@ function deleteSelectedEntities() {
         for (var i = 0; i < newSortedSelection.length; i++) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            var children = Entities.getChildrenIDs(entityID);
-            var childList = [];
-            recursiveDelete(children, childList);
-            savedProperties.push({
-                entityID: entityID,
-                properties: initialProperties,
-                children: childList
-            });
-            Entities.deleteEntity(entityID);
+            if (!initialProperties.locked) {
+                var children = Entities.getChildrenIDs(entityID);
+                var childList = [];
+                recursiveDelete(children, childList, deletedIDs);
+                savedProperties.push({
+                    entityID: entityID,
+                    properties: initialProperties,
+                    children: childList
+                });
+                deletedIDs.push(entityID);
+                Entities.deleteEntity(entityID);
+            }
         }
-        SelectionManager.clearSelections();
-        pushCommandForSelections([], savedProperties);
+
+        if (savedProperties.length > 0) {
+            SelectionManager.clearSelections();
+            pushCommandForSelections([], savedProperties);
+
+            entityListTool.webView.emitScriptEvent(JSON.stringify({
+                type: "deleted",
+                ids: deletedIDs
+            }));
+        }
     }
 }
 
@@ -1476,13 +1490,22 @@ function onFileSaveChanged(filename) {
 
 function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
-    Window.openFileChanged.disconnect(onFileOpenChanged);
+    try {
+        // Not all calls to onFileOpenChanged() connect an event.
+        Window.openFileChanged.disconnect(onFileOpenChanged);
+    } catch (e) {
+        // Ignore.
+    }
+
     var importURL = null;
     if (filename !== "") {
-        importURL = "file:///" + filename;
+        importURL = filename;
+        if (!/^(http|https):\/\//.test(filename)) {
+            importURL = "file:///" + importURL;
+        }
     }
     if (importURL) {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
             toolBar.toggle();
         }
         importSVO(importURL);
@@ -1492,7 +1515,7 @@ function onFileOpenChanged(filename) {
 function onPromptTextChanged(prompt) {
     Window.promptTextChanged.disconnect(onPromptTextChanged);
     if (prompt !== "") {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
             toolBar.toggle();
         }
         importSVO(prompt);
@@ -1524,7 +1547,7 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
@@ -1561,7 +1584,8 @@ function getPositionToCreateEntity(extra) {
 }
 
 function importSVO(importURL) {
-    if (!Entities.canRez() && !Entities.canRezTmp()) {
+    if (!Entities.canRez() && !Entities.canRezTmp() &&
+        !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }

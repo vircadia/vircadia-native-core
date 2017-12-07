@@ -23,16 +23,28 @@
 #include "ToolbarScriptingInterface.h"
 #include "Logging.h"
 
+#include <AudioInjector.h>
+
+#include "SettingHandle.h"
+
 // FIXME move to global app properties
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
 
 
+static Setting::Handle<QStringList> tabletSoundsButtonClick("TabletSounds", QStringList { "/sounds/Button06.wav",
+                                                                               "/sounds/Button04.wav",
+                                                                               "/sounds/Button07.wav",
+                                                                               "/sounds/Tab01.wav",
+                                                                               "/sounds/Tab02.wav" });
+
 TabletScriptingInterface::TabletScriptingInterface() {
+    qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
+    tabletSoundsButtonClick.set(tabletSoundsButtonClick.get());
 }
 
 ToolbarProxy* TabletScriptingInterface::getSystemToolbarProxy() {
@@ -61,6 +73,29 @@ TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
     // initialize new tablet
     tabletProxy->setToolbarMode(_toolbarMode);
     return tabletProxy;
+}
+
+void TabletScriptingInterface::preloadSounds() {
+    //preload audio events
+    const QStringList &audioSettings = tabletSoundsButtonClick.get();
+    for (int i = 0; i < TabletAudioEvents::Last; i++) {
+        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + audioSettings.at(i));
+        SharedSoundPointer sound = DependencyManager::get<SoundCache>()->
+                getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
+        _audioEvents.insert(static_cast<TabletAudioEvents>(i), sound);
+    }
+}
+
+void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
+    SharedSoundPointer sound = _audioEvents[aEvent];
+    if (sound) {
+        AudioInjectorOptions options;
+        options.stereo = sound->isStereo();
+        options.ambisonic = sound->isAmbisonic();
+        options.localOnly = true;
+
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+    }
 }
 
 void TabletScriptingInterface::setToolbarMode(bool toolbarMode) {
@@ -293,7 +328,8 @@ void TabletProxy::initialScreen(const QVariant& url) {
         pushOntoStack(url);
     } else {
         _initialScreen = true;
-        _initialPath = url;
+        _initialPath.first = url;
+        _initialPath.second = State::QML;
     }
 }
 
@@ -323,9 +359,12 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 }
 
 void TabletProxy::onTabletShown() {
-    if (_tabletShown && _showRunningScripts) {
-        _showRunningScripts = false;
-        pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+    if (_tabletShown) {
+        static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        if (_showRunningScripts) {
+            _showRunningScripts = false;
+            pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+        }
     }
 }
 
@@ -378,10 +417,18 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
         });
 
         if (_initialScreen) {
-            if (!_showRunningScripts) {
-                pushOntoStack(_initialPath);
+            if (!_showRunningScripts && _initialPath.second == State::QML) {
+                pushOntoStack(_initialPath.first);
+            } else if (_initialPath.second == State::Web) {
+                QVariant webUrl = _initialPath.first;
+                QVariant scriptUrl = _initialWebPathParams.first;
+                gotoWebScreen(webUrl.toString(), scriptUrl.toString(), _initialWebPathParams.second);
             }
             _initialScreen = false;
+            _initialPath.first = "";
+            _initialPath.second = State::Uninitialized;
+            _initialWebPathParams.first = "";
+            _initialWebPathParams.second = false;
         }
 
         if (_showRunningScripts) {
@@ -647,6 +694,14 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
+    } else {
+        // tablet is not initialized yet, save information and load when
+        // the tablet root is set
+        _initialPath.first = url;
+        _initialPath.second = State::Web;
+        _initialWebPathParams.first = injectedJavaScriptUrl;
+        _initialWebPathParams.second = loadOtherBase;
+        _initialScreen = true;
     }
     _state = State::Web;
     emit screenChanged(QVariant("Web"), QVariant(url));

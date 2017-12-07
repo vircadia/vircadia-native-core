@@ -377,7 +377,8 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     bool hasColors { mesh.colors.size() > 0 };
                     bool hasTexCoords { mesh.texCoords.size() > 0 };
                     bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
-                    bool hasPerFaceMaterials { mesh.parts.size() > 1 };
+                    bool hasPerFaceMaterials { mesh.parts.size() > 1
+                        || extractedMesh.partMaterialTextures[0].first != 0 };
                     bool needsOriginalIndices { hasDeformers };
 
                     int normalsAttributeID { -1 };
@@ -594,6 +595,10 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
                             QFileInfo textureFileInfo { fbxTextureFileName.replace("\\", "/") };
 
+                            if (hasErrors()) {
+                                return;
+                            }
+
                             if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
                                 // re-baking an FBX that already references baked textures is a fail
                                 // so we add an error and return from here
@@ -602,6 +607,11 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 return;
                             }
 
+                            if (!TextureBaker::getSupportedFormats().contains(textureFileInfo.suffix())) {
+                                // this is a texture format we don't bake, skip it
+                                handleWarning(fbxTextureFileName + " is not a bakeable texture format");
+                                continue;
+                            }
 
                             // make sure this texture points to something and isn't one we've already re-mapped
                             if (!textureFileInfo.filePath().isEmpty()) {

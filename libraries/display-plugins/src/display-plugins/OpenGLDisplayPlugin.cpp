@@ -419,6 +419,19 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
 
         {
+            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+            auto ps = gpu::StandardShaderLib::getDrawTextureMirroredXPS();
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+            gpu::Shader::makeProgram(*program);
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(gpu::State::DepthTest(false));
+            state->setBlendFunction(true,
+                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            _mirrorHUDPipeline = gpu::Pipeline::create(program, state);
+        }
+
+        {
             auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
             auto ps = gpu::StandardShaderLib::getDrawTexturePS();
             gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
@@ -438,6 +451,7 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _presentPipeline.reset();
     _cursorPipeline.reset();
     _hudPipeline.reset();
+    _mirrorHUDPipeline.reset();
     _compositeFramebuffer.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
@@ -562,11 +576,11 @@ void OpenGLDisplayPlugin::updateFrameData() {
     });
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
-    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
+    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
         if (_hudPipeline) {
             batch.enableStereo(false);
-            batch.setPipeline(_hudPipeline);
+            batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
             batch.setResourceTexture(0, hudTexture);
             if (isStereo()) {
                 for_each_eye([&](Eye eye) {

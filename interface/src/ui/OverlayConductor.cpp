@@ -49,7 +49,7 @@ bool OverlayConductor::updateAvatarIsAtRest() {
     const quint64 REST_DISABLE_TIME_USECS = 200 * 1000;  // 200 ms
 
     const float AT_REST_THRESHOLD = 0.01f;
-    bool desiredAtRest = glm::length(myAvatar->getVelocity()) < AT_REST_THRESHOLD;
+    bool desiredAtRest = glm::length(myAvatar->getWorldVelocity()) < AT_REST_THRESHOLD;
     if (desiredAtRest != _desiredAtRest) {
         // start timer
         _desiredAtRestTimer = usecTimestampNow() + (desiredAtRest ? REST_ENABLE_TIME_USECS : REST_DISABLE_TIME_USECS);

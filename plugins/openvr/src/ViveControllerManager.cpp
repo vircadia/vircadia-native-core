@@ -166,6 +166,11 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
                 _resetMatCalculated = false;
             }
         }
+
+        if (configurationSettings.contains("hmdDesktopTracking")) {
+            _hmdDesktopTracking = configurationSettings["hmdDesktopTracking"].toBool();
+        }
+
         _inputDevice->configureCalibrationSettings(configurationSettings);
         saveSettings();
     }
@@ -175,6 +180,7 @@ QJsonObject ViveControllerManager::configurationSettings() {
     if (isSupported()) {
         QJsonObject configurationSettings = _inputDevice->configurationSettings();
         configurationSettings["desktopMode"] = _desktopMode;
+        configurationSettings["hmdDesktopTracking"] = _hmdDesktopTracking;
         return configurationSettings;
     }
 
@@ -331,6 +337,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _poseStateMap.clear();
     _buttonPressedMap.clear();
     _validTrackedObjects.clear();
+    _trackedControllers = 0;
 
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
@@ -363,14 +370,12 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         }
     }
 
-    int numTrackedControllers = 0;
     if (leftHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
-        numTrackedControllers++;
+        _trackedControllers++;
     }
     if (rightHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
-        numTrackedControllers++;
+        _trackedControllers++;
     }
-    _trackedControllers = numTrackedControllers;
 
     calibrateFromHandController(inputCalibrationData);
     calibrateFromUI(inputCalibrationData);
@@ -414,6 +419,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
     if (!configurationSettings.empty()) {
         auto iter = configurationSettings.begin();
         auto end = configurationSettings.end();
+        bool hmdDesktopTracking = true;
+        bool hmdDesktopMode = false;
         while (iter != end) {
             if (iter.key() == "bodyConfiguration") {
                 setConfigFromString(iter.value().toString());
@@ -441,9 +448,15 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 _armCircumference = (float)iter.value().toDouble() * CM_TO_M;
             } else if (iter.key() == "shoulderWidth") {
                 _shoulderWidth = (float)iter.value().toDouble() * CM_TO_M;
+            } else if (iter.key() == "hmdDesktopTracking") {
+                hmdDesktopTracking = iter.value().toBool();
+            } else if (iter.key() == "desktopMode") {
+                hmdDesktopMode = iter.value().toBool();
             }
             iter++;
         }
+
+        _hmdTrackingEnabled = !(hmdDesktopMode && hmdDesktopTracking);
     }
 }
 
@@ -513,6 +526,7 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
 
         // but _validTrackedObjects remain in sensor frame
         _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
+        _trackedControllers++;
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;
@@ -735,11 +749,18 @@ void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const c
          _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_HMD &&
          _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid) {
 
-         const mat4& mat = _nextSimPoseData.poses[deviceIndex];
-         const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
-         const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
+         if (_hmdTrackingEnabled){
+             const mat4& mat = _nextSimPoseData.poses[deviceIndex];
+             const vec3 linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
+             const vec3 angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
 
-         handleHeadPoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity);
+             handleHeadPoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity);
+         } else {
+             const mat4& mat = mat4();
+             const vec3 zero = vec3();
+             handleHeadPoseEvent(inputCalibrationData, mat, zero, zero);
+         }
+         _trackedControllers++;
      }
 }
 

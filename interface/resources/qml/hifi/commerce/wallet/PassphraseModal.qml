@@ -25,8 +25,9 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    z: 998;
+    z: 997;
     property bool keyboardRaised: false;
+    property bool isPasswordField: false;
     property string titleBarIcon: "";
     property string titleBarText: "";
 
@@ -202,15 +203,7 @@ Item {
 
             onFocusChanged: {
                 root.keyboardRaised = focus;
-            }
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = true;
-                    mouse.accepted = false;
-                }
+                root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
             onAccepted: {
@@ -350,7 +343,7 @@ Item {
 
     Item {
         id: keyboardContainer;
-        z: 999;
+        z: 998;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
@@ -359,27 +352,11 @@ Item {
             right: parent.right;
         }
 
-        Image {
-            id: lowerKeyboardButton;
-            source: "images/lowerKeyboard.png";
-            anchors.horizontalCenter: parent.horizontalCenter;
-            anchors.bottom: keyboard.top;
-            height: 30;
-            width: 120;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
-        }
-
         HifiControlsUit.Keyboard {
             id: keyboard;
             raised: HMD.mounted && root.keyboardRaised;
             numeric: parent.punctuationMode;
+            password: root.isPasswordField;
             anchors {
                 bottom: parent.bottom;
                 left: parent.left;

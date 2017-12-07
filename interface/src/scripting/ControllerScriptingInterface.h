@@ -17,7 +17,6 @@
 #include <controllers/UserInputMapper.h>
 #include <controllers/ScriptingInterface.h>
 
-#include <HFActionEvent.h>
 #include <KeyEvent.h>
 #include <MouseEvent.h>
 #include <SpatialEvent.h>
@@ -36,8 +35,6 @@ public:
     void emitKeyPressEvent(QKeyEvent* event);
     void emitKeyReleaseEvent(QKeyEvent* event);
     
-    void handleMetaEvent(HFMetaEvent* event);
-
     void emitMouseMoveEvent(QMouseEvent* event);
     void emitMousePressEvent(QMouseEvent* event); 
     void emitMouseDoublePressEvent(QMouseEvent* event);
@@ -71,12 +68,6 @@ public slots:
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
-
-    void actionStartEvent(const HFActionEvent& event);
-    void actionEndEvent(const HFActionEvent& event);
-
-    void backStartEvent();
-    void backEndEvent();
 
     void mouseMoveEvent(const MouseEvent& event);
     void mousePressEvent(const MouseEvent& event);

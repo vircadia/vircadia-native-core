@@ -1,7 +1,4 @@
 //
-//  RayPick.h
-//  interface/src/raypick
-//
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -11,139 +8,82 @@
 #ifndef hifi_RayPick_h
 #define hifi_RayPick_h
 
-#include <stdint.h>
-#include "RegisteredMetaTypes.h"
+#include <RegisteredMetaTypes.h>
+#include <Pick.h>
 
-#include "EntityItemID.h"
-#include "ui/overlays/Overlay.h"
-#include <QReadWriteLock>
+class EntityItemID;
+class OverlayID;
 
-class RayPickFilter {
+class RayPickResult : public PickResult {
 public:
-    enum FlagBit {
-        PICK_NOTHING = 0,
-        PICK_ENTITIES,
-        PICK_OVERLAYS,
-        PICK_AVATARS,
-        PICK_HUD,
-
-        PICK_COURSE, // if not set, does precise intersection, otherwise, doesn't
-
-        PICK_INCLUDE_INVISIBLE, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
-        PICK_INCLUDE_NONCOLLIDABLE, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
-
-        // NOT YET IMPLEMENTED
-        PICK_ALL_INTERSECTIONS, // if not set, returns closest intersection, otherwise, returns list of all intersections
-
-        NUM_FLAGS, // Not a valid flag
-    };
-    typedef std::bitset<NUM_FLAGS> Flags;
-
-    // The key is the Flags
-    Flags _flags;
-
-    RayPickFilter() : _flags(getBitMask(PICK_NOTHING)) {}
-    RayPickFilter(const Flags& flags) : _flags(flags) {}
-
-    bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
-    bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
-
-    void setFlag(FlagBit flag, bool value) { _flags[flag] = value; }
-
-    bool doesPickNothing() const { return _flags[PICK_NOTHING]; }
-    bool doesPickEntities() const { return _flags[PICK_ENTITIES]; }
-    bool doesPickOverlays() const { return _flags[PICK_OVERLAYS]; }
-    bool doesPickAvatars() const { return _flags[PICK_AVATARS]; }
-    bool doesPickHUD() const { return _flags[PICK_HUD]; }
-
-    bool doesPickCourse() const { return _flags[PICK_COURSE]; }
-    bool doesPickInvisible() const { return _flags[PICK_INCLUDE_INVISIBLE]; }
-    bool doesPickNonCollidable() const { return _flags[PICK_INCLUDE_NONCOLLIDABLE]; }
-
-    bool doesWantAllIntersections() const { return _flags[PICK_ALL_INTERSECTIONS]; }
-
-    // Helpers for RayPickManager
-    Flags getEntityFlags() const {
-        unsigned int toReturn = getBitMask(PICK_ENTITIES);
-        if (doesPickInvisible()) {
-            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
-        }
-        if (doesPickNonCollidable()) {
-            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
-        }
-        if (doesPickCourse()) {
-            toReturn |= getBitMask(PICK_COURSE);
-        }
-        return Flags(toReturn);
+    RayPickResult() {}
+    RayPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
+    RayPickResult(const IntersectionType type, const QUuid& objectID, float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
+        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {
     }
-    Flags getOverlayFlags() const {
-        unsigned int toReturn = getBitMask(PICK_OVERLAYS);
-        if (doesPickInvisible()) {
-            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
-        }
-        if (doesPickNonCollidable()) {
-            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
-        }
-        if (doesPickCourse()) {
-            toReturn |= getBitMask(PICK_COURSE);
-        }
-        return Flags(toReturn);
-    }
-    Flags getAvatarFlags() const { return Flags(getBitMask(PICK_AVATARS)); }
-    Flags getHUDFlags() const { return Flags(getBitMask(PICK_HUD)); }
 
-    static unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
+    RayPickResult(const RayPickResult& rayPickResult) : PickResult(rayPickResult.pickVariant) {
+        type = rayPickResult.type;
+        intersects = rayPickResult.intersects;
+        objectID = rayPickResult.objectID;
+        distance = rayPickResult.distance;
+        intersection = rayPickResult.intersection;
+        surfaceNormal = rayPickResult.surfaceNormal;
+    }
+
+    IntersectionType type { NONE };
+    bool intersects { false };
+    QUuid objectID;
+    float distance { FLT_MAX };
+    glm::vec3 intersection { NAN };
+    glm::vec3 surfaceNormal { NAN };
+
+    virtual QVariantMap toVariantMap() const override {
+        QVariantMap toReturn;
+        toReturn["type"] = type;
+        toReturn["intersects"] = intersects;
+        toReturn["objectID"] = objectID;
+        toReturn["distance"] = distance;
+        toReturn["intersection"] = vec3toVariant(intersection);
+        toReturn["surfaceNormal"] = vec3toVariant(surfaceNormal);
+        toReturn["searchRay"] = PickResult::toVariantMap();
+        return toReturn;
+    }
+
+    bool doesIntersect() const override { return intersects; }
+    bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return distance < maxDistance; }
+
+    PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
+        auto newRayRes = std::static_pointer_cast<RayPickResult>(newRes);
+        if (newRayRes->distance < distance) {
+            return std::make_shared<RayPickResult>(*newRayRes);
+        } else {
+            return std::make_shared<RayPickResult>(*this);
+        }
+    }
 
 };
 
-class RayPick {
+class RayPick : public Pick<PickRay> {
 
 public:
-    RayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
+    RayPick(const PickFilter& filter, float maxDistance, bool enabled) : Pick(filter, maxDistance, enabled) {}
 
-    virtual const PickRay getPickRay(bool& valid) const = 0;
+    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<RayPickResult>(pickVariant); }
+    PickResultPointer getEntityIntersection(const PickRay& pick) override;
+    PickResultPointer getOverlayIntersection(const PickRay& pick) override;
+    PickResultPointer getAvatarIntersection(const PickRay& pick) override;
+    PickResultPointer getHUDIntersection(const PickRay& pick) override;
 
-    void enable();
-    void disable();
-
-    const RayPickFilter& getFilter() { return _filter; }
-    float getMaxDistance() { return _maxDistance; }
-    bool isEnabled() { return _enabled; }
-    const RayPickResult& getPrevRayPickResult();
-
-    void setPrecisionPicking(bool precisionPicking) { _filter.setFlag(RayPickFilter::PICK_COURSE, !precisionPicking); }
-
-    void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
-
-    const QVector<EntityItemID>& getIgnoreEntites() { return _ignoreEntities; }
-    const QVector<EntityItemID>& getIncludeEntites() { return _includeEntities; }
-    const QVector<OverlayID>& getIgnoreOverlays() { return _ignoreOverlays; }
-    const QVector<OverlayID>& getIncludeOverlays() { return _includeOverlays; }
-    const QVector<EntityItemID>& getIgnoreAvatars() { return _ignoreAvatars; }
-    const QVector<EntityItemID>& getIncludeAvatars() { return _includeAvatars; }
-    void setIgnoreEntities(const QScriptValue& ignoreEntities);
-    void setIncludeEntities(const QScriptValue& includeEntities);
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(const QScriptValue& includeAvatars);
-
-    QReadWriteLock* getLock() { return &_lock; }
+    // These are helper functions for projecting and intersecting rays
+    static glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction);
+    static glm::vec3 intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction);
+    static glm::vec2 projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos, bool unNormalized = true);
+    static glm::vec2 projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos, bool unNormalized = true);
 
 private:
-    RayPickFilter _filter;
-    float _maxDistance;
-    bool _enabled;
-    RayPickResult _prevResult;
-
-    QVector<EntityItemID> _ignoreEntities;
-    QVector<EntityItemID> _includeEntities;
-    QVector<OverlayID> _ignoreOverlays;
-    QVector<OverlayID> _includeOverlays;
-    QVector<EntityItemID> _ignoreAvatars;
-    QVector<EntityItemID> _includeAvatars;
-
-    QReadWriteLock _lock;
+    static glm::vec3 intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat& rotation, const glm::vec3& registration);
+    static glm::vec2 projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint, bool unNormalized);
 };
 
 #endif // hifi_RayPick_h

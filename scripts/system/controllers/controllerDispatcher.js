@@ -10,7 +10,8 @@
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Pointers, PickType, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks, TRIGGER_ON_VALUE, PointerManager
 */
 
 controllerDispatcherPlugins = {};
@@ -21,13 +22,14 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
 (function() {
+    Script.include("/~/system/libraries/pointersUtils.js");
     var NEAR_MAX_RADIUS = 0.1;
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
     var PROFILE = false;
-    var DEBUG = true;
+    var DEBUG = false;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -43,6 +45,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.veryhighVarianceCount = 0;
         this.tabletID = null;
         this.blacklist = [];
+        this.pointerManager = new PointerManager();
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -56,6 +59,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             leftHandEquip: false,
             mouse: false
         };
+
+        this.laserVisibleStatus = [false, false, false, false];
+        this.laserLockStatus = [false, false, false, false];
 
         this.slotsAreAvailableForPlugin = function (plugin) {
             for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
@@ -108,7 +114,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             _this.rightSecondaryValue = value;
         };
 
-
         this.dataGatherers = {};
         this.dataGatherers.leftControllerLocation = function () {
             return getControllerWorldLocation(Controller.Standard.LeftHand, true);
@@ -141,8 +146,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setIgnoreTablet = function() {
-            RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
-            RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
+            if (HMD.tabletID !== this.tabletID) {
+                this.tabletID = HMD.tabletID;
+                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist.concat([HMD.tabletID]));
+            }
         };
 
         this.update = function () {
@@ -231,14 +239,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
             // raypick for each controller
             var rayPicks = [
-                RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
-                RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
+                Pointers.getPrevPickResult(_this.leftPointer),
+                Pointers.getPrevPickResult(_this.rightPointer)
             ];
             var hudRayPicks = [
-                RayPick.getPrevRayPickResult(_this.leftControllerHudRayPick),
-                RayPick.getPrevRayPickResult(_this.rightControllerHudRayPick)
+                Pointers.getPrevPickResult(_this.leftHudPointer),
+                Pointers.getPrevPickResult(_this.rightHudPointer)
             ];
-            var mouseRayPick = RayPick.getPrevRayPickResult(_this.mouseRayPick);
+            var mouseRayPick = Pointers.getPrevPickResult(_this.mouseRayPick);
             // if the pickray hit something very nearby, put it into the nearby entities list
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
 
@@ -249,7 +257,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     length: 1000
                 };
 
-                if (rayPicks[h].type === RayPick.INTERSECTED_ENTITY) {
+                if (rayPicks[h].type === Picks.INTERSECTED_ENTITY) {
                     // XXX check to make sure this one isn't already in nearbyEntityProperties?
                     if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS * sensorScaleFactor) {
                         var nearEntityID = rayPicks[h].objectID;
@@ -316,6 +324,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
+                        _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -351,25 +360,27 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
+                            _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
                         }
+                        _this.pointerManager.lockPointerEnd(plugin.parameters.handLaser, runningness.laserLockInfo);
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
                         }
                     }
                 }
             }
+            _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreEntities(_this.leftControllerRayPick, this.blacklist);
-            RayPick.setIgnoreEntities(_this.rightControllerRayPick, this.blacklist);
-
+            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat(HMD.tabletID));
+            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat(HMD.tabletID));
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
@@ -386,40 +397,49 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         Controller.enableMapping(MAPPING_NAME);
 
-        this.leftControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-            enabled: true,
-            maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
+        this.leftPointer = this.pointerManager.createPointer(false, PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
+            triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
+            hover: true,
+            distanceScaleEnd: true,
+            hand: LEFT_HAND
         });
-        this.leftControllerHudRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_HUD,
-            enabled: true,
-            maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
+        this.rightPointer = this.pointerManager.createPointer(false, PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
+            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
+            hover: true,
+            distanceScaleEnd: true,
+            hand: RIGHT_HAND
         });
-        this.rightControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_RIGHTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-            enabled: true,
+        this.leftHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
+            triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
+            hover: true,
+            distanceScaleEnd: true,
+            hand: LEFT_HAND
         });
-        this.rightControllerHudRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_RIGHTHAND",
-            filter: RayPick.PICK_HUD,
-            enabled: true,
+        this.rightHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
+            filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
+            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            hover: true,
+            distanceScaleEnd: true,
+            hand: RIGHT_HAND
         });
-        this.mouseRayPick = RayPick.createRayPick({
+        this.mouseRayPick = Pointers.createPointer(PickType.Ray, {
             joint: "Mouse",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true
         });
-
         this.handleHandMessage = function(channel, message, sender) {
             var data;
             if (sender === MyAvatar.sessionUUID) {
@@ -452,13 +472,31 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
-            RayPick.removeRayPick(_this.leftControllerRayPick);
-            RayPick.removeRayPick(_this.rightControllerRayPick);
-            RayPick.removeRayPick(_this.rightControllerHudRayPick);
-            RayPick.removeRayPick(_this.leftControllerHudRayPick);
+            _this.pointerManager.removePointers();
+            Pointers.removePointer(this.mouseRayPick);
         };
     }
+    function mouseReleaseOnOverlay(overlayID, event) {
+        if (overlayID === HMD.homeButtonID && event.button === "Primary") {
+            Messages.sendLocalMessage("home", overlayID);
+        }
+    }
 
+    var HAPTIC_STYLUS_STRENGTH = 1.0;
+    var HAPTIC_STYLUS_DURATION = 20.0;
+    function mousePress(id, event) {
+        if (HMD.active) {
+            var runningPlugins = controllerDispatcher.runningPluginNames;
+            if (event.id === controllerDispatcher.leftPointer && event.button === "Primary" && runningPlugins.LeftWebSurfaceLaserInput) {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, LEFT_HAND);
+            } else if (event.id === controllerDispatcher.rightPointer && event.button === "Primary" && runningPlugins.RightWebSurfaceLaserInput) {
+                Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, RIGHT_HAND);
+            }
+        }
+    }
+    Overlays.mouseReleaseOnOverlay.connect(mouseReleaseOnOverlay);
+    Overlays.mousePressOnOverlay.connect(mousePress);
+    Entities.mousePressOnEntity.connect(mousePress);
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);

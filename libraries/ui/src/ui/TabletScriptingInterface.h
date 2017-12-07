@@ -23,7 +23,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-
+#include "SoundCache.h"
 #include <DependencyManager.h>
 
 class ToolbarProxy;
@@ -40,8 +40,11 @@ class OffscreenQmlSurface;
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+    enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
+    Q_ENUM(TabletAudioEvents)
+
     TabletScriptingInterface();
-    ~TabletScriptingInterface();
+    virtual ~TabletScriptingInterface();
     static const QString QML;
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
@@ -53,6 +56,9 @@ public:
      * @return {TabletProxy} tablet instance
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
+
+    void preloadSounds();
+    Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
     void setToolbarMode(bool toolbarMode);
 
@@ -77,6 +83,7 @@ private:
     void processTabletEvents(QObject* object, const QKeyEvent* event);
     ToolbarProxy* getSystemToolbarProxy();
 
+    QMap<TabletAudioEvents, SharedSoundPointer> _audioEvents;
 protected:
     std::map<QString, TabletProxy*> _tabletProxies;
     ToolbarScriptingInterface* _toolbarScriptingInterface { nullptr };
@@ -241,7 +248,6 @@ protected:
     void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" };
     QVariant _currentPathLoaded { "" };
     QString _name;
     std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
@@ -253,6 +259,8 @@ protected:
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
+    std::pair<QVariant, State> _initialPath { "", State::Uninitialized };
+    std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
 };

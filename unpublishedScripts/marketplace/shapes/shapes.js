@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Feedback, History */
+/* global Feedback, History, Preload */
 
 (function () {
 
@@ -18,7 +18,7 @@
         APP_ICON_INACTIVE = Script.resolvePath("./assets/shapes-i.svg"),
         APP_ICON_ACTIVE = Script.resolvePath("./assets/shapes-a.svg"),
         APP_ICON_DISABLED = Script.resolvePath("./assets/shapes-d.svg"),
-        ENABLED_CAPTION_COLOR_OVERRIDE = "",
+        ENABLED_CAPTION_COLOR_OVERRIDE = "#ffffff",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
         START_DELAY = 2000, // ms
 
@@ -87,6 +87,7 @@
     Script.include("./modules/highlights.js");
     Script.include("./modules/history.js");
     Script.include("./modules/laser.js");
+    Script.include("./modules/preload.js");
     Script.include("./modules/selection.js");
     Script.include("./modules/toolIcon.js");
     Script.include("./modules/toolsMenu.js");
@@ -235,8 +236,12 @@
         }
 
         toolIcon = new ToolIcon(otherHand(side));
-        toolsMenu = new ToolsMenu(side, leftInputs, rightInputs, uiCommandCallback);
         createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
+        toolsMenu = new ToolsMenu(side, leftInputs, rightInputs, uiCommandCallback);
+
+        Preload.load(toolIcon.assetURLs());
+        Preload.load(createPalette.assetURLs());
+        Preload.load(toolsMenu.assetURLs());
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
@@ -1860,7 +1865,7 @@
         }
         button.editProperties({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             isActive: isAppActive
         });
     }
@@ -1875,7 +1880,7 @@
         }
         button.editProperties({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             isActive: isAppActive
         });
     }
@@ -1940,7 +1945,7 @@
         hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
         button = tablet.addButton({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             activeIcon: APP_ICON_ACTIVE,
             text: APP_NAME,
             isActive: isAppActive

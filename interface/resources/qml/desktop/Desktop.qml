@@ -51,19 +51,23 @@ FocusScope {
 
     // The VR version of the primary menu
     property var rootMenu: Menu { 
+        id: rootMenuId
         objectName: "rootMenu" 
 
-        // for some reasons it is not possible to use just '({})' here as it gets empty when passed to TableRoot/DesktopRoot
-        property var exclusionGroupsByMenuItem : ListModel {}
+        property var exclusionGroups: ({});
+        property Component exclusiveGroupMaker: Component {
+            ExclusiveGroup {
+            }
+        }
 
-        function addExclusionGroup(menuItem, exclusionGroup)
-        {
-            exclusionGroupsByMenuItem.append(
-                {
-                    'menuItem' : menuItem.toString(), 
-                    'exclusionGroup' : exclusionGroup.toString()
-                }
-            );
+        function addExclusionGroup(qmlAction, exclusionGroup) {
+
+            var exclusionGroupId = exclusionGroup.toString();
+            if(!exclusionGroups[exclusionGroupId]) {
+                exclusionGroups[exclusionGroupId] = exclusiveGroupMaker.createObject(rootMenuId);
+            }
+
+            qmlAction.exclusiveGroup = exclusionGroups[exclusionGroupId]
         }
     }
 
@@ -301,14 +305,18 @@ FocusScope {
     function isPointOnWindow(point) {
         for (var i = 0; i < desktop.visibleChildren.length; i++) {
             var child = desktop.visibleChildren[i];
-            if (child.visible) {
-                if (child.hasOwnProperty("modality")) {
-                    var mappedPoint = child.mapFromGlobal(point.x, point.y);
+            if (child.hasOwnProperty("modality")) {
+                var mappedPoint = mapToItem(child, point.x, point.y);
+                if (child.hasOwnProperty("frame")) {
                     var outLine = child.frame.children[2];
                     var framePoint = outLine.mapFromGlobal(point.x, point.y);
-                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                    if (outLine.contains(framePoint)) {
                         return true;
                     }
+                }
+
+                if (child.contains(mappedPoint)) {
+                    return true;
                 }
             }
         }

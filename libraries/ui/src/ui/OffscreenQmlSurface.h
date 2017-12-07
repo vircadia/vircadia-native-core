@@ -21,6 +21,9 @@
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
 
+#include <QTouchEvent>
+#include "PointerEvent.h"
+
 class QWindow;
 class QMyQuickRenderControl;
 class OffscreenGLCanvas;
@@ -35,11 +38,17 @@ class QQuickItem;
 // one copy in flight, and one copy being used by the receiver
 #define GPU_RESOURCE_BUFFER_SIZE 3
 
-class OffscreenQmlSurface : public QObject {
+using QmlContextCallback = std::function<void(QQmlContext*, QObject*)>;
+
+class OffscreenQmlSurface : public QObject, public QEnableSharedFromThis<OffscreenQmlSurface> {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
     static void setSharedContext(QOpenGLContext* context);
+
+    static QmlContextCallback DEFAULT_CONTEXT_CALLBACK;
+    static void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback);
+    static void addWhitelistContextHandler(const QUrl& url, const QmlContextCallback& callback) { addWhitelistContextHandler({ { url } }, callback); };
 
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
@@ -50,12 +59,10 @@ public:
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
-    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE void load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE void load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback = [](QQmlContext*, QObject*) {}) {
-        return load(QUrl(qmlSourceFile), onQmlLoadedCallback);
-    }
+    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     void clearCache();
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
@@ -68,6 +75,7 @@ public:
     void pause();
     void resume();
     bool isPaused() const;
+    bool getCleaned() { return _isCleaned; }
 
     void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
@@ -75,11 +83,12 @@ public:
     QObject* getEventHandler();
     QQmlContext* getSurfaceContext();
 
-    QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
+    QPointF mapToVirtualScreen(const QPointF& originalPoint);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
+    Q_INVOKABLE void lowerKeyboard();
 
     using TextureAndFence = std::pair<uint32_t, void*>;
     // Checks to see if a new texture is available.  If one is, the function returns true and 
@@ -91,6 +100,10 @@ public:
     static std::function<void(uint32_t, void*)> getDiscardLambda();
     static size_t getUsedTextureMemory();
 
+    PointerEvent::EventType choosePointerEventType(QEvent::Type type);
+
+    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+
 signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
@@ -98,6 +111,15 @@ signals:
 public slots:
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
+
+    // audio output device
+public slots:
+    void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
+    void forceHtmlAudioOutputDeviceUpdate();
+    void forceQmlAudioOutputDeviceUpdate();
+
+signals:
+    void audioOutputDeviceChanged(const QString& deviceName);
 
     // event bridge
 public slots:
@@ -120,17 +142,23 @@ protected:
 private:
     static QOpenGLContext* getSharedContext();
 
-    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback);
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
     void render();
     void cleanup();
     QJsonObject getGLContextData();
+    void disconnectAudioOutputTimer();
 
 private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
+
+public slots:
+    void hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device);
+    void hoverEndEvent(const PointerEvent& event, class QTouchDevice& device);
+    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
 
 private:
     QQuickWindow* _quickWindow { nullptr };
@@ -145,6 +173,9 @@ private:
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
 
+    QTimer _audioOutputUpdateTimer;
+    QString _currentAudioOutputDevice;
+
     // Texture management
     TextureAndFence _latestTextureAndFence { 0, 0 };
 
@@ -152,11 +183,22 @@ private:
     bool _polish { true };
     bool _paused { true };
     bool _focusText { false };
+    bool _isCleaned{ false };
     uint8_t _maxFps { 60 };
     MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };
+
+    struct TouchState {
+        QTouchEvent::TouchPoint touchPoint;
+        bool hovering { false };
+        bool pressed { false };
+    };
+
+    bool _pressed;
+    bool _touchBeginAccepted { false };
+    std::map<uint32_t, TouchState> _activeTouchPoints;
 };
 
 #endif

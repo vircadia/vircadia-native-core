@@ -9,8 +9,6 @@
 
 /* globals createControllerDisplay:true deleteControllerDisplay:true */
 
-var PARENT_ID = "{00000000-0000-0000-0000-000000000001}";
-
 function clamp(value, min, max) {
     if (value < min) {
         return min;
@@ -178,7 +176,7 @@ createControllerDisplay = function(config) {
             dimensions: Vec3.multiply(sensorScaleFactor, controller.dimensions),
             localRotation: controller.rotation,
             localPosition: Vec3.multiply(sensorScaleFactor, position),
-            parentID: PARENT_ID,
+            parentID: MyAvatar.SELF_ID,
             parentJointIndex: controller.jointIndex,
             ignoreRayIntersection: true
         });
@@ -198,7 +196,7 @@ createControllerDisplay = function(config) {
                     url: part.modelURL,
                     localPosition: partPosition,
                     localRotation: innerRotation,
-                    parentID: PARENT_ID,
+                    parentID: MyAvatar.SELF_ID,
                     parentJointIndex: controller.jointIndex,
                     ignoreRayIntersection: true
                 };

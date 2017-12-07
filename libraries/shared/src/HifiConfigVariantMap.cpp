@@ -91,32 +91,6 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     return mergedMap;
 }
 
-HifiConfigVariantMap::HifiConfigVariantMap() :
-    _userConfigFilename(),
-    _masterConfig(),
-    _userConfig(),
-    _mergedConfig()
-{
-
-}
-
-void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentList) {
-    // check if there is a master config file
-    const QString MASTER_CONFIG_FILE_OPTION = "--master-config";
-
-    int masterConfigIndex = argumentList.indexOf(MASTER_CONFIG_FILE_OPTION);
-    if (masterConfigIndex != -1) {
-        QString masterConfigFilepath = argumentList[masterConfigIndex + 1];
-
-        loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
-    }
-
-    // load the user config - that method replace loadMasterAndUserConfig after the 1.7 migration
-    loadConfig(argumentList);
-
-    mergeMasterAndUserConfigs();
-}
-
 void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
@@ -170,14 +144,6 @@ void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     }
     
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
-}
-
-void HifiConfigVariantMap::mergeMasterAndUserConfigs() {
-    // the merged config is initially matched to the master config
-    _mergedConfig = _masterConfig;
-
-    // then we merge in anything missing from the user config
-    addMissingValuesToExistingMap(_mergedConfig, _userConfig);
 }
 
 void HifiConfigVariantMap::loadMapFromJSONFile(QVariantMap& existingMap, const QString& filename) {

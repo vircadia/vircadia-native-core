@@ -370,7 +370,7 @@ getTabletWidthFromSettings = function () {
 
 resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride) {
 
-    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
+    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID || !HMD.homeButtonHighlightID) {
         return;
     }
 
@@ -409,8 +409,16 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
 
     // update homeButton
     var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * sensorScaleOffsetOverride;
+    var homeButtonDim = 4 * tabletScaleFactor;
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim}
+    });
+
+    // Circle3D overlays render at 1.5x their proper dimensions
+    var highlightDim = homeButtonDim / 3.0;
+    Overlays.editOverlay(HMD.homeButtonHighlightID, {
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        dimensions: { x: highlightDim, y: highlightDim, z: highlightDim }
     });
 };

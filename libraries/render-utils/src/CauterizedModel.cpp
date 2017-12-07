@@ -48,7 +48,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
         const auto& meshes = _renderGeometry->getMeshes();
 
         // all of our mesh vectors must match in size
-        if ((int)meshes.size() != _meshStates.size()) {
+        if (meshes.size() != _meshStates.size()) {
             qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
             return;
         }
@@ -57,6 +57,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
         _modelMeshRenderItems.clear();
+        _modelMeshRenderItemShapes.clear();
 
         Transform transform;
         transform.setTranslation(_translation);
@@ -80,6 +81,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
+                _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
         }
@@ -102,24 +104,13 @@ void CauterizedModel::updateClusterMatrices() {
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
 
-    for (int i = 0; i < _meshStates.size(); i++) {
+    for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-        }
-
-        // Once computed the cluster matrices, update the buffer(s)
-        if (mesh.clusters.size() > 1) {
-            if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
-            } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                (const gpu::Byte*) state.clusterMatrices.constData());
-            }
         }
     }
 
@@ -142,17 +133,6 @@ void CauterizedModel::updateClusterMatrices() {
                     jointMatrix = cauterizeMatrix;
                 }
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-            }
-
-            if (!_cauterizeBoneSet.empty() && (state.clusterMatrices.size() > 1)) {
-                if (!state.clusterBuffer) {
-                    state.clusterBuffer =
-                        std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                      (const gpu::Byte*) state.clusterMatrices.constData());
-                } else {
-                    state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                              (const gpu::Byte*) state.clusterMatrices.constData());
-                }
             }
         }
     }
@@ -181,11 +161,11 @@ void CauterizedModel::updateRenderItems() {
         // queue up this work for later processing, at the end of update and just before rendering.
         // the application will ensure only the last lambda is actually invoked.
         void* key = (void*)this;
-        std::weak_ptr<Model> weakSelf = shared_from_this();
-        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
+        std::weak_ptr<CauterizedModel> weakSelf = std::dynamic_pointer_cast<CauterizedModel>(shared_from_this());
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
             // do nothing, if the model has already been destroyed.
             auto self = weakSelf.lock();
-            if (!self) {
+            if (!self || !self->isLoaded()) {
                 return;
             }
 
@@ -198,37 +178,28 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
-            Transform scaledModelTransform(modelTransform);
-            scaledModelTransform.setScale(scale);
-
-            uint32_t deleteGeometryCounter = self->getGeometryCounter();
-
             render::Transaction transaction;
-            QList<render::ItemID> keys = self->getRenderItems().keys();
-            foreach (auto itemID, keys) {
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
-                    ModelPointer model = data._model.lock();
-                    if (model && model->isLoaded()) {
-                        // Ensure the model geometry was not reset between frames
-                        if (deleteGeometryCounter == model->getGeometryCounter()) {
-                            // this stuff identical to what happens in regular Model
-                            const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                            Transform renderTransform = modelTransform;
-                            if (state.clusterMatrices.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                            }
-                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+            for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
 
-                            // this stuff for cauterized mesh
-                            CauterizedModel* cModel = static_cast<CauterizedModel*>(model.get());
-                            const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
-                            renderTransform = modelTransform;
-                            if (cState.clusterMatrices.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
-                            }
-                            data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
-                        }
+                auto itemID = self->_modelMeshRenderItemIDs[i];
+                auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+                auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+                auto clusterMatricesCauterized(self->getCauterizeMeshState(meshIndex).clusterMatrices);
+
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
+                    data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+
+                    Transform renderTransform = modelTransform;
+                    if (clusterMatrices.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                     }
+                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+
+                    renderTransform = modelTransform;
+                    if (clusterMatricesCauterized.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+                    }
+                    data.updateTransformForCauterizedMesh(renderTransform);
                 });
             }
 
@@ -240,6 +211,6 @@ void CauterizedModel::updateRenderItems() {
 }
 
 const Model::MeshState& CauterizedModel::getCauterizeMeshState(int index) const {
-    assert(index < _meshStates.size());
+    assert((size_t)index < _meshStates.size());
     return _cauterizeMeshStates.at(index);
 }

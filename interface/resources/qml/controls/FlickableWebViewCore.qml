@@ -27,6 +27,12 @@ Item {
         id: hifi
     }
 
+    function unfocus() {
+        webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
+            console.log('unfocus completed: ', result);
+        });
+    }
+
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
 
@@ -128,5 +134,11 @@ Item {
         visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
+    }
+
+    Keys.onPressed: {
+        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false;
+        }
     }
 }

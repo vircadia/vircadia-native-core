@@ -7,7 +7,7 @@
 
 
 /* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
-   MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, NULL_UUID:true, AVATAR_SELF_ID:true, FORBIDDEN_GRAB_TYPES:true,
+   MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
    TRIGGER_OFF_VALUE:true,
@@ -35,12 +35,15 @@
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
+   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
+   makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
    BUMPER_ON_VALUE:true,
+   getEntityParents:true,
    findHandChildEntities:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
@@ -59,9 +62,6 @@ ONE_VEC = { x: 1, y: 1, z: 1 };
 
 LEFT_HAND = 0;
 RIGHT_HAND = 1;
-
-NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
-AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
@@ -103,27 +103,43 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData"
+    "userData",
+    "type"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
 // requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
-makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns) {
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns, enableLaserForHand) {
+    if (enableLaserForHand === undefined) {
+        enableLaserForHand = -1;
+    }
+
     return {
         priority: priority,
         activitySlots: activitySlots,
         requiredDataForReady: requiredDataForReady,
-        sleepMSBetweenRuns: sleepMSBetweenRuns
+        sleepMSBetweenRuns: sleepMSBetweenRuns,
+        handLaser: enableLaserForHand
     };
 };
 
-makeRunningValues = function (active, targets, requiredDataForRun) {
+makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
+    return {
+        targetID: targetID,
+        isOverlay: isOverlay,
+        hand: hand,
+        offset: offset
+    };
+};
+
+makeRunningValues = function (active, targets, requiredDataForRun, laserLockInfo) {
     return {
         active: active,
         targets: targets,
-        requiredDataForRun: requiredDataForRun
+        requiredDataForRun: requiredDataForRun,
+        laserLockInfo: laserLockInfo
     };
 };
 
@@ -222,7 +238,7 @@ getControllerJointIndex = function (hand) {
         return controllerJointIndex;
     }
 
-    return MyAvatar.getJointIndex("Head");
+    return -1;
 };
 
 propsArePhysical = function (props) {
@@ -284,7 +300,7 @@ ensureDynamic = function (entityID) {
     // if we distance hold something and keep it very still before releasing it, it ends up
     // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
     var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
-    if (props.dynamic && props.parentID === NULL_UUID) {
+    if (props.dynamic && props.parentID === Uuid.NULL) {
         var velocity = props.velocity;
         if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             velocity = { x: 0.0, y: 0.2, z: 0.0 };
@@ -295,7 +311,7 @@ ensureDynamic = function (entityID) {
 
 findGroupParent = function (controllerData, targetProps) {
     while (targetProps.parentID &&
-           targetProps.parentID !== NULL_UUID &&
+           targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
@@ -309,24 +325,41 @@ findGroupParent = function (controllerData, targetProps) {
     return targetProps;
 };
 
+getEntityParents = function(targetProps) {
+    var parentProperties = [];
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        parentProperties.push(parentProps);
+    }
+
+    return parentProperties;
+};
+
 
 findHandChildEntities = function(hand) {
     // find children of avatar's hand joint
     var handJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ? "RightHand" : "LeftHand");
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, handJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, handJointIndex));
 
     // find children of faux controller joint
     var controllerJointIndex = getControllerJointIndex(hand);
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerJointIndex));
 
     // find children of faux camera-relative controller joint
     var controllerCRJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
                                                         "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerCRJointIndex));
 
     return children.filter(function (childID) {
         var childType = Entities.getNestableType(childID);

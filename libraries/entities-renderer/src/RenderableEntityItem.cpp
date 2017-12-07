@@ -26,6 +26,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 
+
 using namespace render;
 using namespace render::entities;
 
@@ -49,14 +50,16 @@ void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
 }
 
-
+const Transform& EntityRenderer::getModelTransform() const {
+    return _modelTransform;
+}
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid& myNodeID = nodeList->getSessionUUID();
 
     statusGetters.push_back([entity]() -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        uint64_t delta = usecTimestampNow() - entity->getLastEditedFromRemote();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
@@ -68,7 +71,7 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        uint64_t delta = usecTimestampNow() - entity->getLastBroadcast();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
@@ -271,9 +274,11 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (!isValidRenderItem()) {
         return;
     }
+    _updateTime = usecTimestampNow();
 
     // FIXME is this excessive?
     if (!needsRenderUpdate()) {
@@ -289,6 +294,14 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
+}
+
+void EntityRenderer::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
 }
 
 //
@@ -330,6 +343,7 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {

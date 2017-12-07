@@ -13,37 +13,32 @@
 
 #include <QtCore/QObject>
 
-#include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
-#include "Application.h"
+#include <PointerManager.h>
 
 class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-public slots:
-    Q_INVOKABLE QUuid createLaserPointer(const QVariant& properties);
-    Q_INVOKABLE void enableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().enableLaserPointer(uid); }
-    Q_INVOKABLE void disableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().disableLaserPointer(uid); }
-    Q_INVOKABLE void removeLaserPointer(QUuid uid) { qApp->getLaserPointerManager().removeLaserPointer(uid); }
-    Q_INVOKABLE void editRenderState(QUuid uid, const QString& renderState, const QVariant& properties);
-    Q_INVOKABLE void setRenderState(QUuid uid, const QString& renderState) { qApp->getLaserPointerManager().setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
+public:
+    Q_INVOKABLE unsigned int createLaserPointer(const QVariant& properties) const;
+    Q_INVOKABLE void enableLaserPointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->enablePointer(uid); }
+    Q_INVOKABLE void disableLaserPointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->disablePointer(uid); }
+    Q_INVOKABLE void removeLaserPointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
+    Q_INVOKABLE void editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const;
+    Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
+    Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid) const;
 
-    Q_INVOKABLE void setPrecisionPicking(QUuid uid, const bool precisionPicking) { qApp->getLaserPointerManager().setPrecisionPicking(uid, precisionPicking); }
-    Q_INVOKABLE void setLaserLength(QUuid uid, const float laserLength) { qApp->getLaserPointerManager().setLaserLength(uid, laserLength); }
-    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) { qApp->getLaserPointerManager().setIgnoreEntities(uid, ignoreEntities); }
-    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) { qApp->getLaserPointerManager().setIncludeEntities(uid, includeEntities); }
-    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) { qApp->getLaserPointerManager().setIgnoreOverlays(uid, ignoreOverlays); }
-    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) { qApp->getLaserPointerManager().setIncludeOverlays(uid, includeOverlays); }
-    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) { qApp->getLaserPointerManager().setIgnoreAvatars(uid, ignoreAvatars); }
-    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) { qApp->getLaserPointerManager().setIncludeAvatars(uid, includeAvatars); }
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
+    Q_INVOKABLE void setLaserLength(unsigned int uid, float laserLength) const { DependencyManager::get<PointerManager>()->setLength(uid, laserLength); }
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
-    Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
+    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
 
-private:
-    const RenderState buildRenderState(const QVariantMap& propMap);
-
+    Q_INVOKABLE bool isLeftHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isLeftHand(uid); }
+    Q_INVOKABLE bool isRightHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isRightHand(uid); }
+    Q_INVOKABLE bool isMouse(unsigned int uid) { return DependencyManager::get<PointerManager>()->isMouse(uid); }
 };
 
 #endif // hifi_LaserPointerScriptingInterface_h

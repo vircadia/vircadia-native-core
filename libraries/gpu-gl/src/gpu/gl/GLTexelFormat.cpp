@@ -254,6 +254,9 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                         case gpu::NUINT8:
                             result = GL_RGBA8;
                             break;
+                        case gpu::NUINT2:
+                            result = GL_RGBA2;
+                            break;
                         case gpu::NINT8:
                             result = GL_RGBA8_SNORM;
                             break;
@@ -540,6 +543,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::COMPRESSED:
+                case gpu::NUINT2:
                 case gpu::NUM_TYPES: { // quiet compiler
                     Q_UNREACHABLE();
                 }
@@ -590,6 +594,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::COMPRESSED:
+                case gpu::NUINT2:
                 case gpu::NUM_TYPES: { // quiet compiler
                     Q_UNREACHABLE();
                 }
@@ -744,6 +749,10 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 case gpu::NINT8:
                     texel.format = GL_RGBA;
                     texel.internalFormat = GL_RGBA8_SNORM;
+                    break;
+                case gpu::NUINT2:
+                    texel.format = GL_RGBA;
+                    texel.internalFormat = GL_RGBA2;
                     break;
                 case gpu::NUINT32:
                 case gpu::NINT32:

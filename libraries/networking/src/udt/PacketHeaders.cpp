@@ -30,14 +30,15 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES;
+            return static_cast<PacketVersion>(EntityVersion::HazeEffect);
+
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::ConnectionIdentifier);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarIdentityLookAtSnapping);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::UpdatedMannequinDefaultAvatar);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
@@ -56,10 +57,13 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasMachineFingerprint);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::AlwaysHasMachineFingerprint);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
+
+        case PacketType::EntityScriptCallMethod:
+            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::ClientCallable);
 
         case PacketType::MixedAudio:
         case PacketType::SilentAudioFrame:
@@ -68,6 +72,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
+        case PacketType::ICEPing:
+            return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
         default:
             return 17;
     }

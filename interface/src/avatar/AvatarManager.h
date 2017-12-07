@@ -41,7 +41,7 @@ public:
     void init();
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
-    glm::vec3 getMyAvatarPosition() const { return _myAvatar->getPosition(); }
+    glm::vec3 getMyAvatarPosition() const { return _myAvatar->getWorldPosition(); }
 
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) override { return new ScriptAvatar(getAvatarBySessionID(avatarID)); }

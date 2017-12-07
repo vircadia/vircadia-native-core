@@ -92,7 +92,7 @@ void Text3DOverlay::update(float deltatime) {
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
+    if (!_renderVisible || !getParentVisible()) {
         return; // do nothing if we're not visible
     }
 
@@ -255,9 +255,5 @@ bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3
     applyTransformTo(transform, true);
     setTransform(transform);
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
-}
-
-Transform Text3DOverlay::evalRenderTransform() {
-    return Parent::evalRenderTransform();
 }
 
