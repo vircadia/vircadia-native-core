@@ -10,7 +10,10 @@
 //
 
 #include <PhysicsCollisionGroups.h>
+
 #include <functional>
+
+#include <QFile>
 
 #include <PerfStat.h>
 
@@ -331,58 +334,103 @@ void PhysicsEngine::stepSimulation() {
 
 class CProfileOperator {
 public:
-    CProfileOperator(QString context) : _context(context) {
-    };
-    virtual void process(CProfileIterator*) const = 0;
-protected:
-    QString _context;
+    CProfileOperator() {}
+    void recurse(CProfileIterator* itr, QString context) {
+        // The context string will get too long if we accumulate it properly
+        //QString newContext = context + QString("/") + itr->Get_Current_Parent_Name();
+        // so we use this four-character indentation
+        QString newContext = context + QString(".../");
+        process(itr, newContext);
+
+        // count the children
+        int32_t numChildren = 0;
+        itr->First();
+        while (!itr->Is_Done()) {
+            itr->Next();
+            ++numChildren;
+        }
+
+        // recurse the children
+        if (numChildren > 0) {
+            // recurse the children
+            for (int32_t i = 0; i < numChildren; ++i) {
+                itr->Enter_Child(i);
+                recurse(itr, newContext);
+            }
+        }
+        // retreat back to parent
+        itr->Enter_Parent();
+    }
+    virtual void process(CProfileIterator*, QString context) = 0;
 };
 
-class PhysicsStatsHarvester : public CProfileOperator {
+class StatsHarvester : public CProfileOperator {
 public:
-    PhysicsStatsHarvester() : CProfileOperator("...") {}
-    void process(CProfileIterator* itr) const override {
-            QString name = _context + QString("/") + QString(itr->Get_Current_Name());
-            uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * itr->Get_Current_Total_Time());
+    StatsHarvester() {}
+    void process(CProfileIterator* itr, QString context) override {
+            QString name = context + itr->Get_Current_Parent_Name();
+            uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * itr->Get_Current_Parent_Total_Time());
             PerformanceTimer::addTimerRecord(name, time);
         };
 };
 
-void recurseOpOnPerformanceStats(const CProfileOperator& op, CProfileIterator* profileIterator) {
-    // get the stats for the children
-    int32_t numChildren = 0;
-    profileIterator->First();
-    while (!profileIterator->Is_Done()) {
-        op.process(profileIterator);
-        profileIterator->Next();
-        ++numChildren;
+class StatsWriter : public CProfileOperator {
+public:
+    StatsWriter(QString filename) : _file(filename) {
+        _file.open(QFile::WriteOnly);
+        if (_file.error() != QFileDevice::NoError) {
+            qCDebug(physics) << "unable to open file " << _file.fileName() << " to save stepSimulation() stats";
+        }
     }
-    // recurse the children
-    for (int32_t i = 0; i < numChildren; ++i) {
-        profileIterator->Enter_Child(i);
-        recurseOpOnPerformanceStats(op, profileIterator);
+    ~StatsWriter() {
+        _file.close();
     }
-    // retreat back to parent
-    profileIterator->Enter_Parent();
-}
+    void process(CProfileIterator* itr, QString context) override {
+        QString name = context + itr->Get_Current_Parent_Name();
+        float time = (btScalar)MSECS_PER_SECOND * itr->Get_Current_Parent_Total_Time();
+        if (_file.error() == QFileDevice::NoError) {
+            QTextStream s(&_file);
+            s << name << " = " << time << "\n";
+        }
+    }
+protected:
+    QFile _file;
+};
 
 void PhysicsEngine::harvestPerformanceStats() {
     // unfortunately the full context names get too long for our stats presentation format
     //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
     QString contextName("...");
 
-    CProfileIterator* profileIterator = CProfileManager::Get_Iterator();
-    if (profileIterator) {
+    CProfileIterator* itr = CProfileManager::Get_Iterator();
+    if (itr) {
         // hunt for stepSimulation context
-        profileIterator->First();
-        for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
-            if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
-                profileIterator->Enter_Child(childIndex);
-                PhysicsStatsHarvester harvester;
-                harvester.process(profileIterator);
+        itr->First();
+        for (int32_t childIndex = 0; !itr->Is_Done(); ++childIndex) {
+            if (QString(itr->Get_Current_Name()) == "stepSimulation") {
+                itr->Enter_Child(childIndex);
+                StatsHarvester harvester;
+                harvester.recurse(itr, "bt");
                 break;
             }
-            profileIterator->Next();
+            itr->Next();
+        }
+    }
+}
+
+void PhysicsEngine::printPerformanceStatsToFile(const QString& filename) {
+    CProfileIterator* itr = CProfileManager::Get_Iterator();
+    if (itr) {
+        // hunt for stepSimulation context
+        itr->First();
+        for (int32_t childIndex = 0; !itr->Is_Done(); ++childIndex) {
+            if (QString(itr->Get_Current_Name()) == "stepSimulation") {
+                itr->Enter_Child(childIndex);
+                StatsWriter writer(filename);
+                writer.recurse(itr, "");
+                break;
+            }
+            itr->Next();
         }
     }
 }

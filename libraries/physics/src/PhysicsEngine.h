@@ -62,6 +62,7 @@ public:
 
     void stepSimulation();
     void harvestPerformanceStats();
+    void printPerformanceStatsToFile(const QString& filename);
     void updateContactMap();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
