@@ -91,9 +91,9 @@ private:
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;
-    float _dpi { 30 };
+    float _dpi { 30.0f };
     int _geometryId { 0 };
-    bool _showKeyboardFocusHighlight{ true };
+    bool _showKeyboardFocusHighlight { true };
 
     QTouchDevice _touchDevice;
 
