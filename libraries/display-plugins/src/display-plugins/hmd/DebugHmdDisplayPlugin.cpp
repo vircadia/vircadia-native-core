@@ -7,6 +7,8 @@
 //
 #include "DebugHmdDisplayPlugin.h"
 
+#include <ui-plugins/PluginContainer.h>
+
 #include <QtCore/QProcessEnvironment>
 
 #include <ViewFrustum.h>
@@ -41,6 +43,13 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 }
 
 bool DebugHmdDisplayPlugin::internalActivate() {
+    _isAutoRotateEnabled = _container->getBoolSetting("autoRotate", true);
+    _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), tr("Auto Rotate"),
+                            [this](bool clicked) {
+        _isAutoRotateEnabled = clicked;
+        _container->setBoolSetting("autoRotate", _isAutoRotateEnabled);
+    }, true, _isAutoRotateEnabled);
+
     _ipd = 0.0327499993f * 2.0f;
     _eyeProjections[0][0] = vec4{ 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
     _eyeProjections[0][1] = vec4{ 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
@@ -63,10 +72,12 @@ bool DebugHmdDisplayPlugin::internalActivate() {
 }
 
 void DebugHmdDisplayPlugin::updatePresentPose() {
-    float yaw = sinf(secTimestampNow()) * 0.25f;
-    float pitch = cosf(secTimestampNow()) * 0.25f;
-    // Simulates head pose latency correction
-    _currentPresentFrameInfo.presentPose = 
-        glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
-        glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+    if (_isAutoRotateEnabled) {
+        float yaw = sinf(secTimestampNow()) * 0.25f;
+        float pitch = cosf(secTimestampNow()) * 0.25f;
+        // Simulates head pose latency correction
+        _currentPresentFrameInfo.presentPose =
+            glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) *
+            glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+    }
 }

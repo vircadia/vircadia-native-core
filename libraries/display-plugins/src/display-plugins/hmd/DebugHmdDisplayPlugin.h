@@ -28,5 +28,7 @@ protected:
     bool isHmdMounted() const override { return true; }
     bool internalActivate() override;
 private:
+
     static const QString NAME;
+    bool _isAutoRotateEnabled{ true };
 };
