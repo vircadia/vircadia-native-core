@@ -12,6 +12,9 @@
 #define hifi_PrioritySortUtil_h
 
 #include <glm/glm.hpp>
+#include <queue>
+
+#include "NumericalConstants.h"
 #include "ViewFrustum.h"
 
 /*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:
@@ -32,11 +35,10 @@
 
 (2) Make a PrioritySortUtil::PriorityQueue<Thing> and add them to the queue:
 
-    PrioritySortUtil::Prioritizer prioritizer(viewFrustum);
+    PrioritySortUtil::PriorityQueue<SortableWrapper> sortedThings(viewFrustum);
     std::priority_queue< PrioritySortUtil::Sortable<Thing> > sortedThings;
     for (thing in things) {
-        float priority = prioritizer.computePriority(PrioritySortUtil::PrioritizableThing(thing));
-        sortedThings.push(PrioritySortUtil::Sortable<Thing> entry(thing, priority));
+        sortedThings.push(SortableWrapper(thing));
     }
 
 (3) Loop over your priority queue and do timeboxed work:
@@ -65,6 +67,7 @@ namespace PrioritySortUtil {
         virtual uint64_t getTimestamp() const = 0;
 
         void setPriority(float priority) { _priority = priority; }
+        float getPriority() const { return _priority; }
         bool operator<(const Sortable& other) const { return _priority < other._priority; }
     private:
         float _priority { 0.0f };
@@ -109,11 +112,19 @@ namespace PrioritySortUtil {
             glm::vec3 position = thing.getPosition();
             glm::vec3 offset = position - _view.getPosition();
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-            float radius = thing.getRadius();
+            const float MIN_RADIUS = 0.1f; // WORKAROUND for zero size objects (we still want them to sort by distance)
+            float radius = glm::min(thing.getRadius(), MIN_RADIUS);
+            float cosineAngle = (glm::dot(offset, _view.getDirection()) / distance);
+            float age = (float)(usecTimestampNow() - thing.getTimestamp());
 
-            float priority = _angularWeight * (radius / distance)
-                + _centerWeight * (glm::dot(offset, _view.getDirection()) / distance)
-                + _ageWeight * (float)(usecTimestampNow() - thing.getTimestamp());
+            // we modulatate "age" drift rate by the cosineAngle term to make periphrial objects sort forward
+            // at a reduced rate but we don't want the "age" term to go zero or negative so we clamp it
+            const float MIN_COSINE_ANGLE_FACTOR = 0.1f;
+            float cosineAngleFactor = glm::max(cosineAngle, MIN_COSINE_ANGLE_FACTOR);
+
+            float priority = _angularWeight * glm::max(radius, MIN_RADIUS) / distance
+                + _centerWeight * cosineAngle
+                + _ageWeight * cosineAngleFactor * age;
 
             // decrement priority of things outside keyhole
             if (distance - radius > _view.getCenterRadius()) {

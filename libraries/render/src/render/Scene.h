@@ -65,9 +65,14 @@ public:
 
     void resetSelectionHighlight(const std::string& selectionName, const HighlightStyle& style = HighlightStyle());
     void removeHighlightFromSelection(const std::string& selectionName);
-    void querySelectionHighlight(const std::string& selectionName, SelectionHighlightQueryFunc func);
+    void querySelectionHighlight(const std::string& selectionName, const SelectionHighlightQueryFunc& func);
 
+    void reserve(const std::vector<Transaction>& transactionContainer);
+    void merge(const std::vector<Transaction>& transactionContainer);
+    void merge(std::vector<Transaction>&& transactionContainer);
     void merge(const Transaction& transaction);
+    void merge(Transaction&& transaction);
+    void clear();
 
     // Checkers if there is work to do when processing the transaction
     bool touchTransactions() const { return !_resetSelections.empty(); }
@@ -107,7 +112,7 @@ protected:
     HighlightRemoves _highlightRemoves;
     HighlightQueries _highlightQueries;
 };
-typedef std::queue<Transaction> TransactionQueue;
+typedef std::vector<Transaction> TransactionQueue;
 
 
 // Scene is a container for Items
@@ -132,6 +137,9 @@ public:
 
     // Enqueue transaction to the scene
     void enqueueTransaction(const Transaction& transaction);
+
+    // Enqueue transaction to the scene
+    void enqueueTransaction(Transaction&& transaction);
 
     // Enqueue end of frame transactions boundary
     uint32_t enqueueFrame();
@@ -187,7 +195,7 @@ protected:
 
     
     std::mutex _transactionFramesMutex;
-    using TransactionFrames = std::list<Transaction>;
+    using TransactionFrames = std::vector<Transaction>;
     TransactionFrames _transactionFrames;
     uint32_t _transactionFrameNumber{ 0 };
 

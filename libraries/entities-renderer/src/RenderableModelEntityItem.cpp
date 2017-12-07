@@ -75,8 +75,11 @@ RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityI
 RenderableModelEntityItem::~RenderableModelEntityItem() { }
 
 void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
-    _dimensionsInitialized = true;
-    ModelEntityItem::setDimensions(value);
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
+    if (getDimensions() != newDimensions) {
+        _dimensionsInitialized = true;
+        ModelEntityItem::setDimensions(value);
+    }
 }
 
 QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures) {
@@ -123,8 +126,8 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     // now recalculate the bounds and registration
     model->setScaleToFit(true, getDimensions());
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-    model->setRotation(getRotation());
-    model->setTranslation(getPosition());
+    model->setRotation(getWorldOrientation());
+    model->setTranslation(getWorldPosition());
 
     if (_needsInitialSimulation) {
         model->simulate(0.0f);
@@ -1159,7 +1162,6 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             model->getRotation() != transform.getRotation()) {
             return true;
         }
-
 
         if (model->getScaleToFitDimensions() != entity->getDimensions() ||
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {

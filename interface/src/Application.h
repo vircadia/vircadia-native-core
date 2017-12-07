@@ -70,9 +70,6 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
-#include "raypick/RayPickManager.h"
-#include "raypick/LaserPointerManager.h"
-
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -161,7 +158,7 @@ public:
 
     glm::uvec2 getUiSize() const;
     QRect getRecommendedHUDRect() const;
-    QSize getDeviceSize() const;
+    glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
 
     void showCursor(const Cursor::Icon& cursor);
@@ -231,8 +228,6 @@ public:
 
     FileLogger* getLogger() const { return _logger; }
 
-    glm::vec2 getViewportDimensions() const;
-
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
@@ -285,9 +280,6 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-
-    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
-    RayPickManager& getRayPickManager() { return _rayPickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -702,9 +694,6 @@ private:
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
-
-    RayPickManager _rayPickManager;
-    LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
 

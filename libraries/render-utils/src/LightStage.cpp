@@ -180,7 +180,7 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
         _lightMap.erase(removedLight);
         _descs[index] = Desc();
     }
-    assert(_descs.size() <= index || _descs[index].shadowId == INVALID_INDEX);
+    assert(_descs.size() <= (size_t)index || _descs[index].shadowId == INVALID_INDEX);
     return removedLight;
 }
 

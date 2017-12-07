@@ -14,14 +14,15 @@
 #include <RegisteredMetaTypes.h>
 
 Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
-    Base3DOverlay(volume3DOverlay)
+    Base3DOverlay(volume3DOverlay),
+    _localBoundingBox(volume3DOverlay->_localBoundingBox)
 {
 }
 
 AABox Volume3DOverlay::getBounds() const {
     auto extents = Extents{_localBoundingBox};
-    extents.rotate(getRotation());
-    extents.shiftBy(getPosition());
+    extents.rotate(getWorldOrientation());
+    extents.shiftBy(getWorldPosition());
 
     return AABox(extents);
 }

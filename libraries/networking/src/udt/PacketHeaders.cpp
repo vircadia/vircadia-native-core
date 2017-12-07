@@ -57,7 +57,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasMachineFingerprint);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::AlwaysHasMachineFingerprint);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);

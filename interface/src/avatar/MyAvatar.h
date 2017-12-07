@@ -114,7 +114,7 @@ class MyAvatar : public Avatar {
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
-    QVector3D getQmlPosition() { auto p = getPosition(); return QVector3D(p.x, p.y, p.z); }
+    QVector3D getQmlPosition() { auto p = getWorldPosition(); return QVector3D(p.x, p.y, p.z); }
 
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
