@@ -12,33 +12,80 @@ Item {
     property int rowIndex: 6 // by default
     property int columnIndex: 1 // point to 'go to location'
     property int count: 0
+    property var tabletButtons: new Array()
+
+    onTabletButtonsChanged: console.warn("tablet buttons", tabletButtons)
+
+    Timer {
+        id: gridsRecreateTimer
+        interval: 100
+        repeat: false
+        onTriggered: {
+            console.warn("timer triggered", tabletButtons.length)
+            doRecreateGrids()
+        }
+    }
+
+    Item {
+        id: fakeParent
+        visible: parent
+    }
+
+    function doRecreateGrids() {
+        console.warn("buttons length", tabletButtons.length)
+        for (var i = 0; i < swipeView.count; i++) {
+            var gridOuter = swipeView.itemAt(i);
+            gridOuter.destroy();
+            swipeView.removeItem(i);
+        }
+        for (var buttonIndex = 0; buttonIndex < tabletButtons.length; buttonIndex++) {
+            console.warn("button index", buttonIndex)
+            var grid = swipeView.itemAt(swipeView.count - 1);
+            if (grid === null || grid.children[0].children.length === 12) {
+                grid = pageComponent.createObject(swipeView);
+                console.warn("grid index", swipeView.count)
+                //swipeView.addItem(grid);
+            }
+            var button = tabletButtons[buttonIndex]
+            button.parent = grid.children[0]
+            grid.children[0].children.push(button);
+        }
+    }
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
         if (!uuid) {
-            return { page: -1, index: -1};
+            return -1;//{ page: -1, index: -1};
         }
-        for (var gridIndex = 0;  gridIndex < swipeView.count; gridIndex++) {
-            var grid = swipeView.itemAt(gridIndex).children[0]
-            for (var i in grid.children) {
-                var child = grid.children[i];
-                if (child.uuid === uuid) {
-                    return { page: gridIndex, index: i};
-                }
+        for (var i in tabletButtons) {
+            var child = tabletButtons[i];
+            if (child.uuid === uuid) {
+                return i;
             }
         }
-        return { page: -1, index: -1};
+
+//        for (var gridIndex = 0;  gridIndex < swipeView.count; gridIndex++) {
+//            var grid = swipeView.itemAt(gridIndex).children[0]
+//            for (var i in grid.children) {
+//                var child = grid.children[i];
+//                if (child.uuid === uuid) {
+//                    return { page: gridIndex, index: i};
+//                }
+//            }
+//        }
+        return -1;//{ page: -1, index: -1};
     }
 
-    function sortButtons(gridIndex) {
-        var children = [];
-        var grid = swipeView.itemAt(gridIndex).children[0]
+    function sortButtons(/*gridIndex*/) {
+        //var children = [];
 
-        for (var i = 0; i < grid.children.length; i++) {
-            children[i] = grid.children[i];
-        }
+//        var grid = swipeView.itemAt(gridIndex).children[0]
 
-        children.sort(function (a, b) {
+//        for (var i = 0; i < grid.children.length; i++) {
+//            children[i] = grid.children[i];
+//        }
+
+        tabletButtons.sort(function (a, b) {
             if (a.sortOrder === b.sortOrder) {
                 // subsort by stableOrder, because JS sort is not stable in qml.
                 return a.stableOrder - b.stableOrder;
@@ -47,11 +94,11 @@ Item {
             }
         });
 
-        grid.children = children;
+        //grid.children = children;
     }
 
-    function doAddButton(grid, gridIndex, component, properties) {
-        var button = component.createObject(grid.children[0]);
+    function doAddButton(/*grid, gridIndex,*/ component, properties) {
+        var button = component.createObject(/*swipeView.itemAt(0).children[0]*/fakeParent);
 
         // copy all properites to button
         var keys = Object.keys(properties).forEach(function (key) {
@@ -65,17 +112,22 @@ Item {
             button.tabletRoot = parent.parent;
         }
         button.flickable = swipeView.contentItem
+        tabletButtons.push(button)
 
-        sortButtons(gridIndex);
+        //sortButtons(/*gridIndex*/);
 
         tablet.count++
+        //redraw pages
+        doRecreateGrids()
+//        console.warn("timer restarted", tabletButtons.length)
+//        gridsRecreateTimer.restart()
+
         return button;
     }
 
     Component {
         id: pageComponent
         Item {
-            visible: SwipeView.isCurrentItem
             Grid {
                 anchors {
                     fill: parent
@@ -92,23 +144,29 @@ Item {
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
         var component = Qt.createComponent("TabletButton.qml");
-        var grid = swipeView.itemAt(swipeView.count - 1)
-        if (grid === null || grid.children[0].children.length === 12) {
-            grid = pageComponent.createObject(swipeView)
-            swipeView.addItem(grid)
-        }
-        return doAddButton(grid, swipeView.count - 1, component, properties)
+//        var grid = swipeView.itemAt(swipeView.count - 1)
+//        if (grid === null || grid.children[0].children.length === 12) {
+//            grid = pageComponent.createObject(swipeView)
+//            swipeView.addItem(grid)
+//        }
+        console.warn("component status", component.status);
+
+        return doAddButton(/*grid, swipeView.count - 1,*/ component, properties)
     }
 
     // called by C++ code when a button should be removed from the tablet
     function removeButtonProxy(properties) {
         var index = findButtonIndex(properties.uuid);
-        if (index.index < 0) {
+        if (index < 0) {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
         } else {
-            var grid = swipeView.itemAt(index.page).children[0]
-            grid.children[index.index].destroy();
+//            var grid = swipeView.itemAt(index.page).children[0]
+//            grid.children[index.index].destroy();
+            console.warn("remove button proxy");
+            tabletButtons.slice(index, 1);
             tablet.count--
+            //redraw grids
+            gridsRecreateTimer.restart();
         }
     }
 
@@ -187,6 +245,19 @@ Item {
         }
     }
 
+    Component.onCompleted: {
+        console.warn("Tablet created")
+        //pageComponent.createObject(swipeView)
+//        var tabletq = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+//        if (tabletq) {
+//            // Tablet/toolbar button.
+//            for (var i = 0; i < 1; i++) {
+//                tabletq.addButton({ icon: "icons/tablet-icons/avatar-record-i.svg", activeIcon: "icons/tablet-icons/avatar-record-i.svg",
+//                                     text: "App " + i, isActive: false });
+//            }
+//        }
+    }
+
     Rectangle {
         id: bgMain
         gradient: Gradient {
@@ -209,6 +280,9 @@ Item {
             id: swipeView
             clip: false
             currentIndex: pageIndicator.currentIndex
+            hoverEnabled: true
+            onHoveredChanged: console.warn("swipe hovered", hovered)
+            onCurrentIndexChanged: console.warn("swipe currentIndex", currentIndex)
             anchors {
                 left: parent.left
                 right: parent.right
