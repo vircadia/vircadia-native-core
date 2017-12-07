@@ -329,28 +329,38 @@ void PhysicsEngine::stepSimulation() {
     }
 }
 
-using CProfileOperator = std::function<void(CProfileIterator*, QString)>;
-
-CProfileOperator harvestProfile = [](CProfileIterator* profileIterator, QString contextName) {
-        QString childContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Name());
-        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
-        PerformanceTimer::addTimerRecord(childContextName, time);
+class CProfileOperator {
+public:
+    CProfileOperator(QString context) : _context(context) {
     };
+    virtual void process(CProfileIterator*) const = 0;
+protected:
+    QString _context;
+};
 
-void recurseOpOnPerformanceStats(CProfileOperator op, CProfileIterator* profileIterator, QString contextName) {
-    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
+class PhysicsStatsHarvester : public CProfileOperator {
+public:
+    PhysicsStatsHarvester() : CProfileOperator("...") {}
+    void process(CProfileIterator* itr) const override {
+            QString name = _context + QString("/") + QString(itr->Get_Current_Name());
+            uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * itr->Get_Current_Total_Time());
+            PerformanceTimer::addTimerRecord(name, time);
+        };
+};
+
+void recurseOpOnPerformanceStats(const CProfileOperator& op, CProfileIterator* profileIterator) {
     // get the stats for the children
     int32_t numChildren = 0;
     profileIterator->First();
     while (!profileIterator->Is_Done()) {
-        op(profileIterator, contextName);
+        op.process(profileIterator);
         profileIterator->Next();
         ++numChildren;
     }
     // recurse the children
     for (int32_t i = 0; i < numChildren; ++i) {
         profileIterator->Enter_Child(i);
-        recurseOpOnPerformanceStats(op, profileIterator, parentContextName);
+        recurseOpOnPerformanceStats(op, profileIterator);
     }
     // retreat back to parent
     profileIterator->Enter_Parent();
@@ -368,7 +378,8 @@ void PhysicsEngine::harvestPerformanceStats() {
         for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
             if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
                 profileIterator->Enter_Child(childIndex);
-                recurseOpOnPerformanceStats(harvestProfile, profileIterator, contextName);
+                PhysicsStatsHarvester harvester;
+                harvester.process(profileIterator);
                 break;
             }
             profileIterator->Next();
