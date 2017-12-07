@@ -137,7 +137,7 @@ void AvatarData::setDomainMaximumHeight(float domainMaximumHeight) {
 }
 
 float AvatarData::getDomainMinScale() const {
-    const float unscaledHeight = getUnscaledHeight();
+    float unscaledHeight = getUnscaledHeight();
     const float EPSILON = 1.0e-4f;
     if (unscaledHeight <= EPSILON) {
         unscaledHeight = DEFAULT_AVATAR_HEIGHT;
@@ -146,7 +146,7 @@ float AvatarData::getDomainMinScale() const {
 }
 
 float AvatarData::getDomainMaxScale() const {
-    const float unscaledHeight = getUnscaledHeight();
+    float unscaledHeight = getUnscaledHeight();
     const float EPSILON = 1.0e-4f;
     if (unscaledHeight <= EPSILON) {
         unscaledHeight = DEFAULT_AVATAR_HEIGHT;
