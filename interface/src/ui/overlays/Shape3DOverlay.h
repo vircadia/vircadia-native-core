@@ -23,7 +23,7 @@ public:
     virtual QString getType() const override { return TYPE; }
 
     Shape3DOverlay() {}
-    Shape3DOverlay(const Shape3DOverlay* Shape3DOverlay);
+    Shape3DOverlay(const Shape3DOverlay* shape3DOverlay);
     
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;

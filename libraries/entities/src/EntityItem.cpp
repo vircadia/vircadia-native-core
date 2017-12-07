@@ -1602,7 +1602,7 @@ void EntityItem::setParentID(const QUuid& value) {
     QUuid oldParentID = getParentID();
     if (oldParentID != value) {
         EntityTreePointer tree = getTree();
-        if (!oldParentID.isNull()) {
+        if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
         }
         SpatiallyNestable::setParentID(value);
@@ -1622,11 +1622,13 @@ void EntityItem::setDimensions(const glm::vec3& value) {
     if (getDimensions() != newDimensions) {
         withWriteLock([&] {
             _dimensions = newDimensions;
-            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-            _queryAACubeSet = false;
         });
         locationChanged();
         dimensionsChanged();
+        withWriteLock([&] {
+            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+            _queryAACubeSet = false;
+        });
     }
 }
 
