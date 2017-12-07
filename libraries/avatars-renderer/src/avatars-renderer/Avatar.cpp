@@ -1604,7 +1604,7 @@ float Avatar::getUnscaledEyeHeight() const {
 
     // if we determine the mesh is much larger then the skeleton, then we use the mesh height instead.
     // This helps prevent absurdly large avatars from exceeding the domain height limit.
-    const float MESH_SLOP_RATIO = 1.5;
+    const float MESH_SLOP_RATIO = 1.5f;
     if (meshHeight > skeletonHeight * MESH_SLOP_RATIO) {
         return meshHeight;
     } else {
