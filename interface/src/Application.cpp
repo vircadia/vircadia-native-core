@@ -7075,11 +7075,11 @@ QRect Application::getRecommendedHUDRect() const {
     return result;
 }
 
-QSize Application::getDeviceSize() const {
+glm::vec2 Application::getDeviceSize() const {
     static const int MIN_SIZE = 1;
-    QSize result(MIN_SIZE, MIN_SIZE);
+    glm::vec2 result(MIN_SIZE);
     if (_displayPlugin) {
-        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+        result = getActiveDisplayPlugin()->getRecommendedRenderSize();
     }
     return result;
 }
@@ -7096,10 +7096,6 @@ bool Application::hasFocus() const {
         return getActiveDisplayPlugin()->hasFocus();
     }
     return (QApplication::activeWindow() != nullptr);
-}
-
-glm::vec2 Application::getViewportDimensions() const {
-    return toGlm(getDeviceSize());
 }
 
 void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {
