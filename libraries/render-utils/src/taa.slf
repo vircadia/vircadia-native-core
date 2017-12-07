@@ -31,11 +31,11 @@ void main() {
     }
 
     // Debug region before debug or fxaa region X
-    float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
+/*    float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
     if (distToRegionFXAA > 0.0) {
         outFragColor = vec4(taa_evalFXAA(fragUV), 1.0);
         return;
-    }
+    }*/
 
    // vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
    // vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
@@ -46,13 +46,13 @@ void main() {
 
     vec3 sourceColor;
     vec3 historyColor;
-    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, fragJitterPix, sourceColor, historyColor);
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
 
     vec3 nextColor = sourceColor;
  
      if (taa_constrainColor()) {
         // clamp history to neighbourhood of current sample
-        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, fragJitterPix, historyColor);
+        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, historyColor);
     }
     
     if (taa_feedbackColor()) {

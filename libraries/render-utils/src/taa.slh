@@ -255,7 +255,7 @@ vec3 taa_fetchVelocityMapBest(vec2 uv) {
     return vec3(best.xy, taa_fetchDepth(uv));
 }
 
-vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, vec2 fragJitterPix, out vec3 sourceColor, out vec3 historyColor) {
+vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
 
     vec2 prevFragUV = fragUV - fragVelocity;
@@ -272,7 +272,7 @@ float Luminance(vec3 rgb) {
 
 #define MINMAX_3X3_ROUNDED 1
 
-mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix) {
+mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe) {
     vec2 texelSize = taa_getTexelSize();
  
 
@@ -317,7 +317,7 @@ mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelo
 
     
     vec3 mu = sumSamples / vec3(9.0);
-    vec3 sigma = sqrt(sumSamples2 / vec3(9.0) - mu * mu);
+    vec3 sigma = sqrt(max(sumSamples2 / vec3(9.0) - mu * mu, vec3(0)));
     
        float gamma = params.covarianceGamma;
        vec3 cmin = mu - gamma * sigma;
@@ -326,7 +326,7 @@ mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelo
    return mat3(cmin, cmax, mu);
 }
 
-mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix) {
+mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe) {
     vec2 imageSize = taa_getImageSize();
     vec2 texelSize = taa_getTexelSize();
     vec3 cmin, cmax, cavg;
@@ -463,13 +463,13 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
 	//}
 }
 
-vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, float sourceZe, vec2 sourceJitterPix, vec3 candidateColor) {
+vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, float sourceZe, vec3 candidateColor) {
     mat3 colorMinMaxAvg;
 
     if (taa_covarianceClipColor()) {
-        colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel, sourceZe, sourceJitterPix);
+        colorMinMaxAvg = taa_evalNeighbourColorVariance(sourceColor, sourceUV, sourceVel, sourceZe);
     } else {
-        colorMinMaxAvg = taa_evalNeighbourColorRegion(sourceColor, sourceUV, sourceVel, sourceZe, sourceJitterPix);
+        colorMinMaxAvg = taa_evalNeighbourColorRegion(sourceColor, sourceUV, sourceVel, sourceZe);
     }
      
 	// clamp history to neighbourhood of current sample
