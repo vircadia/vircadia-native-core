@@ -61,14 +61,6 @@ void TextureBaker::abort() {
     _abortProcessing.store(true);
 }
 
-const QStringList TextureBaker::getSupportedFormats() {
-    auto formats = QImageReader::supportedImageFormats();
-    QStringList stringFormats;
-    std::transform(formats.begin(), formats.end(), std::back_inserter(stringFormats),
-                   [](QByteArray& format) -> QString { return format; });
-    return stringFormats;
-}
-
 void TextureBaker::loadTexture() {
     // check if the texture is local or first needs to be downloaded
     if (_textureURL.isLocalFile()) {

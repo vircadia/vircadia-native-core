@@ -80,6 +80,8 @@ gpu::TexturePointer processCubeTextureColorFromImage(const QImage& srcImage, con
 
 } // namespace TextureUsage
 
+const QStringList getSupportedFormats();
+
 bool isColorTexturesCompressionEnabled();
 bool isNormalTexturesCompressionEnabled();
 bool isGrayscaleTexturesCompressionEnabled();

@@ -33,7 +33,6 @@
 #include <SharedUtil.h>
 #include <PathUtils.h>
 #include <image/Image.h>
-#include <TextureBaker.h>
 
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"
@@ -250,7 +249,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     image::setNormalTexturesCompressionEnabled(true);
     image::setCubeTexturesCompressionEnabled(true);
 
-    BAKEABLE_TEXTURE_EXTENSIONS = TextureBaker::getSupportedFormats();
+    BAKEABLE_TEXTURE_EXTENSIONS = image::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
     // Most of the work will be I/O bound, reading from disk and constructing packet objects,
