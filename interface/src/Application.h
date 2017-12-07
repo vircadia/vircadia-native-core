@@ -158,7 +158,7 @@ public:
 
     glm::uvec2 getUiSize() const;
     QRect getRecommendedHUDRect() const;
-    QSize getDeviceSize() const;
+    glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
 
     void showCursor(const Cursor::Icon& cursor);
@@ -227,8 +227,6 @@ public:
     void setActiveDisplayPlugin(const QString& pluginName);
 
     FileLogger* getLogger() const { return _logger; }
-
-    glm::vec2 getViewportDimensions() const;
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
