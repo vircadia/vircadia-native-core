@@ -30,7 +30,7 @@ out vec4 _worldPosition;
 
 void main(void) {
     // pass along the color in linear space
-    _color = colorToLinearRGB(inColor.xyz);
+    _color = color_sRGBToLinear(inColor.xyz);
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>

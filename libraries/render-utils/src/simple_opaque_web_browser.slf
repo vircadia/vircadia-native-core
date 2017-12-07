@@ -25,6 +25,6 @@ in vec2 _texCoord0;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
-    texel = colorToLinearRGBA(texel);
+    texel = color_sRGBAToLinear(texel);
     packDeferredFragmentUnlit(normalize(_normal), 1.0, _color.rgb * texel.rgb);
 }

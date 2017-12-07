@@ -16,6 +16,9 @@
 struct CameraCorrection {
     mat4 _correction;
     mat4 _correctionInverse;
+    
+    mat4 _prevCorrection;
+    mat4 _prevCorrectionInverse;
 };
  
 uniform cameraCorrectionBuffer {
@@ -31,6 +34,8 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
+    mat4 _prevViewInverse;
+    mat4 _prevView;
 };
 
 uniform deferredFrameTransformBuffer {

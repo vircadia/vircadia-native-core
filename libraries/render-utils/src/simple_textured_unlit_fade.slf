@@ -39,7 +39,7 @@ void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float colorAlpha = _color.a;
     if (_color.a <= 0.0) {
-        texel = colorToLinearRGBA(texel);
+        texel = color_sRGBAToLinear(texel);
         colorAlpha = -_color.a;
     }
 

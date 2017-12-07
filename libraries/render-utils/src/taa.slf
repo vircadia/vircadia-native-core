@@ -1,0 +1,65 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  taa.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 8/14/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+<@include taa.slh@>
+
+in vec2 varTexCoord0;
+layout(location = 0) out vec4 outFragColor;
+
+void main() {
+    vec2 fragUV = varTexCoord0;
+    
+
+
+    vec2 texelSize = taa_getTexelSize();
+
+    vec2 fragJitterPix = taa_getCurrentJitterSample();
+    if (taa_unjitter()) {
+        fragUV -= fragJitterPix * texelSize;
+    }
+
+    // Debug region before debug or fxaa region X
+    float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
+    if (distToRegionFXAA > 0.0) {
+        outFragColor = vec4(taa_evalFXAA(fragUV), 1.0);
+        return;
+    }
+
+   // vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
+   // vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
+
+    vec3 fragVelAndZ = taa_fetchVelocityMapBest(fragUV);
+    vec2 fragVel = fragVelAndZ.xy;
+    float fragDepth = fragVelAndZ.z;
+
+    vec3 sourceColor;
+    vec3 historyColor;
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, fragJitterPix, sourceColor, historyColor);
+
+    vec3 nextColor = sourceColor;
+ 
+     if (taa_constrainColor()) {
+        // clamp history to neighbourhood of current sample
+        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, fragJitterPix, historyColor);
+    }
+    
+    if (taa_feedbackColor()) {
+        nextColor = taa_evalFeedbackColor(sourceColor, historyColor, params.blend);
+    } else {
+        nextColor = mix(historyColor, sourceColor, params.blend);
+    }
+
+    outFragColor = vec4(taa_resolveColor(nextColor), 1.0);
+}

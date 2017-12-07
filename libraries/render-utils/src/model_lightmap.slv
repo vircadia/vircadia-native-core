@@ -28,7 +28,7 @@ out vec3 _color;
 
 void main(void) {
     // pass along the color in linear space
-    _color = colorToLinearRGB(inColor.xyz);
+    _color = color_sRGBToLinear(inColor.xyz);
 
     // and the texture coordinates
     TexMapArray texMapArray = getTexMapArray();

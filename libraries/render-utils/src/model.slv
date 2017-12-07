@@ -27,7 +27,7 @@ out vec4 _position;
 out vec3 _normal;
 
 void main(void) {
-    _color = colorToLinearRGB(inColor.xyz);
+    _color = color_sRGBToLinear(inColor.xyz);
     _alpha = inColor.w;
 
     TexMapArray texMapArray = getTexMapArray();

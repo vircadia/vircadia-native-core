@@ -53,7 +53,8 @@ enum Slot {
     DiffusedCurvature,
     Scattering,
     AmbientOcclusion,
-    AmbientOcclusionBlurred
+    AmbientOcclusionBlurred,
+    Velocity,
 };
 
 
@@ -227,6 +228,12 @@ static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
     " }"
 };
 
+static const std::string DEFAULT_VELOCITY_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec2(texture(velocityMap, uv).xy), 0.0, 1.0);"
+    " }"
+};
+
 static const std::string DEFAULT_CUSTOM_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
@@ -309,6 +316,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case AmbientOcclusionBlurredMode:
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
+        case VelocityMode:
+            return DEFAULT_VELOCITY_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
         default:
@@ -367,6 +376,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("diffusedCurvatureMap", DiffusedCurvature));
         slotBindings.insert(gpu::Shader::Binding("scatteringMap", Scattering));
         slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
+        slotBindings.insert(gpu::Shader::Binding("velocityMap", Velocity));
         gpu::Shader::makeProgram(*program, slotBindings);
         
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
@@ -404,6 +414,7 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
     auto& linearDepthTarget = inputs.get1();
     auto& surfaceGeometryFramebuffer = inputs.get2();
     auto& ambientOcclusionFramebuffer = inputs.get3();
+    auto& velocityFramebuffer = inputs.get4();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -431,6 +442,9 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
             batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
+        }
+        if (velocityFramebuffer) {
+            batch.setResourceTexture(Velocity, velocityFramebuffer->getVelocityTexture());
         }
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();
@@ -476,6 +490,8 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
 
         batch.setResourceTexture(AmbientOcclusion, nullptr);
         batch.setResourceTexture(AmbientOcclusionBlurred, nullptr);
+
+        batch.setResourceTexture(Velocity, nullptr);
 
     });
 }

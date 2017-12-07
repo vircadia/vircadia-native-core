@@ -68,7 +68,7 @@ public:
 
     virtual ~GLBackend();
 
-    void setCameraCorrection(const Mat4& correction);
+    void setCameraCorrection(const Mat4& correction, bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -302,9 +302,12 @@ protected:
     // Allows for correction of the camera pose to account for changes
     // between the time when a was recorded and the time(s) when it is 
     // executed
+    // Prev is the previous correction used at previous frame
     struct CameraCorrection {
-        Mat4 correction;
-        Mat4 correctionInverse;
+        mat4 correction;
+        mat4 correctionInverse;
+        mat4 prevCorrection;
+        mat4 prevCorrectionInverse;
     };
 
     struct TransformStageState {

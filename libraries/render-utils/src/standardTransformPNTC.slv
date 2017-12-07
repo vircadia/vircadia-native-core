@@ -24,7 +24,7 @@ out vec4 varColor;
 
 void main(void) {
     varTexCoord0 = inTexCoord0.st;
-    varColor = colorToLinearRGBA(inColor);
+    varColor = color_sRGBAToLinear(inColor);
     
     // standard transform
     TransformCamera cam = getTransformCamera();
