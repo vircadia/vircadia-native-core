@@ -437,9 +437,11 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         } else {
             d = glm::normalize(overlaySurfacePoint);
         }
-        reticlePosition = headPosition + (d * getReticleDepth());
+        // Our sensor to world matrix always has uniform scale
+        float sensorSpaceReticleDepth = getReticleDepth() / extractScale(_sensorToWorldMatrix).x;
+        reticlePosition = headPosition + (d * sensorSpaceReticleDepth);
         quat reticleOrientation = cancelOutRoll(glm::quat_cast(_currentDisplayPlugin->getHeadPose()));
-        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * sensorSpaceReticleDepth);
         return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
