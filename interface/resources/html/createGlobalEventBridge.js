@@ -65,21 +65,23 @@ var EventBridge;
         // we need to listen to events that might precede the addition of this elements.
         // A more robust hack will be to add a setInterval that look for DOM changes every 100-300 ms (low performance?)
         
-        window.onload = function(){
+        window.addEventListener("load",function(event) {
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
             }, 1200);
-        };
-        document.onclick = function(){
+        }, false);
+        
+        document.addEventListener("click",function(){
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
             }, 1200);
-        };
-        document.onchange = function(){
+        }, false);
+        
+        document.addEventListener("change",function(){
             setTimeout(function() { 
                 EventBridge.forceHtmlAudioOutputDeviceUpdate();
             }, 1200);
-        };
+        }, false);
         
         tempEventBridge._callbacks.forEach(function (callback) {
             EventBridge.scriptEventReceived.connect(callback);

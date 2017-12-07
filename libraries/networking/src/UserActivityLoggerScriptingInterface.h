@@ -33,6 +33,12 @@ public:
     Q_INVOKABLE void bubbleToggled(bool newValue);
     Q_INVOKABLE void bubbleActivated();
     Q_INVOKABLE void logAction(QString action, QVariantMap details = QVariantMap{});
+    Q_INVOKABLE void commercePurchaseSuccess(QString marketplaceID, int cost, bool firstPurchaseOfThisItem);
+    Q_INVOKABLE void commercePurchaseFailure(QString marketplaceID, int cost, bool firstPurchaseOfThisItem, QString errorDetails);
+    Q_INVOKABLE void commerceEntityRezzed(QString marketplaceID, QString source, QString type);
+    Q_INVOKABLE void commerceWalletSetupStarted(int timestamp, QString setupAttemptID, int setupFlowVersion, QString referrer, QString currentDomain);
+    Q_INVOKABLE void commerceWalletSetupProgress(int timestamp, QString setupAttemptID, int secondsElapsed, int currentStepNumber, QString currentStepName);
+    Q_INVOKABLE void commerceWalletSetupFinished(int timestamp, QString setupAttemptID, int secondsToComplete);
 private:
     void doLogAction(QString action, QJsonObject details = {});
 };
