@@ -204,6 +204,13 @@ public:
 
     QQuickItem* getQmlMenu() const;
 
+    /**jsdoc
+     * Returns a list of currently created button items.
+     * @function TabletProxy#getButtonsList
+     * @returns {QList<QQuickItem*>}
+     */
+    Q_INVOKABLE QList<QObject*> getButtonsList() const;
+
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet
@@ -296,6 +303,8 @@ public:
      * @param {ButtonProperties} properties - set of properties to change
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
+
+    QQuickItem *getQmlButton() const;
 
 public slots:
     void clickedSlot() { emit clicked(); }

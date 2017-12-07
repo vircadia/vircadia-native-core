@@ -900,6 +900,16 @@ QQuickItem* TabletProxy::getQmlMenu() const {
     return menuList;
 }
 
+QList<QObject *> TabletProxy::getButtonsList() const {
+    QList<QObject *> buttonsList;
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        if (buttonProxy->getQmlButton()) {
+            buttonsList.append(buttonProxy->getQmlButton());
+        }
+    }
+    return buttonsList;
+}
+
 //
 // TabletButtonProxy
 //
@@ -979,4 +989,8 @@ void TabletButtonProxy::editProperties(const QVariantMap& properties) {
     if (_toolbarButtonProxy) {
         QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariantMap, properties));
     }
+}
+
+QQuickItem *TabletButtonProxy::getQmlButton() const {
+    return _qmlButton;
 }
