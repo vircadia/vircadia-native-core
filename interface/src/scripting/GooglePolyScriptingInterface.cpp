@@ -39,12 +39,11 @@ void GooglePolyScriptingInterface::setAPIKey(QString key) {
 }
 
 void GooglePolyScriptingInterface::getAssetList() {
-    authCode = "AIzaSyDamk7Vth52j7aU9JVKn3ungFS0kGJYc8A";
     //authCode = "broke";
     QUrl url(listPolyUrl + "key=" + authCode);
     QByteArray jsonString = getHTTPRequest(url);
     qCDebug(scriptengine) << "the list: " << jsonString;
-    QJsonObject json = makeJSONObject(&jsonString, true);
+    QJsonObject json = makeJSON(&jsonString, true).toJsonObject;
 
 }
 
@@ -60,7 +59,8 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     
 }
 
-QJsonObject GooglePolyScriptingInterface::makeJSONObject(QByteArray* response, bool isList) {
+// since the list is a QJsonArray and a single model is a QJsonObject
+QVariant GooglePolyScriptingInterface::makeJSON(QByteArray* response, bool isList) {
     //QString firstItem = QString::fromUtf8(response->readAll());
     QJsonDocument doc = QJsonDocument::fromJson(*response);
     qCDebug(scriptengine) << "json doc is empty: " << doc.isEmpty();
@@ -71,8 +71,13 @@ QJsonObject GooglePolyScriptingInterface::makeJSONObject(QByteArray* response, b
         qCDebug(scriptengine) << "Invalid API key";
         return obj;
     }
-    qCDebug(scriptengine) << "total size: " << obj.value("totalSize").toString();
-    qCDebug(scriptengine) << "in assets: " << obj.value("assets");
+    qCDebug(scriptengine) << "total size: " << obj.value("totalSize");
+    qCDebug(scriptengine) << "the assets: " << obj.value("assets");
+    QJsonArray arr = obj.value("assets").toArray();
+    qCDebug(scriptengine) << "in array: " << arr;
+    QJsonObject first = arr.takeAt(0).toObject();
+    qCDebug(scriptengine) << "first asset: " << first;
+    qCDebug(scriptengine) << "first asset description: " << first.value("description");
     return obj;
 }
 

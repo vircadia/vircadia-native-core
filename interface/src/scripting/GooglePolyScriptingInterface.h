@@ -29,7 +29,7 @@ public slots:
 
 private:
     QByteArray getHTTPRequest(QUrl url);
-    QJsonObject makeJSONObject(QByteArray* response, bool isList);
+    QVariant makeJSON(QByteArray* response, bool isList);
     //void onResult(QNetworkReply* reply);
 
     QString authCode;
