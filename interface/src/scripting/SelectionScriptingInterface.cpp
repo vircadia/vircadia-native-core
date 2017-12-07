@@ -104,10 +104,6 @@ bool SelectionScriptingInterface::enableListHighlight(const QString& listName, c
     }
 
     if (!(*highlightStyle).isBoundToList()) {
- /*       auto currentList = _selectedItemsListMap.find(listName);
-        if (currentList == _selectedItemsListMap.end()) {
-            _selectedItemsListMap.insert(listName, GameplayObjects());
-        }*/
         setupHandler(listName);
         (*highlightStyle).setBoundToList(true);
     }
@@ -248,31 +244,34 @@ QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& lis
         if ((*currentList).getContainsData()) {
 
             if (!(*currentList).getAvatarIDs().empty()) {
-                QList<QUuid> avatarIDs = QList<QUuid>::fromVector(QVector<QUuid>::fromStdVector((*currentList).getAvatarIDs()));
-                list["avatars"].fromValue( avatarIDs);
+                QList<QVariant> avatarIDs;
+                for (auto j : (*currentList).getAvatarIDs()) {
+                    avatarIDs.push_back((QUuid)j);
+                }
+                list["avatars"] = (avatarIDs);
             }
             if (!(*currentList).getEntityIDs().empty()) {
-              //  QList<EntityItemID> entityIDs = QList<EntityItemID>::fromVector(QVector<EntityItemID>::fromStdVector((*currentList).getEntityIDs()));
                 QList<QVariant> entityIDs;
                 for (auto j : (*currentList).getEntityIDs()) {
-                    entityIDs.push_back( j );
+                    entityIDs.push_back((QUuid)j );
                 }
                 list["entities"] = (entityIDs);
             }
             if (!(*currentList).getOverlayIDs().empty()) {
-                QList<OverlayID> overlayIDs = QList<OverlayID>::fromVector(QVector<OverlayID>::fromStdVector((*currentList).getOverlayIDs()));
-                list["overlays"].fromValue(overlayIDs);
+                QList<QVariant> overlayIDs;
+                for (auto j : (*currentList).getOverlayIDs()) {
+                    overlayIDs.push_back((QUuid)j);
+                }
+                list["overlays"] = (overlayIDs);
             }
 
             return list;
         }
         else {
-            //qDebug() << "List named " << listName << " empty";
             return list;
         }
     }
     else {
-     //   qDebug() << "List named " << listName << " doesn't exist.";
         return list;
     }
 }
