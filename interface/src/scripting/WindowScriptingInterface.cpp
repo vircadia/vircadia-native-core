@@ -176,6 +176,10 @@ bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
     return offscreenUi->isPointOnDesktopWindow(point);
 }
 
+glm::vec2 WindowScriptingInterface::getDeviceSize() const {
+    return qApp->getDeviceSize();
+}
+
 /// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
 /// might be in same thread as a script that sets the reticle to invisible
 void WindowScriptingInterface::ensureReticleVisible() const {

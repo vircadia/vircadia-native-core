@@ -311,7 +311,10 @@
             viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
         }
         updateOverlay();
-        spectatorCameraConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        // if secondary camera is currently being used for mirror projection then don't update it's aspect ratio (will be done in spectatorCameraOn)
+        if (!spectatorCameraConfig.mirrorProjection) {
+            spectatorCameraConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        }
         setDisplay(monitorShowsCameraView);
     }
 

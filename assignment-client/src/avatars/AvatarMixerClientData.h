@@ -91,7 +91,7 @@ public:
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
-    glm::vec3 getPosition() const { return _avatar ? _avatar->getPosition() : glm::vec3(0); }
+    glm::vec3 getPosition() const { return _avatar ? _avatar->getWorldPosition() : glm::vec3(0); }
     glm::vec3 getGlobalBoundingBoxCorner() const { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
     bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
@@ -110,16 +110,10 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
-    ViewFrustum getViewFrustom() const { return _currentViewFrustum; }
+    ViewFrustum getViewFrustum() const { return _currentViewFrustum; }
 
-    quint64 getLastOtherAvatarEncodeTime(QUuid otherAvatar) {
-        quint64 result = 0;
-        if (_lastOtherAvatarEncodeTime.find(otherAvatar) != _lastOtherAvatarEncodeTime.end()) {
-            result = _lastOtherAvatarEncodeTime[otherAvatar];
-        }
-        _lastOtherAvatarEncodeTime[otherAvatar] = usecTimestampNow();
-        return result;
-    }
+    uint64_t getLastOtherAvatarEncodeTime(QUuid otherAvatar) const;
+    void setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time);
 
     QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) {
         _lastOtherAvatarSentJoints[otherAvatar].resize(_avatar->getJointCount());
@@ -143,7 +137,7 @@ private:
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node
-    std::unordered_map<QUuid, quint64> _lastOtherAvatarEncodeTime;
+    std::unordered_map<QUuid, uint64_t> _lastOtherAvatarEncodeTime;
     std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     uint64_t _identityChangeTimestamp;

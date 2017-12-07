@@ -1,7 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.2
 import QtWebChannel 1.0
-import QtWebEngine 1.2
+import QtWebEngine 1.5
 
 import "controls-uit"
 import "styles" as HifiStyles
@@ -212,7 +212,7 @@ ScrollingWindow {
             WebEngineScript {
                 id: createGlobalEventBridge
                 sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.DocumentCreation
+                injectionPoint: WebEngineScript.Deferred
                 worldId: WebEngineScript.MainWorld
             }
 
@@ -233,9 +233,13 @@ ScrollingWindow {
             anchors.right: parent.right
 
             onFeaturePermissionRequested: {
-                permissionsBar.securityOrigin = securityOrigin;
-                permissionsBar.feature = feature;
-                root.showPermissionsBar();
+                if (feature == 2) { // QWebEnginePage::MediaAudioCapture
+                    grantFeaturePermission(securityOrigin, feature, true);
+                } else {
+                    permissionsBar.securityOrigin = securityOrigin;
+                    permissionsBar.feature = feature;
+                    root.showPermissionsBar();
+                }
             }
 
             onLoadingChanged: {

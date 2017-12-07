@@ -36,7 +36,7 @@ public:
     virtual bool is3D() const override { return true; }
 
     // TODO: consider implementing registration points in this class
-    glm::vec3 getCenter() const { return getPosition(); }
+    glm::vec3 getCenter() const { return getWorldPosition(); }
 
     bool getIsSolid() const { return _isSolid; }
     bool getIsDashedLine() const { return _isDashedLine; }

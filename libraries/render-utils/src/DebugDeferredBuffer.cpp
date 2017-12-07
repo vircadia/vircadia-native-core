@@ -11,7 +11,8 @@
 
 #include "DebugDeferredBuffer.h"
 
-#include <QFile>
+#include <QtCore/QFile>
+#include <QtCore/QDateTime>
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>

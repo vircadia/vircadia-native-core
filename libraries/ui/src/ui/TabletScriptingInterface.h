@@ -277,7 +277,6 @@ protected:
     void loadHomeScreen(bool forceOntoHomeScreen);
 
     bool _initialScreen { false };
-    QVariant _initialPath { "" };
     QVariant _currentPathLoaded { "" };
     QString _name;
     QQuickItem* _qmlTabletRoot { nullptr };
@@ -288,6 +287,8 @@ protected:
 
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
+    std::pair<QVariant, State> _initialPath { "", State::Uninitialized };
+    std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
 

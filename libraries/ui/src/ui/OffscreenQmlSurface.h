@@ -21,6 +21,9 @@
 #include <GLMHelpers.h>
 #include <ThreadHelpers.h>
 
+#include <QTouchEvent>
+#include "PointerEvent.h"
+
 class QWindow;
 class QMyQuickRenderControl;
 class OffscreenGLCanvas;
@@ -39,7 +42,7 @@ class QJSValue;
 using QmlContextCallback = std::function<void(QQmlContext*)>;
 using QmlContextObjectCallback = std::function<void(QQmlContext*, QQuickItem*)>;
 
-class OffscreenQmlSurface : public QObject {
+class OffscreenQmlSurface : public QObject, public QEnableSharedFromThis<OffscreenQmlSurface> {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
@@ -79,13 +82,14 @@ public:
     void pause();
     void resume();
     bool isPaused() const;
+    bool getCleaned() { return _isCleaned; }
 
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
     QObject* getEventHandler();
     QQmlContext* getSurfaceContext();
 
-    QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
+    QPointF mapToVirtualScreen(const QPointF& originalPoint);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
     void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
@@ -102,6 +106,10 @@ public:
     static std::function<void(uint32_t, void*)> getDiscardLambda();
     static size_t getUsedTextureMemory();
 
+    PointerEvent::EventType choosePointerEventType(QEvent::Type type);
+
+    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+
 signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
@@ -109,6 +117,15 @@ signals:
 public slots:
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
+
+    // audio output device
+public slots:
+    void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
+    void forceHtmlAudioOutputDeviceUpdate();
+    void forceQmlAudioOutputDeviceUpdate();
+
+signals:
+    void audioOutputDeviceChanged(const QString& deviceName);
 
     // event bridge
 public slots:
@@ -138,10 +155,16 @@ private:
     bool allowNewFrame(uint8_t fps);
     void render();
     void cleanup();
+    void disconnectAudioOutputTimer();
 
 private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
+
+public slots:
+    void hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device);
+    void hoverEndEvent(const PointerEvent& event, class QTouchDevice& device);
+    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
 
 private:
     QQuickWindow* _quickWindow { nullptr };
@@ -156,6 +179,9 @@ private:
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
 
+    QTimer _audioOutputUpdateTimer;
+    QString _currentAudioOutputDevice;
+
     // Texture management
     TextureAndFence _latestTextureAndFence { 0, 0 };
 
@@ -163,11 +189,22 @@ private:
     bool _polish { true };
     bool _paused { true };
     bool _focusText { false };
+    bool _isCleaned{ false };
     uint8_t _maxFps { 60 };
     MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };
+
+    struct TouchState {
+        QTouchEvent::TouchPoint touchPoint;
+        bool hovering { false };
+        bool pressed { false };
+    };
+
+    bool _pressed;
+    bool _touchBeginAccepted { false };
+    std::map<uint32_t, TouchState> _activeTouchPoints;
 };
 
 #endif

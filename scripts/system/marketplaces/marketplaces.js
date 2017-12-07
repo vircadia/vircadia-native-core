@@ -109,8 +109,10 @@
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
-        wireEventBridge(onCommerceScreen);
+        onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             tablet.sendToQml({
@@ -121,7 +123,7 @@
         }
 
         // for toolbar mode: change button to active when window is first openend, false otherwise.
-        marketplaceButton.editProperties({ isActive: onMarketplaceScreen || onCommerceScreen });
+        marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
             ContextOverlay.isInMarketplaceInspectionMode = true;
         } else {
@@ -159,7 +161,7 @@
             type: "marketplaces",
             action: "commerceSetting",
             data: {
-                commerceMode: Settings.getValue("commerce", false),
+                commerceMode: Settings.getValue("commerce", true),
                 userIsLoggedIn: Account.loggedIn,
                 walletNeedsSetup: Wallet.walletStatus === 1,
                 metaverseServerURL: Account.metaverseServerURL
@@ -321,6 +323,11 @@
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'updateWalletReferrer',
+                    referrer: "marketplace cta"
+                });
                 openWallet();
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
@@ -398,6 +405,7 @@
                     referrer: "purchases"
                 });
                 openWallet();
+                break;
             case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
                 tablet.sendToQml({

@@ -112,8 +112,8 @@ var DEFAULT_LIGHT_DIMENSIONS = Vec3.multiply(20, DEFAULT_DIMENSIONS);
 
 var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
-var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Edit Mode";
-var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Edit Mode";
+var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
+var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
 
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
@@ -419,7 +419,7 @@ var toolBar = (function () {
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            captionColorOverride: hasRezPermissions ? "" : "#888888",
+            captionColor: hasRezPermissions ? "#ffffff" : "#888888",
             icon: createButtonIconRsrc,
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
@@ -792,7 +792,7 @@ function handleDomainChange() {
     var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColorOverride: (hasRezPermissions ? "" : "#888888"),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
     });
 }
 

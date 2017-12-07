@@ -145,7 +145,7 @@
     var button;
     var buttonName = "WALLET";
     var tablet = null;
-    var walletEnabled = Settings.getValue("commerce", false);
+    var walletEnabled = Settings.getValue("commerce", true);
     function startup() {
         if (walletEnabled) {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

@@ -18,8 +18,9 @@
 
 QString const Shape3DOverlay::TYPE = "shape";
 
-Shape3DOverlay::Shape3DOverlay(const Shape3DOverlay* Shape3DOverlay) :
-    Volume3DOverlay(Shape3DOverlay)
+Shape3DOverlay::Shape3DOverlay(const Shape3DOverlay* shape3DOverlay) :
+    Volume3DOverlay(shape3DOverlay),
+    _shape(shape3DOverlay->_shape)
 {
 }
 
@@ -121,9 +122,9 @@ QVariant Shape3DOverlay::getProperty(const QString& property) {
 
 Transform Shape3DOverlay::evalRenderTransform() {
     // TODO: handle registration point??
-    glm::vec3 position = getPosition();
+    glm::vec3 position = getWorldPosition();
     glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
+    glm::quat rotation = getWorldOrientation();
 
     Transform transform;
     transform.setScale(dimensions);

@@ -79,10 +79,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
                 root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -599,6 +601,7 @@ Rectangle {
                 sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
             }
         }
         RalewaySemiBold {

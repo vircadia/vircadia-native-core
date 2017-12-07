@@ -337,7 +337,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
+    Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
@@ -345,14 +345,14 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
 
-    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientationViaScript)
+    Q_PROPERTY(glm::quat orientation READ getWorldOrientation WRITE setOrientationViaScript)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
     Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
 
-    Q_PROPERTY(glm::vec3 velocity READ getVelocity WRITE setVelocity)
-    Q_PROPERTY(glm::vec3 angularVelocity READ getAngularVelocity WRITE setAngularVelocity)
+    Q_PROPERTY(glm::vec3 velocity READ getWorldVelocity WRITE setWorldVelocity)
+    Q_PROPERTY(glm::vec3 angularVelocity READ getWorldAngularVelocity WRITE setWorldAngularVelocity)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
@@ -603,7 +603,7 @@ public:
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
-    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
@@ -628,14 +628,6 @@ public:
     virtual glm::quat getOrientationOutbound() const;
 
     static const float OUT_OF_VIEW_PENALTY;
-
-    static void sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.

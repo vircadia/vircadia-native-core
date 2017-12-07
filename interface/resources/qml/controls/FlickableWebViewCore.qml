@@ -135,4 +135,10 @@ Item {
         playing: visible
         z: 10000
     }
+
+    Keys.onPressed: {
+        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false;
+        }
+    }
 }

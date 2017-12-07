@@ -39,6 +39,7 @@ public:
 
     /// Add packet to outbound queue.
     void queuePacketForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacket> packet);
+    void queuePacketListForSending(const SharedNodePointer& destinationNode, std::unique_ptr<NLPacketList> packetList);
 
     void setPacketsPerSecond(int packetsPerSecond);
     int getPacketsPerSecond() const { return _packetsPerSecond; }
@@ -99,14 +100,14 @@ protected:
     SimpleMovingAverage _averageProcessCallTime;
 
 private:
-    std::list<NodePacketPair> _packets;
+    std::list<NodePacketOrPacketListPair> _packets;
     quint64 _lastSendTime;
 
     bool threadedProcess();
     bool nonThreadedProcess();
 
     quint64 _lastPPSCheck;
-    int _packetsOverCheckInterval;
+    size_t _packetsOverCheckInterval;
 
     quint64 _started;
     quint64 _totalPacketsSent;

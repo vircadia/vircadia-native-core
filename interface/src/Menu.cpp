@@ -56,7 +56,7 @@ Menu* Menu::getInstance() {
     return dynamic_cast<Menu*>(qApp->getWindow()->menuBar());
 }
 
-const char* exclusionGroupKey = "exclusionGroup";
+const char* EXCLUSION_GROUP_KEY = "exclusionGroup";
 
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
@@ -228,21 +228,21 @@ Menu::Menu() {
                                    viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
-    firstPersonAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+    firstPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Third Person
     auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
                                    viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
-    thirdPersonAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+    thirdPersonAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Mirror
     auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
                                    viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
-    viewMirrorAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+    viewMirrorAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Independent [advanced]
     auto viewIndependentAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
@@ -250,7 +250,7 @@ Menu::Menu() {
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
 
-    viewIndependentAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+    viewIndependentAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     // View > Entity Camera [advanced]
     auto viewEntityCameraAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
@@ -258,7 +258,7 @@ Menu::Menu() {
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
 
-    viewEntityCameraAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+    viewEntityCameraAction->setProperty(EXCLUSION_GROUP_KEY, QVariant::fromValue(cameraModeGroup));
 
     viewMenu->addSeparator();
 

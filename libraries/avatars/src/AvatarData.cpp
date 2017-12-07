@@ -118,12 +118,12 @@ void AvatarData::setTargetScale(float targetScale) {
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
-    return getOrientation() * _handPosition + getPosition();
+    return getWorldOrientation() * _handPosition + getWorldPosition();
 }
 
 void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
-    _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
+    _handPosition = glm::inverse(getWorldOrientation()) * (handPosition - getWorldPosition());
 }
 
 void AvatarData::lazyInitHeadData() const {
@@ -1900,8 +1900,8 @@ void registerAvatarTypes(QScriptEngine* engine) {
 void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     if (!recordingBasis) {
         recordingBasis = std::make_shared<Transform>();
-        recordingBasis->setRotation(getOrientation());
-        recordingBasis->setTranslation(getPosition());
+        recordingBasis->setRotation(getWorldOrientation());
+        recordingBasis->setTranslation(getWorldPosition());
         // TODO: find a  different way to record/playback the Scale of the avatar
         //recordingBasis->setScale(getTargetScale());
     }
@@ -2059,14 +2059,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
 
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
-        setPosition(worldTransform.getTranslation());
+        setWorldPosition(worldTransform.getTranslation());
         orientation = worldTransform.getRotation();
     } else {
         // We still set the position in the case that there is no movement.
-        setPosition(currentBasis->getTranslation());
+        setWorldPosition(currentBasis->getTranslation());
         orientation = currentBasis->getRotation();
     }
-    setOrientation(orientation);
+    setWorldOrientation(orientation);
     updateAttitude(orientation);
 
     // Do after avatar orientation because head look-at needs avatar orientation.
@@ -2153,44 +2153,44 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result, bool
 }
 
 float AvatarData::getBodyYaw() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.y;
 }
 
 void AvatarData::setBodyYaw(float bodyYaw) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.y = bodyYaw;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 float AvatarData::getBodyPitch() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.x;
 }
 
 void AvatarData::setBodyPitch(float bodyPitch) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.x = bodyPitch;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 float AvatarData::getBodyRoll() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.z;
 }
 
 void AvatarData::setBodyRoll(float bodyRoll) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.z = bodyRoll;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 void AvatarData::setPositionViaScript(const glm::vec3& position) {
-    SpatiallyNestable::setPosition(position);
+    SpatiallyNestable::setWorldPosition(position);
 }
 
 void AvatarData::setOrientationViaScript(const glm::quat& orientation) {
-    SpatiallyNestable::setOrientation(orientation);
+    SpatiallyNestable::setWorldOrientation(orientation);
 }
 
 glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -2387,62 +2387,9 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;
 
-float AvatarData::_avatarSortCoefficientSize { 0.5f };
+float AvatarData::_avatarSortCoefficientSize { 1.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
-
-void AvatarData::sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore) {
-
-    PROFILE_RANGE(simulation, "sort");
-    uint64_t now = usecTimestampNow();
-
-    glm::vec3 frustumCenter = cameraView.getPosition();
-    const glm::vec3& forward = cameraView.getDirection();
-    for (int32_t i = 0; i < avatarList.size(); ++i) {
-        const auto& avatar = avatarList.at(i);
-
-        if (shouldIgnore(avatar)) {
-            continue;
-        }
-
-        // priority = weighted linear combination of:
-        //   (a) apparentSize
-        //   (b) proximity to center of view
-        //   (c) time since last update
-        glm::vec3 avatarPosition = avatar->getPosition();
-        glm::vec3 offset = avatarPosition - frustumCenter;
-        float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-
-        // FIXME - AvatarData has something equivolent to this
-        float radius = getBoundingRadius(avatar);
-
-        float apparentSize = 2.0f * radius / distance;
-        float cosineAngle = glm::dot(offset, forward) / distance;
-        float age = (float)(now - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
-
-        // NOTE: we are adding values of different units to get a single measure of "priority".
-        // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-        // These weights are pure magic tuning and should be hard coded in the relation below,
-        // but are currently exposed for anyone who would like to explore fine tuning:
-        float priority = _avatarSortCoefficientSize * apparentSize
-            + _avatarSortCoefficientCenter * cosineAngle
-            + _avatarSortCoefficientAge * age;
-
-        // decrement priority of avatars outside keyhole
-        if (distance > cameraView.getCenterRadius()) {
-            if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                priority += OUT_OF_VIEW_PENALTY;
-            }
-        }
-        sortedAvatarsOut.push(AvatarPriority(avatar, priority));
-    }
-}
 
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();
