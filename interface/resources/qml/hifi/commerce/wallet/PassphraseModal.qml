@@ -206,16 +206,6 @@ Item {
                 root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = true;
-                    root.isPasswordField = (passphraseField.echoMode === TextInput.Password);
-                    mouse.accepted = false;
-                }
-            }
-
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
                 commerce.setPassphrase(passphraseField.text);
@@ -360,25 +350,6 @@ Item {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
         }
 
         HifiControlsUit.Keyboard {
