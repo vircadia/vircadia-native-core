@@ -261,7 +261,7 @@ QImage processRawImageData(QByteArray&& content, const std::string& filename) {
 
         if (newImageReader.canRead()) {
             qCWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
-            << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
+                                    << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
             return newImageReader.read();
         }
     }
