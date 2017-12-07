@@ -15,8 +15,7 @@
 #include "ui_AutoTester.h"
 #include "../Test.h"
 
-class AutoTester : public QMainWindow
-{
+class AutoTester : public QMainWindow {
     Q_OBJECT
 
 public:

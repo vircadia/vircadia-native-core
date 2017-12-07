@@ -11,9 +11,7 @@
 
 #include <QtCore/QFileInfo>
 
-MismatchWindow::MismatchWindow(QWidget *parent)
-    : QDialog(parent)
-{
+MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
     setupUi(this);
 
     expectedImage->setScaledContents(true);
@@ -32,20 +30,17 @@ void MismatchWindow::setTestFailure(TestFailure testFailure) {
     resultImage->setPixmap(QPixmap(testFailure._pathname + testFailure._actualImageFilename));
 }
 
-void MismatchWindow::on_passTestButton_clicked()
-{
+void MismatchWindow::on_passTestButton_clicked() {
     _userResponse = USER_RESPONSE_PASS;
     close();
 }
 
-void MismatchWindow::on_failTestButton_clicked()
-{
+void MismatchWindow::on_failTestButton_clicked() {
     _userResponse = USE_RESPONSE_FAIL;
     close();
 }
 
-void MismatchWindow::on_abortTestsButton_clicked()
-{
+void MismatchWindow::on_abortTestsButton_clicked() {
     _userResponse = USER_RESPONSE_ABORT;
     close();
 }

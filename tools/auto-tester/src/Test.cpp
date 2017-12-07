@@ -39,8 +39,7 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
         double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
         try {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-        }
-        catch (...) {
+        } catch (...) {
             messageBox.critical(0, "Internal error", "Image not in expected format");
             exit(-1);
         }
@@ -56,17 +55,18 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
             mismatchWindow.exec();
 
             switch (mismatchWindow.getUserResponse()) {
-            case USER_RESPONSE_PASS:
-                break;
-            case USE_RESPONSE_FAIL:
-                success = false;
-                break;
-            case USER_RESPONSE_ABORT:
-                keepOn = false;
-                success = false;
-                break;
-            default:
-                assert(false);
+                case USER_RESPONSE_PASS:
+                    break;
+                case USE_RESPONSE_FAIL:
+                    success = false;
+                    break;
+                case USER_RESPONSE_ABORT:
+                    keepOn = false;
+                    success = false;
+                    break;
+                default:
+                    assert(false);
+                    break;
             }
         }
     }

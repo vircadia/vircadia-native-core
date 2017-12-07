@@ -10,33 +10,26 @@
 //
 #include "AutoTester.h"
 
-AutoTester::AutoTester(QWidget *parent)
-    : QMainWindow(parent)
-{
+AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
 }
 
-void AutoTester::on_evaluateTestsButton_clicked()
-{
+void AutoTester::on_evaluateTestsButton_clicked() {
     test.evaluateTests();
 }
 
-void AutoTester::on_evaluateTestsRecursivelyButton_clicked()
-{
+void AutoTester::on_evaluateTestsRecursivelyButton_clicked() {
     test.evaluateTestsRecursively();
 }
 
-void AutoTester::on_createRecursiveScriptButton_clicked()
-{
+void AutoTester::on_createRecursiveScriptButton_clicked() {
     test.createRecursiveScript();
 }
 
-void AutoTester::on_createTestButton_clicked()
-{
+void AutoTester::on_createTestButton_clicked() {
     test.createTest();
 }
 
-void AutoTester::on_closeButton_clicked()
-{
+void AutoTester::on_closeButton_clicked() {
     exit(0);
 }

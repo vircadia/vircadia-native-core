@@ -14,12 +14,12 @@
 
 class TestFailure {
 public:
-    TestFailure(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) {
-        _error = error;
-        _pathname = pathname;
-        _expectedImageFilename = expectedImageFilename;
-        _actualImageFilename = actualImageFilename;
-    }
+    TestFailure(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) :
+        _error(error),
+        _pathname(pathname),
+        _expectedImageFilename(expectedImageFilename),
+        _actualImageFilename(actualImageFilename)
+    {}
 
     double _error;
     QString _pathname;

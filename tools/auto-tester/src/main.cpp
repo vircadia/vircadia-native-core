@@ -10,8 +10,7 @@
 #include <QtWidgets/QApplication>
 #include "ui/AutoTester.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     QApplication application(argc, argv);
 
     AutoTester autoTester;
