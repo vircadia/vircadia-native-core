@@ -83,19 +83,28 @@ void QmlCommerce::buy(const QString& assetId, int cost, const bool controlledFai
 void QmlCommerce::balance() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->balance(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->balance(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::inventory() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->inventory(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->inventory(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::history() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->history(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->history(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& newPassphrase) {

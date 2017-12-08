@@ -255,12 +255,16 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
-    /**jsdoc
-     * Provides read only access to the current eye height of the avatar.
-     * @function Avatar.getEyeHeight
-     * @returns {number} eye height of avatar in meters
-     */
-    Q_INVOKABLE float getEyeHeight() const;
+    Q_INVOKABLE virtual float getEyeHeight() const override;
+
+    // returns eye height of avatar in meters, ignoreing avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight;
+    virtual float getUnscaledEyeHeight() const override;
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const override { return true; }
+
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
@@ -279,6 +283,7 @@ public slots:
     void setModelURLFinished(bool success);
 
 protected:
+    float getUnscaledEyeHeightFromSkeleton() const;
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -349,7 +354,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-private:
+protected:
     class AvatarEntityDataHash {
     public:
         AvatarEntityDataHash(uint32_t h) : hash(h) {};
