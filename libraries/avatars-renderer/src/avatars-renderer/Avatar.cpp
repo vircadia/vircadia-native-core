@@ -1217,6 +1217,15 @@ void Avatar::setModelURLFinished(bool success) {
     }
 }
 
+// rig is ready
+void Avatar::rigReady() {
+    buildUnscaledEyeHeightCache();
+}
+
+// rig has been reset.
+void Avatar::rigReset() {
+    clearUnscaledEyeHeightCache();
+}
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
 static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& rigOverride, bool isCauterized) {
@@ -1584,18 +1593,17 @@ void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer&
     }
 }
 
+// thread-safe
 float Avatar::getEyeHeight() const {
-
-    if (QThread::currentThread() != thread()) {
-        float result = DEFAULT_AVATAR_EYE_HEIGHT;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getEyeHeight", Q_RETURN_ARG(float, result));
-        return result;
-    }
-
     return getModelScale() * getUnscaledEyeHeight();
 }
 
+// thread-safe
 float Avatar::getUnscaledEyeHeight() const {
+    return _unscaledEyeHeightCache.get();
+}
+
+void Avatar::buildUnscaledEyeHeightCache() {
     float skeletonHeight = getUnscaledEyeHeightFromSkeleton();
 
     // Sanity check by looking at the model extents.
@@ -1606,10 +1614,14 @@ float Avatar::getUnscaledEyeHeight() const {
     // This helps prevent absurdly large avatars from exceeding the domain height limit.
     const float MESH_SLOP_RATIO = 1.5f;
     if (meshHeight > skeletonHeight * MESH_SLOP_RATIO) {
-        return meshHeight;
+        _unscaledEyeHeightCache.set(meshHeight);
     } else {
-        return skeletonHeight;
+        _unscaledEyeHeightCache.set(skeletonHeight);
     }
+}
+
+void Avatar::clearUnscaledEyeHeightCache() {
+    _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
 }
 
 float Avatar::getUnscaledEyeHeightFromSkeleton() const {

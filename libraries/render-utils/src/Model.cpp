@@ -286,6 +286,7 @@ void Model::reset() {
     if (isLoaded()) {
         const FBXGeometry& geometry = getFBXGeometry();
         _rig.reset(geometry);
+        emit rigReset();
     }
 }
 
@@ -322,6 +323,7 @@ bool Model::updateGeometry() {
             _blendedVertexBuffers.push_back(buffer);
         }
         needFullUpdate = true;
+        emit rigReady();
     }
     return needFullUpdate;
 }

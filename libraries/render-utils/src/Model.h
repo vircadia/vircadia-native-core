@@ -273,6 +273,8 @@ signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
     void requestRenderUpdate();
+    void rigReady();
+    void rigReset();
 
 protected:
 
