@@ -16,6 +16,7 @@
 #include <QFile>
 
 #include <PerfStat.h>
+#include <Profile.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
@@ -294,6 +295,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
+        DETAILED_PROFILE_RANGE(simulation_physics, "avatarController");
         BT_PROFILE("avatarController");
         // TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
@@ -465,6 +467,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
 }
 
 void PhysicsEngine::updateContactMap() {
+    DETAILED_PROFILE_RANGE(simulation_physics, "updateContactMap");
     BT_PROFILE("updateContactMap");
     ++_numContactFrames;
 
@@ -582,8 +585,18 @@ void PhysicsEngine::dumpStatsIfNecessary() {
     if (_dumpNextStats) {
         _dumpNextStats = false;
         CProfileManager::Increment_Frame_Counter();
+        if (_saveNextStats) {
+            _saveNextStats = false;
+            printPerformanceStatsToFile(_statsFilename);
+        }
         CProfileManager::dumpAll();
     }
+}
+
+void PhysicsEngine::saveNextPhysicsStats(QString filename) {
+    _saveNextStats = true;
+    _dumpNextStats = true;
+    _statsFilename = filename;
 }
 
 // Bullet collision flags are as follows:

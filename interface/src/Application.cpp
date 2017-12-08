@@ -3222,8 +3222,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 }
 
-
-
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
@@ -7506,4 +7504,9 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
+
+void Application::saveNextPhysicsStats(QString filename) {
+    _physicsEngine->saveNextPhysicsStats(filename);
+}
+
 #include "Application.moc"
