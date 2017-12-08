@@ -85,21 +85,6 @@ Rectangle {
                     onClicked: { Render.getConfig("RenderMainView.JitterCam").next(); }
                 }
             }
-            Row {
-                spacing: 10
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Unjitter"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["unjitter"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["unjitter"] = checked }
-                }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Show Sequence"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["showJitterSequence"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showJitterSequence"] = checked }
-                }
-            }
             Separator {}          
             Column {
                 spacing: 10

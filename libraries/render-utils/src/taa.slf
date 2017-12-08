@@ -20,22 +20,13 @@ layout(location = 0) out vec4 outFragColor;
 
 void main() {
     vec2 fragUV = varTexCoord0;
-    
-
-
-    vec2 texelSize = taa_getTexelSize();
-
-    vec2 fragJitterPix = taa_getCurrentJitterSample();
-    if (taa_unjitter()) {
-        fragUV -= fragJitterPix * texelSize;
-    }
 
     // Debug region before debug or fxaa region X
-/*    float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
+    float distToRegionFXAA = fragUV.x - taa_getRegionFXAA().x;  
     if (distToRegionFXAA > 0.0) {
         outFragColor = vec4(taa_evalFXAA(fragUV), 1.0);
         return;
-    }*/
+    }
 
    // vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
    // vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);

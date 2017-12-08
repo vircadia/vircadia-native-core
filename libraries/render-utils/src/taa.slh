@@ -13,31 +13,6 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-const int SEQUENCE_LENGTH = 16;
-const int INFO_INDEX = SEQUENCE_LENGTH / 2;
-struct JitterSequence {
-    vec4 offsets[INFO_INDEX + 1];
-};
-layout(std140) uniform taaJitterBuffer {
-    JitterSequence sequence;
-};
-
-vec2 taa_getJitterSample(int index) {
-    return vec2((bool(index & 0x01) ? sequence.offsets[index >> 1].zw : sequence.offsets[index >> 1].xy));
-}
-
-int taa_getJitterSequenceLength() {
-    return floatBitsToInt(sequence.offsets[INFO_INDEX].z);
-}
-
-int taa_getCurrentJitterIndex() {
-    return floatBitsToInt(sequence.offsets[INFO_INDEX].w);
-}
-
-vec2 taa_getCurrentJitterSample() {
-    return taa_getJitterSample(taa_getCurrentJitterIndex());
-}
-
 <@include gpu/Color.slh@>
 
 uniform sampler2D depthMap;
@@ -67,27 +42,22 @@ bool taa_showDebugCursor() {
     return GET_BIT(params.flags.x, 1);
 }
 
-bool taa_showJitterSequence() {
-    return GET_BIT(params.flags.x, 2);
-}
-
 bool taa_showClosestFragment() {
     return GET_BIT(params.flags.x, 3);
 }
 
-
-bool taa_unjitter() {
-    return GET_BIT(params.flags.y, 0);
-}
 bool taa_constrainColor() {
     return GET_BIT(params.flags.y, 1);
 }
+
 bool taa_covarianceClipColor() {
     return GET_BIT(params.flags.y, 2);
 }
+
 bool taa_clipExactColor() {
     return GET_BIT(params.flags.y, 3);
 }
+
 bool taa_feedbackColor() {
     return GET_BIT(params.flags.y, 4);
 }

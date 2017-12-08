@@ -322,7 +322,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseProfile"));
     makeFramebuffer->setRenderBuffer(0, profileMap);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::diffuseProfileGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
@@ -359,7 +359,7 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("diffuseScatter"));
     makeFramebuffer->setRenderBuffer(0, lut);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::diffuseScatterGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
@@ -396,7 +396,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
     auto makeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("computeSpecularBeckmann"));
     makeFramebuffer->setRenderBuffer(0, beckmannMap);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SubsurfaceScattering::computeSpecularBeckmannGPU", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(glm::ivec4(0, 0, width, height));
@@ -537,7 +537,7 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
    // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
     const auto light = lightStage->getLight(0);
     
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("DebugSubsurfaceScattering::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 
 

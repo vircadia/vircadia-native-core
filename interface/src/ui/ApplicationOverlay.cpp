@@ -64,7 +64,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+    doInBatch("ApplicationOverlay::render", renderArgs->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "ApplicationOverlayRender");
         renderArgs->_batch = &batch;
         batch.enableStereo(false);

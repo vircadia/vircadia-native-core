@@ -28,10 +28,6 @@ void main(void) {
     vec2 imageSize = getWidthHeight(0);
     vec2 texelSize = getInvWidthHeight();
 
-    vec2 fragJitterPix = taa_getCurrentJitterSample();
-
-
-
     vec2 pixPos = varTexCoord0 * imageSize;
     vec2 pixVelocity = imageSize * texture(velocityMap, varTexCoord0).xy;
     float pixVelocityLength = length(pixVelocity);
@@ -44,7 +40,7 @@ void main(void) {
         vec2 cursorUVRaw = taa_getDebugCursorTexcoord();
         vec2 cursorPosRaw = floor(cursorUVRaw * imageSize) + vec2(0.5);
         vec3 cursorFrag = taa_findClosestFragment3x3(cursorUVRaw);
-        vec2 cursorUV = cursorUVRaw - fragJitterPix * texelSize;
+        vec2 cursorUV = cursorUVRaw;
         vec2 cursorPos = cursorUV * imageSize;
         vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
         vec2 cursorPrevUV = cursorUV - cursorVelocity;
@@ -114,29 +110,6 @@ void main(void) {
 
             outFragColor = vec4(nextOrbColor, 1.0);
             return;
-        }
-    }
-
-    if (taa_showJitterSequence()) {
-        float tenPercentHeight = 0.1 * imageSize.y;
-        vec2 jitterRegionSize = vec2(tenPercentHeight);
-        vec2 jitterRegionPos = (pixPos - vec2(tenPercentHeight, imageSize.y - tenPercentHeight));
-        if ((all(lessThan(jitterRegionPos, jitterRegionSize)) && all(greaterThan(jitterRegionPos, vec2(0.0))))) {
-            
-            float niceDotR2 = 4.0;
-
-            //int sequenceLength = taa_getJitterSequenceLength();
-            int sequenceLength = SEQUENCE_LENGTH;
-            for (int s = 0; s < sequenceLength; s++) {
-                vec2 pixToSampleVec = jitterRegionPos - (vec2(0.5) + taa_getJitterSample(s)) * jitterRegionSize;
-                float radius2 = (s == taa_getCurrentJitterIndex() ? 4.0 * niceDotR2 : niceDotR2);
-                float distToSample2 = dot(pixToSampleVec, pixToSampleVec);
-                if (distToSample2 < radius2) {
-                    outFragColor = vec4(mix( outFragColor.rgb, colorRamp(float(s) / float(sequenceLength)), 1.0 - distToSample2 / radius2), 1.0);
-                    return;
-                }
-            }
-
         }
     }
 

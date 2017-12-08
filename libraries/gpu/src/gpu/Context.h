@@ -274,8 +274,8 @@ protected:
 typedef std::shared_ptr<Context> ContextPointer;
 
 template<typename F>
-void doInBatch(std::shared_ptr<gpu::Context> context, F f) {
-    gpu::Batch batch;
+void doInBatch(const char* name, std::shared_ptr<gpu::Context> context, F f) {
+    gpu::Batch batch(name);
     f(batch);
     context->appendFrameBatch(batch);
 }

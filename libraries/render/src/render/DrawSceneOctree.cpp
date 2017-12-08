@@ -94,7 +94,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numFreeCells = (int)scene->getSpatialTree().getNumFreeCells();
 
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawSceneOctree::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->getViewFrustum().evalProjectionMatrix(projMat);
@@ -201,7 +201,7 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
     RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawItemSelection::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->getViewFrustum().evalProjectionMatrix(projMat);

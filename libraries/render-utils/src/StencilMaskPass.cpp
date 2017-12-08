@@ -81,7 +81,7 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
         return;
     }
 
-    doInBatch(args->_context, [&](gpu::Batch& batch) {
+    doInBatch("PrepareStencil::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setViewportTransform(args->_viewport);

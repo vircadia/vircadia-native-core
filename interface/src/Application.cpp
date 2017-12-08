@@ -5070,10 +5070,10 @@ void Application::update(float deltaTime) {
             {
                 QMutexLocker viewLocker(&_viewMutex);
                 // adjust near clip plane to account for sensor scaling.
-                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                    _viewFrustum.getAspectRatio(),
-                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                    _viewFrustum.getFarClip());
+                auto adjustedProjection = glm::perspective(glm::radians(_fieldOfView.get()),
+                                                           getActiveDisplayPlugin()->getRecommendedAspectRatio(),
+                                                           DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                           DEFAULT_FAR_CLIP);
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
@@ -5095,7 +5095,7 @@ void Application::update(float deltaTime) {
             resizeGL();
         }
 
-        this->updateCamera(appRenderArgs._renderArgs);
+        updateCamera(appRenderArgs._renderArgs);
         appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 

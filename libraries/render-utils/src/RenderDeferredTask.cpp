@@ -92,7 +92,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
-    const auto jitterBuffer = task.addJob<JitterSample>("JitterCam");
+    task.addJob<JitterSample>("JitterCam");
 
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -238,6 +238,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
     }
 
+    // AA job to be revisited
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
+    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
+
      // Debugging stages
     {
         // Debugging Deferred buffer job
@@ -268,11 +272,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
 
-    // AA job to be revisited
-    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, jitterBuffer, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
-
-    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
-
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
 
@@ -297,13 +296,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("BeginGPURangeTimer::run", renderContext->args->_context, [&](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
     });
 }
 
 void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("EndGPURangeTimer::run", renderContext->args->_context, [&](gpu::Batch& batch) {
         timer->end(batch);
     });
     
@@ -323,7 +322,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         
         // Setup camera, projection and viewport for all items
@@ -370,7 +369,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawStateSortDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         // Setup camera, projection and viewport for all items
@@ -434,14 +433,14 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         // Needs to be distinct from the other batch because using the clear call 
         // while stereo is enabled triggers a warning
         if (_opaquePass) {
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch){
+            gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
                 batch.enableStereo(false);
                 batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
             });
         }
 
         // Render the items
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawOverlay3D::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
@@ -473,7 +472,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     }
 
     // Grab the HUD texture
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("CompositeHUD::run", renderContext->args->_context, [&](gpu::Batch& batch) {
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
@@ -499,7 +498,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     // Blit primary to blit FBO
     auto primaryFbo = srcFramebuffer;
 
-    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("Blit::run", renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {

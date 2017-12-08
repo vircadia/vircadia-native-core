@@ -286,7 +286,7 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
     _parameters->setWidthHeight(blurredFramebuffer->getWidth(), blurredFramebuffer->getHeight(), args->isStereo());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, viewport));
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("BlurGaussian::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(viewport);
 
@@ -401,7 +401,7 @@ void BlurGaussianDepthAware::run(const RenderContextPointer& renderContext, cons
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);
     _parameters->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("BlurGaussianDepthAware::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(sourceViewport);
 

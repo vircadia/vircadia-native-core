@@ -118,7 +118,7 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
 
     auto fullViewport = args->_viewport;
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("VelocityBufferPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 

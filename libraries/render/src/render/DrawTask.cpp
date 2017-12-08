@@ -143,7 +143,7 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
     RenderArgs* args = renderContext->args;
 
     // render lights
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawLight::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         renderItems(renderContext, inLights, _maxDrawn);
         args->_batch = nullptr;
@@ -191,7 +191,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
 
     _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("DrawBounds::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         // Setup projection
@@ -262,7 +262,7 @@ void DrawFrustum::run(const render::RenderContextPointer& renderContext, const I
         }
 
         // Render the frustums in wireframe
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawFrustum::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);

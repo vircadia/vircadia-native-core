@@ -108,7 +108,7 @@ void Context::executeFrame(const FramePointer& frame) const {
     consumeFrameUpdates(frame);
     _backend->setStereoState(frame->stereoState);
     {
-        Batch beginBatch;
+        Batch beginBatch("Context::executeFrame::begin");
         _frameRangeTimer->begin(beginBatch);
         _backend->render(beginBatch);
 
@@ -117,7 +117,7 @@ void Context::executeFrame(const FramePointer& frame) const {
             _backend->render(batch);
         }
 
-        Batch endBatch;
+        Batch endBatch("Context::executeFrame::end");
         _frameRangeTimer->end(endBatch);
         _backend->render(endBatch);
     }

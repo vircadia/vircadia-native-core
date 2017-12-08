@@ -42,7 +42,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
 
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
 
-    // Running in stero ?
+    // Running in stereo ?
     bool isStereo = args->isStereo();
     if (!isStereo) {
         frameTransformBuffer.projection[0] = frameTransformBuffer.projectionMono;

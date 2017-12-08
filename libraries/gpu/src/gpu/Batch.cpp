@@ -37,7 +37,14 @@ size_t Batch::_dataMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_objectsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_drawCallInfosMax { BATCH_PREALLOCATE_MIN };
 
-Batch::Batch() {
+Batch::Batch(const char* name) {
+#ifdef DEBUG
+    if (name) {
+        _name = name;
+    }
+#else
+    (void*)name;
+#endif
     _commands.reserve(_commandsMax);
     _commandOffsets.reserve(_commandOffsetsMax);
     _params.reserve(_paramsMax);
@@ -48,6 +55,9 @@ Batch::Batch() {
 
 Batch::Batch(const Batch& batch_) {
     Batch& batch = *const_cast<Batch*>(&batch_);
+#ifdef DEBUG
+    _name = batch_._name;
+#endif
     _commands.swap(batch._commands);
     _commandOffsets.swap(batch._commandOffsets);
     _params.swap(batch._params);

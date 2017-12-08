@@ -91,7 +91,7 @@ public:
     void captureDrawCallInfo();
     void captureNamedDrawCallInfo(std::string name);
 
-    Batch();
+    Batch(const char* name = nullptr);
     Batch(const Batch& batch);
     ~Batch();
 
@@ -482,6 +482,11 @@ public:
     bool _enableSkybox { false };
 
 protected:
+
+#ifdef DEBUG
+    std::string _name;
+#endif
+
     friend class Context;
     friend class Frame;
 

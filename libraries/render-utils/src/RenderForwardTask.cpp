@@ -84,7 +84,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext,
     }
 
     auto args = renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("PrepareFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -104,7 +104,7 @@ void Draw::run(const RenderContextPointer& renderContext,
         const Inputs& items) {
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("RenderForward::Draw::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         // Setup projection
@@ -141,7 +141,7 @@ const gpu::PipelinePointer Stencil::getPipeline() {
 void Stencil::run(const RenderContextPointer& renderContext) {
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("RenderForward::Stencil::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         batch.enableStereo(false);
@@ -158,7 +158,7 @@ void DrawBackground::run(const RenderContextPointer& renderContext,
         const Inputs& background) {
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("RenderForward::DrawBackground::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         batch.enableSkybox(true);

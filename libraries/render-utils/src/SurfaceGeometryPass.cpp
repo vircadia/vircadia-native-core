@@ -174,7 +174,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto halfViewport = depthViewport >> 1;
     float clearLinearDepth = args->getViewFrustum().getFarClip() * 2.0f;
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("LinearDepthPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 
@@ -466,7 +466,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     _diffusePass.getParameters()->setLinearDepthPosFar(args->getViewFrustum().getFarClip());
 
  
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch("SurfaceGeometryPass::run", args->_context, [=](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
         batch.enableStereo(false);
 

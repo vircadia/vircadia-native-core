@@ -114,14 +114,14 @@ void TestWindow::beginFrame() {
     // the rest of the renderDeferred inputs can be omitted
 
 #else
-    gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("TestWindow::beginFrame", _renderArgs->_context, [&](gpu::Batch& batch) {
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLORS, { 0.0f, 0.1f, 0.2f, 1.0f });
         batch.clearDepthFramebuffer(1e4);
         batch.setViewportTransform({ 0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio() });
     });
 #endif
 
-    gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("TestWindow::beginFrame", _renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(_renderArgs->_viewport);
         batch.setStateScissorRect(_renderArgs->_viewport);
         batch.setProjectionTransform(_projectionMatrix);
@@ -131,7 +131,7 @@ void TestWindow::beginFrame() {
 void TestWindow::endFrame() {
 #ifdef DEFERRED_LIGHTING
     RenderArgs* args = _renderContext->args;
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("TestWindow::endFrame::begin", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         auto deferredFboColorDepthStencil = _prepareDeferredOutputs.get0()->getDeferredFramebufferDepthColor();
         batch.setViewportTransform(args->_viewport);
@@ -144,7 +144,7 @@ void TestWindow::endFrame() {
 
     _renderDeferred.run(_renderContext, _renderDeferredInputs);
 
-    gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("TestWindow::endFrame::blit", _renderArgs->_context, [&](gpu::Batch& batch) {
         PROFILE_RANGE_BATCH(batch, "blit");
         // Blit to screen
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
@@ -154,7 +154,7 @@ void TestWindow::endFrame() {
     });
 #endif
 
-    gpu::doInBatch(_renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("TestWindow::endFrame::finish", _renderArgs->_context, [&](gpu::Batch& batch) {
         batch.resetStages();
     });
     _glContext.swapBuffers(this);
