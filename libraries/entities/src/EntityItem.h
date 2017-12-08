@@ -470,6 +470,7 @@ protected:
     void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getDynamicDataInternal() const;
+    bool stillHasGrabActions() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
     virtual void dimensionsChanged() override;
