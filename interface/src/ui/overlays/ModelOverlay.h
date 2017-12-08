@@ -75,8 +75,8 @@ private:
     QVariantMap _modelTextures;
 
     QUrl _url;
-    bool _updateModel = { false };
-    bool _scaleToFit = { false };
+    bool _updateModel { false };
+    bool _scaleToFit { false };
     float _loadPriority { 0.0f };
 
     AnimationPointer _animation;
@@ -87,7 +87,7 @@ private:
     bool _animationRunning { false };
     bool _animationLoop { false };
     float _animationFirstFrame { 0.0f };
-    float _animationLastFrame = { 0.0f };
+    float _animationLastFrame { 0.0f };
     bool _animationHold { false };
     bool _animationAllowTranslation { false };
     uint64_t _lastAnimated { 0 };

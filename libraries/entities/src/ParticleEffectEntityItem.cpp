@@ -97,7 +97,8 @@ bool operator==(const Properties& a, const Properties& b) {
         (a.maxParticles == b.maxParticles) &&
         (a.emission == b.emission) &&
         (a.polar == b.polar) &&
-        (a.azimuth == b.azimuth);
+        (a.azimuth == b.azimuth) &&
+        (a.textures == b.textures);
 }
 
 bool operator!=(const Properties& a, const Properties& b) {
@@ -591,7 +592,7 @@ void ParticleEffectEntityItem::debugDump() const {
         _particleProperties.color.gradient.target.red << "," << 
         _particleProperties.color.gradient.target.green << "," << 
         _particleProperties.color.gradient.target.blue;
-    qCDebug(entities) << "               position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "               position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "             dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "          getLastEdited:" << debugTime(getLastEdited(), now);
 }

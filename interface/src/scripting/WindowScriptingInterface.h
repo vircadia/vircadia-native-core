@@ -12,6 +12,8 @@
 #ifndef hifi_WindowScriptingInterface_h
 #define hifi_WindowScriptingInterface_h
 
+#include <glm/glm.hpp>
+
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtQuick/QQuickItem>
@@ -73,6 +75,7 @@ public slots:
     bool isPhysicsEnabled();
     bool setDisplayTexture(const QString& name);
     bool isPointOnDesktopWindow(QVariant point);
+    glm::vec2 getDeviceSize() const;
 
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
     void updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton);

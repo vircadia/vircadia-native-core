@@ -12,6 +12,8 @@
 #ifndef hifi_AvatarConstants_h
 #define hifi_AvatarConstants_h
 
+#include "GLMHelpers.h"
+
 // 50th Percentile Man
 const float DEFAULT_AVATAR_HEIGHT = 1.755f; // meters
 const float DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD = 0.11f; // meters
@@ -52,5 +54,10 @@ const float DEFAULT_AVATAR_JUMP_HEIGHT = (DEFAULT_AVATAR_JUMP_SPEED * DEFAULT_AV
 const float DEFAULT_AVATAR_FALL_HEIGHT = 20.0f; // meters
 const float DEFAULT_AVATAR_MIN_HOVER_HEIGHT = 2.5f; // meters
 
+static const float MAX_AVATAR_SCALE = 1000.0f;
+static const float MIN_AVATAR_SCALE = 0.005f;
+
+static const float MAX_AVATAR_HEIGHT = 1000.0f * DEFAULT_AVATAR_HEIGHT; // meters
+static const float MIN_AVATAR_HEIGHT = 0.005f * DEFAULT_AVATAR_HEIGHT; // meters
 
 #endif // hifi_AvatarConstants_h

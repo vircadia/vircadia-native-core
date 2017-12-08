@@ -29,6 +29,7 @@
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
+    var metaverseServerURL = "https://metaverse.highfidelity.com";
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -57,7 +58,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === "https://metaverse.highfidelity.com/marketplace?";
+        var isInitialHiFiPage = location.href === metaverseServerURL + "/marketplace?";
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -69,7 +70,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (document.referrer !== "") ? window.history.back() : window.location = (metaverseServerURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -289,11 +290,17 @@
             }
         });
 
-        // change pricing to GET on button hover
+        // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
             $this.data('initialHtml', $this.html());
-            $this.text('GET');
+
+            var cost = $(this).parent().siblings().text();
+            if (parseInt(cost) > 0) {
+                $this.text('BUY');
+            } else {
+                $this.text('GET');
+            }
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
@@ -308,6 +315,28 @@
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'));
+        });
+    }
+
+    function injectUnfocusOnSearch() {
+        // unfocus input field on search, thus hiding virtual keyboard
+        $('#search-box').on('submit', function () {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+    }
+
+    // fix for 10108 - marketplace category cannot scroll
+    function injectAddScrollbarToCategories() {
+        $('#categories-dropdown').on('show.bs.dropdown', function () {
+            $('body > div.container').css('display', 'none')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' })
+        });
+
+        $('#categories-dropdown').on('hide.bs.dropdown', function () {
+            $('body > div.container').css('display', '')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' })
         });
     }
 
@@ -340,6 +369,9 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
+        injectAddScrollbarToCategories();
     }
 
     function injectHiFiItemPageCode() {
@@ -379,6 +411,8 @@
                 maybeAddPurchasesButton();
             }
         }
+
+        injectUnfocusOnSearch();
     }
 
     function updateClaraCode() {
@@ -641,6 +675,7 @@
                         commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
+                        metaverseServerURL = parsedJsonMessage.data.metaverseServerURL;
                         injectCode();
                     }
                 }

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qvector2d.h>
 #include <limits>
 
 #include <AudioClient.h>
@@ -21,13 +22,14 @@
 #include "AudioScope.h"
 
 static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
-static const unsigned int SCOPE_WIDTH = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * DEFAULT_FRAMES_PER_SCOPE;
 static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;
 static const unsigned int SCOPE_HEIGHT = 2 * 15 * MULTIPLIER_SCOPE_HEIGHT;
 
 AudioScope::AudioScope() :
     _isEnabled(false),
     _isPaused(false),
+    _isTriggered(false),
+    _autoTrigger(false),
     _scopeInputOffset(0),
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
@@ -43,6 +45,7 @@ AudioScope::AudioScope() :
     _outputRightD(DependencyManager::get<GeometryCache>()->allocateID())
 {
     auto audioIO = DependencyManager::get<AudioClient>();
+    
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedSilence,
             this, &AudioScope::addStereoSilenceToScope);
     connect(&audioIO->getReceivedAudioStream(), &MixedProcessedAudioStream::addedLastFrameRepeatedWithFade,
@@ -73,6 +76,18 @@ void AudioScope::selectAudioScopeTwentyFrames() {
 
 void AudioScope::selectAudioScopeFiftyFrames() {
     reallocateScope(50);
+}
+
+void AudioScope::setLocalEcho(bool localEcho) {
+    DependencyManager::get<AudioClient>()->setLocalEcho(localEcho);
+}
+
+void AudioScope::setServerEcho(bool serverEcho) {
+    DependencyManager::get<AudioClient>()->setServerEcho(serverEcho);
+}
+
+float AudioScope::getFramesPerSecond(){
+    return AudioConstants::NETWORK_FRAMES_PER_SEC;
 }
 
 void AudioScope::allocateScope() {
@@ -108,63 +123,14 @@ void AudioScope::freeScope() {
     }
 }
 
-void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
-    
-    if (!_isEnabled) {
-        return;
-    }
-    
-    static const glm::vec4 backgroundColor = { 0.4f, 0.4f, 0.4f, 0.6f };
-    static const glm::vec4 gridColor = { 0.7f, 0.7f, 0.7f, 1.0f };
-    static const glm::vec4 inputColor = { 0.3f, 1.0f, 0.3f, 1.0f };
-    static const glm::vec4 outputLeftColor = { 1.0f, 0.3f, 0.3f, 1.0f };
-    static const glm::vec4 outputRightColor = { 0.3f, 0.3f, 1.0f, 1.0f };
-    static const int gridCols = 2;
-    int gridRows = _framesPerScope;
-    
-    int x = (width - (int)SCOPE_WIDTH) / 2;
-    int y = (height - (int)SCOPE_HEIGHT) / 2;
-    int w = (int)SCOPE_WIDTH;
-    int h = (int)SCOPE_HEIGHT;
-
-    gpu::Batch& batch = *renderArgs->_batch;
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    // Grid uses its own pipeline, so draw it before setting another
-    const float GRID_EDGE = 0.005f;
-    geometryCache->renderGrid(batch, glm::vec2(x, y), glm::vec2(x + w, y + h),
-        gridRows, gridCols, GRID_EDGE, gridColor, true, _audioScopeGrid);
-
-    geometryCache->useSimpleDrawPipeline(batch);
-    auto textureCache = DependencyManager::get<TextureCache>();
-    batch.setResourceTexture(0, textureCache->getWhiteTexture());
-    
-    // FIXME - do we really need to reset this here? we know that we're called inside of ApplicationOverlay::renderOverlays
-    //         which already set up our batch for us to have these settings
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
-    batch.setProjectionTransform(legacyProjection);
-    batch.setModelTransform(Transform());
-    batch.resetViewTransform();
-
-    geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
-    renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
-    renderLineStrip(batch, _outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
-    renderLineStrip(batch, _outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
-}
-
-void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& color, int x, int y, int n, int offset, const QByteArray* byteArray) {
-
+QVector<int> AudioScope::getScopeVector(const QByteArray* byteArray, int offset) {
     int16_t sample;
-    int16_t* samples = ((int16_t*) byteArray->data()) + offset;
+    QVector<int> points;
+    if (!_isEnabled || byteArray == NULL) return points;
+    int16_t* samples = ((int16_t*)byteArray->data()) + offset;
     int numSamplesToAverage = _framesPerScope / DEFAULT_FRAMES_PER_SCOPE;
-    int count = (n - offset) / numSamplesToAverage;
-    int remainder = (n - offset) % numSamplesToAverage;
-    y += SCOPE_HEIGHT / 2;
-    
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    QVector<glm::vec2> points;
-    
+    int count = (_samplesPerScope - offset) / numSamplesToAverage;
+    int remainder = (_samplesPerScope - offset) % numSamplesToAverage;
 
     // Compute and draw the sample averages from the offset position
     for (int i = count; --i >= 0; ) {
@@ -173,7 +139,7 @@ void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& col
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        points << glm::vec2(x++, y - sample);
+        points << -sample;
     }
 
     // Compute and draw the sample average across the wrap boundary
@@ -182,16 +148,17 @@ void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& col
         for (int j = remainder; --j >= 0; ) {
             sample += *samples++;
         }
-    
-        samples = (int16_t*) byteArray->data();
+
+        samples = (int16_t*)byteArray->data();
 
         for (int j = numSamplesToAverage - remainder; --j >= 0; ) {
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        points << glm::vec2(x++, y - sample);
-    } else {
-        samples = (int16_t*) byteArray->data();
+        points << -sample;
+    }
+    else {
+        samples = (int16_t*)byteArray->data();
     }
 
     // Compute and draw the sample average from the beginning to the offset
@@ -202,12 +169,51 @@ void AudioScope::renderLineStrip(gpu::Batch& batch, int id, const glm::vec4& col
             sample += *samples++;
         }
         sample /= numSamplesToAverage;
-        points << glm::vec2(x++, y - sample);
+
+        points << -sample;
     }
-    
-    
-    geometryCache->updateVertices(id, points, color);
-    geometryCache->renderVertices(batch, gpu::LINE_STRIP, id);
+    return points;
+}
+
+bool AudioScope::shouldTrigger(const QVector<int>& scope) {
+    int threshold = 4;
+    if (_autoTrigger && _triggerValues.x < scope.size()) {
+        for (int i = -4*threshold; i < +4*threshold; i++) {
+            int idx = _triggerValues.x + i;
+            idx = (idx < 0) ? 0 : (idx < scope.size() ? idx : scope.size() - 1);
+            int dif = abs(_triggerValues.y - scope[idx]);
+            if (dif < threshold) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void AudioScope::storeTriggerValues() {
+    _triggerInputData = _scopeInputData;
+    _triggerOutputLeftData = _scopeOutputLeftData;
+    _triggerOutputRightData = _scopeOutputRightData;
+    _isTriggered = true;
+    emit triggered();
+}
+
+void AudioScope::computeInputData() {
+    _scopeInputData = getScopeVector(_scopeInput, _scopeInputOffset);
+    if (shouldTrigger(_scopeInputData)) {
+        storeTriggerValues();
+    }
+}
+
+void AudioScope::computeOutputData() {
+    _scopeOutputLeftData = getScopeVector(_scopeOutputLeft, _scopeOutputOffset);
+    if (shouldTrigger(_scopeOutputLeftData)) {
+        storeTriggerValues();
+    }
+    _scopeOutputRightData = getScopeVector(_scopeOutputRight, _scopeOutputOffset);
+    if (shouldTrigger(_scopeOutputRightData)) {
+        storeTriggerValues();
+    }
 }
 
 int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_t* source, int sourceSamplesPerChannel,
@@ -231,7 +237,7 @@ int AudioScope::addBufferToScope(QByteArray* byteArray, int frameOffset, const i
 }
 
 int AudioScope::addSilenceToScope(QByteArray* byteArray, int frameOffset, int silentSamples) {
-                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                 
     // Short int pointer to mapped samples in byte array
     int16_t* destination = (int16_t*)byteArray->data();
     
@@ -271,6 +277,7 @@ void AudioScope::addStereoSamplesToScope(const QByteArray& samples) {
     _scopeOutputOffset = addBufferToScope(_scopeOutputRight, _scopeOutputOffset, samplesData, samplesPerChannel, 1, AudioConstants::STEREO);
     
     _scopeLastFrame = samples.right(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+    computeOutputData();
 }
 
 void AudioScope::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
@@ -302,4 +309,5 @@ void AudioScope::addInputToScope(const QByteArray& inputSamples) {
     _scopeInputOffset = addBufferToScope(_scopeInput, _scopeInputOffset,
                                          reinterpret_cast<const int16_t*>(inputSamples.data()),
                                          inputSamples.size() / sizeof(int16_t), INPUT_AUDIO_CHANNEL, NUM_INPUT_CHANNELS);
+    computeInputData();
 }

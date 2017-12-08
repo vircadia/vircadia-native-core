@@ -14,12 +14,31 @@ Item {
     readonly property var originalAttachments: MyAvatar.getAttachmentsVariant();
     property var attachments: [];
 
-    Component.onCompleted: {
-        for (var i = 0; i < originalAttachments.length; ++i) {
-            var attachment = originalAttachments[i];
+    function reload(){
+        content.attachments = [];
+        var currentAttachments = MyAvatar.getAttachmentsVariant();
+        listView.model.clear();
+        for (var i = 0; i < currentAttachments.length; ++i) {
+            var attachment = currentAttachments[i];
             content.attachments.push(attachment);
             listView.model.append({});
         }
+    }
+    
+    Connections {
+        id: onAttachmentsChangedConnection
+        target: MyAvatar
+        onAttachmentsChanged: reload()
+    }
+
+    Component.onCompleted: {
+        reload()
+    }
+
+    function setAttachmentsVariant(attachments) {
+        onAttachmentsChangedConnection.enabled = false;
+        MyAvatar.setAttachmentsVariant(attachments);
+        onAttachmentsChangedConnection.enabled = true;
     }
 
     Column {
@@ -80,11 +99,15 @@ Item {
                                 attachments.splice(index, 1);
                                 listView.model.remove(index, 1);
                             }
-                            onUpdateAttachment: MyAvatar.setAttachmentsVariant(attachments);
+                            onUpdateAttachment: {
+                                setAttachmentsVariant(attachments);
+                            }
                         }
                     }
 
-                    onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
+                    onCountChanged: {
+                        setAttachmentsVariant(attachments);
+                    }
 
                     /*
                     // DEBUG
@@ -208,7 +231,7 @@ Item {
                     };
                     attachments.push(template);
                     listView.model.append({});
-                    MyAvatar.setAttachmentsVariant(attachments);
+                    setAttachmentsVariant(attachments);
                 }
             }
 
@@ -238,7 +261,7 @@ Item {
                 id: cancelAction
                 text: "Cancel"
                 onTriggered: {
-                    MyAvatar.setAttachmentsVariant(originalAttachments);
+                    setAttachmentsVariant(originalAttachments);
                     closeDialog();
                 }
             }
@@ -251,7 +274,7 @@ Item {
                         console.log("Attachment " + i + ": " + attachments[i]);
                     }
 
-                    MyAvatar.setAttachmentsVariant(attachments);
+                    setAttachmentsVariant(attachments);
                     closeDialog();
                 }
             }

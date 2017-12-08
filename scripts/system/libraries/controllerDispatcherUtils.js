@@ -35,12 +35,15 @@
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
+   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
+   makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
    BUMPER_ON_VALUE:true,
+   getEntityParents:true,
    findHandChildEntities:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
@@ -100,27 +103,43 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData"
+    "userData",
+    "type"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
 // requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
-makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns) {
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns, enableLaserForHand) {
+    if (enableLaserForHand === undefined) {
+        enableLaserForHand = -1;
+    }
+
     return {
         priority: priority,
         activitySlots: activitySlots,
         requiredDataForReady: requiredDataForReady,
-        sleepMSBetweenRuns: sleepMSBetweenRuns
+        sleepMSBetweenRuns: sleepMSBetweenRuns,
+        handLaser: enableLaserForHand
     };
 };
 
-makeRunningValues = function (active, targets, requiredDataForRun) {
+makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
+    return {
+        targetID: targetID,
+        isOverlay: isOverlay,
+        hand: hand,
+        offset: offset
+    };
+};
+
+makeRunningValues = function (active, targets, requiredDataForRun, laserLockInfo) {
     return {
         active: active,
         targets: targets,
-        requiredDataForRun: requiredDataForRun
+        requiredDataForRun: requiredDataForRun,
+        laserLockInfo: laserLockInfo
     };
 };
 
@@ -253,22 +272,8 @@ projectOntoEntityXYPlane = function (entityID, worldPos, props) {
 projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldPos) {
     var position = Overlays.getProperty(overlayID, "position");
     var rotation = Overlays.getProperty(overlayID, "rotation");
-    var dimensions;
-
-    var dpi = Overlays.getProperty(overlayID, "dpi");
-    if (dpi) {
-        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
-        var resolution = Overlays.getProperty(overlayID, "resolution");
-        resolution.z = 1; // Circumvent divide-by-zero.
-        var scale = Overlays.getProperty(overlayID, "dimensions");
-        scale.z = 0.01; // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
-    } else {
-        dimensions = Overlays.getProperty(overlayID, "dimensions");
-        if (dimensions.z) {
-            dimensions.z = 0.01; // overlay dimensions are 2D, not 3D.
-        }
-    }
+    var dimensions = Overlays.getProperty(overlayID, "dimensions");
+    dimensions.z = 0.01; // we are projecting onto the XY plane of the overlay, so ignore the z dimension
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
 };
@@ -304,6 +309,23 @@ findGroupParent = function (controllerData, targetProps) {
     }
 
     return targetProps;
+};
+
+getEntityParents = function(targetProps) {
+    var parentProperties = [];
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        parentProperties.push(parentProps);
+    }
+
+    return parentProperties;
 };
 
 

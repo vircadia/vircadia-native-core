@@ -39,6 +39,7 @@ Item {
     property int itemEdition;
     property int numberSold;
     property int limitedRun;
+    property bool isWearable;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -342,14 +343,13 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.right: parent.right;
             width: height;
-            enabled: root.canRezCertifiedItems && root.purchaseStatus !== "invalidated";
+            enabled: (root.canRezCertifiedItems || root.isWearable) && root.purchaseStatus !== "invalidated";
             
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.isWearable ? "rez" : "wear");
             }
 
             style: ButtonStyle {
@@ -415,7 +415,7 @@ Item {
                         size: 16;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: "Rez It"
+                        text: root.isWearable ? "Wear It" : "Rez It"
                     }
                 }
             }

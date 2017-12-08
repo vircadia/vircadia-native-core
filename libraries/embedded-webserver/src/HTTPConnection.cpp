@@ -17,6 +17,7 @@
 #include "HTTPConnection.h"
 #include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
+#include <QUrlQuery>
 
 const char* HTTPConnection::StatusCode200 = "200 OK";
 const char* HTTPConnection::StatusCode301 = "301 Moved Permanently";
@@ -52,10 +53,33 @@ HTTPConnection::~HTTPConnection() {
     }
 }
 
+QHash<QString, QString> HTTPConnection::parseUrlEncodedForm() {
+    // make sure we have the correct MIME type
+    QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
+
+    QString contentType = elements.at(0).trimmed();
+    if (contentType != "application/x-www-form-urlencoded") {
+        return QHash<QString, QString>();
+    }
+
+    QUrlQuery form { _requestContent };
+    QHash<QString, QString> pairs;
+    for (auto pair : form.queryItems()) {
+        auto key = QUrl::fromPercentEncoding(pair.first.toLatin1().replace('+', ' '));
+        auto value = QUrl::fromPercentEncoding(pair.second.toLatin1().replace('+', ' '));
+        pairs[key] = value;
+    }
+
+    return pairs;
+}
+
 QList<FormData> HTTPConnection::parseFormData() const {
     // make sure we have the correct MIME type
     QList<QByteArray> elements = _requestHeaders.value("Content-Type").split(';');
-    if (elements.at(0).trimmed() != "multipart/form-data") {
+
+    QString contentType = elements.at(0).trimmed();
+
+    if (contentType != "multipart/form-data") {
         return QList<FormData>();
     }
 

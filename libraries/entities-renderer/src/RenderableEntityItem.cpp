@@ -59,7 +59,7 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     const QUuid& myNodeID = nodeList->getSessionUUID();
 
     statusGetters.push_back([entity]() -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastEditedFromRemote();
+        uint64_t delta = usecTimestampNow() - entity->getLastEditedFromRemote();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.2f * USECS_PER_SECOND);
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
@@ -71,7 +71,7 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
-        quint64 delta = usecTimestampNow() - entity->getLastBroadcast();
+        uint64_t delta = usecTimestampNow() - entity->getLastBroadcast();
         const float WAIT_THRESHOLD_INV = 1.0f / (0.4f * USECS_PER_SECOND);
         float normalizedDelta = delta * WAIT_THRESHOLD_INV;
         // Status icon will scale from 1.0f down to 0.0f after WAIT_THRESHOLD
@@ -278,6 +278,7 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     if (!isValidRenderItem()) {
         return;
     }
+    _updateTime = usecTimestampNow();
 
     // FIXME is this excessive?
     if (!needsRenderUpdate()) {
@@ -293,6 +294,14 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
+}
+
+void EntityRenderer::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
 }
 
 //

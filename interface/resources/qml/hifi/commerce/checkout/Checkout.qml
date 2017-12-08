@@ -39,7 +39,8 @@ Rectangle {
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
+    property bool isWearable;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -78,9 +79,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
+                root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -583,7 +587,7 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems;
+            enabled: root.canRezCertifiedItems || root.isWearable;
             buttonGlyph: hifi.glyphs.lightning;
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -592,18 +596,17 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: "Rez It"
+            text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
             }
         }
         RalewaySemiBold {
             id: noPermissionText;
-            visible: !root.canRezCertifiedItems;
+            visible: !root.canRezCertifiedItems && !root.isWearable;
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">You do not have Certified Rez permissions in this domain.</a></font>'
             // Text size
             size: 16;
@@ -632,7 +635,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: explainRezText;
-            //visible: !root.isWearable;
+            visible: !root.isWearable;
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
             // Text size
             size: 16;

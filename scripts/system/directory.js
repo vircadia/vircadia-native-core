@@ -15,7 +15,7 @@ Script.include([
 
 var toolIconUrl = Script.resolvePath("assets/images/tools/");
 
-var DIRECTORY_WINDOW_URL = "https://metaverse.highfidelity.com/directory";
+var DIRECTORY_WINDOW_URL = Account.metaverseServerURL + "/directory";
 var directoryWindow = new OverlayWebWindow({
     title: 'Directory',
     source: "about:blank",
@@ -63,7 +63,7 @@ var toolBar = (function() {
             y: -TOOLBAR_MARGIN_Y - toolHeight
         });
         browseDirectoryButton = toolBar.addTool({
-            imageURL: toolIconUrl + "directory-01.svg",
+            imageURL: toolIconUrl + "directory.svg",
             subImage: {
                 x: 0,
                 y: Tool.IMAGE_WIDTH,

@@ -105,13 +105,13 @@ void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Bat
     PerformanceTimer perfTimer("DLE->setupBatch()");
     model::LightPointer keySunLight;
     auto lightStage = args->_scene->getStage<LightStage>();
-    if (lightStage && lightStage->_currentFrame._sunLights.size()) {
-        keySunLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
+    if (lightStage) {
+        keySunLight = lightStage->getCurrentKeyLight();
     }
 
     model::LightPointer keyAmbiLight;
-    if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
-        keyAmbiLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
+    if (lightStage) {
+        keyAmbiLight = lightStage->getCurrentAmbientLight();
     }
 
     if (keySunLight) {
@@ -511,12 +511,19 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         auto keyLight = lightAndShadow.first;
 
+        model::LightPointer keyAmbientLight;
+        if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
+            keyAmbientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
+        }
+        bool hasAmbientMap = (keyAmbientLight != nullptr);
+
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
+
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
-                if (keyLight->getAmbientMap()) {
+                if (hasAmbientMap) {
                     program = deferredLightingEffect->_directionalSkyboxLightShadow;
                     locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
                 } else {
@@ -526,7 +533,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             } else {
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
-                if (keyLight->getAmbientMap()) {
+                if (hasAmbientMap) {
                     program = deferredLightingEffect->_directionalSkyboxLight;
                     locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
@@ -613,7 +620,7 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
             // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->_lightArrayBuffer);
+            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
 
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
             batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);

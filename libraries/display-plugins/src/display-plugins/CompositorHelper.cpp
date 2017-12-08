@@ -234,7 +234,8 @@ void CompositorHelper::handleLeaveEvent() {
 
 bool CompositorHelper::handleRealMouseMoveEvent(bool sendFakeEvent) {
     // If the mouse move came from a capture mouse related move, we completely ignore it.
-    if (_ignoreMouseMove) {
+    // Note: if not going to synthesize event - do not touch _ignoreMouseMove flag
+    if (_ignoreMouseMove && sendFakeEvent) {
         _ignoreMouseMove = false;
         return true; // swallow the event
     }
@@ -246,7 +247,12 @@ bool CompositorHelper::handleRealMouseMoveEvent(bool sendFakeEvent) {
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
         setReticlePosition(newReticlePosition, sendFakeEvent);
-        _ignoreMouseMove = true;
+
+        // Note: if not going to synthesize event - do not touch _ignoreMouseMove flag
+        if (sendFakeEvent) {
+            _ignoreMouseMove = true;
+        }
+
         QCursor::setPos(QPoint(_lastKnownRealMouse.x(), _lastKnownRealMouse.y())); // move cursor back to where it was
         return true;  // swallow the event
     } else {
@@ -431,9 +437,11 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         } else {
             d = glm::normalize(overlaySurfacePoint);
         }
-        reticlePosition = headPosition + (d * getReticleDepth());
+        // Our sensor to world matrix always has uniform scale
+        float sensorSpaceReticleDepth = getReticleDepth() / extractScale(_sensorToWorldMatrix).x;
+        reticlePosition = headPosition + (d * sensorSpaceReticleDepth);
         quat reticleOrientation = cancelOutRoll(glm::quat_cast(_currentDisplayPlugin->getHeadPose()));
-        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * getReticleDepth());
+        vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize * sensorSpaceReticleDepth);
         return glm::inverse(eyePose) * createMatFromScaleQuatAndPos(reticleScale, reticleOrientation, reticlePosition);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;

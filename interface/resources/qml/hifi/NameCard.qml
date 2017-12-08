@@ -17,7 +17,7 @@ import "../styles-uit"
 import "../controls-uit" as HifiControls
 import "toolbars"
 
-// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager from root context
+// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager, Account from root context
 
 Item {
     id: thisNameCard
@@ -30,7 +30,6 @@ Item {
 
     // Properties
     property string profileUrl: "";
-    property string defaultBaseUrl: AddressManager.metaverseServerUrl;
     property string connectionStatus : ""
     property string uuid: ""
     property string displayName: ""
@@ -59,7 +58,7 @@ Item {
         clip: true
         Image {
             id: userImage
-            source: profileUrl !== "" ? ((0 === profileUrl.indexOf("http")) ? profileUrl : (defaultBaseUrl + profileUrl)) : "";
+            source: profileUrl !== "" ? ((0 === profileUrl.indexOf("http")) ? profileUrl : (Account.metaverseServerURL + profileUrl)) : "";
             mipmap: true;
             // Anchors
             anchors.fill: parent
@@ -95,7 +94,7 @@ Item {
             enabled: (selected && activeTab == "nearbyTab") || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+                userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
                 userInfoViewer.visible = true;
             }
             onEntered: infoHoverImage.visible = true;
@@ -366,7 +365,7 @@ Item {
         enabled: selected
         hoverEnabled: true
         onClicked: {
-            userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+            userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
             userInfoViewer.visible = true;
         }
         onEntered: {
@@ -433,7 +432,8 @@ Item {
         anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
         x: 240
         onClicked: {
-            AddressManager.goToUser(thisNameCard.userName);
+            console.log("Vist user button clicked."); // Remove after debugging.
+            AddressManager.goToUser(thisNameCard.userName, false);
             UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
         }
     }
@@ -442,7 +442,7 @@ Item {
     Rectangle {
         id: nameCardVUMeter
         // Size
-        width: isMyCard ? myDisplayName.width - 20 : ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * (gainSlider.width);
+        width: ((gainSlider.value - gainSlider.minimumValue)/(gainSlider.maximumValue - gainSlider.minimumValue)) * (gainSlider.width);
         height: 8
         // Anchors
         anchors.bottom: isMyCard ? avatarImage.bottom : parent.bottom;
@@ -526,16 +526,14 @@ Item {
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
         anchors.left: nameCardVUMeter.left;
         // Properties
-        visible: !isMyCard && selected && pal.activeTab == "nearbyTab" && isPresent;
+        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent;
         value: Users.getAvatarGain(uuid)
         minimumValue: -60.0
         maximumValue: 20.0
         stepSize: 5
         updateValueWhileDragging: true
         onValueChanged: {
-            if (uuid !== "") {
-                updateGainFromQML(uuid, value, false);
-            }
+            updateGainFromQML(uuid, value, false);
         }
         onPressedChanged: {
             if (!pressed) {
@@ -575,7 +573,19 @@ Item {
                 implicitHeight: 16
             }
         }
-    }
+         RalewayRegular {
+            // The slider for my card is special, it controls the master gain
+            id: gainSliderText;
+            visible: isMyCard;
+            text: "master volume";
+            size: hifi.fontSizes.tabularData;
+            anchors.left: parent.right;
+            anchors.leftMargin: 8;
+            color: hifi.colors.baseGrayHighlight;
+            horizontalAlignment: Text.AlignLeft;
+            verticalAlignment: Text.AlignTop;
+        }
+   }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
         Users.setAvatarGain(avatarUuid, sliderValue);
@@ -595,7 +605,10 @@ Item {
         // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
         // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
         // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
+        // Position avatar 2 metres from the target in the direction that target avatar was facing.
         MyAvatar.position = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.orientation, {x: 0, y: 0, z: -2}));
-        MyAvatar.orientation = Quat.multiply(avatar.orientation, {y: 1});
+        
+        // Rotate avatar on Y axis to face target avatar and cancel out any inherited roll and pitch.
+        MyAvatar.orientation = Quat.cancelOutRollAndPitch(Quat.multiply(avatar.orientation, {y: 1}));
     }
 }

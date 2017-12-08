@@ -18,11 +18,16 @@ class PointerEvent;
 namespace render { namespace entities {
 
 class WebEntityRenderer : public TypedEntityRenderer<WebEntityItem> {
+    Q_OBJECT
     using Parent = TypedEntityRenderer<WebEntityItem>;
     friend class EntityRenderer;
 
 public:
     WebEntityRenderer(const EntityItemPointer& entity);
+
+    Q_INVOKABLE void hoverEnterEntity(const PointerEvent& event);
+    Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
+    Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
 protected:
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
@@ -44,9 +49,6 @@ private:
     bool hasWebSurface();
     void loadSourceURL();
     glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
-    void handlePointerEvent(const TypedEntityPointer& entity, const PointerEvent& event);
-
-private:
 
     int _geometryId{ 0 };
     enum contentType {
@@ -57,9 +59,9 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     glm::vec3 _contextPosition;
     gpu::TexturePointer _texture;
-    bool _pressed{ false };
     QString _lastSourceUrl;
     uint16_t _lastDPI;
+    bool _lastLocked;
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
     Transform _renderTransform;

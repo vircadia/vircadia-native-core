@@ -11,7 +11,6 @@
 
 #include "Image.h"
 
-#include <nvtt/nvtt.h>
 #include <glm/gtc/packing.hpp>
 
 #include <QtCore/QtGlobal>
@@ -19,6 +18,15 @@
 #include <QImage>
 #include <QBuffer>
 #include <QImageReader>
+
+
+#if defined(Q_OS_ANDROID)
+#define CPU_MIPMAPS 0
+#else
+#define CPU_MIPMAPS 1
+#include <nvtt/nvtt.h>
+#endif
+
 
 #include <Finally.h>
 #include <Profile.h>
@@ -28,13 +36,6 @@
 #include "ImageLogging.h"
 
 using namespace gpu;
-
-#if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
-#else
-#define CPU_MIPMAPS 1
-#include <nvtt/nvtt.h>
-#endif
 
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
@@ -410,7 +411,6 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
         qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
     }
 };
-#endif
 
 class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
 public:
@@ -636,6 +636,10 @@ void generateLDRMips(gpu::Texture* texture, QImage& image, const std::atomic<boo
     compressor.setTaskDispatcher(&dispatcher);
     compressor.process(inputOptions, compressionOptions, outputOptions);
 }
+
+#endif
+
+
 
 void generateMips(gpu::Texture* texture, QImage& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS

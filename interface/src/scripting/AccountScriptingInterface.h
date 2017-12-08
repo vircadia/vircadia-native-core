@@ -25,6 +25,11 @@ class AccountScriptingInterface : public QObject {
      * @property username {String} username if user is logged in, otherwise it returns "Unknown user"
      */
 
+public:
+
+    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
+    QUrl getMetaverseServerURL() { return DependencyManager::get<AccountManager>()->getMetaverseServerURL(); }
+
 signals:
 
     /**jsdoc
