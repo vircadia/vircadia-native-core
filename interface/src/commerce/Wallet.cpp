@@ -321,6 +321,16 @@ Wallet::Wallet() {
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         getWalletStatus();
+        _publicKeys.clear();
+
+        if (_securityImage) {
+            delete _securityImage;
+        }
+        _securityImage = nullptr;
+
+        // tell the provider we got nothing
+        updateImageProvider();
+        _passphrase->clear();
     });
 }
 
