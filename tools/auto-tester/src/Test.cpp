@@ -345,7 +345,21 @@ void Test::createTest() {
             QString newFilename = "ExpectedImage_" + QString::number(i-1).rightJustified(5, '0') + ".jpg";
             QString fullNewFileName = pathToImageDirectory + "/" + newFilename;
 
-            imageDirectory.rename(fullCurrentFilename, newFilename);
+            if (!imageDirectory.rename(fullCurrentFilename, newFilename)) {
+                if (!QFile::exists(fullCurrentFilename)) {
+                    messageBox.critical(0, "Error", "Could not rename file: " + fullCurrentFilename + " to: " + newFilename + "\n"
+                        + fullCurrentFilename + " not found"
+                        + "\nTest creation aborted"
+                    );
+                    exit(-1);
+                }
+                else {
+                    messageBox.critical(0, "Error", "Could not rename file: " + fullCurrentFilename + " to: " + newFilename + "\n"
+                        + "unknown error" + "\nTest creation aborted"
+                    );
+                    exit(-1);
+                }
+            }
             ++i;
         }
     }
