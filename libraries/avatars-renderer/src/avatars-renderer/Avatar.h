@@ -257,8 +257,8 @@ public:
 
     Q_INVOKABLE virtual float getEyeHeight() const override;
 
-    // returns eye height of avatar in meters, ignoreing avatar scale.
-    // if _targetScale is 1 then this will be identical to getEyeHeight;
+    // returns eye height of avatar in meters, ignoring avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight.
     virtual float getUnscaledEyeHeight() const override;
 
     // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
@@ -280,10 +280,17 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
+    // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
+
+    // hooked up to Model::rigReady & rigReset signals
+    void rigReady();
+    void rigReset();
 
 protected:
     float getUnscaledEyeHeightFromSkeleton() const;
+    void buildUnscaledEyeHeightCache();
+    void clearUnscaledEyeHeightCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -384,6 +391,8 @@ protected:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
+
+    ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
 };
 
 #endif // hifi_Avatar_h
