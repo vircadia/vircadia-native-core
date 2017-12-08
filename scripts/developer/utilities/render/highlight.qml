@@ -34,7 +34,9 @@ Item {
     }
 
     function resetSelectionView() {
-        selectionView.resetSelectionView();
+        if (selectionView !== undefined) {
+            selectionView.resetSelectionView();
+        }
     }
 
     Column {
@@ -69,7 +71,7 @@ Item {
                 id: styleSelectorLoader
                 sourceComponent: selectorWidget
                 width: 300
-                anchors.right: parent.right    
+                //anchors.right: parent.right    
             } 
             Component {
                 id: selectorWidget
@@ -112,6 +114,18 @@ Item {
 
         Separator {}
 
+        HifiControls.CheckBox {
+            text: "Highlight Hovered"
+            checked: false
+            onCheckedChanged: {
+                if (checked) {
+                    root.sendToScript("pick true")
+                } else {
+                    root.sendToScript("pick false")                    
+                }
+            } 
+        }
+        Separator {}
         Rectangle {
             id: selectionView
             anchors.left: parent.left
@@ -120,15 +134,15 @@ Item {
            color: hifi.colors.lightGray
 
             function resetSelectionView() {
-                // myModel.resetSelectionView();
-                var entities = Selection.getSelectedItemsList(root.listName)["entities"]
-                //print("resetSelectionView" + JSON.stringify(entities))
                 myModel.clear()
+                var entities = Selection.getSelectedItemsList(root.listName)["entities"]
+                if (entities === undefined) {
+                    return;
+                }
                 var fLen = entities.length;
                 for (var i = 0; i < fLen; i++) {
                     myModel.append({ "objectID": JSON.stringify(entities[i]) })
-                   // print("resetSelectionView" + JSON.stringify( entities[i]))
-                }
+                 }
             }            
 
             ListModel {
