@@ -114,7 +114,8 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     _skeletonModel = std::make_shared<MySkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
-
+    connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
+    connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 
     using namespace recording;
     _skeletonModel->flagAsCauterized();
