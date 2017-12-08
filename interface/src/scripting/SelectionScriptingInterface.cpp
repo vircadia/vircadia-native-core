@@ -18,7 +18,9 @@ GameplayObjects::GameplayObjects() {
 
 bool GameplayObjects::addToGameplayObjects(const QUuid& avatarID) {
     containsData = true;
-    _avatarIDs.push_back(avatarID);
+    if (std::find(_avatarIDs.begin(), _avatarIDs.end(), avatarID) == _avatarIDs.end()) {
+        _avatarIDs.push_back(avatarID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
@@ -28,7 +30,9 @@ bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
 
 bool GameplayObjects::addToGameplayObjects(const EntityItemID& entityID) {
     containsData = true;
-    _entityIDs.push_back(entityID);
+    if (std::find(_entityIDs.begin(), _entityIDs.end(), entityID) == _entityIDs.end()) {
+        _entityIDs.push_back(entityID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
@@ -38,7 +42,9 @@ bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
 
 bool GameplayObjects::addToGameplayObjects(const OverlayID& overlayID) {
     containsData = true;
-    _overlayIDs.push_back(overlayID);
+    if (std::find(_overlayIDs.begin(), _overlayIDs.end(), overlayID) == _overlayIDs.end()) {
+        _overlayIDs.push_back(overlayID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {

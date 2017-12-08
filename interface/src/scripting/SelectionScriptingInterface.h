@@ -140,10 +140,11 @@ public:
     * Query the list of avatars, entities and overlays stored in a particular selection.
     * @function Selection.getList
     * @param listName {string} name of the selection
-    * @return a js object containing the following properties (if the array of obkjects are not empty):
+    * @return a js object describing the content of a selection list with the following properties:
     *  - "entities": [ and array of the entityID of the entities in the selection]
     *  - "avatars": [ and array of the avatarID of the avatars in the selection]
     *  - "overlays": [ and array of the overlayID of the overlays in the selection]
+    *  If the list name doesn't exist, the function returns an empty js object with no properties.
     */
     Q_INVOKABLE QVariantMap getSelectedItemsList(const QString& listName) const;
 

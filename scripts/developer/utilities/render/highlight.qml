@@ -62,7 +62,6 @@ Item {
                     print(root.styleList)
                     styleSelectorLoader.sourceComponent = undefined;
                     styleSelectorLoader.sourceComponent = selectorWidget;
-                    resetSelectionView();
                 }
             }
 
@@ -87,6 +86,7 @@ Item {
                         interval: 100; running: false; repeat: false
                         onTriggered: {
                             styleWidgetLoader.sourceComponent = styleWidget
+                            resetSelectionView();
                         }
                     }
                     onCurrentIndexChanged: {
