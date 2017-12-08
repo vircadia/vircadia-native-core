@@ -200,9 +200,9 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     FBXNode geometryNode;
     geometryNode.name = GEOMETRY_NODE_NAME;
     {
-        _geometryID = _nodeID;
+        _geometryID = nextNodeID();
         geometryNode.properties = {
-            _nodeID++,
+            _geometryID,
             GEOMETRY_NODE_NAME,
             MESH
         };
@@ -218,8 +218,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     FBXNode modelNode;
     modelNode.name = MODEL_NODE_NAME;
     {
-        _modelID = _nodeID++;
-        modelNode.properties = { _nodeID, MODEL_NODE_NAME, MESH };
+        _modelID = nextNodeID();
+        modelNode.properties = { _modelID, MODEL_NODE_NAME, MESH };
     }
 
     _objectNode.children = { geometryNode, modelNode };
@@ -248,13 +248,13 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         QString material = meshParts[i].materialID;
         FBXMaterial currentMaterial = geometry.materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
-            _textureID = _nodeID;
+            _textureID = nextNodeID();
             _mapTextureMaterial.emplace_back(_textureID, i);
 
             FBXNode textureNode;
             {
                 textureNode.name = TEXTURE_NODE_NAME;
-                textureNode.properties = { _nodeID++ };
+                textureNode.properties = { _textureID };
             }
 
             // Texture node child - TextureName node
@@ -336,7 +336,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 
 // Set properties for material nodes
 void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry) {
-    auto materialID = _nodeID++;
+    auto materialID = nextNodeID();
     _materialIDs.push_back(materialID);
     materialNode.properties = { materialID, material, MESH };
 

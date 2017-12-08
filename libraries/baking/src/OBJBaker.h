@@ -20,8 +20,7 @@
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
-using TextureID = qlonglong;
-using MaterialID = qlonglong;
+using NodeID = qlonglong;
 
 class OBJBaker : public ModelBaker {
     Q_OBJECT
@@ -42,13 +41,14 @@ private:
     void loadOBJ();
     void createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry);
     void setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry);
+    NodeID nextNodeID() { return _nodeID++; }
 
-    qlonglong _nodeID = 0;
-    qlonglong _geometryID;
-    qlonglong _modelID;
-    std::vector<MaterialID> _materialIDs;
-    qlonglong _textureID;
-    std::vector<std::pair<TextureID, int>> _mapTextureMaterial;
+    NodeID _nodeID { 0 };
+    NodeID _geometryID;
+    NodeID _modelID;
+    std::vector<NodeID> _materialIDs;
+    NodeID _textureID;
+    std::vector<std::pair<NodeID, int>> _mapTextureMaterial;
     FBXNode _objectNode;
 };
 #endif // hifi_OBJBaker_h
