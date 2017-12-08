@@ -20,8 +20,8 @@
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
-using TextureID = int64_t;
-using MaterialID = int64_t;
+using TextureID = qlonglong;
+using MaterialID = qlonglong;
 
 class OBJBaker : public ModelBaker {
     Q_OBJECT
