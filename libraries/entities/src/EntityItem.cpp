@@ -1606,6 +1606,48 @@ void EntityItem::setParentID(const QUuid& value) {
         if (tree && !oldParentID.isNull()) {
             tree->removeFromChildrenOfAvatars(getThisPointer());
         }
+
+        uint32_t oldParentNoBootstrapping = 0;
+        uint32_t newParentNoBootstrapping = 0;
+        if (!value.isNull() && tree) {
+            EntityItemPointer entity = tree->findEntityByEntityItemID(value);
+            if (entity) {
+                newParentNoBootstrapping = entity->getDirtyFlags() & Simulation::NO_BOOTSTRAPPING;
+            }
+        }
+
+        if (!oldParentID.isNull() && tree) {
+            EntityItemPointer entity = tree->findEntityByEntityItemID(oldParentID);
+            if (entity) {
+                oldParentNoBootstrapping = entity->getDirtyFlags() & Simulation::NO_BOOTSTRAPPING;
+            }
+        }
+
+        if (!value.isNull() && (value == Physics::getSessionUUID() || value == AVATAR_SELF_ID)) {
+            newParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
+        }
+
+        if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
+            if ((bool)(newParentNoBootstrapping & Simulation::NO_BOOTSTRAPPING)) {
+                markDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+                forEachDescendant([&](SpatiallyNestablePointer object) {
+                        if (object->getNestableType() == NestableType::Entity) {
+                            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                            entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP | Simulation::NO_BOOTSTRAPPING);
+                        }
+                });
+            } else {
+                clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+                forEachDescendant([&](SpatiallyNestablePointer object) {
+                        if (object->getNestableType() == NestableType::Entity) {
+                            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                            entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                            entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+                        }
+                });
+            }
+        }
+
         SpatiallyNestable::setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
@@ -1849,39 +1891,8 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             }
         }
 
-        if (userMask & USER_COLLISION_GROUP_MY_AVATAR) {
-            bool iAmHoldingThis = false;
-            // if this entity is a descendant of MyAvatar, don't collide with MyAvatar.  This avoids the
-            // "bootstrapping" problem where you can shoot yourself across the room by grabbing something
-            // and holding it against your own avatar.
-            if (isChildOfMyAvatar()) {
-                iAmHoldingThis = true;
-            }
-            // also, don't bootstrap our own avatar with a hold action
-            QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
-            QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
-            while (i != holdActions.end()) {
-                EntityDynamicPointer action = *i;
-                if (action->isMine()) {
-                    iAmHoldingThis = true;
-                    break;
-                }
-                i++;
-            }
-            QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
-            i = farGrabActions.begin();
-            while (i != farGrabActions.end()) {
-                EntityDynamicPointer action = *i;
-                if (action->isMine()) {
-                    iAmHoldingThis = true;
-                    break;
-                }
-                i++;
-            }
-
-            if (iAmHoldingThis) {
-                userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
-            }
+        if ((bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
+            userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
         mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
     }
@@ -1976,7 +1987,20 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
     if (success) {
         _allActionsDataCache = newDataCache;
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        auto actionType = action->getType();
+        if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
+            if (!(bool)(_dirtyFlags & Simulation::NO_BOOTSTRAPPING)) {
+                _dirtyFlags |= Simulation::NO_BOOTSTRAPPING;
+                _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+                forEachDescendant([&](SpatiallyNestablePointer child) {
+                    if (child->getNestableType() == NestableType::Entity) {
+                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                        entity->markDirtyFlags(Simulation::NO_BOOTSTRAPPING | Simulation::DIRTY_COLLISION_GROUP);
+                    }
+                });
+            }
+        }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
     }
@@ -2017,6 +2041,29 @@ bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& a
     return success;
 }
 
+bool EntityItem::stillHasGrabActions() const {
+    QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
+    QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
+    while (i != holdActions.end()) {
+        EntityDynamicPointer action = *i;
+        if (action->isMine()) {
+            return true;
+        }
+        i++;
+    }
+    QList<EntityDynamicPointer> farGrabActions = getActionsOfType(DYNAMIC_TYPE_FAR_GRAB);
+    i = farGrabActions.begin();
+    while (i != farGrabActions.end()) {
+        EntityDynamicPointer action = *i;
+        if (action->isMine()) {
+            return true;
+        }
+        i++;
+    }
+
+    return false;
+}
+
 bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation) {
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
@@ -2030,7 +2077,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
 
         action->setOwnerEntity(nullptr);
         action->setIsMine(false);
-        _objectActions.remove(actionID);
 
         if (simulation) {
             action->removeFromSimulation(simulation);
@@ -2039,7 +2085,23 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        auto removedActionType = action->getType();
+        if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
+            _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+            forEachDescendant([&](SpatiallyNestablePointer child) {
+                if (child->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                    entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                    entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+                }
+            });
+        } else {
+            // NO-OP: we assume NO_BOOTSTRAPPING bits and collision group are correct
+            // because they should have been set correctly when the action was added
+            // and/or when children were linked
+        }
+        _objectActions.remove(actionID);
         setDynamicDataNeedsTransmit(true);
         return success;
     }
