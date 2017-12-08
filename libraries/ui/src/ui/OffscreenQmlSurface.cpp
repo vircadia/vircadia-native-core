@@ -18,6 +18,7 @@
 #include <QtQml/QtQml>
 #include <QtQml/QQmlEngine>
 #include <QtQml/QQmlComponent>
+#include <QtQml/QQmlFileSelector>
 #include <QtQuick/QQuickItem>
 #include <QtQuick/QQuickWindow>
 #include <QtQuick/QQuickRenderControl>
@@ -276,7 +277,9 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
+#if !defined(Q_OS_ANDROID)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
+#endif
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
         return newTexture;
@@ -416,6 +419,8 @@ static size_t globalEngineRefCount{ 0 };
 #endif
 
 void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
+    new QQmlFileSelector(engine, window);
+
     // register the pixmap image provider (used only for security image, for now)
     engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
 
@@ -440,8 +445,10 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     if (!javaScriptToInject.isEmpty()) {
         rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
     }
+#if !defined(Q_OS_ANDROID)
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+#endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
 }
 
@@ -615,10 +622,12 @@ void OffscreenQmlSurface::onAboutToQuit() {
 }
 
 void OffscreenQmlSurface::disconnectAudioOutputTimer() {
+#if !defined(Q_OS_ANDROID)
     if (_audioOutputUpdateTimer.isActive()) {
         _audioOutputUpdateTimer.stop();
     }
     QObject::disconnect(&_audioOutputUpdateTimer);
+#endif
 }
 
 void OffscreenQmlSurface::create() {
@@ -668,7 +677,8 @@ void OffscreenQmlSurface::create() {
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
     _renderControl->initialize(_canvas->getContext());
-    
+
+#if !defined(Q_OS_ANDROID)
     // Connect with the audio client and listen for audio device changes
     auto audioIO = DependencyManager::get<AudioClient>();
     connect(audioIO.data(), &AudioClient::deviceChanged, this, [&](QAudio::Mode mode, const QAudioDeviceInfo& device) {
@@ -684,6 +694,7 @@ void OffscreenQmlSurface::create() {
     int waitForAudioQmlMs = 200;
     _audioOutputUpdateTimer.setInterval(waitForAudioQmlMs);
     _audioOutputUpdateTimer.setSingleShot(true);
+#endif
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
@@ -695,20 +706,25 @@ void OffscreenQmlSurface::create() {
 }
 
 void OffscreenQmlSurface::changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate) {
+#if !defined(Q_OS_ANDROID)
     if (_rootItem != nullptr && !isHtmlUpdate) {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     }
     emit audioOutputDeviceChanged(deviceName);
+#endif
 }
 
 void OffscreenQmlSurface::forceHtmlAudioOutputDeviceUpdate() {
+#if !defined(Q_OS_ANDROID)
     auto audioIO = DependencyManager::get<AudioClient>();
     QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
     QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection,
         Q_ARG(QString, deviceName), Q_ARG(bool, true));
+#endif
 }
 
 void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
+#if !defined(Q_OS_ANDROID)
     if (QThread::currentThread() != qApp->thread()) {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     } else {
@@ -719,6 +735,7 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         }
         _audioOutputUpdateTimer.start();
     }
+#endif
 }
 
 static uvec2 clampSize(const uvec2& size, uint32_t maxDimension) {
@@ -1348,14 +1365,11 @@ void OffscreenQmlSurface::lowerKeyboard() {
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric, bool passwordField) {
     qCDebug(uiLogging) << "setKeyboardRaised: " << object << ", raised: " << raised << ", numeric: " << numeric << ", password: " << passwordField;
 
-#if Q_OS_ANDROID
-    return;
-#endif
-
     if (!object) {
         return;
     }
 
+#if !defined(Q_OS_ANDROID)
     // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
     if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
         QQuickItem* item = dynamic_cast<QQuickItem*>(object);
@@ -1392,6 +1406,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
             item = dynamic_cast<QQuickItem*>(item->parentItem());
         }
     }
+#endif
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {

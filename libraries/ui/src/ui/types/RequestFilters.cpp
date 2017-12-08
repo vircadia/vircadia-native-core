@@ -17,6 +17,8 @@
 
 #include "AccountManager.h"
 
+#if !defined(Q_OS_ANDROID)
+
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
@@ -77,3 +79,4 @@ void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
         info.setHttpHeader(CONTENT_HEADER.toLocal8Bit(), TYPE_VALUE.toLocal8Bit());
     }
 }
+#endif

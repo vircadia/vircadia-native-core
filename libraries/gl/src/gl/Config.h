@@ -14,10 +14,10 @@
 
 #include <QtCore/QtGlobal>
 
-#if defined(QT_OPENGL_ES_3_1)
-// Minimum GL ES version required is 3.1
+#if defined(Q_OS_ANDROID)
+// Minimum GL ES version required is 3.2
 #define GL_MIN_VERSION_MAJOR 0x03
-#define GL_MIN_VERSION_MINOR 0x01
+#define GL_MIN_VERSION_MINOR 0x02
 #define GL_DEFAULT_VERSION_MAJOR GL_MIN_VERSION_MAJOR
 #define GL_DEFAULT_VERSION_MINOR GL_MIN_VERSION_MINOR
 #else
@@ -33,7 +33,7 @@
 #if defined(Q_OS_ANDROID)
 
 #include <EGL/egl.h>
-#include <GLES3/gl31.h>
+#include <GLES3/gl32.h>
 
 #define GL_DEPTH_COMPONENT32_OES          0x81A7
 #define GL_TIME_ELAPSED_EXT               0x88BF

@@ -14,15 +14,17 @@
 #ifndef hifi_RequestFilters_h
 #define hifi_RequestFilters_h
 
+#include <QtCore/QtGlobal>
+
+#if !defined(Q_OS_ANDROID)
 #include <QObject>
 #include <QWebEngineUrlRequestInfo>
 
 class RequestFilters : public QObject {
-    Q_OBJECT
-
-public: 
+public:
     static void interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info);
     static void interceptFileType(QWebEngineUrlRequestInfo& info);
 };
+#endif
 
 #endif // hifi_RequestFilters_h

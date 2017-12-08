@@ -56,14 +56,6 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-if (ANDROID)
-  set(PLATFORM_QT_COMPONENTS AndroidExtras)
-  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
-else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
-endif ()
-
 find_package(
   Qt5 COMPONENTS
   Gui Multimedia Network OpenGL Qml Quick Script Svg

@@ -39,6 +39,17 @@ else()
     option(BUILD_TESTS "Build tests" ON)
 endif()
 
+if (ANDROID)
+  set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
+else ()
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+endif ()
+
+foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
+  list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
+endforeach()
+
+
 option(BUILD_INSTALLER "Build installer" ON)
 
 MESSAGE(STATUS "Build server:    " ${BUILD_SERVER})

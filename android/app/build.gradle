@@ -55,7 +55,6 @@ android {
 dependencies {
     implementation 'com.google.vr:sdk-audio:1.80.0'
     implementation 'com.google.vr:sdk-base:1.80.0'
-    implementation files('libs/QtAndroid-bundled.jar')
-    implementation files('libs/QtAndroidBearer-bundled.jar')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 

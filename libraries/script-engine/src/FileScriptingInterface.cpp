@@ -9,21 +9,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QTemporaryDir>
-#include <QDir>
-#include <QFile>
-#include <QDebug>
-#include <QBuffer>
-#include <QTextCodec>
-#include <QIODevice>
-#include <QUrl>
-#include <QByteArray>
-#include <QString>
-#include <QFileInfo>
+#include "FileScriptingInterface.h"
+
+#include <QtCore/QTemporaryDir>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QDebug>
+#include <QtCore/QBuffer>
+#include <QtCore/QTextCodec>
+#include <QtCore/QIODevice>
+#include <QtCore/QUrl>
+#include <QtCore/QByteArray>
+#include <QtCore/QString>
+#include <QtCore/QFileInfo>
+
+#if !defined(Q_OS_ANDROID)
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
+#endif
 
-#include "FileScriptingInterface.h"
 #include "ResourceManager.h"
 #include "ScriptEngineLogging.h"
 
@@ -68,7 +72,9 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
 }
 
 QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
-
+#if defined(Q_OS_ANDROID)
+    return QStringList();
+#else
     QDir dir(path);
     QString dirName = dir.path();
     qCDebug(scriptengine) << "Directory to unzip: " << dirName;
@@ -83,7 +89,7 @@ QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
         qCDebug(scriptengine) << "Extraction failed";
         return list;
     }
-
+#endif
 }
 
 // fix to check that we are only referring to a temporary directory
@@ -131,11 +137,12 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
         return;
     }*/
     QFileInfoList files;
-
+#if !defined(Q_OS_ANDROID)
     if (file.fileName().contains(".zip")) {
         qCDebug(scriptengine) << "Extracting archive: " + file.fileName();
         JlCompress::extractDir(file.fileName());
     }
+#endif
     files = file.dir().entryInfoList();
 
     /*if (files.empty()) {

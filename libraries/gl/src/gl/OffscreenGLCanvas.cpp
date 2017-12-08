@@ -46,15 +46,28 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
-
-    if (_context->create()) {
-        _offscreenSurface->setFormat(_context->format());
-        _offscreenSurface->create();
-        return _offscreenSurface->isValid();
+    if (!_context->create()) {
+        qFatal("Failed to create OffscreenGLCanvas context");
     }
-    qWarning("Failed to create OffscreenGLCanvas context");
 
-    return false;
+    _offscreenSurface->setFormat(_context->format());
+    _offscreenSurface->create();
+#if !defined(Q_OS_ANDROID)
+    if (!_context->makeCurrent(_offscreenSurface)) {
+        qFatal("Unable to make offscreen surface current");
+    }
+#else
+    // For some reason, the offscreen surface is considered invalid on android
+    // possibly because of a bad format?  Would need to add some logging to the 
+    // eglpbuffer implementation used from the android platform plugin.  
+    // Alternatively investigate the use of an invisible surface view to do
+    // a 'native' offscreen surface
+    if (!_offscreenSurface->isValid()) {
+        qFatal("Offscreen surface is invalid");
+    }
+#endif
+
+    return true;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {
