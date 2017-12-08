@@ -12,8 +12,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "../lib/styles-uit"
-import "../lib/controls-uit" as HifiControls
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 
     
 import "configSlider"
@@ -129,7 +129,7 @@ Rectangle {
                         }
                     }
                 }  
-                HifiControls.ConfigSlider {
+                ConfigSlider {
                     label: qsTr("Covariance gamma")
                     integral: false
                     config: Render.getConfig("RenderMainView.Antialiasing")
@@ -145,7 +145,7 @@ Rectangle {
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
                 }
         
-                HifiControls.ConfigSlider {
+                ConfigSlider {
                     label: qsTr("Source blend")
                     integral: false
                     config: Render.getConfig("RenderMainView.Antialiasing")
@@ -172,7 +172,7 @@ Rectangle {
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showCursorPixel"] = checked }
                 }
             }
-            HifiControls.ConfigSlider {
+            ConfigSlider {
                 label: qsTr("Debug Region <")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
@@ -186,7 +186,7 @@ Rectangle {
                 checked: Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"]
                 onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
             }           
-            HifiControls.ConfigSlider {
+            ConfigSlider {
                 label: qsTr("Debug Velocity Threshold [pix]")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
@@ -194,7 +194,7 @@ Rectangle {
                 max: 50
                 min: 0.0
             }
-            HifiControls.ConfigSlider {
+            ConfigSlider {
                 label: qsTr("Debug Orb Zoom")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
