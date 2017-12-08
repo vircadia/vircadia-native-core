@@ -71,7 +71,7 @@ void ModelBaker::abort() {
     }
 }
 
-bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback) {
+bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback) {
     if (mesh.wasCompressed) {
         handleError("Cannot re-bake a file that contains compressed mesh");
         return false;
@@ -106,12 +106,12 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
     bool hasPerFaceMaterials = (materialIDCallback) ? (mesh.parts.size() > 1 || materialIDCallback(0) != 0 ) : true;
     bool needsOriginalIndices{ hasDeformers };
 
-    int normalsAttributeID{ -1 };
-    int colorsAttributeID{ -1 };
-    int texCoordsAttributeID{ -1 };
-    int texCoords1AttributeID{ -1 };
-    int faceMaterialAttributeID{ -1 };
-    int originalIndexAttributeID{ -1 };
+    int normalsAttributeID { -1 };
+    int colorsAttributeID { -1 };
+    int texCoordsAttributeID { -1 };
+    int texCoords1AttributeID { -1 };
+    int faceMaterialAttributeID { -1 };
+    int originalIndexAttributeID { -1 };
 
     const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
                                                              3, draco::DT_FLOAT32);
@@ -244,14 +244,7 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
     return true;
 }
 
-QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTextureTypeCallback textureTypeCallback) {
-    static QByteArray textureChild;
-    QByteArray textureContent = "";
-    image::TextureUsage::Type textureType = image::TextureUsage::Type::DEFAULT_TEXTURE;
-    
-    if (textureTypeCallback) {
-        textureType = textureTypeCallback();
-    }
+QString ModelBaker::compressTexture(QString modelTextureFileName, image::TextureUsage::Type textureType) {
 
     QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
     
@@ -259,18 +252,20 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
         // re-baking a model that already references baked textures
         // this is an error - return from here
         handleError("Cannot re-bake a file that already references compressed textures");
-        return nullptr;
+        return QString::null;
     }
 
     if (!TextureBaker::getSupportedFormats().contains(modelTextureFileInfo.suffix())) {
         // this is a texture format we don't bake, skip it
         handleWarning(modelTextureFileName + " is not a bakeable texture format");
-        return nullptr;
+        return QString::null;
     }
 
     // make sure this texture points to something and isn't one we've already re-mapped
+    QString textureChild { QString::null };
     if (!modelTextureFileInfo.filePath().isEmpty()) {
         // check if this was an embedded texture that we already have in-memory content for
+        QByteArray textureContent;
         
         // figure out the URL to this texture, embedded or external
         if (!modelTextureFileInfo.filePath().isEmpty()) {
@@ -296,7 +291,7 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
             _bakedOutputDir + "/" + bakedTextureFileName
         };
 
-        textureChild = bakedTextureFileName.toLocal8Bit();
+        textureChild = bakedTextureFileName;
 
         if (!_bakingTextures.contains(urlToTexture)) {
             _outputFiles.push_back(bakedTextureFilePath);
@@ -306,11 +301,11 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
         }
     }
    
-    return &textureChild;
+    return textureChild;
 }
 
 void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                           const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
+                             const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
     
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture{

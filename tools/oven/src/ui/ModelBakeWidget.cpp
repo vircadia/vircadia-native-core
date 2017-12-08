@@ -204,31 +204,30 @@ void ModelBakeWidget::bakeButtonClicked() {
         bakedOutputDirectory.mkdir(".");
         originalOutputDirectory.mkdir(".");
 
+        std::unique_ptr<Baker> baker;
+        auto getWorkerThreadCallback = []() -> QThread* {
+            return qApp->getNextWorkerThread();
+        };
         // everything seems to be in place, kick off a bake for this model now
         if (modelToBakeURL.fileName().endsWith(".fbx")) {
-            _baker = std::unique_ptr<FBXBaker>{
-                new FBXBaker(modelToBakeURL, []() -> QThread* {
-                return qApp->getNextWorkerThread();
-                }, bakedOutputDirectory.absolutePath(), originalOutputDirectory.absolutePath())
-            };
-            _isFBX = true;
+            baker.reset(new FBXBaker(modelToBakeURL, getWorkerThreadCallback, bakedOutputDirectory.absolutePath(),
+                        originalOutputDirectory.absolutePath()));
         } else if (modelToBakeURL.fileName().endsWith(".obj")) {
-            _baker = std::unique_ptr<OBJBaker>{
-                new OBJBaker(modelToBakeURL, []() -> QThread* {
-                return qApp->getNextWorkerThread();
-                }, bakedOutputDirectory.absolutePath(), originalOutputDirectory.absolutePath())
-            };
-            _isOBJ = true;
+            baker.reset(new OBJBaker(modelToBakeURL, getWorkerThreadCallback, bakedOutputDirectory.absolutePath(),
+                        originalOutputDirectory.absolutePath()));
+        } else {
+            qWarning() << "Unknown model type: " << modelToBakeURL.fileName());
+            continue;
         }
 
         // move the baker to the FBX/OBJ baker thread
-        _baker->moveToThread(qApp->getNextWorkerThread());
+        baker->moveToThread(qApp->getNextWorkerThread());
 
         // invoke the bake method on the baker thread
-        QMetaObject::invokeMethod(_baker.get(), "bake");
+        QMetaObject::invokeMethod(baker.get(), "bake");
 
         // make sure we hear about the results of this baker when it is done
-        connect(_baker.get(), &Baker::finished, this, &ModelBakeWidget::handleFinishedBaker);
+        connect(baker.get(), &Baker::finished, this, &ModelBakeWidget::handleFinishedBaker);
 
         // add a pending row to the results window to show that this bake is in process
         auto resultsWindow = qApp->getMainWindow()->showResultsWindow();
@@ -236,16 +235,15 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // keep a unique_ptr to this baker
         // and remember the row that represents it in the results table
-        _bakers.emplace_back(std::move(_baker), resultsRow);
+        _bakers.emplace_back(std::move(baker), resultsRow);
     }
 }
 
 void ModelBakeWidget::handleFinishedBaker() {
-    Baker* baker;
-    if (_isFBX) {
-        baker = qobject_cast<FBXBaker*>(sender());
-    } else if (_isOBJ) {
-        baker = qobject_cast<OBJBaker*>(sender());
+    Baker* baker = dynamic_cast<Baker*>(sender());
+    if (!baker) {
+        qWarning() << "Received signal from unexpected sender";
+        return;
     }
 
     // add the results of this bake to the results window

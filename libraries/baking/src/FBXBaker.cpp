@@ -223,11 +223,13 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
                     
                     // Callback to get MaterialID
-                    getMaterialIDCallback materialIDcallback = [=](int partIndex) {return extractedMesh.partMaterialTextures[partIndex].first;};
+                    GetMaterialIDCallback materialIDcallback = [&extractedMesh](int partIndex) {
+                        return extractedMesh.partMaterialTextures[partIndex].first;
+                    };
                     
                     // Compress mesh information and store in dracoMeshNode
                     FBXNode dracoMeshNode;
-                    bool success = this->compressMesh(extractedMesh.mesh, hasDeformers, dracoMeshNode, materialIDcallback);
+                    bool success = compressMesh(extractedMesh.mesh, hasDeformers, dracoMeshNode, materialIDcallback);
                     
                     // if bake fails - return, if there were errors and continue, if there were warnings.
                     if (!success) {
@@ -314,23 +316,20 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     for (FBXNode& textureChild : object->children) {
 
                         if (textureChild.name == "RelativeFilename") {
-                            QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
+                            QString fbxTextureFileName { textureChild.properties.at(0).toString() };
                             
                             // Callback to get texture type
-                            getTextureTypeCallback textureTypeCallback = [=]() {
-                                // grab the ID for this texture so we can figure out the
-                                // texture type from the loaded materials
-                                auto textureID{ object->properties[0].toByteArray() };
-                                auto textureType = textureTypes[textureID];
-                                return textureType;
-                            };
+                            // grab the ID for this texture so we can figure out the
+                            // texture type from the loaded materials
+                            auto textureID { object->properties[0].toString() };
+                            auto textureType = textureTypes[textureID];
 
                             // Compress the texture information and return the new filename to be added into the FBX scene
-                            QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, textureTypeCallback);
+                            auto bakedTextureFile = compressTexture(fbxTextureFileName, textureType);
 
                             // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
-                            if (bakedTextureFile) {
-                                textureChild.properties[0] = *bakedTextureFile;
+                            if (!bakedTextureFile.isNull()) {
+                                textureChild.properties[0] = bakedTextureFile;
                             } else {
                                 // if bake fails - return, if there were errors and continue, if there were warnings.
                                 if (hasErrors()) {

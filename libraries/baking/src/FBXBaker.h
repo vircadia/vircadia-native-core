@@ -35,9 +35,6 @@ class FBXBaker : public ModelBaker {
 public:
     using ModelBaker::ModelBaker;
 
-    QUrl getFBXUrl() const { return _modelURL; }
-    QString getBakedFBXFilePath() const { return _bakedModelFilePath; }
-
 public slots:
     virtual void bake() override;
 

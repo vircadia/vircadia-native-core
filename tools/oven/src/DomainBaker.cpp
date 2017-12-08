@@ -304,11 +304,11 @@ void DomainBaker::handleFinishedModelBaker() {
     if (baker) {
         if (!baker->hasErrors()) {
             // this FBXBaker is done and everything went according to plan
-            qDebug() << "Re-writing entity references to" << baker->getFBXUrl();
+            qDebug() << "Re-writing entity references to" << baker->getModelURL();
 
             // enumerate the QJsonRef values for the URL of this FBX from our multi hash of
             // entity objects needing a URL re-write
-            for (QJsonValueRef entityValue : _entitiesNeedingRewrite.values(baker->getFBXUrl())) {
+            for (QJsonValueRef entityValue : _entitiesNeedingRewrite.values(baker->getModelURL())) {
 
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = entityValue.toObject();
@@ -317,7 +317,7 @@ void DomainBaker::handleFinishedModelBaker() {
                 QUrl oldModelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
 
                 // setup a new URL using the prefix we were passed
-                auto relativeFBXFilePath = baker->getBakedFBXFilePath().remove(_contentOutputPath);
+                auto relativeFBXFilePath = baker->getBakedModelFilePath().remove(_contentOutputPath);
                 if (relativeFBXFilePath.startsWith("/")) {
                     relativeFBXFilePath = relativeFBXFilePath.right(relativeFBXFilePath.length() - 1);
                 }
@@ -370,10 +370,10 @@ void DomainBaker::handleFinishedModelBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getFBXUrl());
+        _entitiesNeedingRewrite.remove(baker->getModelURL());
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _modelBakers.remove(baker->getFBXUrl());
+        _modelBakers.remove(baker->getModelURL());
 
         // emit progress to tell listeners how many models we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);

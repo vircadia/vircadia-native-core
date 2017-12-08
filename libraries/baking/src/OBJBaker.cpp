@@ -134,7 +134,7 @@ void OBJBaker::bakeOBJ() {
 
     bool combineParts = true; // set true so that OBJReader reads material info from material library
     OBJReader reader;
-    FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
+    auto geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
 
     // Write OBJ Data as FBX tree nodes
     FBXNode rootNode;
@@ -211,7 +211,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // Compress the mesh information and store in dracoNode
     bool hasDeformers = false; // No concept of deformers for an OBJ
     FBXNode dracoNode;
-    this->compressMesh(geometry.meshes[0], hasDeformers, dracoNode);
+    compressMesh(geometry.meshes[0], hasDeformers, dracoNode);
     geometryNode.children.append(dracoNode);
 
     // Generating Object node's child - Model node
@@ -219,11 +219,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     modelNode.name = MODEL_NODE_NAME;
     {
         _modelID = _nodeID++;
-        modelNode.properties = {
-            _nodeID,
-            MODEL_NODE_NAME,
-            MESH
-        };
+        modelNode.properties = { _nodeID, MODEL_NODE_NAME, MESH };
     }
 
     _objectNode.children = { geometryNode, modelNode };
@@ -253,7 +249,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         FBXMaterial currentMaterial = geometry.materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
             _textureID = _nodeID;
-            _mapTextureMaterial.push_back(QPair<qlonglong, int>(_textureID, i));
+            _mapTextureMaterial.emplace_back(_textureID, i);
 
             FBXNode textureNode;
             {
@@ -277,18 +273,15 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 
             QByteArray textureFileName = (!currentMaterial.albedoTexture.filename.isEmpty()) ? currentMaterial.albedoTexture.filename : currentMaterial.specularTexture.filename;
 
-            // Callback to get Texture content and type
-            getTextureTypeCallback textureContentTypeCallback = [=]() {
-                return (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
-            };
+            auto textureType = (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
 
             // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node
-            QByteArray* textureFile = this->compressTexture(textureFileName, textureContentTypeCallback);
-            if (!textureFile) {
+            auto textureFile = compressTexture(textureFileName, textureType);
+            if (textureFile.isNull()) {
                 // Baking failed return
                 return;
             }
-            relativeFilenameNode.properties = { *textureFile };
+            relativeFilenameNode.properties = { textureFile };
 
             textureNode.children = { textureNameNode, relativeFilenameNode };
 
@@ -303,27 +296,19 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     // connect Geometry to Model 
     FBXNode cNode;
     cNode.name = C_NODE_NAME;
-    cNode.properties = {
-        CONNECTIONS_NODE_PROPERTY,
-        _geometryID,
-        _modelID
-    };
+    cNode.properties = { CONNECTIONS_NODE_PROPERTY, _geometryID, _modelID };
     connectionsNode.children = { cNode };
 
     // connect all materials to model
     for (auto& materialID : _materialIDs) {
         FBXNode cNode;
         cNode.name = C_NODE_NAME;
-        cNode.properties = {
-            CONNECTIONS_NODE_PROPERTY,
-            materialID,
-            _modelID
-        };
+        cNode.properties = { CONNECTIONS_NODE_PROPERTY, materialID, _modelID };
         connectionsNode.children.append(cNode);
     }
 
     // Connect textures to materials
-    for (auto& texMat : _mapTextureMaterial) {
+    for (const auto& texMat : _mapTextureMaterial) {
         FBXNode cAmbientNode;
         cAmbientNode.name = C_NODE_NAME;
         cAmbientNode.properties = {
@@ -353,11 +338,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
 void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry) {
     auto materialID = _nodeID++;
     _materialIDs.push_back(materialID);
-    materialNode.properties = {
-        materialID,
-        material,
-        MESH
-    };
+    materialNode.properties = { materialID, material, MESH };
 
     FBXMaterial currentMaterial = geometry.materials[material];
 

@@ -49,9 +49,6 @@ private:
     Setting::Handle<QString> _modelStartDirectory;
 
     std::unique_ptr<Baker> _baker;
-
-    bool _isOBJ = false;
-    bool _isFBX = false;
 };
 
 #endif // hifi_ModelBakeWidget_h

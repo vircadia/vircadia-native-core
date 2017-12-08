@@ -27,8 +27,7 @@
 #include <FBX.h>
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
-using getMaterialIDCallback = std::function <int(int)>;
-using getTextureTypeCallback = std::function<image::TextureUsage::Type()>;
+using GetMaterialIDCallback = std::function <int(int)>;
 
 class ModelBaker : public Baker {
     Q_OBJECT
@@ -37,9 +36,12 @@ public:
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
     virtual ~ModelBaker();
-    bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
-    QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
+    bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
+    QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
     virtual void setWasAborted(bool wasAborted) override;
+
+    QUrl getModelURL() const { return _modelURL; }
+    QString getBakedModelFilePath() const { return _bakedModelFilePath; }
 
 public slots:
     virtual void abort() override;
