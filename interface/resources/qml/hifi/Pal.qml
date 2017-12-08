@@ -26,7 +26,7 @@ Rectangle {
     // Style
     color: "#E3E3E3";
     // Properties
-    property bool debug: false
+    property bool debug: false;
     property int myCardWidth: width - upperRightInfoContainer.width;
     property int myCardHeight: 80;
     property int rowHeight: 60;
