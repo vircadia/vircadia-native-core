@@ -228,6 +228,17 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return false;
     }
 
+    QString bakedFilename = bakedFilenameForAssetType(type);
+    auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
+    auto mappingIt = _fileMappings.find(bakedPath);
+    bool bakedMappingExists = mappingIt != _fileMappings.end();
+
+    // If the path is mapped to the original file's hash, baking has been disabled for this
+    // asset
+    if (bakedMappingExists && mappingIt->second == assetHash) {
+        return false;
+    }
+
     bool loaded;
     AssetMeta meta;
     std::tie(loaded, meta) = readMetaFile(assetHash);
