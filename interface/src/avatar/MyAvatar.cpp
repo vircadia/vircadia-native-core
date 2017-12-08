@@ -1516,9 +1516,19 @@ void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+
+        const float FLYING_MOTOR_TIMESCALE = 0.05f;
+        const float WALKING_MOTOR_TIMESCALE = 0.2f;
+        const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
+
+        float horizontalMotorTimescale;
+        float verticalMotorTimescale;
+
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
             motorRotation = getMyHead()->getHeadOrientation();
+            horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
+            verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
             // we decompose camera's rotation and store the twist part in motorRotation
@@ -1529,11 +1539,12 @@ void MyAvatar::updateMotors() {
             glm::quat liftRotation;
             swingTwistDecomposition(headOrientation, Vectors::UNIT_Y, liftRotation, motorRotation);
             motorRotation = orientation * motorRotation;
+            horizontalMotorTimescale = WALKING_MOTOR_TIMESCALE;
+            verticalMotorTimescale = INVALID_MOTOR_TIMESCALE;
         }
-        const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
-        const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
+
         if (_isPushing || _isBraking || !_isBeingPushed) {
-            _characterController.addMotor(_actionMotorVelocity, motorRotation, DEFAULT_MOTOR_TIMESCALE, INVALID_MOTOR_TIMESCALE);
+            _characterController.addMotor(_actionMotorVelocity, motorRotation, horizontalMotorTimescale, verticalMotorTimescale);
         } else {
             // _isBeingPushed must be true --> disable action motor by giving it a long timescale,
             // otherwise it's attempt to "stand in in place" could defeat scripted motor/thrusts
@@ -1957,27 +1968,33 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     // Use head/HMD roll to turn while flying, but not when standing still.
     if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
+
         // Turn with head roll.
-        const float MIN_CONTROL_SPEED = 0.01f;
-        float speed = glm::length(getWorldVelocity());
-        if (speed >= MIN_CONTROL_SPEED) {
-            // Feather turn when stopping moving.
-            float speedFactor;
-            if (getDriveKey(TRANSLATE_Z) != 0.0f || _lastDrivenSpeed == 0.0f) {
-                _lastDrivenSpeed = speed;
-                speedFactor = 1.0f;
-            } else {
-                speedFactor = glm::min(speed / _lastDrivenSpeed, 1.0f);
-            }
+        const float MIN_CONTROL_SPEED = 2.0f * getSensorToWorldScale();  // meters / sec
+        const glm::vec3 characterForward = getWorldOrientation() * Vectors::UNIT_NEG_Z;
+        float forwardSpeed = glm::dot(characterForward, getWorldVelocity());
 
-            float direction = glm::dot(getWorldVelocity(), getWorldOrientation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
+        // only enable roll-turns if we are moving forward or backward at greater then MIN_CONTROL_SPEED
+        if (fabsf(forwardSpeed) >= MIN_CONTROL_SPEED) {
 
+            float direction = forwardSpeed > 0.0f ? 1.0f : -1.0f;
             float rollAngle = glm::degrees(asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT)));
             float rollSign = rollAngle < 0.0f ? -1.0f : 1.0f;
             rollAngle = fabsf(rollAngle);
-            rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
 
-            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlRate;
+            const float MIN_ROLL_ANGLE = _hmdRollControlDeadZone;
+            const float MAX_ROLL_ANGLE = 90.0f;  // degrees
+
+            if (rollAngle > MIN_ROLL_ANGLE) {
+                // rate of turning is linearly proportional to rollAngle
+                rollAngle = glm::clamp(rollAngle, MIN_ROLL_ANGLE, MAX_ROLL_ANGLE);
+
+                // scale rollAngle into a value from zero to one.
+                float rollFactor = (rollAngle - MIN_ROLL_ANGLE) / (MAX_ROLL_ANGLE - MIN_ROLL_ANGLE);
+
+                float angularSpeed = rollSign * rollFactor * _hmdRollControlRate;
+                totalBodyYaw += direction * angularSpeed * deltaTime;
+            }
         }
     }
 
@@ -2023,12 +2040,13 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
     }
 
+    CharacterController::State state = _characterController.getState();
+
     // compute action input
     glm::vec3 forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
     glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
     glm::vec3 direction = forward + right;
-    CharacterController::State state = _characterController.getState();
     if (state == CharacterController::State::Hover ||
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         // we can fly --> support vertical motion
