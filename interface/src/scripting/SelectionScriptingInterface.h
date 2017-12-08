@@ -59,8 +59,6 @@ public:
 
 public slots:
     void selectedItemsListChanged(const QString& listName);
-  //  void highlightStyleChanged(const QString& listName);
-  //  void highlightStyleRemoved(const QString& listName);
 
 private:
     QString _listName{ "" };
@@ -90,6 +88,11 @@ class SelectionScriptingInterface : public QObject, public Dependency {
 public:
     SelectionScriptingInterface();
 
+    /**jsdoc
+    * Query the names of all the selection lists
+    * @function Selection.getListNames
+    * @return An array of names of all the selection lists
+    */
     Q_INVOKABLE QStringList getListNames() const;
 
     /**jsdoc
@@ -126,8 +129,6 @@ public:
     */
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
-    
-
     /**jsdoc
     * Prints out the list of avatars, entities and overlays stored in a particular selection.
     * @function Selection.printList
@@ -139,11 +140,18 @@ public:
     * Query the list of avatars, entities and overlays stored in a particular selection.
     * @function Selection.getList
     * @param listName {string} name of the selection
-    * @return
+    * @return a js object containing the following properties (if the array of obkjects are not empty):
+    *  - "entities": [ and array of the entityID of the entities in the selection]
+    *  - "avatars": [ and array of the avatarID of the avatars in the selection]
+    *  - "overlays": [ and array of the overlayID of the overlays in the selection]
     */
     Q_INVOKABLE QVariantMap getSelectedItemsList(const QString& listName) const;
 
-    //
+    /**jsdoc
+    * Query the names of the highlighted selection lists
+    * @function Selection.getHighlightedListNames
+    * @return An array of names of the selection list currently highlight enabled
+    */
     Q_INVOKABLE QStringList getHighlightedListNames() const;
 
     /**jsdoc

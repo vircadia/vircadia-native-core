@@ -26,9 +26,9 @@ namespace render {
         };
 
         RGBA _outlineUnoccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };
-        RGBA _outlineOccluded{ { 0.2f, 0.7f, 1.0f }, 0.9f };
-        RGBA _fillUnoccluded{ { 1.f, 0.2f, 0.7f }, 0.0f };
-        RGBA _fillOccluded{ { 0.7f, 1.f, 0.2f }, 0.0f };
+        RGBA _outlineOccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };
+        RGBA _fillUnoccluded{ { 0.2f, 0.7f, 1.0f }, 0.0f };
+        RGBA _fillOccluded{ { 0.2f, 0.7f, 1.0f }, 0.0f };
 
         float _outlineWidth{ 2.0f };
         bool _isOutlineSmooth{ false };

@@ -29,14 +29,18 @@ Item {
     signal sendToScript(var message);
 
     Component.onCompleted: {
+        // Connect the signal from Selection when any selection content change and use it to refresh the current selection view
+        Selection.selectedItemsListChanged.connect(resetSelectionView)
     }
 
-  
+    function resetSelectionView() {
+        selectionView.resetSelectionView();
+    }
+
     Column {
         id: col
         spacing: 5
-        anchors.left: root.left
-        anchors.right: root.right       
+        anchors.fill: root     
         anchors.margins: hifi.dimensions.contentMargin.x  
 
         Row {
@@ -50,6 +54,7 @@ Item {
                 id: debug
                 text: "Refresh"
                 height: 24
+                width: 82
                 onClicked: {
                     print("list of highlight styles")
                     root.styleList = Selection.getHighlightedListNames()
@@ -57,13 +62,14 @@ Item {
                     print(root.styleList)
                     styleSelectorLoader.sourceComponent = undefined;
                     styleSelectorLoader.sourceComponent = selectorWidget;
+                    resetSelectionView();
                 }
             }
 
             Loader {
                 id: styleSelectorLoader
                 sourceComponent: selectorWidget
-                width: 350
+                width: 300
                 anchors.right: parent.right    
             } 
             Component {
@@ -79,11 +85,12 @@ Item {
                     Timer {
                         id: postpone
                         interval: 100; running: false; repeat: false
-                        onTriggered: { styleWidgetLoader.sourceComponent = styleWidget }
+                        onTriggered: {
+                            styleWidgetLoader.sourceComponent = styleWidget
+                        }
                     }
                     onCurrentIndexChanged: {
                         root.listName = model[currentIndex];
-                    // sendToScript("highlight "+currentIndex)
                         // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
                         // by setting the loader source to Null and then recreate it 100ms later
                         styleWidgetLoader.sourceComponent = undefined;
@@ -91,8 +98,6 @@ Item {
                         postpone.start()
                     }
                 }
-
-
             }
         }
 
@@ -101,9 +106,52 @@ Item {
             id: styleWidgetLoader
             sourceComponent: styleWidget
             anchors.left: parent.left
-            anchors.right: parent.right    
-        }      
-    }
+            anchors.right: parent.right 
+            height: 240
+        }   
+
+        Separator {}
+
+        Rectangle {
+            id: selectionView
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            height: 250
+           color: hifi.colors.lightGray
+
+            function resetSelectionView() {
+                // myModel.resetSelectionView();
+                var entities = Selection.getSelectedItemsList(root.listName)["entities"]
+                //print("resetSelectionView" + JSON.stringify(entities))
+                myModel.clear()
+                var fLen = entities.length;
+                for (var i = 0; i < fLen; i++) {
+                    myModel.append({ "objectID": JSON.stringify(entities[i]) })
+                   // print("resetSelectionView" + JSON.stringify( entities[i]))
+                }
+            }            
+
+            ListModel {
+                id: myModel
+            }
+        
+            Component {
+                id: myDelegate
+                Row {
+                    id: fruit
+                    Text { text: JSON.stringify(objectID) }
+                }
+            }
+            
+            ListView {
+                id: selectionListView
+                anchors.fill: parent
+                anchors.topMargin: 30
+                model: myModel
+                delegate: myDelegate
+            }
+        }
+    } 
 
     Component {
         id: styleWidget
@@ -116,7 +164,7 @@ Item {
 
             onNewStyle: {
                 var style = getStyle()
-              //  print("new style " + JSON.stringify(style) )
+                //  print("new style " + JSON.stringify(style) )
                 Selection.enableListHighlight(root.listName, style)
             }
         }
