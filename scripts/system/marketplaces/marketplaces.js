@@ -12,6 +12,8 @@
    Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
+var selectionDisplay = null; // for gridTool.js to ignore
+
 (function () { // BEGIN LOCAL_SCOPE
 
     Script.include("/~/system/libraries/accountUtils.js");
