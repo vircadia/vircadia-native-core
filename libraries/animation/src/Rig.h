@@ -231,6 +231,9 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
+    const AnimPose& getModelOffsetPose() const { return _modelOffset; }
+    const AnimPose& getGeometryOffsetPose() const { return _geometryOffset; }
+
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
     void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
     void setEnableDebugDrawIKChains(bool enableDebugDrawIKChains) { _enableDebugDrawIKChains = enableDebugDrawIKChains; }
