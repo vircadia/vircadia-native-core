@@ -11,10 +11,12 @@
 /* global Tablet, Script, HMD, UserActivityLogger, Entities */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
+var selectionDisplay = null; // for gridTool.js to ignore
+
 (function () { // BEGIN LOCAL_SCOPE
 
-    Script.include("../libraries/WebTablet.js");
-    Script.include("../libraries/gridTool.js");
+    Script.include("/~/system/libraries/WebTablet.js");
+    Script.include("/~/system/libraries/gridTool.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
