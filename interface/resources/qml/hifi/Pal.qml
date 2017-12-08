@@ -26,6 +26,7 @@ Rectangle {
     // Style
     color: "#E3E3E3";
     // Properties
+    property bool debug: false
     property int myCardWidth: width - upperRightInfoContainer.width;
     property int myCardHeight: 80;
     property int rowHeight: 60;
@@ -1120,7 +1121,9 @@ Rectangle {
             break;
         case 'connections':
             var data = message.params;
-            console.log('Got connection data: ', JSON.stringify(data));
+            if (pal.debug) {
+                console.log('Got connection data: ', JSON.stringify(data));
+            }
             connectionsUserModelData = data;
             sortConnectionsModel();
             connectionsLoading.visible = false;
