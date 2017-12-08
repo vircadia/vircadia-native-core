@@ -247,35 +247,32 @@ QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& lis
     QVariantMap list;
     auto currentList = _selectedItemsListMap.find(listName);
     if (currentList != _selectedItemsListMap.end()) {
-        if ((*currentList).getContainsData()) {
+        QList<QVariant> avatarIDs;
+        QList<QVariant> entityIDs;
+        QList<QVariant> overlayIDs;
 
+        if ((*currentList).getContainsData()) {
             if (!(*currentList).getAvatarIDs().empty()) {
-                QList<QVariant> avatarIDs;
                 for (auto j : (*currentList).getAvatarIDs()) {
                     avatarIDs.push_back((QUuid)j);
                 }
-                list["avatars"] = (avatarIDs);
             }
             if (!(*currentList).getEntityIDs().empty()) {
-                QList<QVariant> entityIDs;
                 for (auto j : (*currentList).getEntityIDs()) {
                     entityIDs.push_back((QUuid)j );
                 }
-                list["entities"] = (entityIDs);
             }
             if (!(*currentList).getOverlayIDs().empty()) {
-                QList<QVariant> overlayIDs;
                 for (auto j : (*currentList).getOverlayIDs()) {
                     overlayIDs.push_back((QUuid)j);
                 }
-                list["overlays"] = (overlayIDs);
             }
+        }
+        list["avatars"] = (avatarIDs);
+        list["entities"] = (entityIDs);
+        list["overlays"] = (overlayIDs);
 
-            return list;
-        }
-        else {
-            return list;
-        }
+        return list;
     }
     else {
         return list;
