@@ -82,7 +82,6 @@ int PathUtils::removeTemporaryApplicationDirs(QString appName) {
     }
 
     auto dirName = TEMP_DIR_FORMAT.arg(appName).arg("*").arg("*");
-    qDebug() << "Dirname format is: " << dirName;
 
     QDir rootTempDir = QDir::tempPath();
     auto dirs = rootTempDir.entryInfoList({ dirName }, QDir::Dirs);
