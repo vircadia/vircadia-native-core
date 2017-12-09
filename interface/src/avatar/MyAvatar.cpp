@@ -81,6 +81,7 @@ const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amaz
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
+const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
@@ -670,8 +671,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
     bool hasSensorToWorldScaleChanged = false;
-    
-    if (abs(AvatarData::getSensorToWorldScale() - sensorToWorldScale) > 0.001f) {
+    if (fabsf(getSensorToWorldScale() - sensorToWorldScale) > MIN_SCALE_CHANGED_DELTA) {
         hasSensorToWorldScaleChanged = true;
     }
 
@@ -683,13 +683,11 @@ void MyAvatar::updateSensorToWorldMatrix() {
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
-    
     updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
     
     if (hasSensorToWorldScaleChanged) {
         emit sensorToWorldScaleChanged(sensorToWorldScale);
-        //qDebug() << "Debug: emit sensorToWorldScaleChanged " << sensorToWorldScale;
     }
     
 }
