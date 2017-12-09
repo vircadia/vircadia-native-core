@@ -169,32 +169,12 @@ function calculateTouchTargetFromOverlay(touchTip, overlayID) {
     // calclulate normalized position
     var invRot = Quat.inverse(overlayRotation);
     var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
-    var dpi = Overlays.getProperty(overlayID, "dpi");
 
-    var dimensions;
-    if (dpi) {
-        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property
-        // is used as a scale.
-        var resolution = Overlays.getProperty(overlayID, "resolution");
-        if (resolution === undefined) {
-            return;
-        }
-        resolution.z = 1; // Circumvent divide-by-zero.
-        var scale = Overlays.getProperty(overlayID, "dimensions");
-        if (scale === undefined) {
-            return;
-        }
-        scale.z = 0.01; // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
-    } else {
-        dimensions = Overlays.getProperty(overlayID, "dimensions");
-        if (dimensions === undefined) {
-            return;
-        }
-        if (!dimensions.z) {
-            dimensions.z = 0.01; // sometimes overlay dimensions are 2D, not 3D.
-        }
+    var dimensions = Overlays.getProperty(overlayID, "dimensions");
+    if (dimensions === undefined) {
+        return;
     }
+    dimensions.z = 0.01; // we are projecting onto the XY plane of the overlay, so ignore the z dimension
     var invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
     var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
 

@@ -35,6 +35,7 @@
 #include <QtScript/QScriptValueIterator>
 #include <QReadWriteLock>
 
+#include <AvatarConstants.h>
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
@@ -256,9 +257,6 @@ namespace AvatarDataPacket {
     */
     size_t maxJointDataSize(size_t numJoints);
 }
-
-static const float MAX_AVATAR_SCALE = 1000.0f;
-static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
@@ -484,12 +482,52 @@ public:
     //  Scale
     virtual void setTargetScale(float targetScale);
 
-    float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
+    float getDomainLimitedScale() const;
 
-    void setDomainMinimumScale(float domainMinimumScale)
-        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
-    void setDomainMaximumScale(float domainMaximumScale)
-        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
+    /**jsdoc
+     * returns the minimum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMinScale
+     * @returns {number} minimum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMinScale() const;
+
+    /**jsdoc
+     * returns the maximum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMaxScale
+     * @returns {number} maximum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMaxScale() const;
+
+    // returns eye height of avatar in meters, ignoreing avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight;
+    virtual float getUnscaledEyeHeight() const { return DEFAULT_AVATAR_EYE_HEIGHT; }
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const { return false; }
+
+    /**jsdoc
+     * Provides read only access to the current eye height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function AvatarData.getEyeHeight
+     * @returns {number} eye height of avatar in meters
+     */
+    Q_INVOKABLE virtual float getEyeHeight() const { return _targetScale * getUnscaledEyeHeight(); }
+
+    /**jsdoc
+     * Provides read only access to the current height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function AvatarData.getHeight
+     * @returns {number} height of avatar in meters
+     */
+    Q_INVOKABLE virtual float getHeight() const;
+
+    float getUnscaledHeight() const;
+
+    void setDomainMinimumHeight(float domainMinimumHeight);
+    void setDomainMaximumHeight(float domainMaximumHeight);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -698,8 +736,8 @@ protected:
 
     // Body scale
     float _targetScale;
-    float _domainMinimumScale { MIN_AVATAR_SCALE };
-    float _domainMaximumScale { MAX_AVATAR_SCALE };
+    float _domainMinimumHeight { MIN_AVATAR_HEIGHT };
+    float _domainMaximumHeight { MAX_AVATAR_HEIGHT };
 
     //  Hand state (are we grabbing something or not)
     char _handState;
