@@ -115,7 +115,12 @@ void BakeAssetTask::run() {
 
     qDebug() << "Starting oven for " << _assetPath;
     _ovenProcess->start(path, args, QIODevice::ReadOnly);
-    _ovenProcess->waitForStarted();
+    if (!_ovenProcess->waitForStarted(-1)) {
+        _didFinish.store(true);
+        QString errors = "Oven process failed to start";
+        emit bakeFailed(_assetHash, _assetPath, errors);
+        return;
+    }
     _ovenProcess->waitForFinished();
 }
 
