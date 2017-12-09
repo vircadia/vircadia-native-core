@@ -58,7 +58,6 @@ void BakeAssetTask::run() {
     }
 
     QString tempOutputDir = PathUtils::generateTemporaryDir();
-    _outputDir = tempOutputDir;
     auto base = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
     QString path = base.absolutePath() + "/oven";
     QString extension = _assetPath.mid(_assetPath.lastIndexOf('.') + 1);
@@ -82,7 +81,8 @@ void BakeAssetTask::run() {
                 emit bakeFailed(_assetHash, _assetPath, errors);
             }
         } else if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
-            auto files = _outputDir.entryInfoList(QDir::Files);
+            QDir outputDir = tempOutputDir;
+            auto files = outputDir.entryInfoList(QDir::Files);
             QVector<QString> outputFiles;
             for (auto& file : files) {
                 outputFiles.push_back(file.absoluteFilePath());
@@ -95,7 +95,8 @@ void BakeAssetTask::run() {
         } else {
             QString errors;
             if (exitCode == OVEN_STATUS_CODE_FAIL) {
-                auto errorFilePath = _outputDir.absoluteFilePath("errors.txt");
+                QDir outputDir = tempOutputDir;
+                auto errorFilePath = outputDir.absoluteFilePath("errors.txt");
                 QFile errorFile { errorFilePath };
                 if (errorFile.open(QIODevice::ReadOnly)) {
                     errors = errorFile.readAll();

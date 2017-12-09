@@ -44,7 +44,6 @@ private:
     AssetHash _assetHash;
     AssetPath _assetPath;
     QString _filePath;
-    QDir _outputDir;
     std::unique_ptr<QProcess> _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
 };
