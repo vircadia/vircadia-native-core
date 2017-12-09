@@ -16,9 +16,6 @@
 
 #include <SettingHandle.h>
 
-#include <FBXBaker.h>
-#include <OBJBaker.h>
-
 #include "BakeWidget.h"
 
 class QLineEdit;
@@ -47,8 +44,6 @@ private:
 
     Setting::Handle<QString> _exportDirectory;
     Setting::Handle<QString> _modelStartDirectory;
-
-    std::unique_ptr<Baker> _baker;
 };
 
 #endif // hifi_ModelBakeWidget_h

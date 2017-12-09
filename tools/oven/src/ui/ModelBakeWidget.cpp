@@ -23,8 +23,10 @@
 
 #include "../Oven.h"
 #include "OvenMainWindow.h"
+#include "FBXBaker.h"
 #include "OBJBaker.h"
 #include "ModelBakeWidget.h"
+
 
 static const auto EXPORT_DIR_SETTING_KEY = "model_export_directory";
 static const auto MODEL_START_DIR_SETTING_KEY = "model_search_directory";
