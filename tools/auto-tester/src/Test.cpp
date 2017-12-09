@@ -352,8 +352,7 @@ void Test::createTest() {
                         + "\nTest creation aborted"
                     );
                     exit(-1);
-                }
-                else {
+                } else {
                     messageBox.critical(0, "Error", "Could not rename file: " + fullCurrentFilename + " to: " + newFilename + "\n"
                         + "unknown error" + "\nTest creation aborted"
                     );
