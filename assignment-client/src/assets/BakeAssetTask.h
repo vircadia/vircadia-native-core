@@ -33,7 +33,6 @@ public:
 
     void abort();
     bool wasAborted() const { return _wasAborted.load(); }
-    bool didFinish() const { return _didFinish.load(); }
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir, QVector<QString> outputFiles);
@@ -48,7 +47,6 @@ private:
     QDir _outputDir;
     std::unique_ptr<QProcess> _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
-    std::atomic<bool> _didFinish { false };
 };
 
 #endif // hifi_BakeAssetTask_h

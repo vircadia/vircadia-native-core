@@ -78,7 +78,6 @@ void BakeAssetTask::run() {
             if (_wasAborted) {
                 emit bakeAborted(_assetHash, _assetPath);
             } else {
-                _didFinish.store(true);
                 QString errors = "Fatal error occurred while baking";
                 emit bakeFailed(_assetHash, _assetPath, errors);
             }
@@ -90,7 +89,6 @@ void BakeAssetTask::run() {
                 outputFiles.push_back(file.absoluteFilePath());
             }
 
-            _didFinish.store(true);
             emit bakeComplete(_assetHash, _assetPath, tempOutputDir, outputFiles);
         } else if (exitStatus == QProcess::NormalExit && exitCode == OVEN_STATUS_CODE_ABORT) {
             _wasAborted.store(true);
@@ -98,7 +96,6 @@ void BakeAssetTask::run() {
         } else {
             QString errors;
             if (exitCode == OVEN_STATUS_CODE_FAIL) {
-                _didFinish.store(true);
                 auto errorFilePath = _outputDir.absoluteFilePath("errors.txt");
                 QFile errorFile { errorFilePath };
                 if (errorFile.open(QIODevice::ReadOnly)) {
@@ -116,7 +113,6 @@ void BakeAssetTask::run() {
     qDebug() << "Starting oven for " << _assetPath;
     _ovenProcess->start(path, args, QIODevice::ReadOnly);
     if (!_ovenProcess->waitForStarted(-1)) {
-        _didFinish.store(true);
         QString errors = "Oven process failed to start";
         emit bakeFailed(_assetHash, _assetPath, errors);
         return;
