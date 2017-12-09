@@ -45,14 +45,18 @@ enum BakedAssetType : int {
     Undefined
 };
 
+// ATTENTION! If you change the current version for an asset type, you will also
+// need to update the function currentBakeVersionForAssetType() inside of AssetServer.cpp.
 enum class ModelBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION
 };
 
+// ATTENTION! See above.
 enum class TextureBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
 };
 
+// ATTENTION! See above.
 enum class ScriptBakeVersion : BakeVersion {
     Initial = INITIAL_BAKE_VERSION,
     FixEmptyScripts,
