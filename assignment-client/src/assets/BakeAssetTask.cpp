@@ -85,7 +85,6 @@ void BakeAssetTask::run() {
             auto files = _outputDir.entryInfoList(QDir::Files);
             QVector<QString> outputFiles;
             for (auto& file : files) {
-                qDebug() << "  Output file: " << file.absoluteFilePath();
                 outputFiles.push_back(file.absoluteFilePath());
             }
 
