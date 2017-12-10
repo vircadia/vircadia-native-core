@@ -410,19 +410,19 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
         }
     }
 
-    auto intensityVariant = properties["outlineUnoccludedIntensity"];
+    auto intensityVariant = properties["outlineUnoccludedOpacity"];
     if (intensityVariant.isValid()) {
         _style._outlineUnoccluded.alpha = intensityVariant.toFloat();
     }
-    intensityVariant = properties["outlineOccludedIntensity"];
+    intensityVariant = properties["outlineOccludedOpacity"];
     if (intensityVariant.isValid()) {
         _style._outlineOccluded.alpha = intensityVariant.toFloat();
     }
-    intensityVariant = properties["fillUnoccludedIntensity"];
+    intensityVariant = properties["fillUnoccludedOpacity"];
     if (intensityVariant.isValid()) {
         _style._fillUnoccluded.alpha = intensityVariant.toFloat();
     }
-    intensityVariant = properties["fillOccludedIntensity"];
+    intensityVariant = properties["fillOccludedOpacity"];
     if (intensityVariant.isValid()) {
         _style._fillOccluded.alpha = intensityVariant.toFloat();
     }
@@ -447,10 +447,10 @@ QVariantMap SelectionHighlightStyle::toVariantMap() const {
     properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
     properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
 
-    properties["outlineUnoccludedIntensity"] = _style._outlineUnoccluded.alpha;
-    properties["outlineOccludedIntensity"] = _style._outlineOccluded.alpha;
-    properties["fillUnoccludedIntensity"] = _style._fillUnoccluded.alpha;
-    properties["fillOccludedIntensity"] = _style._fillOccluded.alpha;
+    properties["outlineUnoccludedOpacity"] = _style._outlineUnoccluded.alpha;
+    properties["outlineOccludedOpacity"] = _style._outlineOccluded.alpha;
+    properties["fillUnoccludedOpacity"] = _style._fillUnoccluded.alpha;
+    properties["fillOccludedOpacity"] = _style._fillOccluded.alpha;
 
     properties["outlineWidth"] = _style._outlineWidth;
     properties["isOutlineSmooth"] = _style._isOutlineSmooth;

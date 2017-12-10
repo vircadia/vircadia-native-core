@@ -23,6 +23,8 @@ namespace render {
         struct RGBA {
             glm::vec3 color{ 1.f, 0.7f, 0.2f };
             float alpha{ 0.9f };
+
+            RGBA(const glm::vec3& c, float a) : color(c), alpha(a) {}
         };
 
         RGBA _outlineUnoccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };

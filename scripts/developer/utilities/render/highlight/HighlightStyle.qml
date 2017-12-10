@@ -64,10 +64,10 @@ Item {
         
         Repeater {
             model: [
-                "Outline Unoccluded:outlineUnoccludedColor:outlineUnoccludedIntensity",
-                "Outline Occluded:outlineOccludedColor:outlineOccludedIntensity",
-                "Fill Unoccluded:fillUnoccludedColor:fillUnoccludedIntensity",
-                "Fill Occluded:fillOccludedColor:fillOccludedIntensity"]
+                "Outline Unoccluded:outlineUnoccludedColor:outlineUnoccludedOpacity",
+                "Outline Occluded:outlineOccludedColor:outlineOccludedOpacity",
+                "Fill Unoccluded:fillUnoccludedColor:fillUnoccludedOpacity",
+                "Fill Occluded:fillOccludedColor:fillOccludedOpacity"]
             Column {
                     anchors.left: parent.left
                     anchors.right: parent.right 
