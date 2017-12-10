@@ -14,6 +14,8 @@
 
 #include <QtWidgets/QWidget>
 
+#include <memory>
+
 #include <Baker.h>
 
 class BakeWidget : public QWidget {
