@@ -17,10 +17,10 @@ using namespace gpu::gl;
 
 // Eventually, we want to test with TIME_ELAPSED instead of TIMESTAMP
 #ifdef Q_OS_MAC
-const uint32_t MAX_RANGE_QUERY_DEPTH = 1;
+//const uint32_t MAX_RANGE_QUERY_DEPTH = 1;
 static bool timeElapsed = true;
 #else
-const uint32_t MAX_RANGE_QUERY_DEPTH = 10000;
+//const uint32_t MAX_RANGE_QUERY_DEPTH = 10000;
 static bool timeElapsed = false;
 #endif
 

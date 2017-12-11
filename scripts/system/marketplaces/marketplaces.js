@@ -11,9 +11,12 @@
 /* global Tablet, Script, HMD, UserActivityLogger, Entities */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
+var selectionDisplay = null; // for gridTool.js to ignore
+
 (function () { // BEGIN LOCAL_SCOPE
 
-    Script.include("../libraries/WebTablet.js");
+    Script.include("/~/system/libraries/WebTablet.js");
+    Script.include("/~/system/libraries/gridTool.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
@@ -110,8 +113,10 @@
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
-        wireEventBridge(onCommerceScreen);
+        onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             tablet.sendToQml({
@@ -122,7 +127,7 @@
         }
 
         // for toolbar mode: change button to active when window is first openend, false otherwise.
-        marketplaceButton.editProperties({ isActive: onMarketplaceScreen || onCommerceScreen });
+        marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
             ContextOverlay.isInMarketplaceInspectionMode = true;
         } else {
@@ -166,6 +171,33 @@
                 metaverseServerURL: Account.metaverseServerURL
             }
         }));
+    }
+
+    var grid = new Grid();
+    function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+        // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
+        // position in the given direction.
+        var CORNERS = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 1, z: 0 },
+            { x: 0, y: 1, z: 1 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 0, z: 1 },
+            { x: 1, y: 1, z: 0 },
+            { x: 1, y: 1, z: 1 },
+        ];
+
+        // Go through all corners and find least (most negative) distance in front of position.
+        var distance = 0;
+        for (var i = 0, length = CORNERS.length; i < length; i++) {
+            var cornerVector =
+                Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+            var cornerDistance = Vec3.dot(cornerVector, direction);
+            distance = Math.min(cornerDistance, distance);
+        }
+        position = Vec3.sum(Vec3.multiply(distance, direction), position);
+        return position;
     }
 
     var HALF_TREE_SCALE = 16384;
@@ -256,10 +288,6 @@
                         }
                     }
                 }
-
-                if (isActive) {
-                    selectionManager.setSelections(pastedEntityIDs);
-                }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
             }
@@ -322,6 +350,11 @@
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'updateWalletReferrer',
+                    referrer: "marketplace cta"
+                });
                 openWallet();
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
@@ -399,6 +432,7 @@
                     referrer: "purchases"
                 });
                 openWallet();
+                break;
             case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
                 tablet.sendToQml({
@@ -420,8 +454,10 @@
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
             case 'checkout_itemLinkClicked':
-            case 'checkout_continueShopping':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'checkout_continueShopping':
+                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
             case 'purchases_itemInfoClicked':

@@ -12,9 +12,9 @@
     var MAX_WARNINGS = 3;
     var numWarnings = 0;
     var isWindowFocused = true;
-    var isKeyboardRaised = false;
-    var isNumericKeyboard = false;
-    var isPasswordField = false;
+    window.isKeyboardRaised = false;
+    window.isNumericKeyboard = false;
+    window.isPasswordField = false;
 
     function shouldSetPasswordField() {
         var nodeType = document.activeElement.type;
@@ -62,7 +62,7 @@
         var passwordField = shouldSetPasswordField();
 
         if (isWindowFocused &&
-            (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard || passwordField !== isPasswordField)) {
+            (keyboardRaised !== window.isKeyboardRaised || numericKeyboard !== window.isNumericKeyboard || passwordField !== window.isPasswordField)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
@@ -75,20 +75,20 @@
                 }
             }
 
-            if (!isKeyboardRaised) {
+            if (!window.isKeyboardRaised) {
                 scheduleBringToView(250); // Allow time for keyboard to be raised in QML.
                                           // 2DO: should it be rather done from 'client area height changed' event?
             }
 
-            isKeyboardRaised = keyboardRaised;
-            isNumericKeyboard = numericKeyboard;
-            isPasswordField = passwordField;
+            window.isKeyboardRaised = keyboardRaised;
+            window.isNumericKeyboard = numericKeyboard;
+            window.isPasswordField = passwordField;
         }
     }, POLL_FREQUENCY);
 
     window.addEventListener("click", function () {
         var keyboardRaised = shouldRaiseKeyboard();
-        if(keyboardRaised && isKeyboardRaised) {
+        if (keyboardRaised && window.isKeyboardRaised) {
             scheduleBringToView(150);
         }
     });
@@ -99,7 +99,7 @@
 
     window.addEventListener("blur", function () {
         isWindowFocused = false;
-        isKeyboardRaised = false;
-        isNumericKeyboard = false;
+        window.isKeyboardRaised = false;
+        window.isNumericKeyboard = false;
     });
 })();

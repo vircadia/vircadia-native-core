@@ -99,7 +99,8 @@ public:
         if (!_colorBuffers.empty()) {
             glDrawBuffers((GLsizei)_colorBuffers.size(), _colorBuffers.data());
         } else {
-            glDrawBuffers(1, {GL_NONE});
+            static const std::vector<GLenum> NO_BUFFERS{ GL_NONE };
+            glDrawBuffers((GLsizei)NO_BUFFERS.size(), NO_BUFFERS.data());
         }
 
         // Now check for completness

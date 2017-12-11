@@ -121,63 +121,58 @@ uint64_t uvec2ToUint64(const uvec2& v) {
 class AudioHandler : public QObject, QRunnable {
     Q_OBJECT
 public:
-    AudioHandler(QObject* container, const QString& deviceName, int runDelayMs = 0, QObject* parent = nullptr) : QObject(parent) {
-        _container = container;
+    AudioHandler(QSharedPointer<OffscreenQmlSurface> surface, const QString& deviceName, QObject* parent = nullptr) : QObject(parent) {
         _newTargetDevice = deviceName;
-        _runDelayMs = runDelayMs;
+        _surface = surface;
         setAutoDelete(true);
-        QThreadPool::globalInstance()->start(this);
+        if (deviceName.size() > 0) {
+            QThreadPool::globalInstance()->start(this);
+        }
     }
     virtual ~AudioHandler() {
         qDebug() << "Audio Handler Destroyed";
     }
     void run() override {
-        if (_newTargetDevice.isEmpty()) {
-            return;
-        }
-        if (_runDelayMs > 0) {
-            QThread::msleep(_runDelayMs);
-        }
-        auto audioIO = DependencyManager::get<AudioClient>();
-        QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-        for (auto player : _container->findChildren<QMediaPlayer*>()) {
-            auto mediaState = player->state();
-            QMediaService *svc = player->service();
-            if (nullptr == svc) {
-                return;
-            }
-            QAudioOutputSelectorControl *out = qobject_cast<QAudioOutputSelectorControl *>
-                (svc->requestControl(QAudioOutputSelectorControl_iid));
-            if (nullptr == out) {
-                return;
-            }
-            QString deviceOuput;
-            auto outputs = out->availableOutputs();
-            for (int i = 0; i < outputs.size(); i++) {
-                QString output = outputs[i];
-                QString description = out->outputDescription(output);
-                if (description == deviceName) {
-                    deviceOuput = output;
-                    break;
+        if (!_surface.isNull() && _surface->getRootItem() && !_surface->getCleaned()) {
+            for (auto player : _surface->getRootItem()->findChildren<QMediaPlayer*>()) {
+                auto mediaState = player->state();
+                QMediaService *svc = player->service();
+                if (nullptr == svc) {
+                    return;
+                }
+                QAudioOutputSelectorControl *out = qobject_cast<QAudioOutputSelectorControl *>
+                    (svc->requestControl(QAudioOutputSelectorControl_iid));
+                if (nullptr == out) {
+                    return;
+                }
+                QString deviceOuput;
+                auto outputs = out->availableOutputs();
+                for (int i = 0; i < outputs.size(); i++) {
+                    QString output = outputs[i];
+                    QString description = out->outputDescription(output);
+                    if (description == _newTargetDevice) {
+                        deviceOuput = output;
+                        break;
+                    }
+                }
+                out->setActiveOutput(deviceOuput);
+                svc->releaseControl(out);
+                // if multimedia was paused, it will start playing automatically after changing audio device
+                // this will reset it back to a paused state
+                if (mediaState == QMediaPlayer::State::PausedState) {
+                    player->pause();
+                }
+                else if (mediaState == QMediaPlayer::State::StoppedState) {
+                    player->stop();
                 }
             }
-            out->setActiveOutput(deviceOuput);
-            svc->releaseControl(out);
-            // if multimedia was paused, it will start playing automatically after changing audio device
-            // this will reset it back to a paused state
-            if (mediaState == QMediaPlayer::State::PausedState) {
-                player->pause();
-            } else if (mediaState == QMediaPlayer::State::StoppedState) {
-                player->stop();
-            }
         }
-        qDebug() << "QML Audio changed to " << deviceName;
+        qDebug() << "QML Audio changed to " << _newTargetDevice;
     }
 
 private:
     QString _newTargetDevice;
-    QObject* _container;
-    int _runDelayMs;
+    QSharedPointer<OffscreenQmlSurface> _surface;
 };
 
 class OffscreenTextures {
@@ -502,6 +497,7 @@ QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
 }
 
 void OffscreenQmlSurface::cleanup() {
+    _isCleaned = true;
     _canvas->makeCurrent();
 
     _renderControl->invalidate();
@@ -600,6 +596,7 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(&_updateTimer);
+    disconnectAudioOutputTimer();
     QObject::disconnect(qApp);
 
     cleanup();
@@ -613,6 +610,15 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 void OffscreenQmlSurface::onAboutToQuit() {
     _paused = true;
     QObject::disconnect(&_updateTimer);
+    disconnectAudioOutputTimer();
+    
+}
+
+void OffscreenQmlSurface::disconnectAudioOutputTimer() {
+    if (_audioOutputUpdateTimer.isActive()) {
+        _audioOutputUpdateTimer.stop();
+    }
+    QObject::disconnect(&_audioOutputUpdateTimer);
 }
 
 void OffscreenQmlSurface::create() {
@@ -671,6 +677,14 @@ void OffscreenQmlSurface::create() {
         }
     });
 
+    // Setup the update of the QML media components with the current audio output device
+    QObject::connect(&_audioOutputUpdateTimer, &QTimer::timeout, this, [this]() {
+        new AudioHandler(sharedFromThis(), _currentAudioOutputDevice);
+    });
+    int waitForAudioQmlMs = 200;
+    _audioOutputUpdateTimer.setInterval(waitForAudioQmlMs);
+    _audioOutputUpdateTimer.setSingleShot(true);
+
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
@@ -699,10 +713,11 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     } else {
         auto audioIO = DependencyManager::get<AudioClient>();
-        QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-        int waitForAudioQmlMs = 500;
-        // The audio device need to be change using oth
-        new AudioHandler(_rootItem, deviceName, waitForAudioQmlMs);        
+        _currentAudioOutputDevice = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
+        if (_audioOutputUpdateTimer.isActive()) {
+            _audioOutputUpdateTimer.stop();
+        }
+        _audioOutputUpdateTimer.start();
     }
 }
 
@@ -1134,6 +1149,7 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
         touchEvent.setTarget(_rootItem);
         touchEvent.setTouchPoints(touchPoints);
         touchEvent.setTouchPointStates(touchPointStates);
+        touchEvent.setTimestamp((ulong)QDateTime::currentMSecsSinceEpoch());
         touchEvent.ignore();
     }
 

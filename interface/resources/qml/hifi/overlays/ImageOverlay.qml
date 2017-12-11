@@ -9,33 +9,30 @@ Overlay {
 
     Image {
         id: image
-        property bool scaleFix: true;
-        property real xOffset: 0
-        property real yOffset: 0
+        property bool scaleFix: true
+        property real xStart: 0
+        property real yStart: 0
+        property real xSize: 0
+        property real ySize: 0
         property real imageScale: 1.0
         property var resizer: Timer {
             interval: 50
             repeat: false
             running: false
             onTriggered: {
-                var targetAspect = root.width / root.height;
-                var sourceAspect = image.sourceSize.width / image.sourceSize.height;
-                if (sourceAspect <= targetAspect) {
-                    if (root.width === image.sourceSize.width) {
-                        return;
-                    }
-                    image.imageScale = root.width / image.sourceSize.width;
-                } else if (sourceAspect > targetAspect){
-                    if (root.height === image.sourceSize.height) {
-                        return;
-                    }
-                    image.imageScale = root.height / image.sourceSize.height;
+                if (image.xSize === 0) {
+                    image.xSize = image.sourceSize.width - image.xStart;
                 }
-                image.sourceSize = Qt.size(image.sourceSize.width * image.imageScale, image.sourceSize.height * image.imageScale);
+                if (image.ySize === 0) {
+                    image.ySize = image.sourceSize.height - image.yStart;
+                }
+
+                image.anchors.leftMargin = -image.xStart * root.width / image.xSize;
+                image.anchors.topMargin = -image.yStart * root.height / image.ySize;
+                image.anchors.rightMargin = (image.xStart + image.xSize - image.sourceSize.width) * root.width / image.xSize;
+                image.anchors.bottomMargin = (image.yStart + image.ySize - image.sourceSize.height) * root.height / image.ySize;
             }
         }
-        x: -1 * xOffset * imageScale
-        y: -1 * yOffset * imageScale
 
         onSourceSizeChanged: {
             if (sourceSize.width !== 0 && sourceSize.height !== 0 && progress === 1.0 && scaleFix) {
@@ -43,6 +40,8 @@ Overlay {
                 resizer.start();
             }
         }
+
+        anchors.fill: parent
     }
 
     ColorOverlay {
@@ -57,8 +56,10 @@ Overlay {
             var key = keys[i];
             var value = subImage[key];
             switch (key) {
-                case "x": image.xOffset = value; break;
-                case "y": image.yOffset = value; break;
+                case "x": image.xStart = value; break;
+                case "y": image.yStart = value; break;
+                case "width": image.xSize = value; break;
+                case "height": image.ySize = value; break;
             }
         }
     }
@@ -78,6 +79,7 @@ Overlay {
                 case "imageURL": image.source = value; break;
                 case "subImage": updateSubImage(value); break;
                 case "color": color.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, root.opacity); break;
+                case "bounds": break; // The bounds property is handled in C++.
                 default: console.log("OVERLAY Unhandled image property " + key);
             }
         }
