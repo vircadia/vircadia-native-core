@@ -8,7 +8,6 @@
     ""
   ],
   "devDependencies": {
-    "electron-compilers": "^1.0.1",
     "electron-packager": "^6.0.2",
     "electron-prebuilt": "0.37.5"
   },

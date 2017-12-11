@@ -18,7 +18,9 @@ GameplayObjects::GameplayObjects() {
 
 bool GameplayObjects::addToGameplayObjects(const QUuid& avatarID) {
     containsData = true;
-    _avatarIDs.push_back(avatarID);
+    if (std::find(_avatarIDs.begin(), _avatarIDs.end(), avatarID) == _avatarIDs.end()) {
+        _avatarIDs.push_back(avatarID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
@@ -28,7 +30,9 @@ bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
 
 bool GameplayObjects::addToGameplayObjects(const EntityItemID& entityID) {
     containsData = true;
-    _entityIDs.push_back(entityID);
+    if (std::find(_entityIDs.begin(), _entityIDs.end(), entityID) == _entityIDs.end()) {
+        _entityIDs.push_back(entityID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
@@ -38,7 +42,9 @@ bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
 
 bool GameplayObjects::addToGameplayObjects(const OverlayID& overlayID) {
     containsData = true;
-    _overlayIDs.push_back(overlayID);
+    if (std::find(_overlayIDs.begin(), _overlayIDs.end(), overlayID) == _overlayIDs.end()) {
+        _overlayIDs.push_back(overlayID);
+    }
     return true;
 }
 bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
@@ -72,28 +78,125 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 }
 
 bool SelectionScriptingInterface::clearSelectedItemsList(const QString& listName) {
-    _selectedItemsListMap.insert(listName, GameplayObjects());
-    emit selectedItemsListChanged(listName);
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        _selectedItemsListMap.insert(listName, GameplayObjects());
+    }
+    onSelectedItemsListChanged(listName);
     return true;
+}
+
+QStringList SelectionScriptingInterface::getListNames() const {
+    QStringList list;
+    QReadLocker lock(&_selectionListsLock);
+    list = _selectedItemsListMap.keys();
+    return list;
+}
+
+QStringList SelectionScriptingInterface::getHighlightedListNames() const {
+    QStringList list;
+    QReadLocker lock(&_highlightStylesLock);
+    list = _highlightStyleMap.keys();
+    return list;
+}
+
+bool SelectionScriptingInterface::enableListHighlight(const QString& listName, const QVariantMap& highlightStyleValues) {
+    QWriteLocker lock(&_highlightStylesLock);
+
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
+        highlightStyle = _highlightStyleMap.insert(listName, SelectionHighlightStyle());
+
+    }
+
+    if (!(*highlightStyle).isBoundToList()) {
+        setupHandler(listName);
+        (*highlightStyle).setBoundToList(true);
+    }
+
+    (*highlightStyle).fromVariantMap(highlightStyleValues);
+
+    auto mainScene = qApp->getMain3DScene();
+    if (mainScene) {
+        render::Transaction transaction;
+        transaction.resetSelectionHighlight(listName.toStdString(), (*highlightStyle).getStyle());
+        mainScene->enqueueTransaction(transaction);
+    }
+    else {
+        qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
+    }
+
+    return true;
+}
+
+bool SelectionScriptingInterface::disableListHighlight(const QString& listName) {
+    QWriteLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle != _highlightStyleMap.end()) {
+        if ((*highlightStyle).isBoundToList()) {
+        }
+
+        _highlightStyleMap.erase(highlightStyle);
+
+        auto mainScene = qApp->getMain3DScene();
+        if (mainScene) {
+            render::Transaction transaction;
+            transaction.removeHighlightFromSelection(listName.toStdString());
+            mainScene->enqueueTransaction(transaction);
+        }
+        else {
+            qWarning() << "SelectionToSceneHandler::highlightStyleChanged(), Unexpected null scene, possibly during application shutdown";
+        }
+    }
+
+    return true;
+}
+
+QVariantMap SelectionScriptingInterface::getListHighlightStyle(const QString& listName) const {
+    QReadLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
+        return QVariantMap();
+    } else {
+        return (*highlightStyle).toVariantMap();
+    }
+}
+
+render::HighlightStyle SelectionScriptingInterface::getHighlightStyle(const QString& listName) const {
+    QReadLocker lock(&_highlightStylesLock);
+    auto highlightStyle = _highlightStyleMap.find(listName);
+    if (highlightStyle == _highlightStyleMap.end()) {
+        return render::HighlightStyle();
+    } else {
+        return (*highlightStyle).getStyle();
+    }
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    currentList.addToGameplayObjects(idToAdd);
-    _selectedItemsListMap.insert(listName, currentList);
-
-    emit selectedItemsListChanged(listName);
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        GameplayObjects currentList = _selectedItemsListMap.value(listName);
+        currentList.addToGameplayObjects(idToAdd);
+        _selectedItemsListMap.insert(listName, currentList);
+    }
+    onSelectedItemsListChanged(listName);
     return true;
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    if (currentList.getContainsData()) {
-        currentList.removeFromGameplayObjects(idToRemove);
-        _selectedItemsListMap.insert(listName, currentList);
-
-        emit selectedItemsListChanged(listName);
+    bool listExist = false;
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        auto currentList = _selectedItemsListMap.find(listName);
+        if (currentList != _selectedItemsListMap.end()) {
+            listExist = true;
+            (*currentList).removeFromGameplayObjects(idToRemove);
+        }
+    }
+    if (listExist) {
+        onSelectedItemsListChanged(listName);
         return true;
-    } else {
+    }
+    else {
         return false;
     }
 }
@@ -102,42 +205,114 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 //
 
 GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
+    QReadLocker lock(&_selectionListsLock);
     return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
-    GameplayObjects currentList = _selectedItemsListMap.value(listName);
-    if (currentList.getContainsData()) {
+    QReadLocker lock(&_selectionListsLock);
+    auto currentList = _selectedItemsListMap.find(listName);
+    if (currentList != _selectedItemsListMap.end()) {
+        if ((*currentList).getContainsData()) {
 
-        qDebug() << "Avatar IDs:";
-        for (auto i : currentList.getAvatarIDs()) {
-            qDebug() << i << ';';
-        }
-        qDebug() << "";
+            qDebug() << "List named " << listName << ":";
+            qDebug() << "Avatar IDs:";
+            for (auto i : (*currentList).getAvatarIDs()) {
+                qDebug() << i << ';';
+            }
+            qDebug() << "";
 
-        qDebug() << "Entity IDs:";
-        for (auto j : currentList.getEntityIDs()) {
-            qDebug() << j << ';';
-        }
-        qDebug() << "";
+            qDebug() << "Entity IDs:";
+            for (auto j : (*currentList).getEntityIDs()) {
+                qDebug() << j << ';';
+            }
+            qDebug() << "";
 
-        qDebug() << "Overlay IDs:";
-        for (auto k : currentList.getOverlayIDs()) {
-            qDebug() << k << ';';
+            qDebug() << "Overlay IDs:";
+            for (auto k : (*currentList).getOverlayIDs()) {
+                qDebug() << k << ';';
+            }
+            qDebug() << "";
         }
-        qDebug() << "";
+        else {
+            qDebug() << "List named " << listName << " empty";
+        }
     } else {
-        qDebug() << "List named" << listName << "doesn't exist.";
+        qDebug() << "List named " << listName << " doesn't exist.";
+    }
+}
+
+QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
+    QReadLocker lock(&_selectionListsLock);
+    QVariantMap list;
+    auto currentList = _selectedItemsListMap.find(listName);
+    if (currentList != _selectedItemsListMap.end()) {
+        QList<QVariant> avatarIDs;
+        QList<QVariant> entityIDs;
+        QList<QVariant> overlayIDs;
+
+        if ((*currentList).getContainsData()) {
+            if (!(*currentList).getAvatarIDs().empty()) {
+                for (auto j : (*currentList).getAvatarIDs()) {
+                    avatarIDs.push_back((QUuid)j);
+                }
+            }
+            if (!(*currentList).getEntityIDs().empty()) {
+                for (auto j : (*currentList).getEntityIDs()) {
+                    entityIDs.push_back((QUuid)j );
+                }
+            }
+            if (!(*currentList).getOverlayIDs().empty()) {
+                for (auto j : (*currentList).getOverlayIDs()) {
+                    overlayIDs.push_back((QUuid)j);
+                }
+            }
+        }
+        list["avatars"] = (avatarIDs);
+        list["entities"] = (entityIDs);
+        list["overlays"] = (overlayIDs);
+
+        return list;
+    }
+    else {
+        return list;
     }
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
-    if (_selectedItemsListMap.remove(listName)) {
-        emit selectedItemsListChanged(listName);
+    bool removed = false;
+    {
+        QWriteLocker lock(&_selectionListsLock);
+        removed = _selectedItemsListMap.remove(listName);
+    }
+    if (removed) {
+        onSelectedItemsListChanged(listName);
         return true;
     } else {
         return false;
     }
+}
+
+void SelectionScriptingInterface::setupHandler(const QString& selectionName) {
+    QWriteLocker lock(&_selectionHandlersLock);
+    auto handler = _handlerMap.find(selectionName);
+    if (handler == _handlerMap.end()) {
+        handler = _handlerMap.insert(selectionName, new SelectionToSceneHandler());
+    }
+
+    (*handler)->initialize(selectionName);
+}
+
+void SelectionScriptingInterface::onSelectedItemsListChanged(const QString& listName) {
+    {
+        QWriteLocker lock(&_selectionHandlersLock);
+        auto handler = _handlerMap.find(listName);
+        if (handler != _handlerMap.end()) {
+            (*handler)->updateSceneFromSelectedList();
+        }
+    }
+
+    emit selectedItemsListChanged(listName);
 }
 
 
@@ -146,6 +321,7 @@ SelectionToSceneHandler::SelectionToSceneHandler() {
 
 void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
+    updateSceneFromSelectedList();
 }
 
 void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) {
@@ -198,4 +374,86 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
     } else {
         qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
     }
+}
+
+bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
+    auto colorVariant = properties["outlineUnoccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._outlineUnoccluded.color = toGlm(color);
+        }
+    }
+    colorVariant = properties["outlineOccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._outlineOccluded.color = toGlm(color);
+        }
+    }
+    colorVariant = properties["fillUnoccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._fillUnoccluded.color = toGlm(color);
+        }
+    }
+    colorVariant = properties["fillOccludedColor"];
+    if (colorVariant.isValid()) {
+        bool isValid;
+        auto color = xColorFromVariant(colorVariant, isValid);
+        if (isValid) {
+            _style._fillOccluded.color = toGlm(color);
+        }
+    }
+
+    auto intensityVariant = properties["outlineUnoccludedAlpha"];
+    if (intensityVariant.isValid()) {
+        _style._outlineUnoccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["outlineOccludedAlpha"];
+    if (intensityVariant.isValid()) {
+        _style._outlineOccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["fillUnoccludedAlpha"];
+    if (intensityVariant.isValid()) {
+        _style._fillUnoccluded.alpha = intensityVariant.toFloat();
+    }
+    intensityVariant = properties["fillOccludedAlpha"];
+    if (intensityVariant.isValid()) {
+        _style._fillOccluded.alpha = intensityVariant.toFloat();
+    }
+
+    auto outlineWidth = properties["outlineWidth"];
+    if (outlineWidth.isValid()) {
+        _style._outlineWidth = outlineWidth.toFloat();
+    }
+    auto isOutlineSmooth = properties["isOutlineSmooth"];
+    if (isOutlineSmooth.isValid()) {
+        _style._isOutlineSmooth = isOutlineSmooth.toBool();
+    }
+
+    return true;
+}
+
+QVariantMap SelectionHighlightStyle::toVariantMap() const {
+    QVariantMap properties;
+
+    properties["outlineUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineUnoccluded.color));
+    properties["outlineOccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineOccluded.color));
+    properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
+    properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
+
+    properties["outlineUnoccludedAlpha"] = _style._outlineUnoccluded.alpha;
+    properties["outlineOccludedAlpha"] = _style._outlineOccluded.alpha;
+    properties["fillUnoccludedAlpha"] = _style._fillUnoccluded.alpha;
+    properties["fillOccludedAlpha"] = _style._fillOccluded.alpha;
+
+    properties["outlineWidth"] = _style._outlineWidth;
+    properties["isOutlineSmooth"] = _style._isOutlineSmooth;
+
+    return properties;
 }
