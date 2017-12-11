@@ -905,7 +905,7 @@ Rectangle {
                     }
                     buyTextContainer.color = "#FFC3CD";
                     buyTextContainer.border.color = "#F3808F";
-                    buyGlyph.text = hifi.glyphs.error;
+                    buyGlyph.text = hifi.glyphs.alert;
                     buyGlyph.size = 54;
                 } else {
                     if (root.alreadyOwned) {
