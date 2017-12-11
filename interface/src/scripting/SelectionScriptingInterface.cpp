@@ -283,7 +283,7 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     bool removed = false;
     {
         QWriteLocker lock(&_selectionListsLock);
-        bool removed = _selectedItemsListMap.remove(listName);
+        removed = _selectedItemsListMap.remove(listName);
     }
     if (removed) {
         onSelectedItemsListChanged(listName);

@@ -136,13 +136,26 @@ Item {
             function resetSelectionView() {
                 myModel.clear()
                 var entities = Selection.getSelectedItemsList(root.listName)["entities"]
-                if (entities === undefined) {
-                    return;
+                if (entities !== undefined) {
+                    myModel.append({ "objectID": "Entities" })
+                    for (var i = 0; i < entities.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(entities[i]) })
+                    }
                 }
-                var fLen = entities.length;
-                for (var i = 0; i < fLen; i++) {
-                    myModel.append({ "objectID": JSON.stringify(entities[i]) })
-                 }
+                var overlays = Selection.getSelectedItemsList(root.listName)["overlays"]
+                if (overlays !== undefined) {
+                    myModel.append({ "objectID": "Overlays" })
+                    for (var i = 0; i < overlays.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(overlays[i]) })
+                    }
+                }
+                var avatars = Selection.getSelectedItemsList(root.listName)["avatars"]
+                if (avatars !== undefined) {
+                    myModel.append({ "objectID": "Avatars" })
+                    for (var i = 0; i < avatars.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(avatars[i]) })
+                    }
+                }
             }            
 
             ListModel {
@@ -153,7 +166,7 @@ Item {
                 id: myDelegate
                 Row {
                     id: fruit
-                    Text { text: JSON.stringify(objectID) }
+                    Text { text: objectID }
                 }
             }
             
