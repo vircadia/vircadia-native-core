@@ -2812,10 +2812,10 @@ static int getEventQueueSize(QThread* thread) {
 static void dumpEventQueue(QThread* thread) {
     auto threadData = QThreadData::get2(thread);
     QMutexLocker locker(&threadData->postEventList.mutex);
-    qDebug() << "AJT: event list, size =" << threadData->postEventList.size();
+    qDebug() << "Event list, size =" << threadData->postEventList.size();
     for (auto& postEvent : threadData->postEventList) {
         QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
-        qDebug() << "AJT:    " << type;
+        qDebug() << "    " << type;
     }
 }
 #endif // DEBUG_EVENT_QUEUE
@@ -5974,7 +5974,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         }
     }
 
-    if (defaultUpload) {
+    if (defaultUpload && !url.fileName().isEmpty() && url.isLocalFile()) {
         showAssetServerWidget(urlString);
     }
     return defaultUpload;
@@ -7075,11 +7075,11 @@ QRect Application::getRecommendedHUDRect() const {
     return result;
 }
 
-QSize Application::getDeviceSize() const {
+glm::vec2 Application::getDeviceSize() const {
     static const int MIN_SIZE = 1;
-    QSize result(MIN_SIZE, MIN_SIZE);
+    glm::vec2 result(MIN_SIZE);
     if (_displayPlugin) {
-        result = fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
+        result = getActiveDisplayPlugin()->getRecommendedRenderSize();
     }
     return result;
 }
@@ -7096,10 +7096,6 @@ bool Application::hasFocus() const {
         return getActiveDisplayPlugin()->hasFocus();
     }
     return (QApplication::activeWindow() != nullptr);
-}
-
-glm::vec2 Application::getViewportDimensions() const {
-    return toGlm(getDeviceSize());
 }
 
 void Application::setMaxOctreePacketsPerSecond(int maxOctreePPS) {

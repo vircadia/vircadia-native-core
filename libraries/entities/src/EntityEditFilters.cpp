@@ -199,7 +199,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 
                 // define the uncaughtException function
                 QScriptEngine& engineRef = *engine;
-                filterData.uncaughtExceptions = [this, &engineRef, urlString]() { return hadUncaughtExceptions(engineRef, urlString); };
+                filterData.uncaughtExceptions = [&engineRef, urlString]() { return hadUncaughtExceptions(engineRef, urlString); };
 
                 // now get the filter function
                 auto global = engine->globalObject();

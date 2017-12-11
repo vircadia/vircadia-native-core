@@ -29,10 +29,6 @@ macro(GENERATE_INSTALLERS)
 
 
   if (WIN32)
-    # Do not install the Visual Studio C runtime libraries.  The installer will do this automatically
-    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-    
-    include(InstallRequiredSystemLibraries)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
     # install and reference the Add/Remove icon
@@ -49,6 +45,10 @@ macro(GENERATE_INSTALLERS)
     set(_UNINSTALLER_HEADER_BAD_PATH "${HF_CMAKE_DIR}/installer/uninstaller-header.bmp")
     set(UNINSTALLER_HEADER_IMAGE "")
     fix_path_for_nsis(${_UNINSTALLER_HEADER_BAD_PATH} UNINSTALLER_HEADER_IMAGE)
+
+    # grab the latest VC redist (2017) and add it to the installer, our NSIS template
+    # will call it during the install
+    install(CODE "file(DOWNLOAD https://go.microsoft.com/fwlink/?LinkId=746572 \"\${CMAKE_INSTALL_PREFIX}/vcredist_x64.exe\")")
   elseif (APPLE)
     # produce a drag and drop DMG on OS X
     set(CPACK_GENERATOR "DragNDrop")
@@ -84,4 +84,3 @@ macro(GENERATE_INSTALLERS)
 
   include(CPack)
 endmacro()
-

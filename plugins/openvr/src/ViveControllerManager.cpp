@@ -337,6 +337,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _poseStateMap.clear();
     _buttonPressedMap.clear();
     _validTrackedObjects.clear();
+    _trackedControllers = 0;
 
     // While the keyboard is open, we defer strictly to the keyboard values
     if (isOpenVrKeyboardShown()) {
@@ -369,14 +370,12 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         }
     }
 
-    int numTrackedControllers = 0;
     if (leftHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
-        numTrackedControllers++;
+        _trackedControllers++;
     }
     if (rightHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
-        numTrackedControllers++;
+        _trackedControllers++;
     }
-    _trackedControllers = numTrackedControllers;
 
     calibrateFromHandController(inputCalibrationData);
     calibrateFromUI(inputCalibrationData);
@@ -527,6 +526,7 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
 
         // but _validTrackedObjects remain in sensor frame
         _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
+        _trackedControllers++;
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;
@@ -758,9 +758,9 @@ void ViveControllerManager::InputDevice::handleHmd(uint32_t deviceIndex, const c
          } else {
              const mat4& mat = mat4();
              const vec3 zero = vec3();
-
              handleHeadPoseEvent(inputCalibrationData, mat, zero, zero);
          }
+         _trackedControllers++;
      }
 }
 

@@ -17,4 +17,4 @@ if (UNIX)
   endif()
 endif ()
 
-set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+install_beside_console()

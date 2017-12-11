@@ -20,6 +20,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
+#include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QHostInfo>
 
 #include <LogHandler.h>

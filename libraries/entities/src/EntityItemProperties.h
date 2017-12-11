@@ -339,6 +339,7 @@ public:
     QByteArray getStaticCertificateJSON() const;
     QByteArray getStaticCertificateHash() const;
     bool verifyStaticCertificateProperties();
+    static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
 
 protected:
     QString getCollisionMaskAsString() const;
