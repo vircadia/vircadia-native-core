@@ -52,7 +52,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
 
     _offscreenSurface->setFormat(_context->format());
     _offscreenSurface->create();
-#if !defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID)
     if (!_context->makeCurrent(_offscreenSurface)) {
         qFatal("Unable to make offscreen surface current");
     }

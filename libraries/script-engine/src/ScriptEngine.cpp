@@ -2247,7 +2247,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QTimer timeout;
         timeout.setSingleShot(true);
         timeout.start(SANDBOX_TIMEOUT);
-        connect(&timeout, &QTimer::timeout, [&sandbox, scriptOrURL]{
+        connect(&timeout, &QTimer::timeout, [=, &sandbox]{
                 qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout(" << scriptOrURL << ")";
 
                 // Guard against infinite loops and non-performant code
