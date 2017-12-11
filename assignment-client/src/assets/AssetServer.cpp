@@ -29,11 +29,10 @@
 #include <QtCore/QUrlQuery>
 
 #include <ClientServerUtils.h>
-#include <FBXBaker.h>
-#include <JSBaker.h>
 #include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
+#include <image/Image.h>
 
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"
@@ -250,7 +249,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     image::setNormalTexturesCompressionEnabled(true);
     image::setCubeTexturesCompressionEnabled(true);
 
-    BAKEABLE_TEXTURE_EXTENSIONS = TextureBaker::getSupportedFormats();
+    BAKEABLE_TEXTURE_EXTENSIONS = image::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
     // Most of the work will be I/O bound, reading from disk and constructing packet objects,
@@ -416,6 +415,9 @@ void AssetServer::completeSetup() {
     if (assetsFilesizeLimit != 0 && assetsFilesizeLimit < MAX_UPLOAD_SIZE) {
         _filesizeLimit = assetsFilesizeLimit * BITS_PER_MEGABITS;
     }
+
+    PathUtils::removeTemporaryApplicationDirs();
+    PathUtils::removeTemporaryApplicationDirs("Oven");
 }
 
 void AssetServer::cleanupUnmappedFiles() {

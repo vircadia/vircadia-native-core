@@ -75,6 +75,14 @@ glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
 
 namespace image {
 
+const QStringList getSupportedFormats() {
+    auto formats = QImageReader::supportedImageFormats();
+    QStringList stringFormats;
+    std::transform(formats.begin(), formats.end(), std::back_inserter(stringFormats),
+                   [](QByteArray& format) -> QString { return format; });
+    return stringFormats;
+}
+
 QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB30;
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
