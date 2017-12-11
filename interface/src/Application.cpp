@@ -6009,7 +6009,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         }
     }
 
-    if (defaultUpload) {
+    if (defaultUpload && !url.fileName().isEmpty() && url.isLocalFile()) {
         showAssetServerWidget(urlString);
     }
     return defaultUpload;

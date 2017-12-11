@@ -262,7 +262,7 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString(), false));
+    return gpu::TexturePointer(loader(std::move(image), QUrl::fromLocalFile(path).fileName().toStdString(), false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -952,7 +952,9 @@ void ImageReader::read() {
     gpu::TexturePointer texture;
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
-        texture = image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
+
+        // IMPORTANT: _content is empty past this point
+        texture = image::processImage(std::move(_content), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
 
         if (!texture) {
             qCWarning(modelnetworking) << "Could not process:" << _url;

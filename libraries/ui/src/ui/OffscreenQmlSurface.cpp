@@ -1190,6 +1190,7 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
         touchEvent.setTarget(_rootItem);
         touchEvent.setTouchPoints(touchPoints);
         touchEvent.setTouchPointStates(touchPointStates);
+        touchEvent.setTimestamp((ulong)QDateTime::currentMSecsSinceEpoch());
         touchEvent.ignore();
     }
 

@@ -11,9 +11,12 @@
 /* global Tablet, Script, HMD, UserActivityLogger, Entities */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
+var selectionDisplay = null; // for gridTool.js to ignore
+
 (function () { // BEGIN LOCAL_SCOPE
 
-    Script.include("../libraries/WebTablet.js");
+    Script.include("/~/system/libraries/WebTablet.js");
+    Script.include("/~/system/libraries/gridTool.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
@@ -169,6 +172,33 @@
         }));
     }
 
+    var grid = new Grid();
+    function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+        // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
+        // position in the given direction.
+        var CORNERS = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 1, z: 0 },
+            { x: 0, y: 1, z: 1 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 0, z: 1 },
+            { x: 1, y: 1, z: 0 },
+            { x: 1, y: 1, z: 1 },
+        ];
+
+        // Go through all corners and find least (most negative) distance in front of position.
+        var distance = 0;
+        for (var i = 0, length = CORNERS.length; i < length; i++) {
+            var cornerVector =
+                Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+            var cornerDistance = Vec3.dot(cornerVector, direction);
+            distance = Math.min(cornerDistance, distance);
+        }
+        position = Vec3.sum(Vec3.multiply(distance, direction), position);
+        return position;
+    }
+
     var HALF_TREE_SCALE = 16384;
     function getPositionToCreateEntity(extra) {
         var CREATE_DISTANCE = 2;
@@ -256,10 +286,6 @@
                             }
                         }
                     }
-                }
-
-                if (isActive) {
-                    selectionManager.setSelections(pastedEntityIDs);
                 }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
