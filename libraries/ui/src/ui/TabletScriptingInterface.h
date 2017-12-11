@@ -270,6 +270,7 @@ protected:
     std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
+    mutable QMutex _tabletButtonsListMutex;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);

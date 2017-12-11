@@ -24,6 +24,10 @@ Item {
     property int stableOrder: 0
     property var tabletRoot;
     property var flickable: null
+
+    property int row: -1
+    property int column: -1
+
     width: 129
     height: 129
 
@@ -135,6 +139,7 @@ Item {
         preventStealing: false
         onClicked: {
             console.log("Tablet Button Clicked!");
+            tablet.setCurrentItemState("base state");
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
                     tabletButton.isActive = false;
@@ -142,6 +147,9 @@ Item {
                     tabletButton.isActive = true;
                 }
             }
+            tablet.rowIndex = tabletButton.row
+            tablet.columnIndex = tabletButton.column
+
             tabletButton.clicked();
             if (tabletRoot) {
                 tabletInterface.playSound(TabletEnums.ButtonClick);
@@ -149,6 +157,7 @@ Item {
         }
 
         onEntered: {
+            tablet.setCurrentItemState("base state");
             tabletButton.isEntered = true;
             tabletInterface.playSound(TabletEnums.ButtonHover);
 
@@ -157,6 +166,8 @@ Item {
             } else {
                 tabletButton.state = "hover state";
             }
+            tablet.rowIndex = tabletButton.row
+            tablet.columnIndex = tabletButton.column
         }
         onExited: {
             tabletButton.isEntered = false;
