@@ -1149,7 +1149,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     if (model && model->isLoaded()) {
         if (!entity->_dimensionsInitialized || entity->_needsInitialSimulation) {
             return true;
-        }
+       } 
 
         // Check to see if we need to update the model bounds
         if (entity->needsUpdateModelBounds()) {

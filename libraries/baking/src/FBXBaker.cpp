@@ -318,7 +318,6 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                         if (textureChild.name == "RelativeFilename") {
                             QString fbxTextureFileName { textureChild.properties.at(0).toString() };
                             
-                            // Callback to get texture type
                             // grab the ID for this texture so we can figure out the
                             // texture type from the loaded materials
                             auto textureID { object->properties[0].toString() };

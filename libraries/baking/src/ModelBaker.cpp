@@ -255,7 +255,7 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
         return QString::null;
     }
 
-    if (!TextureBaker::getSupportedFormats().contains(modelTextureFileInfo.suffix())) {
+    if (!image::getSupportedFormats().contains(modelTextureFileInfo.suffix())) {
         // this is a texture format we don't bake, skip it
         handleWarning(modelTextureFileName + " is not a bakeable texture format");
         return QString::null;
