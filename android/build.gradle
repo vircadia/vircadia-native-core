@@ -163,7 +163,6 @@ def scanQmlImports = { File qmlRootPath ->
         " -importPath ${qmlRoot.absolutePath}/qml"
 
     def commandResult = captureOutput(command)
-    println commandResult
     new JsonSlurper().parseText(commandResult).each {
         if (!it.containsKey('path')) {
             println "Warning: QML import could not be resolved in any of the import paths: ${it.name}"
@@ -245,6 +244,58 @@ def parseQtDependencies = { List qtLibs ->
     })
 }
 
+def generateLibsXml = {
+    def libDestinationDirectory = jniFolder
+    def jarDestinationDirectory = new File(appDir, 'libs')
+    def assetDestinationDirectory = new File(appDir, 'src/main/assets/bundled');
+    def libsXmlFile = new File(appDir, 'src/main/res/values/libs.xml')
+    def libPrefix = 'lib' + File.separator
+    def jarPrefix = 'jar' + File.separator
+
+    def xmlParser = new XmlParser()
+    def libsXmlRoot = xmlParser.parseText('<?xml version="1.0" encoding="UTF-8"?><resources/>')
+    def qtLibsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'qt_libs'])
+    def bundledLibsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'bundled_in_lib'])
+    def bundledAssetsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'bundled_in_assets'])
+
+    options.files.each {
+        def sourceFile = it
+        if (!sourceFile.exists()) {
+            throw new GradleException("Unable to find dependency file " + sourceFile.toString())
+        }
+
+        def relativePath = relativize( qmlRoot, sourceFile ).toString()
+        def destinationFile
+        if (relativePath.endsWith('.so')) {
+            def garbledFileName
+            if (relativePath.startsWith(libPrefix)) {
+                garbledFileName = relativePath.substring(libPrefix.size())
+                Pattern p = ~/lib(Qt5.*).so/
+                Matcher m = p.matcher(garbledFileName)
+                assert m.matches()
+                def libName = m.group(1)
+                xmlParser.createNode(qtLibsNode, 'item', [:]).setValue(libName)
+            } else {
+                garbledFileName = 'lib' + relativePath.replace(File.separator, '_'[0])
+                xmlParser.createNode(bundledLibsNode, 'item', [:]).setValue("${garbledFileName}:${relativePath}".replace(File.separator, '/'))
+            }
+            destinationFile = new File(libDestinationDirectory, garbledFileName)
+        } else if (relativePath.startsWith('jar')) {
+            destinationFile = new File(jarDestinationDirectory, relativePath.substring(jarPrefix.size()))
+        } else {
+            xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("bundled/${relativePath}:${relativePath}".replace(File.separator, '/'))
+            destinationFile = new File(assetDestinationDirectory, relativePath)
+        }
+
+        copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
+        assert destinationFile.exists() && destinationFile.isFile()
+    }
+    def xml = XmlUtil.serialize(libsXmlRoot)
+    new FileWriter(libsXmlFile).withPrintWriter { writer ->
+        writer.write(xml)
+    }
+}
+
 task downloadDependencies {
     doLast {
         packages.each { entry ->
@@ -298,7 +349,7 @@ task extractDependencies(dependsOn: verifyDependencyDownloads) {
 }
 
 // Copies the non Qt dependencies.  Qt dependencies (primary libraries and plugins) are handled by the qtBundle task
-task copyDependenciesImpl {
+task copyDependencies(dependsOn: [ extractDependencies ]) {
     doLast {
         packages.each { entry ->
             def packageName = entry.key
@@ -319,8 +370,6 @@ task copyDependenciesImpl {
         }
     }
 }
-
-task copyDependencies(dependsOn: [ extractDependencies, copyDependenciesImpl ]) { }
 
 task downloadScribe(type: Download) {
     src baseUrl + scribeFile
@@ -376,59 +425,11 @@ task extractGvrBinaries(dependsOn: extractDependencies) {
 task qtBundle {
     doLast {
         parseQtDependencies(QT5_DEPS)
-        //scanQmlImports(new File("${appDir}/../../interface/resources/qml/"))
-        scanQmlImports(new File("${projectDir}/app/src/main/cpp"))
-
-        def libDestinationDirectory = jniFolder
-        def jarDestinationDirectory = new File(appDir, 'libs')
-        def assetDestinationDirectory = new File(appDir, 'src/main/assets/bundled');
-        def libsXmlFile = new File(appDir, 'src/main/res/values/libs.xml')
-        def libPrefix = 'lib' + File.separator
-        def jarPrefix = 'jar' + File.separator
-
-        def xmlParser = new XmlParser()
-        def libsXmlRoot = xmlParser.parseText('<?xml version="1.0" encoding="UTF-8"?><resources/>')
-        def qtLibsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'qt_libs'])
-        def bundledLibsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'bundled_in_lib'])
-        def bundledAssetsNode = xmlParser.createNode(libsXmlRoot, 'array', [name: 'bundled_in_assets'])
-
-        options.files.each {
-            def sourceFile = it
-            if (!sourceFile.exists()) {
-                throw new GradleException("Unable to find dependency file " + sourceFile.toString())
-            }
-
-            def relativePath = relativize( qmlRoot, sourceFile ).toString()
-            def destinationFile
-            if (relativePath.endsWith('.so')) {
-                def garbledFileName
-                if (relativePath.startsWith(libPrefix)) {
-                    garbledFileName = relativePath.substring(libPrefix.size())
-                    Pattern p = ~/lib(Qt5.*).so/
-                    Matcher m = p.matcher(garbledFileName)
-                    assert m.matches()
-                    def libName = m.group(1)
-                    xmlParser.createNode(qtLibsNode, 'item', [:]).setValue(libName)
-                } else {
-                    garbledFileName = 'lib' + relativePath.replace(File.separator, '_'[0])
-                    xmlParser.createNode(bundledLibsNode, 'item', [:]).setValue("${garbledFileName}:${relativePath}".replace(File.separator, '/'))
-                }
-                destinationFile = new File(libDestinationDirectory, garbledFileName)
-            } else if (relativePath.startsWith('jar')) {
-                destinationFile = new File(jarDestinationDirectory, relativePath.substring(jarPrefix.size()))
-            } else {
-                xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("bundled/${relativePath}:${relativePath}".replace(File.separator, '/'))
-                destinationFile = new File(assetDestinationDirectory, relativePath)
-            }
-
-            copy { from sourceFile;  into destinationFile.parent;  rename(sourceFile.name, destinationFile.name) }
-            assert destinationFile.exists() && destinationFile.isFile()
-        }
-        def xml = XmlUtil.serialize(libsXmlRoot)
-        new FileWriter(libsXmlFile).withPrintWriter { writer ->
-            writer.write(xml)
-        }
-    }
+        //def qmlImportFolder = new File("${appDir}/../../interface/resources/qml/")
+        def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
+        scanQmlImports(qmlImportFolder)
+        generateLibsXml()
+   }
 }
 
 task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBinaries, qtBundle]) { }
