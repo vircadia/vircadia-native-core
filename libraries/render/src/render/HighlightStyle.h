@@ -21,14 +21,14 @@ namespace render {
     class HighlightStyle {
     public:
         struct RGBA {
-            glm::vec3 color{ 1.f, 0.7f, 0.2f };
+            glm::vec3 color{ 1.0f, 0.7f, 0.2f };
             float alpha{ 0.9f };
 
             RGBA(const glm::vec3& c, float a) : color(c), alpha(a) {}
         };
 
-        RGBA _outlineUnoccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };
-        RGBA _outlineOccluded{ { 1.f, 0.7f, 0.2f }, 0.9f };
+        RGBA _outlineUnoccluded{ { 1.0f, 0.7f, 0.2f }, 0.9f };
+        RGBA _outlineOccluded{ { 1.0f, 0.7f, 0.2f }, 0.9f };
         RGBA _fillUnoccluded{ { 0.2f, 0.7f, 1.0f }, 0.0f };
         RGBA _fillOccluded{ { 0.2f, 0.7f, 1.0f }, 0.0f };
 
