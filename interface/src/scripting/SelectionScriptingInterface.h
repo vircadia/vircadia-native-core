@@ -185,10 +185,10 @@ public:
     * - fillUnoccludedColor: {xColor} "
     * - fillOccludedColor: {xColor} "
     *
-    * - outlineUnoccludedOpacity: {float} Opacity value ranging from 0.0 (not visible) to 1.0 (fully opaque) for the specified highlight region
-    * - outlineOccludedOpacity: {float} "
-    * - fillUnoccludedOpacity: {float} "
-    * - fillOccludedOpacity: {float} "
+    * - outlineUnoccludedAlpha: {float} Alpha value ranging from 0.0 (not visible) to 1.0 (fully opaque) for the specified highlight region
+    * - outlineOccludedAlpha: {float} "
+    * - fillUnoccludedAlpha: {float} "
+    * - fillOccludedAlpha: {float} "
     *
     * - outlineWidth: {float} width of the outline expressed in pixels
     * - isOutlineSmooth: {bool} true to enable oultine smooth falloff

@@ -109,13 +109,13 @@
         isOutlineSmooth: true,
         outlineWidth: 5,
         outlineUnoccludedColor: {red: 255, green: 128, blue: 128}, 
-        outlineUnoccludedIntensity: 0.88,
+        outlineUnoccludedAlpha: 0.88,
         outlineOccludedColor: {red: 255, green: 128, blue: 128},
-        outlineOccludedIntensity:0.5,
+        outlineOccludedAlpha:0.5,
         fillUnoccludedColor: {red: 26, green: 0, blue: 0},
-        fillUnoccludedIntensity: 0.0,
+        fillUnoccludedAlpha: 0.0,
         fillOccludedColor: {red: 26, green: 0, blue: 0},
-        fillOccludedIntensity: 0.0
+        fillOccludedAlpha: 0.0
     }
     Selection.enableListHighlight(HoveringList, hoveringStyle)
     
