@@ -454,23 +454,6 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
             }
         }
     }
-    /*
-    for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
-        std::ostringstream stream;
-        if (i > 0) {
-            stream << "highlightList" << i;
-        } else {
-            stream << "contextOverlayHighlightList";
-        }
-        auto selectionName = stream.str();
-        if (!scene->isSelectionEmpty(selectionName)) {
-            auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);
-            if (!render::HighlightStage::isIndexInvalid(highlightId)) {
-                _sharedParameters->_highlightIds[outputs.size()] = highlightId;
-                outputs.emplace_back(selectionName);
-            }
-        }
-    }*/
 }
 
 void ExtractSelectionName::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
