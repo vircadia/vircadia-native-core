@@ -64,7 +64,7 @@ public:
 
 class RenderShadowCascadeSetup {
 public:
-    using Outputs = render::VaryingSet2<RenderArgs::RenderMode, render::ItemFilter>;
+    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}

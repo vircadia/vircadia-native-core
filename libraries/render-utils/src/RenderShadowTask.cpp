@@ -260,6 +260,7 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     RenderArgs* args = renderContext->args;
 
     output.edit0() = args->_renderMode;
+    output.edit2() = args->_sizeScale;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
@@ -270,6 +271,14 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        if (lightStage->getCurrentKeyLight()->getType() == model::Light::SUN) {
+            const float shadowSizeScale = 1e16f;
+            // Set the size scale to a ridiculously high value to prevent small object culling which assumes
+            // the view frustum is a perspective projection. But this isn't the case for the sun which
+            // is an orthographic projection.
+            args->_sizeScale = shadowSizeScale;
+        }
+
     } else {
         output.edit1() = ItemFilter::Builder::nothing();
     }
@@ -284,4 +293,5 @@ void RenderShadowCascadeTeardown::run(const render::RenderContextPointer& render
     assert(args->hasViewFrustum());
     // Reset the render args
     args->_renderMode = input.get0();
+    args->_sizeScale = input.get2();
 };
