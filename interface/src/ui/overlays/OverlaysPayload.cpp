@@ -87,4 +87,10 @@ namespace render {
     template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
         return overlay->getShapeKey();
     }
+
+
+    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems) {
+        return overlay->fetchMetaSubItems(subItems);
+    }
 }
+
