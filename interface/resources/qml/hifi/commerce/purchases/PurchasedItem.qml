@@ -349,6 +349,7 @@ Item {
                 sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.isWearable ? "rez" : "wear");
             }
 
             style: ButtonStyle {
