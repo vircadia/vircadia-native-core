@@ -72,8 +72,8 @@ void PointerEvent::setButton(Button button) {
  *     <code>"Move"</code>.
  * @property {number} id - Integer number used to identify the pointer: <code>0</code> = hardware mouse, <code>1</code> = left
  *     controller, <code>2</code> = right controller.
- * @property {Vec2} pos2D - The 2D position of the event on the intersected overlay or entity XY plane.
- * @property {Vec3} pos3D - The 3D position of the event on the intersected overlay or entity.
+ * @property {Vec2} pos2D - The 2D position of the event on the intersected overlay or entity XY plane, where applicable.
+ * @property {Vec3} pos3D - The 3D position of the event on the intersected overlay or entity, where applicable.
  * @property {Vec3} normal - The surface normal at the intersection point.
  * @property {Vec3} direction - The direction of the intersection ray.
  * @property {string} button - The name of the button pressed: <code>None</code>, <code>Primary</code>, <code>Secondary</code>,
@@ -96,8 +96,8 @@ void PointerEvent::setButton(Button button) {
  *     <code>false</code>
  * @property {boolean} isTertiaryHeld - <code>true</code> if the tertiary button is currently being pressed, otherwise
  *     <code>false</code>
- * @property {KeyboardModifiers} keyboardModifiers - Integer value being and with bits set according to which keyboard modifier
- *     keys are were pressed when the event was generated.
+ * @property {KeyboardModifiers} keyboardModifiers - Integer value with bits set according to which keyboard modifier keys were
+ *     pressed when the event was generated.
  */
 /**jsdoc
  * <p>A KeyboardModifiers value is used to specify which modifier keys on the keyboard are pressed. The value is the sum 
