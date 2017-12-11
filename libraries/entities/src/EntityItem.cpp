@@ -26,6 +26,7 @@
 #include <GLMHelpers.h>
 #include <Octree.h>
 #include <PhysicsHelpers.h>
+#include <Profile.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <LogHandler.h>
@@ -984,6 +985,7 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
 }
 
 void EntityItem::simulate(const quint64& now) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Simulate");
     if (getLastSimulated() == 0) {
         setLastSimulated(now);
     }
@@ -1039,6 +1041,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "StepKinematicMotion");
     // get all the data
     Transform transform;
     glm::vec3 linearVelocity;

@@ -251,10 +251,10 @@ void EntityTreeRenderer::shutdown() {
 }
 
 void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
-    PROFILE_RANGE_EX(simulation_physics, "Add", 0xffff00ff, (uint64_t)_entitiesToAdd.size());
+    PROFILE_RANGE_EX(simulation_physics, "AddToScene", 0xffff00ff, (uint64_t)_entitiesToAdd.size());
     PerformanceTimer pt("add");
-    // Clear any expired entities 
-    // FIXME should be able to use std::remove_if, but it fails due to some 
+    // Clear any expired entities
+    // FIXME should be able to use std::remove_if, but it fails due to some
     // weird compilation error related to EntityItemID assignment operators
     for (auto itr = _entitiesToAdd.begin(); _entitiesToAdd.end() != itr; ) {
         if (itr->second.expired()) {
@@ -272,7 +272,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 continue;
             }
 
-            // Path to the parent transforms is not valid, 
+            // Path to the parent transforms is not valid,
             // don't add to the scene graph yet
             if (!entity->isParentPathComplete()) {
                 continue;
@@ -296,7 +296,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
 }
 
 void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
-    PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
+    PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
     _changedEntitiesGuard.withWriteLock([&] {

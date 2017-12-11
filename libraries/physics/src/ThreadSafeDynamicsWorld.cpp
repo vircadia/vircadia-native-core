@@ -122,7 +122,7 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
-    DETAILED_PROFILE_RANGE(simulation_physics, "syncMotionStates");
+    PROFILE_RANGE(simulation_physics, "SyncMotionStates");
     BT_PROFILE("syncMotionStates");
     _changedMotionStates.clear();
 
