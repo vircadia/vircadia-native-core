@@ -184,7 +184,6 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
-    float _currentFrame { -1 };
 };
 
 } } // namespace 

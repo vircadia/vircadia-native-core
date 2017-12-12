@@ -207,11 +207,16 @@ void ModelEntityItem::update(const quint64& now) {
                         // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
                         setAnimationCurrentFrame(_currentFrame);
+                        qCDebug(entities) << "setting first frame 1 " << _currentFrame;
                     } else {
-                        _lastAnimated = usecTimestampNow();
+                        _lastAnimated =  usecTimestampNow();
                         _currentFrame = currentAnimationProperties.getFirstFrame();
                         setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
+                        qCDebug(entities) << "setting first frame 2" << _currentFrame;
                     }
+                } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
+                    _currentFrame = currentAnimationProperties.getFirstFrame();
+                    setAnimationCurrentFrame(_currentFrame);
                 } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
                     // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
                     _currentFrame = currentAnimationProperties.getCurrentFrame();
@@ -228,13 +233,15 @@ void ModelEntityItem::update(const quint64& now) {
 
                 // if the current frame is less than zero then we have restarted the server.
                 if (_currentFrame < 0) {
+                    //qCDebug(entities) << "setting first frame 3 " << _currentFrame;
                     if ((currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getLastFrame()) && 
                         (currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getFirstFrame())) {
-                        _currentFrame = currentAnimationProperties.getCurrentFrame();
+                       // _currentFrame = currentAnimationProperties.getCurrentFrame();
                     } else {
-                        _currentFrame = currentAnimationProperties.getFirstFrame();
-                        setAnimationCurrentFrame(_currentFrame);
-                        _lastAnimated = usecTimestampNow();
+                        //qCDebug(entities) << "setting first frame 4 " << _currentFrame;
+                       // _currentFrame = currentAnimationProperties.getFirstFrame();
+                       // setAnimationCurrentFrame(_currentFrame);
+                       // _lastAnimated = usecTimestampNow();
                     }
                 }
             }
@@ -269,7 +276,7 @@ void ModelEntityItem::updateFrameCount() {
     _lastAnimated = now;
 
     // if fps is negative then increment timestamp and return.
-    if (getAnimationFPS() < 0.0) {
+    if (getAnimationFPS() < 0.0f) {
         return;
     }
 
@@ -280,8 +287,9 @@ void ModelEntityItem::updateFrameCount() {
         _currentFrame += (deltaTime * getAnimationFPS());
         if (_currentFrame > getAnimationLastFrame()) {
             if (getAnimationLoop()) {
-                while ((_currentFrame - getAnimationFirstFrame()) > (updatedFrameCount - 1)) {
-                    _currentFrame -= (updatedFrameCount - 1);
+                //_currentFrame = getAnimationFirstFrame() + (int)(glm::floor(_currentFrame - getAnimationFirstFrame())) % (updatedFrameCount - 1);
+                while (_currentFrame > (getAnimationFirstFrame() +  (updatedFrameCount - 1))) {
+                    _currentFrame = _currentFrame - (updatedFrameCount - 1);
                 }
             } else {
                 _currentFrame = getAnimationLastFrame();
@@ -293,6 +301,7 @@ void ModelEntityItem::updateFrameCount() {
                 _currentFrame = getAnimationFirstFrame();
             }
         }
+         qCDebug(entities)  << "in update frame " << _currentFrame;
         setAnimationCurrentFrame(_currentFrame);
     }
 
@@ -719,10 +728,4 @@ bool ModelEntityItem::isAnimatingSomething() const {
             _animationProperties.getRunning() &&
             (_animationProperties.getFPS() != 0.0f);
         });
-}
-
-int ModelEntityItem::getLastKnownCurrentFrame() const {
-    return resultWithReadLock<int>([&] {
-        return _lastKnownCurrentFrame;
-    });
 }

@@ -992,7 +992,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-   {
+    {
         // the current frame is set on the server in update() in ModelEntityItem.cpp     
         int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
         
@@ -1313,7 +1313,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
     
     // The code to deal with the change of properties is now in ModelEntityItem.cpp
-    // That is where _currentFrame and _lastAnimated are updated.
+    // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
