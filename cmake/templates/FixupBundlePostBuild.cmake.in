@@ -45,5 +45,4 @@ else()
 endif()
 
 file(GLOB EXTRA_PLUGINS "${BUNDLE_PLUGIN_DIR}/*.${PLUGIN_EXTENSION}")
-fixup_bundle("${BUNDLE_EXECUTABLE}" "${EXTRA_PLUGINS}" "@FIXUP_LIBS@")
-
+fixup_bundle("${BUNDLE_EXECUTABLE}" "${EXTRA_PLUGINS}" "@FIXUP_LIBS@" IGNORE_ITEM "vcredist_x86.exe;vcredist_x64.exe")

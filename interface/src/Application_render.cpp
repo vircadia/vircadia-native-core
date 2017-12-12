@@ -104,8 +104,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        QSize size = getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
+        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 

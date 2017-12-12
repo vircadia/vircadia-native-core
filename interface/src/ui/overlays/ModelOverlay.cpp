@@ -35,7 +35,8 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _modelTextures(QVariantMap()),
     _url(modelOverlay->_url),
     _updateModel(false),
-    _loadPriority(modelOverlay->getLoadPriority())
+    _scaleToFit(modelOverlay->_scaleToFit),
+    _loadPriority(modelOverlay->_loadPriority)
 {
     _model->init();
     _model->setLoadingPriority(_loadPriority);
@@ -78,6 +79,12 @@ void ModelOverlay::update(float deltatime) {
     if (_model->needsFixupInScene()) {
         _model->removeFromScene(scene, transaction);
         _model->addToScene(scene, transaction);
+
+        auto newRenderItemIDs{ _model->fetchRenderItemIDs() };
+        transaction.updateItem<Overlay>(getRenderItemID(), [newRenderItemIDs](Overlay& data) {
+            auto modelOverlay = static_cast<ModelOverlay*>(&data);
+            modelOverlay->setSubRenderItemIDs(newRenderItemIDs);
+        });
     }
     if (_visibleDirty) {
         _visibleDirty = false;
@@ -103,6 +110,10 @@ bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePoint
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::removeFromScene(overlay, scene, transaction);
     _model->removeFromScene(scene, transaction);
+    transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {
+        auto modelOverlay = static_cast<ModelOverlay*>(&data);
+        modelOverlay->clearSubRenderItemIDs();
+    });
 }
 
 void ModelOverlay::setVisible(bool visible) {
@@ -134,6 +145,9 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     }
 
     auto dimensions = properties["dimensions"];
+    if (!dimensions.isValid()) {
+        dimensions = properties["size"];
+    }
     if (dimensions.isValid()) {
         _scaleToFit = true;
         setDimensions(vec3FromVariant(dimensions));
@@ -525,3 +539,19 @@ void ModelOverlay::copyAnimationJointDataToModel(QVector<JointData> jointsData) 
     _updateModel = true;
 }
 
+void ModelOverlay::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void ModelOverlay::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
+}
+
+uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
+    if (_model) {
+        auto metaSubItems = _subRenderItemIDs;
+        subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+        return (uint32_t)metaSubItems.size();
+    }
+    return 0;
+}
