@@ -258,11 +258,12 @@ public slots:
     OverlayID getOverlayAtPoint(const glm::vec2& point);
 
     /**jsdoc
-     * Get the value of an overlay's property.
+     * Get the value of a 3D overlay's property.
      * @function Overlays.getProperty
-     * @param {Uuid} overlayID - The ID of the overlay.
+     * @param {Uuid} overlayID - The ID of the overlay. <em>Must be for a 3D {@link Overlays.OverlayType|OverlayType}.</em>
      * @param {string} property - The name of the property value to get.
-     * @returns {object} The value of the property if the overlay and property can be found, otherwise <code>undefined</code>.
+     * @returns {object} The value of the property if the 3D overlay and property can be found, otherwise
+     *     <code>undefined</code>.
      * @example <caption>Create an overlay in front of your avatar then report its alpha property value.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
