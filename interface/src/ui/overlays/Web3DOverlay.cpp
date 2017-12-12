@@ -518,10 +518,10 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {string} url - The URL of the Web page to display.
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
- * @property {Vec2} resolution=640,480 - The number of pixels. <strong>Deprecated:</strong> This property is being removed.
- * @property {number} dpi=30.47 - The dots per inch to display the Web page at.
- * @property {Vec2} dimensions=1,1 - Scales the size of the overlay calculated from <code>resolution</code> and 
- *     <code>dpi</code>. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Vec2} resolution - <strong>Deprecated:</strong> This property has been removed. 
+ * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
+ * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
+ *     <code>scale</code>, <code>size</code>.
  * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
  * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has
  *     keyboard focus.
