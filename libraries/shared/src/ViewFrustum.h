@@ -33,9 +33,6 @@ const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = 16384.0f;
 
-// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
-// a central sphere for stuff that is nearby (for physics simulation).
-
 class ViewFrustum {
 public:
     // setters for camera attributes
