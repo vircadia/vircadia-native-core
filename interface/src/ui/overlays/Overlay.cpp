@@ -15,8 +15,8 @@
 
 #include "Application.h"
 
-static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
-static const float DEFAULT_ALPHA = 0.7f;
+const xColor Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+const float Overlay::DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
