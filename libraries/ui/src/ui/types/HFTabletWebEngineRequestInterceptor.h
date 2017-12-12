@@ -11,14 +11,26 @@
 
 #ifndef hifi_HFTabletWebEngineRequestInterceptor_h
 #define hifi_HFTabletWebEngineRequestInterceptor_h
+#include <QtCore/QObject>
 
+#ifndef ANDROID
 #include <QWebEngineUrlRequestInterceptor>
+#endif
 
-class HFTabletWebEngineRequestInterceptor : public QWebEngineUrlRequestInterceptor {
+class HFTabletWebEngineRequestInterceptor
+#ifndef ANDROID
+        : public QWebEngineUrlRequestInterceptor
+#endif
+{
 public:
-    HFTabletWebEngineRequestInterceptor(QObject* parent) : QWebEngineUrlRequestInterceptor(parent) {};
-
-    virtual void interceptRequest(QWebEngineUrlRequestInfo& info) override;
+    HFTabletWebEngineRequestInterceptor(QObject* parent) 
+#ifndef ANDROID 
+	: QWebEngineUrlRequestInterceptor(parent)
+#endif
+ {};
+#ifndef ANDROID 
+	virtual void interceptRequest(QWebEngineUrlRequestInfo& info) override;
+#endif
 };
 
 #endif // hifi_HFWebEngineRequestInterceptor_h

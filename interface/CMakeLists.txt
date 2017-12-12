@@ -58,6 +58,14 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
+if (ANDROID)
+  set(PLATFORM_QT_COMPONENTS AndroidExtras)
+#  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
+else ()
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
+endif ()
+
 find_package(
   Qt5 COMPONENTS
   Gui Multimedia Network OpenGL Qml Quick Script Svg
@@ -93,21 +101,7 @@ endif()
 
 # setup the android parameters that will help us produce an APK
 if (ANDROID)
-  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
-  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
-
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
-
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
-  set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
-  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
-  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
-  set(ANDROID_APK_VERSION_NAME "0.1")
-  set(ANDROID_APK_VERSION_CODE 1)
-  set(ANDROID_APK_FULLSCREEN TRUE)
-  set(ANDROID_DEPLOY_QT_INSTALL "--install")
-
   set(BUILD_SHARED_LIBS ON)
 endif ()
 
@@ -203,6 +197,13 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
+if (NOT ANDROID)
+  set(NON_ANDROID_LIBRARIES gpu-gl)
+else()
+  set(ANDROID_LIBRARIES gpu-gles)
+endif ()
+
+
 # link required hifi libraries
 link_hifi_libraries(
   shared octree ktx gpu gl procedural model render
@@ -212,6 +213,8 @@ link_hifi_libraries(
   render-utils entities-renderer avatars-renderer ui auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
+  ${ANDROID_LIBRARIES}  
+  ${NON_ANDROID_LIBRARIES}
   ${PLATFORM_GL_BACKEND}
 )
 
@@ -262,15 +265,21 @@ endforeach()
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+if (ANDROID)
+  #set(ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebView)
+else()
+  set(NON_ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebEngine)  
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine
-  ${PLATFORM_QT_LIBRARIES}
+  Qt5::WebChannel ${NON_ANDROID_PLATFORM_QT_LIBRARIES}
+  ${ANDROID_PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX)
+if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
@@ -278,7 +287,7 @@ if (UNIX)
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)
     endif ()
-endif(UNIX)
+endif()
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
@@ -362,20 +371,6 @@ if (WIN32)
 
     package_libraries_for_deployment()
 endif()
-
-if (ANDROID)
-  set(HIFI_URL_INTENT "<intent-filter>\
-    \n        <action android:name='android.intent.action.VIEW' />\
-    \n        <category android:name='android.intent.category.DEFAULT' />\
-    \n        <category android:name='android.intent.category.BROWSABLE' />\
-    \n        <data android:scheme='hifi' />\
-    \n      </intent-filter>"
-  )
-
-  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
-
-  qt_create_apk()
-endif ()
 
 add_dependency_external_projects(GifCreator)
 find_package(GifCreator REQUIRED)

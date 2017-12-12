@@ -1,4 +1,6 @@
-#include <jni.h>
+/*
+ The main function in this file overrides the one in interface library
+ #include <jni.h>
 
 #include <android/log.h>
 #include <QtCore/QDebug>
@@ -151,3 +153,4 @@ int main(int argc, char* argv[])
     timer.start();
     return app.exec();
 }
+*/

@@ -19,6 +19,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptString>
 #include <QtScript/QScriptValue>
+#include <QDateTime>
 
 class ScriptEngine;
 

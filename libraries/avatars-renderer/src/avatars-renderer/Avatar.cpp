@@ -117,7 +117,7 @@ Avatar::Avatar(QThread* thread) :
 }
 
 Avatar::~Avatar() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+	auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
@@ -1287,7 +1287,7 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
     if (_moving) {
-        addPhysicsFlags(Simulation::DIRTY_POSITION);
+		addPhysicsFlags(Simulation::DIRTY_POSITION);
     }
     if (_moving || _hasNewJointData) {
         locationChanged();

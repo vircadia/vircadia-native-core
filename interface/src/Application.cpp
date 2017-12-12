@@ -210,7 +210,9 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
-
+#ifdef ANDROID
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -232,6 +234,30 @@ extern "C" {
 }
 #endif
 
+#ifdef ANDROID
+extern "C" {
+ 
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
+    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
+     qDebug() << "nativeOnPause";
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResume(JNIEnv* env, jobject obj) {
+    qDebug() << "nativeOnResume";
+}
+
+
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExitVr(JNIEnv* env, jobject obj) {
+    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
+}
+
+
+}
+#endif
 enum ApplicationEvent {
     // Execute a lambda function
     Lambda = QEvent::User + 1,

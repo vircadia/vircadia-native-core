@@ -1,10 +1,13 @@
 apply plugin: 'com.android.application'
 
+ext.RELEASE_NUMBER = project.hasProperty('RELEASE_NUMBER') ? project.getProperty('RELEASE_NUMBER') : '0'
+ext.RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
+ext.BUILD_BRANCH = project.hasProperty('BUILD_BRANCH') ? project.getProperty('BUILD_BRANCH') : ''
 
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "com.highfidelity.iface"
+        applicationId "io.highfidelity.hifiinterface"
         minSdkVersion 24
         targetSdkVersion 26
         versionCode 1

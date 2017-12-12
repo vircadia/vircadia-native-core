@@ -17,6 +17,7 @@
 
 #include "ConsoleScriptingInterface.h"
 #include "ScriptEngine.h"
+#include <QDateTime>
 
 #define INDENTATION 4 // 1 Tab - 4 spaces
 const QString LINE_SEPARATOR = "\n    ";
