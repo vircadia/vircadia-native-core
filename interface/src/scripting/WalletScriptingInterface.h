@@ -39,7 +39,7 @@ public:
 
     Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
-    void setWalletStatus(const uint& status) { _walletStatus = status; }
+    void setWalletStatus(const uint& status);
 
 signals:
     void walletStatusChanged();
