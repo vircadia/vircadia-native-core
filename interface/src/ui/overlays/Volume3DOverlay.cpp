@@ -14,7 +14,8 @@
 #include <RegisteredMetaTypes.h>
 
 Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
-    Base3DOverlay(volume3DOverlay)
+    Base3DOverlay(volume3DOverlay),
+    _localBoundingBox(volume3DOverlay->_localBoundingBox)
 {
 }
 

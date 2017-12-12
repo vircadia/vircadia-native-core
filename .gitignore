@@ -15,7 +15,9 @@ Makefile
 # Android Studio
 *.iml
 local.properties
-android/libraries
+android/gradle*
+android/.gradle
+android/app/src/main/jniLibs
 
 # VSCode
 # List taken from Github Global Ignores master@435c4d92 

@@ -17,9 +17,10 @@
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QRunnable>
+#include <QDir>
+#include <QProcess>
 
 #include <AssetUtils.h>
-#include <Baker.h>
 
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
@@ -32,7 +33,6 @@ public:
 
     void abort();
     bool wasAborted() const { return _wasAborted.load(); }
-    bool didFinish() const { return _didFinish.load(); }
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir, QVector<QString> outputFiles);
@@ -44,9 +44,8 @@ private:
     AssetHash _assetHash;
     AssetPath _assetPath;
     QString _filePath;
-    std::unique_ptr<Baker> _baker;
+    std::unique_ptr<QProcess> _ovenProcess { nullptr };
     std::atomic<bool> _wasAborted { false };
-    std::atomic<bool> _didFinish { false };
 };
 
 #endif // hifi_BakeAssetTask_h

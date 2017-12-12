@@ -37,12 +37,7 @@ extern "C" {
 JNI_METHOD(jlong, nativeCreateRenderer)
 (JNIEnv *env, jclass clazz, jobject class_loader, jobject android_context, jlong native_gvr_api) {
     qInstallMessageHandler(messageHandler);
-#if defined(GVR)
-    auto gvrContext = reinterpret_cast<gvr_context *>(native_gvr_api);
-    return toJni(new NativeRenderer(gvrContext));
-#else
-    return toJni(new NativeRenderer(nullptr));
-#endif
+    return toJni(new NativeRenderer());
 }
 
 JNI_METHOD(void, nativeDestroyRenderer)

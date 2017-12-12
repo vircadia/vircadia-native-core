@@ -304,6 +304,26 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             *wizardCompletedOnce = QVariant(true);
         }
+        if (oldVersion < 2.1) {
+            // convert old avatar scale settings into avatar height.
+
+            const QString AVATAR_MIN_SCALE_KEYPATH = "avatars.min_avatar_scale";
+            const QString AVATAR_MAX_SCALE_KEYPATH = "avatars.max_avatar_scale";
+            const QString AVATAR_MIN_HEIGHT_KEYPATH = "avatars.min_avatar_height";
+            const QString AVATAR_MAX_HEIGHT_KEYPATH = "avatars.max_avatar_height";
+
+            QVariant* avatarMinScale = _configMap.valueForKeyPath(AVATAR_MIN_SCALE_KEYPATH);
+            if (avatarMinScale) {
+                float scale = avatarMinScale->toFloat();
+                _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+            }
+
+            QVariant* avatarMaxScale = _configMap.valueForKeyPath(AVATAR_MAX_SCALE_KEYPATH);
+            if (avatarMaxScale) {
+                float scale = avatarMaxScale->toFloat();
+                _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+            }
+        }
 
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
@@ -672,7 +692,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                 bool newPermissions = false;
 
                 if (!verifiedUsername.isEmpty()) {
-                    // if we have a verified user name for this user, we apply the kick to the username
+                    // if we have a verified user name for this user, we first apply the kick to the username
 
                     // check if there were already permissions
                     bool hadPermissions = havePermissionsForName(verifiedUsername);
@@ -684,7 +704,14 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                     // ensure that the connect permission is clear
                     userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
-                } else {
+                }
+
+                // if we didn't have a username, or this domain-server uses the "multi-kick" setting to
+                // kick logged in users via username AND machine fingerprint (or IP as fallback)
+                // then we remove connect permissions for the machine fingerprint (or IP as fallback)
+                const QString MULTI_KICK_SETTINGS_KEYPATH = "security.multi_kick_logged_in";
+
+                if (verifiedUsername.isEmpty() || valueOrDefaultValueForKeyPath(MULTI_KICK_SETTINGS_KEYPATH).toBool()) {
                     // remove connect permissions for the machine fingerprint
                     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
@@ -719,8 +746,8 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
                         // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.
                         if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
-                                kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
-                                kickAddress.isLoopback() ) {
+                            kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                            kickAddress.isLoopback() ) {
                             qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
                             return;
                         }

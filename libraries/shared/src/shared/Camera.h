@@ -40,8 +40,8 @@ class Camera : public QObject {
      * The Camera API provides access to the "camera" that defines your view in desktop and HMD display modes.
      *
      * @namespace Camera
-     * @property position {Vec3} The position of the camera. You can set this value only when the camera is in entity mode.
-     * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in entity 
+     * @property position {Vec3} The position of the camera. You can set this value only when the camera is in independent mode.
+     * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in independent
      *     mode.
      * @property mode {Camera.Mode} The camera mode.
      * @property frustum {ViewFrustum} The camera frustum.

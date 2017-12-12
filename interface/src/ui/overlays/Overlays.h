@@ -586,13 +586,6 @@ public slots:
      */
     void setKeyboardFocusOverlay(const OverlayID& id);
 
-    void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void hoverEnterPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
-
 signals:
     /**jsdoc
      * Triggered when an overlay is deleted.
@@ -755,6 +748,14 @@ private:
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 
     RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
+
+private slots:
+    void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverEnterPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
 };
 
 #endif // hifi_Overlays_h

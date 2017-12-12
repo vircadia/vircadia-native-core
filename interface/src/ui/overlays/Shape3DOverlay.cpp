@@ -18,8 +18,9 @@
 
 QString const Shape3DOverlay::TYPE = "shape";
 
-Shape3DOverlay::Shape3DOverlay(const Shape3DOverlay* Shape3DOverlay) :
-    Volume3DOverlay(Shape3DOverlay)
+Shape3DOverlay::Shape3DOverlay(const Shape3DOverlay* shape3DOverlay) :
+    Volume3DOverlay(shape3DOverlay),
+    _shape(shape3DOverlay->_shape)
 {
 }
 

@@ -166,26 +166,36 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     bool newEndSet { false };
 
     auto start = properties["start"];
-    // if "start" property was not there, check to see if they included aliases: startPoint
+    // If "start" property was not there, check to see if they included aliases: startPoint, p1
     if (!start.isValid()) {
         start = properties["startPoint"];
+    }
+    if (!start.isValid()) {
+        start = properties["p1"];
     }
     if (start.isValid()) {
         newStart = vec3FromVariant(start);
         newStartSet = true;
     }
     properties.remove("start"); // so that Base3DOverlay doesn't respond to it
+    properties.remove("startPoint");
+    properties.remove("p1");
 
     auto end = properties["end"];
-    // if "end" property was not there, check to see if they included aliases: endPoint
+    // If "end" property was not there, check to see if they included aliases: endPoint, p2
     if (!end.isValid()) {
         end = properties["endPoint"];
+    }
+    if (!end.isValid()) {
+        end = properties["p2"];
     }
     if (end.isValid()) {
         newEnd = vec3FromVariant(end);
         newEndSet = true;
     }
     properties.remove("end"); // so that Base3DOverlay doesn't respond to it
+    properties.remove("endPoint");
+    properties.remove("p2");
 
     auto length = properties["length"];
     if (length.isValid()) {
@@ -313,14 +323,23 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
     if (property == "end" || property == "endPoint" || property == "p2") {
         return vec3toVariant(getEnd());
     }
+    if (property == "length") {
+        return QVariant(getLength());
+    }
+    if (property == "endParentID") {
+        return _endParentID;
+    }
+    if (property == "endParentJointIndex") {
+        return _endParentJointIndex;
+    }
     if (property == "localStart") {
         return vec3toVariant(getLocalStart());
     }
     if (property == "localEnd") {
         return vec3toVariant(getLocalEnd());
     }
-    if (property == "length") {
-        return QVariant(getLength());
+    if (property == "glow") {
+        return getGlow();
     }
     if (property == "lineWidth") {
         return _lineWidth;

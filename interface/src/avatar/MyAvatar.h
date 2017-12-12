@@ -110,6 +110,10 @@ class MyAvatar : public Avatar {
      * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
      * @property SELF_ID {string} READ-ONLY. UUID representing "my avatar". Only use for local-only entities and overlays in situations where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain).
      *   Note: Likely to be deprecated.
+     * @property hmdRollControlEnabled {bool} When enabled the roll angle of your HMD will turn your avatar while flying.
+     * @property hmdRollControlDeadZone {number} If hmdRollControlEnabled is true, this value can be used to tune what roll angle is required to begin turning.
+     *   This angle is specified in degrees.
+     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of your avatar when rolling your HMD in degrees per second.
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -158,7 +162,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
- 
+
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -558,8 +562,6 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    float getDomainMinScale();
-    float getDomainMaxScale();
 
     void setGravity(float gravity);
     float getGravity();
@@ -737,12 +739,12 @@ private:
     bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
-    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
-    const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
+    const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
+
     bool _hmdRollControlEnabled { true };
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
-    float _lastDrivenSpeed { 0.0f };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
