@@ -1249,6 +1249,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -1356,6 +1357,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
@@ -2783,6 +2785,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
 DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
+DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVersion)
 
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;
