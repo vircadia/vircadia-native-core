@@ -53,7 +53,7 @@ Item {
                 button.row = Math.floor(grid.children[0].children.length / buttonsColumnsOnPage);
                 button.column = grid.children[0].children.length % buttonsColumnsOnPage;
                 //reparent to actual grid
-                button.parent = grid.children[0]
+                button.parent = grid.children[0];
                 grid.children[0].children.push(button);
             }
         }
@@ -104,9 +104,9 @@ Item {
         } else {
             button.tabletRoot = parent.parent;
         }
-        button.flickable = swipeView.contentItem
+        button.flickable = swipeView.contentItem;
         tablet.count++
-        gridsRecreateTimer.restart()
+        gridsRecreateTimer.restart();
 
         return button;
     }
@@ -130,7 +130,7 @@ Item {
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
         var component = Qt.createComponent("TabletButton.qml");
-        return doAddButton(component, properties)
+        return doAddButton(component, properties);
     }
 
     // called by C++ code when a button should be removed from the tablet
@@ -139,7 +139,7 @@ Item {
         if (index < 0) {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
         } else {
-            tablet.count--
+            tablet.count--;
             //redraw grids
             gridsRecreateTimer.restart();
         }
@@ -243,8 +243,8 @@ Item {
             clip: false
             currentIndex: pageIndicator.currentIndex
             onCurrentIndexChanged: {
-                rowIndex = 0
-                columnIndex = 0
+                rowIndex = 0;
+                columnIndex = 0;
             }
 
             hoverEnabled: true
@@ -288,7 +288,7 @@ Item {
 
     function setCurrentItemState(state) {
         var index = rowIndex*buttonsColumnsOnPage + columnIndex;
-        var currentGridItems = swipeView.currentItem.children[0].children
+        var currentGridItems = swipeView.currentItem.children[0].children;
         if (currentGridItems !== null && index >= 0 && index < currentGridItems.length) {
             if (currentGridItems[index].isActive) {
                 currentGridItems[index].state = "active state";
@@ -300,27 +300,27 @@ Item {
 
     function previousPage() {
         setCurrentItemState("base state");
-        var currentPage = swipeView.currentIndex
-        currentPage = currentPage - 1
+        var currentPage = swipeView.currentIndex;
+        currentPage = currentPage - 1;
         if (currentPage < 0) {
-            currentPage = swipeView.count - 1
+            currentPage = swipeView.count - 1;
         }
-        swipeView.currentIndex = currentPage
+        swipeView.currentIndex = currentPage;
     }
 
     function nextPage() {
         setCurrentItemState("base state");
-        var currentPage = swipeView.currentIndex
-        currentPage = currentPage + 1
+        var currentPage = swipeView.currentIndex;
+        currentPage = currentPage + 1;
         if (currentPage >= swipeView.count) {
-            currentPage = 0
+            currentPage = 0;
         }
-        swipeView.currentIndex = currentPage
+        swipeView.currentIndex = currentPage;
     }
 
     function nextItem() {
         setCurrentItemState("base state");
-        var currentGridItems = swipeView.currentItem.children[0].children
+        var currentGridItems = swipeView.currentItem.children[0].children;
         var nextColumnIndex = columnIndex + 1;
         var index = rowIndex*buttonsColumnsOnPage + nextColumnIndex;
         if(index >= currentGridItems.length || nextColumnIndex >= buttonsColumnsOnPage) {
@@ -332,44 +332,44 @@ Item {
 
     function previousItem() {
         setCurrentItemState("base state");
-        var column = columnIndex
+        var column = columnIndex;
         column = column - 1;
 
         if (column < 0 ) {
             column =  buttonsColumnsOnPage - 1;
             var index = rowIndex*buttonsColumnsOnPage + column;
-            var currentGridItems = swipeView.currentItem.children[0].children
+            var currentGridItems = swipeView.currentItem.children[0].children;
             while(index >= currentGridItems.length) {
-                column = column - 1
+                column = column - 1;
                 index = rowIndex*buttonsColumnsOnPage + column;
             }
         }
-        columnIndex = column
+        columnIndex = column;
         setCurrentItemState("hover state");
     }
 
     function upItem() {
         setCurrentItemState("base state");
-        var row = rowIndex
+        var row = rowIndex;
         row = row - 1;
 
         if (row < 0 ) {
             row =  buttonsRowsOnPage - 1;
             var index = row*buttonsColumnsOnPage + columnIndex;
-            var currentGridItems = swipeView.currentItem.children[0].children
+            var currentGridItems = swipeView.currentItem.children[0].children;
             while(index >= currentGridItems.length) {
-                row = row - 1
+                row = row - 1;
                 index = row*buttonsColumnsOnPage + columnIndex;
             }
         }
-        rowIndex = row
+        rowIndex = row;
         setCurrentItemState("hover state");
     }
 
     function downItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex + 1;
-        var currentGridItems = swipeView.currentItem.children[0].children
+        var currentGridItems = swipeView.currentItem.children[0].children;
         var index = rowIndex*buttonsColumnsOnPage + columnIndex;
         if (index >= currentGridItems.length) {
             rowIndex = 0;
@@ -379,7 +379,7 @@ Item {
 
     function selectItem() {
         var index = rowIndex*buttonsColumnsOnPage + columnIndex;
-        var currentGridItems = swipeView.currentItem.children[0].children
+        var currentGridItems = swipeView.currentItem.children[0].children;
         if (currentGridItems !== null && index >= 0 && index < currentGridItems.length) {
             currentGridItems[index].clicked();
             if (tabletRoot) {
