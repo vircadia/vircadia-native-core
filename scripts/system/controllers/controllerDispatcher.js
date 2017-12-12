@@ -155,7 +155,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.update = function () {
             try {
-                this.updateInternal();
+                _this.updateInternal();
             }  catch (e) {
                 print(e);
             }
