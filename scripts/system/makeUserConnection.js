@@ -48,7 +48,6 @@
         "azimuthFinish": Math.PI,
         "azimuthStart": -Math.PI,
         "emitRate": 500,
-        "emitSpeed": 0.0,
         "emitterShouldTrail": 1,
         "isEmitting": 1,
         "lifespan": 3,
@@ -114,16 +113,16 @@
     var waitingList = {};
     var particleEffect;
     var particleEmitRate;
-    var INITIAL_PARTICLE_EMIT_RATE = 250;
-    var MINIMUM_PARTICLE_EMIT_RATE = 50;
+    var PARTICLE_INITIAL_EMIT_RATE = 250;
+    var PARTICLE_MINIMUM_EMIT_RATE = 50;
     var PARTICLE_DECAY_RATE = 0.5;
     var particleEffectUpdateTimer = null;
     var PARTICLE_EFFECT_UPDATE_INTERVAL = 200;
     var makingConnectionParticleEffect;
     var makingConnectionEmitRate;
     var isMakingConnectionEmitting;
-    var INITIAL_MAKING_CONNECTION_EMIT_RATE = 500;
-    var MINIMUM_MAKING_CONNECTION_EMIT_RATE = 20;
+    var MAKING_CONNECTION_INITIAL_EMIT_RATE = 500;
+    var MAKING_CONNECTION_MINIMUM_EMIT_RATE = 20;
     var MAKING_CONNECTION_DECAY_RATE = 0.5;
     var makingConnectionUpdateTimer = null;
     var MAKING_CONNECTION_UPDATE_INTERVAL = 200;
@@ -279,13 +278,13 @@
 
     function updateMakingConnection() {
         makingConnectionEmitRate = Math.max(makingConnectionEmitRate * MAKING_CONNECTION_DECAY_RATE,
-            MINIMUM_MAKING_CONNECTION_EMIT_RATE);
+            MAKING_CONNECTION_MINIMUM_EMIT_RATE);
         isMakingConnectionEmitting = true;
         Entities.editEntity(makingConnectionParticleEffect, {
             emitRate: makingConnectionEmitRate,
             isEmitting: true
         });
-        if (makingConnectionEmitRate > MINIMUM_MAKING_CONNECTION_EMIT_RATE) {
+        if (makingConnectionEmitRate > MAKING_CONNECTION_MINIMUM_EMIT_RATE) {
             makingConnectionUpdateTimer = Script.setTimeout(makingConnectionUpdateTimer, MAKING_CONNECTION_UPDATE_INTERVAL);
         } else {
             makingConnectionUpdateTimer = null;
@@ -293,11 +292,11 @@
     }
 
     function updateParticleEffect() {
-        particleEmitRate = Math.max(MINIMUM_PARTICLE_EMIT_RATE, particleEmitRate * PARTICLE_DECAY_RATE);
+        particleEmitRate = Math.max(PARTICLE_MINIMUM_EMIT_RATE, particleEmitRate * PARTICLE_DECAY_RATE);
         Entities.editEntity(particleEffect, {
             emitRate: particleEmitRate
         });
-        if (particleEmitRate > MINIMUM_PARTICLE_EMIT_RATE) {
+        if (particleEmitRate > PARTICLE_MINIMUM_EMIT_RATE) {
             particleEffectUpdateTimer = Script.setTimeout(updateParticleEffect, PARTICLE_EFFECT_UPDATE_INTERVAL);
         } else {
             particleEffectUpdateTimer = null;
@@ -337,7 +336,7 @@
             positionFractionallyTowards(myHandPosition, otherHandPosition, 0.5);
             // now manage the rest of the entity
             if (!particleEffect) {
-                particleEmitRate = INITIAL_PARTICLE_EMIT_RATE;
+                particleEmitRate = PARTICLE_INITIAL_EMIT_RATE;
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.position = positionFractionallyTowards(myHandPosition, otherHandPosition, 0.5);
                 particleProps.rotation = Vec3.mix(Quat.getFront(MyAvatar.orientation),
@@ -348,7 +347,7 @@
             if (!makingConnectionParticleEffect) {
                 var props = MAKING_CONNECTION_PARTICLE_PROPS;
                 props.parentID = MyAvatar.sessionUUID;
-                makingConnectionEmitRate = INITIAL_MAKING_CONNECTION_EMIT_RATE;
+                makingConnectionEmitRate = MAKING_CONNECTION_INITIAL_EMIT_RATE;
                 props.emitRate = makingConnectionEmitRate;
                 props.isEmitting = false;
                 props.position = myHandPosition;
@@ -365,7 +364,7 @@
                 Entities.editEntity(makingConnectionParticleEffect, { isEmitting: false });
                 isMakingConnectionEmitting = false;
             }
-            if (!particleEffectUpdateTimer && particleEmitRate > MINIMUM_PARTICLE_EMIT_RATE) {
+            if (!particleEffectUpdateTimer && particleEmitRate > PARTICLE_MINIMUM_EMIT_RATE) {
                 particleEffectUpdateTimer = Script.setTimeout(updateParticleEffect, PARTICLE_EFFECT_UPDATE_INTERVAL);
             }
             break;
