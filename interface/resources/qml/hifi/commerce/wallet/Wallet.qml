@@ -49,7 +49,7 @@ Rectangle {
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
-                    commerce.resetLocalWalletOnly();
+                    Commerce.resetLocalWalletOnly();
                     var timestamp = new Date();
                     walletSetup.startingTimestamp = timestamp;
                     walletSetup.setupAttemptID = generateUUID();
@@ -61,8 +61,10 @@ Rectangle {
                     root.activeView = "passphraseModal";
                 }
             } else if (walletStatus === 3) {
-                root.activeView = "walletHome";
-                Commerce.getSecurityImage();
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletHome";
+                    Commerce.getSecurityImage();
+                }
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
@@ -211,17 +213,19 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                    root.isPassword = msg.isPasswordField;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
-                    root.activeView = "security";
-                } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
-                    root.activeView = "security";
-                } else {
-                    sendToScript(msg);
+                if (passphraseChange.visible) {
+                    if (msg.method === 'walletSetup_raiseKeyboard') {
+                        root.keyboardRaised = true;
+                        root.isPassword = msg.isPasswordField;
+                    } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                        root.keyboardRaised = false;
+                    } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
+                        root.activeView = "security";
+                    } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
+                        root.activeView = "security";
+                    } else {
+                        sendToScript(msg);
+                    }
                 }
             }
         }
