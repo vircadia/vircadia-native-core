@@ -25,6 +25,8 @@ public:
 
     UserResponse getUserResponse() { return _userResponse; }
 
+    QPixmap computeDiffPixmap(QImage expectedImage, QImage resultImage);
+
 private slots:
     void on_passTestButton_clicked();
     void on_failTestButton_clicked();

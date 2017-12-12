@@ -16,6 +16,37 @@ MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
 
     expectedImage->setScaledContents(true);
     resultImage->setScaledContents(true);
+    diffImage->setScaledContents(true);
+}
+
+QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultImage) {
+	// This is an optimization, as QImage.setPixel() is embarrassingly slow
+    unsigned char* buffer = new unsigned char[expectedImage.height() * expectedImage.width() * 3];
+
+	// loop over each pixel
+    for (int y = 0; y < expectedImage.height(); ++y) {
+        for (int x = 0; x < expectedImage.width(); ++x) {
+            QRgb pixelP = expectedImage.pixel(QPoint(x, y));
+            QRgb pixelQ = resultImage.pixel(QPoint(x, y));
+
+            // Convert to luminance
+            double p = R_Y * qRed(pixelP) + G_Y * qGreen(pixelP) + B_Y * qBlue(pixelP);
+            double q = R_Y * qRed(pixelQ) + G_Y * qGreen(pixelQ) + B_Y * qBlue(pixelQ);
+
+            int absDiff = (int)(fabs(p - q));
+ 
+            buffer[3 * (x + y * expectedImage.width()) + 0] = absDiff;
+            buffer[3 * (x + y * expectedImage.width()) + 1] = absDiff;
+            buffer[3 * (x + y * expectedImage.width()) + 2] = absDiff;
+        }
+    }
+
+    QImage diffImage(buffer, expectedImage.width(), expectedImage.height(), QImage::Format_RGB888);
+    QPixmap resultPixmap = QPixmap::fromImage(diffImage);
+
+    delete[] buffer;
+
+    return resultPixmap;
 }
 
 void MismatchWindow::setTestFailure(TestFailure testFailure) {
@@ -24,10 +55,19 @@ void MismatchWindow::setTestFailure(TestFailure testFailure) {
     imagePath->setText("Path to test: " + testFailure._pathname);
 
     expectedFilename->setText(testFailure._expectedImageFilename);
-    expectedImage->setPixmap(QPixmap(testFailure._pathname + testFailure._expectedImageFilename));
-
     resultFilename->setText(testFailure._actualImageFilename);
-    resultImage->setPixmap(QPixmap(testFailure._pathname + testFailure._actualImageFilename));
+
+    QPixmap expectedPixmap = QPixmap(testFailure._pathname + testFailure._expectedImageFilename);
+    QPixmap actualPixmap = QPixmap(testFailure._pathname + testFailure._actualImageFilename);
+
+    QPixmap diffPixmap = computeDiffPixmap(
+        QImage(testFailure._pathname + testFailure._expectedImageFilename), 
+        QImage(testFailure._pathname + testFailure._actualImageFilename)
+    );
+
+    expectedImage->setPixmap(expectedPixmap);
+    resultImage->setPixmap(actualPixmap);
+    diffImage->setPixmap(diffPixmap);
 }
 
 void MismatchWindow::on_passTestButton_clicked() {
