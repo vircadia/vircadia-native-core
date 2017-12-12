@@ -2488,6 +2488,9 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     // of the entity as reviewed during the certification submission.
 
     QJsonObject json;
+
+    quint32 staticCertificateVersion = getStaticCertificateVersion();
+
     if (!getAnimation().getURL().isEmpty()) {
         json["animationURL"] = getAnimation().getURL();
     }
@@ -2504,18 +2507,14 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
     ADD_STRING_PROPERTY(modelURL, ModelURL);
     ADD_STRING_PROPERTY(script, Script);
-    ADD_ENUM_PROPERTY(shapeType, ShapeType);
-    json["type"] = EntityTypes::getEntityTypeName(getType());
-
-    quint32 staticCertificateVersion = getStaticCertificateVersion();
-
-    if (staticCertificateVersion != 0) {
-        json["staticCertificateVersion"] = (double)staticCertificateVersion;
-
-        if (staticCertificateVersion == 1) {
-            ADD_STRING_PROPERTY(serverScripts, ServerScripts);
-        }
+    if (staticCertificateVersion > 1) {
+        ADD_STRING_PROPERTY(serverScripts, ServerScripts);
     }
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    if (staticCertificateVersion > 0) {
+        json["staticCertificateVersion"] = (double)staticCertificateVersion;
+    }
+    json["type"] = EntityTypes::getEntityTypeName(getType());
 
     return QJsonDocument(json).toJson(QJsonDocument::Compact);
 }
