@@ -11,17 +11,18 @@
 
 struct HighlightParameters
 {
-	TVEC3 _color;
-    float _intensity;
+    TVEC3 _outlineUnoccludedColor;
+    float _outlineUnoccludedAlpha;
+    TVEC3 _outlineOccludedColor;
+    float _outlineOccludedAlpha;
+    TVEC3 _fillUnoccludedColor;
+    float _fillUnoccludedAlpha;
+    TVEC3 _fillOccludedColor;
+    float _fillOccludedAlpha;
 
-    TVEC2 _size;
-    float _unoccludedFillOpacity;
-    float _occludedFillOpacity;
-
-    float _threshold;
     int _blurKernelSize;
-    float padding2;
-    float padding3;
+    float _threshold;
+    TVEC2 _size;
 };
 
 // <@if 1@>
