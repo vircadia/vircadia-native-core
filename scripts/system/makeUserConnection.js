@@ -46,7 +46,7 @@
     var PARTICLE_EFFECT_PROPS = {
         "alpha": 0.8,
         "azimuthFinish": Math.PI,
-        "azimuthStart": -1 * Math.PI,
+        "azimuthStart": -Math.PI,
         "emitRate": 500,
         "emitSpeed": 0.0,
         "emitterShouldTrail": 1,
@@ -54,17 +54,19 @@
         "lifespan": 3,
         "maxParticles": 1000,
         "particleRadius": 0.003,
-        "polarStart": 1,
-        "polarFinish": 1,
+        "polarStart": Math.PI / 2,
+        "polarFinish": Math.PI / 2,
         "radiusFinish": 0.008,
         "radiusStart": 0.0025,
-        "speedSpread": 0.025,
+        "emitSpeed": 0.02,
+        "speedSpread": 0.015,
         "textures": "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle.png",
         "color": {"red": 255, "green": 255, "blue": 255},
         "colorFinish": {"red": 0, "green": 164, "blue": 255},
         "colorStart": {"red": 255, "green": 255, "blue": 255},
         "emitOrientation": {"w": -0.71, "x": 0.0, "y": 0.0, "z": 0.71},
         "emitAcceleration": {"x": 0.0, "y": 0.0, "z": 0.0},
+        "emitDimensions": { "x": 0.15, "y": 0.15, "z": 0.01 },
         "accelerationSpread": {"x": 0.0, "y": 0.0, "z": 0.0},
         "dimensions": {"x": 0.05, "y": 0.05, "z": 0.05},
         "type": "ParticleEffect"
@@ -112,19 +114,19 @@
     var waitingList = {};
     var particleEffect;
     var particleEmitRate;
-    var INITIAL_PARTICLE_EMIT_RATE = 500;
+    var INITIAL_PARTICLE_EMIT_RATE = 250;
     var MINIMUM_PARTICLE_EMIT_RATE = 50;
     var PARTICLE_DECAY_RATE = 0.5;
     var particleEffectUpdateTimer = null;
-    var PARTICLE_EFFECT_UPDATE_INTERVAL = 50;
+    var PARTICLE_EFFECT_UPDATE_INTERVAL = 200;
     var makingConnectionParticleEffect;
     var makingConnectionEmitRate;
     var isMakingConnectionEmitting;
-    var INITIAL_MAKING_CONNECTION_EMIT_RATE = 1000;
+    var INITIAL_MAKING_CONNECTION_EMIT_RATE = 500;
     var MINIMUM_MAKING_CONNECTION_EMIT_RATE = 20;
     var MAKING_CONNECTION_DECAY_RATE = 0.5;
     var makingConnectionUpdateTimer = null;
-    var MAKING_CONNECTION_UPDATE_INTERVAL = 50;
+    var MAKING_CONNECTION_UPDATE_INTERVAL = 200;
     var handshakeInjector;
     var successfulHandshakeInjector;
     var handshakeSound;
@@ -338,6 +340,8 @@
                 particleEmitRate = INITIAL_PARTICLE_EMIT_RATE;
                 particleProps = PARTICLE_EFFECT_PROPS;
                 particleProps.position = positionFractionallyTowards(myHandPosition, otherHandPosition, 0.5);
+                particleProps.rotation = Vec3.mix(Quat.getFront(MyAvatar.orientation),
+                    Quat.inverse(Quat.getFront(otherOrientation)), 0.5);
                 particleProps.parentID = MyAvatar.sessionUUID;
                 particleEffect = Entities.addEntity(particleProps, true);
             }
