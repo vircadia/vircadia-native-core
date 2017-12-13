@@ -97,7 +97,7 @@ public:
     void setTemporaryDomain(const QUuid& domainID, const QString& key);
     const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }
 
-    QUrl getMetaverseServerURL() { return NetworkingConstants::METAVERSE_SERVER_URL; }
+    QUrl getMetaverseServerURL() { return NetworkingConstants::METAVERSE_SERVER_URL(); }
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
