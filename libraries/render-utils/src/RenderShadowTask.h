@@ -24,11 +24,12 @@ public:
     using Inputs = render::VaryingSet2<render::ShapeBounds, AABox>;
     using JobModel = render::Job::ModelI<RenderShadowMap, Inputs>;
 
-    RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    RenderShadowMap(render::ShapePlumberPointer shapePlumber, unsigned int cascadeIndex) : _shapePlumber{ shapePlumber }, _cascadeIndex{ cascadeIndex } {}
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
+    unsigned int _cascadeIndex;
 };
 
 class RenderShadowTaskConfig : public render::Task::Config::Persistent {
@@ -54,15 +55,30 @@ public:
 
 class RenderShadowSetup {
 public:
-    using Output = RenderArgs::RenderMode;
-    using JobModel = render::Job::ModelO<RenderShadowSetup, Output>;
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    using JobModel = render::Job::Model<RenderShadowSetup>;
+
+    RenderShadowSetup() {}
+    void run(const render::RenderContextPointer& renderContext);
+
 };
 
-class RenderShadowTeardown {
+class RenderShadowCascadeSetup {
 public:
-    using Input = RenderArgs::RenderMode;
-    using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
+    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
+    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
+
+    RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
+    void run(const render::RenderContextPointer& renderContext, Outputs& output);
+
+private:
+
+    unsigned int _cascadeIndex;
+};
+
+class RenderShadowCascadeTeardown {
+public:
+    using Input = RenderShadowCascadeSetup::Outputs;
+    using JobModel = render::Job::ModelI<RenderShadowCascadeTeardown, Input>;
     void run(const render::RenderContextPointer& renderContext, const Input& input);
 };
 

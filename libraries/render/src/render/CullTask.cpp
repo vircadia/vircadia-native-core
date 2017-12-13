@@ -82,28 +82,30 @@ void FetchSpatialTree::configure(const Config& config) {
     _lodAngle = config.lodAngle;
 }
 
-void FetchSpatialTree::run(const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-    RenderArgs* args = renderContext->args;
-    auto& scene = renderContext->_scene;
-
+void FetchSpatialTree::run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemSpatialTree::ItemSelection& outSelection) {
     // start fresh
     outSelection.clear();
 
-    // Eventually use a frozen frustum
-    auto queryFrustum = args->getViewFrustum();
-    if (_freezeFrustum) {
-        if (_justFrozeFrustum) {
-            _justFrozeFrustum = false;
-            _frozenFrutstum = args->getViewFrustum();
-        }
-        queryFrustum = _frozenFrutstum;
-    }
+    if (!filter.selectsNothing()) {
+        assert(renderContext->args);
+        assert(renderContext->args->hasViewFrustum());
+        RenderArgs* args = renderContext->args;
+        auto& scene = renderContext->_scene;
 
-    // Octree selection!
-    float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
-    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, angle);
+        // Eventually use a frozen frustum
+        auto queryFrustum = args->getViewFrustum();
+        if (_freezeFrustum) {
+            if (_justFrozeFrustum) {
+                _justFrozeFrustum = false;
+                _frozenFrustum = args->getViewFrustum();
+            }
+            queryFrustum = _frozenFrustum;
+        }
+
+        // Octree selection!
+        float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+        scene->getSpatialTree().selectCellItems(outSelection, filter, queryFrustum, angle);
+    }
 }
 
 void CullSpatialSelection::configure(const Config& config) {
@@ -113,11 +115,12 @@ void CullSpatialSelection::configure(const Config& config) {
 }
 
 void CullSpatialSelection::run(const RenderContextPointer& renderContext,
-    const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
+                               const Inputs& inputs, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
+    auto& inSelection = inputs.get0();
 
     auto& details = args->_details.edit(_detailType);
     details._considered += (int)inSelection.numItems();
@@ -126,9 +129,9 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     if (_freezeFrustum) {
         if (_justFrozeFrustum) {
             _justFrozeFrustum = false;
-            _frozenFrutstum = args->getViewFrustum();
+            _frozenFrustum = args->getViewFrustum();
         }
-        args->pushViewFrustum(_frozenFrutstum); // replace the true view frustum by the frozen one
+        args->pushViewFrustum(_frozenFrustum); // replace the true view frustum by the frozen one
     }
 
     // Culling Frustum / solidAngle test helper class
@@ -181,112 +184,115 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     outItems.clear();
     outItems.reserve(inSelection.numItems());
 
-    // Now get the bound, and
-    // filter individually against the _filter
-    // visibility cull if partially selected ( octree cell contianing it was partial)
-    // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
+    const auto filter = inputs.get1();
+    if (!filter.selectsNothing()) {
+        // Now get the bound, and
+        // filter individually against the _filter
+        // visibility cull if partially selected ( octree cell contianing it was partial)
+        // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
 
-    if (_skipCulling) {
-        // inside & fit items: filter only, culling is disabled
-        {
-            PerformanceTimer perfTimer("insideFitItems");
-            for (auto id : inSelection.insideItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // inside & subcell items: filter only, culling is disabled
-        {
-            PerformanceTimer perfTimer("insideSmallItems");
-            for (auto id : inSelection.insideSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // partial & fit items: filter only, culling is disabled
-        {
-            PerformanceTimer perfTimer("partialFitItems");
-            for (auto id : inSelection.partialItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // partial & subcell items: filter only, culling is disabled
-        {
-            PerformanceTimer perfTimer("partialSmallItems");
-            for (auto id : inSelection.partialSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-    } else {
-
-        // inside & fit items: easy, just filter
-        {
-            PerformanceTimer perfTimer("insideFitItems");
-            for (auto id : inSelection.insideItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    outItems.emplace_back(itemBound);
-                }
-            }
-        }
-
-        // inside & subcell items: filter & distance cull
-        {
-            PerformanceTimer perfTimer("insideSmallItems");
-            for (auto id : inSelection.insideSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    if (test.solidAngleTest(itemBound.bound)) {
+        if (_skipCulling) {
+            // inside & fit items: filter only, culling is disabled
+            {
+                PerformanceTimer perfTimer("insideFitItems");
+                for (auto id : inSelection.insideItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                     }
                 }
             }
-        }
 
-        // partial & fit items: filter & frustum cull
-        {
-            PerformanceTimer perfTimer("partialFitItems");
-            for (auto id : inSelection.partialItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    if (test.frustumTest(itemBound.bound)) {
+            // inside & subcell items: filter only, culling is disabled
+            {
+                PerformanceTimer perfTimer("insideSmallItems");
+                for (auto id : inSelection.insideSubcellItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
                     }
                 }
             }
-        }
 
-        // partial & subcell items:: filter & frutum cull & solidangle cull
-        {
-            PerformanceTimer perfTimer("partialSmallItems");
-            for (auto id : inSelection.partialSubcellItems) {
-                auto& item = scene->getItem(id);
-                if (_filter.test(item.getKey())) {
-                    ItemBound itemBound(id, item.getBound());
-                    if (test.frustumTest(itemBound.bound)) {
+            // partial & fit items: filter only, culling is disabled
+            {
+                PerformanceTimer perfTimer("partialFitItems");
+                for (auto id : inSelection.partialItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
+                        outItems.emplace_back(itemBound);
+                    }
+                }
+            }
+
+            // partial & subcell items: filter only, culling is disabled
+            {
+                PerformanceTimer perfTimer("partialSmallItems");
+                for (auto id : inSelection.partialSubcellItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
+                        outItems.emplace_back(itemBound);
+                    }
+                }
+            }
+
+        } else {
+
+            // inside & fit items: easy, just filter
+            {
+                PerformanceTimer perfTimer("insideFitItems");
+                for (auto id : inSelection.insideItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
+                        outItems.emplace_back(itemBound);
+                    }
+                }
+            }
+
+            // inside & subcell items: filter & distance cull
+            {
+                PerformanceTimer perfTimer("insideSmallItems");
+                for (auto id : inSelection.insideSubcellItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
                         if (test.solidAngleTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
+                        }
+                    }
+                }
+            }
+
+            // partial & fit items: filter & frustum cull
+            {
+                PerformanceTimer perfTimer("partialFitItems");
+                for (auto id : inSelection.partialItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
+                        if (test.frustumTest(itemBound.bound)) {
+                            outItems.emplace_back(itemBound);
+                        }
+                    }
+                }
+            }
+
+            // partial & subcell items:: filter & frutum cull & solidangle cull
+            {
+                PerformanceTimer perfTimer("partialSmallItems");
+                for (auto id : inSelection.partialSubcellItems) {
+                    auto& item = scene->getItem(id);
+                    if (filter.test(item.getKey())) {
+                        ItemBound itemBound(id, item.getBound());
+                        if (test.frustumTest(itemBound.bound)) {
+                            if (test.solidAngleTest(itemBound.bound)) {
+                                outItems.emplace_back(itemBound);
+                            }
                         }
                     }
                 }
@@ -295,7 +301,6 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     }
 
     details._rendered += (int)outItems.size();
-
 
     // Restore frustum if using the frozen one:
     if (_freezeFrustum) {
