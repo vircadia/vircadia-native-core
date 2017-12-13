@@ -173,6 +173,7 @@ private:
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
 
+    QMutex _audioHandlerMutex;
     QTimer _audioOutputUpdateTimer;
     QString _currentAudioOutputDevice;
 
