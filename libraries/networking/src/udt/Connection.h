@@ -72,8 +72,6 @@ public:
     void queueReceivedMessagePacket(std::unique_ptr<Packet> packet);
     
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
-    
-    bool isActive() const { return _isActive; }
 
     HifiSockAddr getDestination() const { return _destination; }
 
@@ -83,7 +81,6 @@ public:
 
 signals:
     void packetSent();
-    void connectionInactive(const HifiSockAddr& sockAddr);
     void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
 
 private slots:
@@ -112,8 +109,6 @@ private:
     void resetReceiveState();
     void resetRTT();
     
-    void deactivate() { _isActive = false; emit connectionInactive(_destination); }
-    
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
     void updateRTT(int rtt);
@@ -138,9 +133,9 @@ private:
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
     
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
-    bool _isActive { true }; // flag used for inactivity of connection
 
-    SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer SendQueue on creation, identifies connection during re-connect requests
+    SequenceNumber _initialSequenceNumber; // Randomized on Connection creation, identifies connection during re-connect requests
+    SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer Connection on creation, identifies connection during re-connect requests
 
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
