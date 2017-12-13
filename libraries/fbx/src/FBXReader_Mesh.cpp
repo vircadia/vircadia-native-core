@@ -37,6 +37,10 @@
 
 #include <memory>
 
+#include <glm/detail/type_half.hpp>
+#include <glm/gtc/packing.hpp>
+
+using vec2h = glm::tvec2<glm::detail::hdata>;
 
 class Vertex {
 public:
@@ -575,8 +579,9 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     int normalsSize = fbxMesh.normals.size() * sizeof(glm::vec3);
     int tangentsSize = fbxMesh.tangents.size() * sizeof(glm::vec3);
     int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
-    int texCoordsSize = fbxMesh.texCoords.size() * sizeof(glm::vec2);
-    int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(glm::vec2);
+    // Texture coordinates are stored in 2 half floats
+    int texCoordsSize = fbxMesh.texCoords.size() * sizeof(vec2h);
+    int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(vec2h);
 
     int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(uint8_t);
     if (fbxMesh.clusters.size() > UINT8_MAX) {
@@ -600,8 +605,32 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     attribBuffer->setSubData(normalsOffset, normalsSize, (gpu::Byte*) fbxMesh.normals.constData());
     attribBuffer->setSubData(tangentsOffset, tangentsSize, (gpu::Byte*) fbxMesh.tangents.constData());
     attribBuffer->setSubData(colorsOffset, colorsSize, (gpu::Byte*) fbxMesh.colors.constData());
-    attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) fbxMesh.texCoords.constData());
-    attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) fbxMesh.texCoords1.constData());
+
+    if (texCoordsSize > 0) {
+        QVector<vec2h> texCoordData;
+        texCoordData.reserve(fbxMesh.texCoords.size());
+        for (auto& texCoordVec2f : fbxMesh.texCoords) {
+            vec2h texCoordVec2h;
+
+            texCoordVec2h.x = glm::detail::toFloat16(texCoordVec2f.x);
+            texCoordVec2h.y = glm::detail::toFloat16(texCoordVec2f.y);
+            texCoordData.push_back(texCoordVec2h);
+        }
+        attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) texCoordData.constData());
+    }
+
+    if (texCoords1Size > 0) {
+        QVector<vec2h> texCoordData;
+        texCoordData.reserve(fbxMesh.texCoords1.size());
+        for (auto& texCoordVec2f : fbxMesh.texCoords1) {
+            vec2h texCoordVec2h;
+
+            texCoordVec2h.x = glm::detail::toFloat16(texCoordVec2f.x);
+            texCoordVec2h.y = glm::detail::toFloat16(texCoordVec2f.y);
+            texCoordData.push_back(texCoordVec2h);
+        }
+        attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) texCoordData.constData());
+    }
 
     if (fbxMesh.clusters.size() < UINT8_MAX) {
         // yay! we can fit the clusterIndices within 8-bits
@@ -636,16 +665,16 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
                             model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
-                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
     if (texCoords1Size) {
         mesh->addAttribute( gpu::Stream::TEXCOORD1,
                             model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
-                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     } else if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD1,
                             model::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
-                            gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV)));
+                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
 
     if (clusterIndicesSize) {
