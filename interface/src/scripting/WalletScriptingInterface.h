@@ -39,6 +39,8 @@ public:
 
     Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
+    // setWalletStatus() should never be made Q_INVOKABLE. If it were,
+    //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
 
 signals:
