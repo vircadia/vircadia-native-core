@@ -89,9 +89,7 @@ int main(int argc, char* argv[])
         qFatal("Unable to create primary offscreen context");
     }
     qt_gl_set_global_share_context(sharedCanvas.getContext());
-
     auto globalContext = QOpenGLContext::globalShareContext();
-    bool threadedGlRendering = QOpenGLContext::supportsThreadedOpenGL();
 
     GLWindow window;
     window.create();
@@ -104,9 +102,7 @@ int main(int argc, char* argv[])
     GLuint fbo = 0;
     glGenFramebuffers(1, &fbo);
 
-
-
-    ivec2 offscreenSize { 640, 480 };
+    static const ivec2 offscreenSize { 640, 480 };
 
     OffscreenQmlSurface::setSharedContext(sharedCanvas.getContext());
     OffscreenQmlSurface* qmlSurface = new OffscreenQmlSurface();

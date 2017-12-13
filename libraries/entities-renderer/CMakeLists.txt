@@ -15,9 +15,4 @@ include_hifi_library_headers(avatars)
 include_hifi_library_headers(controllers)
 
 target_bullet()
-
-add_dependency_external_projects(polyvox)
-find_package(PolyVox REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
-
+target_polyvox()

@@ -41,8 +41,10 @@ endif()
 
 if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
+  set(PLATFORM_GL_BACKEND gpu-gles)
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+  set(PLATFORM_GL_BACKEND gpu-gl)
 endif ()
 
 foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})

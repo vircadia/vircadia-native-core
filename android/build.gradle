@@ -101,7 +101,7 @@ def packages = [
     ],
     polyvox: [
         file: 'polyvox_armv8-libcpp.tgz',
-        checksum: '5c918288741ee754c16aeb12bb46b9e1',
+        checksum: '349ad5b72aaf2749ca95d847e60c5314',
         sharedLibFolder: 'lib',
         includeLibs: ['Release/libPolyVoxCore.so', 'libPolyVoxUtil.so'],
     ],
