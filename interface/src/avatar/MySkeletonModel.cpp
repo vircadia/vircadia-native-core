@@ -34,7 +34,6 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 }
 
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
-
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
 
     // check for pinned hips.

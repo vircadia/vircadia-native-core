@@ -2441,7 +2441,7 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
-void Application::updateCamera(RenderArgs& renderArgs) {
+void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("updateCamera");
 
@@ -2456,6 +2456,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     // Using the latter will cause the camera to wobble with idle animations,
     // or with changes from the face tracker
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
@@ -2468,12 +2469,25 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
-            _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                myAvatar->getWorldOrientation() * boomOffset);
+
+            if (!_thirdPersonHMDCameraBoomValid) {
+                const glm::vec3 CAMERA_OFFSET = glm::vec3(0.0f, 0.0f, 0.7f);
+                _thirdPersonHMDCameraBoom = cancelOutRollAndPitch(myAvatar->getHMDSensorOrientation()) * CAMERA_OFFSET;
+                _thirdPersonHMDCameraBoomValid = true;
+            }
+
+            glm::mat4 thirdPersonCameraSensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+
+            const glm::vec3 cameraPos = myAvatar->getHMDSensorPosition() + _thirdPersonHMDCameraBoom * myAvatar->getBoomLength();
+            glm::mat4 sensorCameraMat = createMatFromQuatAndPos(myAvatar->getHMDSensorOrientation(), cameraPos);
+            glm::mat4 worldCameraMat = thirdPersonCameraSensorToWorldMatrix * sensorCameraMat;
+
+            _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
+            _myCamera.setPosition(extractTranslation(worldCameraMat));
         }
         else {
+            _thirdPersonHMDCameraBoomValid = false;
+
             _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
             if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
@@ -2486,6 +2500,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         }
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
@@ -2520,6 +2535,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
     else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+        _thirdPersonHMDCameraBoomValid= false;
         EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
         if (cameraEntity != nullptr) {
             if (isHMDMode()) {
@@ -5094,7 +5110,7 @@ void Application::update(float deltaTime) {
         _postUpdateLambdas.clear();
     }
 
-    editRenderArgs([this](AppRenderArgs& appRenderArgs) {
+    editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         appRenderArgs._headPose= getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
@@ -5140,7 +5156,7 @@ void Application::update(float deltaTime) {
             resizeGL();
         }
 
-        this->updateCamera(appRenderArgs._renderArgs);
+        this->updateCamera(appRenderArgs._renderArgs, deltaTime);
         appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 
