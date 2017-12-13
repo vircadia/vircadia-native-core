@@ -12,7 +12,6 @@
 #include "SendQueue.h"
 
 #include <algorithm>
-#include <random>
 #include <thread>
 
 #include <QtCore/QCoreApplication>
@@ -62,10 +61,10 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber));
 
     // Setup queue private thread
     QThread* thread = new QThread;
@@ -84,20 +83,12 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber) :
     _socket(socket),
     _destination(dest)
 {
-    // setup psuedo-random number generation for all instances of SendQueue
-    static std::random_device rd;
-    static std::mt19937 generator(rd());
-    static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
-
-    // randomize the intial sequence number
-    _initialSequenceNumber = SequenceNumber(distribution(generator));
-
-    // set our member variables from randomized initial number
-    _currentSequenceNumber = _initialSequenceNumber - 1;
+    // set our member variables from current sequence number
+    _currentSequenceNumber = currentSequenceNumber;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
     _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
 
@@ -114,8 +105,8 @@ void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
     _emptyCondition.notify_one();
     
-    if (!this->thread()->isRunning() && _state == State::NotStarted) {
-        this->thread()->start();
+    if (!thread()->isRunning() && _state == State::NotStarted) {
+        thread()->start();
     }
 }
 
@@ -125,8 +116,8 @@ void SendQueue::queuePacketList(std::unique_ptr<PacketList> packetList) {
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for packets
     _emptyCondition.notify_one();
     
-    if (!this->thread()->isRunning() && _state == State::NotStarted) {
-        this->thread()->start();
+    if (!thread()->isRunning() && _state == State::NotStarted) {
+        thread()->start();
     }
 }
 
@@ -225,8 +216,11 @@ void SendQueue::sendHandshake() {
     std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
+        // if the handshake hasn't been completed, then the initial sequence number
+        // should be the current sequence number + 1
+        SequenceNumber initialSequenceNumber = _currentSequenceNumber + 1;
         auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
-        handshakePacket->writePrimitive(_initialSequenceNumber);
+        handshakePacket->writePrimitive(initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
         
         // we wait for the ACK or the re-send interval to expire
@@ -235,18 +229,16 @@ void SendQueue::sendHandshake() {
     }
 }
 
-void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
-    if (initialSequenceNumber == _initialSequenceNumber) {
-        {
-            std::lock_guard<std::mutex> locker { _handshakeMutex };
-            _hasReceivedHandshakeACK = true;
-        }
-
-        _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-
-        // Notify on the handshake ACK condition
-        _handshakeACKCondition.notify_one();
+void SendQueue::handshakeACK() {
+    {
+        std::lock_guard<std::mutex> locker { _handshakeMutex };
+        _hasReceivedHandshakeACK = true;
     }
+
+    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+
+    // Notify on the handshake ACK condition
+    _handshakeACKCondition.notify_one();
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {
