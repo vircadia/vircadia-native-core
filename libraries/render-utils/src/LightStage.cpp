@@ -185,7 +185,7 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
     }
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
-    schema.lightDirInViewSpace = Transform(Transform(viewFrustum.getView()).getInverseMatrix()).transformDirection(lightDirection);
+    schema.lightDirInViewSpace = glm::inverse(viewFrustum.getView()) * glm::vec4(lightDirection, 0.f);
 }
 
 void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
