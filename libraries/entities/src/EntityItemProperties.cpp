@@ -1483,6 +1483,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
+            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
         }
 
         if (propertyCount > 0) {
@@ -1834,6 +1835,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     return valid;
 }
@@ -2001,6 +2003,7 @@ void EntityItemProperties::markAllChanged() {
     _editionNumberChanged = true;
     _entityInstanceNumberChanged = true;
     _certificateIDChanged = true;
+    _staticCertificateVersionChanged = true;
 
     _keyLight.markAllChanged();
 
@@ -2507,13 +2510,11 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
     ADD_STRING_PROPERTY(modelURL, ModelURL);
     ADD_STRING_PROPERTY(script, Script);
-    if (staticCertificateVersion > 1) {
+    if (staticCertificateVersion >= 1) {
         ADD_STRING_PROPERTY(serverScripts, ServerScripts);
     }
     ADD_ENUM_PROPERTY(shapeType, ShapeType);
-    if (staticCertificateVersion > 0) {
-        json["staticCertificateVersion"] = (double)staticCertificateVersion;
-    }
+    ADD_INT_PROPERTY(staticCertificateVersion, StaticCertificateVersion);
     json["type"] = EntityTypes::getEntityTypeName(getType());
 
     return QJsonDocument(json).toJson(QJsonDocument::Compact);

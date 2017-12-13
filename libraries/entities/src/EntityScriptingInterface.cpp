@@ -1821,7 +1821,7 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     return result;
 }
 
-QByteArray EntityScriptingInterface::getStaticCertificateJSON(QUuid entityID) {
+QString EntityScriptingInterface::getStaticCertificateJSON(const QUuid& entityID) {
     QByteArray result;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
