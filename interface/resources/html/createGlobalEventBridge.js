@@ -34,7 +34,7 @@ var EventBridge;
         var tempEventBridge = EventBridge;
         EventBridge = channel.objects.eventBridge;
         EventBridge.audioOutputDeviceChanged.connect(function(deviceName) {      
-            navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(function(mediaStream) {
+            navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(mediaStream) {
                 navigator.mediaDevices.enumerateDevices().then(function(devices) {
                     devices.forEach(function(device) {
                         if (device.kind == "audiooutput") {
