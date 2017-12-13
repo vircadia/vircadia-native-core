@@ -171,6 +171,9 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
             model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
                 batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
+            } else {
+                // Something is wrong, so just quit Haze
+                return;
             }
         }
 
