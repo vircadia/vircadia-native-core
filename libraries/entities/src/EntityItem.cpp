@@ -114,6 +114,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_EDITION_NUMBER;
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
+    requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
 
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
