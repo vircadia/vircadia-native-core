@@ -65,6 +65,64 @@ void PointerEvent::setButton(Button button) {
     _buttons |= button;
 }
 
+/**jsdoc
+ * A PointerEvent defines a 2D or 3D mouse or similar pointer event.
+ * @typedef {object} PointerEvent
+ * @property {string} type - The type of event: <code>"Press"</code>, <code>"DoublePress"</code>, <code>"Release"</code>, or
+ *     <code>"Move"</code>.
+ * @property {number} id - Integer number used to identify the pointer: <code>0</code> = hardware mouse, <code>1</code> = left
+ *     controller, <code>2</code> = right controller.
+ * @property {Vec2} pos2D - The 2D position of the event on the intersected overlay or entity XY plane, where applicable.
+ * @property {Vec3} pos3D - The 3D position of the event on the intersected overlay or entity, where applicable.
+ * @property {Vec3} normal - The surface normal at the intersection point.
+ * @property {Vec3} direction - The direction of the intersection ray.
+ * @property {string} button - The name of the button pressed: <code>None</code>, <code>Primary</code>, <code>Secondary</code>,
+ *    or <code>Tertiary</code>.
+ * @property {boolean} isPrimaryButton - <code>true</code> if the button pressed was the primary button, otherwise 
+ *     <code>undefined</code>;
+ * @property {boolean} isLeftButton - <code>true</code> if the button pressed was the primary button, otherwise
+ *     <code>undefined</code>;
+ * @property {boolean} isSecondaryButton - <code>true</code> if the button pressed was the secondary button, otherwise
+ *     <code>undefined</code>;
+ * @property {boolean} isRightButton - <code>true</code> if the button pressed was the secondary button, otherwise
+ *     <code>undefined</code>;
+ * @property {boolean} isTertiaryButton - <code>true</code> if the button pressed was the tertiary button, otherwise
+ *     <code>undefined</code>;
+ * @property {boolean} isMiddleButton - <code>true</code> if the button pressed was the tertiary button, otherwise
+ *     <code>undefined</code>;
+ * @property {boolean} isPrimaryHeld - <code>true</code> if the primary button is currently being pressed, otherwise
+ *     <code>false</code>
+ * @property {boolean} isSecondaryHeld - <code>true</code> if the secondary button is currently being pressed, otherwise
+ *     <code>false</code>
+ * @property {boolean} isTertiaryHeld - <code>true</code> if the tertiary button is currently being pressed, otherwise
+ *     <code>false</code>
+ * @property {KeyboardModifiers} keyboardModifiers - Integer value with bits set according to which keyboard modifier keys were
+ *     pressed when the event was generated.
+ */
+/**jsdoc
+ * <p>A KeyboardModifiers value is used to specify which modifier keys on the keyboard are pressed. The value is the sum 
+ * (bitwise OR) of the relevant combination of values from the following table:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Key</th><th>Hexadecimal value</th><th>Decimal value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td>Shift</td><td><code>0x02000000</code></td><td><code>33554432</code></td>
+ *         <td>A Shift key on the keyboard is pressed.</td></tr>
+ *     <tr><td>Control</td><td><code>0x04000000</code></td><td><code>67108864</code></td>
+ *         <td>A Control key on the keyboard is pressed.</td></tr>
+ *     <tr><td>Alt</td><td><code>0x08000000</code></td><td><code>134217728</code></td>
+ *         <td>An Alt key on the keyboard is pressed.</td></tr>
+ *     <tr><td>Meta</td><td><code>0x10000000</code></td><td><code>268435456</code></td>
+ *         <td>A Meta or Windows key on the keyboard is pressed.</td></tr>
+ *     <tr><td>Keypad</td><td><code>0x20000000</code></td><td><code>536870912</code></td>
+ *         <td>A keypad button is pressed.</td></tr>
+ *     <tr><td>Group</td><td><code>0x40000000</code></td><td><code>1073741824</code></td>
+ *         <td>X11 operating system only: An AltGr / Mode_switch key on the keyboard is pressed.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} KeyboardModifiers
+ */
 QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEvent& event) {
     QScriptValue obj = engine->newObject();
 

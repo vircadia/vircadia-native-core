@@ -41,8 +41,6 @@ public:
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
     void setWalletStatus(const uint& status) { _walletStatus = status; }
 
-    Q_INVOKABLE void buy(const QString& name, const QString& id, const int& price, const QString& href);
-
 signals:
     void walletStatusChanged();
     void walletNotSetup();

@@ -33,11 +33,6 @@
 #include "AvatarMixerClientData.h"
 #include "AvatarMixerSlave.h"
 
-namespace PrioritySortUtil {
-    // we declare this callback here but override it later
-    std::function<uint64_t(const AvatarSharedPointer&)> getAvatarAgeCallback = [] (const AvatarSharedPointer& avatar) { return 0; };
-}
-
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
     _end = end;
@@ -191,6 +186,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
     std::vector<AvatarSharedPointer> avatarsToSort;
     std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
+    std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         // make sure this is an agent that we have avatar data for before considering it for inclusion
         if (otherNode->getType() == NodeType::Agent
@@ -200,34 +196,29 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
             avatarsToSort.push_back(otherAvatar);
             avatarDataToNodes[otherAvatar] = otherNode;
+            QUuid id = otherAvatar->getSessionUUID();
+            avatarEncodeTimes[id] = nodeData->getLastOtherAvatarEncodeTime(id);
         }
     });
-
-    // now that we've assembled the avatarDataToNodes map we can replace PrioritySortUtil::getAvatarAgeCallback
-    // with the true implementation
-    PrioritySortUtil::getAvatarAgeCallback = [&] (const AvatarSharedPointer& avatar) {
-            auto avatarNode = avatarDataToNodes[avatar];
-            assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
-            return nodeData->getLastOtherAvatarEncodeTime(avatarNode->getUUID());
-        };
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
-        SortableAvatar(const AvatarSharedPointer& avatar) : _avatar(avatar) {}
+        SortableAvatar(const AvatarSharedPointer& avatar, uint64_t lastEncodeTime)
+            : _avatar(avatar), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
         float getRadius() const override {
             glm::vec3 nodeBoxHalfScale = (_avatar->getWorldPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
             return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
         }
         uint64_t getTimestamp() const override {
-            // use the callback implemented above
-            return PrioritySortUtil::getAvatarAgeCallback(_avatar);
+            return _lastEncodeTime;
         }
         const AvatarSharedPointer& getAvatar() const { return _avatar; }
 
     private:
         AvatarSharedPointer _avatar;
+        uint64_t _lastEncodeTime;
     };
 
     // prepare to sort
@@ -322,7 +313,12 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             // sort this one for later
-            sortedAvatars.push(SortableAvatar(avatar));
+            uint64_t lastEncodeTime = 0;
+            std::unordered_map<QUuid, uint64_t>::const_iterator itr = avatarEncodeTimes.find(avatar->getSessionUUID());
+            if (itr != avatarEncodeTimes.end()) {
+                lastEncodeTime = itr->second;
+            }
+            sortedAvatars.push(SortableAvatar(avatar, lastEncodeTime));
         }
     }
 
