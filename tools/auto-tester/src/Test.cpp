@@ -21,7 +21,20 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages) {
+bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory) {
+    // Delete any previous test results, if user agrees
+    QString s = testDirectory + "/" + testResultsFolder;
+    QFileInfo fileInfo(testDirectory + "/" + testResultsFolder);
+    while (fileInfo.exists()) {
+        messageBox.setText("Previous test results have been found");
+        messageBox.setInformativeText("Delete " + testResultsFolder + " before continuing");
+        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        int reply = messageBox.exec();
+        if (reply == QMessageBox::Cancel) {
+            return false;
+        }
+    }
+
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
     const double THRESHOLD{ 0.999 };
@@ -45,12 +58,14 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
         }
 
         if (similarityIndex < THRESHOLD) {
-            mismatchWindow.setTestFailure(TestFailure{
+            TestFailure testFailure = TestFailure{
                 (float)similarityIndex,
                 expectedImages[i].left(expectedImages[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
                 QFileInfo(expectedImages[i].toStdString().c_str()).fileName(),  // filename of expected image
                 QFileInfo(resultImages[i].toStdString().c_str()).fileName()     // filename of result image
-            });
+            };
+
+            mismatchWindow.setTestFailure(testFailure);
 
             mismatchWindow.exec();
 
@@ -58,6 +73,7 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
                 case USER_RESPONSE_PASS:
                     break;
                 case USE_RESPONSE_FAIL:
+                    appendTestResultsToFile(testDirectory, testFailure);
                     success = false;
                     break;
                 case USER_RESPONSE_ABORT:
@@ -72,6 +88,13 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
     }
 
     return success;
+}
+
+void Test::appendTestResultsToFile(QString testDirectory, TestFailure testFailure) {
+    QFileInfo fileInfo(testResultsFileName);
+    if (!fileInfo.exists()) {
+    }
+
 }
 
 void Test::evaluateTests() {
@@ -107,7 +130,7 @@ void Test::evaluateTests() {
         exit(-1);
     }
 
-    bool success = compareImageLists(expectedImages, resultImages);
+    bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory);
 
     if (success) {
         messageBox.information(0, "Success", "All images are as expected");
@@ -164,7 +187,7 @@ void Test::evaluateTestsRecursively() {
         }
 
         // Set success to false if any test has failed
-        success &= compareImageLists(expectedImages, resultImages);
+        success &= compareImageLists(expectedImages, resultImages, directory);
     }
 
     if (success) {

@@ -35,8 +35,12 @@ public:
 
     void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
 
+    void appendTestResultsToFile(QString testDirectory, TestFailure testFailure);
+
 private:
     const QString testFilename{ "test.js" };
+    const QString testResultsFolder{ "TestResults" };
+    const QString testResultsFileName{ "TestResults.txt" };
 
     QMessageBox messageBox;
 
@@ -49,7 +53,7 @@ private:
 
     ImageComparer imageComparer;
 
-    bool compareImageLists(QStringList expectedImages, QStringList resultImages);
+    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory);
 };
 
 #endif // hifi_test_h
