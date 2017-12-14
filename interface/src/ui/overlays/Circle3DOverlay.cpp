@@ -16,10 +16,7 @@
 
 QString const Circle3DOverlay::TYPE = "circle3d";
 
-Circle3DOverlay::Circle3DOverlay() {
-    memset(&_minorTickMarksColor, 0, sizeof(_minorTickMarksColor));
-    memset(&_majorTickMarksColor, 0, sizeof(_majorTickMarksColor));
-}
+Circle3DOverlay::Circle3DOverlay() {}
 
 Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     Planar3DOverlay(circle3DOverlay),
@@ -27,17 +24,21 @@ Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     _endAt(circle3DOverlay->_endAt),
     _outerRadius(circle3DOverlay->_outerRadius),
     _innerRadius(circle3DOverlay->_innerRadius),
+    _innerStartColor(circle3DOverlay->_innerStartColor),
+    _innerEndColor(circle3DOverlay->_innerEndColor),
+    _outerStartColor(circle3DOverlay->_outerStartColor),
+    _outerEndColor(circle3DOverlay->_outerEndColor),
+    _innerStartAlpha(circle3DOverlay->_innerStartAlpha),
+    _innerEndAlpha(circle3DOverlay->_innerEndAlpha),
+    _outerStartAlpha(circle3DOverlay->_outerStartAlpha),
+    _outerEndAlpha(circle3DOverlay->_outerEndAlpha),
     _hasTickMarks(circle3DOverlay->_hasTickMarks),
     _majorTickMarksAngle(circle3DOverlay->_majorTickMarksAngle),
     _minorTickMarksAngle(circle3DOverlay->_minorTickMarksAngle),
     _majorTickMarksLength(circle3DOverlay->_majorTickMarksLength),
     _minorTickMarksLength(circle3DOverlay->_minorTickMarksLength),
     _majorTickMarksColor(circle3DOverlay->_majorTickMarksColor),
-    _minorTickMarksColor(circle3DOverlay->_minorTickMarksColor),
-    _quadVerticesID(GeometryCache::UNKNOWN_ID),
-    _lineVerticesID(GeometryCache::UNKNOWN_ID),
-    _majorTicksVerticesID(GeometryCache::UNKNOWN_ID),
-    _minorTicksVerticesID(GeometryCache::UNKNOWN_ID)
+    _minorTickMarksColor(circle3DOverlay->_minorTickMarksColor)
 {
 }
 
@@ -80,9 +81,8 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
-    if (args->_shapePipeline) {
-        batch.setPipeline(args->_shapePipeline->pipeline);
-    }
+
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, isTransparent(), false, !getIsSolid(), true);
 
     batch.setModelTransform(getRenderTransform());
 
@@ -185,11 +185,10 @@ void Circle3DOverlay::render(RenderArgs* args) {
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
     if (getHasTickMarks()) {
-        
-        if (_majorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
+        if (!_majorTicksVerticesID) {
             _majorTicksVerticesID = geometryCache->allocateID();
         }
-        if (_minorTicksVerticesID == GeometryCache::UNKNOWN_ID) {
+        if (!_minorTicksVerticesID) {
             _minorTicksVerticesID = geometryCache->allocateID();
         }
         
@@ -476,6 +475,30 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "innerRadius") {
         return _innerRadius;
     }
+    if (property == "innerStartColor") {
+        return xColorToVariant(_innerStartColor);
+    }
+    if (property == "innerEndColor") {
+        return xColorToVariant(_innerEndColor);
+    }
+    if (property == "outerStartColor") {
+        return xColorToVariant(_outerStartColor);
+    }
+    if (property == "outerEndColor") {
+        return xColorToVariant(_outerEndColor);
+    }
+    if (property == "innerStartAlpha") {
+        return _innerStartAlpha;
+    }
+    if (property == "innerEndAlpha") {
+        return _innerEndAlpha;
+    }
+    if (property == "outerStartAlpha") {
+        return _outerStartAlpha;
+    }
+    if (property == "outerEndAlpha") {
+        return _outerEndAlpha;
+    }
     if (property == "hasTickMarks") {
         return _hasTickMarks;
     }
@@ -500,7 +523,6 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
 
     return Planar3DOverlay::getProperty(property);
 }
-
 
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                             BoxFace& face, glm::vec3& surfaceNormal) {

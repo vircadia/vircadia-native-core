@@ -971,7 +971,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto addressManager = DependencyManager::get<AddressManager>();
 

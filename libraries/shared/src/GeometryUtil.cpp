@@ -422,7 +422,7 @@ int clipTriangleWithPlanes(const Triangle& triangle, const Plane* planes, int pl
 
     *clippedTriangles = triangle;
 
-    while (planes < planesEnd) {
+    while (planes < planesEnd && triangleCount) {
         int clippedSubTriangleCount;
 
         trianglesToTest.clear();

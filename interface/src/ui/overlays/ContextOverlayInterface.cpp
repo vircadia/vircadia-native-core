@@ -289,7 +289,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
                     QNetworkRequest networkRequest;
                     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
                     QJsonObject request;
                     request["certificate_id"] = entityProperties.getCertificateID();
@@ -359,7 +359,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
