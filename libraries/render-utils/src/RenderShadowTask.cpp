@@ -22,6 +22,8 @@
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
+#include "RenderUtilsLogging.h"
+
 // These values are used for culling the objects rendered in the shadow map
 // but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
@@ -89,31 +91,13 @@ static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum
     for (i = 0; i < 8; i++) {
         sceneBoundVertices[i] = shadowViewInverse.transform(inShapeBounds.getVertex(static_cast<BoxVertex>(i)));
     }
-    // This indirection array is just a protection in case the ViewFrustum::PlaneIndex enum
-    // changes order especially as we don't need to test the NEAR and FAR planes.
-    static const ViewFrustum::PlaneIndex planeIndices[4] = {
-        ViewFrustum::TOP_PLANE,
-        ViewFrustum::BOTTOM_PLANE,
-        ViewFrustum::LEFT_PLANE,
-        ViewFrustum::RIGHT_PLANE
-    };
-    // Same goes for the shadow frustum planes.
-    for (i = 0; i < 4; i++) {
-        const auto& worldPlane = shadowFrustum.getPlanes()[planeIndices[i]];
-        // We assume the transform doesn't have a non uniform scale component to apply the 
-        // transform to the normal without using the correct transpose of inverse, which should be the
-        // case for a view matrix.
-        auto planeNormal = shadowViewInverse.transformDirection(worldPlane.getNormal());
-        auto planePoint = shadowViewInverse.transform(worldPlane.getPoint());
-        shadowClipPlanes[i].setNormalAndPoint(planeNormal, planePoint);
-    }
+    shadowFrustum.getUniformlyTransformedSidePlanes(shadowViewInverse, shadowClipPlanes);
 
     float near = std::numeric_limits<float>::max();
     float far = 0.0f;
 
     computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
-    // Limit the far range to the one used originally. There's no point in rendering objects
-    // that are not in the view frustum.
+    // Limit the far range to the one used originally.
     far = glm::min(far, shadowFrustum.getFarClip());
 
     const auto depthEpsilon = 0.1f;
@@ -137,9 +121,12 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     assert(lightStage);
 
     auto shadow = lightStage->getCurrentKeyShadow();
-    if (!shadow) return;
+    if (!shadow || _cascadeIndex >= shadow->getCascadeCount()) {
+        return;
+    }
 
-    const auto& fbo = shadow->framebuffer;
+    auto& cascade = shadow->getCascade(_cascadeIndex);
+    auto& fbo = cascade.framebuffer;
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder defaultKeyBuilder;
@@ -149,7 +136,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     // the minimal Z range.
     adjustNearFar(inShapeBounds, adjustedShadowFrustum);
     // Reapply the frustum as it has been adjusted
-    shadow->setFrustum(adjustedShadowFrustum);
+    shadow->setCascadeFrustum(_cascadeIndex, adjustedShadowFrustum);
     args->popViewFrustum();
     args->pushViewFrustum(adjustedShadowFrustum);
 
@@ -178,6 +165,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
         std::vector<ShapeKey> skinnedShapeKeys{};
+        std::vector<ShapeKey> ownPipelineShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
         args->_shapePipeline = shadowPipeline;
@@ -185,8 +173,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
-            } else {
+            } else if (!items.first.hasOwnPipeline()) {
                 renderItems(renderContext, items.second);
+            } else {
+                ownPipelineShapeKeys.push_back(items.first);
             }
         }
 
@@ -197,7 +187,15 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
             renderItems(renderContext, inShapes.at(key));
         }
 
+        // Finally render the items with their own pipeline last to prevent them from breaking the
+        // render state. This is probably a temporary code as there is probably something better
+        // to do in the render call of objects that have their own pipeline.
         args->_shapePipeline = nullptr;
+        for (const auto& key : ownPipelineShapeKeys) {
+            args->_itemShapeKey = key._flags.to_ulong();
+            renderItems(renderContext, inShapes.at(key));
+        }
+
         args->_batch = nullptr;
     });
 }
@@ -215,22 +213,26 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
-    const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup");
+    task.addJob<RenderShadowSetup>("ShadowSetup");
 
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    auto shadowFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
-    const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
-    const auto culledShadowSelection = task.addJob<CullSpatialSelection>("CullShadowSelection", shadowSelection, cullFunctor, RenderDetails::SHADOW, shadowFilter);
+    for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i);
+        const auto shadowFilter = setupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
 
-    // Sort
-    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
-    const auto sortedShapesAndBounds = task.addJob<DepthSortShapesAndComputeBounds>("DepthSortShadowMap", sortedPipelines, true);
+        // CPU jobs:
+        // Fetch and cull the items from the scene
+        const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
+        const auto cullInputs = CullSpatialSelection::Inputs(shadowSelection, shadowFilter).asVarying();
+        const auto culledShadowSelection = task.addJob<CullSpatialSelection>("CullShadowSelection", cullInputs, cullFunctor, RenderDetails::SHADOW);
 
-    // GPU jobs: Render to shadow map
-    task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber);
+        // Sort
+        const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
+        const auto sortedShapesAndBounds = task.addJob<DepthSortShapesAndComputeBounds>("DepthSortShadowMap", sortedPipelines, true);
 
-    task.addJob<RenderShadowTeardown>("ShadowTeardown", cachedMode);
+        // GPU jobs: Render to shadow map
+        task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber, i);
+        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", setupOutput);
+    }
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
@@ -239,31 +241,57 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
+    // Cache old render args
+    RenderArgs* args = renderContext->args;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
-        // Cache old render args
-        RenderArgs* args = renderContext->args;
-        output = args->_renderMode;
-
-        auto nearClip = args->getViewFrustum().getNearClip();
-        float nearDepth = -args->_boomOffset.z;
-        const float SHADOW_MAX_DISTANCE = 20.0f;
-        globalShadow->setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
-
-        // Set the keylight render args
-        args->pushViewFrustum(*(globalShadow->getFrustum()));
-        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
     }
 }
 
-void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
+void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
+    // Cache old render args
     RenderArgs* args = renderContext->args;
 
+    output.edit0() = args->_renderMode;
+    output.edit2() = args->_sizeScale;
+
+    const auto globalShadow = lightStage->getCurrentKeyShadow();
+    if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
+        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+
+        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+
+        // Set the keylight render args
+        args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
+        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        if (lightStage->getCurrentKeyLight()->getType() == model::Light::SUN) {
+            const float shadowSizeScale = 1e16f;
+            // Set the size scale to a ridiculously high value to prevent small object culling which assumes
+            // the view frustum is a perspective projection. But this isn't the case for the sun which
+            // is an orthographic projection.
+            args->_sizeScale = shadowSizeScale;
+        }
+
+    } else {
+        output.edit1() = ItemFilter::Builder::nothing();
+    }
+}
+
+void RenderShadowCascadeTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
+    RenderArgs* args = renderContext->args;
+
+    if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE && !input.get1().selectsNothing()) {
+        args->popViewFrustum();
+    }
+    assert(args->hasViewFrustum());
     // Reset the render args
-    args->popViewFrustum();
-    args->_renderMode = input;
+    args->_renderMode = input.get0();
+    args->_sizeScale = input.get2();
 };

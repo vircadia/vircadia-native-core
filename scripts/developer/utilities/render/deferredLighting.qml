@@ -184,7 +184,11 @@ Rectangle {
                     ListElement { text: "Lightmap"; color: "White" }
                     ListElement { text: "Scattering"; color: "White" }
                     ListElement { text: "Lighting"; color: "White" }
-                    ListElement { text: "Shadow"; color: "White" }
+                    ListElement { text: "Shadow Cascade 0"; color: "White" }
+                    ListElement { text: "Shadow Cascade 1"; color: "White" }
+                    ListElement { text: "Shadow Cascade 2"; color: "White" }
+                    ListElement { text: "Shadow Cascade 3"; color: "White" }
+                    ListElement { text: "Shadow Cascade Indices"; color: "White" }
                     ListElement { text: "Linear Depth"; color: "White" }
                     ListElement { text: "Half Linear Depth"; color: "White" }
                     ListElement { text: "Half Normal"; color: "White" }

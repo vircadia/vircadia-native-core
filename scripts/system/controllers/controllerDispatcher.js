@@ -154,6 +154,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.update = function () {
+            try {
+                _this.updateInternal();
+            }  catch (e) {
+                print(e);
+            }
+            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
+        };
+
+        this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
             }
@@ -376,7 +385,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
-            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
         };
 
         this.setBlacklist = function() {

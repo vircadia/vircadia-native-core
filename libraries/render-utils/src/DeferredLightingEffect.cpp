@@ -58,7 +58,7 @@ enum DeferredShader_MapSlot {
     DEFERRED_BUFFER_DEPTH_UNIT = 3,
     DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
     SHADOW_MAP_UNIT = 5,
-    SKYBOX_MAP_UNIT = 6,
+    SKYBOX_MAP_UNIT = SHADOW_MAP_UNIT + SHADOW_CASCADE_MAX_COUNT,
     DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
     DEFERRED_BUFFER_CURVATURE_UNIT,
     DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
@@ -156,7 +156,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("obscuranceMap"), DEFERRED_BUFFER_OBSCURANCE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMaps"), SHADOW_MAP_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
     slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
@@ -501,9 +501,11 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
 
-        // Bind the shadow buffer
+        // Bind the shadow buffers
         if (globalShadow) {
-            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
+            for (unsigned int i = 0; i < globalShadow->getCascadeCount(); i++) {
+                batch.setResourceTexture(SHADOW_MAP_UNIT+i, globalShadow->getCascade(i).map);
+            }
         }
 
         auto& program = deferredLightingEffect->_directionalSkyboxLight;
@@ -567,8 +569,9 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
-
-        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
+        for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+            batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
+        }
     }
 }
 
