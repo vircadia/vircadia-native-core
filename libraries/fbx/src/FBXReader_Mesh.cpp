@@ -42,6 +42,10 @@
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
 
+using NormalType = glm::vec3;
+
+#define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
+
 class Vertex {
 public:
     int originalIndex;
@@ -576,35 +580,52 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     mesh->setVertexBuffer(vbv);
 
     // evaluate all attribute channels sizes
-    int normalsSize = fbxMesh.normals.size() * sizeof(glm::vec3);
-    int tangentsSize = fbxMesh.tangents.size() * sizeof(glm::vec3);
-    int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
+    const int normalsSize = fbxMesh.normals.size() * sizeof(NormalType);
+    const int tangentsSize = fbxMesh.tangents.size() * sizeof(NormalType);
+    // If there are normals then there should be tangents
+    assert(normalsSize == tangentsSize);
+    const auto normalsAndTangentsSize = normalsSize + tangentsSize;
+    const int normalsAndTangentsStride = 2 * sizeof(NormalType);
+    const int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
     // Texture coordinates are stored in 2 half floats
-    int texCoordsSize = fbxMesh.texCoords.size() * sizeof(vec2h);
-    int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(vec2h);
+    const int texCoordsSize = fbxMesh.texCoords.size() * sizeof(vec2h);
+    const int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(vec2h);
 
     int clusterIndicesSize = fbxMesh.clusterIndices.size() * sizeof(uint8_t);
     if (fbxMesh.clusters.size() > UINT8_MAX) {
         // we need 16 bits instead of just 8 for clusterIndices
         clusterIndicesSize *= 2;
     }
-    int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(uint8_t);
+    const int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(uint8_t);
 
-    int normalsOffset = 0;
-    int tangentsOffset = normalsOffset + normalsSize;
-    int colorsOffset = tangentsOffset + tangentsSize;
-    int texCoordsOffset = colorsOffset + colorsSize;
-    int texCoords1Offset = texCoordsOffset + texCoordsSize;
-    int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
-    int clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
-    int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
+    // Normals and tangents are interleaved
+    const int normalsOffset = 0;
+    const int tangentsOffset = normalsOffset + sizeof(NormalType);
+    const int colorsOffset = normalsOffset + normalsSize + tangentsSize;
+    const int texCoordsOffset = colorsOffset + colorsSize;
+    const int texCoords1Offset = texCoordsOffset + texCoordsSize;
+    const int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
+    const int clusterWeightsOffset = clusterIndicesOffset + clusterIndicesSize;
+    const int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
 
     // Copy all attribute data in a single attribute buffer
     auto attribBuffer = std::make_shared<gpu::Buffer>();
     attribBuffer->resize(totalAttributeSize);
-    attribBuffer->setSubData(normalsOffset, normalsSize, (gpu::Byte*) fbxMesh.normals.constData());
-    attribBuffer->setSubData(tangentsOffset, tangentsSize, (gpu::Byte*) fbxMesh.tangents.constData());
-    attribBuffer->setSubData(colorsOffset, colorsSize, (gpu::Byte*) fbxMesh.colors.constData());
+
+    // Interleave normals and tangents
+    {
+        QVector<NormalType> normalsAndTangents;
+
+        normalsAndTangents.reserve(fbxMesh.normals.size() + fbxMesh.tangents.size());
+        for (auto normalIt = fbxMesh.normals.constBegin(), tangentIt = fbxMesh.tangents.constBegin();
+             normalIt != fbxMesh.normals.constEnd();
+             ++normalIt, ++tangentIt) {
+            normalsAndTangents.push_back(*normalIt);
+            normalsAndTangents.push_back(*tangentIt);
+        }
+        attribBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.constData());
+    }
+    attribBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) fbxMesh.colors.constData());
 
     if (texCoordsSize > 0) {
         QVector<vec2h> texCoordData;
@@ -616,7 +637,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             texCoordVec2h.y = glm::detail::toFloat16(texCoordVec2f.y);
             texCoordData.push_back(texCoordVec2h);
         }
-        attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (gpu::Byte*) texCoordData.constData());
+        attribBuffer->setSubData(texCoordsOffset, texCoordsSize, (const gpu::Byte*) texCoordData.constData());
     }
 
     if (texCoords1Size > 0) {
@@ -629,7 +650,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             texCoordVec2h.y = glm::detail::toFloat16(texCoordVec2f.y);
             texCoordData.push_back(texCoordVec2h);
         }
-        attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (gpu::Byte*) texCoordData.constData());
+        attribBuffer->setSubData(texCoords1Offset, texCoords1Size, (const gpu::Byte*) texCoordData.constData());
     }
 
     if (fbxMesh.clusters.size() < UINT8_MAX) {
@@ -641,31 +662,29 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             assert(fbxMesh.clusterIndices[i] <= UINT8_MAX);
             clusterIndices[i] = (uint8_t)(fbxMesh.clusterIndices[i]);
         }
-        attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) clusterIndices.constData());
+        attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) clusterIndices.constData());
     } else {
-        attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (gpu::Byte*) fbxMesh.clusterIndices.constData());
+        attribBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) fbxMesh.clusterIndices.constData());
     }
-    attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (gpu::Byte*) fbxMesh.clusterWeights.constData());
+    attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) fbxMesh.clusterWeights.constData());
 
     if (normalsSize) {
         mesh->addAttribute(gpu::Stream::NORMAL,
-                            model::BufferView(attribBuffer, normalsOffset, normalsSize,
-                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
-    }
-    if (tangentsSize) {
+                           model::BufferView(attribBuffer, normalsOffset, normalsAndTangentsSize,
+                           normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
         mesh->addAttribute(gpu::Stream::TANGENT,
-                            model::BufferView(attribBuffer, tangentsOffset, tangentsSize,
-                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
+                           model::BufferView(attribBuffer, tangentsOffset, normalsAndTangentsSize,
+                           normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
     }
     if (colorsSize) {
         mesh->addAttribute(gpu::Stream::COLOR,
-                            model::BufferView(attribBuffer, colorsOffset, colorsSize,
-                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
+                           model::BufferView(attribBuffer, colorsOffset, colorsSize,
+                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
     }
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
-                            model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
-                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
+                           model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
+                           gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
     if (texCoords1Size) {
         mesh->addAttribute( gpu::Stream::TEXCOORD1,
@@ -673,8 +692,8 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
                             gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     } else if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD1,
-                            model::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
-                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
+                           model::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
+                           gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
 
     if (clusterIndicesSize) {

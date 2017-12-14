@@ -303,8 +303,7 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
     return blendshape;
 }
 
-
-void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
+static void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     const glm::vec3& normal = mesh.normals.at(firstIndex);
     glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
@@ -314,6 +313,35 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     glm::vec3 normalizedNormal = glm::normalize(normal);
     mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
         glm::normalize(bitangent), normalizedNormal);
+}
+
+static void createTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+    mesh.tangents.resize(mesh.vertices.size());
+
+    // if we have a normal map (and texture coordinates), we must compute tangents
+    if (generateFromTexCoords && !mesh.texCoords.isEmpty()) {
+        foreach(const FBXMeshPart& part, mesh.parts) {
+            for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
+                setTangents(mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
+                setTangents(mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
+                setTangents(mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+            }
+            // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
+            // This is most likely evidence of a further problem in extractMesh()
+            for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
+                setTangents(mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
+                setTangents(mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
+                setTangents(mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+            }
+            if ((part.triangleIndices.size() % 3) != 0) {
+                qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+            }
+        }
+    } else {
+        // Fill with a dummy value to force tangents to be present if there are normals
+        std::fill(mesh.tangents.begin(), mesh.tangents.end(), Vectors::UNIT_NEG_X);
+    }
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -1570,27 +1598,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        // if we have a normal map (and texture coordinates), we must compute tangents
-        if (generateTangents && !extracted.mesh.texCoords.isEmpty()) {
-            extracted.mesh.tangents.resize(extracted.mesh.vertices.size());
-            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
-                for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    setTangents(extracted.mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
-                }
-                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
-                // This is most likely evidence of a further problem in extractMesh()
-                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
-                    setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
-                }
-                if ((part.triangleIndices.size() % 3) != 0){
-                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
-                }
-            }
+        if (!extracted.mesh.normals.empty()) {
+            createTangents(extracted.mesh, generateTangents);
         }
 
         // find the clusters with which the mesh is associated

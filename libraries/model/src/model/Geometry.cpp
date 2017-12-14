@@ -72,12 +72,14 @@ void Mesh::evalVertexStream() {
 
     int channelNum = 0;
     if (hasVertexData()) {
-        _vertexStream.addBuffer(_vertexBuffer._buffer, _vertexBuffer._offset, _vertexFormat->getChannelStride(channelNum));
+        auto stride = glm::max<gpu::Offset>(_vertexFormat->getChannelStride(channelNum), _vertexBuffer._stride);
+        _vertexStream.addBuffer(_vertexBuffer._buffer, _vertexBuffer._offset, stride);
         channelNum++;
     }
     for (auto attrib : _attributeBuffers) {
         BufferView& view = attrib.second;
-        _vertexStream.addBuffer(view._buffer, view._offset, _vertexFormat->getChannelStride(channelNum));
+        auto stride = glm::max<gpu::Offset>(_vertexFormat->getChannelStride(channelNum), view._stride);
+        _vertexStream.addBuffer(view._buffer, view._offset, stride);
         channelNum++;
     }
 }
