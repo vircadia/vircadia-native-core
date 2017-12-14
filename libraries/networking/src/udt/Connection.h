@@ -136,7 +136,7 @@ private:
     SequenceNumber _initialSequenceNumber; // Randomized on Connection creation, identifies connection during re-connect requests
     SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer Connection on creation, identifies connection during re-connect requests
 
-    MessageNumber _lastMessageNumber;
+    MessageNumber _lastMessageNumber { 0 };
 
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
