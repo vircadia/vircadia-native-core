@@ -207,12 +207,10 @@ void ModelEntityItem::update(const quint64& now) {
                         // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
                         _currentFrame = currentAnimationProperties.getCurrentFrame();
                         setAnimationCurrentFrame(_currentFrame);
-                        qCDebug(entities) << "setting first frame 1 " << _currentFrame;
                     } else {
                         _lastAnimated =  usecTimestampNow();
                         _currentFrame = currentAnimationProperties.getFirstFrame();
                         setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
-                        qCDebug(entities) << "setting first frame 2" << _currentFrame;
                     }
                 } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
                     _currentFrame = currentAnimationProperties.getFirstFrame();
@@ -220,31 +218,11 @@ void ModelEntityItem::update(const quint64& now) {
                 } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
                     // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
                     _currentFrame = currentAnimationProperties.getCurrentFrame();
-                    // qCDebug(entities)  << "point 3 " << _currentFrame;
                 }
                 
             });
             _previousAnimationProperties = this->getAnimationProperties();
 
-        } else {
-            // else the animation properties have not changed.
-            // if the first frame is less than zero don't do anything. 
-            if (!(getAnimationFirstFrame() < 0)) {
-
-                // if the current frame is less than zero then we have restarted the server.
-                if (_currentFrame < 0) {
-                    //qCDebug(entities) << "setting first frame 3 " << _currentFrame;
-                    if ((currentAnimationProperties.getCurrentFrame() < currentAnimationProperties.getLastFrame()) && 
-                        (currentAnimationProperties.getCurrentFrame() > currentAnimationProperties.getFirstFrame())) {
-                       // _currentFrame = currentAnimationProperties.getCurrentFrame();
-                    } else {
-                        //qCDebug(entities) << "setting first frame 4 " << _currentFrame;
-                       // _currentFrame = currentAnimationProperties.getFirstFrame();
-                       // setAnimationCurrentFrame(_currentFrame);
-                       // _lastAnimated = usecTimestampNow();
-                    }
-                }
-            }
         }
         
         if (isAnimatingSomething()) {
@@ -263,6 +241,10 @@ bool ModelEntityItem::needsToCallUpdate() const {
 }
 
 void ModelEntityItem::updateFrameCount() {
+
+    if (_currentFrame < 0.0f) {
+        return;
+    }
     
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
@@ -298,7 +280,7 @@ void ModelEntityItem::updateFrameCount() {
                 _currentFrame = getAnimationFirstFrame();
             }
         }
-         qCDebug(entities)  << "in update frame " << _currentFrame;
+        // qCDebug(entities)  << "in update frame " << _currentFrame;
         setAnimationCurrentFrame(_currentFrame);
     }
 
