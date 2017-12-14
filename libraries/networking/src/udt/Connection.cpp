@@ -90,6 +90,9 @@ void Connection::stopSendQueue() {
         // tell the send queue to stop and be deleted
         
         sendQueue->stop();
+
+        _lastMessageNumber = sendQueue->getCurrentMessageNumber();
+
         sendQueue->deleteLater();
         
         // wait on the send queue thread so we know the send queue is gone
@@ -116,11 +119,11 @@ SendQueue& Connection::getSendQueue() {
 
         if (!_hasReceivedHandshakeACK) {
             // First time creating a send queue for this connection
-            _sendQueue = SendQueue::create(_parentSocket, _destination, _initialSequenceNumber - 1, _hasReceivedHandshakeACK);
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _initialSequenceNumber - 1, _lastMessageNumber, _hasReceivedHandshakeACK);
             _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
         } else {
             // Connection already has a handshake from a previous send queue
-            _sendQueue = SendQueue::create(_parentSocket, _destination, _lastReceivedACK, _hasReceivedHandshakeACK);
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _lastReceivedACK, _lastMessageNumber, _hasReceivedHandshakeACK);
         }
 
 #ifdef UDT_CONNECTION_DEBUG
@@ -417,7 +420,6 @@ void Connection::sendHandshakeRequest() {
 }
 
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
-    
     if (!_hasReceivedHandshake) {
         // Refuse to process any packets until we've received the handshake
         // Send handshake request to re-request a handshake
@@ -509,7 +511,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
-    
+
     return !wasDuplicate;
 }
 
