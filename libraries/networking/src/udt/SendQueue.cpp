@@ -61,10 +61,12 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber, bool hasReceivedHandshakeACK) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
+                                             MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber, hasReceivedHandshakeACK));
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber,
+                                                          currentMessageNumber, hasReceivedHandshakeACK));
 
     // Setup queue private thread
     QThread* thread = new QThread;
@@ -83,19 +85,16 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber, bool hasReceivedHandshakeACK) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
+                     MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) :
     _socket(socket),
-    _destination(dest)
+    _destination(dest),
+    _packets(currentMessageNumber)
 {
     // set our member variables from current sequence number
     _currentSequenceNumber = currentSequenceNumber;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
-
-    if (hasReceivedHandshakeACK) {
-        _lastACKSequenceNumber = uint32_t(_currentSequenceNumber);
-    } else {
-        _lastACKSequenceNumber = uint32_t(_currentSequenceNumber - 1);
-    }
+    _lastACKSequenceNumber = uint32_t(_currentSequenceNumber);
 
     _hasReceivedHandshakeACK = hasReceivedHandshakeACK;
 

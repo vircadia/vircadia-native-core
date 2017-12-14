@@ -50,7 +50,9 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber, bool hasReceivedHandshakeACK);
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
+                                             SequenceNumber currentSequenceNumber, MessageNumber currentMessageNumber,
+                                             bool hasReceivedHandshakeACK);
 
     virtual ~SendQueue();
     
@@ -58,6 +60,7 @@ public:
     void queuePacketList(std::unique_ptr<PacketList> packetList);
 
     SequenceNumber getCurrentSequenceNumber() const { return SequenceNumber(_atomicCurrentSequenceNumber); }
+    MessageNumber getCurrentMessageNumber() const { return _packets.getCurrentMessageNumber(); }
     
     void setFlowWindowSize(int flowWindowSize) { _flowWindowSize = flowWindowSize; }
     
@@ -91,7 +94,8 @@ private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber, bool hasReceivedHandshakeACK);
+    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
+              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
