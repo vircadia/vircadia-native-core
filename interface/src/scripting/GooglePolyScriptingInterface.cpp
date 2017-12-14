@@ -29,7 +29,7 @@
 QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
 QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
 
-//authCode = "broke";
+QString authCode = "broke";
 
 QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
 QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
@@ -112,7 +112,6 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     event.exec();
 
     return response->readAll();
-
 }
 
 // since the list is a QJsonArray and a single model is a QJsonObject
@@ -146,10 +145,6 @@ QVariant GooglePolyScriptingInterface::parseJSON(QByteArray* response, int fileT
         return obj;
     }
 }
-
-
-
-
 
 
 /*void GooglePolyScriptingInterface::getAssetList() {
@@ -269,4 +264,5 @@ or this :(( http://blog.mathieu-leplatre.info/access-a-json-webservice-with-qt-c
     qCDebug(scriptengine) << "first item: " << firstItem;
     }
 
+<<<<<<< HEAD
 */

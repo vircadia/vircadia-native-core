@@ -36,7 +36,6 @@ private:
 
     //QString authCode;
     
-
 };
 
 #endif // hifi_GooglePolyScriptingInterface_h
