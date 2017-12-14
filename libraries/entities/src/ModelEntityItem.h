@@ -110,8 +110,6 @@ public:
     float getAnimationFPS() const;
     bool isAnimatingSomething() const;
 
-    int getLastKnownCurrentFrame() const;
-
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
     void setTextures(const QString& textures);
@@ -172,7 +170,7 @@ protected:
 private:
     uint64_t _lastAnimated{ 0 };
     AnimationPropertyGroup _previousAnimationProperties;
-    float _currentFrame{ -1 };
+    float _currentFrame{ -1.0f };
 };
 
 #endif // hifi_ModelEntityItem_h
