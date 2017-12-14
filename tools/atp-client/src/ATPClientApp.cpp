@@ -145,7 +145,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto nodeList = DependencyManager::get<NodeList>();
 
