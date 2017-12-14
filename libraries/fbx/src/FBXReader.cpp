@@ -316,10 +316,10 @@ static void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
 }
 
 static void createTangents(FBXMesh& mesh, bool generateFromTexCoords) {
-    mesh.tangents.resize(mesh.vertices.size());
-
     // if we have a normal map (and texture coordinates), we must compute tangents
     if (generateFromTexCoords && !mesh.texCoords.isEmpty()) {
+        mesh.tangents.resize(mesh.vertices.size());
+
         foreach(const FBXMeshPart& part, mesh.parts) {
             for (int i = 0; i < part.quadIndices.size(); i += 4) {
                 setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
@@ -338,9 +338,6 @@ static void createTangents(FBXMesh& mesh, bool generateFromTexCoords) {
                 qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
             }
         }
-    } else {
-        // Fill with a dummy value to force tangents to be present if there are normals
-        std::fill(mesh.tangents.begin(), mesh.tangents.end(), Vectors::UNIT_NEG_X);
     }
 }
 
@@ -1598,9 +1595,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        if (!extracted.mesh.normals.empty()) {
-            createTangents(extracted.mesh, generateTangents);
-        }
+        createTangents(extracted.mesh, generateTangents);
 
         // find the clusters with which the mesh is associated
         QVector<QString> clusterIDs;

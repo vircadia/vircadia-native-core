@@ -42,10 +42,6 @@
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
 
-using NormalType = glm::vec3;
-
-#define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
-
 class Vertex {
 public:
     int originalIndex;
@@ -551,6 +547,14 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
     return data.extracted;
 }
 
+glm::vec3 FBXReader::normalizeDirForPacking(const glm::vec3& dir) {
+    auto maxCoord = glm::max(fabsf(dir.x), glm::max(fabsf(dir.y), fabsf(dir.z)));
+    if (maxCoord > 1e-6f) {
+        return dir / maxCoord;
+    }
+    return dir;
+}
+
 void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("buildModelMesh failed -- .*");
 
@@ -578,6 +582,12 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
                 (const gpu::Byte*) extractedMesh.vertices.data());
     gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
     mesh->setVertexBuffer(vbv);
+
+    if (!fbxMesh.normals.empty() && fbxMesh.tangents.empty()) {
+        // Fill with a dummy value to force tangents to be present if there are normals
+        fbxMesh.tangents.reserve(fbxMesh.normals.size());
+        std::fill_n(std::back_inserter(fbxMesh.tangents), fbxMesh.normals.size(), Vectors::UNIT_X);
+    }
 
     // evaluate all attribute channels sizes
     const int normalsSize = fbxMesh.normals.size() * sizeof(NormalType);
@@ -620,8 +630,17 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         for (auto normalIt = fbxMesh.normals.constBegin(), tangentIt = fbxMesh.tangents.constBegin();
              normalIt != fbxMesh.normals.constEnd();
              ++normalIt, ++tangentIt) {
-            normalsAndTangents.push_back(*normalIt);
-            normalsAndTangents.push_back(*tangentIt);
+#if FBX_PACK_NORMALS
+            const auto normal = normalizeDirForPacking(*normalIt);
+            const auto tangent = normalizeDirForPacking(*tangentIt);
+            const auto packedNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
+            const auto packedTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
+#else
+            const auto packedNormal = *normalIt;
+            const auto packedTangent = *tangentIt;
+#endif
+            normalsAndTangents.push_back(packedNormal);
+            normalsAndTangents.push_back(packedTangent);
         }
         attribBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.constData());
     }

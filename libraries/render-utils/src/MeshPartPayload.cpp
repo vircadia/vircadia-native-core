@@ -518,7 +518,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
         ModelPointer model = _model.lock();
         if (model) {
             batch.setInputBuffer(0, model->_blendedVertexBuffers[_meshIndex], 0, sizeof(glm::vec3));
-            batch.setInputBuffer(1, model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
+            batch.setInputBuffer(1, model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(NormalType));
             batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
         } else {
             batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);

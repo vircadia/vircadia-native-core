@@ -26,6 +26,8 @@
 #include <GLMHelpers.h>
 #include <model-networking/SimpleMeshProxy.h>
 
+#include <glm/gtc/packing.hpp>
+
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
 
@@ -315,10 +317,21 @@ bool Model::updateGeometry() {
             // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
             auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
-                buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
+                buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + mesh.normals.size() * sizeof(NormalType));
+                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
+#if FBX_PACK_NORMALS
+                std::vector<NormalType> packedNormals;
+                packedNormals.reserve(mesh.normals.size());
+                for (auto normal : mesh.normals) {
+                    normal = FBXReader::normalizeDirForPacking(normal);
+                    packedNormals.push_back(glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f)));
+                }
+                const auto normalsData = packedNormals.data();
+#else
+                const auto normalsData = mesh.normals.constData();
+#endif
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                                   mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
+                                   mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsData);
             }
             _blendedVertexBuffers.push_back(buffer);
         }
@@ -1183,6 +1196,9 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
     _appliedBlendNumber = blendNumber;
     const FBXGeometry& fbxGeometry = getFBXGeometry();
     int index = 0;
+#if FBX_PACK_NORMALS
+    std::vector<NormalType> packedNormals;
+#endif
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
@@ -1190,9 +1206,20 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         }
 
         gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
-        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
-        buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-            mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) normals.constData() + index*sizeof(glm::vec3));
+        const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
+        buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
+#if FBX_PACK_NORMALS
+        packedNormals.clear();
+        packedNormals.reserve(normals.size());
+        for (auto normal : normals) {
+            normal = FBXReader::normalizeDirForPacking(normal);
+            packedNormals.push_back(glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f)));
+        }
+        const auto normalsData = packedNormals.data();
+#else
+        const auto normalsData = mesh.normals.constData();
+#endif
+        buffer->setSubData(verticesSize, normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsData + index*sizeof(NormalType));
 
         index += mesh.vertices.size();
     }
