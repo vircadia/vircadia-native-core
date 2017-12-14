@@ -10,6 +10,7 @@
 //
 
 #include <QEventLoop>
+#include <QGlobal.h>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -18,7 +19,9 @@
 #include <QNetworkRequest>
 //#include <QScopedPointer>
 #include <QString>
+#include <QTime>
 #include <QUrl>
+#include <random>
 
 #include "GooglePolyScriptingInterface.h"
 #include "ScriptEngineLogging.h"
@@ -26,28 +29,81 @@
 QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
 QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
 
+//authCode = "broke";
+
+QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
+QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
+    "nature" << "objects" << "people" << "scenes" << "technology" << "transport" << "";
+
 GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
     // nothing to be implemented
 }
 
-void GooglePolyScriptingInterface::testPrint() {
-    qCDebug(scriptengine) << "Google Poly interface exists";
+QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
+    QUrl url = formatURLQuery(keyword, category, format);
+    if (!url.isEmpty()) {
+        QByteArray jsonString = getHTTPRequest(url);
+        QJsonArray json = parseJSON(&jsonString, 0).toJsonArray();
+        qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
+        return json;
+    } else {
+        qCDebug(scriptengine) << "Invalid filters were specified.";
+        return QJsonArray();
+    }
+}
+
+QString GooglePolyScriptingInterface::getFBX(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "FBX");
+    qCDebug(scriptengine) << "google url: " << url;
+    if (!url.isEmpty()) {
+        QByteArray jsonString = getHTTPRequest(url);
+        qCDebug(scriptengine) << "the list: " << jsonString;
+        QString modelURL = parseJSON(&jsonString, 1).toString();
+        
+        qCDebug(scriptengine) << "the model url: " << modelURL;
+        return modelURL;
+    } else {
+        qCDebug(scriptengine) << "Invalid filters were specified.";
+        return "";
+    }
+
+}
+
+void GooglePolyScriptingInterface::testPrint(QString input) {
+    qCDebug(scriptengine) << "Google message: " << input;
 }
 
 void GooglePolyScriptingInterface::setAPIKey(QString key) {
     authCode = key;
 }
 
-void GooglePolyScriptingInterface::getAssetList() {
-    //authCode = "broke";
-    QUrl url(listPolyUrl + "key=" + authCode);
-    QByteArray jsonString = getHTTPRequest(url);
-    qCDebug(scriptengine) << "the list: " << jsonString;
-    QJsonObject json = makeJSON(&jsonString, true).toJsonObject;
-
+int GooglePolyScriptingInterface::getRandIntInRange(int length) {
+    QTime time = QTime::currentTime();
+    qsrand((uint)time.msec());
+    return qrand() % length;
 }
 
-// FIXME: synchronous = not good code
+QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString category, QString format) {
+    QString queries;
+    if (!validFormats.contains(format) || !validCategories.contains(category)) {
+        return QUrl("");
+    } else {
+        if (!keyword.isEmpty()) {
+            keyword.replace(" ", "+");
+            queries.append("&keywords=" + keyword);
+        }
+        if (!category.isEmpty()) {
+            queries.append("&category=" + category);
+        }
+        if (!format.isEmpty()) {
+            queries.append("&format=" + format);
+        }
+        QString urlString = QString(listPolyUrl + "key=" + authCode + queries);
+        return QUrl(urlString);
+    }
+}
+
+// FIXME: synchronous
 QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     QNetworkAccessManager manager;
     QNetworkReply *response = manager.get(QNetworkRequest(url));
@@ -56,30 +112,45 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     event.exec();
 
     return response->readAll();
-    
+
 }
 
 // since the list is a QJsonArray and a single model is a QJsonObject
-QVariant GooglePolyScriptingInterface::makeJSON(QByteArray* response, bool isList) {
+QVariant GooglePolyScriptingInterface::parseJSON(QByteArray* response, int fileType) {
     //QString firstItem = QString::fromUtf8(response->readAll());
     QJsonDocument doc = QJsonDocument::fromJson(*response);
-    qCDebug(scriptengine) << "json doc is empty: " << doc.isEmpty();
     QJsonObject obj = doc.object();
     qCDebug(scriptengine) << "json obj: " << obj;
     qCDebug(scriptengine) << "json list: " << obj.keys();
     if (obj.keys().first() == "error") {
         qCDebug(scriptengine) << "Invalid API key";
+        return QJsonObject();
+    }
+    qCDebug(scriptengine) << "the assets: " << obj.value("assets");
+    if (fileType == 0 || fileType == 1) {
+        QJsonArray arr = obj.value("assets").toArray();
+        qCDebug(scriptengine) << "in array: " << arr;
+        // return model url
+        if (fileType == 1) {
+            int random = getRandIntInRange(arr.size());
+            QJsonObject json = arr.at(random).toObject();
+            qCDebug(scriptengine) << random << "th object: " << json;
+            qCDebug(scriptengine) << random << "th asset name: " << json.value("displayName");
+            // nested JSONs
+            return json.value("formats").toArray().at(0).toObject().value("root").toObject().value("url");
+        }
+        // return whole asset list
+        return arr;
+    // return specific object
+    } else {
         return obj;
     }
-    qCDebug(scriptengine) << "total size: " << obj.value("totalSize");
-    qCDebug(scriptengine) << "the assets: " << obj.value("assets");
-    QJsonArray arr = obj.value("assets").toArray();
-    qCDebug(scriptengine) << "in array: " << arr;
-    QJsonObject first = arr.takeAt(0).toObject();
-    qCDebug(scriptengine) << "first asset: " << first;
-    qCDebug(scriptengine) << "first asset description: " << first.value("description");
-    return obj;
 }
+
+
+
+
+
 
 /*void GooglePolyScriptingInterface::getAssetList() {
     authCode = "AIzaSyDamk7Vth52j7aU9JVKn3ungFS0kGJYc8A";

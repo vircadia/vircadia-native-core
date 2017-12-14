@@ -21,18 +21,20 @@ public:
     GooglePolyScriptingInterface();
 
 public slots:
-    void testPrint();
+    void testPrint(QString input);
     void setAPIKey(QString key);
 
-    //QJsonArray GooglePolyScriptingInterface::getAssetList();
-    void getAssetList();
+    QJsonArray getAssetList(QString keyword, QString category, QString format);
+    QString getFBX(QString keyword, QString category);
 
 private:
+    QUrl formatURLQuery(QString keyword, QString category, QString format);
     QByteArray getHTTPRequest(QUrl url);
-    QVariant makeJSON(QByteArray* response, bool isList);
+    QVariant parseJSON(QByteArray* response, int fileType);
+    int getRandIntInRange(int length);
     //void onResult(QNetworkReply* reply);
 
-    QString authCode;
+    //QString authCode;
     
 
 };
