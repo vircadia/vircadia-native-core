@@ -700,7 +700,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
 void EntityMotionState::clearIncomingDirtyFlags() {
     assert(entityTreeIsLocked());
     if (_body && _entity) {
-        _entity->clearDirtyFlags();
+        _entity->clearDirtyFlags(DIRTY_PHYSICS_FLAGS);
     }
 }
 
