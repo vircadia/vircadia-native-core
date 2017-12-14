@@ -182,6 +182,8 @@ public:
         Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
 
+        Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
+
         // Convenient standard keys that we will keep on using all over the place
         static Builder visibleWorldItems() { return Builder().withVisible().withWorldSpace(); }
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
@@ -191,12 +193,14 @@ public:
         static Builder background() { return Builder().withViewSpace().withLayered(); }
         static Builder opaqueShapeLayered() { return Builder().withTypeShape().withOpaque().withWorldSpace().withLayered(); }
         static Builder transparentShapeLayered() { return Builder().withTypeShape().withTransparent().withWorldSpace().withLayered(); }
+        static Builder nothing() { return Builder().withNothing(); }
     };
 
     ItemFilter(const Builder& builder) : ItemFilter(builder._value, builder._mask) {}
 
     // Item Filter operator testing if a key pass the filter
     bool test(const ItemKey& key) const { return (key._flags & _mask) == (_value & _mask); }
+    bool selectsNothing() const { return !_mask.any(); }
 
     class Less {
     public:

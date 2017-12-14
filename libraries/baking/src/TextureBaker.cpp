@@ -113,8 +113,15 @@ void TextureBaker::handleTextureNetworkReply() {
 }
 
 void TextureBaker::processTexture() {
-    auto processedTexture = image::processImage(_originalTexture, _textureURL.toString().toStdString(),
+    // the baked textures need to have the source hash added for cache checks in Interface
+    // so we add that to the processed texture before handling it off to be serialized
+    auto hashData = QCryptographicHash::hash(_originalTexture, QCryptographicHash::Md5);
+    std::string hash = hashData.toHex().toStdString();
+
+    // IMPORTANT: _originalTexture is empty past this point
+    auto processedTexture = image::processImage(std::move(_originalTexture), _textureURL.toString().toStdString(),
                                                 ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, _abortProcessing);
+    processedTexture->setSourceHash(hash);
 
     if (shouldStop()) {
         return;
@@ -125,11 +132,6 @@ void TextureBaker::processTexture() {
         return;
     }
 
-    // the baked textures need to have the source hash added for cache checks in Interface
-    // so we add that to the processed texture before handling it off to be serialized
-    auto hashData = QCryptographicHash::hash(_originalTexture, QCryptographicHash::Md5);
-    std::string hash = hashData.toHex().toStdString();
-    processedTexture->setSourceHash(hash);
     
     auto memKTX = gpu::Texture::serialize(*processedTexture);
 

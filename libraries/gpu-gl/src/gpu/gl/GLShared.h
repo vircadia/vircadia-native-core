@@ -28,7 +28,6 @@ void serverWait();
 // Create a fence and synchronously wait on the fence
 void clientWait();
 
-gpu::Size getDedicatedMemory();
 gpu::Size getFreeDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);

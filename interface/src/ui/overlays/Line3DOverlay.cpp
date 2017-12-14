@@ -255,6 +255,67 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
 }
 
+/**jsdoc
+ * These are the properties of a <code>line3d</code> {@link Overlays.OverlayType|OverlayType}.
+ * @typedef {object} Overlays.Line3DProperties
+ * 
+ * @property {string} type=line3d - Has the value <code>"line3d"</code>. <em>Read-only.</em>
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
+ *     rotating as you move your avatar.
+ *
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
+ *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
+ *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
+ *     be removed.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {Uuid} endParentID=null - The avatar, entity, or overlay that the end point of the line is parented to.
+ * @property {number} endParentJointIndex=65535 - Integer value specifying the skeleton joint that the end point of the line is
+ *     attached to if <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {Vec3} start - The start point of the line. Synonyms: <code>startPoint</code>, <code>p1</code>, and
+ *     <code>position</code>.
+ * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
+ * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>start</code>. Synonym: <code>localPosition</code>.
+ * @property {Vec3} localEnd - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>endParentID</code> set, otherwise the same value as <code>end</code>.
+ * @property {number} length - The length of the line, in meters. This can be set after creating a line with start and end
+ *     points.
+ * @property {number} glow=0 - If <code>glow > 0</code>, the line is rendered with a glow.
+ * @property {number} lineWidth=0.02 - If <code>glow > 0</code>, this is the width of the glow, in meters.
+ */
 QVariant Line3DOverlay::getProperty(const QString& property) {
     if (property == "start" || property == "startPoint" || property == "p1") {
         return vec3toVariant(getStart());
