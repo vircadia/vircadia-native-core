@@ -116,14 +116,11 @@ SendQueue& Connection::getSendQueue() {
 
         if (!_hasReceivedHandshakeACK) {
             // First time creating a send queue for this connection
-            _sendQueue = SendQueue::create(_parentSocket, _destination, _initialSequenceNumber - 1);
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _initialSequenceNumber - 1, _hasReceivedHandshakeACK);
             _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
         } else {
             // Connection already has a handshake from a previous send queue
-            _sendQueue = SendQueue::create(_parentSocket, _destination, _lastReceivedACK);
-            // This connection has already gone through the handshake
-            // bypass it in the send queue
-            _sendQueue->handshakeACK();
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _lastReceivedACK, _hasReceivedHandshakeACK);
         }
 
 #ifdef UDT_CONNECTION_DEBUG
