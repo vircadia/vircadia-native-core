@@ -1099,7 +1099,7 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     if (entityEditFilters) {
         auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
-        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID);
+        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
     }
 
     return accepted;

@@ -42,7 +42,7 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
 }
 
 bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
-        EntityTree::FilterType filterType, EntityItemID& itemID) {
+        EntityTree::FilterType filterType, EntityItemID& itemID, EntityItemPointer& existingEntity) {
     
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
@@ -68,9 +68,15 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             propertiesIn.setDesiredProperties(oldProperties);
 
             auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+
+            // get the current properties for then entity and include them for the filter call
+            auto currentProperties = existingEntity ? existingEntity->getProperties() : EntityItemProperties();
+            QScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
+
             QScriptValueList args;
             args << inputValues;
             args << filterType;
+            args << currentValues;
 
             QScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
             if (filterData.uncaughtExceptions()) {
@@ -182,8 +188,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
     qDebug() << "script request completed for entity " << entityID;
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
-    const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
+        const QString urlString = scriptRequest->getUrl().toString();
         auto scriptContents = scriptRequest->getData();
         qInfo() << "Downloaded script:" << scriptContents;
         QScriptProgram program(scriptContents, urlString);
@@ -227,6 +233,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             }
         } 
     } else if (scriptRequest) {
+        const QString urlString = scriptRequest->getUrl().toString();
         qCritical() << "Failed to download script at" << urlString;
         // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
         qCritical() << "ResourceRequest error was" << scriptRequest->getResult();
