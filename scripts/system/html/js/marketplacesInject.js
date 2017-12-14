@@ -265,8 +265,10 @@
         });
 
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
-            $(this).attr('data-href', $(this).attr('href'));
-            $(this).attr('href', '#');
+            if ($(this).attr('href') !== '#') { // Guard necessary because of the AJAX nature of Marketplace site
+                $(this).attr('data-href', $(this).attr('href'));
+                $(this).attr('href', '#');
+            }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
