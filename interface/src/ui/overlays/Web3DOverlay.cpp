@@ -55,18 +55,18 @@
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
+#include "raypick/PointerScriptingInterface.h"
 
-static const float DPI = 30.47f;
-static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
+Web3DOverlay::Web3DOverlay() {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
-    _touchDevice.setName("RenderableWebEntityItemTouchDevice");
+    _touchDevice.setName("Web3DOverlayTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
 
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
@@ -80,7 +80,6 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
-    _resolution(Web3DOverlay->_resolution),
     _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
@@ -151,8 +150,8 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
             setupQmlSurface();
         }
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
-        _webSurface->resize(QSize(_resolution.x, _resolution.y));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
+        onResizeWebSurface();
         _webSurface->resume();
     });
 
@@ -160,18 +159,10 @@ void Web3DOverlay::buildWebSurface() {
     QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
 }
 
-void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
-    if ((_pressed || (!_activeTouchPoints.empty() && _touchBeginAccepted))) {
-        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
-            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-        handlePointerEvent(endEvent);
-    }
-}
-
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
     }
     Parent::update(deltatime);
 }
@@ -224,6 +215,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
@@ -249,26 +241,28 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 }
 
 void Web3DOverlay::onResizeWebSurface() {
-    _mayNeedResize = false;
-    _webSurface->resize(QSize(_resolution.x, _resolution.y));
-}
+    glm::vec2 dims = glm::vec2(getDimensions());
+    dims *= METERS_TO_INCHES * _dpi;
 
-const int INVALID_DEVICE_ID = -1;
-
-Q_INVOKABLE int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
-    auto mapped = _webSurface->getRootItem()->mapFromGlobal(QPoint(x, y));
-
-    for (auto pair : _activeTouchPoints) {
-        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
-            return pair.first;
-        }
+    // ensure no side is never larger then MAX_WINDOW_SIZE
+    float max = (dims.x > dims.y) ? dims.x : dims.y;
+    if (max > MAX_WINDOW_SIZE) {
+        dims *= MAX_WINDOW_SIZE / max;
     }
 
-    return INVALID_DEVICE_ID;
+    _webSurface->resize(QSize(dims.x, dims.y));
+}
+
+unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
+    if (_webSurface) {
+        return _webSurface->deviceIdByTouchPoint(x, y);
+    } else {
+        return PointerEvent::INVALID_POINTER_ID;
+    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
+    if (!_renderVisible || !getParentVisible()) {
         return;
     }
 
@@ -277,12 +271,12 @@ void Web3DOverlay::render(RenderArgs* args) {
         return;
     }
 
-    if (_currentMaxFPS != _desiredMaxFPS) {
-        setMaxFPS(_desiredMaxFPS);
-    }
-
     if (_mayNeedResize) {
         emit resizeWebSurface();
+    }
+
+    if (_currentMaxFPS != _desiredMaxFPS) {
+        setMaxFPS(_desiredMaxFPS);
     }
 
     vec4 color(toGlm(getColor()), getAlpha());
@@ -321,7 +315,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 Transform Web3DOverlay::evalRenderTransform() {
     Transform transform = Parent::evalRenderTransform();
     transform.setScale(1.0f);
-    transform.postScale(glm::vec3(getSize(), 1.0f));
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
     return transform;
 }
 
@@ -348,6 +342,31 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+void Web3DOverlay::hoverEnterOverlay(const PointerEvent& event) {
+    if (_inputMode == Mouse) {
+        handlePointerEvent(event);
+    } else if (_webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverBeginEvent(webEvent, _touchDevice);
+    }
+}
+
+void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
+    if (_inputMode == Mouse) {
+        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+        handlePointerEvent(endEvent);
+        // QML onReleased is only triggered if a click has happened first.  We need to send this "fake" mouse move event to properly trigger an onExited.
+        PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
+        handlePointerEvent(endMoveEvent);
+    } else if (_webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->hoverEndEvent(webEvent, _touchDevice);
+    }
+}
+
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
@@ -357,105 +376,11 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
 }
 
 void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
-    if (!_webSurface) {
-        return;
+    if (_webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->handlePointerEvent(webEvent, _touchDevice);
     }
-
-    //do not send secondary button events to tablet
-    if (event.getButton() == PointerEvent::SecondaryButton ||
-        //do not block composed events
-        event.getButtons() == PointerEvent::SecondaryButton) {
-        return;
-    }
-
-
-    QPointF windowPoint;
-    {
-        glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
-        windowPoint = QPointF(windowPos.x, windowPos.y);
-    }
-
-    Qt::TouchPointState state = Qt::TouchPointStationary;
-    if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
-        state = Qt::TouchPointPressed;
-    } else if (event.getType() == PointerEvent::Release) {
-        state = Qt::TouchPointReleased;
-    } else if (_activeTouchPoints.count(event.getID()) && windowPoint != _activeTouchPoints[event.getID()].pos()) {
-        state = Qt::TouchPointMoved;
-    }
-
-    QEvent::Type touchType = QEvent::TouchUpdate;
-    if (_activeTouchPoints.empty()) {
-        // If the first active touch point is being created, send a begin
-        touchType = QEvent::TouchBegin;
-    } if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
-        // If the last active touch point is being released, send an end
-        touchType = QEvent::TouchEnd;
-    } 
-
-    {
-        QTouchEvent::TouchPoint point;
-        point.setId(event.getID());
-        point.setState(state);
-        point.setPos(windowPoint);
-        point.setScreenPos(windowPoint);
-        _activeTouchPoints[event.getID()] = point;
-    }
-
-    QTouchEvent touchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
-    {
-        QList<QTouchEvent::TouchPoint> touchPoints;
-        Qt::TouchPointStates touchPointStates;
-        for (const auto& entry : _activeTouchPoints) {
-            touchPointStates |= entry.second.state();
-            touchPoints.push_back(entry.second);
-        }
-
-        touchEvent.setWindow(_webSurface->getWindow());
-        touchEvent.setTarget(_webSurface->getRootItem());
-        touchEvent.setTouchPoints(touchPoints);
-        touchEvent.setTouchPointStates(touchPointStates);
-    }
-
-    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
-    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-    //
-    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
-    // receive mouse events
-    Qt::MouseButton button = Qt::NoButton;
-    Qt::MouseButtons buttons = Qt::NoButton;
-    if (event.getButton() == PointerEvent::PrimaryButton) {
-        button = Qt::LeftButton;
-    }
-    if (event.getButtons() & PointerEvent::PrimaryButton) {
-        buttons |= Qt::LeftButton;
-    }
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
-#endif
-
-    if (touchType == QEvent::TouchBegin) {
-        _touchBeginAccepted = QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
-    } else if (_touchBeginAccepted) {
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
-    }
-
-    // If this was a release event, remove the point from the active touch points
-    if (state == Qt::TouchPointReleased) {
-        _activeTouchPoints.erase(event.getID());
-    }
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
-#endif
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
@@ -465,12 +390,6 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
 
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
-
-    if (event.getType() == PointerEvent::Press) {
-        this->_pressed = true;
-    } else if (event.getType() == PointerEvent::Release) {
-        this->_pressed = false;
-    }
 
     Qt::MouseButtons buttons = Qt::NoButton;
     if (event.getButtons() & PointerEvent::PrimaryButton) {
@@ -497,7 +416,7 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             return;
     }
 
-    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
     QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
 }
 
@@ -520,18 +439,10 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
-    auto resolution = properties["resolution"];
-    if (resolution.isValid()) {
-        bool valid;
-        auto res = vec2FromVariant(resolution, valid);
-        if (valid) {
-            _resolution = res;
-        }
-    }
-
     auto dpi = properties["dpi"];
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
+        _mayNeedResize = true;
     }
 
     auto maxFPS = properties["maxFPS"];
@@ -553,19 +464,75 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _inputMode = Touch;
         }
     }
-
-    _mayNeedResize = true;
 }
 
+// Web3DOverlay overrides the meaning of Planar3DOverlay's dimensions property.
+/**jsdoc
+ * These are the properties of a <code>web3d</code> {@link Overlays.OverlayType|OverlayType}.
+ * @typedef {object} Overlays.Web3DProperties
+ *
+ * @property {string} type=web3d - Has the value <code>"web3d"</code>. <em>Read-only.</em>
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
+ *     rotating as you move your avatar.
+ *
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
+ *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
+ *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
+ *     be removed.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ *
+ * @property {string} url - The URL of the Web page to display.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {Vec2} resolution - <strong>Deprecated:</strong> This property has been removed. 
+ * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
+ * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
+ *     <code>scale</code>, <code>size</code>.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
+ * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has
+ *     keyboard focus.
+ * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
+ */
 QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }
     if (property == "scriptURL") {
         return _scriptURL;
-    }
-    if (property == "resolution") {
-        return vec2toVariant(_resolution);
     }
     if (property == "dpi") {
         return _dpi;
@@ -622,17 +589,18 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-glm::vec2 Web3DOverlay::getSize() const {
-    return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
-};
-
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-    // FIXME - face and surfaceNormal not being returned
+    glm::vec2 dimensions = getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
 
-    // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
-
-    // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getSize(), distance);
+    if (findRayRectangleIntersection(origin, direction, rotation, position, dimensions, distance)) {
+        surfaceNormal = rotation * Vectors::UNIT_Z;
+        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {

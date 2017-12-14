@@ -1,0 +1,118 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+<!
+//  Highlight.slh
+//  fragment shader
+//
+//  Created by Olivier Prat on 9/7/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+<@include Highlight_shared.slh@>
+
+uniform highlightParamsBuffer {
+    HighlightParameters params;
+};
+
+uniform sampler2D sceneDepthMap;
+uniform sampler2D highlightedDepthMap;
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+const float FAR_Z = 1.0;
+const float LINEAR_DEPTH_BIAS = 5e-3;
+const float OPACITY_EPSILON = 5e-3;
+
+<@func main(IS_FILLED)@>
+
+void main(void) {
+    // We offset by half a texel to be centered on the depth sample. If we don't do this
+    // the blur will have a different width between the left / right sides and top / bottom
+    // sides of the silhouette
+    float highlightedDepth = texture(highlightedDepthMap, varTexCoord0).x;
+
+    if (highlightedDepth < FAR_Z) {
+        // We're not on the far plane so we are on the highlighted object, thus no outline to do!
+<@if IS_FILLED@>
+        // But we need to fill the interior
+        float sceneDepth = texture(sceneDepthMap, varTexCoord0).x;
+        // Transform to linear depth for better precision
+        highlightedDepth = -evalZeyeFromZdb(highlightedDepth);
+        sceneDepth = -evalZeyeFromZdb(sceneDepth);
+
+        if (sceneDepth < (highlightedDepth-LINEAR_DEPTH_BIAS)) {
+            outFragColor = vec4(params._fillOccludedColor, params._fillOccludedAlpha);
+        } else {
+            outFragColor = vec4(params._fillUnoccludedColor, params._fillUnoccludedAlpha);
+        }
+<@else@>
+    discard;
+<@endif@>
+    } else {
+        vec2 halfTexel = getInvWidthHeight() / 2;
+        vec2 texCoord0 = varTexCoord0+halfTexel;
+        float weight = 0.0;
+        vec2 deltaUv = params._size / params._blurKernelSize;
+        vec2 lineStartUv = texCoord0 - params._size / 2.0; 
+        vec2 uv;
+        int x;
+        int y;
+
+        float intensity = 0.0;
+        float outlinedDepth = 0.0;
+        float sumOutlineDepth = 0.0;
+
+        for (y=0 ; y<params._blurKernelSize ; y++) {
+            uv = lineStartUv;
+            lineStartUv.y += deltaUv.y;
+
+            if (uv.y>=0.0 && uv.y<=1.0) {
+                for (x=0 ; x<params._blurKernelSize ; x++) {
+                    if (uv.x>=0.0 && uv.x<=1.0)
+                    {
+                        outlinedDepth = texture(highlightedDepthMap, uv).x;
+                        float touch = (outlinedDepth < FAR_Z) ? 1.0 : 0.0;
+                        sumOutlineDepth = max(outlinedDepth * touch, sumOutlineDepth);
+                        intensity += touch;
+                        weight += 1.0;
+                    }
+                    uv.x += deltaUv.x;
+                }
+            }
+        }
+
+        if (intensity > 0) {
+          //  sumOutlineDepth /= intensity;
+        } else {
+            sumOutlineDepth = FAR_Z;
+        }
+
+        intensity /= weight;
+        if (intensity < OPACITY_EPSILON) {
+            discard;
+        }
+        intensity = min(1.0, intensity / params._threshold);
+
+        // But we need to check the scene depth against the depth of the outline
+        float sceneDepth = texture(sceneDepthMap, texCoord0).x;
+
+        // Transform to linear depth for better precision
+        outlinedDepth = -evalZeyeFromZdb(sumOutlineDepth);
+        sceneDepth = -evalZeyeFromZdb(sceneDepth);
+
+        // Are we occluded?
+        if (sceneDepth < (outlinedDepth/*-LINEAR_DEPTH_BIAS*/)) {
+            outFragColor = vec4(params._outlineOccludedColor, intensity * params._outlineOccludedAlpha);
+        } else {
+            outFragColor = vec4(params._outlineUnoccludedColor, intensity * params._outlineUnoccludedAlpha);
+        }
+    }
+}
+
+<@endfunc@>

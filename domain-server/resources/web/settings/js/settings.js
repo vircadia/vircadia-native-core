@@ -503,7 +503,7 @@ function showDomainCreationAlert(justConnected) {
   swal({
     title: 'Create new domain ID',
     type: 'input',
-    text: 'Enter a short description for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
+    text: 'Enter a label this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
     showCancelButton: true,
     confirmButtonText: "Create",
     closeOnConfirm: false,
@@ -527,13 +527,12 @@ function showDomainCreationAlert(justConnected) {
 function createNewDomainID(label, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
-   "label": label
-    //"access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
+    "label": label
   }
 
   $.post("/api/domains", domainJSON, function(data){
     // we successfully created a domain ID, set it on that field
-    var domainID = data.domain_id;
+    var domainID = data.domain.id;
     console.log("Setting domain id to ", data, domainID);
     $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
 
@@ -620,18 +619,14 @@ function parseJSONResponse(xhr) {
 
 function showOrHideLabel() {
   var type = getCurrentDomainIDType();
-  if (!accessTokenIsSet() || (type !== DOMAIN_ID_TYPE_FULL && type !== DOMAIN_ID_TYPE_UNKNOWN)) {
-    $(".panel#label").hide();
-    return false;
-  }
-  $(".panel#label").show();
-  return true;
+  var shouldShow = accessTokenIsSet() && (type === DOMAIN_ID_TYPE_FULL || type === DOMAIN_ID_TYPE_UNKNOWN);
+  $(".panel#label").toggle(shouldShow);
+  $("li a[href='#label']").parent().toggle(shouldShow);
+  return shouldShow;
 }
 
 function setupDomainLabelSetting() {
-  if (!showOrHideLabel()) {
-    return;
-  }
+  showOrHideLabel();
 
   var html = "<div>"
   html += "<label class='control-label'>Specify a label for your domain</label> <a class='domain-loading-hide' href='#'>Edit</a>";
@@ -654,6 +649,7 @@ function setupDomainLabelSetting() {
       title: 'Edit Label',
       message: modal_body,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: 'Cancel',
@@ -742,7 +738,7 @@ function setupDomainNetworkingSettings() {
   var includeAddress = autoNetworkingSetting === 'disabled';
 
   if (includeAddress) {
-    var label = "Network Address and Port";
+    var label = "Network Address:Port";
   } else {
     var label = "Network Port";
   }
@@ -777,6 +773,7 @@ function setupDomainNetworkingSettings() {
       title: 'Edit Network',
       message: modal_body,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: 'Cancel',
@@ -924,6 +921,7 @@ function placeTableRow(name, path, isTemporary, placeID) {
     var dialog = bootbox.dialog({
       message: confirmString,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: Strings.REMOVE_PLACE_CANCEL_BUTTON,
@@ -1025,7 +1023,9 @@ function reloadDomainInfo() {
         }
       }
 
-      appendAddButtonToPlacesTable();
+      if (accessTokenIsSet()) {
+        appendAddButtonToPlacesTable();
+      }
 
     } else {
       $('.domain-loading-error').show();
@@ -1098,6 +1098,7 @@ function editHighFidelityPlace(placeID, name, path) {
   dialog = bootbox.dialog({
     title: Strings.EDIT_PLACE_TITLE,
     closeButton: false,
+    onEscape: true,
     message: modal_body,
     buttons: modal_buttons
   })
@@ -1180,6 +1181,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
 
         bootbox.dialog({
           title: "Choose matching domain",
+          onEscape: true,
           message: modal_body,
           buttons: modal_buttons
         })

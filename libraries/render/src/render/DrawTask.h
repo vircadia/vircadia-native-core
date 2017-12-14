@@ -70,6 +70,71 @@ private:
     int _colorLocation { -1 };
 };
 
+class DrawQuadVolumeConfig : public render::JobConfig {
+    Q_OBJECT
+        Q_PROPERTY(bool isFrozen MEMBER isFrozen NOTIFY dirty)
+public:
+
+    DrawQuadVolumeConfig(bool enabled = false) : JobConfig(enabled) {}
+
+    bool isFrozen{ false };
+signals:
+    void dirty();
+
+};
+
+class DrawQuadVolume {
+public:
+
+    using Config = DrawQuadVolumeConfig;
+
+    void configure(const Config& configuration);
+
+protected:
+    DrawQuadVolume(const glm::vec3& color);
+
+    void run(const render::RenderContextPointer& renderContext, const glm::vec3 vertices[8],
+             const gpu::BufferView& indices, int indexCount);
+
+    gpu::BufferView _meshVertices;
+    gpu::BufferStream _meshStream;
+    glm::vec3 _color;
+    bool _isUpdateEnabled{ true };
+
+    static gpu::PipelinePointer getPipeline();
+};
+
+class DrawAABox : public DrawQuadVolume {
+public:
+    using Inputs = AABox;
+    using JobModel = render::Job::ModelI<DrawAABox, Inputs, Config>;
+
+    DrawAABox(const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f));
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& box);
+
+protected:
+
+    static gpu::BufferView _cubeMeshIndices;
+
+    static void getVertices(const AABox& box, glm::vec3 vertices[8]);
+};
+
+class DrawFrustum : public DrawQuadVolume {
+public:
+    using Input = ViewFrustumPointer;
+    using JobModel = render::Job::ModelI<DrawFrustum, Input, Config>;
+
+    DrawFrustum(const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f));
+
+    void run(const render::RenderContextPointer& renderContext, const Input& input);
+
+private:
+
+    static gpu::BufferView _frustumMeshIndices;
+
+    static void getVertices(const ViewFrustum& frustum, glm::vec3 vertices[8]);
+};
 }
 
 #endif // hifi_render_DrawTask_h

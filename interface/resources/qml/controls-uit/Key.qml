@@ -5,10 +5,16 @@ Item {
     id: keyItem
     width: 45
     height: 50
+
+    property int contentPadding: 4
     property string glyph: "a"
     property bool toggle: false   // does this button have the toggle behaivor?
     property bool toggled: false  // is this button currently toggled?
     property alias mouseArea: mouseArea1
+    property alias fontFamily: letter.font.family;
+    property alias fontPixelSize: letter.font.pixelSize
+    property alias verticalAlignment: letter.verticalAlignment
+    property alias letterAnchors: letter.anchors
 
     function resetToggledMode(mode) {
         toggled = mode;
@@ -64,11 +70,12 @@ Item {
             keyItem.state = "mouseOver";
 
             var globalPosition = keyItem.mapToGlobal(mouseArea1.mouseX, mouseArea1.mouseY);
-            var deviceId = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
-            var hand = deviceId - 1; // based on touchEventUtils.js, deviceId is 'hand + 1', so 'hand' is 'deviceId' - 1
+            var pointerID = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
 
-            if (hand == leftHand || hand == rightHand) {
-                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, hand);
+            if (Pointers.isLeftHand(pointerID)) {
+                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, leftHand);
+            } else if (Pointers.isRightHand(pointerID)) {
+                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, rightHand);
             }
         }
 
@@ -105,14 +112,8 @@ Item {
         color: "#121212"
         radius: 2
         border.color: "#00000000"
-        anchors.right: parent.right
-        anchors.rightMargin: 4
-        anchors.left: parent.left
-        anchors.leftMargin: 4
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 4
-        anchors.top: parent.top
-        anchors.topMargin: 4
+        anchors.fill: parent
+        anchors.margins: contentPadding
     }
 
     Text {

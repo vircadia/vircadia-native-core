@@ -11,11 +11,18 @@
 
 #include "BakeAssetTask.h"
 
-#include <QtCore/QThread>
+#include <mutex>
 
-#include <FBXBaker.h>
+#include <QtCore/QThread>
+#include <QCoreApplication>
+
 #include <PathUtils.h>
-#include <JSBaker.h>
+
+static const int OVEN_STATUS_CODE_SUCCESS { 0 };
+static const int OVEN_STATUS_CODE_FAIL { 1 };
+static const int OVEN_STATUS_CODE_ABORT { 2 };
+
+std::once_flag registerMetaTypesFlag;
 
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) :
     _assetHash(assetHash),
@@ -23,6 +30,10 @@ BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetP
     _filePath(filePath)
 {
 
+    std::call_once(registerMetaTypesFlag, []() {
+        qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
+        qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");
+    });
 }
 
 void cleanupTempFiles(QString tempOutputDir, std::vector<QString> files) {
@@ -41,67 +52,76 @@ void cleanupTempFiles(QString tempOutputDir, std::vector<QString> files) {
 };
 
 void BakeAssetTask::run() {
-    _isBaking.store(true);
-
-    qRegisterMetaType<QVector<QString> >("QVector<QString>");
-    TextureBakerThreadGetter fn = []() -> QThread* { return QThread::currentThread();  };
-
-    QString tempOutputDir;
-
-    if (_assetPath.endsWith(".fbx")) {
-        tempOutputDir = PathUtils::generateTemporaryDir();
-        _baker = std::unique_ptr<FBXBaker> {
-            new FBXBaker(QUrl("file:///" + _filePath), fn, tempOutputDir)
-        };
-    } else if (_assetPath.endsWith(".js", Qt::CaseInsensitive)) {
-        _baker = std::unique_ptr<JSBaker>{
-            new JSBaker(QUrl("file:///" + _filePath), PathUtils::generateTemporaryDir())
-        };
-    } else {
-        tempOutputDir = PathUtils::generateTemporaryDir();
-        _baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE,
-                             tempOutputDir)
-        };
+    if (_isBaking.exchange(true)) {
+        qWarning() << "Tried to start bake asset task while already baking";
+        return;
     }
 
-    QEventLoop loop;
-    connect(_baker.get(), &Baker::finished, &loop, &QEventLoop::quit);
-    connect(_baker.get(), &Baker::aborted, &loop, &QEventLoop::quit);
-    QMetaObject::invokeMethod(_baker.get(), "bake", Qt::QueuedConnection);
-    loop.exec();
+    QString tempOutputDir = PathUtils::generateTemporaryDir();
+    auto base = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
+    QString path = base.absolutePath() + "/oven";
+    QString extension = _assetPath.mid(_assetPath.lastIndexOf('.') + 1);
+    QStringList args {
+        "-i", _filePath,
+        "-o", tempOutputDir,
+        "-t", extension,
+    };
 
-    if (_baker->wasAborted()) {
-        qDebug() << "Aborted baking: " << _assetHash << _assetPath;
+    _ovenProcess.reset(new QProcess());
 
-        _wasAborted.store(true);
+    connect(_ovenProcess.get(), static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, [this, tempOutputDir](int exitCode, QProcess::ExitStatus exitStatus) {
+        qDebug() << "Baking process finished: " << exitCode << exitStatus;
 
-        cleanupTempFiles(tempOutputDir, _baker->getOutputFiles());
+        if (exitStatus == QProcess::CrashExit) {
+            if (_wasAborted) {
+                emit bakeAborted(_assetHash, _assetPath);
+            } else {
+                QString errors = "Fatal error occurred while baking";
+                emit bakeFailed(_assetHash, _assetPath, errors);
+            }
+        } else if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
+            QDir outputDir = tempOutputDir;
+            auto files = outputDir.entryInfoList(QDir::Files);
+            QVector<QString> outputFiles;
+            for (auto& file : files) {
+                outputFiles.push_back(file.absoluteFilePath());
+            }
 
-        emit bakeAborted(_assetHash, _assetPath);
-    } else if (_baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath << _baker->getErrors();
+            emit bakeComplete(_assetHash, _assetPath, tempOutputDir, outputFiles);
+        } else if (exitStatus == QProcess::NormalExit && exitCode == OVEN_STATUS_CODE_ABORT) {
+            _wasAborted.store(true);
+            emit bakeAborted(_assetHash, _assetPath);
+        } else {
+            QString errors;
+            if (exitCode == OVEN_STATUS_CODE_FAIL) {
+                QDir outputDir = tempOutputDir;
+                auto errorFilePath = outputDir.absoluteFilePath("errors.txt");
+                QFile errorFile { errorFilePath };
+                if (errorFile.open(QIODevice::ReadOnly)) {
+                    errors = errorFile.readAll();
+                    errorFile.close();
+                } else {
+                    errors = "Unknown error occurred while baking";
+                }
+            }
+            emit bakeFailed(_assetHash, _assetPath, errors);
+        }
 
-        auto errors = _baker->getErrors().join('\n'); // Join error list into a single string for convenience
+    });
 
-        _didFinish.store(true);
-
-        cleanupTempFiles(tempOutputDir, _baker->getOutputFiles());
-
+    qDebug() << "Starting oven for " << _assetPath;
+    _ovenProcess->start(path, args, QIODevice::ReadOnly);
+    if (!_ovenProcess->waitForStarted(-1)) {
+        QString errors = "Oven process failed to start";
         emit bakeFailed(_assetHash, _assetPath, errors);
-    } else {
-        auto vectorOutputFiles = QVector<QString>::fromStdVector(_baker->getOutputFiles());
-
-        qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
-
-        _didFinish.store(true);
-
-        emit bakeComplete(_assetHash, _assetPath, tempOutputDir, vectorOutputFiles);
+        return;
     }
+    _ovenProcess->waitForFinished();
 }
 
 void BakeAssetTask::abort() {
-    if (_baker) {
-        _baker->abort();
+    if (!_wasAborted.exchange(true)) {
+        _ovenProcess->terminate();
     }
 }

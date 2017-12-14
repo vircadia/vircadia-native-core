@@ -238,4 +238,12 @@ void setMaxCores(uint8_t maxCores);
 const QString PARENT_PID_OPTION = "parent-pid";
 void watchParentProcess(int parentPID);
 
+bool processIsRunning(int64_t pid);
+
+
+#ifdef Q_OS_WIN
+void* createProcessGroup();
+void addProcessToGroup(void* processGroup, qint64 processId);
+#endif
+
 #endif // hifi_SharedUtil_h

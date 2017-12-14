@@ -266,7 +266,6 @@
                     dimensions: { "x": 5, "y": 5, "z": 5 },
                     ignoreForCollisions: 1,
                     linePoints: [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
-                    lineWidth: 5,
                     name: STRING_NAME,
                     parentID: this.entityID,
                     localPosition: { "x": 0, "y": 0.6, "z": 0.1 },
@@ -287,7 +286,6 @@
         resetStringToIdlePosition: function() {
             Entities.editEntity(this.stringID, {
                 linePoints: [ { "x": 0, "y": 0, "z": 0 }, { "x": 0, "y": -1.2, "z": 0 } ],
-                lineWidth: 5,
                 localPosition: { "x": 0, "y": 0.6, "z": 0.1 },
                 localRotation: { "w": 1, "x": 0, "y": 0, "z": 0 },
             });

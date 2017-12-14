@@ -1,0 +1,31 @@
+// glsl / C++ compatible source as interface for highlight
+#ifdef __cplusplus
+#   define TVEC2 glm::vec2
+#   define TVEC3 glm::vec3
+#   define TVEC4 glm::vec4
+#else
+#   define TVEC2 vec2
+#   define TVEC3 vec3
+#   define TVEC4 vec4
+#endif
+
+struct HighlightParameters
+{
+    TVEC3 _outlineUnoccludedColor;
+    float _outlineUnoccludedAlpha;
+    TVEC3 _outlineOccludedColor;
+    float _outlineOccludedAlpha;
+    TVEC3 _fillUnoccludedColor;
+    float _fillUnoccludedAlpha;
+    TVEC3 _fillOccludedColor;
+    float _fillOccludedAlpha;
+
+    int _blurKernelSize;
+    float _threshold;
+    TVEC2 _size;
+};
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !> 
+//

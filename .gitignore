@@ -15,7 +15,9 @@ Makefile
 # Android Studio
 *.iml
 local.properties
-android/libraries
+android/gradle*
+android/.gradle
+android/app/src/main/jniLibs
 
 # VSCode
 # List taken from Github Global Ignores master@435c4d92 
@@ -64,6 +66,10 @@ gvr-interface/libs/*
 # ignore files for various dev environments
 TAGS
 *.sw[po]
+*.qmlc
+
+# ignore QML compilation output
+*.qmlc
 
 # ignore node files for the console
 node_modules

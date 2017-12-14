@@ -39,6 +39,7 @@ public:
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
+    Q_INVOKABLE void hoverEnterOverlay(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveOverlay(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
     void handlePointerEventAsTouch(const PointerEvent& event);
@@ -50,8 +51,6 @@ public:
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
-
-    glm::vec2 getSize() const override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal) override;
@@ -67,7 +66,7 @@ public:
     void destroyWebSurface();
     void onResizeWebSurface();
 
-    Q_INVOKABLE int deviceIdByTouchPoint(qreal x, qreal y);
+    Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -92,14 +91,10 @@ private:
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;
-    float _dpi;
-    vec2 _resolution{ 640, 480 };
+    float _dpi { 30.0f };
     int _geometryId { 0 };
-    bool _showKeyboardFocusHighlight{ true };
+    bool _showKeyboardFocusHighlight { true };
 
-    bool _pressed{ false };
-    bool _touchBeginAccepted { false };
-    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
     QTouchDevice _touchDevice;
 
     uint8_t _desiredMaxFPS { 10 };

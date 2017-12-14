@@ -33,9 +33,6 @@ const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = 16384.0f;
 
-// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
-// a central sphere for stuff that is nearby (for physics simulation).
-
 class ViewFrustum {
 public:
     // setters for camera attributes
@@ -74,7 +71,7 @@ public:
         glm::vec3 bottomRight;
     // Get the corners depth units from frustum position, along frustum orientation
     };
-    const Corners getCorners(const float& depth) const;
+    const Corners getCorners(const float depth) const;
 
     // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
@@ -89,6 +86,10 @@ public:
     // get/set for central spherek attribute
     void  setCenterRadius(float radius) { _centerSphereRadius = radius; }
     float getCenterRadius() const { return _centerSphereRadius; }
+
+    void tesselateSides(Triangle triangles[8]) const;
+    void tesselateSides(const Transform& transform, Triangle triangles[8]) const;
+    void tesselateSidesAndFar(const Transform& transform, Triangle triangles[10], float farDistance) const;
 
     void calculate();
 
@@ -119,6 +120,8 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
+    CubeProjectedPolygon getProjectedPolygon(const AABox& box) const;
+    bool getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm::vec2& topRight) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -132,6 +135,12 @@ public:
     enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };
 
     const ::Plane* getPlanes() const { return _planes; }
+    void getSidePlanes(::Plane planes[4]) const;
+    // Transform can have a different scale value in X,Y,Z components
+    void getTransformedSidePlanes(const Transform& transform, ::Plane planes[4]) const;
+    // Transform is assumed to have the same scale value in all three X,Y,Z components, which
+    // allows for a faster computation.
+    void getUniformlyTransformedSidePlanes(const Transform& transform, ::Plane planes[4]) const;
 
     void invalidate(); // causes all reasonable intersection tests to fail
 
@@ -169,6 +178,12 @@ private:
 
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
+    
+    template <typename TBOX>
+    CubeProjectedPolygon computeProjectedPolygon(const TBOX& box) const;
+
+    static void tesselateSides(const glm::vec3 points[8], Triangle triangles[8]);
+
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 

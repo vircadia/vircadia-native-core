@@ -79,10 +79,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
                 root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -596,11 +598,10 @@ Rectangle {
             anchors.right: parent.right;
             text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
-                }
+                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
             }
         }
         RalewaySemiBold {
@@ -904,7 +905,7 @@ Rectangle {
                     }
                     buyTextContainer.color = "#FFC3CD";
                     buyTextContainer.border.color = "#F3808F";
-                    buyGlyph.text = hifi.glyphs.error;
+                    buyGlyph.text = hifi.glyphs.alert;
                     buyGlyph.size = 54;
                 } else {
                     if (root.alreadyOwned) {

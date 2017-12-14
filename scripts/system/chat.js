@@ -284,8 +284,7 @@
             endParentJointIndex: yourJointIndex,
             end: yourJointPosition,
             color: identifyAvatarLineColor,
-            alpha: 1,
-            lineWidth: 1
+            alpha: 1
         };
 
         avatarIdentifiers[yourAvatarID] = identifierParams;

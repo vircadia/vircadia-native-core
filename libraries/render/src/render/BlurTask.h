@@ -14,6 +14,8 @@
 
 #include "Engine.h"
 
+#include "BlurTask_shared.slh"
+
 namespace render {
 
 
@@ -25,6 +27,11 @@ public:
     void setTexcoordTransform(const glm::vec4 texcoordTransformViewport);
 
     void setFilterRadiusScale(float scale);
+    void setFilterNumTaps(int count);
+    // Tap 0 is considered the center of the kernel
+    void setFilterTap(int index, float offset, float value);
+    void setFilterGaussianTaps(int numHalfTaps, float sigma = 1.47f);
+    void setOutputAlpha(float value);
 
     void setDepthPerspective(float oneOverTan2FOV);
     void setDepthThreshold(float threshold);
@@ -40,7 +47,7 @@ public:
         // Viewport to Texcoord info, if the region of the blur (viewport) is smaller than the full frame
         glm::vec4 texcoordTransform{ 0.0f, 0.0f, 1.0f, 1.0f };
 
-        // Filter info (radius scale
+        // Filter info (radius scale, number of taps, output alpha)
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
 
         // Depth info (radius scale
@@ -52,6 +59,9 @@ public:
         // LinearDepth info is { f }
         glm::vec4 linearDepthInfo{ 0.0f };
 
+        // Taps (offset, weight)
+        glm::vec2 filterTaps[BLUR_MAX_NUM_TAPS];
+
         Params() {}
     };
     gpu::BufferView _parametersBuffer;
@@ -62,7 +72,7 @@ using BlurParamsPointer = std::shared_ptr<BlurParams>;
 
 class BlurInOutResource {
 public:
-    BlurInOutResource(bool generateOutputFramebuffer = false);
+    BlurInOutResource(bool generateOutputFramebuffer, unsigned int downsampleFactor);
 
     struct Resources {
         gpu::TexturePointer sourceTexture;
@@ -75,8 +85,9 @@ public:
 
     gpu::FramebufferPointer _blurredFramebuffer;
 
-    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in th einput buffer
+    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in the input buffer
     gpu::FramebufferPointer _outputFramebuffer;
+    unsigned int _downsampleFactor{ 1U };
     bool _generateOutputFramebuffer{ false };
 };
 
@@ -84,12 +95,15 @@ public:
 class BlurGaussianConfig : public Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled WRITE setEnabled READ isEnabled NOTIFY dirty) // expose enabled flag
-    Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty) // expose enabled flag
+    Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty)
+    Q_PROPERTY(float mix MEMBER mix NOTIFY dirty)
 public:
 
     BlurGaussianConfig() : Job::Config(true) {}
 
     float filterScale{ 0.2f };
+    float mix{ 1.0f };
+
 signals :
     void dirty();
 
@@ -102,10 +116,12 @@ public:
     using Config = BlurGaussianConfig;
     using JobModel = Job::ModelIO<BlurGaussian, gpu::FramebufferPointer, gpu::FramebufferPointer, Config>;
 
-    BlurGaussian(bool generateOutputFramebuffer = false);
+    BlurGaussian(bool generateOutputFramebuffer = false, unsigned int downsampleFactor = 1U);
 
     void configure(const Config& config);
     void run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
+
+    BlurParamsPointer getParameters() const { return _parameters; }
 
 protected:
 

@@ -22,101 +22,24 @@
 (function() {
     Script.include("/~/system/libraries/controllers.js");
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
-    var END_RADIUS = 0.005;
-    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
-    var halfPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true,
-        parentID: MyAvatar.SELF_ID
-    };
-    var halfEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawHUDLayer: true,
-        visible: true
-    };
-    var fullPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true,
-        parentID: MyAvatar.SELF_ID
-    };
-    var fullEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawHUDLayer: true,
-        visible: true
-    };
-    var holdPath = {
-        type: "line3d",
-        color: COLORS_GRAB_DISTANCE_HOLD,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true,
-        parentID: MyAvatar.SELF_ID
-    };
-
-    var renderStates = [
-        {name: "half", path: halfPath, end: halfEnd},
-        {name: "full", path: fullPath, end: fullEnd},
-        {name: "hold", path: holdPath}
-    ];
-
-    var defaultRenderStates = [
-        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
-    ];
-
     var MARGIN = 25;
-
+    var HUD_LASER_OFFSET = 2;
     function HudOverlayPointer(hand) {
-        var _this = this;
         this.hand = hand;
+        this.running = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
-        this.clicked = false;
-        this.triggerClicked = 0;
-        this.movedAway = false;
         this.parameters = ControllerDispatcherUtils.makeDispatcherModuleParameters(
             540,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
-            100);
+            100,
+            (this.hand + HUD_LASER_OFFSET));
 
         this.getOtherHandController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
-        };
-
-        _this.isClicked = function() {
-            return _this.triggerClicked;
         };
 
         this.handToController = function() {
@@ -129,22 +52,6 @@
             this.reticleMaxY = dims.y - MARGIN;
         };
 
-        this.updateLaserPointer = function(controllerData) {
-            LaserPointers.enableLaserPointer(this.laserPointer);
-            LaserPointers.setRenderState(this.laserPointer, this.mode);
-        };
-
-        this.processControllerTriggers = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand]) {
-                this.mode = "full";
-            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.clicked = false;
-                this.mode = "half";
-            } else {
-                this.mode = "none";
-            }
-        };
-
         this.calculateNewReticlePosition = function(intersection) {
             this.updateRecommendedArea();
             var point2d = HMD.overlayFromWorldPoint(intersection);
@@ -153,77 +60,54 @@
             return point2d;
         };
 
-        this.setReticlePosition = function(point2d) {
-            Reticle.setPosition(point2d);
-        };
-
         this.pointingAtTablet = function(controllerData) {
             var rayPick = controllerData.rayPicks[this.hand];
-            return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && HMD.homeButtonID && (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID));
+        };
+
+        this.getOtherModule = function() {
+            return this.hand === RIGHT_HAND ? leftHudOverlayPointer : rightHudOverlayPointer;
         };
 
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
+            var otherModuleRunning = this.getOtherModule().running;
             if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
                 this.pointingAtTablet(controllerData)) {
-                this.exitModule();
                 return false;
             }
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
             if (!Window.isPointOnDesktopWindow(point2d) && !this.triggerClicked) {
-                this.exitModule();
                 return false;
             }
-            this.setReticlePosition(point2d);
-            Reticle.visible = false;
-            this.movedAway = false;
+
             this.triggerClicked = controllerData.triggerClicks[this.hand];
-            this.processControllerTriggers(controllerData);
-            this.updateLaserPointer(controllerData);
             return true;
         };
 
-        this.exitModule = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-        };
-
         this.isReady = function (controllerData) {
-            if (this.processLaser(controllerData)) {
-                return ControllerDispatcherUtils.makeRunningValues(true, [], []);
-            } else {
-                return ControllerDispatcherUtils.makeRunningValues(false, [], []);
+            var otherModuleRunning = this.getOtherModule().running;
+            if (!otherModuleRunning) {
+                if (this.processLaser(controllerData)) {
+                    this.running = true;
+                    return ControllerDispatcherUtils.makeRunningValues(true, [], []);
+                } else {
+                    this.running = false;
+                    return ControllerDispatcherUtils.makeRunningValues(false, [], []);
+                }
             }
+            return ControllerDispatcherUtils.makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {
             return this.isReady(controllerData);
         };
-
-        this.cleanup = function () {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-            LaserPointers.removeLaserPointer(this.laserPointer);
-        };
-
-        this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_HUD,
-            maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController(), true),
-            renderStates: renderStates,
-            enabled: true,
-            defaultRenderStates: defaultRenderStates
-        });
     }
 
 
     var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND);
     var rightHudOverlayPointer = new HudOverlayPointer(RIGHT_HAND);
-
-    var clickMapping = Controller.newMapping('HudOverlayPointer-click');
-    clickMapping.from(rightHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
-    clickMapping.from(leftHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
-    clickMapping.enable();
 
     ControllerDispatcherUtils.enableDispatcherModule("LeftHudOverlayPointer", leftHudOverlayPointer);
     ControllerDispatcherUtils.enableDispatcherModule("RightHudOverlayPointer", rightHudOverlayPointer);

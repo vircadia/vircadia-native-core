@@ -18,6 +18,8 @@
 #include <EntityItemID.h>
 
 /**jsdoc
+ * The Clipboard API enables you to export and import entities to and from JSON files.
+ *
  * @namespace Clipboard
  */
 class ClipboardScriptingInterface : public QObject {
@@ -25,48 +27,56 @@ class ClipboardScriptingInterface : public QObject {
 public:
     ClipboardScriptingInterface();
 
-signals:
-    void readyToImport();
-    
 public:
     /**jsdoc
+     * Compute the extents of the contents held in the clipboard.
      * @function Clipboard.getContentsDimensions
-     * @return {Vec3} The extents of the contents held in the clipboard.
+     * @returns {Vec3} The extents of the contents held in the clipboard.
      */
     Q_INVOKABLE glm::vec3 getContentsDimensions();
 
     /**jsdoc
-     * Compute largest dimension of the extents of the contents held in the clipboard
+     * Compute the largest dimension of the extents of the contents held in the clipboard.
      * @function Clipboard.getClipboardContentsLargestDimension
-     * @return {float} The largest dimension computed.
+     * @returns {number} The largest dimension computed.
      */
     Q_INVOKABLE float getClipboardContentsLargestDimension();
 
     /**jsdoc
-     * Import entities from a .json file containing entity data into the clipboard.
-     * You can generate * a .json file using {Clipboard.exportEntities}.
+     * Import entities from a JSON file containing entity data into the clipboard.
+     * You can generate a JSON file using {@link Clipboard.exportEntities}.
      * @function Clipboard.importEntities
-     * @param {string} filename Filename of file to import.
-     * @return {bool} True if the import was succesful, otherwise false.
+     * @param {string} filename Path and name of file to import.
+     * @returns {boolean} <code>true</code> if the import was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool importEntities(const QString& filename);
 
     /**jsdoc
-     * Export the entities listed in `entityIDs` to the file `filename`
+     * Export the entities specified to a JSON file.
      * @function Clipboard.exportEntities
-     * @param {string} filename Path to the file to export entities to.
-     * @param {EntityID[]} entityIDs IDs of entities to export.
-     * @return {bool} True if the export was succesful, otherwise false.
+     * @param {string} filename Path and name of the file to export the entities to. Should have the extension ".json".
+     * @param {Uuid[]} entityIDs Array of IDs of the entities to export.
+     * @returns {boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
-    Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float s);
+    
+    /**jsdoc
+    * Export the entities with centers within a cube to a JSON file.
+    * @function Clipboard.exportEntities
+    * @param {string} filename Path and name of the file to export the entities to. Should have the extension ".json".
+    * @param {number} x X-coordinate of the cube center.
+    * @param {number} y Y-coordinate of the cube center.
+    * @param {number} z Z-coordinate of the cube center.
+    * @param {number} scale Half dimension of the cube.
+    * @returns {boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
+    */
+    Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float scale);
 
     /**jsdoc
      * Paste the contents of the clipboard into the world.
      * @function Clipboard.pasteEntities
-     * @param {Vec3} position Position to paste clipboard at.
-     * @return {EntityID[]} Array of entity IDs for the new entities that were
-     *     created as a result of the paste operation.
+     * @param {Vec3} position Position to paste the clipboard contents at.
+     * @returns {Uuid[]} Array of entity IDs for the new entities that were created as a result of the paste operation.
      */
     Q_INVOKABLE QVector<EntityItemID> pasteEntities(glm::vec3 position);
 };

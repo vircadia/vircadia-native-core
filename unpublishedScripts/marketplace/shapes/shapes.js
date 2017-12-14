@@ -18,7 +18,7 @@
         APP_ICON_INACTIVE = Script.resolvePath("./assets/shapes-i.svg"),
         APP_ICON_ACTIVE = Script.resolvePath("./assets/shapes-a.svg"),
         APP_ICON_DISABLED = Script.resolvePath("./assets/shapes-d.svg"),
-        ENABLED_CAPTION_COLOR_OVERRIDE = "",
+        ENABLED_CAPTION_COLOR_OVERRIDE = "#ffffff",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
         START_DELAY = 2000, // ms
 
@@ -1865,7 +1865,7 @@
         }
         button.editProperties({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             isActive: isAppActive
         });
     }
@@ -1880,7 +1880,7 @@
         }
         button.editProperties({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             isActive: isAppActive
         });
     }
@@ -1945,7 +1945,7 @@
         hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
         button = tablet.addButton({
             icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
-            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            captionColor: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             activeIcon: APP_ICON_ACTIVE,
             text: APP_NAME,
             isActive: isAppActive

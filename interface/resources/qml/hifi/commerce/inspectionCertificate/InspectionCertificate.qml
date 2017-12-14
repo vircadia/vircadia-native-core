@@ -113,21 +113,6 @@ Rectangle {
         }
     }
 
-    onVisibleChanged: {
-        if (!visible) {
-            titleBarText.text = "Certificate";
-            popText.text = "PROOF OF PURCHASE";
-            root.certificateId = "";
-            root.itemName = "--";
-            root.itemOwner = "--";
-            root.itemEdition = "--";
-            root.dateOfPurchase = "--";
-            root.marketplaceUrl = "";
-            root.isMyCert = false;
-            errorText.text = "";
-        }
-    }
-
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup.
@@ -420,6 +405,18 @@ Rectangle {
             case 'inspectionCertificate_setCertificateId':
                 root.certificateId = message.certificateId;
             break;
+            case 'inspectionCertificate_resetCert':
+                titleBarText.text = "Certificate";
+                popText.text = "PROOF OF PURCHASE";
+                root.certificateId = "";
+                root.itemName = "--";
+                root.itemOwner = "--";
+                root.itemEdition = "--";
+                root.dateOfPurchase = "--";
+                root.marketplaceUrl = "";
+                root.isMyCert = false;
+                errorText.text = "";
+            break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
         }
@@ -433,7 +430,7 @@ Rectangle {
 
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = addLeadingZero(a.getMonth());
+        var month = addLeadingZero(a.getMonth() + 1);
         var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;

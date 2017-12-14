@@ -13,21 +13,17 @@
 #include <QHash>
 #include <QObject>
 #include <QtCore/QJsonDocument>
-
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
-#include <NetworkingConstants.h>
+#include <openssl/ecdsa.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
-
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
-
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
@@ -2489,7 +2485,7 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
     ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
     ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
     ADD_STRING_PROPERTY(itemArtist, ItemArtist);
     ADD_STRING_PROPERTY(itemCategories, ItemCategories);
     ADD_STRING_PROPERTY(itemDescription, ItemDescription);
@@ -2508,48 +2504,47 @@ QByteArray EntityItemProperties::getStaticCertificateHash() const {
     return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
 }
 
-bool EntityItemProperties::verifyStaticCertificateProperties() {
-    // True IIF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+// FIXME: This is largely copied from EntityItemProperties::verifyStaticCertificateProperties, which should be refactored to use this.
+// I also don't like the nested-if style, but for this step I'm deliberately preserving the similarity.
+bool EntityItemProperties::verifySignature(const QString& publicKey, const QByteArray& digestByteArray, const QByteArray& signatureByteArray) {
 
-    if (getCertificateID().isEmpty()) {
+    if (digestByteArray.isEmpty()) {
         return false;
     }
 
-    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
-    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
-    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
+    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    int keyLength = publicKey.length();
 
-    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
+    BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
     if (evp_key) {
-        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-        if (rsa) {
-            const QByteArray digestByteArray = getStaticCertificateHash();
+        EC_KEY* ec = EVP_PKEY_get1_EC_KEY(evp_key);
+        if (ec) {
             const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
             int digestLength = digestByteArray.length();
 
-            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
             const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
             int signatureLength = signatureByteArray.length();
 
             ERR_clear_error();
-            bool answer = RSA_verify(NID_sha256,
+            // ECSDA verification prototype: note that type is currently ignored
+            // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
+            // const unsigned char *sig, int siglen, EC_KEY *eckey);
+            bool answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
-                rsa);
+                ec);
             long error = ERR_get_error();
             if (error != 0) {
                 const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
-                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
-                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+                    << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
             }
-            RSA_free(rsa);
+            EC_KEY_free(ec);
             if (bio) {
                 BIO_free(bio);
             }
@@ -2566,7 +2561,7 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
             }
             long error = ERR_get_error();
             const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC key error:" << error_str;
             return false;
         }
     } else {
@@ -2575,7 +2570,13 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
         }
         long error = ERR_get_error();
         const char* error_str = ERR_error_string(error, NULL);
-        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        qCWarning(entities) << "Failed to verify signature! key" << publicKey << " EC PEM error:" << error_str;
         return false;
     }
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IFF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+    return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
 }

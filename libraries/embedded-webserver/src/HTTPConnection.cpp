@@ -65,7 +65,9 @@ QHash<QString, QString> HTTPConnection::parseUrlEncodedForm() {
     QUrlQuery form { _requestContent };
     QHash<QString, QString> pairs;
     for (auto pair : form.queryItems()) {
-        pairs[QUrl::fromPercentEncoding(pair.first.toLatin1())] = QUrl::fromPercentEncoding(pair.second.toLatin1());
+        auto key = QUrl::fromPercentEncoding(pair.first.toLatin1().replace('+', ' '));
+        auto value = QUrl::fromPercentEncoding(pair.second.toLatin1().replace('+', ' '));
+        pairs[key] = value;
     }
 
     return pairs;

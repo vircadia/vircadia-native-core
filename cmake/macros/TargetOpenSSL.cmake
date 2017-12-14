@@ -6,14 +6,10 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 macro(TARGET_OPENSSL)
-    
     if (ANDROID)
-
-        # FIXME use a distributable binary
-        set(OPENSSL_INSTALL_DIR C:/Android/openssl)
+        set(OPENSSL_INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/openssl)
         set(OPENSSL_INCLUDE_DIR "${OPENSSL_INSTALL_DIR}/include" CACHE TYPE INTERNAL)
         set(OPENSSL_LIBRARIES "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a;${OPENSSL_INSTALL_DIR}/lib/libssl.a" CACHE TYPE INTERNAL)
-
     else()
 
         find_package(OpenSSL REQUIRED)
@@ -28,5 +24,4 @@ macro(TARGET_OPENSSL)
 
     include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
     target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
-
 endmacro()

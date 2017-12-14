@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <random>
+
 #include <QtCore/QJsonDocument>
 
 #include <GLMHelpers.h>
@@ -22,7 +24,7 @@ const float DEFAULT_ASPECT_RATIO = 1.0f;
 const float DEFAULT_NEAR_CLIP = 0.1f;
 const float DEFAULT_FAR_CLIP = 3.0f;
 
-OctreeQuery::OctreeQuery() :
+OctreeQuery::OctreeQuery(bool randomizeConnectionID) :
     _cameraFov(DEFAULT_FOV),
     _cameraAspectRatio(DEFAULT_ASPECT_RATIO),
     _cameraNearClip(DEFAULT_NEAR_CLIP),
@@ -30,10 +32,21 @@ OctreeQuery::OctreeQuery() :
     _cameraCenterRadius(DEFAULT_FAR_CLIP)
 {
     _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
+
+    if (randomizeConnectionID) {
+        // randomize our initial octree query connection ID using random_device
+        // the connection ID is 16 bits so we take a generated 32 bit value from random device and chop off the top
+        std::random_device randomDevice;
+        _connectionID = randomDevice();
+    }
 }
 
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
+
+    // pack the connection ID so the server can detect when we start a new connection
+    memcpy(destinationBuffer, &_connectionID, sizeof(_connectionID));
+    destinationBuffer += sizeof(_connectionID);
     
     // back a boolean (cut to 1 byte) to designate if this query uses the sent view frustum
     memcpy(destinationBuffer, &_usesFrustum, sizeof(_usesFrustum));
@@ -98,7 +111,27 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
  
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(message.getRawMessage());
     const unsigned char* sourceBuffer = startPosition;
-    
+
+    // unpack the connection ID
+    uint16_t newConnectionID;
+    memcpy(&newConnectionID, sourceBuffer, sizeof(newConnectionID));
+    sourceBuffer += sizeof(newConnectionID);
+
+    if (!_hasReceivedFirstQuery) {
+        // set our flag to indicate that we've parsed for this query at least once
+        _hasReceivedFirstQuery = true;
+
+        // set the incoming connection ID as the current
+        _connectionID = newConnectionID;
+    } else {
+        if (newConnectionID != _connectionID) {
+            // the connection ID has changed - emit our signal so the server
+            // knows that the client is starting a new session
+            _connectionID = newConnectionID;
+            emit incomingConnectionIDChanged();
+        }
+    }
+
     // check if this query uses a view frustum
     memcpy(&_usesFrustum, sourceBuffer, sizeof(_usesFrustum));
     sourceBuffer += sizeof(_usesFrustum);

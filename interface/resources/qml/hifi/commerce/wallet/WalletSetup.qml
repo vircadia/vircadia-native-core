@@ -31,6 +31,10 @@ Item {
     property bool hasShownSecurityImageTip: false;
     property string referrer;
     property string keyFilePath;
+    property date startingTimestamp;
+    property string setupAttemptID;
+    readonly property int setupFlowVersion: 1;
+    readonly property var setupStepNames: [ "Setup Prompt", "Security Image Selection", "Passphrase Selection", "Private Keys Ready" ];
 
     Image {
         anchors.fill: parent;
@@ -53,8 +57,6 @@ Item {
         onWalletAuthenticatedStatusResult: {
             if (isAuthenticated) {
                 root.activeView = "step_4";
-            } else {
-                root.activeView = "step_3";
             }
         }
 
@@ -67,6 +69,13 @@ Item {
         id: lightboxPopup;
         visible: false;
         anchors.fill: parent;
+    }
+
+    onActiveViewChanged: {
+        var timestamp = new Date();
+        var currentStepNumber = root.activeView.substring(5);
+        UserActivityLogger.commerceWalletSetupProgress(timestamp, root.setupAttemptID,
+            Math.round((timestamp - root.startingTimestamp)/1000), currentStepNumber, root.setupStepNames[currentStepNumber - 1]);
     }
 
     //
@@ -373,7 +382,7 @@ Item {
 
     Item {
         id: securityImageTip;
-        visible: false;
+        visible: !root.hasShownSecurityImageTip && root.activeView === "step_3";
         z: 999;
         anchors.fill: root;
         
@@ -423,7 +432,6 @@ Item {
             text: "Got It";
             onClicked: {
                 root.hasShownSecurityImageTip = true;
-                securityImageTip.visible = false;
                 passphraseSelection.focusFirstTextField();
             }
         }
@@ -441,9 +449,6 @@ Item {
         onVisibleChanged: {
             if (visible) {
                 commerce.getWalletAuthenticatedStatus();
-                if (!root.hasShownSecurityImageTip) {
-                    securityImageTip.visible = true;
-                }
             }
         }
 
@@ -734,7 +739,11 @@ Item {
                 text: "Finish";
                 onClicked: {
                     root.visible = false;
+                    root.hasShownSecurityImageTip = false;
                     sendSignalToWallet({method: 'walletSetup_finished', referrer: root.referrer ? root.referrer : ""});
+                    
+                    var timestamp = new Date();
+                    UserActivityLogger.commerceWalletSetupFinished(timestamp, setupAttemptID, Math.round((timestamp - root.startingTimestamp)/1000));
                 }
             }
         }

@@ -12,21 +12,7 @@
 #ifndef hifi_OctreeQuery_h
 #define hifi_OctreeQuery_h
 
-/* VS2010 defines stdint.h, but not inttypes.h */
-#if defined(_MSC_VER)
-typedef signed char  int8_t;
-typedef signed short int16_t;
-typedef signed int   int32_t;
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed long long   int64_t;
-typedef unsigned long long quint64;
-#define PRId64 "I64d"
-#else
 #include <inttypes.h>
-#endif
-
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -41,7 +27,7 @@ class OctreeQuery : public NodeData {
     Q_OBJECT
 
 public:
-    OctreeQuery();
+    OctreeQuery(bool randomizeConnectionID = false);
     virtual ~OctreeQuery() {}
 
     int getBroadcastData(unsigned char* destinationBuffer);
@@ -82,6 +68,13 @@ public:
     bool getUsesFrustum() { return _usesFrustum; }
     void setUsesFrustum(bool usesFrustum) { _usesFrustum = usesFrustum; }
 
+    void incrementConnectionID() { ++_connectionID; }
+
+    bool hasReceivedFirstQuery() const  { return _hasReceivedFirstQuery; }
+
+signals:
+    void incomingConnectionIDChanged();
+
 public slots:
     void setMaxQueryPacketsPerSecond(int maxQueryPPS) { _maxQueryPPS = maxQueryPPS; }
     void setOctreeSizeScale(float octreeSizeScale) { _octreeElementSizeScale = octreeSizeScale; }
@@ -104,9 +97,12 @@ protected:
     int _boundaryLevelAdjust = 0; /// used for LOD calculations
     
     uint8_t _usesFrustum = true;
+    uint16_t _connectionID; // query connection ID, randomized to start, increments with each new connection to server
     
     QJsonObject _jsonParameters;
     QReadWriteLock _jsonParametersLock;
+
+    bool _hasReceivedFirstQuery { false };
     
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
