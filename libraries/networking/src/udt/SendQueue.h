@@ -130,7 +130,6 @@ private:
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
     std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
-    std::atomic<int64_t> _lastReceiverResponse { 0 }; // Timestamp for the last time we got new data from the receiver (ACK/NAK)
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
