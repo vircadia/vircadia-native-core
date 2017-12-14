@@ -87,9 +87,9 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     
 SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber,
                      MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) :
+    _packets(currentMessageNumber),
     _socket(socket),
-    _destination(dest),
-    _packets(currentMessageNumber)
+    _destination(dest)
 {
     // set our member variables from current sequence number
     _currentSequenceNumber = currentSequenceNumber;

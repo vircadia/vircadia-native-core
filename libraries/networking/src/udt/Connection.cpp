@@ -193,11 +193,16 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 
     while (pendingMessage.hasAvailablePackets()) {
         auto packet = pendingMessage.removeNextPacket();
-        _parentSocket->messageReceived(std::move(packet));
-    }
 
-    if (pendingMessage.isComplete()) {
-        _pendingReceivedMessages.erase(messageNumber);
+        auto packetPosition = packet->getPacketPosition();
+
+        _parentSocket->messageReceived(std::move(packet));
+
+        // if this was the last or only packet, then we can remove the pending message from our hash
+        if (packetPosition == Packet::PacketPosition::LAST ||
+            packetPosition == Packet::PacketPosition::ONLY) {
+            _pendingReceivedMessages.erase(messageNumber);
+        }
     }
 }
 

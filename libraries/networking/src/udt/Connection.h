@@ -37,7 +37,6 @@ class Socket;
 class PendingReceivedMessage {
 public:
     void enqueuePacket(std::unique_ptr<Packet> packet);
-    bool isComplete() const { return _hasLastPacket && _numPackets == _packets.size(); }
     bool hasAvailablePackets() const;
     std::unique_ptr<Packet> removeNextPacket();
     
