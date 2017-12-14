@@ -73,12 +73,37 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             auto currentProperties = existingEntity ? existingEntity->getProperties() : EntityItemProperties();
             QScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
 
+            // get the zone properties
+            auto zoneEntity = _tree->findEntityByEntityItemID(id);
+            auto zoneProperties = zoneEntity ? zoneEntity->getProperties() : EntityItemProperties();
+            QScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
+
+            if (zoneEntity) {
+                bool success = true;
+                AABox aaBox = zoneEntity->getAABox(success);
+
+                if (success) {
+                    QScriptValue boundingBox = filterData.engine->newObject();
+                    QScriptValue bottomRightNear = vec3toScriptValue(filterData.engine, aaBox.getCorner());
+                    QScriptValue topFarLeft = vec3toScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                    QScriptValue center = vec3toScriptValue(filterData.engine, aaBox.calcCenter());
+                    QScriptValue boundingBoxDimensions = vec3toScriptValue(filterData.engine, aaBox.getDimensions());
+                    boundingBox.setProperty("brn", bottomRightNear);
+                    boundingBox.setProperty("tfl", topFarLeft);
+                    boundingBox.setProperty("center", center);
+                    boundingBox.setProperty("dimensions", boundingBoxDimensions);
+                    zoneValues.setProperty("boundingBox", boundingBox);
+                }
+            }
+
             QScriptValueList args;
             args << inputValues;
             args << filterType;
             args << currentValues;
+            args << zoneValues;
 
             QScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
+
             if (filterData.uncaughtExceptions()) {
                 return false;
             }
