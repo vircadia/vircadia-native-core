@@ -8,7 +8,7 @@ setup_memory_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()
-elseif (UNIX)
+elseif (UNIX AND NOT APPLE)
   find_package(Threads REQUIRED)
   if(THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC oven "-pthread")
