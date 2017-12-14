@@ -128,7 +128,7 @@ namespace model {
             Parameters() {}
         };
 
-        UniformBufferView _hazeParametersBuffer{ nullptr };
+        UniformBufferView _hazeParametersBuffer { nullptr };
     };
 
     using HazePointer = std::shared_ptr<Haze>;
