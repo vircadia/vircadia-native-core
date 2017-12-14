@@ -680,9 +680,7 @@ void OffscreenQmlSurface::create() {
     // Setup the update of the QML media components with the current audio output device
     QObject::connect(&_audioOutputUpdateTimer, &QTimer::timeout, this, [this]() {
         if (_currentAudioOutputDevice.size() > 0) {
-            QMutexLocker lock(&_audioHandlerMutex);
-            QString audioDeviceName = _currentAudioOutputDevice;
-            new AudioHandler(sharedFromThis(), audioDeviceName);
+            new AudioHandler(sharedFromThis(), _currentAudioOutputDevice);
         }
     });
     int waitForAudioQmlMs = 200;
