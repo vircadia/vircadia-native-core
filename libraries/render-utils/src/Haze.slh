@@ -89,9 +89,7 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, Light directionalLight, vec
     //      hazeIntegral *= (1.0 - exp (-t)) / t;
     hazeIntegral *= 0.3171178;
 
-    float hazeAmount = 1.0 - exp(-hazeIntegral);
-
-    return mix(color, vec3(0.0, 0.0, 0.0), hazeAmount);
+    return color * exp(-hazeIntegral);
 }
 
 // Input:
@@ -177,7 +175,8 @@ vec4 computeHazeColor(vec4 fragColor, vec4 eyeFragPos, vec4 worldFragPos, vec4 w
         if (abs(deltaHeight) > slopeThreshold) {
             float t = hazeParams.hazeHeightFactor * deltaHeight;
             // Protect from wild values
-            if (abs(t) > 0.0000001) {
+            const float EPSILON = 0.0000001f;
+            if (abs(t) > EPSILON) {
                 hazeIntegral *= (1.0 - exp (-t)) / t;
             }
         }
@@ -189,7 +188,7 @@ vec4 computeHazeColor(vec4 fragColor, vec4 eyeFragPos, vec4 worldFragPos, vec4 w
     }
 
     // Mix with background at far range
-    const float BLEND_DISTANCE = 27000.0;
+    const float BLEND_DISTANCE = 27000.0f;
     vec4 outFragColor;
     if (distance > BLEND_DISTANCE) {
         outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlend);
