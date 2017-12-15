@@ -23,8 +23,8 @@ class Test {
 public: 
     Test();
 
-    void evaluateTests();
-    void evaluateTestsRecursively();
+    void evaluateTests(bool interactiveMode);
+    void evaluateTestsRecursively(bool interactiveMode);
     void createRecursiveScript();
     void createTest();
 
@@ -53,7 +53,7 @@ private:
 
     ImageComparer imageComparer;
 
-    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory);
+    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode);
 };
 
 #endif // hifi_test_h

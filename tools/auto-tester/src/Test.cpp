@@ -21,7 +21,7 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory) {
+bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode) {
     // If a previous test results folder is found then wait for the user to delete it, or cancel
     // (e.g. the user may want to move the folder elsewhere)
     QString testResultsFolderPath { testDirectory + "/" + testResultsFolder };
@@ -70,9 +70,13 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
 
             mismatchWindow.setTestFailure(testFailure);
 
-            mismatchWindow.exec();
+            if (!interactiveMode) {
+                appendTestResultsToFile(testResultsFolderPath, testFailure, mismatchWindow.getComparisonImage());
+                success = false;
+            } else {
+                mismatchWindow.exec();
 
-            switch (mismatchWindow.getUserResponse()) {
+                switch (mismatchWindow.getUserResponse()) {
                 case USER_RESPONSE_PASS:
                     break;
                 case USE_RESPONSE_FAIL:
@@ -86,6 +90,7 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
                 default:
                     assert(false);
                     break;
+                }
             }
         }
     }
@@ -144,7 +149,7 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.jpg");
 }
 
-void Test::evaluateTests() {
+void Test::evaluateTests(bool interactiveMode) {
     // Get list of JPEG images in folder, sorted by name
     QString pathToImageDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", ".", QFileDialog::ShowDirsOnly);
     if (pathToImageDirectory == "") {
@@ -177,7 +182,7 @@ void Test::evaluateTests() {
         exit(-1);
     }
 
-    bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory);
+    bool success = compareImageLists(expectedImages, resultImages, pathToImageDirectory, interactiveMode);
 
     if (success) {
         messageBox.information(0, "Success", "All images are as expected");
@@ -189,7 +194,7 @@ void Test::evaluateTests() {
 // Two criteria are used to decide if a folder contains valid test results.
 //      1) a 'test'js' file exists in the folder
 //      2) the folder has the same number of actual and expected images
-void Test::evaluateTestsRecursively() {
+void Test::evaluateTestsRecursively(bool interactiveMode) {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
     if (topLevelDirectory == "") {
@@ -234,7 +239,7 @@ void Test::evaluateTestsRecursively() {
         }
 
         // Set success to false if any test has failed
-        success &= compareImageLists(expectedImages, resultImages, directory);
+        success &= compareImageLists(expectedImages, resultImages, directory, interactiveMode);
     }
 
     if (success) {
