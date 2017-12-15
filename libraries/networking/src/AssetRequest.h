@@ -42,7 +42,7 @@ public:
         NetworkError,
         UnknownError
     };
-
+    Q_ENUM(Error)
     AssetRequest(const QString& hash, const ByteRange& byteRange = ByteRange());
     virtual ~AssetRequest() override;
 
@@ -51,6 +51,7 @@ public:
     const QByteArray& getData() const { return _data; }
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
+    const QString getErrorString() const;
     QUrl getUrl() const { return ::getATPUrl(_hash); }
     QString getHash() const { return _hash; }
 

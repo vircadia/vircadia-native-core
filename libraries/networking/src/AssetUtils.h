@@ -71,7 +71,8 @@ struct MappingInfo {
 
 using AssetMapping = std::map<AssetPath, MappingInfo>;
 
-QUrl getATPUrl(const QString& hash);
+QUrl getATPUrl(const QString& input);
+AssetHash extractAssetHash(const QString& input);
 
 QByteArray hashData(const QByteArray& data);
 
@@ -83,5 +84,19 @@ bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
 
 QString bakingStatusToString(BakingStatus status);
+
+// backwards-compatible namespace aliases
+// (allows new code to be explicit -- eg: `AssetUtils::isValidPath(path)` vs. `isValidPath(path)`)
+namespace AssetUtils {
+    static const auto& loadFromCache = ::loadFromCache;
+    static const auto& saveToCache = ::saveToCache;
+    static const auto& hashData = ::hashData;
+    static const auto& getATPUrl = ::getATPUrl;
+    static const auto& extractAssetHash = ::extractAssetHash;
+    static const auto& isValidFilePath = ::isValidFilePath;
+    static const auto& isValidPath = ::isValidPath;
+    static const auto& isValidHash = ::isValidHash;
+};
+
 
 #endif // hifi_AssetUtils_h

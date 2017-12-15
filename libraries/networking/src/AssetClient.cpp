@@ -20,6 +20,7 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 #include <shared/GlobalAppProperties.h>
+#include <shared/MiniPromises.h>
 
 #include "AssetRequest.h"
 #include "AssetUpload.h"
@@ -72,6 +73,30 @@ void AssetClient::init() {
         networkAccessManager.setCache(cache);
         qInfo() << "ResourceManager disk cache setup at" << _cacheDir
                  << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+    } else {
+        auto cache = qobject_cast<QNetworkDiskCache*>(networkAccessManager.cache());
+        qInfo() << "ResourceManager disk cache already setup at" << cache->cacheDirectory()
+                << "(size:" << cache->maximumCacheSize() / BYTES_PER_GIGABYTES << "GB)";
+    }
+
+}
+
+void AssetClient::cacheInfoRequest(MiniPromise::Promise deferred) {
+    if (QThread::currentThread() != thread()) {
+        if (!QMetaType::isRegistered(qMetaTypeId<MiniPromise::Promise>())) {
+            qRegisterMetaType<MiniPromise::Promise>();
+        }
+        QMetaObject::invokeMethod(this, "cacheInfoRequest", Q_ARG(MiniPromise::Promise, deferred));
+        return;
+    }
+    if (auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache())) {
+        deferred->resolve({
+            { "cacheDirectory", cache->cacheDirectory() },
+            { "cacheSize", cache->cacheSize() },
+            { "maximumCacheSize", cache->maximumCacheSize() },
+        });
+    } else {
+        deferred->reject("Cache not available");
     }
 }
 

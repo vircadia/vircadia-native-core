@@ -19,6 +19,7 @@
 #include <map>
 
 #include <DependencyManager.h>
+#include <shared/MiniPromises.h>
 
 #include "AssetUtils.h"
 #include "ByteRange.h"
@@ -66,6 +67,7 @@ public slots:
     void init();
 
     void cacheInfoRequest(QObject* reciever, QString slot);
+    void cacheInfoRequest(MiniPromise::Promise deferred);
     void clearCache();
 
 private slots:

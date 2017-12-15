@@ -134,3 +134,14 @@ void AssetRequest::start() {
         emit progress(totalReceived, total);
     });
 }
+
+
+const QString AssetRequest::getErrorString() const {
+    QString result;
+    if (_error != Error::NoError) {
+        QVariant v;
+        v.setValue(_error); 
+        result = v.toString(); // courtesy of Q_ENUM
+    }
+    return result;
+}
