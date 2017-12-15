@@ -118,21 +118,30 @@ void DualQuaternionTests::trans() {
 void DualQuaternionTests::dlb() {
     DualQuaternion dq1(Quaternions::IDENTITY, glm::vec3());
     DualQuaternion dq2(angleAxis(PI / 2.0f, Vectors::UNIT_X), glm::vec3(0.0f, 1.0f, 0.0f));
+    DualQuaternion dq2Alt(-angleAxis(PI / 2.0f, Vectors::UNIT_X), glm::vec3(0.0f, 1.0f, 0.0f));
 
     qDebug() << "dq1 =" << dq1;
-    qDebug() << "dq1.length = " << dq1.length();
     qDebug() << "dq2 =" << dq2;
-    qDebug() << "dq2.length = " << dq2.length();
 
     // linear blend between dq1 and dq2
     DualQuaternion dq3 = dq1 * 0.5f + dq2 * 0.5f;
-    DualQuaternion dq4 = dq3.normalize();
+
+    // alternate linear blend between dq1 and dq2
+    DualQuaternion dq4 = dq1 * 0.5 + dq2Alt * 0.5f;
 
     qDebug() << "dq3 =" << dq3;
-    qDebug() << "dq3.length = " << dq3.length();
-    qDebug() << "dq3.trans =" << dq3.getTranslation();
-
     qDebug() << "dq4 =" << dq4;
-    qDebug() << "dq4.length = " << dq4.length();
-    qDebug() << "dq4.trans =" << dq4.getTranslation();
+
+    glm::vec3 p1(0.0f, 0.5f, -0.5f);
+    glm::vec3 p2(0.0f, 0.5f, 0.5f);
+
+    glm::vec3 p3 = dq3.xformPoint(p1);
+    glm::vec3 p4 = dq3.xformPoint(p2);
+    glm::vec3 p5 = dq4.xformPoint(p1);
+    glm::vec3 p6 = dq4.xformPoint(p2);
+
+    qDebug() << "p3 =" << p3;
+    qDebug() << "p4 =" << p4;
+    qDebug() << "p5 =" << p5;
+    qDebug() << "p6 =" << p6;
 }
