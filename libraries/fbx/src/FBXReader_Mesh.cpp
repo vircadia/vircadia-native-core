@@ -41,6 +41,7 @@
 #include <glm/gtc/packing.hpp>
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
+using ColorType = glm::uint32;
 
 class Vertex {
 public:
@@ -596,7 +597,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     assert(normalsSize == tangentsSize);
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
     const int normalsAndTangentsStride = 2 * sizeof(NormalType);
-    const int colorsSize = fbxMesh.colors.size() * sizeof(glm::vec3);
+    const int colorsSize = fbxMesh.colors.size() * sizeof(ColorType);
     // Texture coordinates are stored in 2 half floats
     const int texCoordsSize = fbxMesh.texCoords.size() * sizeof(vec2h);
     const int texCoords1Size = fbxMesh.texCoords1.size() * sizeof(vec2h);
@@ -623,8 +624,8 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     attribBuffer->resize(totalAttributeSize);
 
     // Interleave normals and tangents
-    {
-        QVector<NormalType> normalsAndTangents;
+    if (normalsSize > 0) {
+        std::vector<NormalType> normalsAndTangents;
 
         normalsAndTangents.reserve(fbxMesh.normals.size() + fbxMesh.tangents.size());
         for (auto normalIt = fbxMesh.normals.constBegin(), tangentIt = fbxMesh.tangents.constBegin();
@@ -642,9 +643,18 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             normalsAndTangents.push_back(packedNormal);
             normalsAndTangents.push_back(packedTangent);
         }
-        attribBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.constData());
+        attribBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.data());
     }
-    attribBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) fbxMesh.colors.constData());
+
+    if (colorsSize > 0) {
+        std::vector<ColorType> colors;
+
+        colors.reserve(fbxMesh.colors.size());
+        for (const auto& color : fbxMesh.colors) {
+            colors.push_back(glm::packUnorm4x8(glm::vec4(color, 1.0f)));
+        }
+        attribBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) colors.data());
+    }
 
     if (texCoordsSize > 0) {
         QVector<vec2h> texCoordData;
@@ -698,7 +708,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (colorsSize) {
         mesh->addAttribute(gpu::Stream::COLOR,
                            model::BufferView(attribBuffer, colorsOffset, colorsSize,
-                           gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB)));
+                           gpu::Element::COLOR_RGBA_32));
     }
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
