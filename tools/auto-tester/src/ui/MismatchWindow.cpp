@@ -11,6 +11,8 @@
 
 #include <QtCore/QFileInfo>
 
+#include <cmath>
+
 MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
     setupUi(this);
 
@@ -35,7 +37,7 @@ QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultIma
 
             // The intensity value is modified to increase the brightness of the displayed image
             double absoluteDifference = fabs(p - q) / 255.0;
-            double modifiedDifference = pow(absoluteDifference, 0.5);
+            double modifiedDifference = sqrt(absoluteDifference);
 
             int difference = (int)(modifiedDifference * 255.0);
 
