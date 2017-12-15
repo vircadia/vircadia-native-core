@@ -50,13 +50,12 @@ layout(std140) uniform hazeBuffer {
 //
 // General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
 //
-vec3 computeHazeColorKeyLightAttenuation(vec3 color, Light directionalLight, vec3 worldFragPos) {
+vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 worldFragPos) {
     // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
     // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
     //
     // The distance is computed from the height and the directional light orientation
     // The distance is limited to height * 1,000, which gives an angle of ~0.057 degrees
-    vec3 lightDirection = getLightDirection(directionalLight);
 
     // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
     float height_95p = 2000.0;

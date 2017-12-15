@@ -121,10 +121,6 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += ambientDiffuse;
     color += ambientSpecular;
 
-    // Directional
-    // Get directional light (used by both directional light and haze attenuation)
-    Light directionalLight = getLight();
-
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
@@ -137,7 +133,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
     // Attenuate the light if haze effect selected
     if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
-        color = computeHazeColorKeyLightAttenuation(color, directionalLight, position);    
+        color = computeHazeColorKeyLightAttenuation(color, lightDirection, position);    
     }
 
     return color;
