@@ -94,7 +94,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + metaversePath };
+    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -420,7 +420,7 @@ bool DomainServer::optionallySetupOAuth() {
 
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
-        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL();
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -2159,7 +2159,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonDocument doc(root);
 
 
-            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/v1/places/" + place_id };
+            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/v1/places/" + place_id };
 
             url.setQuery("access_token=" + accessTokenVariant->toString());
 

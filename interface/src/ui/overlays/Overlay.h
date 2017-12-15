@@ -122,6 +122,9 @@ protected:
 
     unsigned int _stackOrder { 0 };
 
+    static const xColor DEFAULT_OVERLAY_COLOR;
+    static const float DEFAULT_ALPHA;
+
 private:
     OverlayID _overlayID; // only used for non-3d overlays
 };

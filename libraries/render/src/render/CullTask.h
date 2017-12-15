@@ -51,19 +51,16 @@ namespace render {
     class FetchSpatialTree {
         bool _freezeFrustum{ false }; // initialized by Config
         bool _justFrozeFrustum{ false };
-        ViewFrustum _frozenFrutstum;
+        ViewFrustum _frozenFrustum;
         float _lodAngle;
     public:
         using Config = FetchSpatialTreeConfig;
-        using JobModel = Job::ModelO<FetchSpatialTree, ItemSpatialTree::ItemSelection, Config>;
+        using JobModel = Job::ModelIO<FetchSpatialTree, ItemFilter, ItemSpatialTree::ItemSelection, Config>;
 
         FetchSpatialTree() {}
-        FetchSpatialTree(const ItemFilter& filter) : _filter(filter) {}
-
-        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
+        void run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemSpatialTree::ItemSelection& outSelection);
     };
 
     class CullSpatialSelectionConfig : public Job::Config {
@@ -88,25 +85,24 @@ namespace render {
         bool _freezeFrustum{ false }; // initialized by Config
         bool _justFrozeFrustum{ false };
         bool _skipCulling{ false };
-        ViewFrustum _frozenFrutstum;
+        ViewFrustum _frozenFrustum;
     public:
         using Config = CullSpatialSelectionConfig;
-        using JobModel = Job::ModelIO<CullSpatialSelection, ItemSpatialTree::ItemSelection, ItemBounds, Config>;
+        using Inputs = render::VaryingSet2<ItemSpatialTree::ItemSelection, ItemFilter>;
+        using JobModel = Job::ModelIO<CullSpatialSelection, Inputs, ItemBounds, Config>;
 
-        CullSpatialSelection(CullFunctor cullFunctor, RenderDetails::Type type, const ItemFilter& filter) :
+        CullSpatialSelection(CullFunctor cullFunctor, RenderDetails::Type type) :
             _cullFunctor{ cullFunctor },
-            _detailType(type),
-            _filter(filter) {}
+            _detailType(type) {}
 
         CullSpatialSelection(CullFunctor cullFunctor) :
             _cullFunctor{ cullFunctor } {}
 
         CullFunctor _cullFunctor;
         RenderDetails::Type _detailType{ RenderDetails::OTHER };
-        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
 }
