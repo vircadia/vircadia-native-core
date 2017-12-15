@@ -224,7 +224,7 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
         vec4 colorV4 = computeHazeColor(
             vec4(color, 0.0),               // fragment original color
             vec4(position, 0.0),            // fragment position in eye  coordinates
-            vec4(fragEyeVector, 0.0),       // fragment position in world coordinates
+            vec4(fragEyeVector, 1.0),       // fragment position in world coordinates
             invViewMat[3]);                 // eye      position in world coordinates
 
         color = colorV4.rgb;
