@@ -8,13 +8,14 @@ setup_memory_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()
-endif ()
-
-if (UNIX)
+elseif (UNIX AND NOT APPLE)
   find_package(Threads REQUIRED)
   if(THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC oven "-pthread")
   endif()
-endif ()
+elseif (APPLE)
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+endif()
 
 install_beside_console()

@@ -16,13 +16,14 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-
 uniform sampler2D linearDepthMap;
 uniform sampler2D halfLinearDepthMap;
 uniform sampler2D halfNormalMap;
 uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
 uniform sampler2D scatteringMap;
+
+<@include ShadowCore.slh@>
 
 <$declareDeferredCurvature()$>
 
