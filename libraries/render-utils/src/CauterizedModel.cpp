@@ -9,6 +9,7 @@
 #include "CauterizedModel.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
@@ -109,30 +110,78 @@ void CauterizedModel::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
+
+            /* AJT: TODO REMOVE
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            */
+            // AJT: TODO OPTOMIZE
+            AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
+            AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+
+            // pack scale rotation and translation into a mat4.
+            state.clusterMatrices[j][0].x = result.scale().x;
+            state.clusterMatrices[j][0].y = result.scale().y;
+            state.clusterMatrices[j][0].z = result.scale().z;
+
+            DualQuaternion dq(result.rot(), result.trans());
+            state.clusterMatrices[j][1].x = dq.real().x;
+            state.clusterMatrices[j][1].y = dq.real().y;
+            state.clusterMatrices[j][1].z = dq.real().z;
+            state.clusterMatrices[j][1].w = dq.real().w;
+            state.clusterMatrices[j][2].x = dq.imag().x;
+            state.clusterMatrices[j][2].y = dq.imag().y;
+            state.clusterMatrices[j][2].z = dq.imag().z;
+            state.clusterMatrices[j][2].w = dq.imag().w;
         }
     }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
+
         static const glm::mat4 zeroScale(
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
+        auto cauterizePose = AnimPose(cauterizeMatrix);
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
+
+                // AJT: TODO REMOVE:
+                /*
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+                */
+
+                auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                    jointPose = cauterizePose;
+                }
+                AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+
+                // pack scale rotation and translation into a mat4.
+                state.clusterMatrices[j][0].x = result.scale().x;
+                state.clusterMatrices[j][0].y = result.scale().y;
+                state.clusterMatrices[j][0].z = result.scale().z;
+
+                DualQuaternion dq(result.rot(), result.trans());
+                state.clusterMatrices[j][1].x = dq.real().x;
+                state.clusterMatrices[j][1].y = dq.real().y;
+                state.clusterMatrices[j][1].z = dq.real().z;
+                state.clusterMatrices[j][1].w = dq.real().w;
+                state.clusterMatrices[j][2].x = dq.imag().x;
+                state.clusterMatrices[j][2].y = dq.imag().y;
+                state.clusterMatrices[j][2].z = dq.imag().z;
+                state.clusterMatrices[j][2].w = dq.imag().w;
             }
         }
     }

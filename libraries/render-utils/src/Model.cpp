@@ -25,6 +25,7 @@
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
 #include <model-networking/SimpleMeshProxy.h>
+#include <DualQuaternion.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
@@ -1176,8 +1177,32 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
+
+            // AJT: TODO REMOVE
+            /*
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            */
+            AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
+
+            // AJT: TODO: store inverseBindMatrix as an animpose
+            // AJT: TODO: optimize AnimPose::operator*
+            AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+
+            // pack scale rotation and translation into a mat4.
+            state.clusterMatrices[j][0].x = result.scale().x;
+            state.clusterMatrices[j][0].y = result.scale().y;
+            state.clusterMatrices[j][0].z = result.scale().z;
+
+            DualQuaternion dq(result.rot(), result.trans());
+            state.clusterMatrices[j][1].x = dq.real().x;
+            state.clusterMatrices[j][1].y = dq.real().y;
+            state.clusterMatrices[j][1].z = dq.real().z;
+            state.clusterMatrices[j][1].w = dq.real().w;
+            state.clusterMatrices[j][2].x = dq.imag().x;
+            state.clusterMatrices[j][2].y = dq.imag().y;
+            state.clusterMatrices[j][2].z = dq.imag().z;
+            state.clusterMatrices[j][2].w = dq.imag().w;
         }
     }
 

@@ -18,51 +18,107 @@ layout(std140) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
 
-void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
+vec4 quatConj(vec4 v) {
+    return vec4(-v.x, -v.y, -v.z, v.w);
+}
 
+vec4 quatMul(vec4 q1, vec4 q2) {
+    return vec4( q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x,
+                -q1.x * q2.z + q1.y * q2.w + q1.z * q2.x + q1.w * q2.y,
+                 q1.x * q2.y - q1.y * q2.x + q1.z * q2.w + q1.w * q2.z,
+                -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z + q1.w * q2.w);
+}
+
+vec3 rotateByQuat(vec4 q, vec3 p) {
+    return vec3(quatMul(quatMul(q, vec4(p.x, p.y, p.z, 0.0)), quatConj(q)));
+}
+
+void dqMul(vec4 lhsReal, vec4 lhsImag, vec4 rhsReal, vec4 rhsImag, out vec4 realOut, out vec4 imagOut) {
+    realOut = quatMul(lhsReal, rhsReal);
+    imagOut = quatMul(lhsReal, rhsImag) + quatMul(lhsImag, rhsReal);
+}
+
+void blendClusters(ivec4 skinClusterIndex, vec4 skinClusterWeight, out vec3 scaleOut, out vec4 rotOut, out vec3 posOut) {
+    vec3 scale = vec3(0.0, 0.0, 0.0);
+    vec4 dqReal = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 dqImag = vec4(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
+
+        vec3 s = vec3(clusterMatrix[0][0], clusterMatrix[0][1], clusterMatrix[0][2]);
+        vec4 dqr = vec4(clusterMatrix[1][0], clusterMatrix[1][1], clusterMatrix[1][2], clusterMatrix[1][3]);
+        vec4 dqi = vec4(clusterMatrix[2][0], clusterMatrix[2][1], clusterMatrix[2][2], clusterMatrix[2][3]);
+
+        scale += s * clusterWeight;
+        dqReal += dqr * clusterWeight;
+        dqImag += dqi * clusterWeight;
     }
 
-    skinnedPosition = newPosition;
+    scaleOut = scale;
+
+    float dqLen = length(dqReal);
+    dqReal *= 1.0 / dqLen;
+    dqImag *= 1.0 / dqLen;
+
+    rotOut = dqReal;
+
+    vec4 invReal = quatConj(dqReal);
+    posOut.xyz = 2.0 * quatMul(dqImag, invReal).xyz;
+}
+
+void blendClusters_rigid(ivec4 skinClusterIndex, vec4 skinClusterWeight, out vec3 scaleOut, out vec4 rotOut, out vec3 posOut) {
+    float maxWeight = 0.0;
+    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
+        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
+        float clusterWeight = skinClusterWeight[i];
+
+        vec3 s = vec3(clusterMatrix[0][0], clusterMatrix[0][1], clusterMatrix[0][2]);
+        vec4 dqr = vec4(clusterMatrix[1][0], clusterMatrix[1][1], clusterMatrix[1][2], clusterMatrix[1][3]);
+        vec4 dqi = vec4(clusterMatrix[2][0], clusterMatrix[2][1], clusterMatrix[2][2], clusterMatrix[2][3]);
+
+        if (clusterWeight > maxWeight) {
+            maxWeight = clusterWeight;
+            scaleOut = s;
+            rotOut = dqr;
+            vec4 invReal = quatConj(dqr);
+            posOut = 2.0 * quatMul(dqi, invReal).xyz;
+        }
+    }
+}
+
+void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
+
+    vec3 scale, pos;
+    vec4 rot;
+    blendClusters(skinClusterIndex, skinClusterWeight, scale, rot, pos);
+
+    skinnedPosition.xyz = rotateByQuat(rot, (vec3(inPosition) * scale)) + pos;
+    skinnedPosition.w = 1;
 }
 
 void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
                         out vec4 skinnedPosition, out vec3 skinnedNormal) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
 
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
-        float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
-        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
-    }
+    vec3 scale, pos;
+    vec4 rot;
+    blendClusters(skinClusterIndex, skinClusterWeight, scale, rot, pos);
 
-    skinnedPosition = newPosition;
-    skinnedNormal = newNormal.xyz;
+    skinnedNormal.xyz = rotateByQuat(rot, inNormal * scale);
 }
 
 void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal, vec3 inTangent,
                                out vec4 skinnedPosition, out vec3 skinnedNormal, out vec3 skinnedTangent) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newTangent = vec4(0.0, 0.0, 0.0, 0.0);
 
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
-        float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
-        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
-        newTangent += clusterMatrix * vec4(inTangent.xyz, 0.0) * clusterWeight;
-    }
+    vec3 scale, pos;
+    vec4 rot;
+    blendClusters(skinClusterIndex, skinClusterWeight, scale, rot, pos);
 
-    skinnedPosition = newPosition;
-    skinnedNormal = newNormal.xyz;
-    skinnedTangent = newTangent.xyz;
+    skinnedPosition.xyz = rotateByQuat(rot, (vec3(inPosition) * scale)) + pos;
+    skinnedPosition.w = 1;
+
+    skinnedNormal = rotateByQuat(rot, inNormal * scale);
+    skinnedTangent = rotateByQuat(rot, inTangent * scale);
 }
 
 

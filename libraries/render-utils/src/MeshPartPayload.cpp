@@ -12,6 +12,7 @@
 #include "MeshPartPayload.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "DeferredLightingEffect.h"
 
@@ -330,7 +331,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
     if (state.clusterMatrices.size() == 1) {
-        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+        // convert form dual quaternion representation to a Transform.
+        glm::vec3 scale = glm::vec3(state.clusterMatrices[0][0]);
+        DualQuaternion dq(state.clusterMatrices[0][1], state.clusterMatrices[0][2]);
+        renderTransform = transform.worldTransform(Transform(dq.getRotation(), scale, dq.getTranslation()));
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
