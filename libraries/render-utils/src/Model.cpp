@@ -317,21 +317,29 @@ bool Model::updateGeometry() {
             // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
             auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
-                buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + mesh.normals.size() * sizeof(NormalType));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
+                std::vector<NormalType> normalsAndTangents;
+                normalsAndTangents.reserve(mesh.normals.size() + mesh.tangents.size());
+
+                for (auto normalIt = mesh.normals.begin(), tangentIt = mesh.tangents.begin();
+                     normalIt != mesh.normals.end();
+                     ++normalIt, ++tangentIt) {
 #if FBX_PACK_NORMALS
-                std::vector<NormalType> packedNormals;
-                packedNormals.reserve(mesh.normals.size());
-                for (auto normal : mesh.normals) {
-                    normal = FBXReader::normalizeDirForPacking(normal);
-                    packedNormals.push_back(glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f)));
-                }
-                const auto normalsData = packedNormals.data();
+                    const auto normal = FBXReader::normalizeDirForPacking(*normalIt);
+                    const auto tangent = FBXReader::normalizeDirForPacking(*tangentIt);
+                    const auto finalNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
+                    const auto finalTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
 #else
-                const auto normalsData = mesh.normals.constData();
+                    const auto finalNormal = *normalIt;
+                    const auto finalTangent = *tangentIt;
 #endif
+                    normalsAndTangents.push_back(finalNormal);
+                    normalsAndTangents.push_back(finalTangent);
+                }
+
+                buffer->resize(mesh.vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
+                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                                   mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsData);
+                                   mesh.normals.size() * 2 * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
             }
             _blendedVertexBuffers.push_back(buffer);
         }
@@ -974,7 +982,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 
 void Blender::run() {
     DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
-    QVector<glm::vec3> vertices, normals;
+    QVector<glm::vec3> vertices, normals, tangents;
     if (_model) {
         int offset = 0;
         foreach (const FBXMesh& mesh, _meshes) {
@@ -983,8 +991,10 @@ void Blender::run() {
             }
             vertices += mesh.vertices;
             normals += mesh.normals;
+            tangents += mesh.tangents;
             glm::vec3* meshVertices = vertices.data() + offset;
             glm::vec3* meshNormals = normals.data() + offset;
+            glm::vec3* meshTangents = tangents.data() + offset;
             offset += mesh.vertices.size();
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
@@ -999,6 +1009,7 @@ void Blender::run() {
                     int index = blendshape.indices.at(j);
                     meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
                     meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+                    meshTangents[index] += blendshape.tangents.at(j) * normalCoefficient;
                 }
             }
         }
@@ -1007,7 +1018,7 @@ void Blender::run() {
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
         Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
-        Q_ARG(const QVector<glm::vec3>&, normals));
+        Q_ARG(const QVector<glm::vec3>&, normals), Q_ARG(const QVector<glm::vec3>&, tangents));
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1188,7 +1199,7 @@ bool Model::maybeStartBlender() {
 }
 
 void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents) {
     auto geometryRef = geometry.lock();
     if (!geometryRef || _renderGeometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
         return;
@@ -1196,9 +1207,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
     _appliedBlendNumber = blendNumber;
     const FBXGeometry& fbxGeometry = getFBXGeometry();
     int index = 0;
-#if FBX_PACK_NORMALS
-    std::vector<NormalType> packedNormals;
-#endif
+    std::vector<NormalType> normalsAndTangents;
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
@@ -1206,22 +1215,38 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         }
 
         gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
-        const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
-        buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
-#if FBX_PACK_NORMALS
-        packedNormals.clear();
-        packedNormals.reserve(normals.size());
-        for (auto normal : normals) {
-            normal = FBXReader::normalizeDirForPacking(normal);
-            packedNormals.push_back(glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f)));
-        }
-        const auto normalsData = packedNormals.data();
-#else
-        const auto normalsData = mesh.normals.constData();
-#endif
-        buffer->setSubData(verticesSize, normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsData + index*sizeof(NormalType));
+        const auto vertexCount = mesh.vertices.size();
+        const auto verticesSize = vertexCount * sizeof(glm::vec3);
+        const auto offset = index * sizeof(glm::vec3);
 
-        index += mesh.vertices.size();
+        normalsAndTangents.clear();
+        normalsAndTangents.reserve(normals.size()+tangents.size());
+
+        // Interleave normals and tangents
+        auto normalsRange = std::make_pair(normals.begin() + index, normals.begin() + index + vertexCount);
+        auto tangentsRange = std::make_pair(tangents.begin() + index, tangents.begin() + index + vertexCount);
+
+        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+             normalIt != normalsRange.second;
+             ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+            const auto normal = FBXReader::normalizeDirForPacking(*normalIt);
+            const auto tangent = FBXReader::normalizeDirForPacking(*tangentIt);
+            const auto finalNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
+            const auto finalTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
+#else
+            const auto finalNormal = *normalIt;
+            const auto finalTangent = *tangentIt;
+#endif
+            normalsAndTangents.push_back(finalNormal);
+            normalsAndTangents.push_back(finalTangent);
+        }
+        assert(normalsAndTangents.size() == 2 * vertexCount);
+
+        buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + offset);
+        buffer->setSubData(verticesSize, 2 * vertexCount * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+
+        index += vertexCount;
     }
 }
 
@@ -1388,10 +1413,11 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
     }
 }
 
-void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
-        const Geometry::WeakPointer& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, 
+                                      const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, 
+                                      const QVector<glm::vec3>& tangents) {
     if (model) {
-        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
+        model->setBlendedVertices(blendNumber, geometry, vertices, normals, tangents);
     }
     _pendingBlenders--;
     {

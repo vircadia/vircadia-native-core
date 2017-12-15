@@ -589,6 +589,14 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         fbxMesh.tangents.reserve(fbxMesh.normals.size());
         std::fill_n(std::back_inserter(fbxMesh.tangents), fbxMesh.normals.size(), Vectors::UNIT_X);
     }
+    // Same thing with blend shapes
+    for (auto& blendShape : fbxMesh.blendshapes) {
+        if (!blendShape.normals.empty() && blendShape.tangents.empty()) {
+            // Fill with a dummy value to force tangents to be present if there are normals
+            blendShape.tangents.reserve(blendShape.normals.size());
+            std::fill_n(std::back_inserter(fbxMesh.tangents), blendShape.normals.size(), Vectors::UNIT_X);
+        }
+    }
 
     // evaluate all attribute channels sizes
     const int normalsSize = fbxMesh.normals.size() * sizeof(NormalType);

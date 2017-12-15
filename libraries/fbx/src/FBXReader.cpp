@@ -303,42 +303,97 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
     return blendshape;
 }
 
-static void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    const glm::vec3& normal = mesh.normals.at(firstIndex);
-    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
-    if (glm::length(bitangent) < EPSILON) {
-        return;
+using IndexAccessor = std::function<glm::vec3*(const FBXMesh&, int, int, glm::vec3*, glm::vec3&)>;
+
+static void setTangents(const FBXMesh& mesh, const IndexAccessor& vertexAccessor, int firstIndex, int secondIndex,
+                        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents) {
+    glm::vec3 vertex[2];
+    glm::vec3 normal;
+    glm::vec3* tangent = vertexAccessor(mesh, firstIndex, secondIndex, vertex, normal);
+    if (tangent) {
+        glm::vec3 bitangent = glm::cross(normal, vertex[1] - vertex[0]);
+        if (glm::length(bitangent) < EPSILON) {
+            return;
+        }
+        glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+        glm::vec3 normalizedNormal = glm::normalize(normal);
+        *tangent += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
+                                       glm::normalize(bitangent), normalizedNormal);
     }
-    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
-    glm::vec3 normalizedNormal = glm::normalize(normal);
-    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
-        glm::normalize(bitangent), normalizedNormal);
 }
 
-static void createTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+static void createTangents(const FBXMesh& mesh, bool generateFromTexCoords,
+                           const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents,
+                           IndexAccessor accessor) {
     // if we have a normal map (and texture coordinates), we must compute tangents
     if (generateFromTexCoords && !mesh.texCoords.isEmpty()) {
-        mesh.tangents.resize(mesh.vertices.size());
+        tangents.resize(vertices.size());
 
         foreach(const FBXMeshPart& part, mesh.parts) {
             for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
-                setTangents(mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
-                setTangents(mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
-                setTangents(mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+                setTangents(mesh, accessor, part.quadIndices.at(i), part.quadIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 3), part.quadIndices.at(i), vertices, normals, tangents);
             }
             // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
             // This is most likely evidence of a further problem in extractMesh()
             for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
-                setTangents(mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
-                setTangents(mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
-                setTangents(mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                setTangents(mesh, accessor, part.triangleIndices.at(i), part.triangleIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 2), part.triangleIndices.at(i), vertices, normals, tangents);
             }
             if ((part.triangleIndices.size() % 3) != 0) {
                 qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
             }
         }
     }
+}
+
+static void createMeshTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+    // This is the only workaround I've found to trick the compiler into understanding that mesh.tangents isn't
+    // const in the lambda function.
+    auto& tangents = mesh.tangents;
+    createTangents(mesh, generateFromTexCoords, mesh.vertices, mesh.normals, mesh.tangents, 
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        outVertices[0] = mesh.vertices[firstIndex];
+        outVertices[1] = mesh.vertices[secondIndex];
+        outNormal = mesh.normals[firstIndex];
+        return &(tangents[firstIndex]);
+    });
+}
+
+static void createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape) {
+    // Create lookup to get index in blend shape from vertex index in mesh
+    std::vector<int> reverseIndices;
+    reverseIndices.resize(mesh.vertices.size());
+    std::iota(reverseIndices.begin(), reverseIndices.end(), 0);
+
+    for (int indexInBlendShape = 0; indexInBlendShape < blendShape.indices.size(); ++indexInBlendShape) {
+        auto indexInMesh = blendShape.indices[indexInBlendShape];
+        reverseIndices[indexInMesh] = indexInBlendShape;
+    }
+
+    createTangents(mesh, generateFromTexCoords, blendShape.vertices, blendShape.normals, blendShape.tangents,
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        const auto index1 = reverseIndices[firstIndex];
+        const auto index2 = reverseIndices[secondIndex];
+
+        if (index1 < blendShape.vertices.size()) {
+            outVertices[0] = blendShape.vertices[index1];
+            if (index2 < blendShape.vertices.size()) {
+                outVertices[1] = blendShape.vertices[index2];
+            } else {
+                // Index isn't in the blend shape so return vertex from mesh
+                outVertices[1] = mesh.vertices[secondIndex];
+            }
+            outNormal = blendShape.normals[index1];
+            return &blendShape.tangents[index1];
+        } else {
+            // Index isn't in blend shape so return nullptr
+            return (glm::vec3*)nullptr;
+        }
+    });
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -1595,7 +1650,10 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        createTangents(extracted.mesh, generateTangents);
+        createMeshTangents(extracted.mesh, generateTangents);
+        for (auto& blendShape : extracted.mesh.blendshapes) {
+            createBlendShapeTangents(extracted.mesh, generateTangents, blendShape);
+        }
 
         // find the clusters with which the mesh is associated
         QVector<QString> clusterIDs;
