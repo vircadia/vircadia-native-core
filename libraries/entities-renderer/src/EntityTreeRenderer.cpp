@@ -402,6 +402,8 @@ void EntityTreeRenderer::update(bool simulate) {
     PerformanceTimer perfTimer("ETRupdate");
     if (_tree && !_shuttingDown) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+
+        // here we update _currentFrame and _lastAnimated and sync with the server properties.
         tree->update(simulate);
 
         // Update the rendereable entities as needed
@@ -736,7 +738,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects && rayPickResult.entity) {
-        //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
+        // qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
