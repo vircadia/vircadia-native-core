@@ -77,19 +77,19 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
                 mismatchWindow.exec();
 
                 switch (mismatchWindow.getUserResponse()) {
-                case USER_RESPONSE_PASS:
-                    break;
-                case USE_RESPONSE_FAIL:
-                    appendTestResultsToFile(testResultsFolderPath, testFailure, mismatchWindow.getComparisonImage());
-                    success = false;
-                    break;
-                case USER_RESPONSE_ABORT:
-                    keepOn = false;
-                    success = false;
-                    break;
-                default:
-                    assert(false);
-                    break;
+                    case USER_RESPONSE_PASS:
+                        break;
+                    case USE_RESPONSE_FAIL:
+                        appendTestResultsToFile(testResultsFolderPath, testFailure, mismatchWindow.getComparisonImage());
+                        success = false;
+                        break;
+                    case USER_RESPONSE_ABORT:
+                        keepOn = false;
+                        success = false;
+                        break;
+                    default:
+                        assert(false);
+                        break;
                 }
             }
         }
