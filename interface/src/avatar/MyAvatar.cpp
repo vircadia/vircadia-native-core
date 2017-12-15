@@ -2401,7 +2401,6 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
         OctreeElementPointer element;
-        EntityItemPointer intersectedEntity = NULL;
         float distance;
         BoxFace face;
         const bool visibleOnly = false;
@@ -2413,13 +2412,14 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
-        bool intersects = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, normalOut, (void**)&intersectedEntity, lockType, accurateResult);
-        if (!intersects || !intersectedEntity) {
+        QVariantMap extraInfo;
+        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, normalOut, extraInfo, lockType, accurateResult);
+        if (entityID.isNull()) {
              return false;
         }
         intersectionOut = startPointIn + (directionIn * distance);
-        entityIdOut = intersectedEntity->getEntityItemID();
+        entityIdOut = entityID;
         return true;
     };
 
