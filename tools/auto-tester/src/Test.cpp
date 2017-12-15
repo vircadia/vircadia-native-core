@@ -22,10 +22,10 @@ Test::Test() {
 }
 
 bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory) {
-    // Delete any previous test results, if user agrees
-    QString s = testDirectory + "/" + testResultsFolder;
-    QFileInfo fileInfo(testDirectory + "/" + testResultsFolder);
-    while (fileInfo.exists()) {
+    // If a previous test results folder is found then wait for the user to delete it, or cancel
+    // (e.g. the user may want to move the folder elsewhere)
+    QString testResultsFolderPath { testDirectory + "/" + testResultsFolder };
+    while (QDir().exists(testResultsFolderPath)) {
         messageBox.setText("Previous test results have been found");
         messageBox.setInformativeText("Delete " + testResultsFolder + " before continuing");
         messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
@@ -35,9 +35,12 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
         }
     }
 
+    // Create a new test results folder
+    QDir().mkdir(testResultsFolderPath);
+
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD{ 0.999 };
+    const double THRESHOLD { 0.999 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImages.length(); ++i) {
@@ -73,7 +76,7 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
                 case USER_RESPONSE_PASS:
                     break;
                 case USE_RESPONSE_FAIL:
-                    appendTestResultsToFile(testDirectory, testFailure);
+                    appendTestResultsToFile(testResultsFolderPath, testFailure, mismatchWindow.getComparisonImage());
                     success = false;
                     break;
                 case USER_RESPONSE_ABORT:
@@ -90,11 +93,55 @@ bool Test::compareImageLists(QStringList expectedImages, QStringList resultImage
     return success;
 }
 
-void Test::appendTestResultsToFile(QString testDirectory, TestFailure testFailure) {
-    QFileInfo fileInfo(testResultsFileName);
-    if (!fileInfo.exists()) {
+void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
+    if (!QDir().exists(testResultsFolderPath)) {
+        messageBox.critical(0, "Internal error", "Folder " + testResultsFolderPath + " not found");
+        exit(-1);
     }
 
+    static int index = 1;
+    QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) };
+    if (!QDir().mkdir(failureFolderPath)) {
+        messageBox.critical(0, "Internal error", "Failed to create folder " + failureFolderPath);
+        exit(-1);
+    }
+    ++index;
+
+    QString descriptionFileName { "ReadMe.txt" };
+    QFile descriptionFile(failureFolderPath + "/" +descriptionFileName);
+    if (!descriptionFile.open(QIODevice::ReadWrite)) {
+        messageBox.critical(0, "Internal error", "Failed to create file " + descriptionFileName);
+        exit(-1);
+    }
+
+    // Create text file describing the failure
+    QTextStream stream(&descriptionFile);
+    stream << "Test failed in folder " << testFailure._pathname.left(testFailure._pathname.length() - 1) << endl; // remove trailing '/'
+    stream << "Expected image was    " << testFailure._expectedImageFilename << endl;
+    stream << "Actual image was      " << testFailure._actualImageFilename << endl;
+    stream << "Similarity index was  " << testFailure._error << endl;
+
+    descriptionFile.close();
+
+    // Copy expected and actual images, and save the difference image
+    QString sourceFile;
+    QString destinationFile;
+
+    sourceFile = testFailure._pathname + testFailure._expectedImageFilename;
+    destinationFile = failureFolderPath + "/" + "Expected Image.jpg";
+    if (!QFile::copy(sourceFile, destinationFile)) {
+        messageBox.critical(0, "Internal error", "Failed to copy " + sourceFile + " to " + destinationFile);
+        exit(-1);
+    }
+
+    sourceFile = testFailure._pathname + testFailure._actualImageFilename;
+    destinationFile = failureFolderPath + "/" + "Actual Image.jpg";
+    if (!QFile::copy(sourceFile, destinationFile)) {
+        messageBox.critical(0, "Internal error", "Failed to copy " + sourceFile + " to " + destinationFile);
+        exit(-1);
+    }
+
+    comparisonImage.save(failureFolderPath + "/" + "Difference Image.jpg");
 }
 
 void Test::evaluateTests() {

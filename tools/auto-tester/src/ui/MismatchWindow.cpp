@@ -33,11 +33,15 @@ QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultIma
             double p = R_Y * qRed(pixelP) + G_Y * qGreen(pixelP) + B_Y * qBlue(pixelP);
             double q = R_Y * qRed(pixelQ) + G_Y * qGreen(pixelQ) + B_Y * qBlue(pixelQ);
 
-            int absDiff = (int)(fabs(p - q));
- 
-            buffer[3 * (x + y * expectedImage.width()) + 0] = absDiff;
-            buffer[3 * (x + y * expectedImage.width()) + 1] = absDiff;
-            buffer[3 * (x + y * expectedImage.width()) + 2] = absDiff;
+            // The intensity value is modified to increase the brightness of the displayed image
+            double absoluteDifference = fabs(p - q) / 255.0;
+            double modifiedDifference = pow(absoluteDifference, 0.5);
+
+            int difference = (int)(modifiedDifference * 255.0);
+
+            buffer[3 * (x + y * expectedImage.width()) + 0] = difference;
+            buffer[3 * (x + y * expectedImage.width()) + 1] = difference;
+            buffer[3 * (x + y * expectedImage.width()) + 2] = difference;
         }
     }
 
@@ -60,7 +64,7 @@ void MismatchWindow::setTestFailure(TestFailure testFailure) {
     QPixmap expectedPixmap = QPixmap(testFailure._pathname + testFailure._expectedImageFilename);
     QPixmap actualPixmap = QPixmap(testFailure._pathname + testFailure._actualImageFilename);
 
-    QPixmap diffPixmap = computeDiffPixmap(
+    diffPixmap = computeDiffPixmap(
         QImage(testFailure._pathname + testFailure._expectedImageFilename), 
         QImage(testFailure._pathname + testFailure._actualImageFilename)
     );
@@ -83,4 +87,8 @@ void MismatchWindow::on_failTestButton_clicked() {
 void MismatchWindow::on_abortTestsButton_clicked() {
     _userResponse = USER_RESPONSE_ABORT;
     close();
+}
+
+QPixmap MismatchWindow::getComparisonImage() {
+    return diffPixmap;
 }

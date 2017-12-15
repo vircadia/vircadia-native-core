@@ -35,7 +35,7 @@ public:
 
     void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
 
-    void appendTestResultsToFile(QString testDirectory, TestFailure testFailure);
+    void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
 private:
     const QString testFilename{ "test.js" };

@@ -26,6 +26,7 @@ public:
     UserResponse getUserResponse() { return _userResponse; }
 
     QPixmap computeDiffPixmap(QImage expectedImage, QImage resultImage);
+    QPixmap getComparisonImage();
 
 private slots:
     void on_passTestButton_clicked();
@@ -34,6 +35,8 @@ private slots:
 
 private:
     UserResponse _userResponse{ USER_RESPONSE_INVALID };
+
+    QPixmap diffPixmap;
 };
 
 
