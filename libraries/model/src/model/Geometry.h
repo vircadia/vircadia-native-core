@@ -135,6 +135,8 @@ public:
 
     static MeshPointer createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numTriangles, const glm::vec3* vertices = nullptr, const uint32_t* indices = nullptr);
 
+    QString displayName;
+
 protected:
 
     gpu::Stream::FormatPointer _vertexFormat;
