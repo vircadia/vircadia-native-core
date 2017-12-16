@@ -23,6 +23,9 @@ using namespace gpu;
 using PixelsPointer = Texture::PixelsPointer;
 using KtxStorage = Texture::KtxStorage;
 
+std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> KtxStorage::_cachedKtxFiles;
+std::mutex KtxStorage::_cachedKtxFilesMutex;
+
 struct GPUKTXPayload {
     using Version = uint8;
 
@@ -190,15 +193,26 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
     if (!_cacheFile) {
         _cacheFile = std::make_shared<storage::FileStorage>(_filename.c_str());
+        std::lock_guard<std::mutex> lock(KtxStorage::_cachedKtxFilesMutex);
+        _cachedKtxFiles.emplace_back(_cacheFile, _cacheFileMutex);
     }
     return _cacheFile;
+}
+
+void KtxStorage::clearKtxFiles() {
+    std::lock_guard<std::mutex> lock(KtxStorage::_cachedKtxFilesMutex);
+    for (auto& cacheFileAndMutex : KtxStorage::_cachedKtxFiles) {
+        std::lock_guard<std::mutex> lock(*(cacheFileAndMutex.second));
+        cacheFileAndMutex.first.reset();
+    }
+    _cachedKtxFiles.clear();
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
-        std::lock_guard<std::mutex> lock(_cacheFileMutex);
+        std::lock_guard<std::mutex> lock(*_cacheFileMutex);
         auto file = maybeOpenFile();
         if (file) {
             auto storageView = file->createView(faceSize, faceOffset);
@@ -244,7 +258,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         return;
     }
 
-    std::lock_guard<std::mutex> lock(_cacheFileMutex);
+    std::lock_guard<std::mutex> lock(*_cacheFileMutex);
     auto file = maybeOpenFile();
     if (!file) {
         qWarning() << "Failed to open file to assign mip data " << QString::fromStdString(_filename);
