@@ -89,6 +89,7 @@ public:
 
 protected:
     friend bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b);
+    friend bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b);
     void setFromOldAnimationSettings(const QString& value);
 };
 

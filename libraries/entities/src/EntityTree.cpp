@@ -1308,7 +1308,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;

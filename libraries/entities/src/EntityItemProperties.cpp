@@ -17,7 +17,6 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
