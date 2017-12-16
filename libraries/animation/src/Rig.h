@@ -31,7 +31,7 @@ class AnimInverseKinematics;
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
 
-class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+class Rig : public QObject {
     Q_OBJECT
 public:
     struct StateHandler {
