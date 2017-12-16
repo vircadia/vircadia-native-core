@@ -662,7 +662,7 @@ void CharacterController::updateState() {
         return;
     }
     if (_pendingFlags & PENDING_FLAG_RECOMPUTE_FLYING) {
-        setState(CharacterController::State::Hover, "recomputeFlying");
+        SET_STATE(CharacterController::State::Hover, "recomputeFlying");
          _hasSupport = false;
          _stepHeight = _minStepHeight; // clears memory of last step obstacle
          _pendingFlags &= ~PENDING_FLAG_RECOMPUTE_FLYING;
