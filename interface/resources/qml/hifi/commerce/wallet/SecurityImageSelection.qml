@@ -95,6 +95,10 @@ Item {
     function getSelectedImageIndex() {
         return gridModel.get(securityImageGrid.currentIndex).securityImageEnumValue;
     }
+
+    function initModel() {
+        gridModel.initModel();
+    }
     //
     // FUNCTION DEFINITIONS END
     //
