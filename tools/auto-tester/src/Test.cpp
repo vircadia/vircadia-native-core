@@ -266,7 +266,8 @@ void Test::createRecursiveScript() {
     if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
         messageBox.critical(0,
             "Internal Error",
-            "Failed to create \"allTests.js\" in directory \"" + topLevelDirectory + "\"");
+            "Failed to create \"allTests.js\" in directory \"" + topLevelDirectory + "\""
+        );
 
         exit(-1);
     }
@@ -339,7 +340,7 @@ void Test::createRecursiveScript() {
         // The script produced will look as follows:
         //      if (test1HasNotStarted) {
         //          test1HasNotStarted = false;
-        //          test1.test();
+        //          test1.test("auto");
         //          print("******started test 1******");
         //      }
         //      |
@@ -362,7 +363,7 @@ void Test::createRecursiveScript() {
             textStream << tab << tab << "if (test" << i - 1 << ".complete && test" << i << "HasNotStarted) {" << endl;
         }
         textStream << tab << tab << tab << "test" << i << "HasNotStarted = false;" << endl;
-        textStream << tab << tab << tab << "test" << i << "." << testFunction << "();" << endl;
+        textStream << tab << tab << tab << "test" << i << "." << testFunction << "(\"auto\");" << endl;
         textStream << tab << tab << tab << "print(\"******started test " << i << "******\");" << endl;
 
         textStream << tab << tab << "}" << endl << endl;
