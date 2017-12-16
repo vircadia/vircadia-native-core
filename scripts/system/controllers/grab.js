@@ -269,6 +269,7 @@ function Grabber() {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES,
         faceAvatar: true,
+        scaleWithAvatar: true,
         enabled: true,
         renderStates: renderStates
     });
