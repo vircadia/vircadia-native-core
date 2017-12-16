@@ -324,9 +324,8 @@ public:
     protected:
         std::shared_ptr<storage::FileStorage> maybeOpenFile() const;
 
-        mutable std::mutex _cacheFileCreateMutex;
-        mutable std::mutex _cacheFileWriteMutex;
-        mutable std::weak_ptr<storage::FileStorage> _cacheFile;
+        mutable std::mutex _cacheFileMutex;
+        mutable std::shared_ptr<storage::FileStorage> _cacheFile;
 
         std::string _filename;
         cache::FilePointer _cacheEntry;
