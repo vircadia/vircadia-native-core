@@ -1008,6 +1008,6 @@ void TabletButtonProxy::editProperties(const QVariantMap& properties) {
     }
 }
 
-QQuickItem *TabletButtonProxy::getQmlButton() const {
+QPointer<QQuickItem> TabletButtonProxy::getQmlButton() const {
     return _qmlButton;
 }

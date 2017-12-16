@@ -16,11 +16,13 @@ Item {
     readonly property int buttonsRowsOnPage: 4
     readonly property int buttonsColumnsOnPage: 3
 
+    property var currentGridItems: null
+
     focus: true
 
     Timer {
         id: gridsRecreateTimer
-        interval: 200
+        interval: 50
         repeat: false
         onTriggered: {
             doRecreateGrids()
@@ -57,6 +59,7 @@ Item {
                 grid.children[0].children.push(button);
             }
         }
+        swipeView.currentIndex = 0;
     }
 
     // used to look up a button by its uuid
@@ -241,10 +244,29 @@ Item {
         SwipeView {
             id: swipeView
             clip: false
-            currentIndex: pageIndicator.currentIndex
-            onCurrentIndexChanged: {
-                rowIndex = 0;
-                columnIndex = 0;
+            property int previousIndex: -1
+
+            onCurrentItemChanged: {
+                if (swipeView.currentIndex < 0
+                        || swipeView.itemAt(swipeView.currentIndex) === null
+                        || swipeView.itemAt(swipeView.currentIndex).children[0] === null
+                        || swipeView.itemAt(swipeView.currentIndex).children[0].children === null) {
+                    return;
+                }
+
+                currentGridItems = swipeView.itemAt(swipeView.currentIndex).children[0].children;
+
+                var row = rowIndex < 0 ? 0 : rowIndex;
+                var column = previousIndex > swipeView.currentIndex ? buttonsColumnsOnPage - 1 : 0;
+                var index = row * buttonsColumnsOnPage + column;
+                if (index < 0 || index >= currentGridItems.length) {
+                    column = 0;
+                    row = 0;
+                }
+                rowIndex = row;
+                columnIndex = column;
+                setCurrentItemState("hover state");
+                previousIndex = currentIndex;
             }
 
             hoverEnabled: true
@@ -266,7 +288,7 @@ Item {
 
                 Rectangle {
                     anchors.centerIn: parent
-                    opacity: index === pageIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
+                    opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
                     implicitWidth: index === pageIndicator.currentIndex ? 15 : 10
                     implicitHeight: implicitWidth
                     radius: width/2
@@ -287,44 +309,27 @@ Item {
     }
 
     function setCurrentItemState(state) {
-        var index = rowIndex*buttonsColumnsOnPage + columnIndex;
-        var currentGridItems = swipeView.currentItem.children[0].children;
-        if (currentGridItems !== null && index >= 0 && index < currentGridItems.length) {
-            if (currentGridItems[index].isActive) {
-                currentGridItems[index].state = "active state";
+        var buttonIndex = rowIndex * buttonsColumnsOnPage + columnIndex;
+        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
+            if (currentGridItems[buttonIndex].isActive) {
+                currentGridItems[buttonIndex].state = "active state";
             } else {
-                currentGridItems[index].state = state;
+                currentGridItems[buttonIndex].state = state;
             }
         }
     }
 
-    function previousPage() {
+    function nextItem() {        
         setCurrentItemState("base state");
-        var currentPage = swipeView.currentIndex;
-        currentPage = currentPage - 1;
-        if (currentPage < 0) {
-            currentPage = swipeView.count - 1;
-        }
-        swipeView.currentIndex = currentPage;
-    }
-
-    function nextPage() {
-        setCurrentItemState("base state");
-        var currentPage = swipeView.currentIndex;
-        currentPage = currentPage + 1;
-        if (currentPage >= swipeView.count) {
-            currentPage = 0;
-        }
-        swipeView.currentIndex = currentPage;
-    }
-
-    function nextItem() {
-        setCurrentItemState("base state");
-        var currentGridItems = swipeView.currentItem.children[0].children;
         var nextColumnIndex = columnIndex + 1;
-        var index = rowIndex*buttonsColumnsOnPage + nextColumnIndex;
-        if(index >= currentGridItems.length || nextColumnIndex >= buttonsColumnsOnPage) {
-            nextColumnIndex = 0;
+        var index = rowIndex * buttonsColumnsOnPage + nextColumnIndex;
+        if (index >= currentGridItems.length || nextColumnIndex >= buttonsColumnsOnPage) {
+            if (swipeView.currentIndex < swipeView.count - 1) {
+                swipeView.incrementCurrentIndex();
+            } else {
+                setCurrentItemState("hover state");
+            }
+            return;
         }
         columnIndex = nextColumnIndex;
         setCurrentItemState("hover state");
@@ -332,17 +337,15 @@ Item {
 
     function previousItem() {
         setCurrentItemState("base state");
-        var column = columnIndex;
-        column = column - 1;
+        var column = columnIndex - 1;
 
-        if (column < 0 ) {
-            column =  buttonsColumnsOnPage - 1;
-            var index = rowIndex*buttonsColumnsOnPage + column;
-            var currentGridItems = swipeView.currentItem.children[0].children;
-            while(index >= currentGridItems.length) {
-                column = column - 1;
-                index = rowIndex*buttonsColumnsOnPage + column;
+        if (column < 0) {
+            if (swipeView.currentIndex > 0) {
+                swipeView.decrementCurrentIndex();
+            } else {
+                setCurrentItemState("hover state");
             }
+            return;
         }
         columnIndex = column;
         setCurrentItemState("hover state");
@@ -350,16 +353,14 @@ Item {
 
     function upItem() {
         setCurrentItemState("base state");
-        var row = rowIndex;
-        row = row - 1;
+        var row = rowIndex - 1;
 
         if (row < 0 ) {
             row =  buttonsRowsOnPage - 1;
-            var index = row*buttonsColumnsOnPage + columnIndex;
-            var currentGridItems = swipeView.currentItem.children[0].children;
-            while(index >= currentGridItems.length) {
+            var index = row * buttonsColumnsOnPage + columnIndex;
+            while (index >= currentGridItems.length) {
                 row = row - 1;
-                index = row*buttonsColumnsOnPage + columnIndex;
+                index = row * buttonsColumnsOnPage + columnIndex;
             }
         }
         rowIndex = row;
@@ -369,8 +370,7 @@ Item {
     function downItem() {
         setCurrentItemState("base state");
         rowIndex = rowIndex + 1;
-        var currentGridItems = swipeView.currentItem.children[0].children;
-        var index = rowIndex*buttonsColumnsOnPage + columnIndex;
+        var index = rowIndex * buttonsColumnsOnPage + columnIndex;
         if (index >= currentGridItems.length) {
             rowIndex = 0;
         }
@@ -379,7 +379,6 @@ Item {
 
     function selectItem() {
         var index = rowIndex*buttonsColumnsOnPage + columnIndex;
-        var currentGridItems = swipeView.currentItem.children[0].children;
         if (currentGridItems !== null && index >= 0 && index < currentGridItems.length) {
             currentGridItems[index].clicked();
             if (tabletRoot) {
@@ -388,33 +387,9 @@ Item {
         }
     }
 
-    Keys.onRightPressed: {
-        if (event.modifiers & Qt.ShiftModifier) {
-            nextPage();
-        } else {
-            nextItem();
-        }
-    }
-    Keys.onLeftPressed: {
-        if (event.modifiers & Qt.ShiftModifier) {
-            previousPage();
-        } else {
-            previousItem();
-        }
-    }
-    Keys.onDownPressed: {
-        if (event.modifiers & Qt.ShiftModifier) {
-            nextPage();
-        } else {
-            downItem();
-        }
-    }
-    Keys.onUpPressed: {
-        if (event.modifiers & Qt.ShiftModifier) {
-            previousPage();
-        } else {
-            upItem();
-        }
-    }
+    Keys.onRightPressed: nextItem();
+    Keys.onLeftPressed: previousItem();
+    Keys.onDownPressed: downItem();
+    Keys.onUpPressed: upItem();
     Keys.onReturnPressed: selectItem();
 }

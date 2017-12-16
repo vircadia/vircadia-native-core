@@ -305,7 +305,7 @@ public:
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
-    QQuickItem *getQmlButton() const;
+    QPointer<QQuickItem> getQmlButton() const;
 
 public slots:
     void clickedSlot() { emit clicked(); }
@@ -321,7 +321,7 @@ signals:
 protected:
     QUuid _uuid;
     int _stableOrder;
-    QQuickItem* _qmlButton { nullptr };
+    QPointer<QQuickItem> _qmlButton;
     QObject* _toolbarButtonProxy { nullptr };
     QVariantMap _properties;
 };
