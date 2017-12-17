@@ -322,15 +322,16 @@ public:
         void reset() override { }
 
         // Don't keep files open forever.  We close them at the beginning of each frame (GLBackend::recycle)
-        static std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> _cachedKtxFiles;
-        static std::mutex _cachedKtxFilesMutex;
-        static void clearKtxFiles();
+        static void releaseOpenKtxFiles();
 
     protected:
         std::shared_ptr<storage::FileStorage> maybeOpenFile() const;
 
         mutable std::shared_ptr<std::mutex> _cacheFileMutex { std::make_shared<std::mutex>() };
         mutable std::shared_ptr<storage::FileStorage> _cacheFile;
+
+        static std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> _cachedKtxFiles;
+        static std::mutex _cachedKtxFilesMutex;
 
         std::string _filename;
         cache::FilePointer _cacheEntry;
