@@ -61,42 +61,42 @@ void HighlightStageConfig::setSelectionName(const QString& name) {
 }
 
 void HighlightStageConfig::setOutlineSmooth(bool isSmooth) {
-    editStyle().isOutlineSmooth = isSmooth;
+    editStyle()._isOutlineSmooth = isSmooth;
     emit dirty();
 }
 
 void HighlightStageConfig::setColorRed(float value) {
-    editStyle().color.r = value;
+    editStyle()._outlineUnoccluded.color.r = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setColorGreen(float value) {
-    editStyle().color.g = value;
+    editStyle()._outlineUnoccluded.color.g = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setColorBlue(float value) {
-    editStyle().color.b = value;
+    editStyle()._outlineUnoccluded.color.b = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setOutlineWidth(float value) {
-    editStyle().outlineWidth = value;
+    editStyle()._outlineWidth = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setOutlineIntensity(float value) {
-    editStyle().outlineIntensity = value;
+    editStyle()._outlineUnoccluded.alpha = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setUnoccludedFillOpacity(float value) {
-    editStyle().unoccludedFillOpacity = value;
+    editStyle()._fillUnoccluded.alpha = value;
     emit dirty();
 }
 
 void HighlightStageConfig::setOccludedFillOpacity(float value) {
-    editStyle().occludedFillOpacity = value;
+    editStyle()._fillOccluded.alpha = value;
     emit dirty();
 }
 

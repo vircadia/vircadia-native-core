@@ -689,7 +689,9 @@ void OffscreenQmlSurface::create() {
 
     // Setup the update of the QML media components with the current audio output device
     QObject::connect(&_audioOutputUpdateTimer, &QTimer::timeout, this, [this]() {
-        new AudioHandler(sharedFromThis(), _currentAudioOutputDevice);
+        if (_currentAudioOutputDevice.size() > 0) {
+            new AudioHandler(sharedFromThis(), _currentAudioOutputDevice);
+        }
     });
     int waitForAudioQmlMs = 200;
     _audioOutputUpdateTimer.setInterval(waitForAudioQmlMs);
@@ -707,6 +709,7 @@ void OffscreenQmlSurface::create() {
 
 void OffscreenQmlSurface::changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate) {
 #if !defined(Q_OS_ANDROID)
+    _currentAudioOutputDevice = deviceName;
     if (_rootItem != nullptr && !isHtmlUpdate) {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     }
@@ -716,10 +719,10 @@ void OffscreenQmlSurface::changeAudioOutputDevice(const QString& deviceName, boo
 
 void OffscreenQmlSurface::forceHtmlAudioOutputDeviceUpdate() {
 #if !defined(Q_OS_ANDROID)
-    auto audioIO = DependencyManager::get<AudioClient>();
-    QString deviceName = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
-    QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection,
-        Q_ARG(QString, deviceName), Q_ARG(bool, true));
+    if (_currentAudioOutputDevice.size() > 0) {
+        QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection,
+            Q_ARG(QString, _currentAudioOutputDevice), Q_ARG(bool, true));
+    }
 #endif
 }
 
@@ -728,8 +731,6 @@ void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
     if (QThread::currentThread() != qApp->thread()) {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
     } else {
-        auto audioIO = DependencyManager::get<AudioClient>();
-        _currentAudioOutputDevice = audioIO->getActiveAudioDevice(QAudio::AudioOutput).deviceName();
         if (_audioOutputUpdateTimer.isActive()) {
             _audioOutputUpdateTimer.stop();
         }
@@ -1166,6 +1167,7 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
         touchEvent.setTarget(_rootItem);
         touchEvent.setTouchPoints(touchPoints);
         touchEvent.setTouchPointStates(touchPointStates);
+        touchEvent.setTimestamp((ulong)QDateTime::currentMSecsSinceEpoch());
         touchEvent.ignore();
     }
 

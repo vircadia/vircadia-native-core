@@ -174,8 +174,14 @@ class ExtractFrustums {
 public:
 
     enum Frustum {
-        VIEW_FRUSTUM,
-        SHADOW_FRUSTUM,
+        SHADOW_CASCADE0_FRUSTUM = 0,
+        SHADOW_CASCADE1_FRUSTUM,
+        SHADOW_CASCADE2_FRUSTUM,
+        SHADOW_CASCADE3_FRUSTUM,
+
+        SHADOW_CASCADE_FRUSTUM_COUNT,
+
+        VIEW_FRUSTUM = SHADOW_CASCADE_FRUSTUM_COUNT,
 
         FRUSTUM_COUNT
     };

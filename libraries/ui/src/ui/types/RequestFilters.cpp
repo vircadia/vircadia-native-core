@@ -22,7 +22,7 @@
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
-        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
             metaverseServerURL.toString(), "metaverse.highfidelity.io"

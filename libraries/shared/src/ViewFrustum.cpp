@@ -71,6 +71,8 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     glm::vec4 top = inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
     top /= top.w;
     _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
+    _height = _corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_RIGHT_NEAR].y;
+    _width = _corners[TOP_RIGHT_NEAR].x - _corners[TOP_LEFT_NEAR].x;
 }
 
 // ViewFrustum::calculate()
@@ -691,7 +693,7 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
-const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) const {
+const ViewFrustum::Corners ViewFrustum::getCorners(const float depth) const {
     glm::vec3 normal = glm::normalize(_direction);
 
     auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {
@@ -749,4 +751,99 @@ void ViewFrustum::invalidate() {
         _planes[i].invalidate();
     }
     _centerSphereRadius = -1.0e6f; // -10^6 should be negative enough
+}
+
+void ViewFrustum::getSidePlanes(::Plane planes[4]) const {
+    planes[0] = _planes[TOP_PLANE];
+    planes[1] = _planes[BOTTOM_PLANE];
+    planes[2] = _planes[LEFT_PLANE];
+    planes[3] = _planes[RIGHT_PLANE];
+}
+
+void ViewFrustum::getTransformedSidePlanes(const Transform& transform, ::Plane planes[4]) const {
+    glm::mat4 normalTransform;
+    transform.getInverseTransposeMatrix(normalTransform);
+    getSidePlanes(planes);
+    for (auto i = 0; i < 4; i++) {
+        // We assume the transform doesn't have a non uniform scale component to apply the 
+        // transform to the normal without using the correct transpose of inverse.
+        auto transformedNormal = normalTransform * Transform::Vec4(planes[i].getNormal(), 0.0f);
+        auto planePoint = transform.transform(planes[i].getPoint());
+        glm::vec3 planeNormal(transformedNormal.x, transformedNormal.y, transformedNormal.z);
+        planes[i].setNormalAndPoint(planeNormal, planePoint);
+    }
+}
+
+void ViewFrustum::getUniformlyTransformedSidePlanes(const Transform& transform, ::Plane planes[4]) const {
+    getSidePlanes(planes);
+    for (auto i = 0; i < 4; i++) {
+        // We assume the transform doesn't have a non uniform scale component to apply the 
+        // transform to the normal without using the correct transpose of inverse.
+        auto planeNormal = transform.transformDirection(planes[i].getNormal());
+        auto planePoint = transform.transform(planes[i].getPoint());
+        planes[i].setNormalAndPoint(planeNormal, planePoint);
+    }
+}
+
+void ViewFrustum::tesselateSides(Triangle triangles[8]) const {
+    tesselateSides(_cornersWorld, triangles);
+}
+
+void ViewFrustum::tesselateSides(const Transform& transform, Triangle triangles[8]) const {
+    glm::vec3 points[8];
+
+    for (auto i = 0; i < 8; i++) {
+        points[i] = transform.transform(_cornersWorld[i]);
+    }
+
+    tesselateSides(points, triangles);
+}
+
+void ViewFrustum::tesselateSidesAndFar(const Transform& transform, Triangle triangles[10], float farDistance) const {
+    glm::vec3 points[8];
+
+    // First 4 points are at near
+    for (auto i = 0; i < 4; i++) {
+        points[i] = transform.transform(_cornersWorld[i]);
+    }
+    auto farCorners = getCorners(farDistance);
+
+    points[BOTTOM_LEFT_FAR] = transform.transform(farCorners.bottomLeft);
+    points[BOTTOM_RIGHT_FAR] = transform.transform(farCorners.bottomRight);
+    points[TOP_LEFT_FAR] = transform.transform(farCorners.topLeft);
+    points[TOP_RIGHT_FAR] = transform.transform(farCorners.topRight);
+
+    tesselateSides(points, triangles);
+    // Add far side
+    triangles[8].v0 = points[BOTTOM_LEFT_FAR];
+    triangles[8].v1 = points[BOTTOM_RIGHT_FAR];
+    triangles[8].v2 = points[TOP_RIGHT_FAR];
+
+    triangles[9].v0 = points[BOTTOM_LEFT_FAR];
+    triangles[9].v1 = points[TOP_LEFT_FAR];
+    triangles[9].v2 = points[TOP_RIGHT_FAR];
+}
+
+void ViewFrustum::tesselateSides(const glm::vec3 points[8], Triangle triangles[8]) {
+    static_assert(BOTTOM_RIGHT_NEAR == (BOTTOM_LEFT_NEAR + 1), "Assuming a certain sequence in corners");
+    static_assert(TOP_RIGHT_NEAR == (BOTTOM_RIGHT_NEAR + 1), "Assuming a certain sequence in corners");
+    static_assert(TOP_LEFT_NEAR == (TOP_RIGHT_NEAR + 1), "Assuming a certain sequence in corners");
+    static_assert(BOTTOM_RIGHT_FAR == (BOTTOM_LEFT_FAR + 1), "Assuming a certain sequence in corners");
+    static_assert(TOP_RIGHT_FAR == (BOTTOM_RIGHT_FAR + 1), "Assuming a certain sequence in corners");
+    static_assert(TOP_LEFT_FAR == (TOP_RIGHT_FAR + 1), "Assuming a certain sequence in corners");
+    static const int triangleVertexIndices[8][3] = {
+        { BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR },{ BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR },
+        { BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR },{ BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR },
+        { TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_RIGHT_FAR },{ TOP_LEFT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR },
+        { BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR },{ BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR }
+    };
+
+    for (auto i = 0; i < 8; i++) {
+        auto& triangle = triangles[i];
+        auto vertexIndices = triangleVertexIndices[i];
+
+        triangle.v0 = points[vertexIndices[0]];
+        triangle.v1 = points[vertexIndices[1]];
+        triangle.v2 = points[vertexIndices[2]];
+    }
 }

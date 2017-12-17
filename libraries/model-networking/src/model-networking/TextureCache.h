@@ -171,6 +171,7 @@ public:
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
+    void updateSpectatorCameraNetworkTexture();
 
     static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
     static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };

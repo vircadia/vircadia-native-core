@@ -22,9 +22,11 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
 
     // CPU jobs:
     // Fetch and cull the items from the scene
-    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const auto spatialFilter = render::Varying(filter);
     const auto spatialSelection = task.addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
-    const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
+    const auto cullInputs = CullSpatialSelection::Inputs(spatialSelection, spatialFilter).asVarying();
+    const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, RenderDetails::ITEM);
 
     // Overlays are not culled
     const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchOverlaySelection");
