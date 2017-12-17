@@ -898,8 +898,7 @@
         }
     }
     function keyReleaseEvent(event) {
-        if ((event.text.toUpperCase() === "X") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && !event.isControl
-                && !event.isAlt) {
+        if (event.text.toUpperCase() === "X" && !event.isAutoRepeat) {
             updateTriggers(0.0, true, Controller.Standard.RightHand);
         }
     }
