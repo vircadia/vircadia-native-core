@@ -193,19 +193,22 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
     if (!_cacheFile) {
         _cacheFile = std::make_shared<storage::FileStorage>(_filename.c_str());
-        std::lock_guard<std::mutex> lock(KtxStorage::_cachedKtxFilesMutex);
+        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
         _cachedKtxFiles.emplace_back(_cacheFile, _cacheFileMutex);
     }
     return _cacheFile;
 }
 
-void KtxStorage::clearKtxFiles() {
-    std::lock_guard<std::mutex> lock(KtxStorage::_cachedKtxFilesMutex);
-    for (auto& cacheFileAndMutex : KtxStorage::_cachedKtxFiles) {
+void KtxStorage::releaseOpenKtxFiles() {
+    std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> localKtxFiles;
+    {
+        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
+        localKtxFiles.swap(_cachedKtxFiles);
+    }
+    for (auto& cacheFileAndMutex : localKtxFiles) {
         std::lock_guard<std::mutex> lock(*(cacheFileAndMutex.second));
         cacheFileAndMutex.first.reset();
     }
-    _cachedKtxFiles.clear();
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
