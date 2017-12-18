@@ -993,11 +993,8 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     }
 
     {
-        // the current frame is set on the server in update() in ModelEntityItem.cpp     
+        // the current frame is set on the server in update() in ModelEntityItem.cpp
         int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
-        
-        // in the case where the last frame is greater than the framecount then clamp
-        // it to the end of the animation until it loops around. 
         if (animationCurrentFrame < 0 || animationCurrentFrame >= frameCount) {
             animationCurrentFrame = 0;
         }
