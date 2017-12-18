@@ -62,6 +62,7 @@ public:
 
     void stepSimulation();
     void harvestPerformanceStats();
+    void printPerformanceStatsToFile(const QString& filename);
     void updateContactMap();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
@@ -75,6 +76,9 @@ public:
 
     /// \brief prints timings for last frame if stats have been requested.
     void dumpStatsIfNecessary();
+
+    /// \brief saves timings for last frame in filename
+    void saveNextPhysicsStats(QString filename);
 
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
@@ -94,7 +98,6 @@ public:
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
-    void recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName);
 
     /// \brief bump any objects that touch this one, then remove contact info
     void bumpAndPruneContacts(ObjectMotionState* motionState);
@@ -116,6 +119,7 @@ private:
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
     QHash<btRigidBody*, QSet<QUuid>> _objectDynamicsByBody;
     std::set<btRigidBody*> _activeStaticBodies;
+    QString _statsFilename;
 
     glm::vec3 _originOffset;
 
@@ -124,8 +128,9 @@ private:
     uint32_t _numContactFrames = 0;
     uint32_t _numSubsteps;
 
-    bool _dumpNextStats = false;
-    bool _hasOutgoingChanges = false;
+    bool _dumpNextStats { false };
+    bool _saveNextStats { false };
+    bool _hasOutgoingChanges { false };
 
 };
 

@@ -11,7 +11,12 @@
 
 #include <PhysicsCollisionGroups.h>
 
+#include <functional>
+
+#include <QFile>
+
 #include <PerfStat.h>
+#include <Profile.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
@@ -290,6 +295,7 @@ void PhysicsEngine::stepSimulation() {
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
     if (_myAvatarController) {
+        DETAILED_PROFILE_RANGE(simulation_physics, "avatarController");
         BT_PROFILE("avatarController");
         // TODO: move this stuff outside and in front of stepSimulation, because
         // the updateShapeIfNecessary() call needs info from MyAvatar and should
@@ -328,45 +334,107 @@ void PhysicsEngine::stepSimulation() {
     }
 }
 
+class CProfileOperator {
+public:
+    CProfileOperator() {}
+    void recurse(CProfileIterator* itr, QString context) {
+        // The context string will get too long if we accumulate it properly
+        //QString newContext = context + QString("/") + itr->Get_Current_Parent_Name();
+        // so we use this four-character indentation
+        QString newContext = context + QString(".../");
+        process(itr, newContext);
+
+        // count the children
+        int32_t numChildren = 0;
+        itr->First();
+        while (!itr->Is_Done()) {
+            itr->Next();
+            ++numChildren;
+        }
+
+        // recurse the children
+        if (numChildren > 0) {
+            // recurse the children
+            for (int32_t i = 0; i < numChildren; ++i) {
+                itr->Enter_Child(i);
+                recurse(itr, newContext);
+            }
+        }
+        // retreat back to parent
+        itr->Enter_Parent();
+    }
+    virtual void process(CProfileIterator*, QString context) = 0;
+};
+
+class StatsHarvester : public CProfileOperator {
+public:
+    StatsHarvester() {}
+    void process(CProfileIterator* itr, QString context) override {
+            QString name = context + itr->Get_Current_Parent_Name();
+            uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * itr->Get_Current_Parent_Total_Time());
+            PerformanceTimer::addTimerRecord(name, time);
+        };
+};
+
+class StatsWriter : public CProfileOperator {
+public:
+    StatsWriter(QString filename) : _file(filename) {
+        _file.open(QFile::WriteOnly);
+        if (_file.error() != QFileDevice::NoError) {
+            qCDebug(physics) << "unable to open file " << _file.fileName() << " to save stepSimulation() stats";
+        }
+    }
+    ~StatsWriter() {
+        _file.close();
+    }
+    void process(CProfileIterator* itr, QString context) override {
+        QString name = context + itr->Get_Current_Parent_Name();
+        float time = (btScalar)MSECS_PER_SECOND * itr->Get_Current_Parent_Total_Time();
+        if (_file.error() == QFileDevice::NoError) {
+            QTextStream s(&_file);
+            s << name << " = " << time << "\n";
+        }
+    }
+protected:
+    QFile _file;
+};
+
 void PhysicsEngine::harvestPerformanceStats() {
     // unfortunately the full context names get too long for our stats presentation format
     //QString contextName = PerformanceTimer::getContextName(); // TODO: how to show full context name?
     QString contextName("...");
 
-    CProfileIterator* profileIterator = CProfileManager::Get_Iterator();
-    if (profileIterator) {
+    CProfileIterator* itr = CProfileManager::Get_Iterator();
+    if (itr) {
         // hunt for stepSimulation context
-        profileIterator->First();
-        for (int32_t childIndex = 0; !profileIterator->Is_Done(); ++childIndex) {
-            if (QString(profileIterator->Get_Current_Name()) == "stepSimulation") {
-                profileIterator->Enter_Child(childIndex);
-                recursivelyHarvestPerformanceStats(profileIterator, contextName);
+        itr->First();
+        for (int32_t childIndex = 0; !itr->Is_Done(); ++childIndex) {
+            if (QString(itr->Get_Current_Name()) == "stepSimulation") {
+                itr->Enter_Child(childIndex);
+                StatsHarvester harvester;
+                harvester.recurse(itr, "step/");
                 break;
             }
-            profileIterator->Next();
+            itr->Next();
         }
     }
 }
 
-void PhysicsEngine::recursivelyHarvestPerformanceStats(CProfileIterator* profileIterator, QString contextName) {
-    QString parentContextName = contextName + QString("/") + QString(profileIterator->Get_Current_Parent_Name());
-    // get the stats for the children
-    int32_t numChildren = 0;
-    profileIterator->First();
-    while (!profileIterator->Is_Done()) {
-        QString childContextName = parentContextName + QString("/") + QString(profileIterator->Get_Current_Name());
-        uint64_t time = (uint64_t)((btScalar)MSECS_PER_SECOND * profileIterator->Get_Current_Total_Time());
-        PerformanceTimer::addTimerRecord(childContextName, time);
-        profileIterator->Next();
-        ++numChildren;
+void PhysicsEngine::printPerformanceStatsToFile(const QString& filename) {
+    CProfileIterator* itr = CProfileManager::Get_Iterator();
+    if (itr) {
+        // hunt for stepSimulation context
+        itr->First();
+        for (int32_t childIndex = 0; !itr->Is_Done(); ++childIndex) {
+            if (QString(itr->Get_Current_Name()) == "stepSimulation") {
+                itr->Enter_Child(childIndex);
+                StatsWriter writer(filename);
+                writer.recurse(itr, "");
+                break;
+            }
+            itr->Next();
+        }
     }
-    // recurse the children
-    for (int32_t i = 0; i < numChildren; ++i) {
-        profileIterator->Enter_Child(i);
-        recursivelyHarvestPerformanceStats(profileIterator, contextName);
-    }
-    // retreat back to parent
-    profileIterator->Enter_Parent();
 }
 
 void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB) {
@@ -399,6 +467,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
 }
 
 void PhysicsEngine::updateContactMap() {
+    DETAILED_PROFILE_RANGE(simulation_physics, "updateContactMap");
     BT_PROFILE("updateContactMap");
     ++_numContactFrames;
 
@@ -515,8 +584,19 @@ const VectorOfMotionStates& PhysicsEngine::getChangedMotionStates() {
 void PhysicsEngine::dumpStatsIfNecessary() {
     if (_dumpNextStats) {
         _dumpNextStats = false;
+        CProfileManager::Increment_Frame_Counter();
+        if (_saveNextStats) {
+            _saveNextStats = false;
+            printPerformanceStatsToFile(_statsFilename);
+        }
         CProfileManager::dumpAll();
     }
+}
+
+void PhysicsEngine::saveNextPhysicsStats(QString filename) {
+    _saveNextStats = true;
+    _dumpNextStats = true;
+    _statsFilename = filename;
 }
 
 // Bullet collision flags are as follows:
