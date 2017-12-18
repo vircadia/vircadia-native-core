@@ -17,7 +17,7 @@
 
 (function () {
 
-    var root = document.getElementById("particle-explorer");
+    var root = document.getElementById("properties-list");
 
     window.onload = function () {
         var ui = new HifiEntityUI(root);
