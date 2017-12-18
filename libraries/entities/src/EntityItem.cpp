@@ -2840,7 +2840,7 @@ void EntityItem::retrieveMarketplacePublicKey() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath("/api/v1/commerce/marketplace_key");
     QJsonObject request;
     networkRequest.setUrl(requestURL);
