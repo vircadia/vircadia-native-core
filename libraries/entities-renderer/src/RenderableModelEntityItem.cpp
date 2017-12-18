@@ -998,7 +998,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         
         // in the case where the last frame is greater than the framecount then clamp
         // it to the end of the animation until it loops around. 
-        if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
+        if (animationCurrentFrame < 0 || animationCurrentFrame >= frameCount) {
             animationCurrentFrame = 0;
         }
 
