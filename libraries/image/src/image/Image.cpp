@@ -981,7 +981,7 @@ public:
     static QImage extractEquirectangularFace(const QImage& source, gpu::Texture::CubeFace face, int faceWidth) {
         QImage image(faceWidth, faceWidth, source.format());
 
-        glm::vec2 dstInvSize(1.0f / (float)source.width(), 1.0f / (float)source.height());
+        glm::vec2 dstInvSize(1.0f / faceWidth);
 
         struct CubeToXYZ {
             gpu::Texture::CubeFace _face;
