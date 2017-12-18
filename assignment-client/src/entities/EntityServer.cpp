@@ -477,7 +477,7 @@ void EntityServer::startDynamicDomainVerification() {
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                 networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
                 QJsonObject request;
                 request["certificate_id"] = i.key();
