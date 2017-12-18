@@ -41,7 +41,16 @@
 #include <glm/gtc/packing.hpp>
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
+
+#define FBX_PACK_COLORS 1
+
+#if FBX_PACK_COLORS
 using ColorType = glm::uint32;
+#define FBX_COLOR_ELEMENT gpu::Element::COLOR_RGBA_32
+#else
+using ColorType = glm::vec3;
+#define FBX_COLOR_ELEMENT gpu::Element::VEC3F_XYZ
+#endif
 
 class Vertex {
 public:
@@ -230,7 +239,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Colors") {
                     data.colors = createVec4VectorRGBA(getDoubleVector(subdata), data.averageColor);
-                } else if (subdata.name == "ColorsIndex") {
+                } else if (subdata.name == "ColorsIndex" || subdata.name == "ColorIndex") {
                     data.colorIndices = getIntVector(subdata);
 
                 } else if (subdata.name == "MappingInformationType" && subdata.properties.at(0) == BY_VERTICE) {
@@ -655,6 +664,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
 
     if (colorsSize > 0) {
+#if FBX_PACK_COLORS
         std::vector<ColorType> colors;
 
         colors.reserve(fbxMesh.colors.size());
@@ -662,6 +672,9 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             colors.push_back(glm::packUnorm4x8(glm::vec4(color, 1.0f)));
         }
         attribBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) colors.data());
+#else
+        attribBuffer->setSubData(colorsOffset, colorsSize, (const gpu::Byte*) fbxMesh.colors.constData());
+#endif
     }
 
     if (texCoordsSize > 0) {
@@ -715,8 +728,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
     if (colorsSize) {
         mesh->addAttribute(gpu::Stream::COLOR,
-                           model::BufferView(attribBuffer, colorsOffset, colorsSize,
-                           gpu::Element::COLOR_RGBA_32));
+                           model::BufferView(attribBuffer, colorsOffset, colorsSize, FBX_COLOR_ELEMENT));
     }
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
