@@ -92,6 +92,8 @@ namespace gpu { namespace gl {
 
             // this is the maximum per shader stage on the low end apple
             // TODO make it platform dependant at init time
+            static const int MAX_NUM_RESOURCE_BUFFERS = 16;
+            size_t getMaxNumResourceBuffers() const { return MAX_NUM_RESOURCE_BUFFERS; }
             static const int MAX_NUM_RESOURCE_TEXTURES = 16;
             size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
@@ -121,6 +123,7 @@ namespace gpu { namespace gl {
             virtual void do_setUniformBuffer(const Batch& batch, size_t paramOffset) final;
 
             // Resource Stage
+            virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
             virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
 
             // Pipeline Stage
@@ -138,6 +141,12 @@ namespace gpu { namespace gl {
 
             // Reset stages
             virtual void do_resetStages(const Batch& batch, size_t paramOffset) final;
+
+            virtual void do_disableContextViewCorrection(const Batch& batch, size_t paramOffset) final;
+            virtual void do_restoreContextViewCorrection(const Batch& batch, size_t paramOffset) final;
+
+            virtual void do_disableContextStereo(const Batch& batch, size_t paramOffset) final;
+            virtual void do_restoreContextStereo(const Batch& batch, size_t paramOffset) final;
 
             virtual void do_runLambda(const Batch& batch, size_t paramOffset) final;
 
@@ -322,6 +331,7 @@ namespace gpu { namespace gl {
                 bool _skybox { false };
                 Transform _view;
                 CameraCorrection _correction;
+                bool _viewCorrectionEnabled{ true };
 
                 Mat4 _projection;
                 Vec4i _viewport { 0, 0, 1, 1 };
@@ -353,12 +363,18 @@ namespace gpu { namespace gl {
             void releaseUniformBuffer(uint32_t slot);
             void resetUniformStage();
 
+            // update resource cache and do the gl bind/unbind call with the current gpu::Buffer cached at slot s
+            // This is using different gl object  depending on the gl version
+            virtual bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) = 0;
+            virtual void releaseResourceBuffer(uint32_t slot) = 0;
+
             // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
             void releaseResourceTexture(uint32_t slot);
 
             void resetResourceStage();
 
             struct ResourceStageState {
+                std::array<BufferPointer, MAX_NUM_RESOURCE_BUFFERS> _buffers;
                 std::array<TexturePointer, MAX_NUM_RESOURCE_TEXTURES> _textures;
                 //Textures _textures { { MAX_NUM_RESOURCE_TEXTURES } };
                 int findEmptyTextureSlot() const;

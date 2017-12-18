@@ -197,6 +197,36 @@ void GLBackend::resetResourceStage() {
     }
 }
 
+void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
+    GLuint slot = batch._params[paramOffset + 1]._uint;
+    if (slot >= (GLuint)MAX_NUM_RESOURCE_BUFFERS) {
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" << slot << " which doesn't exist. MaxNumResourceBuffers = " << getMaxNumResourceBuffers();
+        return;
+    }
+
+    auto resourceBuffer = batch._buffers.get(batch._params[paramOffset + 0]._uint);
+
+    if (!resourceBuffer) {
+        releaseResourceBuffer(slot);
+        return;
+    }
+    // check cache before thinking
+    if (_resource._buffers[slot] == resourceBuffer) {
+        return;
+    }
+
+    // One more True Buffer bound
+    _stats._RSNumResourceBufferBounded++;
+
+    // If successful bind then cache it
+    if (bindResourceBuffer(slot, resourceBuffer)) {
+        _resource._buffers[slot] = resourceBuffer;
+    } else { // else clear slot and cache
+        releaseResourceBuffer(slot);
+        return;
+    }
+}
+
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {

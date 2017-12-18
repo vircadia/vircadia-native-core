@@ -50,9 +50,15 @@ extern "C" {
     typedef void (GL_APIENTRYP PFNGLQUERYCOUNTEREXTPROC) (GLuint id, GLenum target);
     typedef void (GL_APIENTRYP PFNGLGETQUERYOBJECTUI64VEXTPROC) (GLuint id, GLenum pname, GLuint64 *params);
     typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREEXTPROC) (GLenum target, GLenum attachment, GLuint texture, GLint level);
-    extern PFNGLQUERYCOUNTEREXTPROC glQueryCounterEXT;
-    extern PFNGLGETQUERYOBJECTUI64VEXTPROC glGetQueryObjectui64vEXT;
-    extern PFNGLFRAMEBUFFERTEXTUREEXTPROC glFramebufferTextureEXT;
+
+
+    #define glQueryCounterEXT __glQueryCounterEXT
+    #define glGetQueryObjectui64vEXT __glGetQueryObjectui64vEXT
+    #define glFramebufferTextureEXT __glFramebufferTextureEXT
+
+    extern PFNGLQUERYCOUNTEREXTPROC __glQueryCounterEXT;
+    extern PFNGLGETQUERYOBJECTUI64VEXTPROC __glGetQueryObjectui64vEXT;
+    extern PFNGLFRAMEBUFFERTEXTUREEXTPROC __glFramebufferTextureEXT;
 }
 
 #else // !defined(Q_OS_ANDROID)

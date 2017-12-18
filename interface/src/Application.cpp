@@ -663,11 +663,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<Preferences>();
-    DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ScriptCache>();
@@ -845,7 +845,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     _logger = new FileLogger(this);
+#ifndef Q_OS_ANDROID
+    // this prevents using logcat
     qInstallMessageHandler(messageHandler);
+#endif
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("High Fidelity Interface");
@@ -2201,6 +2204,7 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    gl::initModuleGl();
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
     _chromiumShareContext->setObjectName("ChromiumShareContext");
@@ -2223,9 +2227,15 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+#ifndef Q_OS_ANDROID
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+#else
+    bool isDeferred = false;
+#endif
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
+#ifndef Q_OS_ANDROID
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, isDeferred);
+#endif
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -3907,12 +3917,18 @@ void Application::idle() {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _renderEngine->getConfiguration();
     PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_gpuContext->getFrameTimerGPUAverage());
+    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
+    auto linearDepth = renderConfig->getConfig("LinearDepth");
+    auto surfaceGeometry = renderConfig->getConfig("SurfaceGeometry");
+    auto renderDeferred = renderConfig->getConfig("RenderDeferred");
+    auto toneAndPostRangeTimer = renderConfig->getConfig("ToneAndPostRangeTimer");
+
     PROFILE_COUNTER(render_detail, "gpuTimes", {
-        { "OpaqueRangeTimer", renderConfig->getConfig("OpaqueRangeTimer")->property("gpuRunTime") },
-        { "LinearDepth", renderConfig->getConfig("LinearDepth")->property("gpuRunTime") },
-        { "SurfaceGeometry", renderConfig->getConfig("SurfaceGeometry")->property("gpuRunTime") },
-        { "RenderDeferred", renderConfig->getConfig("RenderDeferred")->property("gpuRunTime") },
-        { "ToneAndPostRangeTimer", renderConfig->getConfig("ToneAndPostRangeTimer")->property("gpuRunTime") }
+        { "OpaqueRangeTimer", opaqueRangeTimer ? opaqueRangeTimer->property("gpuRunTime") : 0 },
+        { "LinearDepth", linearDepth ? linearDepth->property("gpuRunTime") : 0 },
+        { "SurfaceGeometry", surfaceGeometry ? surfaceGeometry->property("gpuRunTime") : 0 },
+        { "RenderDeferred", renderDeferred ? renderDeferred->property("gpuRunTime") : 0 },
+        { "ToneAndPostRangeTimer", toneAndPostRangeTimer ? toneAndPostRangeTimer->property("gpuRunTime") : 0 }
     });
 
     PROFILE_RANGE(app, __FUNCTION__);
@@ -4277,9 +4293,9 @@ void Application::init() {
     
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-
+#ifndef Q_OS_ANDROID
     DependencyManager::get<DeferredLightingEffect>()->init();
-
+#endif
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
