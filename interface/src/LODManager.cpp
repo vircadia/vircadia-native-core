@@ -64,11 +64,11 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
 
     // translate into fps for legacy implementation
     float currentFPS = (float)MSECS_PER_SECOND / _avgRenderTime;
-    
+
     _fpsAverageStartWindow.updateAverage(currentFPS);
     _fpsAverageDownWindow.updateAverage(currentFPS);
     _fpsAverageUpWindow.updateAverage(currentFPS);
-    
+
     quint64 now = usecTimestampNow();
 
     quint64 elapsedSinceDownShift = now - _lastDownShift;
@@ -76,22 +76,22 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
 
     quint64 lastStableOrUpshift = glm::max(_lastUpShift, _lastStable);
     quint64 elapsedSinceStableOrUpShift = now - lastStableOrUpshift;
-    
+
     if (_automaticLODAdjust) {
         bool changed = false;
-    
-        // LOD Downward adjustment 
+
+        // LOD Downward adjustment
         // If we've been downshifting, we watch a shorter downshift window so that we will quickly move toward our
         // target frame rate. But if we haven't just done a downshift (either because our last shift was an upshift,
         // or because we've just started out) then we look at a much longer window to consider whether or not to start
         // downshifting.
-        bool doDownShift = false; 
+        bool doDownShift = false;
 
         if (_isDownshifting) {
             // only consider things if our DOWN_SHIFT time has elapsed...
             if (elapsedSinceDownShift > DOWN_SHIFT_ELPASED) {
                 doDownShift = _fpsAverageDownWindow.getAverage() < getLODDecreaseFPS();
-                
+
                 if (!doDownShift) {
                     qCDebug(interfaceapp) << "---- WE APPEAR TO BE DONE DOWN SHIFTING -----";
                     _isDownshifting = false;
@@ -99,10 +99,10 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
                 }
             }
         } else {
-            doDownShift = (elapsedSinceStableOrUpShift > START_SHIFT_ELPASED 
+            doDownShift = (elapsedSinceStableOrUpShift > START_SHIFT_ELPASED
                                 && _fpsAverageStartWindow.getAverage() < getLODDecreaseFPS());
         }
-        
+
         if (doDownShift) {
 
             // Octree items... stepwise adjustment
@@ -118,17 +118,17 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
                 if (_isDownshifting) {
                     // subsequent downshift
                     qCDebug(interfaceapp) << "adjusting LOD DOWN..."
-                                << "average fps for last "<< DOWN_SHIFT_WINDOW_IN_SECS <<"seconds was " 
-                                << _fpsAverageDownWindow.getAverage() 
-                                << "minimum is:" << getLODDecreaseFPS() 
+                                << "average fps for last "<< DOWN_SHIFT_WINDOW_IN_SECS <<"seconds was "
+                                << _fpsAverageDownWindow.getAverage()
+                                << "minimum is:" << getLODDecreaseFPS()
                                 << "elapsedSinceDownShift:" << elapsedSinceDownShift
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
                 } else {
                     // first downshift
                     qCDebug(interfaceapp) << "adjusting LOD DOWN after initial delay..."
-                                << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was " 
-                                << _fpsAverageStartWindow.getAverage() 
-                                << "minimum is:" << getLODDecreaseFPS() 
+                                << "average fps for last "<< START_DELAY_WINDOW_IN_SECS <<"seconds was "
+                                << _fpsAverageStartWindow.getAverage()
+                                << "minimum is:" << getLODDecreaseFPS()
                                 << "elapsedSinceUpShift:" << elapsedSinceUpShift
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
                 }
@@ -139,10 +139,10 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
                 emit LODDecreased();
             }
         } else {
-    
+
             // LOD Upward adjustment
             if (elapsedSinceUpShift > UP_SHIFT_ELPASED) {
-            
+
                 if (_fpsAverageUpWindow.getAverage() > getLODIncreaseFPS()) {
 
                     // Octee items... stepwise adjustment
@@ -158,11 +158,11 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
                         changed = true;
                     }
                 }
-        
+
                 if (changed) {
-                    qCDebug(interfaceapp) << "adjusting LOD UP... average fps for last "<< UP_SHIFT_WINDOW_IN_SECS <<"seconds was " 
+                    qCDebug(interfaceapp) << "adjusting LOD UP... average fps for last "<< UP_SHIFT_WINDOW_IN_SECS <<"seconds was "
                                 << _fpsAverageUpWindow.getAverage()
-                                << "upshift point is:" << getLODIncreaseFPS() 
+                                << "upshift point is:" << getLODIncreaseFPS()
                                 << "elapsedSinceUpShift:" << elapsedSinceUpShift
                                 << " NEW _octreeSizeScale=" << _octreeSizeScale;
 
@@ -173,7 +173,7 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
                 }
             }
         }
-    
+
         if (changed) {
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
