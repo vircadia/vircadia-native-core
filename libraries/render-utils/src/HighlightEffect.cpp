@@ -88,7 +88,7 @@ HighlightSharedParameters::HighlightSharedParameters() {
 }
 
 float HighlightSharedParameters::getBlurPixelWidth(const render::HighlightStyle& style, int frameBufferHeight) {
-    return ceilf(style.outlineWidth * frameBufferHeight / 400.0f);
+    return ceilf(style._outlineWidth * frameBufferHeight / 400.0f);
 }
 
 PrepareDrawHighlight::PrepareDrawHighlight() {
@@ -267,14 +267,19 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                 {
                     auto& shaderParameters = _configuration.edit();
 
-                    shaderParameters._color = highlight._style.color;
-                    shaderParameters._intensity = highlight._style.outlineIntensity * (highlight._style.isOutlineSmooth ? 2.0f : 1.0f);
-                    shaderParameters._unoccludedFillOpacity = highlight._style.unoccludedFillOpacity;
-                    shaderParameters._occludedFillOpacity = highlight._style.occludedFillOpacity;
-                    shaderParameters._threshold = highlight._style.isOutlineSmooth ? 1.0f : 1e-3f;
-                    shaderParameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(highlight._style.outlineWidth * 3 + 0.5f)));
+                    shaderParameters._outlineUnoccludedColor = highlight._style._outlineUnoccluded.color;
+                    shaderParameters._outlineUnoccludedAlpha = highlight._style._outlineUnoccluded.alpha * (highlight._style._isOutlineSmooth ? 2.0f : 1.0f);
+                    shaderParameters._outlineOccludedColor = highlight._style._outlineOccluded.color;
+                    shaderParameters._outlineOccludedAlpha = highlight._style._outlineOccluded.alpha * (highlight._style._isOutlineSmooth ? 2.0f : 1.0f);
+                    shaderParameters._fillUnoccludedColor = highlight._style._fillUnoccluded.color;
+                    shaderParameters._fillUnoccludedAlpha = highlight._style._fillUnoccluded.alpha;
+                    shaderParameters._fillOccludedColor = highlight._style._fillOccluded.color;
+                    shaderParameters._fillOccludedAlpha = highlight._style._fillOccluded.alpha;
+
+                    shaderParameters._threshold = highlight._style._isOutlineSmooth ? 1.0f : 1e-3f;
+                    shaderParameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(highlight._style._outlineWidth * 3 + 0.5f)));
                     // Size is in normalized screen height. We decide that for highlight width = 1, this is equal to 1/400.
-                    auto size = highlight._style.outlineWidth / 400.0f;
+                    auto size = highlight._style._outlineWidth / 400.0f;
                     shaderParameters._size.x = (size * framebufferSize.y) / framebufferSize.x;
                     shaderParameters._size.y = size;
                 }
@@ -432,19 +437,20 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
     outputs.clear();
     _sharedParameters->_highlightIds.fill(render::HighlightStage::INVALID_INDEX);
 
-    for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
-        std::ostringstream stream;
-        if (i > 0) {
-            stream << "highlightList" << i;
-        } else {
-            stream << "contextOverlayHighlightList";
-        }
-        auto selectionName = stream.str();
-        if (!scene->isSelectionEmpty(selectionName)) {
-            auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);
-            if (!render::HighlightStage::isIndexInvalid(highlightId)) {
-                _sharedParameters->_highlightIds[outputs.size()] = highlightId;
-                outputs.emplace_back(selectionName);
+    int numLayers = 0;
+    auto highlightList = highlightStage->getActiveHighlightIds();
+
+    for (auto styleId : highlightList) {
+        auto highlight = highlightStage->getHighlight(styleId);
+
+        if (!scene->isSelectionEmpty(highlight._selectionName)) {
+            auto highlightId = highlightStage->getHighlightIdBySelection(highlight._selectionName);
+            _sharedParameters->_highlightIds[outputs.size()] = highlightId;
+            outputs.emplace_back(highlight._selectionName);
+            numLayers++;
+
+            if (numLayers == HighlightSharedParameters::MAX_PASS_COUNT) {
+                break;
             }
         }
     }

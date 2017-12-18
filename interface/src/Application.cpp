@@ -971,7 +971,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto addressManager = DependencyManager::get<AddressManager>();
 
@@ -2812,10 +2812,10 @@ static int getEventQueueSize(QThread* thread) {
 static void dumpEventQueue(QThread* thread) {
     auto threadData = QThreadData::get2(thread);
     QMutexLocker locker(&threadData->postEventList.mutex);
-    qDebug() << "AJT: event list, size =" << threadData->postEventList.size();
+    qDebug() << "Event list, size =" << threadData->postEventList.size();
     for (auto& postEvent : threadData->postEventList) {
         QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
-        qDebug() << "AJT:    " << type;
+        qDebug() << "    " << type;
     }
 }
 #endif // DEBUG_EVENT_QUEUE
@@ -5974,7 +5974,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         }
     }
 
-    if (defaultUpload) {
+    if (defaultUpload && !url.fileName().isEmpty() && url.isLocalFile()) {
         showAssetServerWidget(urlString);
     }
     return defaultUpload;

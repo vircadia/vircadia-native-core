@@ -169,7 +169,12 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
-            batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
+            if (hazePointer) {
+                batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
+            } else {
+                // Something is wrong, so just quit Haze
+                return;
+            }
         }
 
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
@@ -178,7 +183,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 	    if (lightStage) {
 	        model::LightPointer keyLight;
 	        keyLight = lightStage->getCurrentKeyLight();
-	        if (keyLight != nullptr) {
+	        if (keyLight) {
 	            batch.setUniformBuffer(HazeEffect_LightingMapSlot, keyLight->getLightSchemaBuffer());
 	        }
 	    }

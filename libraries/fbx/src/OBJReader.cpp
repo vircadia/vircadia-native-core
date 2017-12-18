@@ -56,7 +56,7 @@ float OBJTokenizer::getFloat() {
     return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data());
 }
 
-int OBJTokenizer::nextToken() {
+int OBJTokenizer::nextToken(bool allowSpaceChar /*= false*/) {
     if (_pushedBackToken != NO_PUSHBACKED_TOKEN) {
         int token = _pushedBackToken;
         _pushedBackToken = NO_PUSHBACKED_TOKEN;
@@ -93,7 +93,7 @@ int OBJTokenizer::nextToken() {
                 _datum = "";
                 _datum.append(ch);
                 while (_device->getChar(&ch)) {
-                    if (QChar(ch).isSpace() || ch == '\"') {
+                    if ((QChar(ch).isSpace() || ch == '\"') && (!allowSpaceChar || ch != ' ')) {
                         ungetChar(ch); // read until we encounter a special character, then replace it
                         break;
                     }
@@ -399,7 +399,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 currentMaterialName = QString("part-") + QString::number(_partCounter++);
             }
         } else if (token == "mtllib" && !_url.isEmpty()) {
-            if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
+            if (tokenizer.nextToken(true) != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
             QByteArray libraryName = tokenizer.getDatum();

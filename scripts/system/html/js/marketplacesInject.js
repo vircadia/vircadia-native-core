@@ -265,8 +265,10 @@
         });
 
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
-            $(this).attr('data-href', $(this).attr('href'));
-            $(this).attr('href', '#');
+            if ($(this).attr('href') !== '#') { // Guard necessary because of the AJAX nature of Marketplace site
+                $(this).attr('data-href', $(this).attr('href'));
+                $(this).attr('href', '#');
+            }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
@@ -327,6 +329,19 @@
         });
     }
 
+    // fix for 10108 - marketplace category cannot scroll
+    function injectAddScrollbarToCategories() {
+        $('#categories-dropdown').on('show.bs.dropdown', function () {
+            $('body > div.container').css('display', 'none')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' })
+        });
+
+        $('#categories-dropdown').on('hide.bs.dropdown', function () {
+            $('body > div.container').css('display', '')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' })
+        });
+    }
+
     function injectHiFiCode() {
         if (commerceMode) {
             maybeAddLogInButton();
@@ -358,6 +373,7 @@
         }
 
         injectUnfocusOnSearch();
+        injectAddScrollbarToCategories();
     }
 
     function injectHiFiItemPageCode() {
