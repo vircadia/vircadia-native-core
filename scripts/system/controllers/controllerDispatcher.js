@@ -154,6 +154,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.update = function () {
+            try {
+                _this.updateInternal();
+            }  catch (e) {
+                print(e);
+            }
+            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
+        };
+
+        this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
             }
@@ -376,7 +385,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
-            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
         };
 
         this.setBlacklist = function() {
@@ -404,6 +412,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -413,6 +422,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
@@ -423,6 +433,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -433,6 +444,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });

@@ -14,8 +14,9 @@
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
-#include <PhysicsCollisionGroups.h>
 #include <LogHandler.h>
+#include <PhysicsCollisionGroups.h>
+#include <Profile.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -325,6 +326,7 @@ bool EntityMotionState::isCandidateForOwnership() const {
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");
     // NOTE: we only get here if we think we own the simulation
     assert(_body);
 
@@ -476,6 +478,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "ShouldSend");
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL.
     assert(_entity);
@@ -516,6 +519,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Send");
     assert(_entity);
     assert(entityTreeIsLocked());
 
@@ -731,6 +735,7 @@ void EntityMotionState::resetMeasuredBodyAcceleration() {
 }
 
 void EntityMotionState::measureBodyAcceleration() {
+    DETAILED_PROFILE_RANGE(simulation_physics, "MeasureAccel");
     // try to manually measure the true acceleration of the object
     uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
     uint32_t numSubsteps = thisStep - _lastMeasureStep;

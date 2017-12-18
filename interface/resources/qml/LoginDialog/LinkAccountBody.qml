@@ -52,7 +52,11 @@ Item {
                 targetHeight += hifi.dimensions.contentSpacing.y + additionalInformation.height
             }
 
-            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            var newWidth = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
+            if(!isNaN(newWidth)) {
+                parent.width = root.width = newWidth;
+            }
+
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
         }

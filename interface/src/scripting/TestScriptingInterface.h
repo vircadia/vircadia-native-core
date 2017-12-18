@@ -71,6 +71,11 @@ public slots:
 
     void endTraceEvent(QString name);
 
+    /**jsdoc
+     * Write detailed timing stats of next physics stepSimulation() to filename
+     */
+    void savePhysicsSimulationStats(QString filename);
+
     Q_INVOKABLE void profileRange(const QString& name, QScriptValue function);
 
 private:
