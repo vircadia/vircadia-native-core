@@ -40,7 +40,7 @@ public: \
 private:
 
 #define HIFI_QML_DEF(x) \
-    const QUrl x::QML = QUrl(#x ".qml"); \
+    const QUrl x::QML = QUrl("qrc:///qml/" #x ".qml"); \
     const QString x::NAME = #x; \
     \
     void x::registerType() { \
