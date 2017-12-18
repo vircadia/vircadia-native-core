@@ -86,10 +86,6 @@ Rectangle {
         }
     }
 
-    SecurityImageModel {
-        id: securityImageModel;
-    }
-
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
         visible: false;
@@ -348,6 +344,7 @@ Rectangle {
                     passphraseChange.clearPassphraseFields();
                     passphraseChange.resetSubmitButton();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageChange.initModel();
                     root.activeView = "securityImageChange";
                 }
             }
