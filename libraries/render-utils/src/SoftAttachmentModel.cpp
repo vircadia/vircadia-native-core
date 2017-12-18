@@ -50,6 +50,7 @@ void SoftAttachmentModel::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
+#ifdef SKIN_MATRIX
             // TODO: cache these look-ups as an optimization
             int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
             glm::mat4 jointMatrix;
@@ -58,7 +59,35 @@ void SoftAttachmentModel::updateClusterMatrices() {
             } else {
                 jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             }
+            SKIN_ASSERT(false);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+#endif
+#ifdef SKIN_COMP
+            // TODO: cache these look-ups as an optimization
+            int jointIndexOverride = getJointIndexOverride(cluster.jointIndex);
+            AnimPose jointPose;
+            if (jointIndexOverride >= 0 && jointIndexOverride < _rigOverride.getJointStateCount()) {
+                jointPose = _rigOverride.getJointPose(jointIndexOverride);
+            } else {
+                jointPose = _rig.getJointPose(cluster.jointIndex);
+            }
+            AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+
+            // pack scale rotation and translation into a mat4.
+            state.clusterMatrices[j][0].x = result.scale().x;
+            state.clusterMatrices[j][0].y = result.scale().y;
+            state.clusterMatrices[j][0].z = result.scale().z;
+
+            state.clusterMatrices[j][1].x = result.rot().x;
+            state.clusterMatrices[j][1].y = result.rot().y;
+            state.clusterMatrices[j][1].z = result.rot().z;
+            state.clusterMatrices[j][1].w = result.rot().w;
+
+            state.clusterMatrices[j][2].x = result.trans().x;
+            state.clusterMatrices[j][2].y = result.trans().y;
+            state.clusterMatrices[j][2].z = result.trans().z;
+#endif
+
         }
     }
 

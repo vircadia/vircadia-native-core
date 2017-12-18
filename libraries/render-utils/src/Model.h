@@ -35,6 +35,17 @@
 #include "TextureCache.h"
 #include "Rig.h"
 
+#define SKIN_ASSERT(cond)                       \
+    do {                                        \
+        if (!(cond)) {                          \
+            int* p = 0;                         \
+            *p = 0xbadf00d;                     \
+        }                                       \
+    } while(false)
+
+//#define SKIN_MATRIX
+//#define SKIN_DUAL_QUAT
+#define SKIN_COMP
 
 class AbstractViewStateInterface;
 class QScriptEngine;

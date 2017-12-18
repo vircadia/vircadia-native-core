@@ -331,10 +331,17 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
     if (state.clusterMatrices.size() == 1) {
-        // convert form dual quaternion representation to a Transform.
-        glm::vec3 scale = glm::vec3(state.clusterMatrices[0][0]);
-        DualQuaternion dq(state.clusterMatrices[0][1], state.clusterMatrices[0][2]);
-        renderTransform = transform.worldTransform(Transform(dq.getRotation(), scale, dq.getTranslation()));
+#ifdef SKIN_MATRIX
+        SKIN_ASSERT(false);
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+#endif
+#ifdef SKIN_COMP
+        glm::vec3 scale(state.clusterMatrices[0][0]);
+        glm::quat rot(state.clusterMatrices[0][1].w, state.clusterMatrices[0][1].x, state.clusterMatrices[0][1].y, state.clusterMatrices[0][1].z);
+        glm::vec3 trans(state.clusterMatrices[0][2]);
+        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
+        renderTransform = transform.worldTransform(Transform(m));
+#endif
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
@@ -549,7 +556,18 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
         _adjustedLocalBound.transform(clusterMatrices[0]);
         for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
             AABox clusterBound = _localBound;
+#ifdef SKIN_MATRIX
+            SKIN_ASSERT(false);
             clusterBound.transform(clusterMatrices[i]);
+#endif
+#ifdef SKIN_COMP
+            // AJT: FIXME: TODO: SLOW AS SHIT
+            glm::vec3 scale(clusterMatrices[i][0]);
+            glm::quat rot(clusterMatrices[i][1].w, clusterMatrices[i][1].x, clusterMatrices[i][1].y, clusterMatrices[i][1].z);
+            glm::vec3 trans(clusterMatrices[i][2]);
+            glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
+            clusterBound.transform(m);
+#endif
             _adjustedLocalBound += clusterBound;
         }
     }

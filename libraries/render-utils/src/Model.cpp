@@ -275,7 +275,17 @@ void Model::updateRenderItems() {
                 data.updateClusterBuffer(clusterMatrices);
                 Transform renderTransform = modelTransform;
                 if (clusterMatrices.size() == 1) {
+#ifdef SKIN_MATRIX
+                    SKIN_ASSERT(false);
                     renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+#endif
+#ifdef SKIN_COMP
+                    glm::vec3 scale(clusterMatrices[0][0]);
+                    glm::quat rot(clusterMatrices[0][1].w, clusterMatrices[0][1].x, clusterMatrices[0][1].y, clusterMatrices[0][1].z);
+                    glm::vec3 trans(clusterMatrices[0][2]);
+                    glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
+                    renderTransform = modelTransform.worldTransform(Transform(m));
+#endif
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
@@ -1178,15 +1188,14 @@ void Model::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
-            // AJT: TODO REMOVE
-            /*
+            // AJT: TODO FIXME
+#ifdef SKIN_MATRIX
+            SKIN_ASSERT(false);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-            */
+#endif
+#ifdef SKIN_COMP
             AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
-
-            // AJT: TODO: store inverseBindMatrix as an animpose
-            // AJT: TODO: optimize AnimPose::operator*
             AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
 
             // pack scale rotation and translation into a mat4.
@@ -1194,15 +1203,15 @@ void Model::updateClusterMatrices() {
             state.clusterMatrices[j][0].y = result.scale().y;
             state.clusterMatrices[j][0].z = result.scale().z;
 
-            DualQuaternion dq(result.rot(), result.trans());
-            state.clusterMatrices[j][1].x = dq.real().x;
-            state.clusterMatrices[j][1].y = dq.real().y;
-            state.clusterMatrices[j][1].z = dq.real().z;
-            state.clusterMatrices[j][1].w = dq.real().w;
-            state.clusterMatrices[j][2].x = dq.imag().x;
-            state.clusterMatrices[j][2].y = dq.imag().y;
-            state.clusterMatrices[j][2].z = dq.imag().z;
-            state.clusterMatrices[j][2].w = dq.imag().w;
+            state.clusterMatrices[j][1].x = result.rot().x;
+            state.clusterMatrices[j][1].y = result.rot().y;
+            state.clusterMatrices[j][1].z = result.rot().z;
+            state.clusterMatrices[j][1].w = result.rot().w;
+
+            state.clusterMatrices[j][2].x = result.trans().x;
+            state.clusterMatrices[j][2].y = result.trans().y;
+            state.clusterMatrices[j][2].z = result.trans().z;
+#endif
         }
     }
 

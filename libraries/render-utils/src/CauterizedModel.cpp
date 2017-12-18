@@ -16,7 +16,6 @@
 #include "CauterizedMeshPartPayload.h"
 #include "RenderUtilsLogging.h"
 
-
 CauterizedModel::CauterizedModel(QObject* parent) :
         Model(parent) {
 }
@@ -111,11 +110,13 @@ void CauterizedModel::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
-            /* AJT: TODO REMOVE
+            /* AJT: TODO REMOVE */
+#ifdef SKIN_MATRIX
+            SKIN_ASSERT(false);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-            */
-            // AJT: TODO OPTOMIZE
+#endif
+#ifdef SKIN_COMP
             AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
             AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
 
@@ -124,15 +125,15 @@ void CauterizedModel::updateClusterMatrices() {
             state.clusterMatrices[j][0].y = result.scale().y;
             state.clusterMatrices[j][0].z = result.scale().z;
 
-            DualQuaternion dq(result.rot(), result.trans());
-            state.clusterMatrices[j][1].x = dq.real().x;
-            state.clusterMatrices[j][1].y = dq.real().y;
-            state.clusterMatrices[j][1].z = dq.real().z;
-            state.clusterMatrices[j][1].w = dq.real().w;
-            state.clusterMatrices[j][2].x = dq.imag().x;
-            state.clusterMatrices[j][2].y = dq.imag().y;
-            state.clusterMatrices[j][2].z = dq.imag().z;
-            state.clusterMatrices[j][2].w = dq.imag().w;
+            state.clusterMatrices[j][1].x = result.rot().x;
+            state.clusterMatrices[j][1].y = result.rot().y;
+            state.clusterMatrices[j][1].z = result.rot().z;
+            state.clusterMatrices[j][1].w = result.rot().w;
+
+            state.clusterMatrices[j][2].x = result.trans().x;
+            state.clusterMatrices[j][2].y = result.trans().y;
+            state.clusterMatrices[j][2].z = result.trans().z;
+#endif
         }
     }
 
@@ -153,15 +154,16 @@ void CauterizedModel::updateClusterMatrices() {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
 
+#ifdef SKIN_MATRIX
+                SKIN_ASSERT(false);
                 // AJT: TODO REMOVE:
-                /*
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-                */
-
+#endif
+#ifdef SKIN_COMP
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointPose = cauterizePose;
@@ -173,15 +175,15 @@ void CauterizedModel::updateClusterMatrices() {
                 state.clusterMatrices[j][0].y = result.scale().y;
                 state.clusterMatrices[j][0].z = result.scale().z;
 
-                DualQuaternion dq(result.rot(), result.trans());
-                state.clusterMatrices[j][1].x = dq.real().x;
-                state.clusterMatrices[j][1].y = dq.real().y;
-                state.clusterMatrices[j][1].z = dq.real().z;
-                state.clusterMatrices[j][1].w = dq.real().w;
-                state.clusterMatrices[j][2].x = dq.imag().x;
-                state.clusterMatrices[j][2].y = dq.imag().y;
-                state.clusterMatrices[j][2].z = dq.imag().z;
-                state.clusterMatrices[j][2].w = dq.imag().w;
+                state.clusterMatrices[j][1].x = result.rot().x;
+                state.clusterMatrices[j][1].y = result.rot().y;
+                state.clusterMatrices[j][1].z = result.rot().z;
+                state.clusterMatrices[j][1].w = result.rot().w;
+
+                state.clusterMatrices[j][2].x = result.trans().x;
+                state.clusterMatrices[j][2].y = result.trans().y;
+                state.clusterMatrices[j][2].z = result.trans().z;
+#endif
             }
         }
     }
@@ -249,13 +251,33 @@ void CauterizedModel::updateRenderItems() {
 
                     Transform renderTransform = modelTransform;
                     if (clusterMatrices.size() == 1) {
+#ifdef SKIN_MATRIX
+                        SKIN_ASSERT(false);
                         renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+#endif
+#ifdef SKIN_COMP
+                        glm::vec3 scale(clusterMatrices[0][0]);
+                        glm::quat rot(clusterMatrices[0][1].w, clusterMatrices[0][1].x, clusterMatrices[0][1].y, clusterMatrices[0][1].z);
+                        glm::vec3 trans(clusterMatrices[0][2]);
+                        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
+                        renderTransform = modelTransform.worldTransform(Transform(m));
+#endif
                     }
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                     renderTransform = modelTransform;
                     if (clusterMatricesCauterized.size() == 1) {
+#ifdef SKIN_MATRIX
+                        SKIN_ASSERT(false);
                         renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+#endif
+#ifdef SKIN_COMP
+                        glm::vec3 scale(clusterMatricesCauterized[0][0]);
+                        glm::quat rot(clusterMatricesCauterized[0][1].w, clusterMatricesCauterized[0][1].x, clusterMatricesCauterized[0][1].y, clusterMatricesCauterized[0][1].z);
+                        glm::vec3 trans(clusterMatricesCauterized[0][2]);
+                        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
+                        renderTransform = modelTransform.worldTransform(Transform(m));
+#endif
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
 
