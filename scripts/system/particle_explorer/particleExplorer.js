@@ -5,6 +5,7 @@
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Reworked by Menithal on 20/5/2017
+//  Reworked by Daniela Fontes (Mimicry) on 12/18/2017
 //
 //  Web app side of the App - contains GUI.
 //  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.
@@ -51,6 +52,7 @@
                                 }
                             };
                             textarea.oninput = textarea.onchange;
+                            document.getElementById("show-properties-button").value = "Hide Properties";
                         } else {
                             textarea.onchange = function () {};
                             textarea.oninput = textarea.onchange;
@@ -60,6 +62,7 @@
                                 insertZone.parentNode.clientHeight + "px";
                             document.getElementById("export-properties-button").setAttribute("disabled", true);
                             document.getElementById("import-properties-button").setAttribute("disabled", true);
+                            document.getElementById("show-properties-button").value = "Show Properties";
                         }
                     }
                 },
