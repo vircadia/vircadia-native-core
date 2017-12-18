@@ -24,6 +24,8 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
+#include <TBBHelpers.h>
+
 #include <model-networking/SimpleMeshProxy.h>
 
 #include <glm/gtc/packing.hpp>
@@ -292,6 +294,34 @@ void Model::reset() {
     }
 }
 
+#if FBX_PACK_NORMALS
+static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
+    auto absNormal = glm::abs(normal);
+    auto absTangent = glm::abs(tangent);
+    normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
+    tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
+    normal = glm::clamp(normal, -1.0f, 1.0f);
+    tangent = glm::clamp(tangent, -1.0f, 1.0f);
+    normal *= 511.0f;
+    tangent *= 511.0f;
+    normal = glm::round(normal);
+    tangent = glm::round(tangent);
+
+    glm::detail::i10i10i10i2 normalStruct;
+    glm::detail::i10i10i10i2 tangentStruct;
+    normalStruct.data.x = int(normal.x);
+    normalStruct.data.y = int(normal.y);
+    normalStruct.data.z = int(normal.z);
+    normalStruct.data.w = 0;
+    tangentStruct.data.x = int(tangent.x);
+    tangentStruct.data.y = int(tangent.y);
+    tangentStruct.data.z = int(tangent.z);
+    tangentStruct.data.w = 0;
+    packedNormal = normalStruct.pack;
+    packedTangent = tangentStruct.pack;
+}
+#endif
+
 bool Model::updateGeometry() {
     bool needFullUpdate = false;
 
@@ -324,10 +354,9 @@ bool Model::updateGeometry() {
                      normalIt != mesh.normals.end();
                      ++normalIt, ++tangentIt) {
 #if FBX_PACK_NORMALS
-                    const auto normal = FBXReader::normalizeDirForPacking(*normalIt);
-                    const auto tangent = FBXReader::normalizeDirForPacking(*tangentIt);
-                    const auto finalNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
-                    const auto finalTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
+                    glm::uint32 finalNormal;
+                    glm::uint32 finalTangent;
+                    packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
                     const auto finalNormal = *normalIt;
                     const auto finalTangent = *tangentIt;
@@ -1220,28 +1249,57 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         const auto offset = index * sizeof(glm::vec3);
 
         normalsAndTangents.clear();
-        normalsAndTangents.reserve(normals.size()+tangents.size());
+        normalsAndTangents.resize(normals.size()+tangents.size());
+        assert(normalsAndTangents.size() == 2 * vertexCount);
 
         // Interleave normals and tangents
+#if 0
+        // Sequential version for debugging
         auto normalsRange = std::make_pair(normals.begin() + index, normals.begin() + index + vertexCount);
         auto tangentsRange = std::make_pair(tangents.begin() + index, tangents.begin() + index + vertexCount);
+        auto normalsAndTangentsIt = normalsAndTangents.begin();
 
         for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
              normalIt != normalsRange.second;
              ++normalIt, ++tangentIt) {
 #if FBX_PACK_NORMALS
-            const auto normal = FBXReader::normalizeDirForPacking(*normalIt);
-            const auto tangent = FBXReader::normalizeDirForPacking(*tangentIt);
-            const auto finalNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
-            const auto finalTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
+            glm::uint32 finalNormal;
+            glm::uint32 finalTangent;
+            packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
             const auto finalNormal = *normalIt;
             const auto finalTangent = *tangentIt;
 #endif
-            normalsAndTangents.push_back(finalNormal);
-            normalsAndTangents.push_back(finalTangent);
+            *normalsAndTangentsIt = finalNormal;
+            ++normalsAndTangentsIt;
+            *normalsAndTangentsIt = finalTangent;
+            ++normalsAndTangentsIt;
         }
-        assert(normalsAndTangents.size() == 2 * vertexCount);
+#else
+        // Parallel version for performance
+        tbb::parallel_for(tbb::blocked_range<size_t>(index, index+vertexCount), [&](const tbb::blocked_range<size_t>& range) {
+            auto normalsRange = std::make_pair(normals.begin() + range.begin(), normals.begin() + range.end());
+            auto tangentsRange = std::make_pair(tangents.begin() + range.begin(), tangents.begin() + range.end());
+            auto normalsAndTangentsIt = normalsAndTangents.begin() + (range.begin()-index)*2;
+
+            for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+                 normalIt != normalsRange.second;
+                 ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+                glm::uint32 finalNormal;
+                glm::uint32 finalTangent;
+                packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+                const auto finalNormal = *normalIt;
+                const auto finalTangent = *tangentIt;
+#endif
+                *normalsAndTangentsIt = finalNormal;
+                ++normalsAndTangentsIt;
+                *normalsAndTangentsIt = finalTangent;
+                ++normalsAndTangentsIt;
+            }
+        });
+#endif
 
         buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + offset);
         buffer->setSubData(verticesSize, 2 * vertexCount * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
