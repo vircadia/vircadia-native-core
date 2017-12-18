@@ -17,12 +17,13 @@ Item {
     readonly property int buttonsColumnsOnPage: 3
 
     property var currentGridItems: null
+    property var gridPages: [];
 
     focus: true
 
     Timer {
         id: gridsRecreateTimer
-        interval: 50
+        interval: 1
         repeat: false
         onTriggered: {
             doRecreateGrids()
@@ -32,34 +33,53 @@ Item {
     //fake invisible item for initial buttons creations
     Item {
         id: fakeParent
-        visible: parent
+        visible: false
     }
 
     function doRecreateGrids() {
         var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         var tabletButtons = tabletProxy.getButtonsList();
-        for (var i = 0; i < swipeView.count; i++) {
-            var gridOuter = swipeView.itemAt(i);
-            gridOuter.destroy();
+
+        if (tabletButtons.length <= 0) {
+            console.warn("Tablet buttons list is empty");
+            return;
+        }
+
+        for (var i = swipeView.count - 1; i >= 0; i--) {
             swipeView.removeItem(i);
         }
+        gridPages = [];
+
+        swipeView.setCurrentIndex(-1);
         sortButtons(tabletButtons);
+
+        var pagesNum = Math.ceil(tabletButtons.length / 12);
+        var currentPage = 0;
+        gridPages.push(pageComponent.createObject(null));
 
         for (var buttonIndex = 0; buttonIndex < tabletButtons.length; buttonIndex++) {
             var button = tabletButtons[buttonIndex]
             if (button !== null) {
-                var grid = swipeView.itemAt(swipeView.count - 1);
-                if (grid === null || grid.children[0].children.length === buttonsOnPage) {
-                    grid = pageComponent.createObject(swipeView);
+                var grid = gridPages[currentPage];
+                if (grid.children[0].children.length === buttonsOnPage) {
+                    gridPages.push(pageComponent.createObject(null));
+                    currentPage = currentPage + 1;
+                    grid = gridPages[currentPage];
                 }
                 button.row = Math.floor(grid.children[0].children.length / buttonsColumnsOnPage);
                 button.column = grid.children[0].children.length % buttonsColumnsOnPage;
                 //reparent to actual grid
                 button.parent = grid.children[0];
                 grid.children[0].children.push(button);
+            } else {
+                console.warn("Button is null:", buttonIndex);
             }
         }
-        swipeView.currentIndex = 0;
+        for (var pageIndex = 0; pageIndex < gridPages.length; pageIndex++) {
+            swipeView.addItem(gridPages[pageIndex]);
+        }
+
+        swipeView.setCurrentIndex(0);
     }
 
     // used to look up a button by its uuid
@@ -244,9 +264,10 @@ Item {
         SwipeView {
             id: swipeView
             clip: false
+            currentIndex: -1
             property int previousIndex: -1
 
-            onCurrentItemChanged: {
+            onCurrentIndexChanged: {
                 if (swipeView.currentIndex < 0
                         || swipeView.itemAt(swipeView.currentIndex) === null
                         || swipeView.itemAt(swipeView.currentIndex).children[0] === null
