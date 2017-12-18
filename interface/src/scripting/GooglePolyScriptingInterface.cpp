@@ -17,7 +17,6 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
-//#include <QScopedPointer>
 #include <QString>
 #include <QTime>
 #include <QUrl>
@@ -26,10 +25,8 @@
 #include "GooglePolyScriptingInterface.h"
 #include "ScriptEngineLogging.h"
 
-QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
-QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
-
-QString authCode = "broke";
+const QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
+const QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
 
 QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
 QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
@@ -42,8 +39,7 @@ GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
 QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
     QUrl url = formatURLQuery(keyword, category, format);
     if (!url.isEmpty()) {
-        QByteArray jsonString = getHTTPRequest(url);
-        QJsonArray json = parseJSON(&jsonString, 0).toJsonArray();
+        QJsonArray json = parseJSON(url, 0).toJsonArray();
         qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
         return json;
     } else {
@@ -54,19 +50,40 @@ QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString c
 
 QString GooglePolyScriptingInterface::getFBX(QString keyword, QString category) {
     QUrl url = formatURLQuery(keyword, category, "FBX");
-    qCDebug(scriptengine) << "google url: " << url;
-    if (!url.isEmpty()) {
-        QByteArray jsonString = getHTTPRequest(url);
-        qCDebug(scriptengine) << "the list: " << jsonString;
-        QString modelURL = parseJSON(&jsonString, 1).toString();
-        
-        qCDebug(scriptengine) << "the model url: " << modelURL;
-        return modelURL;
-    } else {
-        qCDebug(scriptengine) << "Invalid filters were specified.";
-        return "";
-    }
+    return getModelURL(url);
+}
 
+QString GooglePolyScriptingInterface::getOBJ(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "OBJ");
+    return getModelURL(url);
+}
+
+QString GooglePolyScriptingInterface::getBlocks(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "BLOCKS");
+    qCDebug(scriptengine) << "Google url request: " << url;
+    return getModelURL(url);
+}
+
+/* 
+// This method will not work until we support Tilt models
+QString GooglePolyScriptingInterface::getTilt(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "TILT");
+    return getModelURL(url);
+}
+*/
+
+// can provide asset name or full URL to model
+QString GooglePolyScriptingInterface::getModelInfo(QString name) {
+    if (name.contains("poly.googleapis")) {
+        QStringList list = name.split("/");
+        name = list[4];
+    }
+    QString urlString = QString(getPolyUrl);
+    urlString = urlString.replace("model", name) + "key=" + authCode;
+    qCDebug(scriptengine) << "google get url: " << urlString;
+    QUrl url(urlString);
+    QByteArray json = parseJSON(url, 2).toByteArray();
+    return json;
 }
 
 void GooglePolyScriptingInterface::testPrint(QString input) {
@@ -103,6 +120,16 @@ QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString categ
     }
 }
 
+QString GooglePolyScriptingInterface::getModelURL(QUrl url) {
+    qCDebug(scriptengine) << "Google url request: " << url;
+    if (!url.isEmpty()) {
+        return parseJSON(url, 1).toString();
+    } else {
+        qCDebug(scriptengine) << "Invalid filters were specified.";
+        return "";
+    }
+}
+
 // FIXME: synchronous
 QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     QNetworkAccessManager manager;
@@ -115,26 +142,23 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
 }
 
 // since the list is a QJsonArray and a single model is a QJsonObject
-QVariant GooglePolyScriptingInterface::parseJSON(QByteArray* response, int fileType) {
+QVariant GooglePolyScriptingInterface::parseJSON(QUrl url, int fileType) {
     //QString firstItem = QString::fromUtf8(response->readAll());
-    QJsonDocument doc = QJsonDocument::fromJson(*response);
+    QByteArray jsonString = getHTTPRequest(url);
+    QJsonDocument doc = QJsonDocument::fromJson(jsonString);
     QJsonObject obj = doc.object();
-    qCDebug(scriptengine) << "json obj: " << obj;
-    qCDebug(scriptengine) << "json list: " << obj.keys();
     if (obj.keys().first() == "error") {
-        qCDebug(scriptengine) << "Invalid API key";
+        QString error = obj.value("error").toObject().value("message").toString();
+        qCDebug(scriptengine) << error;
         return QJsonObject();
     }
     qCDebug(scriptengine) << "the assets: " << obj.value("assets");
     if (fileType == 0 || fileType == 1) {
         QJsonArray arr = obj.value("assets").toArray();
-        qCDebug(scriptengine) << "in array: " << arr;
         // return model url
         if (fileType == 1) {
             int random = getRandIntInRange(arr.size());
             QJsonObject json = arr.at(random).toObject();
-            qCDebug(scriptengine) << random << "th object: " << json;
-            qCDebug(scriptengine) << random << "th asset name: " << json.value("displayName");
             // nested JSONs
             return json.value("formats").toArray().at(0).toObject().value("root").toObject().value("url");
         }
@@ -142,17 +166,14 @@ QVariant GooglePolyScriptingInterface::parseJSON(QByteArray* response, int fileT
         return arr;
     // return specific object
     } else {
-        return obj;
+        //return obj;
+        //return doc.toJson();
+        return jsonString;
     }
 }
 
 
-/*void GooglePolyScriptingInterface::getAssetList() {
-    authCode = "AIzaSyDamk7Vth52j7aU9JVKn3ungFS0kGJYc8A";
-    QUrl url(listPolyUrl + "key=" + authCode);
-    QByteArray reply = getHTTPRequest(url);
-    qCDebug(scriptengine) << "the list: " << test;
-}
+/*
 
 // FIXME: synchronous = not good code
 QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
@@ -164,23 +185,7 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
     return response->readAll();
 }
 
-*/
 
-/* useful for constructing the url?
-
-    QUrl url("http://gdata.youtube.com/feeds/api/standardfeeds/");
-    QString method = "most_popular";
-    url.setPath(QString("%1%2").arg(url.path()).arg(method));
-
-    QMap<QString, QVariant> params;
-    params["alt"] = "json";
-    params["v"] = "2";
-
-    foreach(QString param, params.keys()) {
-        url.addQueryItem(param, params[param].toString());
-    }
-
-*/
 
 /* NONE OF THESE HTTP GET METHODS WORK D:
 https://stackoverflow.com/questions/28267477/getting-a-page-content-with-qt kinda used rn

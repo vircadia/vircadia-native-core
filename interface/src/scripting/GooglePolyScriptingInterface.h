@@ -17,6 +17,7 @@
 
 class GooglePolyScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
+
 public:
     GooglePolyScriptingInterface();
 
@@ -26,15 +27,20 @@ public slots:
 
     QJsonArray getAssetList(QString keyword, QString category, QString format);
     QString getFBX(QString keyword, QString category);
+    QString getOBJ(QString keyword, QString category);
+    QString getBlocks(QString keyword, QString category);
+    //QString getTilt(QString keyword, QString category);
+    QString getModelInfo(QString name);
 
 private:
     QUrl formatURLQuery(QString keyword, QString category, QString format);
+    QString getModelURL(QUrl url);
     QByteArray getHTTPRequest(QUrl url);
-    QVariant parseJSON(QByteArray* response, int fileType);
+    QVariant parseJSON(QUrl url, int fileType);
     int getRandIntInRange(int length);
     //void onResult(QNetworkReply* reply);
 
-    //QString authCode;
+    QString authCode;
     
 };
 
