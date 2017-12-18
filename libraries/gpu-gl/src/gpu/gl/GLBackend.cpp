@@ -776,7 +776,7 @@ void GLBackend::recycle() const {
 
     GLVariableAllocationSupport::manageMemory();
     GLVariableAllocationSupport::_frameTexturesCreated = 0;
-
+    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
