@@ -328,7 +328,7 @@ public:
         std::shared_ptr<storage::FileStorage> maybeOpenFile() const;
 
         mutable std::shared_ptr<std::mutex> _cacheFileMutex { std::make_shared<std::mutex>() };
-        mutable std::shared_ptr<storage::FileStorage> _cacheFile;
+        mutable std::weak_ptr<storage::FileStorage> _cacheFile;
 
         static std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> _cachedKtxFiles;
         static std::mutex _cachedKtxFilesMutex;

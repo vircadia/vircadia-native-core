@@ -190,13 +190,25 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     }
 }
 
+// maybeOpenFile should be called with _cacheFileMutex already held to avoid modifying the file from multiple threads
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
-    if (!_cacheFile) {
-        _cacheFile = std::make_shared<storage::FileStorage>(_filename.c_str());
-        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
-        _cachedKtxFiles.emplace_back(_cacheFile, _cacheFileMutex);
+    // Try to get the shared_ptr
+    std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
+    if (file) {
+        return file;
     }
-    return _cacheFile;
+
+    // If the file isn't open, create it and save a weak_ptr to it
+    file = std::make_shared<storage::FileStorage>(_filename.c_str());
+    _cacheFile = file;
+
+    {
+        // Add the shared_ptr to the global list of open KTX files, to be released at the beginning of the next present thread frame
+        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
+        _cachedKtxFiles.emplace_back(file, _cacheFileMutex);
+    }
+
+    return file;
 }
 
 void KtxStorage::releaseOpenKtxFiles() {
