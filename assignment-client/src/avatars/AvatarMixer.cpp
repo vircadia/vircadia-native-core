@@ -870,8 +870,8 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
         node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID()) });
         clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
         auto& avatar = clientData->getAvatar();
-        avatar.setDomainMinimumScale(_domainMinimumScale);
-        avatar.setDomainMaximumScale(_domainMaximumScale);
+        avatar.setDomainMinimumHeight(_domainMinimumHeight);
+        avatar.setDomainMaximumHeight(_domainMaximumHeight);
     }
 
     return clientData;
@@ -939,21 +939,21 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
-    static const QString MIN_SCALE_OPTION = "min_avatar_scale";
-    float settingMinScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MIN_SCALE_OPTION].toDouble(MIN_AVATAR_SCALE);
-    _domainMinimumScale = glm::clamp(settingMinScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    static const QString MIN_HEIGHT_OPTION = "min_avatar_height";
+    float settingMinHeight = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MIN_HEIGHT_OPTION].toDouble(MIN_AVATAR_HEIGHT);
+    _domainMinimumHeight = glm::clamp(settingMinHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
 
-    static const QString MAX_SCALE_OPTION = "max_avatar_scale";
-    float settingMaxScale = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
-    _domainMaximumScale = glm::clamp(settingMaxScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
+    static const QString MAX_HEIGHT_OPTION = "max_avatar_height";
+    float settingMaxHeight = domainSettings[AVATARS_SETTINGS_KEY].toObject()[MAX_HEIGHT_OPTION].toDouble(MAX_AVATAR_HEIGHT);
+    _domainMaximumHeight = glm::clamp(settingMaxHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
 
     // make sure that the domain owner didn't flip min and max
-    if (_domainMinimumScale > _domainMaximumScale) {
-        std::swap(_domainMinimumScale, _domainMaximumScale);
+    if (_domainMinimumHeight > _domainMaximumHeight) {
+        std::swap(_domainMinimumHeight, _domainMaximumHeight);
     }
 
-    qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
-                     << "and a maximum avatar scale of" << _domainMaximumScale;
+    qCDebug(avatars) << "This domain requires a minimum avatar height of" << _domainMinimumHeight
+                     << "and a maximum avatar height of" << _domainMaximumHeight;
 
     const QString AVATAR_WHITELIST_DEFAULT{ "" };
     static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";

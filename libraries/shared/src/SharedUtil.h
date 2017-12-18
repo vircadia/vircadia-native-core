@@ -238,6 +238,8 @@ void setMaxCores(uint8_t maxCores);
 const QString PARENT_PID_OPTION = "parent-pid";
 void watchParentProcess(int parentPID);
 
+bool processIsRunning(int64_t pid);
+
 
 #ifdef Q_OS_WIN
 void* createProcessGroup();

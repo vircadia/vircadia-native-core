@@ -117,6 +117,55 @@ void AvatarData::setTargetScale(float targetScale) {
     }
 }
 
+float AvatarData::getDomainLimitedScale() const {
+    if (canMeasureEyeHeight()) {
+        const float minScale = getDomainMinScale();
+        const float maxScale = getDomainMaxScale();
+        return glm::clamp(_targetScale, minScale, maxScale);
+    } else {
+        // We can't make a good estimate.
+        return _targetScale;
+    }
+}
+
+void AvatarData::setDomainMinimumHeight(float domainMinimumHeight) {
+    _domainMinimumHeight = glm::clamp(domainMinimumHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
+}
+
+void AvatarData::setDomainMaximumHeight(float domainMaximumHeight) {
+    _domainMaximumHeight = glm::clamp(domainMaximumHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
+}
+
+float AvatarData::getDomainMinScale() const {
+    float unscaledHeight = getUnscaledHeight();
+    const float EPSILON = 1.0e-4f;
+    if (unscaledHeight <= EPSILON) {
+        unscaledHeight = DEFAULT_AVATAR_HEIGHT;
+    }
+    return _domainMinimumHeight / unscaledHeight;
+}
+
+float AvatarData::getDomainMaxScale() const {
+    float unscaledHeight = getUnscaledHeight();
+    const float EPSILON = 1.0e-4f;
+    if (unscaledHeight <= EPSILON) {
+        unscaledHeight = DEFAULT_AVATAR_HEIGHT;
+    }
+    return _domainMaximumHeight / unscaledHeight;
+}
+
+float AvatarData::getUnscaledHeight() const {
+    const float eyeHeight = getUnscaledEyeHeight();
+    const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+    return eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+}
+
+float AvatarData::getHeight() const {
+    const float eyeHeight = getEyeHeight();
+    const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+    return eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+}
+
 glm::vec3 AvatarData::getHandPosition() const {
     return getWorldOrientation() * _handPosition + getWorldPosition();
 }
@@ -2387,62 +2436,9 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;
 
-float AvatarData::_avatarSortCoefficientSize { 0.5f };
+float AvatarData::_avatarSortCoefficientSize { 1.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25 };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
-
-void AvatarData::sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore) {
-
-    PROFILE_RANGE(simulation, "sort");
-    uint64_t now = usecTimestampNow();
-
-    glm::vec3 frustumCenter = cameraView.getPosition();
-    const glm::vec3& forward = cameraView.getDirection();
-    for (int32_t i = 0; i < avatarList.size(); ++i) {
-        const auto& avatar = avatarList.at(i);
-
-        if (shouldIgnore(avatar)) {
-            continue;
-        }
-
-        // priority = weighted linear combination of:
-        //   (a) apparentSize
-        //   (b) proximity to center of view
-        //   (c) time since last update
-        glm::vec3 avatarPosition = avatar->getWorldPosition();
-        glm::vec3 offset = avatarPosition - frustumCenter;
-        float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-
-        // FIXME - AvatarData has something equivolent to this
-        float radius = getBoundingRadius(avatar);
-
-        float apparentSize = 2.0f * radius / distance;
-        float cosineAngle = glm::dot(offset, forward) / distance;
-        float age = (float)(now - getLastUpdated(avatar)) / (float)(USECS_PER_SECOND);
-
-        // NOTE: we are adding values of different units to get a single measure of "priority".
-        // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-        // These weights are pure magic tuning and should be hard coded in the relation below,
-        // but are currently exposed for anyone who would like to explore fine tuning:
-        float priority = _avatarSortCoefficientSize * apparentSize
-            + _avatarSortCoefficientCenter * cosineAngle
-            + _avatarSortCoefficientAge * age;
-
-        // decrement priority of avatars outside keyhole
-        if (distance > cameraView.getCenterRadius()) {
-            if (!cameraView.sphereIntersectsFrustum(avatarPosition, radius)) {
-                priority += OUT_OF_VIEW_PENALTY;
-            }
-        }
-        sortedAvatarsOut.push(AvatarPriority(avatar, priority));
-    }
-}
 
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();

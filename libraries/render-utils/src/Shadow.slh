@@ -11,53 +11,17 @@
 <@if not SHADOW_SLH@>
 <@def SHADOW_SLH@>
 
+<@include ShadowCore.slh@>
+
+#define SHADOW_NOISE_ENABLED            0
+#define SHADOW_SCREEN_SPACE_DITHER      1
+
 // the shadow texture
-uniform sampler2DShadow shadowMap;
-
-struct ShadowTransform {
-	mat4 projection;
-	mat4 viewInverse;
-
-	float bias;
-	float scale;
-};
-
-uniform shadowTransformBuffer {
-	ShadowTransform _shadowTransform;
-};
-
-mat4 getShadowViewInverse() {
-	return _shadowTransform.viewInverse;
-}
-
-mat4 getShadowProjection() {
-	return _shadowTransform.projection;
-}
-
-float getShadowScale() {
-	return _shadowTransform.scale;
-}
-
-float getShadowBias() {
-	return _shadowTransform.bias;
-}
-
-// Compute the texture coordinates from world coordinates
-vec4 evalShadowTexcoord(vec4 position) {
-	mat4 biasMatrix = mat4(
-		0.5, 0.0, 0.0, 0.0,
-		0.0, 0.5, 0.0, 0.0,
-		0.0, 0.0, 0.5, 0.0,	
-		0.5, 0.5, 0.5, 1.0);
-	float bias = -getShadowBias();
-
-	vec4 shadowCoord = biasMatrix * getShadowProjection() * getShadowViewInverse() * position;
-	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
-}
+uniform sampler2DShadow shadowMaps[SHADOW_CASCADE_MAX_COUNT];
 
 // Sample the shadowMap with PCF (built-in)
-float fetchShadow(vec3 shadowTexcoord) {
-    return texture(shadowMap, shadowTexcoord);
+float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {
+    return texture(shadowMaps[cascadeIndex], shadowTexcoord);
 }
 
 vec2 PCFkernel[4] = vec2[4](
@@ -67,38 +31,83 @@ vec2 PCFkernel[4] = vec2[4](
     vec2(0.5, -1.5)
 );
 
-float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
-    // PCF is buggy so disable it for the time being
-#if 0
-    float pcfRadius = 3.0;
+float evalShadowNoise(vec4 seed) {
+    float dot_product = dot(seed, vec4(12.9898,78.233,45.164,94.673));
+    return fract(sin(dot_product) * 43758.5453);
+}
+
+struct ShadowSampleOffsets {
+    vec3 points[4];
+};
+
+ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
 	float shadowScale = getShadowScale();
+    ShadowSampleOffsets offsets;
+
+#if SHADOW_SCREEN_SPACE_DITHER
+    // Pattern dithering in screen space
+    ivec2 coords = ivec2(gl_FragCoord.xy);
+#else
+    // Pattern dithering in world space (mm resolution)
+    ivec2 coords = ivec2(position.x, position.y+position.z);
+#endif
+
+#if SHADOW_NOISE_ENABLED
+    // Add some noise to break dithering
+    int index = int(4.0*evalShadowNoise(gl_FragCoord.xyyx))%4;
+    coords.x += index & 1;
+    coords.y += (index & 2) >> 1;
+#endif
 
     // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
-    vec2 offset = pcfRadius * step(fract(position.xy), vec2(0.5, 0.5));
+    ivec2 offset = coords & ivec2(1,1);
+    offset.y = (offset.x+offset.y) & 1;
 
-    float shadowAttenuation = (0.25 * (
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[1], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
-    ));
-#else
-    float shadowAttenuation = fetchShadow(shadowTexcoord.xyz);
-#endif
+    offsets.points[0] = shadowScale * vec3(offset + PCFkernel[0], 0.0);
+    offsets.points[1] = shadowScale * vec3(offset + PCFkernel[1], 0.0);
+    offsets.points[2] = shadowScale * vec3(offset + PCFkernel[2], 0.0);
+    offsets.points[3] = shadowScale * vec3(offset + PCFkernel[3], 0.0);
+
+    return offsets;
+}
+
+float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord, float bias) {
+    shadowTexcoord.z -= bias;
+    float shadowAttenuation = 0.25 * (
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[0]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[1]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[2]) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[3])
+    );
 
     return shadowAttenuation;
 }
 
-float evalShadowAttenuation(vec4 position) {
-	vec4 shadowTexcoord = evalShadowTexcoord(position);
-    if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
-        shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0 ||
-        shadowTexcoord.z < 0.0 || shadowTexcoord.z > 1.0) {
+float evalShadowCascadeAttenuation(int cascadeIndex, vec3 viewNormal, ShadowSampleOffsets offsets, vec4 shadowTexcoord) {
+    if (!isShadowCascadeProjectedOnPixel(shadowTexcoord)) {
         // If a point is not in the map, do not attenuate
         return 1.0;
     }
+    // Multiply bias if we are at a grazing angle with light
+    float tangentFactor = abs(dot(getShadowDirInViewSpace(), viewNormal));
+    float bias = getShadowBias(cascadeIndex) * (5.0-4.0*tangentFactor);
+    return evalShadowAttenuationPCF(cascadeIndex, offsets, shadowTexcoord, bias);
+}
 
-    return evalShadowAttenuationPCF(position, shadowTexcoord);
+float evalShadowAttenuation(vec4 worldPosition, float viewDepth, vec3 viewNormal) {
+    ShadowSampleOffsets offsets = evalShadowFilterOffsets(worldPosition);
+    vec4 cascadeShadowCoords[2];
+    ivec2 cascadeIndices;
+    float cascadeMix = determineShadowCascadesOnPixel(worldPosition, viewDepth, cascadeShadowCoords, cascadeIndices);
+	
+    vec2 cascadeAttenuations = vec2(1.0, 1.0);
+    cascadeAttenuations.x = evalShadowCascadeAttenuation(cascadeIndices.x, viewNormal, offsets, cascadeShadowCoords[0]);
+    if (cascadeMix > 0.0 && cascadeIndices.y < getShadowCascadeCount()) {
+        cascadeAttenuations.y = evalShadowCascadeAttenuation(cascadeIndices.y, viewNormal, offsets, cascadeShadowCoords[1]);
+    }
+    float attenuation = mix(cascadeAttenuations.x, cascadeAttenuations.y, cascadeMix);
+    // Falloff to max distance
+    return mix(1.0, attenuation, evalShadowFalloff(viewDepth));
 }
 
 <@endif@>

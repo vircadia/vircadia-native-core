@@ -40,10 +40,6 @@ static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(
 static GLBackend* INSTANCE{ nullptr };
 
 BackendPointer GLBackend::createBackend() {
-    // The ATI memory info extension only exposes 'free memory' so we want to force it to 
-    // cache the value as early as possible
-    getDedicatedMemory();
-
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();

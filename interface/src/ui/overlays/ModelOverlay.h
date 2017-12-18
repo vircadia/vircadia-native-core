@@ -30,6 +30,12 @@ public:
 
     virtual void update(float deltatime) override;
     virtual void render(RenderArgs* args) override {};
+
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override;
+
+    void clearSubRenderItemIDs();
+    void setSubRenderItemIDs(const render::ItemIDs& ids);
+
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -74,9 +80,11 @@ private:
     ModelPointer _model;
     QVariantMap _modelTextures;
 
+    render::ItemIDs _subRenderItemIDs;
+
     QUrl _url;
-    bool _updateModel = { false };
-    bool _scaleToFit = { false };
+    bool _updateModel { false };
+    bool _scaleToFit { false };
     float _loadPriority { 0.0f };
 
     AnimationPointer _animation;
@@ -87,7 +95,7 @@ private:
     bool _animationRunning { false };
     bool _animationLoop { false };
     float _animationFirstFrame { 0.0f };
-    float _animationLastFrame = { 0.0f };
+    float _animationLastFrame { 0.0f };
     bool _animationHold { false };
     bool _animationAllowTranslation { false };
     uint64_t _lastAnimated { 0 };

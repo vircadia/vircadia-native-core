@@ -17,7 +17,6 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -2486,7 +2485,7 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
     ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
     ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
     ADD_STRING_PROPERTY(itemArtist, ItemArtist);
     ADD_STRING_PROPERTY(itemCategories, ItemCategories);
     ADD_STRING_PROPERTY(itemDescription, ItemDescription);

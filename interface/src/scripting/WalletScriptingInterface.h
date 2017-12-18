@@ -39,9 +39,9 @@ public:
 
     Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
-    void setWalletStatus(const uint& status) { _walletStatus = status; }
-
-    Q_INVOKABLE void buy(const QString& name, const QString& id, const int& price, const QString& href);
+    // setWalletStatus() should never be made Q_INVOKABLE. If it were,
+    //     scripts could cause the Wallet to incorrectly report its status.
+    void setWalletStatus(const uint& status);
 
 signals:
     void walletStatusChanged();

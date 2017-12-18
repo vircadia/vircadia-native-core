@@ -82,7 +82,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-        renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
     });
@@ -116,25 +115,6 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     batch.resetViewTransform();
     batch.setResourceTexture(0, _uiTexture);
     geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
-}
-
-void ApplicationOverlay::renderAudioScope(RenderArgs* renderArgs) {
-    PROFILE_RANGE(app, __FUNCTION__);
-
-    gpu::Batch& batch = *renderArgs->_batch;
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->useSimpleDrawPipeline(batch);
-    auto textureCache = DependencyManager::get<TextureCache>();
-    batch.setResourceTexture(0, textureCache->getWhiteTexture());
-    int width = renderArgs->_viewport.z;
-    int height = renderArgs->_viewport.w;
-    mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, ORTHO_NEAR_CLIP, ORTHO_FAR_CLIP);
-    batch.setProjectionTransform(legacyProjection);
-    batch.setModelTransform(Transform());
-    batch.resetViewTransform();
-
-    // Render the audio scope
-    DependencyManager::get<AudioScope>()->render(renderArgs, width, height);
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {

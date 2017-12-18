@@ -25,6 +25,23 @@ AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
     _avatar->setID(nodeID);
 }
 
+uint64_t AvatarMixerClientData::getLastOtherAvatarEncodeTime(QUuid otherAvatar) const {
+    std::unordered_map<QUuid, uint64_t>::const_iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+    if (itr != _lastOtherAvatarEncodeTime.end()) {
+        return itr->second;
+    }
+    return 0;
+}
+
+void AvatarMixerClientData::setLastOtherAvatarEncodeTime(const QUuid& otherAvatar, const uint64_t& time) {
+    std::unordered_map<QUuid, uint64_t>::iterator itr = _lastOtherAvatarEncodeTime.find(otherAvatar);
+    if (itr != _lastOtherAvatarEncodeTime.end()) {
+        itr->second = time;
+    } else {
+        _lastOtherAvatarEncodeTime.emplace(std::pair<QUuid, uint64_t>(otherAvatar, time));
+    }
+}
+
 void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     if (!_packetQueue.node) {
         _packetQueue.node = node;
