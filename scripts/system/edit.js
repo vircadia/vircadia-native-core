@@ -427,7 +427,7 @@ var toolBar = (function () {
         });
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
-            if (isActive && (type !== "QML" || url !== "Edit.qml")) {
+            if (isActive && (type !== "QML" || url !== "hifi/tablet/Edit.qml")) {
                 that.setActive(false)
             }
         });
