@@ -1496,6 +1496,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
+    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [=](const EntityItemID& entityItemID) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        if (myAvatar) {
+            myAvatar->clearAvatarEntity(entityItemID);
+        }
+    });
+
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
@@ -3222,8 +3230,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     }
 }
 
-
-
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
@@ -4848,8 +4854,7 @@ void Application::update(float deltaTime) {
         if (_physicsEnabled) {
             {
                 PROFILE_RANGE(simulation_physics, "PreStep");
-
-                PerformanceTimer perfTimer("updateStates)");
+                PerformanceTimer perfTimer("preStep)");
                 static VectorOfMotionStates motionStates;
                 _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
@@ -4882,22 +4887,22 @@ void Application::update(float deltaTime) {
             }
             {
                 PROFILE_RANGE(simulation_physics, "Step");
-                PerformanceTimer perfTimer("stepSimulation");
+                PerformanceTimer perfTimer("step");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
                 PROFILE_RANGE(simulation_physics, "PostStep");
-                PerformanceTimer perfTimer("harvestChanges");
+                PerformanceTimer perfTimer("postStep");
                 if (_physicsEngine->hasOutgoingChanges()) {
                     // grab the collision events BEFORE handleOutgoingChanges() because at this point
                     // we have a better idea of which objects we own or should own.
                     auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
                     getEntities()->getTree()->withWriteLock([&] {
-                        PROFILE_RANGE(simulation_physics, "Harvest");
-                        PerformanceTimer perfTimer("handleOutgoingChanges");
+                        PROFILE_RANGE(simulation_physics, "HandleChanges");
+                        PerformanceTimer perfTimer("handleChanges");
 
                         const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                         _entitySimulation->handleChangedMotionStates(outgoingChanges);
@@ -4908,17 +4913,15 @@ void Application::update(float deltaTime) {
                     });
 
                     if (!_aboutToQuit) {
-                        // handleCollisionEvents() AFTER handleOutgoinChanges()
+                        // handleCollisionEvents() AFTER handleOutgoingChanges()
                         {
                             PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                            PerformanceTimer perfTimer("entities");
                             avatarManager->handleCollisionEvents(collisionEvents);
                             // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                             // deadlock.)
                             _entitySimulation->handleCollisionEvents(collisionEvents);
                         }
 
-                        PROFILE_RANGE(simulation_physics, "UpdateEntities");
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                         getEntities()->update(true); // update the models...
@@ -4929,7 +4932,8 @@ void Application::update(float deltaTime) {
                         myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
                     }
 
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                    if (PerformanceTimer::isActive() &&
+                            Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
                             Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
                         _physicsEngine->harvestPerformanceStats();
                     }
@@ -7506,4 +7510,9 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
+
+void Application::saveNextPhysicsStats(QString filename) {
+    _physicsEngine->saveNextPhysicsStats(filename);
+}
+
 #include "Application.moc"

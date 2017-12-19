@@ -1770,24 +1770,26 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 }
 
 void EntityTree::update(bool simulate) {
-    PROFILE_RANGE(simulation_physics, "ET::update");
+    PROFILE_RANGE(simulation_physics, "UpdateTree");
     fixupNeedsParentFixups();
     if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
-            VectorOfEntities pendingDeletes;
-            _simulation->takeEntitiesToDelete(pendingDeletes);
+            {
+                PROFILE_RANGE(simulation_physics, "Deletes");
+                VectorOfEntities pendingDeletes;
+                _simulation->takeEntitiesToDelete(pendingDeletes);
+                if (pendingDeletes.size() > 0) {
+                    // translate into list of ID's
+                    QSet<EntityItemID> idsToDelete;
 
-            if (pendingDeletes.size() > 0) {
-                // translate into list of ID's
-                QSet<EntityItemID> idsToDelete;
+                    for (auto entity : pendingDeletes) {
+                        idsToDelete.insert(entity->getEntityItemID());
+                    }
 
-                for (auto entity : pendingDeletes) {
-                    idsToDelete.insert(entity->getEntityItemID());
+                    // delete these things the roundabout way
+                    deleteEntities(idsToDelete, true);
                 }
-
-                // delete these things the roundabout way
-                deleteEntities(idsToDelete, true);
             }
         });
     }

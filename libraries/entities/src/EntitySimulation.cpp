@@ -29,7 +29,6 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 }
 
 void EntitySimulation::updateEntities() {
-    PROFILE_RANGE(simulation_physics, "ES::updateEntities");
     QMutexLocker lock(&_mutex);
     quint64 now = usecTimestampNow();
 
@@ -38,12 +37,7 @@ void EntitySimulation::updateEntities() {
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
     updateEntitiesInternal(now);
-
-    {
-        PROFILE_RANGE(simulation_physics, "Sort");
-        PerformanceTimer perfTimer("sortingEntities");
-        sortEntitiesThatMoved();
-    }
+    sortEntitiesThatMoved();
 }
 
 void EntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
@@ -101,6 +95,7 @@ void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
 // protected
 void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {
+        PROFILE_RANGE_EX(simulation_physics, "ExpireMortals", 0xffff00ff, (uint64_t)_mortalEntities.size());
         // only search for expired entities if we expect to find one
         _nextExpiry = quint64(-1);
         QMutexLocker lock(&_mutex);
@@ -146,6 +141,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 
 // protected
 void EntitySimulation::sortEntitiesThatMoved() {
+    PROFILE_RANGE_EX(simulation_physics, "SortTree", 0xffff00ff, (uint64_t)_entitiesToSort.size());
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
     MovingEntitiesOperator moveOperator;
@@ -265,7 +261,7 @@ void EntitySimulation::clearEntities() {
 }
 
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {
-    PROFILE_RANGE_EX(simulation_physics, "Kinematics", 0xffff00ff, (uint64_t)_simpleKinematicEntities.size());
+    PROFILE_RANGE_EX(simulation_physics, "MoveSimples", 0xffff00ff, (uint64_t)_simpleKinematicEntities.size());
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;

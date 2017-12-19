@@ -54,6 +54,7 @@ Rectangle {
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("marketplace purchases");
                 }
             } else if (walletStatus === 3) {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
