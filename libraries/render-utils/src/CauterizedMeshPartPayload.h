@@ -14,8 +14,11 @@
 class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
-
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices);
+#ifdef SKIN_COMP
+    void updateClusterBuffer(const std::vector<Model::TransformComponents>& clusterTransforms, const std::vector<Model::TransformComponents>& cauterizedClusterTransforms);
+#else
+    void updateClusterBuffer(const std::vector<glm::mat4>& clusterTransforms, const std::vector<glm::mat4>& cauterizedClusterTransforms);
+#endif
 
     void updateTransformForCauterizedMesh(const Transform& renderTransform);
 

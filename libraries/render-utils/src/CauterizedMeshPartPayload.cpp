@@ -20,19 +20,35 @@ using namespace render;
 CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform)
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
-void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices) {
-    ModelMeshPartPayload::updateClusterBuffer(clusterMatrices);
+#ifdef SKIN_COMP
+void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<Model::TransformComponents>& clusterTransforms, const std::vector<Model::TransformComponents>& cauterizedClusterTransforms) {
+    ModelMeshPartPayload::updateClusterBuffer(clusterTransforms);
 
-    if (cauterizedClusterMatrices.size() > 1) {
+    if (cauterizedClusterTransforms.size() > 1) {
         if (!_cauterizedClusterBuffer) {
-            _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) cauterizedClusterMatrices.data());
+            _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterTransforms.size() * sizeof(Model::TransformComponents),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
         } else {
-            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) cauterizedClusterMatrices.data());
+            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterTransforms.size() * sizeof(Model::TransformComponents),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
         }
     }
 }
+#else
+void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterTransforms, const std::vector<glm::mat4>& cauterizedClusterTransforms) {
+    ModelMeshPartPayload::updateClusterBuffer(clusterTransforms);
+
+    if (cauterizedClusterTransforms.size() > 1) {
+        if (!_cauterizedClusterBuffer) {
+            _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterTransforms.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
+        } else {
+            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterTransforms.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
+        }
+    }
+}
+#endif
 
 void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform& renderTransform) {
     _cauterizedTransform = renderTransform;

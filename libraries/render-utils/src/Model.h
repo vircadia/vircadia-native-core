@@ -43,8 +43,6 @@
         }                                       \
     } while(false)
 
-//#define SKIN_MATRIX
-//#define SKIN_DUAL_QUAT
 #define SKIN_COMP
 
 class AbstractViewStateInterface;
@@ -257,9 +255,50 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+    class TransformComponents {
+    public:
+        TransformComponents() {}
+        TransformComponents(const glm::mat4& m) {
+            AnimPose p(m);
+            _scale.x = p.scale().x;
+            _scale.y = p.scale().y;
+            _scale.z = p.scale().z;
+            _rot = p.rot();
+            _trans.x = p.trans().x;
+            _trans.y = p.trans().y;
+            _trans.z = p.trans().z;
+        }
+
+        TransformComponents(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+            _scale.x = scale.x;
+            _scale.y = scale.y;
+            _scale.z = scale.z;
+            _rot = rot;
+            _trans.x = trans.x;
+            _trans.y = trans.y;
+            _trans.z = trans.z;
+        }
+
+        glm::vec3 getScale() const { return glm::vec3(_scale); }
+        glm::quat getRot() const { return _rot; }
+        glm::vec3 getTrans() const { return glm::vec3(_trans); }
+        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
+
+    protected:
+        glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
+        glm::quat _rot { 1.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec4 _trans { 0.0f, 0.0f, 0.0f, 0.0f };
+        glm::vec4 _padding { 0.0f, 0.0f, 0.0f, 0.0f };
+    };
+
     class MeshState {
     public:
-        std::vector<glm::mat4> clusterMatrices;
+#ifdef SKIN_COMP
+        std::vector<TransformComponents> clusterTransforms;
+#else
+        std::vector<glm::mat4> clusterTransforms;
+#endif
+
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }

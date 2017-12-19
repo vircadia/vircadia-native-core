@@ -326,22 +326,17 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
-    computeAdjustedLocalBound(state.clusterMatrices);
+    computeAdjustedLocalBound(state.clusterTransforms);
 
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
-    if (state.clusterMatrices.size() == 1) {
-#ifdef SKIN_MATRIX
-        SKIN_ASSERT(false);
-        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
-#endif
+    if (state.clusterTransforms.size() == 1) {
 #ifdef SKIN_COMP
-        glm::vec3 scale(state.clusterMatrices[0][0]);
-        glm::quat rot(state.clusterMatrices[0][1].w, state.clusterMatrices[0][1].x, state.clusterMatrices[0][1].y, state.clusterMatrices[0][1].z);
-        glm::vec3 trans(state.clusterMatrices[0][2]);
-        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
-        renderTransform = transform.worldTransform(Transform(m));
+        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0].getMatrix()));
+#else
+        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
 #endif
+
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
@@ -371,20 +366,36 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+#ifdef SKIN_COMP
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::TransformComponents>& clusterTransforms) {
     // Once computed the cluster matrices, update the buffer(s)
-    if (clusterMatrices.size() > 1) {
+    if (clusterTransforms.size() > 1) {
         if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(Model::TransformComponents),
+                (const gpu::Byte*) clusterTransforms.data());
         }
         else {
-            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(Model::TransformComponents),
+                (const gpu::Byte*) clusterTransforms.data());
         }
     }
 }
+#else
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterTransforms) {
+    // Once computed the cluster matrices, update the buffer(s)
+    if (clusterTransforms.size() > 1) {
+        if (!_clusterBuffer) {
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterTransforms.data());
+        }
+        else {
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterTransforms.data());
+        }
+    }
+}
+#endif
+
 
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
@@ -550,23 +561,27 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
-    _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
-            AABox clusterBound = _localBound;
-#ifdef SKIN_MATRIX
-            SKIN_ASSERT(false);
-            clusterBound.transform(clusterMatrices[i]);
-#endif
 #ifdef SKIN_COMP
-            // AJT: FIXME: TODO: SLOW AS SHIT
-            glm::vec3 scale(clusterMatrices[i][0]);
-            glm::quat rot(clusterMatrices[i][1].w, clusterMatrices[i][1].x, clusterMatrices[i][1].y, clusterMatrices[i][1].z);
-            glm::vec3 trans(clusterMatrices[i][2]);
-            glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
-            clusterBound.transform(m);
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformComponents>& clusterTransforms) {
+#else
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterTransforms) {
+#endif
+    _adjustedLocalBound = _localBound;
+    if (clusterTransforms.size() > 0) {
+#ifdef SKIN_COMP
+        // AJT: TODO: optimize
+        _adjustedLocalBound.transform(clusterTransforms[0].getMatrix());
+#else
+        _adjustedLocalBound.transform(clusterTransforms[0]);
+#endif
+
+        for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
+            AABox clusterBound = _localBound;
+#ifdef SKIN_COMP
+            // AJT: TODO: optimize
+            clusterBound.transform(clusterTransforms[i].getMatrix());
+#else
+            clusterBound.transform(clusterTransforms[i]);
 #endif
             _adjustedLocalBound += clusterBound;
         }

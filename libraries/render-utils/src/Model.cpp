@@ -266,25 +266,20 @@ void Model::updateRenderItems() {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+            auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices, invalidatePayloadShapeKey,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms, invalidatePayloadShapeKey,
                     isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateClusterBuffer(clusterMatrices);
+                data.updateClusterBuffer(clusterTransforms);
+
                 Transform renderTransform = modelTransform;
-                if (clusterMatrices.size() == 1) {
-#ifdef SKIN_MATRIX
-                    SKIN_ASSERT(false);
-                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-#endif
+                if (clusterTransforms.size() == 1) {
 #ifdef SKIN_COMP
-                    glm::vec3 scale(clusterMatrices[0][0]);
-                    glm::quat rot(clusterMatrices[0][1].w, clusterMatrices[0][1].x, clusterMatrices[0][1].y, clusterMatrices[0][1].z);
-                    glm::vec3 trans(clusterMatrices[0][2]);
-                    glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
-                    renderTransform = modelTransform.worldTransform(Transform(m));
+                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
+#else
+                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
 #endif
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
@@ -338,7 +333,7 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
+            state.clusterTransforms.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -1169,7 +1164,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        part->computeAdjustedLocalBound(state.clusterMatrices);
+        part->computeAdjustedLocalBound(state.clusterTransforms);
     }
 }
 
@@ -1187,30 +1182,14 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-
-            // AJT: TODO FIXME
-#ifdef SKIN_MATRIX
-            SKIN_ASSERT(false);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-#endif
 #ifdef SKIN_COMP
-            AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
-            AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
-
-            // pack scale rotation and translation into a mat4.
-            state.clusterMatrices[j][0].x = result.scale().x;
-            state.clusterMatrices[j][0].y = result.scale().y;
-            state.clusterMatrices[j][0].z = result.scale().z;
-
-            state.clusterMatrices[j][1].x = result.rot().x;
-            state.clusterMatrices[j][1].y = result.rot().y;
-            state.clusterMatrices[j][1].z = result.rot().z;
-            state.clusterMatrices[j][1].w = result.rot().w;
-
-            state.clusterMatrices[j][2].x = result.trans().x;
-            state.clusterMatrices[j][2].y = result.trans().y;
-            state.clusterMatrices[j][2].z = result.trans().z;
+            // AJT: TODO: optimize
+            glm::mat4 mat;
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
+            state.clusterTransforms[j] = TransformComponents(mat);
+#else
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
         }
     }

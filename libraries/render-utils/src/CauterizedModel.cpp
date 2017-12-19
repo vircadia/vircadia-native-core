@@ -35,7 +35,7 @@ bool CauterizedModel::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             Model::MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
+            state.clusterTransforms.resize(mesh.clusters.size());
             _cauterizeMeshStates.append(state);
         }
     }
@@ -116,47 +116,14 @@ void CauterizedModel::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
-            /* AJT: TODO REMOVE */
-#ifdef SKIN_MATRIX
-            SKIN_ASSERT(false);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-#endif
 #ifdef SKIN_COMP
-
-            if (debug) {
-                qDebug() << "AJT:     _meshState[" << i << "], cluster[" << j << "]";
-            }
-
-            AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
-            AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
-            result.rot() = glm::normalize(result.rot());
-
-            // pack scale rotation and translation into a mat4.
-            state.clusterMatrices[j][0].x = result.scale().x;
-            state.clusterMatrices[j][0].y = result.scale().y;
-            state.clusterMatrices[j][0].z = result.scale().z;
-
-            state.clusterMatrices[j][1].x = result.rot().x;
-            state.clusterMatrices[j][1].y = result.rot().y;
-            state.clusterMatrices[j][1].z = result.rot().z;
-            state.clusterMatrices[j][1].w = result.rot().w;
-
-            state.clusterMatrices[j][2].x = result.trans().x;
-            state.clusterMatrices[j][2].y = result.trans().y;
-            state.clusterMatrices[j][2].z = result.trans().z;
-
-            // AJT REMOVE
-            if (debug) {
-                glm::mat4 jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                glm::mat4 m;
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-                qDebug() << "AJT:         m =" << m;
-                qDebug() << "AJT:         (AnimPose)m =" << AnimPose(m);
-                qDebug() << "AJT:         result =" << result;
-                qDebug() << "AJT:         (mat4)result =" << (glm::mat4)result;
-                SKIN_ASSERT(result.fuzzyEqual(AnimPose(m)));
-            }
+            // AJT: TODO: optimize
+            glm::mat4 m;
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+            state.clusterTransforms[j] = Model::TransformComponents(m);
+#else
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
         }
     }
@@ -177,60 +144,18 @@ void CauterizedModel::updateClusterMatrices() {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
 
-#ifdef SKIN_MATRIX
-                SKIN_ASSERT(false);
-                // AJT: TODO REMOVE:
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointMatrix = cauterizeMatrix;
                 }
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-#endif
+
 #ifdef SKIN_COMP
-
-                if (debug) {
-                    qDebug() << "AJT:     CAUTERIZED _meshState[" << i << "], cluster[" << j << "]";
-                }
-
-                auto jointPose = _rig.getJointPose(cluster.jointIndex);
-                /*
-                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                    jointPose = cauterizePose;
-                }
-                */
-                AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
-                result.rot() = glm::normalize(result.rot());
-
-                // pack scale rotation and translation into a mat4.
-                state.clusterMatrices[j][0].x = result.scale().x;
-                state.clusterMatrices[j][0].y = result.scale().y;
-                state.clusterMatrices[j][0].z = result.scale().z;
-
-                state.clusterMatrices[j][1].x = result.rot().x;
-                state.clusterMatrices[j][1].y = result.rot().y;
-                state.clusterMatrices[j][1].z = result.rot().z;
-                state.clusterMatrices[j][1].w = result.rot().w;
-
-                state.clusterMatrices[j][2].x = result.trans().x;
-                state.clusterMatrices[j][2].y = result.trans().y;
-                state.clusterMatrices[j][2].z = result.trans().z;
-
-                // AJT REMOVE
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                /*
-                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                    jointMatrix = cauterizeMatrix;
-                }
-                */
-                if (debug) {
-                    glm::mat4 m;
-                    glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-                    qDebug() << "AJT:         m =" << m;
-                    qDebug() << "AJT:         (AnimPose)m =" << AnimPose(m);
-                    qDebug() << "AJT:         result =" << result;
-                    qDebug() << "AJT:         (mat4)result =" << (glm::mat4)result;
-                    SKIN_ASSERT(result.fuzzyEqual(AnimPose(m)));
-                }
+                // AJT: TODO: optimize
+                glm::mat4 m;
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                state.clusterTransforms[j] = Model::TransformComponents(m);
+#else
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
             }
         }
@@ -288,43 +213,31 @@ void CauterizedModel::updateRenderItems() {
 
                 auto itemID = self->_modelMeshRenderItemIDs[i];
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-                auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
-                auto clusterMatricesCauterized(self->getCauterizeMeshState(meshIndex).clusterMatrices);
+                auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
+                auto clusterTransformsCauterized(self->getCauterizeMeshState(meshIndex).clusterTransforms);
 
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized, invalidatePayloadShapeKey,
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterTransforms, clusterTransformsCauterized, invalidatePayloadShapeKey,
                         isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, enableCauterization](CauterizedMeshPartPayload& data) {
-                    data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+                    data.updateClusterBuffer(clusterTransforms, clusterTransformsCauterized);
 
                     Transform renderTransform = modelTransform;
-                    if (clusterMatrices.size() == 1) {
-#ifdef SKIN_MATRIX
-                        SKIN_ASSERT(false);
-                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-#endif
+                    if (clusterTransforms.size() == 1) {
 #ifdef SKIN_COMP
-                        glm::vec3 scale(clusterMatrices[0][0]);
-                        glm::quat rot(clusterMatrices[0][1].w, clusterMatrices[0][1].x, clusterMatrices[0][1].y, clusterMatrices[0][1].z);
-                        glm::vec3 trans(clusterMatrices[0][2]);
-                        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
-                        renderTransform = modelTransform.worldTransform(Transform(m));
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
+#else
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
 #endif
                     }
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                     renderTransform = modelTransform;
-                    if (clusterMatricesCauterized.size() == 1) {
-#ifdef SKIN_MATRIX
-                        SKIN_ASSERT(false);
-                        renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
-#endif
+                    if (clusterTransformsCauterized.size() == 1) {
 #ifdef SKIN_COMP
-                        glm::vec3 scale(clusterMatricesCauterized[0][0]);
-                        glm::quat rot(clusterMatricesCauterized[0][1].w, clusterMatricesCauterized[0][1].x, clusterMatricesCauterized[0][1].y, clusterMatricesCauterized[0][1].z);
-                        glm::vec3 trans(clusterMatricesCauterized[0][2]);
-                        glm::mat4 m = createMatFromScaleQuatAndPos(scale, rot, trans);
-                        renderTransform = modelTransform.worldTransform(Transform(m));
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0].getMatrix()));
+#else
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0]));
 #endif
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
