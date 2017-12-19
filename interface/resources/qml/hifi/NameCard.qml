@@ -602,6 +602,6 @@ Item {
             return;
         }
         // This is the last step of what AddressManager.goToUser does, but we don't need to resolve the username.
-        MyAvatar.goToLocation(avatar.position, true, Quat.cancelOutRollAndPitch(avatar.orientation), true)
+        MyAvatar.goToLocation(avatar.position, true, Quat.cancelOutRollAndPitch(avatar.orientation), true);
     }
 }
