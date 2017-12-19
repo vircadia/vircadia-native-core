@@ -17,6 +17,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QDir>
+#include <QDirIterator>
 #include <QUrl>
 #include <QtCore/QStandardPaths>
 #include <QRegularExpression>
@@ -203,3 +204,31 @@ bool PathUtils::isDescendantOf(const QUrl& childURL, const QUrl& parentURL) {
     QString parent = stripFilename(parentURL);
     return child.startsWith(parent, PathUtils::getFSCaseSensitivity());
 }
+
+void PathUtils::copyDirDeep(QString src, QString dst) {
+    QDir dir = QDir::root();
+    dir.mkpath(dst);
+    QDirIterator it(src, QStringList() << "*", QDir::Files|QDir::AllDirs, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString f = it.next();
+        QFileInfo fInfo(f);
+        QString newDst = dst + (dst.endsWith("/")?"":"/") + fInfo.fileName();
+        if (fInfo.isFile()) {
+            QFile dfile(f);
+            if (dfile.exists(f))
+            {
+                if (dfile.copy(newDst)) {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                } else {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                    // sometimes copy returns false but it worked anyway
+                    //qWarning() << "Could not copy to " << newDst;
+                }
+            }
+        } else if (fInfo.isDir() ) {
+            copyDirDeep(f, newDst);
+        }
+    }
+}
+
+

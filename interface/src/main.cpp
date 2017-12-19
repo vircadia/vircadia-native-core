@@ -105,6 +105,11 @@ int main(int argc, const char* argv[]) {
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }
+    QFileInfo fInfo("assets:/scripts/test.js");
+    QDir dirInfo(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    QUrl androidPath = QUrl::fromLocalFile(dirInfo.canonicalPath() + "/scripts");
+    PathUtils::copyDirDeep("assets:/scripts", androidPath.toLocalFile());
+
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
