@@ -45,15 +45,8 @@ SpinBox {
 
     locale: Qt.locale("en_US")
 
-    onValueModified: {
-        realValue = value/factor
-        console.warn("rv (value mod)", realValue)
-    }
-
-    onValueChanged: {
-        realValue = value/factor
-        console.warn("rv (value)", realValue)
-    }
+    onValueModified: realValue = value/factor
+    onValueChanged: realValue = value/factor
 
     stepSize: realStepSize*factor
     value: realValue*factor
@@ -85,7 +78,6 @@ SpinBox {
     }
 
     valueFromText: function(text, locale) {
-        console.warn("valueFromText", text)
         return Number.fromLocaleString(locale, text);
     }
 
