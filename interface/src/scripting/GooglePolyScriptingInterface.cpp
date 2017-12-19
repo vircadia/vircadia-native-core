@@ -10,7 +10,7 @@
 //
 
 #include <QEventLoop>
-#include <QGlobal.h>
+#include <QtGlobal>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
