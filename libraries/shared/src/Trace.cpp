@@ -16,7 +16,6 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
-#include <QtCore/QDateTime>
 
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
@@ -31,6 +30,8 @@
 
 #include "Gzip.h"
 #include "PortableHighResolutionClock.h"
+#include "SharedLogging.h"
+#include "shared/FileUtils.h"
 #include "shared/GlobalAppProperties.h"
 
 using namespace tracing;
@@ -104,29 +105,12 @@ void TraceEvent::writeJson(QTextStream& out) const {
 #endif
 }
 
-void Tracer::serialize(const QString& originalPath) {
-
-    QString path = originalPath;
-
-    // Filter for specific tokens potentially present in the path:
-    auto now = QDateTime::currentDateTime();
-
-    path = path.replace("{DATE}", now.date().toString("yyyyMMdd"));
-    path = path.replace("{TIME}", now.time().toString("HHmm"));
-
-    // If the filename is relative, turn it into an absolute path relative to the document directory.
-    QFileInfo originalFileInfo(path);
-    if (originalFileInfo.isRelative()) {
-        QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-        path = docsLocation + "/" + path;
-        QFileInfo info(path);
-        if (!info.absoluteDir().exists()) {
-            QString originalRelativePath = originalFileInfo.path();
-            QDir(docsLocation).mkpath(originalRelativePath);
-        }
+void Tracer::serialize(const QString& filename) {
+    QString fullPath = FileUtils::replaceDateTimeTokens(filename);
+    fullPath = FileUtils::computeDocumentPath(fullPath);
+    if (!FileUtils::canCreateFile(fullPath)) {
+        return;
     }
-
-
 
     std::list<TraceEvent> currentEvents;
     {
@@ -135,11 +119,6 @@ void Tracer::serialize(const QString& originalPath) {
         for (auto& event : _metadataEvents) {
             currentEvents.push_back(event);
         }
-    }
-
-    // If the file exists and we can't remove it, fail early
-    if (QFileInfo(path).exists() && !QFile::remove(path)) {
-        return;
     }
 
     // If we can't open a temp file for writing, fail early
@@ -159,15 +138,16 @@ void Tracer::serialize(const QString& originalPath) {
         out << "\n]";
     }
 
-    if (path.endsWith(".gz")) {
+    if (fullPath.endsWith(".gz")) {
         QByteArray compressed;
         gzip(data, compressed);
         data = compressed;
-    } 
-    
+    }
+
     {
-        QFile file(path);
+        QFile file(fullPath);
         if (!file.open(QIODevice::WriteOnly)) {
+            qDebug(shared) << "failed to open file '" << fullPath << "'";
             return;
         }
         file.write(data);
@@ -191,7 +171,6 @@ void Tracer::serialize(const QString& originalPath) {
                 } }
             }
         };
-        
         data = document.toJson(QJsonDocument::Compact);
     }
 #endif

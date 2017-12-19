@@ -22,3 +22,8 @@ void WalletScriptingInterface::refreshWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getWalletStatus();
 }
+
+void WalletScriptingInterface::setWalletStatus(const uint& status) {
+    _walletStatus = status;
+    emit DependencyManager::get<Wallet>()->walletStatusResult(status);
+}

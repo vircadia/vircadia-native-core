@@ -28,6 +28,7 @@ class Assignment : public QObject {
 public:
 
     enum Type : uint8_t {
+        FirstType = 0,
         AudioMixerType = 0,
         AvatarMixerType = 1,
         AgentType = 2,
@@ -89,6 +90,7 @@ public:
     const QString& getNodeVersion() const { return _nodeVersion; }
     
     const char* getTypeName() const;
+    static const char* typeToString(Assignment::Type type);
 
     friend QDebug operator<<(QDebug debug, const Assignment& assignment);
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);

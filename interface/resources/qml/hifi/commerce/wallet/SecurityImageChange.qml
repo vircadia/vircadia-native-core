@@ -26,10 +26,6 @@ Item {
     id: root;
     property bool justSubmitted: false;
 
-    SecurityImageModel {
-        id: securityImageModel;
-    }
-
     Hifi.QmlCommerce {
         id: commerce;
         
@@ -212,5 +208,9 @@ Item {
     function resetSubmitButton() {
         securityImageSubmitButton.enabled = true;
         securityImageSubmitButton.text = "Submit";
+    }
+
+    function initModel() {
+        securityImageSelection.initModel();
     }
 }

@@ -21,6 +21,9 @@ public:
     static QString standardPath(QString subfolder);
     static QString readFile(const QString& filename);
     static QStringList readLines(const QString& filename, QString::SplitBehavior splitBehavior = QString::KeepEmptyParts);
+    static QString replaceDateTimeTokens(const QString& path);
+    static QString computeDocumentPath(const QString& path);
+    static bool canCreateFile(const QString& fullPath);
 };
 
 #endif // hifi_FileUtils_h

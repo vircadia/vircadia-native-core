@@ -1821,6 +1821,19 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     return result;
 }
 
+QString EntityScriptingInterface::getStaticCertificateJSON(const QUuid& entityID) {
+    QByteArray result;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->getProperties().getStaticCertificateJSON();
+            }
+        });
+    }
+    return result;
+}
+
 bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
     bool result = false;
     if (_entityTree) {
