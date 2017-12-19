@@ -415,7 +415,7 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if ('availabile' === availability) {
+                    if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),
