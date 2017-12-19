@@ -104,6 +104,12 @@ void CauterizedModel::updateClusterMatrices() {
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
 
+    bool debug = false;
+
+    if (debug) {
+        qDebug() << "AJT: CauterizedModel::updateClusterMatrices(), url =" << _url;
+    }
+
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -117,8 +123,14 @@ void CauterizedModel::updateClusterMatrices() {
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
 #endif
 #ifdef SKIN_COMP
+
+            if (debug) {
+                qDebug() << "AJT:     _meshState[" << i << "], cluster[" << j << "]";
+            }
+
             AnimPose jointPose = _rig.getJointPose(cluster.jointIndex);
             AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+            result.rot() = glm::normalize(result.rot());
 
             // pack scale rotation and translation into a mat4.
             state.clusterMatrices[j][0].x = result.scale().x;
@@ -133,6 +145,18 @@ void CauterizedModel::updateClusterMatrices() {
             state.clusterMatrices[j][2].x = result.trans().x;
             state.clusterMatrices[j][2].y = result.trans().y;
             state.clusterMatrices[j][2].z = result.trans().z;
+
+            // AJT REMOVE
+            if (debug) {
+                glm::mat4 jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                glm::mat4 m;
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                qDebug() << "AJT:         m =" << m;
+                qDebug() << "AJT:         (AnimPose)m =" << AnimPose(m);
+                qDebug() << "AJT:         result =" << result;
+                qDebug() << "AJT:         (mat4)result =" << (glm::mat4)result;
+                SKIN_ASSERT(result.fuzzyEqual(AnimPose(m)));
+            }
 #endif
         }
     }
@@ -146,7 +170,6 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
-        auto cauterizePose = AnimPose(cauterizeMatrix);
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
@@ -164,11 +187,19 @@ void CauterizedModel::updateClusterMatrices() {
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
 #endif
 #ifdef SKIN_COMP
+
+                if (debug) {
+                    qDebug() << "AJT:     CAUTERIZED _meshState[" << i << "], cluster[" << j << "]";
+                }
+
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
+                /*
                 if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
                     jointPose = cauterizePose;
                 }
+                */
                 AnimPose result = jointPose * AnimPose(cluster.inverseBindMatrix);
+                result.rot() = glm::normalize(result.rot());
 
                 // pack scale rotation and translation into a mat4.
                 state.clusterMatrices[j][0].x = result.scale().x;
@@ -183,6 +214,23 @@ void CauterizedModel::updateClusterMatrices() {
                 state.clusterMatrices[j][2].x = result.trans().x;
                 state.clusterMatrices[j][2].y = result.trans().y;
                 state.clusterMatrices[j][2].z = result.trans().z;
+
+                // AJT REMOVE
+                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
+                /*
+                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
+                    jointMatrix = cauterizeMatrix;
+                }
+                */
+                if (debug) {
+                    glm::mat4 m;
+                    glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                    qDebug() << "AJT:         m =" << m;
+                    qDebug() << "AJT:         (AnimPose)m =" << AnimPose(m);
+                    qDebug() << "AJT:         result =" << result;
+                    qDebug() << "AJT:         (mat4)result =" << (glm::mat4)result;
+                    SKIN_ASSERT(result.fuzzyEqual(AnimPose(m)));
+                }
 #endif
             }
         }

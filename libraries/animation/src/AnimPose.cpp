@@ -69,6 +69,27 @@ AnimPose AnimPose::mirror() const {
     return AnimPose(_scale, glm::quat(_rot.w, _rot.x, -_rot.y, -_rot.z), glm::vec3(-_trans.x, _trans.y, _trans.z));
 }
 
+bool AnimPose::fuzzyEqual(const AnimPose& rhs) const {
+    const float SCALE_EPSILON = 0.00001f;
+    const float ROT_EPSILON = 0.00001f;
+    const float TRANS_EPSILON = 0.001f;
+    if ((fabsf(rhs._scale.x - _scale.x) < SCALE_EPSILON) &&
+        (fabsf(rhs._scale.y - _scale.y) < SCALE_EPSILON) &&
+        (fabsf(rhs._scale.z - _scale.z) < SCALE_EPSILON)) {
+        if ((fabsf(rhs._rot.x - _rot.x) < ROT_EPSILON) &&
+            (fabsf(rhs._rot.y - _rot.y) < ROT_EPSILON) &&
+            (fabsf(rhs._rot.z - _rot.z) < ROT_EPSILON) &&
+            (fabsf(rhs._rot.w - _rot.w) < ROT_EPSILON)) {
+            if ((fabsf(rhs._trans.x - _trans.x) < TRANS_EPSILON) &&
+                (fabsf(rhs._trans.y - _trans.y) < TRANS_EPSILON) &&
+                (fabsf(rhs._trans.z - _trans.z) < TRANS_EPSILON)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 AnimPose::operator glm::mat4() const {
     glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
     glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
@@ -76,3 +97,5 @@ AnimPose::operator glm::mat4() const {
     return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
         glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
 }
+
+

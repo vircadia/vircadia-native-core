@@ -1820,7 +1820,8 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode()) {
         initHeadBones();
-        _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+        // AJT HACK DISABLE CAUTERIZE
+        //_skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
         _isAnimatingScale = true;
@@ -1912,7 +1913,9 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
-        _skeletonModel->setEnableCauterization(!shouldDrawHead);
+        // AJT: DISABLE CAUTER
+        // _skeletonModel->setEnableCauterization(!shouldDrawHead);
+        _skeletonModel->setEnableCauterization(false);
 
         for (int i = 0; i < _attachmentData.size(); i++) {
             if (_attachmentData[i].jointName.compare("Head", Qt::CaseInsensitive) == 0 ||
