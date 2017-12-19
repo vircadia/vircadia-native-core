@@ -438,8 +438,8 @@ task extractGvrBinaries(dependsOn: extractDependencies) {
 task qtBundle {
     doLast {
         parseQtDependencies(QT5_DEPS)
-        //def qmlImportFolder = new File("${appDir}/../../interface/resources/qml/")
-        def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
+        def qmlImportFolder = new File("${appDir}/../../interface/resources/qml/")
+        //def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
         scanQmlImports(qmlImportFolder)
         generateLibsXml()
    }

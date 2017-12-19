@@ -16,7 +16,9 @@
 #include <QOpenGLContext>
 
 #include <plugins/DisplayPlugin.h>
-
+#ifdef Q_OS_ANDROID
+#include <gl/Config.h>
+#endif
 ResourceImageItem::ResourceImageItem() : QQuickFramebufferObject() {
     auto textureCache = DependencyManager::get<TextureCache>();
     connect(textureCache.data(), SIGNAL(spectatorCameraFramebufferReset()), this, SLOT(update()));
