@@ -34,6 +34,15 @@ SpinBox {
     property real realTo: 100.0
     property real realStepSize: 1.0
 
+    implicitHeight: height
+    implicitWidth: width
+
+    padding: 0
+    leftPadding: 0
+    rightPadding: padding + (up.indicator ? up.indicator.width : 0)
+    topPadding: 0
+    bottomPadding: 0
+
     locale: Qt.locale("en_US")
 
     onValueModified: {
@@ -45,10 +54,6 @@ SpinBox {
         realValue = value/factor
         console.warn("rv (value)", realValue)
     }
-
-    padding: 0
-    leftPadding: 0
-    rightPadding: 0
 
     stepSize: realStepSize*factor
     value: realValue*factor
@@ -86,6 +91,7 @@ SpinBox {
 
 
     contentItem: TextInput {
+        z: 2
         color: isLightColorScheme
                ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
@@ -97,25 +103,32 @@ SpinBox {
         //rightPadding: hifi.dimensions.spinnerSize
         width: spinBox.width - hifi.dimensions.spinnerSize
     }
-
-    up.indicator: HiFiGlyphs {
-        x: spinBox.mirrored ? 0 : spinBox.width - implicitWidth + 10
+    up.indicator: Item {
+        x: spinBox.width - implicitWidth - 5
         y: 1
-        height: parent.height/2
-        width: height
-        text: hifi.glyphs.caratUp
-        size: hifi.dimensions.spinnerSize
-        color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
-    }
-
-    down.indicator: HiFiGlyphs {
-            x: spinBox.mirrored ? 0 : spinBox.width - implicitWidth + 10
-            height: parent.height/2
-            width: height
-            y: height - 1
-            text: hifi.glyphs.caratDn
+        clip: true
+        implicitHeight: spinBox.implicitHeight/2
+        implicitWidth: spinBox.implicitHeight/2
+        HiFiGlyphs {
+            anchors.centerIn: parent
+            text: hifi.glyphs.caratUp
             size: hifi.dimensions.spinnerSize
             color: spinBox.down.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+        }
+    }
+
+    down.indicator: Item {
+            x: spinBox.width - implicitWidth - 5
+            y: spinBox.implicitHeight/2
+            clip: true
+            implicitHeight: spinBox.implicitHeight/2
+            implicitWidth: spinBox.implicitHeight/2
+            HiFiGlyphs {
+                anchors.centerIn: parent
+                text: hifi.glyphs.caratDn
+                size: hifi.dimensions.spinnerSize
+                color: spinBox.down.pressed || spinBox.down.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+            }
     }
 
     HifiControls.Label {
