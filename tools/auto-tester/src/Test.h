@@ -15,6 +15,7 @@
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 #include <QtCore/QRegularExpression>
+#include <QProgressBar>
 
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
@@ -23,10 +24,12 @@ class Test {
 public: 
     Test();
 
-    void evaluateTests(bool interactiveMode);
-    void evaluateTestsRecursively(bool interactiveMode);
+    void evaluateTests(bool interactiveMode, QProgressBar* progressBar);
+    void evaluateTestsRecursively(bool interactiveMode, QProgressBar* progressBar);
     void createRecursiveScript();
     void createTest();
+
+    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode, QProgressBar* progressBar);
 
     QStringList createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory);
 
@@ -56,7 +59,6 @@ private:
 
     ImageComparer imageComparer;
 
-    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode);
 
     QString testResultsFolderPath { "" };
     int index { 1 };
