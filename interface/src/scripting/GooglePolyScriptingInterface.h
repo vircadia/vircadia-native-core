@@ -22,7 +22,6 @@ public:
     GooglePolyScriptingInterface();
 
 public slots:
-    void testPrint(QString input);
     void setAPIKey(QString key);
 
     QString getAssetList(QString keyword, QString category, QString format);
@@ -40,7 +39,6 @@ private:
     QByteArray getHTTPRequest(QUrl url);
     QVariant parseJSON(QUrl url, int fileType);
     int getRandIntInRange(int length);
-    //void onResult(QNetworkReply* reply);
 
     QString authCode;
     
