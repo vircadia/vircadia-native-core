@@ -53,6 +53,8 @@ void main(void) {
     vec4 worldFragPos = viewInverse * eyeFragPos;
     vec4 worldEyePos = viewInverse[3];
 
-    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y);
-}
+    Light light = getLight();
+    vec3 lightDirection = getLightDirection(light);
 
+    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y, lightDirection);
+}

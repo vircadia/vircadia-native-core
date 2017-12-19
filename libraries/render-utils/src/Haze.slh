@@ -43,7 +43,7 @@ layout(std140) uniform hazeBuffer {
 
 // Input:
 //      color               - fragment original color
-//      directionalLight    - parameters of the keylight
+//      lightDirection      - parameters of the keylight
 //      worldFragPos        - fragment position in world coordinates
 // Output:
 //      fragment colour after haze effect
@@ -101,7 +101,7 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 w
 //
 // General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
 //
-vec4 computeHazeColor(vec4 fragColor, vec3 eyeFragPos, vec3 worldFragPos, float worldEyeHeight) {
+vec4 computeHazeColor(vec4 fragColor, vec3 eyeFragPos, vec3 worldFragPos, float worldEyeHeight, vec3 lightDirection) {
     // Distance to fragment 
     float distance = length(eyeFragPos);
 
@@ -110,9 +110,6 @@ vec4 computeHazeColor(vec4 fragColor, vec3 eyeFragPos, vec3 worldFragPos, float 
 
     // Directional light component is a function of the angle from the eye, between the fragment and the sun
     vec3 eyeFragDir = normalize(worldFragPos);
-
-    Light light = getLight();
-    vec3 lightDirection = getLightDirection(light);
 
     float glareComponent = max(0.0, dot(eyeFragDir, -lightDirection));
     float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
