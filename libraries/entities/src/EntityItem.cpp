@@ -1634,6 +1634,10 @@ void EntityItem::setParentID(const QUuid& value) {
             newParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
         }
 
+        if (!oldParentID.isNull() && (oldParentID == Physics::getSessionUUID() || oldParentID == AVATAR_SELF_ID)) {
+            oldParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
+        }
+
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
             if ((bool)(newParentNoBootstrapping & Simulation::NO_BOOTSTRAPPING)) {
                 markDirtyFlags(Simulation::NO_BOOTSTRAPPING);
