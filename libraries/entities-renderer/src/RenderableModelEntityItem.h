@@ -33,7 +33,7 @@ namespace render { namespace entities {
 class ModelEntityRenderer;
 } }
 
-//#define MODEL_ENTITY_USE_FADE_EFFECT
+// #define MODEL_ENTITY_USE_FADE_EFFECT
 class ModelEntityWrapper : public ModelEntityItem {
     using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
@@ -133,7 +133,7 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
     friend class EntityRenderer;
 
 public:
-    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
+    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
@@ -184,8 +184,6 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
-    float _currentFrame { 0 };
-
 };
 
 } } // namespace 

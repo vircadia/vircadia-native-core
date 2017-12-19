@@ -63,13 +63,17 @@ bool ModelEntityWrapper::isModelLoaded() const {
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
                              [](EntityItem* ptr) { ptr->deleteLater(); });
+    
     entity->setProperties(properties);
+
     return entity;
 }
 
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
     ModelEntityWrapper(entityItemID),
     _dimensionsInitialized(dimensionsInitialized) {
+    
+    
 }
 
 RenderableModelEntityItem::~RenderableModelEntityItem() { }
@@ -464,7 +468,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         // TODO: assert we never fall in here when model not fully loaded
-        //assert(_model && _model->isLoaded());
+        // assert(_model && _model->isLoaded());
 
         updateModelBounds();
         model->updateGeometry();
@@ -974,9 +978,6 @@ void ModelEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entit
     entity->setModel({});
 }
 
-bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
-    return !(a == b);
-}
 
 void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     if (!_animation || !_animation->isLoaded()) {
@@ -991,19 +992,12 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    if (!_lastAnimated) {
-        _lastAnimated = usecTimestampNow();
-        return;
-    }
-
-    auto now = usecTimestampNow();
-    auto interval = now - _lastAnimated;
-    _lastAnimated = now;
-    float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-    _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
-
     {
-        int animationCurrentFrame = (int)(glm::floor(_currentFrame)) % frameCount;
+        // the current frame is set on the server in update() in ModelEntityItem.cpp     
+        int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
+        
+        // in the case where the last frame is greater than the framecount then clamp
+        // it to the end of the animation until it loops around. 
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
         }
@@ -1039,10 +1033,10 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
             glm::mat4 translationMat;
 
             if (allowTranslation) {
-                if(index < translations.size()){
+                if (index < translations.size()) {
                     translationMat = glm::translate(translations[index]);
                 }
-            } else if (index < animationJointNames.size()){
+            } else if (index < animationJointNames.size()) {
                 QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
                 
                 if (originalFbxIndices.contains(jointName)) {
@@ -1317,25 +1311,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-
-    {
-        DETAILED_PROFILE_RANGE(simulation_physics, "CheckAnimation");
-        // make a copy of the animation properites
-        auto newAnimationProperties = entity->getAnimationProperties();
-        if (newAnimationProperties != _renderAnimationProperties) {
-            withWriteLock([&] {
-                _renderAnimationProperties = newAnimationProperties;
-                _currentFrame = _renderAnimationProperties.getCurrentFrame();
-            });
-        }
-    }
-
+    
+    // The code to deal with the change of properties is now in ModelEntityItem.cpp
+    // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
-        animate(entity);
+        if (!(entity->getAnimationFirstFrame() < 0) && !(entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())) {
+            animate(entity);
+        }
         emit requestRenderUpdate();
     }
 }

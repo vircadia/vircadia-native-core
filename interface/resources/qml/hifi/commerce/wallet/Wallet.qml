@@ -57,6 +57,7 @@ Rectangle {
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("wallet app");
                 }
             } else if (walletStatus === 3) {
                 root.activeView = "walletHome";
@@ -80,10 +81,6 @@ Rectangle {
                 titleBarSecurityImage.source = "image://security/securityImage";
             }
         }
-    }
-
-    SecurityImageModel {
-        id: securityImageModel;
     }
 
     HifiCommerceCommon.CommerceLightbox {
@@ -342,6 +339,7 @@ Rectangle {
                     passphraseChange.clearPassphraseFields();
                     passphraseChange.resetSubmitButton();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageChange.initModel();
                     root.activeView = "securityImageChange";
                 }
             }

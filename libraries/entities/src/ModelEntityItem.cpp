@@ -33,6 +33,8 @@ EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const E
 
 ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
+    _lastAnimated = usecTimestampNow();
+    // set the last animated when interface (re)starts
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -185,6 +187,105 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
 
+
+
+// added update function back for property fix
+void ModelEntityItem::update(const quint64& now) {
+
+    {
+        auto currentAnimationProperties = this->getAnimationProperties();
+
+        if (_previousAnimationProperties != currentAnimationProperties) {
+            withWriteLock([&] {
+                // if we hit start animation or change the first or last frame then restart the animation
+                if ((currentAnimationProperties.getFirstFrame() != _previousAnimationProperties.getFirstFrame()) || 
+                    (currentAnimationProperties.getLastFrame() != _previousAnimationProperties.getLastFrame()) || 
+                    (currentAnimationProperties.getRunning() && !_previousAnimationProperties.getRunning())) {
+
+                    // when we start interface and the property is are set then the current frame is initialized to -1
+                    if (_currentFrame < 0) {
+                        // don't reset _lastAnimated here because we need the timestamp from the ModelEntityItem constructor for when the properties were set
+                        _currentFrame = currentAnimationProperties.getCurrentFrame();
+                        setAnimationCurrentFrame(_currentFrame);
+                    } else {
+                        _lastAnimated =  usecTimestampNow();
+                        _currentFrame = currentAnimationProperties.getFirstFrame();
+                        setAnimationCurrentFrame(currentAnimationProperties.getFirstFrame());
+                    }
+                } else if (!currentAnimationProperties.getRunning() && _previousAnimationProperties.getRunning()) {
+                    _currentFrame = currentAnimationProperties.getFirstFrame();
+                    setAnimationCurrentFrame(_currentFrame);
+                } else if (currentAnimationProperties.getCurrentFrame() != _previousAnimationProperties.getCurrentFrame()) {
+                    // don't reset _lastAnimated here because the currentFrame was set with the previous setting of _lastAnimated
+                    _currentFrame = currentAnimationProperties.getCurrentFrame();
+                }
+                
+            });
+            _previousAnimationProperties = this->getAnimationProperties();
+
+        }
+        
+        if (isAnimatingSomething()) {
+            if (!(getAnimationFirstFrame() < 0) && !(getAnimationFirstFrame() > getAnimationLastFrame())) {
+                updateFrameCount();
+            }
+        }
+    }
+
+    EntityItem::update(now);
+}
+
+bool ModelEntityItem::needsToCallUpdate() const {
+
+     return true;
+}
+
+void ModelEntityItem::updateFrameCount() {
+
+    if (_currentFrame < 0.0f) {
+        return;
+    }
+    
+    if (!_lastAnimated) {
+        _lastAnimated = usecTimestampNow();
+        return;
+    }
+
+    auto now = usecTimestampNow();
+
+    // update the interval since the last animation.
+    auto interval = now - _lastAnimated;
+    _lastAnimated = now;
+
+    // if fps is negative then increment timestamp and return.
+    if (getAnimationFPS() < 0.0f) {
+        return;
+    }
+
+    int updatedFrameCount = getAnimationLastFrame() - getAnimationFirstFrame() + 1;
+    
+    if (!getAnimationHold() && getAnimationIsPlaying()) {
+        float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+        _currentFrame += (deltaTime * getAnimationFPS());
+        if (_currentFrame > getAnimationLastFrame()) {
+            if (getAnimationLoop()) {
+                _currentFrame = getAnimationFirstFrame() + (int)(glm::floor(_currentFrame - getAnimationFirstFrame())) % (updatedFrameCount - 1);
+            } else {
+                _currentFrame = getAnimationLastFrame();
+            }
+        } else if (_currentFrame < getAnimationFirstFrame()) {
+            if (getAnimationFirstFrame() < 0) {
+                _currentFrame = 0;
+            } else {
+                _currentFrame = getAnimationFirstFrame();
+            }
+        }
+        // qCDebug(entities)  << "in update frame " << _currentFrame;
+        setAnimationCurrentFrame(_currentFrame);
+    }
+
+    
+}
 
 void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
@@ -538,6 +639,13 @@ void ModelEntityItem::setAnimationLoop(bool loop) {
     });
 }
 
+bool ModelEntityItem::getAnimationLoop() const {
+    return resultWithReadLock<bool>([&] {
+        return _animationProperties.getLoop();
+    });
+}
+
+
 void ModelEntityItem::setAnimationHold(bool hold) { 
     withWriteLock([&] {
         _animationProperties.setHold(hold);
@@ -573,8 +681,9 @@ float ModelEntityItem::getAnimationLastFrame() const {
         return _animationProperties.getLastFrame();
     });
 }
+
 bool ModelEntityItem::getAnimationIsPlaying() const { 
-    return resultWithReadLock<float>([&] {
+    return resultWithReadLock<bool>([&] {
         return _animationProperties.getRunning();
     });
 }
@@ -585,8 +694,15 @@ float ModelEntityItem::getAnimationCurrentFrame() const {
     });
 }
 
-bool ModelEntityItem::isAnimatingSomething() const {
+float ModelEntityItem::getAnimationFPS() const {
     return resultWithReadLock<float>([&] {
+        return _animationProperties.getFPS();
+    });
+}
+
+
+bool ModelEntityItem::isAnimatingSomething() const {
+    return resultWithReadLock<bool>([&] {
         return !_animationProperties.getURL().isEmpty() &&
             _animationProperties.getRunning() &&
             (_animationProperties.getFPS() != 0.0f);
