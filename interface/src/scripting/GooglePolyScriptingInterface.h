@@ -25,8 +25,7 @@ public slots:
     void testPrint(QString input);
     void setAPIKey(QString key);
 
-    //QJsonArray getAssetList(QString keyword, QString category, QString format);
-    QByteArray getAssetList(QString keyword, QString category, QString format);
+    QString getAssetList(QString keyword, QString category, QString format);
     QString getFBX(QString keyword, QString category);
     QString getOBJ(QString keyword, QString category);
     QString getBlocks(QString keyword, QString category);

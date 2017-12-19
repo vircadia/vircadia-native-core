@@ -40,35 +40,19 @@ void GooglePolyScriptingInterface::setAPIKey(QString key) {
     authCode = key;
 }
 
-QByteArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
+QString GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
     QUrl url = formatURLQuery(keyword, category, format);
     if (!url.isEmpty()) {
         //QJsonArray json = parseJSON(url, 0).toJsonArray();
         //qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
         QByteArray json = parseJSON(url, 0).toJsonDocument().toJson();
-        qCDebug(scriptengine) << "asset list as string is: " << json;
-        return json;
+        return (QString) json;
     } else {
         qCDebug(scriptengine) << "Invalid filters were specified.";
         //return QJsonArray();
         return "";
     }
 }
-
-/*QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
-    QUrl url = formatURLQuery(keyword, category, format);
-    if (!url.isEmpty()) {
-        //QJsonArray json = parseJSON(url, 0).toJsonArray();
-        //qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
-        QJsonArray json = parseJSON(url, 0).toJsonArray();
-        qCDebug(scriptengine) << "asset list as array is: " << json;
-        return json;
-    } else {
-        qCDebug(scriptengine) << "Invalid filters were specified.";
-        return QJsonArray();
-        //return "";
-    }
-}*/
 
 QString GooglePolyScriptingInterface::getFBX(QString keyword, QString category) {
     QUrl url = formatURLQuery(keyword, category, "FBX");
