@@ -28,8 +28,8 @@
 const QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
 const QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
 
-QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
-QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
+const QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
+const QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
     "nature" << "objects" << "people" << "scenes" << "technology" << "transport" << "";
 
 GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
