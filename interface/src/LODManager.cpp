@@ -66,9 +66,10 @@ void LODManager::autoAdjustLOD(float presentTime, float engineRunTime, float del
                 if (_octreeSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
                 }
-                qCDebug(interfaceapp) << "adjusting LOD UP"
+                qCDebug(interfaceapp) << "adjusting LOD DOWN"
                     << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS();
+                    << "targetFPS =" << getLODDecreaseFPS()
+                    << "octreeSizeScale =" << _octreeSizeScale;
             }
             _decreaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
@@ -85,9 +86,10 @@ void LODManager::autoAdjustLOD(float presentTime, float engineRunTime, float del
                 if (_octreeSizeScale > ADJUST_LOD_MAX_SIZE_SCALE) {
                     _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
                 }
-                qCDebug(interfaceapp) << "adjusting LOD DOWN"
+                qCDebug(interfaceapp) << "adjusting LOD UP"
                     << "fps =" << currentFPS
-                    << "targetFPS =" << getLODDecreaseFPS();
+                    << "targetFPS =" << getLODDecreaseFPS()
+                    << "octreeSizeScale =" << _octreeSizeScale;
             }
             _increaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
