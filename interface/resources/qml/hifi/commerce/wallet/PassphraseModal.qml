@@ -50,8 +50,10 @@ Item {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth failure");
             } else {
-                sendSignalToParent({method: 'authSuccess'});;
+                sendSignalToParent({method: 'authSuccess'});
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth success");
             }
         }
     }
@@ -336,6 +338,7 @@ Item {
                 text: "Cancel"
                 onClicked: {
                     sendSignalToParent({method: 'passphrasePopup_cancelClicked'});
+                    UserActivityLogger.commercePassphraseAuthenticationStatus("passphrase modal cancelled");
                 }
             }
         }

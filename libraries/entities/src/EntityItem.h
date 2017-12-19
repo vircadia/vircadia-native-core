@@ -328,6 +328,8 @@ public:
     void setEntityInstanceNumber(const quint32&);
     QString getCertificateID() const;
     void setCertificateID(const QString& value);
+    quint32 getStaticCertificateVersion() const;
+    void setStaticCertificateVersion(const quint32&);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -547,6 +549,7 @@ protected:
     quint32 _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
     quint32 _entityInstanceNumber { ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER };
     QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
+    quint32 _staticCertificateVersion { ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION };
 
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)

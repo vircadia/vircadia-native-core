@@ -34,7 +34,7 @@ class PacketQueue {
     using Channels = std::vector<Channel>;
     
 public:
-    PacketQueue();
+    PacketQueue(MessageNumber messageNumber = 0);
     void queuePacket(PacketPointer packet);
     void queuePacketList(PacketListPointer packetList);
     
@@ -42,6 +42,8 @@ public:
     PacketPointer takePacket();
     
     Mutex& getLock() { return _packetsLock; }
+
+    MessageNumber getCurrentMessageNumber() const { return _currentMessageNumber; }
     
 private:
     MessageNumber getNextMessageNumber();
