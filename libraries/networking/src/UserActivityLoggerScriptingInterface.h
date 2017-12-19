@@ -39,6 +39,8 @@ public:
     Q_INVOKABLE void commerceWalletSetupStarted(int timestamp, QString setupAttemptID, int setupFlowVersion, QString referrer, QString currentDomain);
     Q_INVOKABLE void commerceWalletSetupProgress(int timestamp, QString setupAttemptID, int secondsElapsed, int currentStepNumber, QString currentStepName);
     Q_INVOKABLE void commerceWalletSetupFinished(int timestamp, QString setupAttemptID, int secondsToComplete);
+    Q_INVOKABLE void commercePassphraseEntry(QString source);
+    Q_INVOKABLE void commercePassphraseAuthenticationStatus(QString status);
 private:
     void doLogAction(QString action, QJsonObject details = {});
 };
