@@ -36,17 +36,39 @@ GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
     // nothing to be implemented
 }
 
-QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
+void GooglePolyScriptingInterface::setAPIKey(QString key) {
+    authCode = key;
+}
+
+QByteArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
     QUrl url = formatURLQuery(keyword, category, format);
     if (!url.isEmpty()) {
+        //QJsonArray json = parseJSON(url, 0).toJsonArray();
+        //qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
+        QByteArray json = parseJSON(url, 0).toJsonDocument().toJson();
+        qCDebug(scriptengine) << "asset list as string is: " << json;
+        return json;
+    } else {
+        qCDebug(scriptengine) << "Invalid filters were specified.";
+        //return QJsonArray();
+        return "";
+    }
+}
+
+/*QJsonArray GooglePolyScriptingInterface::getAssetList(QString keyword, QString category, QString format) {
+    QUrl url = formatURLQuery(keyword, category, format);
+    if (!url.isEmpty()) {
+        //QJsonArray json = parseJSON(url, 0).toJsonArray();
+        //qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
         QJsonArray json = parseJSON(url, 0).toJsonArray();
-        qCDebug(scriptengine) << "first asset name: " << json.at(0).toObject().value("displayName");
+        qCDebug(scriptengine) << "asset list as array is: " << json;
         return json;
     } else {
         qCDebug(scriptengine) << "Invalid filters were specified.";
         return QJsonArray();
+        //return "";
     }
-}
+}*/
 
 QString GooglePolyScriptingInterface::getFBX(QString keyword, QString category) {
     QUrl url = formatURLQuery(keyword, category, "FBX");
@@ -60,7 +82,16 @@ QString GooglePolyScriptingInterface::getOBJ(QString keyword, QString category) 
 
 QString GooglePolyScriptingInterface::getBlocks(QString keyword, QString category) {
     QUrl url = formatURLQuery(keyword, category, "BLOCKS");
-    qCDebug(scriptengine) << "Google url request: " << url;
+    return getModelURL(url);
+}
+
+QString GooglePolyScriptingInterface::getGLTF(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "GLTF");
+    return getModelURL(url);
+}
+
+QString GooglePolyScriptingInterface::getGLTF2(QString keyword, QString category) {
+    QUrl url = formatURLQuery(keyword, category, "GLTF2");
     return getModelURL(url);
 }
 
@@ -74,24 +105,20 @@ QString GooglePolyScriptingInterface::getTilt(QString keyword, QString category)
 
 // can provide asset name or full URL to model
 QString GooglePolyScriptingInterface::getModelInfo(QString name) {
-    if (name.contains("poly.googleapis")) {
+    if (name.contains("poly.googleapis") || name.contains("poly.google.com")) {
         QStringList list = name.split("/");
         name = list[4];
     }
     QString urlString = QString(getPolyUrl);
     urlString = urlString.replace("model", name) + "key=" + authCode;
-    qCDebug(scriptengine) << "google get url: " << urlString;
+    qCDebug(scriptengine) << "Google URL request: " << urlString;
     QUrl url(urlString);
-    QByteArray json = parseJSON(url, 2).toByteArray();
+    QString json = parseJSON(url, 2).toString();
     return json;
 }
 
 void GooglePolyScriptingInterface::testPrint(QString input) {
     qCDebug(scriptengine) << "Google message: " << input;
-}
-
-void GooglePolyScriptingInterface::setAPIKey(QString key) {
-    authCode = key;
 }
 
 int GooglePolyScriptingInterface::getRandIntInRange(int length) {
@@ -121,7 +148,7 @@ QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString categ
 }
 
 QString GooglePolyScriptingInterface::getModelURL(QUrl url) {
-    qCDebug(scriptengine) << "Google url request: " << url;
+    qCDebug(scriptengine) << "Google URL request: " << url;
     if (!url.isEmpty()) {
         return parseJSON(url, 1).toString();
     } else {
@@ -150,9 +177,8 @@ QVariant GooglePolyScriptingInterface::parseJSON(QUrl url, int fileType) {
     if (obj.keys().first() == "error") {
         QString error = obj.value("error").toObject().value("message").toString();
         qCDebug(scriptengine) << error;
-        return QJsonObject();
+        return "";
     }
-    qCDebug(scriptengine) << "the assets: " << obj.value("assets");
     if (fileType == 0 || fileType == 1) {
         QJsonArray arr = obj.value("assets").toArray();
         // return model url
@@ -163,11 +189,10 @@ QVariant GooglePolyScriptingInterface::parseJSON(QUrl url, int fileType) {
             return json.value("formats").toArray().at(0).toObject().value("root").toObject().value("url");
         }
         // return whole asset list
-        return arr;
+        //return arr;
+        return QJsonDocument(arr);
     // return specific object
     } else {
-        //return obj;
-        //return doc.toJson();
         return jsonString;
     }
 }
@@ -269,5 +294,4 @@ or this :(( http://blog.mathieu-leplatre.info/access-a-json-webservice-with-qt-c
     qCDebug(scriptengine) << "first item: " << firstItem;
     }
 
-<<<<<<< HEAD
 */
