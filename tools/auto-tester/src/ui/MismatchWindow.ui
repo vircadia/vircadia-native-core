@@ -137,12 +137,12 @@
     <rect>
      <x>210</x>
      <y>790</y>
-     <width>75</width>
+     <width>121</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>Abort Tests</string>
+    <string>Abort current test</string>
    </property>
   </widget>
   <widget class="QLabel" name="errorLabel">

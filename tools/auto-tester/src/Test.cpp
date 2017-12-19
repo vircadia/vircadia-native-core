@@ -13,6 +13,9 @@
 #include <QtCore/QTextStream>
 #include <QDirIterator>
 
+#include <quazip5/quazip.h>
+#include <quazip5/JlCompress.h>
+
 Test::Test() {
     snapshotFilenameFormat = QRegularExpression("hifi-snap-by-.+-on-\\d\\d\\d\\d-\\d\\d-\\d\\d_\\d\\d-\\d\\d-\\d\\d.jpg");
 
@@ -21,23 +24,43 @@ Test::Test() {
     mismatchWindow.setModal(true);
 }
 
-bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode) {
-    // If a previous test results folder is found then wait for the user to delete it, or cancel
-    // (e.g. the user may want to move the folder elsewhere)
-    QString testResultsFolderPath { testDirectory + "/" + testResultsFolder };
-    while (QDir().exists(testResultsFolderPath)) {
-        messageBox.setText("Previous test results have been found");
-        messageBox.setInformativeText("Delete " + testResultsFolder + " before continuing");
-        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-        int reply = messageBox.exec();
-        if (reply == QMessageBox::Cancel) {
-            return false;
+bool Test::createTestResultsFolderPathIfNeeded(QString directory) {
+    // The test results folder is located in the root of the tests (i.e. for recursive test evaluation)
+    if (testResultsFolderPath == "") {
+        testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER;
+        QDir testResultsFolder(testResultsFolderPath);
+
+        if (testResultsFolder.exists()) {
+            testResultsFolder.removeRecursively();
         }
+
+        // Create a new test results folder
+        return QDir().mkdir(testResultsFolderPath);
+    } else {
+        return true;
+    }
+}
+
+void Test::zipAndDeleteTestResultsFolder() {
+    QString zippedResultsFileName { testResultsFolderPath + ".zip" };
+    QFileInfo fileInfo(zippedResultsFileName);
+    if (!fileInfo.exists()) {
+        QFile::remove(zippedResultsFileName);
     }
 
-    // Create a new test results folder
-    QDir().mkdir(testResultsFolderPath);
+    QDir testResultsFolder(testResultsFolderPath);
+    if (!testResultsFolder.isEmpty()) {
+        JlCompress::compressDir(testResultsFolderPath + ".zip", testResultsFolderPath);
+    }
 
+    testResultsFolder.removeRecursively();
+
+    //In all cases, for the next evaluation
+    testResultsFolderPath = "";
+    index = 1;
+}
+
+bool Test::compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode) {
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
     const double THRESHOLD { 0.999 };
@@ -104,7 +127,6 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
         exit(-1);
     }
 
-    static int index = 1;
     QString failureFolderPath { testResultsFolderPath + "/" + "Failure_" + QString::number(index) };
     if (!QDir().mkdir(failureFolderPath)) {
         messageBox.critical(0, "Internal error", "Failed to create folder " + failureFolderPath);
@@ -112,10 +134,9 @@ void Test::appendTestResultsToFile(QString testResultsFolderPath, TestFailure te
     }
     ++index;
 
-    QString descriptionFileName { "ReadMe.txt" };
-    QFile descriptionFile(failureFolderPath + "/" +descriptionFileName);
+    QFile descriptionFile(failureFolderPath + "/" + TEST_RESULTS_FILENAME);
     if (!descriptionFile.open(QIODevice::ReadWrite)) {
-        messageBox.critical(0, "Internal error", "Failed to create file " + descriptionFileName);
+        messageBox.critical(0, "Internal error", "Failed to create file " + TEST_RESULTS_FILENAME);
         exit(-1);
     }
 
@@ -156,6 +177,11 @@ void Test::evaluateTests(bool interactiveMode) {
         return;
     }
 
+    // Leave if test results folder could not be created
+    if (!createTestResultsFolderPathIfNeeded(pathToImageDirectory)) {
+        return;
+    }
+
     QStringList sortedImageFilenames = createListOfAllJPEGimagesInDirectory(pathToImageDirectory);
 
     // Separate images into two lists.  The first is the expected images, the second is the test results
@@ -189,6 +215,8 @@ void Test::evaluateTests(bool interactiveMode) {
     } else {
         messageBox.information(0, "Failure", "One or more images are not as expected");
     }
+
+    zipAndDeleteTestResultsFolder();
 }
 
 // Two criteria are used to decide if a folder contains valid test results.
@@ -198,6 +226,11 @@ void Test::evaluateTestsRecursively(bool interactiveMode) {
     // Select folder to start recursing from
     QString topLevelDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", ".", QFileDialog::ShowDirsOnly);
     if (topLevelDirectory == "") {
+        return;
+    }
+
+    // Leave if test results folder could not be created
+    if (!createTestResultsFolderPathIfNeeded(topLevelDirectory)) {
         return;
     }
 
@@ -211,7 +244,7 @@ void Test::evaluateTestsRecursively(bool interactiveMode) {
         }
 
         // 
-        const QString testPathname{ directory + "/" + testFilename };
+        const QString testPathname{ directory + "/" + TEST_FILENAME };
         QFileInfo fileInfo(testPathname);
         if (!fileInfo.exists()) {
             // Folder does not contain 'test.js'
@@ -247,6 +280,8 @@ void Test::evaluateTestsRecursively(bool interactiveMode) {
     } else {
         messageBox.information(0, "Failure", "One or more images are not as expected");
     }
+
+    zipAndDeleteTestResultsFolder();
 }
 
 void Test::importTest(QTextStream& textStream, const QString& testPathname, int testNumber) {
@@ -282,7 +317,7 @@ void Test::createRecursiveScript() {
     QVector<QString> testPathnames;
 
     // First test if top-level folder has a test.js file
-    const QString testPathname{ topLevelDirectory + "/" + testFilename };
+    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
     QFileInfo fileInfo(testPathname);
     if (fileInfo.exists()) {
         // Current folder contains a test
@@ -300,7 +335,7 @@ void Test::createRecursiveScript() {
             continue;
         }
 
-        const QString testPathname{ directory + "/" + testFilename };
+        const QString testPathname{ directory + "/" + TEST_FILENAME };
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test

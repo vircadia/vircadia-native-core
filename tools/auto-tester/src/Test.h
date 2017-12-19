@@ -37,10 +37,13 @@ public:
 
     void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
+    bool createTestResultsFolderPathIfNeeded(QString directory);
+    void zipAndDeleteTestResultsFolder();
+
 private:
-    const QString testFilename{ "test.js" };
-    const QString testResultsFolder{ "TestResults" };
-    const QString testResultsFileName{ "TestResults.txt" };
+    const QString TEST_FILENAME { "test.js" };
+    const QString TEST_RESULTS_FOLDER { "TestResults" };
+    const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
     QMessageBox messageBox;
 
@@ -54,6 +57,9 @@ private:
     ImageComparer imageComparer;
 
     bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode);
+
+    QString testResultsFolderPath { "" };
+    int index { 1 };
 };
 
 #endif // hifi_test_h
