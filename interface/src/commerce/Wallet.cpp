@@ -315,7 +315,6 @@ Wallet::Wallet() {
         }
 
         walletScriptingInterface->setWalletStatus(status);
-        emit walletStatusResult(status);
     });
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -491,6 +490,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
+        DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
         return true;
     }
 
@@ -503,6 +503,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
             return true;
         }
     }
@@ -801,15 +802,12 @@ void Wallet::account() {
 
 void Wallet::getWalletStatus() {
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
-    uint status;
 
     if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
         // This will set account info for the wallet, allowing us to decrypt and display the security image.
         account();
     } else {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
-        emit walletStatusResult(status);
-        walletScriptingInterface->setWalletStatus(status);
+        walletScriptingInterface->setWalletStatus((uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN);
         return;
     }
 }

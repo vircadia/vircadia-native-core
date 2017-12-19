@@ -59,6 +59,7 @@ Rectangle {
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("marketplace checkout");
                 }
             } else if (walletStatus === 3) {
                 authSuccessStep();

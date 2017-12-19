@@ -561,6 +561,14 @@ QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
     return obj;
 }
 
+/**jsdoc
+ * Defines a rectangular portion of an image or screen.
+ * @typedef {object} Rect
+ * @property {number} x - Integer left, x-coordinate value.
+ * @property {number} y - Integer top, y-coordinate value.
+ * @property {number} width - Integer width of the rectangle.
+ * @property {number} height - Integer height of the rectangle.
+ */
 QVariant qRectToVariant(const QRect& rect) {
     QVariantMap obj;
     obj["x"] = rect.x();
@@ -613,7 +621,13 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     }
 }
 
-
+/**jsdoc
+ * An RGB color value.
+ * @typedef {object} Color
+ * @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
+ */
 QVariant xColorToVariant(const xColor& color) {
     QVariantMap obj;
     obj["red"] = color.red;
@@ -790,6 +804,12 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
+/**jsdoc
+ * A 2D size value.
+ * @typedef {object} Size
+ * @property {number} height - The height value.
+ * @property {number} width - The width value.
+ */
 QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("width", qSizeF.width());

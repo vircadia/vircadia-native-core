@@ -236,6 +236,7 @@ Item {
             height: 50;
             text: "Set Up Wallet";
             onClicked: {
+                securityImageSelection.initModel();
                 root.activeView = "step_2";
             }
         }

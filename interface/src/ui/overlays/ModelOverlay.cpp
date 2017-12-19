@@ -152,7 +152,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _scaleToFit = true;
         setDimensions(vec3FromVariant(dimensions));
     } else if (scale.isValid()) {
-        // if "scale" property is set but "dimentions" is not.
+        // if "scale" property is set but "dimensions" is not.
         // do NOT scale to fit.
         _scaleToFit = false;
     }
@@ -180,6 +180,10 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
                                   Q_ARG(const QVariantMap&, textureMap));
     }
+
+    // jointNames is read-only.
+    // jointPositions is read-only.
+    // jointOrientations is read-only.
 
     // relative
     auto jointTranslationsValue = properties["jointTranslations"];
@@ -276,6 +280,75 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
     return result;
 }
 
+// Note: ModelOverlay overrides Volume3DOverlay's "dimensions" and "scale" properties.
+/**jsdoc
+ * These are the properties of a <code>model</code> {@link Overlays.OverlayType|OverlayType}.
+ * @typedef {object} Overlays.ModelProperties
+ *
+ * @property {string} type=sphere - Has the value <code>"model"</code>. <em>Read-only.</em>
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
+ *     rotating as you move your avatar.
+ *
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
+ *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
+ *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
+ *     be removed.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonym: <code>size</code>.
+ * @property {Vec3} scale - The scale factor applied to the model's dimensions.
+ * @property {object.<name, url>} textures - Maps the named textures in the model to the JPG or PNG images in the urls.
+ * @property {Array.<string>} jointNames - The names of the joints - if any - in the model. <em>Read-only</em>
+ * @property {Array.<Quat>} jointRotations - The relative rotations of the model's joints.
+ * @property {Array.<Vec3>} jointTranslations - The relative translations of the model's joints.
+ * @property {Array.<Quat>} jointOrientations - The absolute orientations of the model's joints, in world coordinates.
+ *     <em>Read-only</em>
+ * @property {Array.<Vec3>} jointPositions - The absolute positions of the model's joints, in world coordinates.
+ *     <em>Read-only</em>
+ * @property {string} animationSettings.url="" - The URL of an FBX file containing an animation to play.
+ * @property {number} animationSettings.fps=0 - The frame rate (frames/sec) to play the animation at. 
+ * @property {number} animationSettings.firstFrame=0 - The frame to start playing at.
+ * @property {number} animationSettings.lastFrame=0 - The frame to finish playing at.
+ * @property {boolean} animationSettings.running=false - Whether or not the animation is playing.
+ * @property {boolean} animationSettings.loop=false - Whether or not the animation should repeat in a loop.
+ * @property {boolean} animationSettings.hold=false - Whether or not when the animation finishes, the rotations and 
+ *     translations of the last frame played should be maintained.
+ * @property {boolean} animationSettings.allowTranslation=false - Whether or not translations contained in the animation should
+ *     be played.
+ */
 QVariant ModelOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url.toString();

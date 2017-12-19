@@ -25,6 +25,9 @@ public:
 
 private:
     void updateFingers();
+
+    AnimPose _prevHips;  // sensor frame
+    bool _prevHipsValid { false };
 };
 
 #endif // hifi_MySkeletonModel_h
