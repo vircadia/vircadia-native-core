@@ -210,6 +210,24 @@ int Model::getRenderInfoTextureCount() {
     return _renderInfoTextureCount;
 }
 
+bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
+    if (!getGeometry()) {
+        return true;
+    }
+
+    const FBXGeometry& geometry = getFBXGeometry();
+    const auto& networkMeshes = getGeometry()->getMeshes();
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size()) {
+        _needsFixupInScene = true;     // trigger remove/add cycle
+        invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
+        return true;
+    }
+
+    return false;
+}
+
 void Model::updateRenderItems() {
     if (!_addedToScene) {
         return;
@@ -237,6 +255,11 @@ void Model::updateRenderItems() {
         Transform modelTransform = self->getTransform();
         modelTransform.setScale(glm::vec3(1.0f));
 
+        bool isWireframe = self->isWireframe();
+        bool isVisible = self->isVisible();
+        bool isLayeredInFront = self->isLayeredInFront();
+        bool isLayeredInHUD = self->isLayeredInHUD();
+
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
@@ -244,13 +267,20 @@ void Model::updateRenderItems() {
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
             auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
+            bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices, invalidatePayloadShapeKey,
+                    isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
                 data.updateClusterBuffer(clusterMatrices);
                 Transform renderTransform = modelTransform;
                 if (clusterMatrices.size() == 1) {
                     renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+
+                data.setKey(data.evalKey(isVisible, isLayeredInFront, isLayeredInHUD));
+                data.setLayer(data.evalLayer(isLayeredInFront, isLayeredInHUD));
+                data.setShapeKey(invalidatePayloadShapeKey ? render::ShapeKey::Builder::invalid() : data.evalShapeKey(isWireframe));
             });
         }
 
@@ -270,16 +300,6 @@ void Model::updateRenderItems() {
 void Model::setRenderItemsNeedUpdate() {
     _renderItemsNeedUpdate = true;
     emit requestRenderUpdate();
-}
-
-void Model::initJointTransforms() {
-    if (isLoaded()) {
-        glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-        _rig.setModelOffset(modelOffset);
-    }
-}
-
-void Model::init() {
 }
 
 void Model::reset() {

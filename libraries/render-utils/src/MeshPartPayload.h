@@ -96,11 +96,16 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
+    render::ItemKey evalKey(bool isVisible, bool isLayeredInFront, bool isLayeredInHUD) const;
+    void setKey(const render::ItemKey& itemKey) { _itemKey = itemKey; }
+    int evalLayer(bool isLayeredInFront, bool isLayeredInHUD) const;
+    void setLayer(int layer) { _layer = layer; }
+    render::ShapeKey evalShapeKey(bool isWireframe) const;
+    void setShapeKey(const render::ShapeKey& shapeKey) { _shapeKey = shapeKey; };
+
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
-
-    void initCache();
 
     void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
 
@@ -112,16 +117,14 @@ public:
 
     bool _isSkinned{ false };
     bool _isBlendShaped { false };
-    bool _materialNeedsUpdate { true };
+    bool _hasTangents { false };
 
 private:
+    void initCache(const ModelPointer& model);
 
-    enum State : uint8_t {
-        WAITING_TO_START = 0,
-        STARTED = 1,
-    };
-
-    mutable State _state { WAITING_TO_START } ;
+    render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
+    int _layer { render::Item::LAYER_3D };
+    render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
 };
 
 namespace render {
