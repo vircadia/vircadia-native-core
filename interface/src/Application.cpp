@@ -4325,7 +4325,9 @@ void Application::updateLOD(float deltaTime) const {
     if (!isThrottleRendering()) {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
-        DependencyManager::get<LODManager>()->autoAdjustLOD(presentTime, engineRunTime, deltaTime);
+        float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
+        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }

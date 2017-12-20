@@ -44,12 +44,11 @@ float LODManager::getLODIncreaseFPS() {
     return getDesktopLODIncreaseFPS();
 }
 
-void LODManager::autoAdjustLOD(float presentTime, float engineRunTime, float deltaTimeSec) {
+void LODManager::autoAdjustLOD(float renderTime, float deltaTimeSec) {
     // compute time-weighted running average renderTime
-    float maxTime = glm::max(presentTime, engineRunTime);
     const float LOD_ADJUST_TIMESCALE = 0.1f; // sec
     float blend = (deltaTimeSec < LOD_ADJUST_TIMESCALE) ? deltaTimeSec / LOD_ADJUST_TIMESCALE : 1.0f;
-    _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * maxTime; // msec
+    _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * renderTime; // msec
     if (!_automaticLODAdjust) {
         // early exit
         return;
