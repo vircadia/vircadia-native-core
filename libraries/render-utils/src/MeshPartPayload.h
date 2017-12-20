@@ -96,12 +96,9 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    render::ItemKey evalKey(bool isVisible, bool isLayeredInFront, bool isLayeredInHUD) const;
-    void setKey(const render::ItemKey& itemKey) { _itemKey = itemKey; }
-    int evalLayer(bool isLayeredInFront, bool isLayeredInHUD) const;
-    void setLayer(int layer) { _layer = layer; }
-    render::ShapeKey evalShapeKey(bool isWireframe) const;
-    void setShapeKey(const render::ShapeKey& shapeKey) { _shapeKey = shapeKey; };
+    void setKey(bool isVisible, bool isLayered);
+    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
+    void setShapeKey(bool invalidateShapeKey, bool isWireframe);
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -123,8 +120,8 @@ private:
     void initCache(const ModelPointer& model);
 
     render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
-    int _layer { render::Item::LAYER_3D };
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    int _layer { render::Item::LAYER_3D };
 };
 
 namespace render {

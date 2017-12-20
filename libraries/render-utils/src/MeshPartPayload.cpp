@@ -386,7 +386,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-render::ItemKey ModelMeshPartPayload::evalKey(bool isVisible, bool isLayeredInFront, bool isLayeredInHUD) const {
+void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -394,7 +394,7 @@ render::ItemKey ModelMeshPartPayload::evalKey(bool isVisible, bool isLayeredInFr
         builder.withInvisible();
     }
 
-    if (isLayeredInFront || isLayeredInHUD) {
+    if (isLayered) {
         builder.withLayered();
     }
 
@@ -409,20 +409,20 @@ render::ItemKey ModelMeshPartPayload::evalKey(bool isVisible, bool isLayeredInFr
         }
     }
 
-    return builder.build();
+    _itemKey = builder.build();
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {
     return _itemKey;
 }
 
-int ModelMeshPartPayload::evalLayer(bool isLayeredInFront, bool isLayeredInHUD) const {
+void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {
     if (isLayeredInFront) {
-        return Item::LAYER_3D_FRONT;
+        _layer = Item::LAYER_3D_FRONT;
     } else if (isLayeredInHUD) {
-        return Item::LAYER_3D_HUD;
+        _layer = Item::LAYER_3D_HUD;
     } else {
-        return Item::LAYER_3D;
+        _layer = Item::LAYER_3D;
     }
 }
 
@@ -430,7 +430,12 @@ int ModelMeshPartPayload::getLayer() const {
     return _layer;
 }
 
-ShapeKey ModelMeshPartPayload::evalShapeKey(bool isWireframe) const {
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe) {
+    if (invalidateShapeKey) {
+        _shapeKey = ShapeKey::Builder::invalid();
+        return;
+    }
+
     model::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
@@ -472,7 +477,7 @@ ShapeKey ModelMeshPartPayload::evalShapeKey(bool isWireframe) const {
     if (isWireframe) {
         builder.withWireframe();
     }
-    return builder.build();
+    _shapeKey = builder.build();
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {

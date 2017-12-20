@@ -209,9 +209,9 @@ void CauterizedModel::updateRenderItems() {
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
 
-                    data.setKey(data.evalKey(isVisible, isLayeredInFront, isLayeredInHUD));
-                    data.setLayer(data.evalLayer(isLayeredInFront, isLayeredInHUD));
-                    data.setShapeKey(invalidatePayloadShapeKey ? render::ShapeKey::Builder::invalid() : data.evalShapeKey(isWireframe));
+                    data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
                 });
             }
 
