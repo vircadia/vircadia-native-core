@@ -252,7 +252,7 @@ Item {
             height: 50;
             text: "Cancel";
             onClicked: {
-                sendSignalToWallet({method: 'walletSetup_cancelClicked', referrer: root.referrer ? root.referrer : "" });
+                sendSignalToWallet({method: 'walletSetup_cancelClicked', referrer: root.referrer });
             }
         }   
     }

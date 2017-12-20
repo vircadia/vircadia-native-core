@@ -67,6 +67,8 @@
             case 'walletSetup_cancelClicked':
                 switch (message.referrer) {
                     case '': // User clicked "Wallet" app
+                    case undefined:
+                    case null:
                         tablet.gotoHomeScreen();
                         break;
                     case 'purchases':
