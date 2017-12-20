@@ -180,6 +180,8 @@ public:
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
 
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
+    DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
@@ -248,7 +250,8 @@ public:
 
     static QString getBackgroundModeString(BackgroundMode mode);
     static QString getHazeModeString(uint32_t mode);
-
+    static QString getKeyLightModeString(uint32_t mode);
+    static QString getAmbientLightModeString(uint32_t mode);
 
 public:
     float getMaxDimension() const { return glm::compMax(_dimensions); }
@@ -478,6 +481,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, KeyLightMode, keyLightMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientLightMode, ambientLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");

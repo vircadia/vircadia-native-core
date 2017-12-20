@@ -242,6 +242,64 @@ void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
     }
 }
 
+QString EntityItemProperties::getKeyLightModeAsString() const {
+    // return "enabled" if _keyLightMode is not valid
+    if (_keyLightMode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[_keyLightMode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
+    }
+}
+
+QString EntityItemProperties::getKeyLightModeString(uint32_t mode) {
+    // return "enabled" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
+    }
+}
+
+void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
+    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
+        return (pair.second == keyLightMode);
+    });
+
+    if (result != COMPONENT_MODES.end()) {
+        _keyLightMode = result->first;
+        _keyLightModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getAmbientLightModeAsString() const {
+    // return "enabled" if _ambientLightMode is not valid
+    if (_ambientLightMode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[_ambientLightMode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
+    }
+}
+
+QString EntityItemProperties::getAmbientLightModeString(uint32_t mode) {
+    // return "enabled" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
+    }
+}
+
+void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
+    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
+        return (pair.second == ambientLightMode);
+    });
+
+    if (result != COMPONENT_MODES.end()) {
+        _ambientLightMode = result->first;
+        _ambientLightModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 

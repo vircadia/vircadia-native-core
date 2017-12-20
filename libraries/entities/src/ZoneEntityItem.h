@@ -73,6 +73,12 @@ public:
     void setHazeMode(const uint32_t value);
     uint32_t getHazeMode() const;
 
+    void setKeyLightMode(uint32_t value);
+    uint32_t getKeyLightMode() const;
+
+    void setAmbientLightMode(uint32_t value);
+    uint32_t getAmbientLightMode() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
@@ -113,6 +119,8 @@ public:
     static const QString DEFAULT_FILTER_URL;
 
     static const uint32_t DEFAULT_HAZE_MODE{ (uint32_t)COMPONENT_MODE_INHERIT };
+    static const uint32_t DEFAULT_KEY_LIGHT_MODE{ (uint32_t)COMPONENT_MODE_ENABLED };    // so as not to change previous behaviour 
+    static const uint32_t DEFAULT_AMBIENT_LIGHT_MODE{ (uint32_t)COMPONENT_MODE_ENABLED };
 
 protected:
     KeyLightPropertyGroup _keyLightProperties;
@@ -121,8 +129,9 @@ protected:
     QString _compoundShapeURL;
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-
     uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
+    uint32_t _keyLightMode{ DEFAULT_KEY_LIGHT_MODE };
+    uint32_t _ambientLightMode{ DEFAULT_AMBIENT_LIGHT_MODE };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
@@ -138,6 +147,7 @@ protected:
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };
+    bool _ambientLightPropertiesChanged { false };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
