@@ -128,7 +128,7 @@ float specularDistribution(float roughness, vec3 normal, vec3 halfDir, vec3 eyeD
     float ndotv = dot(eyeDir, normal);
     vec3 nd = clamp(vec3(ndoth, ndotv, ndotl), vec3(0.0), vec3(1.0));
     vec3 nd2 = nd * nd;
-    float roughness2 = (0.001 + roughness*0.999);
+    float roughness2 = mix(0.001, 1.0, roughness);
     roughness2 *= roughness2; // pow 2
     float roughness4 = roughness2;
     roughness4 *= roughness4; // pow 4
