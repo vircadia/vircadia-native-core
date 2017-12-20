@@ -69,6 +69,7 @@ void LODManager::autoAdjustLOD(float renderTime, float deltaTimeSec) {
                     << "fps =" << currentFPS
                     << "targetFPS =" << getLODDecreaseFPS()
                     << "octreeSizeScale =" << _octreeSizeScale;
+                emit LODDecreased();
             }
             _decreaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
@@ -89,6 +90,7 @@ void LODManager::autoAdjustLOD(float renderTime, float deltaTimeSec) {
                     << "fps =" << currentFPS
                     << "targetFPS =" << getLODDecreaseFPS()
                     << "octreeSizeScale =" << _octreeSizeScale;
+                emit LODIncreased();
             }
             _increaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
