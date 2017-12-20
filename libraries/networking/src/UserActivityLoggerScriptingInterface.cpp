@@ -88,3 +88,56 @@ void UserActivityLoggerScriptingInterface::doLogAction(QString action, QJsonObje
                               Q_ARG(QString, action),
                               Q_ARG(QJsonObject, details));
 }
+
+void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, int cost, bool firstPurchaseOfThisItem) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["cost"] = cost;
+    payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
+    doLogAction("commercePurchaseSuccess", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["cost"] = cost;
+    payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
+    payload["errorDetails"] = errorDetails;
+    doLogAction("commercePurchaseFailure", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceEntityRezzed(QString marketplaceID, QString source, QString type) {
+    QJsonObject payload;
+    payload["marketplaceID"] = marketplaceID;
+    payload["source"] = source;
+    payload["type"] = type;
+    doLogAction("commerceEntityRezzed", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupStarted(int timestamp, QString setupAttemptID, int setupFlowVersion, QString referrer, QString currentDomain) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
+    payload["setupFlowVersion"] = setupFlowVersion;
+    payload["referrer"] = referrer;
+    payload["currentDomain"] = currentDomain;
+    doLogAction("commerceWalletSetupStarted", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupProgress(int timestamp, QString setupAttemptID, int secondsElapsed, int currentStepNumber, QString currentStepName) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
+    payload["secondsElapsed"] = secondsElapsed;
+    payload["currentStepNumber"] = currentStepNumber;
+    payload["currentStepName"] = currentStepName;
+    doLogAction("commerceWalletSetupProgress", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int timestamp, QString setupAttemptID, int secondsToComplete) {
+    QJsonObject payload;
+    payload["timestamp"] = timestamp;
+    payload["setupAttemptID"] = setupAttemptID;
+    payload["secondsToComplete"] = secondsToComplete;
+    doLogAction("commerceWalletSetupFinished", payload);
+}

@@ -685,11 +685,6 @@ void OpenGLDisplayPlugin::present() {
     }
     incrementPresentCount();
 
-    {
-        PROFILE_RANGE_EX(render, "recycle", 0xff00ff00, frameId)
-        _gpuContext->recycle();
-    }
-
     if (_currentFrame) {
         {
             withPresentThreadLock([&] {

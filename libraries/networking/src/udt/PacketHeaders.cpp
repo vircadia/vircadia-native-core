@@ -74,6 +74,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
         case PacketType::ICEPing:
             return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
+        case PacketType::DomainSettings:
+            return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         default:
             return 17;
     }

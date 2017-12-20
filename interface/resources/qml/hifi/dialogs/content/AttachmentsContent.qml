@@ -26,12 +26,19 @@ Item {
     }
     
     Connections {
+        id: onAttachmentsChangedConnection
         target: MyAvatar
         onAttachmentsChanged: reload()
     }
 
     Component.onCompleted: {
         reload()
+    }
+
+    function setAttachmentsVariant(attachments) {
+        onAttachmentsChangedConnection.enabled = false;
+        MyAvatar.setAttachmentsVariant(attachments);
+        onAttachmentsChangedConnection.enabled = true;
     }
 
     Column {
@@ -92,11 +99,15 @@ Item {
                                 attachments.splice(index, 1);
                                 listView.model.remove(index, 1);
                             }
-                            onUpdateAttachment: MyAvatar.setAttachmentsVariant(attachments);
+                            onUpdateAttachment: {
+                                setAttachmentsVariant(attachments);
+                            }
                         }
                     }
 
-                    onCountChanged: MyAvatar.setAttachmentsVariant(attachments);
+                    onCountChanged: {
+                        setAttachmentsVariant(attachments);
+                    }
 
                     /*
                     // DEBUG
@@ -220,7 +231,7 @@ Item {
                     };
                     attachments.push(template);
                     listView.model.append({});
-                    MyAvatar.setAttachmentsVariant(attachments);
+                    setAttachmentsVariant(attachments);
                 }
             }
 
@@ -250,7 +261,7 @@ Item {
                 id: cancelAction
                 text: "Cancel"
                 onTriggered: {
-                    MyAvatar.setAttachmentsVariant(originalAttachments);
+                    setAttachmentsVariant(originalAttachments);
                     closeDialog();
                 }
             }
@@ -263,7 +274,7 @@ Item {
                         console.log("Attachment " + i + ": " + attachments[i]);
                     }
 
-                    MyAvatar.setAttachmentsVariant(attachments);
+                    setAttachmentsVariant(attachments);
                     closeDialog();
                 }
             }

@@ -242,7 +242,9 @@ GridTool = function(opts) {
 
     horizontalGrid.addListener(function(data) {
         webView.emitScriptEvent(JSON.stringify(data));
-        selectionDisplay.updateHandles();
+        if (selectionDisplay) {
+            selectionDisplay.updateHandles();
+        }
     });
 
     webView.webEventReceived.connect(function(data) {

@@ -53,6 +53,8 @@ public:
 
     virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const { return 0; }
+
     // getters
     virtual QString getType() const = 0;
     virtual bool is3D() const = 0;
@@ -130,6 +132,7 @@ namespace render {
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
+   template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);
 }
 
 Q_DECLARE_METATYPE(OverlayID);

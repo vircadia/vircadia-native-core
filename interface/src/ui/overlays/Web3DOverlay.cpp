@@ -55,17 +55,15 @@
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
-
 #include "raypick/PointerScriptingInterface.h"
 
-static const float DPI = 30.47f;
-static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
+Web3DOverlay::Web3DOverlay() {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("Web3DOverlayTouchDevice");
@@ -82,7 +80,6 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
-    _resolution(Web3DOverlay->_resolution),
     _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
@@ -154,7 +151,7 @@ void Web3DOverlay::buildWebSurface() {
             setupQmlSurface();
         }
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
-        _webSurface->resize(QSize(_resolution.x, _resolution.y));
+        onResizeWebSurface();
         _webSurface->resume();
     });
 
@@ -244,8 +241,16 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 }
 
 void Web3DOverlay::onResizeWebSurface() {
-    _mayNeedResize = false;
-    _webSurface->resize(QSize(_resolution.x, _resolution.y));
+    glm::vec2 dims = glm::vec2(getDimensions());
+    dims *= METERS_TO_INCHES * _dpi;
+
+    // ensure no side is never larger then MAX_WINDOW_SIZE
+    float max = (dims.x > dims.y) ? dims.x : dims.y;
+    if (max > MAX_WINDOW_SIZE) {
+        dims *= MAX_WINDOW_SIZE / max;
+    }
+
+    _webSurface->resize(QSize(dims.x, dims.y));
 }
 
 unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
@@ -266,12 +271,12 @@ void Web3DOverlay::render(RenderArgs* args) {
         return;
     }
 
-    if (_currentMaxFPS != _desiredMaxFPS) {
-        setMaxFPS(_desiredMaxFPS);
-    }
-
     if (_mayNeedResize) {
         emit resizeWebSurface();
+    }
+
+    if (_currentMaxFPS != _desiredMaxFPS) {
+        setMaxFPS(_desiredMaxFPS);
     }
 
     vec4 color(toGlm(getColor()), getAlpha());
@@ -310,7 +315,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 Transform Web3DOverlay::evalRenderTransform() {
     Transform transform = Parent::evalRenderTransform();
     transform.setScale(1.0f);
-    transform.postScale(glm::vec3(getSize(), 1.0f));
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
     return transform;
 }
 
@@ -434,18 +439,10 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
-    auto resolution = properties["resolution"];
-    if (resolution.isValid()) {
-        bool valid;
-        auto res = vec2FromVariant(resolution, valid);
-        if (valid) {
-            _resolution = res;
-        }
-    }
-
     auto dpi = properties["dpi"];
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
+        _mayNeedResize = true;
     }
 
     auto maxFPS = properties["maxFPS"];
@@ -467,8 +464,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _inputMode = Touch;
         }
     }
-
-    _mayNeedResize = true;
 }
 
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -477,9 +472,6 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "scriptURL") {
         return _scriptURL;
-    }
-    if (property == "resolution") {
-        return vec2toVariant(_resolution);
     }
     if (property == "dpi") {
         return _dpi;
@@ -536,17 +528,18 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-glm::vec2 Web3DOverlay::getSize() const {
-    return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
-};
-
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-    // FIXME - face and surfaceNormal not being returned
+    glm::vec2 dimensions = getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
 
-    // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
-
-    // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getSize(), distance);
+    if (findRayRectangleIntersection(origin, direction, rotation, position, dimensions, distance)) {
+        surfaceNormal = rotation * Vectors::UNIT_Z;
+        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {
