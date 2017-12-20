@@ -30,19 +30,24 @@ Item {
         }
     }
 
-    //fake invisible item for initial buttons creations
+    //fake invisible item for initial buttons creations.
+    //Also used as a holder for buttons list
     Item {
         id: fakeParent
         visible: false
     }
 
     function doRecreateGrids() {
-        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        var tabletButtons = tabletProxy.getButtonsList();
 
-        if (tabletButtons.length <= 0) {
-            console.warn("Tablet buttons list is empty");
+        if (fakeParent.resources.length <= 0) {
+            console.warn("Tablet buttons list is empty", fakeParent.resources.length);
             return;
+        }
+
+        //copy buttons list to JS array to be able to sort it
+        var tabletButtons = [];
+        for (var btnIndex = 0; btnIndex < fakeParent.resources.length; btnIndex++) {
+            tabletButtons.push(fakeParent.resources[btnIndex]);
         }
 
         for (var i = swipeView.count - 1; i >= 0; i--) {
@@ -53,7 +58,6 @@ Item {
         swipeView.setCurrentIndex(-1);
         sortButtons(tabletButtons);
 
-        var pagesNum = Math.ceil(tabletButtons.length / 12);
         var currentPage = 0;
         gridPages.push(pageComponent.createObject(null));
 
@@ -87,10 +91,8 @@ Item {
         if (!uuid) {
             return -1;
         }
-        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        var tabletButtons = tabletProxy.getButtonsList();
-        for (var i in tabletButtons) {
-            var child = tabletButtons[i];
+        for (var i in fakeParent.resources) {
+            var child = fakeParent.resources[i];
             if (child.uuid === uuid) {
                 return i;
             }
@@ -129,6 +131,7 @@ Item {
         }
         button.flickable = swipeView.contentItem;
         tablet.count++
+        fakeParent.resources.push(button);
         gridsRecreateTimer.restart();
 
         return button;
@@ -163,6 +166,7 @@ Item {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
         } else {
             tablet.count--;
+            fakeParent.resources[index] = null;
             //redraw grids
             gridsRecreateTimer.restart();
         }

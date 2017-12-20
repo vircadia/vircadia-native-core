@@ -716,11 +716,7 @@ TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
     }
 
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
-    {
-        QMutexLocker locker(&_tabletButtonsListMutex);
-        _tabletButtonProxies.push_back(tabletButtonProxy);
-
-    }
+    _tabletButtonProxies.push_back(tabletButtonProxy);
     if (!_toolbarMode && _qmlTabletRoot) {
         auto tablet = getQmlTablet();
         if (tablet) {
@@ -768,10 +764,7 @@ void TabletProxy::removeButton(TabletButtonProxy* tabletButtonProxy) {
             return;
         }
         buttonProxy = *iter;
-        {
-            QMutexLocker locker(&_tabletButtonsListMutex);
-            _tabletButtonProxies.erase(iter);
-        }
+        _tabletButtonProxies.erase(iter);
     }
     
     if (!_toolbarMode && _qmlTabletRoot) {
@@ -821,11 +814,8 @@ void TabletProxy::addButtonsToHomeScreen() {
         return;
     }
 
-    {
-        QMutexLocker locker(&_tabletButtonsListMutex);
-        for (auto& buttonProxy : _tabletButtonProxies) {
-            addButtonProxyToQmlTablet(tablet, buttonProxy.data());
-        }
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        addButtonProxyToQmlTablet(tablet, buttonProxy.data());
     }
     auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
     QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
@@ -852,12 +842,9 @@ void TabletProxy::desktopWindowClosed() {
 void TabletProxy::addButtonsToToolbar() {
     Q_ASSERT(QThread::currentThread() == thread());
     ToolbarProxy* toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
-    {
-        QMutexLocker locker(&_tabletButtonsListMutex);
-        for (auto& buttonProxy : _tabletButtonProxies) {
-            // copy properties from tablet button proxy to toolbar button proxy.
-            buttonProxy->setToolbarButtonProxy(toolbarProxy->addButton(buttonProxy->getProperties()));
-        }
+    for (auto& buttonProxy : _tabletButtonProxies) {
+        // copy properties from tablet button proxy to toolbar button proxy.
+        buttonProxy->setToolbarButtonProxy(toolbarProxy->addButton(buttonProxy->getProperties()));
     }
 
     // make the toolbar visible
@@ -912,19 +899,6 @@ QQuickItem* TabletProxy::getQmlMenu() const {
         return nullptr;
     }
     return menuList;
-}
-
-QList<QObject *> TabletProxy::getButtonsList() const {
-    QList<QObject *> buttonsList;
-    QMutexLocker locker(&_tabletButtonsListMutex);
-
-    for (auto& buttonProxy : _tabletButtonProxies) {
-        if (buttonProxy->getQmlButton()) {
-            buttonsList.append(buttonProxy->getQmlButton());
-        }
-    }
-
-    return buttonsList;
 }
 
 //
@@ -1006,8 +980,4 @@ void TabletButtonProxy::editProperties(const QVariantMap& properties) {
     if (_toolbarButtonProxy) {
         QMetaObject::invokeMethod(_toolbarButtonProxy, "editProperties", Qt::AutoConnection, Q_ARG(QVariantMap, properties));
     }
-}
-
-QPointer<QQuickItem> TabletButtonProxy::getQmlButton() const {
-    return _qmlButton;
 }

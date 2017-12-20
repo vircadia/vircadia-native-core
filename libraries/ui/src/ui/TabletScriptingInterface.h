@@ -204,13 +204,6 @@ public:
 
     QQuickItem* getQmlMenu() const;
 
-    /**jsdoc
-     * Returns a list of currently created button items.
-     * @function TabletProxy#getButtonsList
-     * @returns {QList<QQuickItem*>}
-     */
-    Q_INVOKABLE QList<QObject*> getButtonsList() const;
-
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet
@@ -270,7 +263,6 @@ protected:
     std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
-    mutable QMutex _tabletButtonsListMutex;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);
@@ -305,8 +297,6 @@ public:
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
-    QPointer<QQuickItem> getQmlButton() const;
-
 public slots:
     void clickedSlot() { emit clicked(); }
 
@@ -321,7 +311,7 @@ signals:
 protected:
     QUuid _uuid;
     int _stableOrder;
-    QPointer<QQuickItem> _qmlButton;
+    QQuickItem* _qmlButton { nullptr };
     QObject* _toolbarButtonProxy { nullptr };
     QVariantMap _properties;
 };
