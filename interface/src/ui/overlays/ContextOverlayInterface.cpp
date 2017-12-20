@@ -72,26 +72,13 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
     {
-        render::Transaction transaction;
-        initializeSelectionToSceneHandler(_selectionToSceneHandlers[0], "contextOverlayHighlightList", transaction);
-        for (auto i = 1; i < MAX_SELECTION_COUNT; i++) {
-            auto selectionName = QString("highlightList") + QString::number(i);
-            initializeSelectionToSceneHandler(_selectionToSceneHandlers[i], selectionName, transaction);
-        }
-        const render::ScenePointer& scene = qApp->getMain3DScene();
-        scene->enqueueTransaction(transaction);
+        _selectionScriptingInterface->enableListHighlight("contextOverlayHighlightList", QVariantMap());
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
-}
-
-void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction) {
-    handler.initialize(selectionName);
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &handler, &SelectionToSceneHandler::selectedItemsListChanged);
-    transaction.resetSelectionHighlight(selectionName.toStdString());
 }
 
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
@@ -279,7 +266,7 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-static const QString INSPECTION_CERTIFICATE_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 void ContextOverlayInterface::openInspectionCertificate() {
     // lets open the tablet to the inspection certificate QML
     if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
@@ -302,7 +289,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
                     QNetworkRequest networkRequest;
                     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
                     QJsonObject request;
                     request["certificate_id"] = entityProperties.getCertificateID();
@@ -326,21 +313,21 @@ void ContextOverlayInterface::openInspectionCertificate() {
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
                                 QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray encryptedText = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeEncryptedNonce(certID, ownerKey);
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
                                 QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
 
                                 int certIDByteArraySize = certID.length();
-                                int encryptedTextByteArraySize = encryptedText.length();
+                                int textByteArraySize = text.length();
                                 int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
 
                                 auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                                    certIDByteArraySize + encryptedTextByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
                                     true);
                                 challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-                                challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(textByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
                                 challengeOwnershipPacket->write(certID);
-                                challengeOwnershipPacket->write(encryptedText);
+                                challengeOwnershipPacket->write(text);
                                 challengeOwnershipPacket->write(nodeToChallengeByteArray);
                                 nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
 
@@ -372,7 +359,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
@@ -421,16 +408,16 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     _challengeOwnershipTimeoutTimer.stop();
 
     int certIDByteArraySize;
-    int decryptedTextByteArraySize;
+    int textByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
-    packet->readPrimitive(&decryptedTextByteArraySize);
+    packet->readPrimitive(&textByteArraySize);
 
     QString certID(packet->read(certIDByteArraySize));
-    QString decryptedText(packet->read(decryptedTextByteArraySize));
+    QString text(packet->read(textByteArraySize));
 
     EntityItemID id;
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyDecryptedNonce(certID, decryptedText, id);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));

@@ -12,6 +12,7 @@
 
 #include "FileUtils.h"
 
+#include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
 #include <QtCore/QProcess>
@@ -19,6 +20,8 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QRegularExpression>
 #include <QtGui/QDesktopServices>
+
+#include "../SharedLogging.h"
 
 
 QString FileUtils::readFile(const QString& filename) {
@@ -82,20 +85,54 @@ QString FileUtils::standardPath(QString subfolder) {
     // standard path
     // Mac: ~/Library/Application Support/Interface
     QString path = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    
     if (!subfolder.startsWith("/")) {
         subfolder.prepend("/");
     }
-    
     if (!subfolder.endsWith("/")) {
         subfolder.append("/");
     }
-    
     path.append(subfolder);
     QDir logDir(path);
     if (!logDir.exists(path)) {
         logDir.mkpath(path);
     }
-    
     return path;
+}
+
+QString FileUtils::replaceDateTimeTokens(const QString& originalPath) {
+    // Filter for specific tokens potentially present in the path:
+    auto now = QDateTime::currentDateTime();
+    QString path = originalPath;
+    path.replace("{DATE}", now.date().toString("yyyyMMdd"));
+    path.replace("{TIME}", now.time().toString("HHmm"));
+    return path;
+}
+
+
+QString FileUtils::computeDocumentPath(const QString& originalPath) {
+    // If the filename is relative, turn it into an absolute path relative to the document directory.
+    QString path = originalPath;
+    QFileInfo originalFileInfo(originalPath);
+    if (originalFileInfo.isRelative()) {
+        QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        path = docsLocation + "/" + originalPath;
+    }
+    return path;
+}
+
+bool FileUtils::canCreateFile(const QString& fullPath) {
+    // If the file exists and we can't remove it, fail early
+    QFileInfo fileInfo(fullPath);
+    if (fileInfo.exists() && !QFile::remove(fullPath)) {
+        qDebug(shared) << "unable to overwrite file '" << fullPath << "'";
+        return false;
+    }
+    QDir dir(fileInfo.absolutePath());
+    if (!dir.exists()) {
+        if (!dir.mkpath(fullPath)) {
+            qDebug(shared) << "unable to create dir '" << dir.absolutePath() << "'";
+            return false;
+        }
+    }
+    return true;
 }

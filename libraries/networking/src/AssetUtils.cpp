@@ -14,6 +14,7 @@
 #include <memory>
 
 #include <QtCore/QCryptographicHash>
+#include <QtCore/QDateTime>
 #include <QtNetwork/QAbstractNetworkCache>
 
 #include "NetworkAccessManager.h"

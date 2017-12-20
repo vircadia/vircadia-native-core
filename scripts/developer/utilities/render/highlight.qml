@@ -15,162 +15,184 @@ import QtQuick.Layouts 1.3
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 import  "configSlider"
+import  "../lib/plotperf"
+import  "highlight"
 
-Rectangle {
+Item {
     id: root
     HifiConstants { id: hifi;}
-    color: hifi.colors.baseGray;
-    anchors.margins: hifi.dimensions.contentMargin.x
-
-    property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
-    property var highlightConfig: Render.getConfig("UpdateScene.HighlightStageSetup")
+    anchors.margins: 0
+    property var listName: "contextOverlayHighlightList"
     
+    property var styleList: Selection.getHighlightedListNames()
+
     signal sendToScript(var message);
+
+    Component.onCompleted: {
+        // Connect the signal from Selection when any selection content change and use it to refresh the current selection view
+        Selection.selectedItemsListChanged.connect(resetSelectionView)
+    }
+
+    function resetSelectionView() {
+        if (selectionView !== undefined) {
+            selectionView.resetSelectionView();
+        }
+    }
 
     Column {
         id: col
-        spacing: 10
-        anchors.left: parent.left
-        anchors.right: parent.right       
+        spacing: 5
+        anchors.fill: root     
         anchors.margins: hifi.dimensions.contentMargin.x  
 
         Row {
+            id: controlbar
             spacing: 10
             anchors.left: parent.left
             anchors.right: parent.right 
+            height: 24
 
-            HifiControls.CheckBox {
+            HifiControls.Button {
                 id: debug
-                text: "View Mask"
-                checked: root.debugConfig["viewMask"]
-                onCheckedChanged: {
-                    root.debugConfig["viewMask"] = checked;
+                text: "Refresh"
+                height: 24
+                width: 82
+                onClicked: {
+                    print("list of highlight styles")
+                    root.styleList = Selection.getHighlightedListNames()
+
+                    print(root.styleList)
+                    styleSelectorLoader.sourceComponent = undefined;
+                    styleSelectorLoader.sourceComponent = selectorWidget;
                 }
             }
-            HifiControls.CheckBox {
-                text: "Hover select"
-                checked: false
-                onCheckedChanged: {
-                    sendToScript("pick "+checked.toString())
-                }
-            }
-            HifiControls.CheckBox {
-                text: "Add to selection"
-                checked: false
-                onCheckedChanged: {
-                    sendToScript("add "+checked.toString())
+
+            Loader {
+                id: styleSelectorLoader
+                sourceComponent: selectorWidget
+                width: 300
+                //anchors.right: parent.right    
+            } 
+            Component {
+                id: selectorWidget
+                HifiControls.ComboBox {
+                    id: box
+                    z: 999
+                    editable: true
+                    colorScheme: hifi.colorSchemes.dark
+                    model: root.styleList
+                    label: ""
+
+                    Timer {
+                        id: postpone
+                        interval: 100; running: false; repeat: false
+                        onTriggered: {
+                            styleWidgetLoader.sourceComponent = styleWidget
+                            resetSelectionView();
+                        }
+                    }
+                    onCurrentIndexChanged: {
+                        root.listName = model[currentIndex];
+                        // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                        // by setting the loader source to Null and then recreate it 100ms later
+                        styleWidgetLoader.sourceComponent = undefined;
+                        postpone.interval = 100
+                        postpone.start()
+                    }
                 }
             }
         }
 
-        HifiControls.ComboBox {
-            id: box
-            width: 350
-            z: 999
-            editable: true
-            colorScheme: hifi.colorSchemes.dark
-            model: [
-                "contextOverlayHighlightList", 
-                "highlightList1", 
-                "highlightList2", 
-                "highlightList3", 
-                "highlightList4"]
-            label: ""
-
-            Timer {
-                id: postpone
-                interval: 100; running: false; repeat: false
-                onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
-            }
-            onCurrentIndexChanged: {
-                root.highlightConfig["selectionName"] = model[currentIndex];
-                sendToScript("highlight "+currentIndex)
-                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
-                // by setting the loader source to Null and then recreate it 100ms later
-                paramWidgetLoader.sourceComponent = undefined;
-                postpone.interval = 100
-                postpone.start()
-            }
-        }
-
+        Separator {}
         Loader {
-            id: paramWidgetLoader
-            sourceComponent: paramWidgets
-            width: 350
+            id: styleWidgetLoader
+            sourceComponent: styleWidget
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            height: 240
+        }   
+
+        Separator {}
+
+        HifiControls.CheckBox {
+            text: "Highlight Hovered"
+            checked: false
+            onCheckedChanged: {
+                if (checked) {
+                    root.sendToScript("pick true")
+                } else {
+                    root.sendToScript("pick false")                    
+                }
+            } 
         }
+        Separator {}
+        Rectangle {
+            id: selectionView
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            height: 250
+           color: hifi.colors.lightGray
 
-        Component {
-            id: paramWidgets
-
-            Column {
-                spacing: 10
-                anchors.margins: hifi.dimensions.contentMargin.x  
-
-                HifiControls.Label {
-                    text: "Outline"       
-                }
-                Column {
-                    spacing: 10
-                    anchors.left: parent.left
-                    anchors.right: parent.right 
-                    HifiControls.CheckBox {
-                        text: "Smooth"
-                        checked: root.highlightConfig["isOutlineSmooth"]
-                        onCheckedChanged: {
-                            root.highlightConfig["isOutlineSmooth"] = checked;
-                        }
-                    }
-                    Repeater {
-                        model: ["Width:outlineWidth:5.0:0.0",
-                                "Intensity:outlineIntensity:1.0:0.0"
-                                        ]
-                        ConfigSlider {
-                                label: qsTr(modelData.split(":")[0])
-                                integral: false
-                                config: root.highlightConfig
-                                property: modelData.split(":")[1]
-                                max: modelData.split(":")[2]
-                                min: modelData.split(":")[3]
-                        }
+            function resetSelectionView() {
+                myModel.clear()
+                var entities = Selection.getSelectedItemsList(root.listName)["entities"]
+                if (entities !== undefined) {
+                    myModel.append({ "objectID": "Entities" })
+                    for (var i = 0; i < entities.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(entities[i]) })
                     }
                 }
-
-                Separator {}
-                HifiControls.Label {
-                    text: "Color"       
-                }
-                Repeater {
-                    model: ["Red:colorR:1.0:0.0",
-                            "Green:colorG:1.0:0.0",
-                            "Blue:colorB:1.0:0.0"
-                                    ]
-                    ConfigSlider {
-                            label: qsTr(modelData.split(":")[0])
-                            integral: false
-                            config: root.highlightConfig
-                            property: modelData.split(":")[1]
-                            max: modelData.split(":")[2]
-                            min: modelData.split(":")[3]
+                var overlays = Selection.getSelectedItemsList(root.listName)["overlays"]
+                if (overlays !== undefined) {
+                    myModel.append({ "objectID": "Overlays" })
+                    for (var i = 0; i < overlays.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(overlays[i]) })
                     }
                 }
-
-                Separator {}
-                HifiControls.Label {
-                    text: "Fill Opacity"       
-                }
-                Repeater {
-                    model: ["Unoccluded:unoccludedFillOpacity:1.0:0.0",
-                            "Occluded:occludedFillOpacity:1.0:0.0"
-                                    ]
-                    ConfigSlider {
-                            label: qsTr(modelData.split(":")[0])
-                            integral: false
-                            config: root.highlightConfig
-                            property: modelData.split(":")[1]
-                            max: modelData.split(":")[2]
-                            min: modelData.split(":")[3]
+                var avatars = Selection.getSelectedItemsList(root.listName)["avatars"]
+                if (avatars !== undefined) {
+                    myModel.append({ "objectID": "Avatars" })
+                    for (var i = 0; i < avatars.length; i++) {
+                        myModel.append({ "objectID": JSON.stringify(avatars[i]) })
                     }
                 }
+            }            
+
+            ListModel {
+                id: myModel
+            }
+        
+            Component {
+                id: myDelegate
+                Row {
+                    id: fruit
+                    Text { text: objectID }
+                }
+            }
+            
+            ListView {
+                id: selectionListView
+                anchors.fill: parent
+                anchors.topMargin: 30
+                model: myModel
+                delegate: myDelegate
+            }
+        }
+    } 
+
+    Component {
+        id: styleWidget
+
+        HighlightStyle {
+            id: highlightStyle
+            anchors.left: parent.left
+            anchors.right: parent.right       
+            highlightStyle: Selection.getListHighlightStyle(root.listName)
+
+            onNewStyle: {
+                var style = getStyle()
+                //  print("new style " + JSON.stringify(style) )
+                Selection.enableListHighlight(root.listName, style)
             }
         }
     }

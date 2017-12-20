@@ -1,5 +1,5 @@
 {
-  "version": 2.0,
+  "version": 2.1,
   "settings": [
     {
       "name": "label",
@@ -1015,20 +1015,20 @@
       "assignment-types": [ 1, 2 ],
       "settings": [
         {
-          "name": "min_avatar_scale",
+          "name": "min_avatar_height",
           "type": "double",
-          "label": "Minimum Avatar Scale",
-          "help": "Limits the scale of avatars in your domain. Must be at least 0.005.",
-          "placeholder": 0.25,
-          "default": 0.25
+          "label": "Minimum Avatar Height (meters)",
+          "help": "Limits the height of avatars in your domain. Must be at least 0.009.",
+          "placeholder": 0.4,
+          "default": 0.4
         },
         {
-          "name": "max_avatar_scale",
+          "name": "max_avatar_height",
           "type": "double",
-          "label": "Maximum Avatar Scale",
-          "help": "Limits the scale of avatars in your domain. Cannot be greater than 1000.",
-          "placeholder": 3.0,
-          "default": 3.0
+          "label": "Maximum Avatar Height (meters)",
+          "help": "Limits the scale of avatars in your domain. Cannot be greater than 1755.",
+          "placeholder": 5.2,
+          "default": 5.2
         },
         {
           "name": "avatar_whitelist",

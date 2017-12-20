@@ -36,8 +36,8 @@ Rectangle {
     property bool isCertificateInvalid: false;
     // Style
     color: hifi.colors.faintGray;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onCertificateInfoResult: {
             if (result.status !== 'success') {
@@ -109,7 +109,7 @@ Rectangle {
 
     onCertificateIdChanged: {
         if (certificateId !== "") {
-            commerce.certificateInfo(certificateId);
+            Commerce.certificateInfo(certificateId);
         }
     }
 
@@ -430,7 +430,7 @@ Rectangle {
 
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = addLeadingZero(a.getMonth());
+        var month = addLeadingZero(a.getMonth() + 1);
         var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;

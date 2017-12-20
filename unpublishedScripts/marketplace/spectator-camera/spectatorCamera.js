@@ -311,7 +311,10 @@
             viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
         }
         updateOverlay();
-        spectatorCameraConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        // if secondary camera is currently being used for mirror projection then don't update it's aspect ratio (will be done in spectatorCameraOn)
+        if (!spectatorCameraConfig.mirrorProjection) {
+            spectatorCameraConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        }
         setDisplay(monitorShowsCameraView);
     }
 
@@ -390,7 +393,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = Script.resourcesPath() + "qml/hifi/SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = "hifi/SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {

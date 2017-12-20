@@ -24,7 +24,7 @@
         print('tablet-goto.js:', [].map.call(arguments, JSON.stringify));
     }
 
-    var gotoQmlSource = "TabletAddressDialog.qml";
+    var gotoQmlSource = "hifi/tablet/TabletAddressDialog.qml";
     var buttonName = "GOTO";
     var onGotoScreen = false;
     var shouldActivateButton = false;

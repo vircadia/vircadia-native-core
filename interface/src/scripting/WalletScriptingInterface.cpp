@@ -23,30 +23,7 @@ void WalletScriptingInterface::refreshWalletStatus() {
     wallet->getWalletStatus();
 }
 
-static const QString CHECKOUT_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/checkout/Checkout.qml";
-void WalletScriptingInterface::buy(const QString& name, const QString& id, const int& price, const QString& href) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "buy", Q_ARG(const QString&, name), Q_ARG(const QString&, id), Q_ARG(const int&, price), Q_ARG(const QString&, href));
-        return;
-    }
-
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-
-    tablet->loadQMLSource(CHECKOUT_QML_PATH);
-    DependencyManager::get<HMDScriptingInterface>()->openTablet();
-
-    QQuickItem* root = nullptr;
-    if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !qApp->isHMDMode())) {
-        root = DependencyManager::get<OffscreenUi>()->getRootItem();
-    } else {
-        root = tablet->getTabletRoot();
-    }
-    CheckoutProxy* checkout = new CheckoutProxy(root->findChild<QObject*>("checkout"));
-
-    // Example: Wallet.buy("Test Flaregun", "0d90d21c-ce7a-4990-ad18-e9d2cf991027", 17, "http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json");
-    checkout->writeProperty("itemName", name);
-    checkout->writeProperty("itemId", id);
-    checkout->writeProperty("itemPrice", price);
-    checkout->writeProperty("itemHref", href);
+void WalletScriptingInterface::setWalletStatus(const uint& status) {
+    _walletStatus = status;
+    emit DependencyManager::get<Wallet>()->walletStatusResult(status);
 }

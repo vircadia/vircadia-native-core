@@ -44,7 +44,7 @@
 
 
         <fieldset id="general" class="major">
-            <div class="shape-group shape-section property dropdown">
+            <div class="shape-group shape-section property dropdown" id="shape-list">
                 <label for="property-shape">Shape</label>
                 <select name="SelectShape" id="property-shape">
                         <option value="Cube">Box</option>
@@ -66,12 +66,19 @@
                 <label for="property-name">Name</label>
                 <input type="text" id="property-name">
             </div>
-            <div class="physical-group color-section property color-control1">
-                <div class="color-picker" id="property-color-control1"></div>
+            <div class="physical-group color-section property rgb fstuple" id="base-color-section">
+                <div class="color-picker" id="property-color-control2"></div>
                 <label>Entity color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+                </div>
             </div>
         </fieldset>
-        <fieldset id="collision-info">
+
+        <fieldset id="collision-info" class="major">
+            <legend class="section-header"> Collision<span>M</span> </legend>
             <fieldset class="minor">
                 <div class="behavior-group property checkbox">
                     <input type="checkbox" id="property-collisionless">
@@ -215,17 +222,6 @@
                         <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
                     </div>
                 </fieldset>
-            </fieldset>
-            <fieldset class="minor">
-                <div class="physical-group color-section property rgb fstuple">
-                    <div class="color-picker" id="property-color-control2"></div>
-                    <label>Entity color</label>
-                    <div class="tuple">
-                        <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
-                    </div>
-                </div>
             </fieldset>
         </fieldset>
 

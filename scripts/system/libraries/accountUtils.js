@@ -10,7 +10,7 @@ openLoginWindow = function openLoginWindow() {
         || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
         Menu.triggerOption("Login / Sign Up");
     } else {
-        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
+        tablet.loadQMLOnTop("dialogs/TabletLoginDialog.qml");
         HMD.openTablet();
     }
 };        

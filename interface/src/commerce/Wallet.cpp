@@ -27,11 +27,11 @@
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+#include <openssl/ecdsa.h>
 
 // I know, right?  But per https://www.openssl.org/docs/faq.html
 // this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
@@ -78,18 +78,19 @@ int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     }
 }
 
-RSA* readKeys(const char* filename) {
+EC_KEY* readKeys(const char* filename) {
     FILE* fp;
-    RSA* key = NULL;
+    EC_KEY *key = NULL;
     if ((fp = fopen(filename, "rt"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
-        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
+
+        if ((key = PEM_read_EC_PUBKEY(fp, NULL, NULL, NULL))) {
             // now read private key
 
             qCDebug(commerce) << "read public key";
 
-            if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
+            if ((key = PEM_read_ECPrivateKey(fp, &key, passwordCallback, NULL))) {
                 qCDebug(commerce) << "read private key";
                 fclose(fp);
                 return key;
@@ -137,18 +138,18 @@ bool Wallet::writeBackupInstructions() {
     return retval;
 }
 
-bool writeKeys(const char* filename, RSA* keys) {
+bool writeKeys(const char* filename, EC_KEY* keys) {
     FILE* fp;
     bool retval = false;
     if ((fp = fopen(filename, "wt"))) {
-        if (!PEM_write_RSAPublicKey(fp, keys)) {
+        if (!PEM_write_EC_PUBKEY(fp, keys)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write public key";
             QFile(QString(filename)).remove();
             return retval;
         }
 
-        if (!PEM_write_RSAPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
+        if (!PEM_write_ECPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write private key";
             QFile(QString(filename)).remove();
@@ -164,50 +165,29 @@ bool writeKeys(const char* filename, RSA* keys) {
     return retval;
 }
 
-// copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
-// We will have a different implementation in practice, but this gives us a start for now
-//
-// TODO: we don't really use the private keys returned - we can see how this evolves, but probably
-// we should just return a list of public keys?
-// or perhaps return the RSA* instead?
-QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
+QPair<QByteArray*, QByteArray*> generateECKeypair() {
 
-    RSA* keyPair = RSA_new();
-    BIGNUM* exponent = BN_new();
+    EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
     QPair<QByteArray*, QByteArray*> retval;
-
-    const unsigned long RSA_KEY_EXPONENT = 65537;
-    BN_set_word(exponent, RSA_KEY_EXPONENT);
-
-    // seed the random number generator before we call RSA_generate_key_ex
-    srand(time(NULL));
-
-    const int RSA_KEY_BITS = 2048;
-
-    if (!RSA_generate_key_ex(keyPair, RSA_KEY_BITS, exponent, NULL)) {
-        qCDebug(commerce) << "Error generating 2048-bit RSA Keypair -" << ERR_get_error();
-
-        // we're going to bust out of here but first we cleanup the BIGNUM
-        BN_free(exponent);
+    EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
+    if (!EC_KEY_generate_key(keyPair)) {
+        qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
         return retval;
     }
 
-    // we don't need the BIGNUM anymore so clean that up
-    BN_free(exponent);
-
     // grab the public key and private key from the file
     unsigned char* publicKeyDER = NULL;
-    int publicKeyLength = i2d_RSAPublicKey(keyPair, &publicKeyDER);
+    int publicKeyLength = i2d_EC_PUBKEY(keyPair, &publicKeyDER);
 
     unsigned char* privateKeyDER = NULL;
-    int privateKeyLength = i2d_RSAPrivateKey(keyPair, &privateKeyDER);
+    int privateKeyLength = i2d_ECPrivateKey(keyPair, &privateKeyDER);
 
     if (publicKeyLength <= 0 || privateKeyLength <= 0) {
-        qCDebug(commerce) << "Error getting DER public or private key from RSA struct -" << ERR_get_error();
+        qCDebug(commerce) << "Error getting DER public or private key from EC struct -" << ERR_get_error();
 
 
-        // cleanup the RSA struct
-        RSA_free(keyPair);
+        // cleanup the EC struct
+        EC_KEY_free(keyPair);
 
         // cleanup the public and private key DER data, if required
         if (publicKeyLength > 0) {
@@ -227,13 +207,13 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
         return retval;
     }
 
-    RSA_free(keyPair);
+    EC_KEY_free(keyPair);
 
     // prepare the return values.  TODO: Fix this - we probably don't really even want the
     // private key at all (better to read it when we need it?).  Or maybe we do, when we have
     // multiple keys?
-    retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength ),
-    retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength );
+    retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
+    retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
 
     // cleanup the publicKeyDER and publicKeyDER data
     OPENSSL_free(publicKeyDER);
@@ -245,18 +225,18 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 // the public key can just go into a byte array
 QByteArray readPublicKey(const char* filename) {
     FILE* fp;
-    RSA* key = NULL;
+    EC_KEY* key = NULL;
     if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
-        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
+        if ((key = PEM_read_EC_PUBKEY(fp, NULL, NULL, NULL))) {
             // file read successfully
             unsigned char* publicKeyDER = NULL;
-            int publicKeyLength = i2d_RSAPublicKey(key, &publicKeyDER);
+            int publicKeyLength = i2d_EC_PUBKEY(key, &publicKeyDER);
             // TODO: check for 0 length?
 
             // cleanup
-            RSA_free(key);
+            EC_KEY_free(key);
             fclose(fp);
 
             qCDebug(commerce) << "parsed public key file successfully";
@@ -274,15 +254,15 @@ QByteArray readPublicKey(const char* filename) {
     return QByteArray();
 }
 
-// the private key should be read/copied into heap memory.  For now, we need the RSA struct
-// so I'll return that.  Note we need to RSA_free(key) later!!!
-RSA* readPrivateKey(const char* filename) {
+// the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
+// so I'll return that.
+EC_KEY* readPrivateKey(const char* filename) {
     FILE* fp;
-    RSA* key = NULL;
+    EC_KEY* key = NULL;
     if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
-        if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
+        if ((key = PEM_read_ECPrivateKey(fp, &key, passwordCallback, NULL))) {
             qCDebug(commerce) << "parsed private key file successfully";
 
         } else {
@@ -335,12 +315,21 @@ Wallet::Wallet() {
         }
 
         walletScriptingInterface->setWalletStatus(status);
-        emit walletStatusResult(status);
     });
 
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         getWalletStatus();
+        _publicKeys.clear();
+
+        if (_securityImage) {
+            delete _securityImage;
+        }
+        _securityImage = nullptr;
+
+        // tell the provider we got nothing
+        updateImageProvider();
+        _passphrase->clear();
     });
 }
 
@@ -501,6 +490,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
+        DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
         return true;
     }
 
@@ -509,10 +499,11 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
     if (publicKey.size() > 0) {
         if (auto key = readPrivateKey(keyFilePath().toStdString().c_str())) {
-            RSA_free(key);
+            EC_KEY_free(key);
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
             return true;
         }
     }
@@ -525,7 +516,7 @@ bool Wallet::generateKeyPair() {
     initialize();
 
     qCInfo(commerce) << "Generating keypair.";
-    auto keyPair = generateRSAKeypair();
+    auto keyPair = generateECKeypair();
 
     writeBackupInstructions();
 
@@ -557,25 +548,25 @@ QStringList Wallet::listPublicKeys() {
 // the horror of code pages and so on (changing the bytes) by just returning a base64
 // encoded string representing the signature (suitable for http, etc...)
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
-    qCInfo(commerce) << "Signing text.";
-    RSA* rsaPrivateKey = NULL;
-    if ((rsaPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
-        QByteArray signature(RSA_size(rsaPrivateKey), 0);
+    qCInfo(commerce) << "Signing text" << text << "with key" << key;
+    EC_KEY* ecPrivateKey = NULL;
+    if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
+        unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
+
         unsigned int signatureBytes = 0;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
-        int encryptReturn = RSA_sign(NID_sha256,
-                reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
-                hashedPlaintext.size(),
-                reinterpret_cast<unsigned char*>(signature.data()),
-                &signatureBytes,
-                rsaPrivateKey);
 
-        // free the private key RSA struct now that we are done with it
-        RSA_free(rsaPrivateKey);
+        int retrn = ECDSA_sign(0,
+            reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+            hashedPlaintext.size(),
+            sig,
+            &signatureBytes, ecPrivateKey);
 
-        if (encryptReturn != -1) {
+        EC_KEY_free(ecPrivateKey);
+        QByteArray signature(reinterpret_cast<const char*>(sig), signatureBytes);
+        if (retrn != -1) {
             return signature.toBase64();
         }
     }
@@ -674,7 +665,7 @@ void Wallet::reset() {
     keyFile.remove();
 }
 bool Wallet::writeWallet(const QString& newPassphrase) {
-    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
+    EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
     if (keys) {
         // we read successfully, so now write to a new temp file
         QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
@@ -720,82 +711,86 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
+    // With EC keys, we receive a nonce from the metaverse server, which is signed
+    // here with the private key and returned.  Verification is done at server.
+
     bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
-    unsigned char decryptedText[64];
+    int status;
     int certIDByteArraySize;
-    int encryptedTextByteArraySize;
+    int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
-    packet->readPrimitive(&encryptedTextByteArraySize);
+    packet->readPrimitive(&textByteArraySize);  // returns a cast char*, size
     if (challengeOriginatedFromClient) {
         packet->readPrimitive(&challengingNodeUUIDByteArraySize);
     }
 
+    // "encryptedText"  is now a series of random bytes, a nonce
     QByteArray certID = packet->read(certIDByteArraySize);
-    QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    QByteArray text = packet->read(textByteArraySize);
     QByteArray challengingNodeUUID;
     if (challengeOriginatedFromClient) {
         challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
     }
 
-    RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
-    int decryptionStatus = -1;
+    EC_KEY* ec = readKeys(keyFilePath().toStdString().c_str());
+    QString sig;
 
-    if (rsa) {
+   if (ec) {
         ERR_clear_error();
-        decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
-            reinterpret_cast<const unsigned char*>(encryptedText.constData()),
-            decryptedText,
-            rsa,
-            RSA_PKCS1_OAEP_PADDING);
-
-        RSA_free(rsa);
+        sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString FIXME should pass ec as string so we can tell which key to sign with
+        status = 1;
     } else {
-        qCDebug(commerce) << "During entity ownership challenge, creating the RSA object failed.";
+        qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
+        status = -1;
     }
 
-    QByteArray decryptedTextByteArray;
-    if (decryptionStatus > -1) {
-        decryptedTextByteArray = QByteArray(reinterpret_cast<const char*>(decryptedText), decryptionStatus);
+    EC_KEY_free(ec);
+    QByteArray ba = sig.toLocal8Bit();
+    const char *sigChar = ba.data();
+
+    QByteArray textByteArray;
+    if (status > -1) {
+        textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
     }
-    int decryptedTextByteArraySize = decryptedTextByteArray.size();
+    textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
     // setup the packet
     if (challengeOriginatedFromClient) {
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-            certIDSize + decryptedTextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+        auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+            certIDSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
             true);
 
-        decryptedTextPacket->writePrimitive(certIDSize);
-        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-        decryptedTextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-        decryptedTextPacket->write(certID);
-        decryptedTextPacket->write(decryptedTextByteArray);
-        decryptedTextPacket->write(challengingNodeUUID);
+        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(textByteArraySize);
+        textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+        textPacket->write(certID);
+        textPacket->write(textByteArray);
+        textPacket->write(challengingNodeUUID);
 
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(textPacket), *sendingNode);
     } else {
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+        auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + textByteArraySize + 2 * sizeof(int), true);
 
-        decryptedTextPacket->writePrimitive(certIDSize);
-        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-        decryptedTextPacket->write(certID);
-        decryptedTextPacket->write(decryptedTextByteArray);
+        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(textByteArraySize);
+        textPacket->write(certID);
+        textPacket->write(textByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for CertID" << certID;
 
-        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+        nodeList->sendPacket(std::move(textPacket), *sendingNode);
     }
 
-    if (decryptionStatus == -1) {
-        qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+    if (status == -1) {
+        qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";
         long error = ERR_get_error();
         if (error != 0) {
             const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "RSA error:" << error_str;
+            qCWarning(entities) << "EC error:" << error_str;
         }
     }
 }
@@ -807,15 +802,12 @@ void Wallet::account() {
 
 void Wallet::getWalletStatus() {
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
-    uint status;
 
     if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
         // This will set account info for the wallet, allowing us to decrypt and display the security image.
         account();
     } else {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
-        emit walletStatusResult(status);
-        walletScriptingInterface->setWalletStatus(status);
+        walletScriptingInterface->setWalletStatus((uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN);
         return;
     }
 }

@@ -28,8 +28,8 @@ Item {
     property bool historyReceived: false;
     property int pendingCount: 0;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onBalanceResult : {
             balanceText.text = result.data.balance;
@@ -38,10 +38,28 @@ Item {
         onHistoryResult : {
             historyReceived = true;
             if (result.status === 'success') {
-                transactionHistoryModel.clear();
-                transactionHistoryModel.append(result.data.history);
+                var sameItemCount = 0;
+                tempTransactionHistoryModel.clear();
+                
+                tempTransactionHistoryModel.append(result.data.history);
+        
+                for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                    if (!transactionHistoryModel.get(i)) {
+                        sameItemCount = -1;
+                        break;
+                    } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
+                    tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
+                        sameItemCount++;
+                    }
+                }
 
-                calculatePendingAndInvalidated();
+                if (sameItemCount !== tempTransactionHistoryModel.count) {
+                    transactionHistoryModel.clear();
+                    for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                        transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                    }
+                    calculatePendingAndInvalidated();
+                }
             }
             refreshTimer.start();
         }
@@ -50,6 +68,7 @@ Item {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
+            transactionHistoryModel.clear();
             usernameText.text = Account.username;
         }
     }
@@ -116,8 +135,8 @@ Item {
             onVisibleChanged: {
                 if (visible) {
                     historyReceived = false;
-                    commerce.balance();
-                    commerce.history();
+                    Commerce.balance();
+                    Commerce.history();
                 } else {
                     refreshTimer.stop();
                 }
@@ -143,12 +162,11 @@ Item {
 
     Timer {
         id: refreshTimer;
-        interval: 4000; // Remove this after demo?
+        interval: 4000;
         onTriggered: {
             console.log("Refreshing Wallet Home...");
-            historyReceived = false;
-            commerce.balance();
-            commerce.history();
+            Commerce.balance();
+            Commerce.history();
         }
     }
 
@@ -186,6 +204,9 @@ Item {
             size: 22;
             // Style
             color: hifi.colors.baseGrayHighlight;
+        }
+        ListModel {
+            id: tempTransactionHistoryModel;
         }
         ListModel {
             id: transactionHistoryModel;
@@ -339,7 +360,7 @@ Item {
 
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = addLeadingZero(a.getMonth());
+        var month = addLeadingZero(a.getMonth() + 1);
         var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;

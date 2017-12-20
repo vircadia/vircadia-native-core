@@ -16,16 +16,14 @@
 #define hifi_QmlCommerce_h
 
 #include <QJsonObject>
-#include <OffscreenQmlDialog.h>
 
 #include <QPixmap>
 
-class QmlCommerce : public OffscreenQmlDialog {
+class QmlCommerce : public QObject {
     Q_OBJECT
-    HIFI_QML_DECL
 
 public:
-    QmlCommerce(QQuickItem* parent = nullptr);
+    QmlCommerce();
 
 signals:
     void walletStatusResult(uint walletStatus);
@@ -65,6 +63,7 @@ protected:
     Q_INVOKABLE void history();
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
+    Q_INVOKABLE void resetLocalWalletOnly();
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
