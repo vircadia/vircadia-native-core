@@ -19,7 +19,7 @@
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
 
-const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 20.0f;
+const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0f;
 const float DEFAULT_HMD_LOD_DOWN_FPS = 45.0f;
 const float DEFAULT_DESKTOP_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_DESKTOP_LOD_DOWN_FPS; // msec
 const float DEFAULT_HMD_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_HMD_LOD_DOWN_FPS; // msec
