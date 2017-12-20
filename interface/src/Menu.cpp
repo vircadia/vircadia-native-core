@@ -593,8 +593,8 @@ Menu::Menu() {
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ScriptedMotorControl,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ScriptedMotorControl, 0, true,
+        avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
     // Developer > Hands >>>
