@@ -124,7 +124,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     withWriteLock([&] {
         // This work must be done on the main thread
         if (!hasWebSurface()) {
-            buildWebSurface(entity);
+            // If we couldn't create a new web surface, exit
+            if (!buildWebSurface(entity)) {
+                return;
+            }
         }
 
         if (_contextPosition != entity->getWorldPosition()) {
