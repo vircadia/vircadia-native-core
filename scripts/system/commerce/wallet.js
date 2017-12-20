@@ -26,8 +26,8 @@
     // Relevant Variables:
     //   -WALLET_QML_SOURCE: The path to the Wallet QML
     //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var onWalletScreen = false;
     function onButtonClicked() {
         if (!tablet) {

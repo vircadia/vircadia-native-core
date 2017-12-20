@@ -36,8 +36,8 @@ Item {
         propagateComposedEvents: false;
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
         onSecurityImageResult: {
             passphrasePageSecurityImage.source = "";
             passphrasePageSecurityImage.source = "image://security/securityImage";
@@ -160,7 +160,7 @@ Item {
             source: "image://security/securityImage";
             cache: false;
             onVisibleChanged: {
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             }
         }
         Item {
@@ -283,7 +283,7 @@ Item {
             passphraseFieldAgain.error = false;
             currentPassphraseField.error = false;
             setErrorText("");
-            commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
+            Commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
             return true;
         }
     }

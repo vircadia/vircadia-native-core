@@ -43,8 +43,8 @@ Rectangle {
     property bool isWearable;
     // Style
     color: hifi.colors.white;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -72,7 +72,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -115,7 +115,7 @@ Rectangle {
     }
 
     onItemIdChanged: {
-        commerce.inventory();
+        Commerce.inventory();
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
 
@@ -124,7 +124,7 @@ Rectangle {
     }
 
     onItemPriceChanged: {
-        commerce.balance();
+        Commerce.balance();
     }
 
     Timer {
@@ -203,7 +203,7 @@ Rectangle {
         Component.onCompleted: {
             purchasesReceived = false;
             balanceReceived = false;
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -224,7 +224,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -474,9 +474,9 @@ Rectangle {
                     if (itemIsJson) {
                         buyButton.enabled = false;
                         if (!root.shouldBuyWithControlledFailure) {
-                            commerce.buy(itemId, itemPrice);
+                            Commerce.buy(itemId, itemPrice);
                         } else {
-                            commerce.buy(itemId, itemPrice, true);
+                            Commerce.buy(itemId, itemPrice, true);
                         }
                     } else {
                         if (urlHandler.canHandleUrl(itemHref)) {
@@ -940,8 +940,8 @@ Rectangle {
         }
         root.balanceReceived = false;
         root.purchasesReceived = false;
-        commerce.inventory();
-        commerce.balance();
+        Commerce.inventory();
+        Commerce.balance();
     }
 
     //

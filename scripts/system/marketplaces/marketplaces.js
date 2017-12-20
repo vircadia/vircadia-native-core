@@ -23,10 +23,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH_BASE = "qml/hifi/commerce/checkout/Checkout.qml";
-    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + MARKETPLACE_CHECKOUT_QML_PATH_BASE;
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
-    var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+    var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -114,7 +113,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
@@ -492,7 +491,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             case 'purchases_openGoTo':
-                tablet.loadQMLSource("TabletAddressDialog.qml");
+                tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
                 setCertificateInfo("", message.itemCertificateId);
