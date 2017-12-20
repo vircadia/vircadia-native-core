@@ -62,7 +62,7 @@ public:
     Q_INVOKABLE float getLODIncreaseFPS();
     
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    void autoAdjustLOD(float renderTime, float deltaTimeSec);
+    void autoAdjustLOD(float renderTime, float realTimeDelta);
     
     void loadSettings();
     void saveSettings();
