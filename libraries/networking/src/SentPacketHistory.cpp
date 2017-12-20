@@ -24,8 +24,7 @@ SentPacketHistory::SentPacketHistory(int size)
 
 }
 
-void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
-
+void SentPacketHistory::untrackedPacketSent(uint16_t sequenceNumber) {
     // check if given seq number has the expected value.  if not, something's wrong with
     // the code calling this function
     uint16_t expectedSequenceNumber = _newestSequenceNumber + (uint16_t)1;
@@ -34,6 +33,10 @@ void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& pack
             << "Expected:" << expectedSequenceNumber << "Actual:" << sequenceNumber;
     }
     _newestSequenceNumber = sequenceNumber;
+}
+
+void SentPacketHistory::packetSent(uint16_t sequenceNumber, const NLPacket& packet) {
+    untrackedPacketSent(sequenceNumber);
 
     QWriteLocker locker(&_packetsLock);
     _sentPackets.insert(NLPacket::createCopy(packet));
