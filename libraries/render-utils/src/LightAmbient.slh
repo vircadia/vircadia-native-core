@@ -22,11 +22,9 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 
 <@func declareEvalAmbientSpecularIrradiance(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere)@>
 
-vec3  fresnelSchlickAmbient(vec3 fresnelColor, SurfaceData surface) {
-    float gloss = 1.0 - surface.roughness;
-    float f = pow(1.0 - surface.ldoth, 5.0);
+vec3  fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float gloss) {
+    float f = pow(1.0 - ndotd, 5.0);
     return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * f;
-//    return mix(fresnelColor, vec3(1.0), f);
 }
 
 <@if supportAmbientMap@>
@@ -43,7 +41,7 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface) {
         {
             float levels = getLightAmbientMapNumMips(ambient);
             float lod = min(((surface.roughness)* levels), levels);
-            specularLight = evalSkyboxLight(surface.lightDir, lod).xyz;
+            specularLight = evalSkyboxLight(lightDir, lod).xyz;
             // We multiply specular by Pi to match specular / diffuse normalization in 
             // LightingModel.slh where diffuse and specular arent divided by Pi (when they should, rigourously
             // speaking, based on physical equations). The spherical harmonics evaluation, on
@@ -57,7 +55,7 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface) {
         <@endif@>
         <@if supportAmbientSphere@>
     {
-        specularLight = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), surface.lightDir).xyz;
+        specularLight = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lightDir).xyz;
     }
     <@endif@>
 
@@ -83,7 +81,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     ) {
 
     // Fresnel
-    vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface);
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface.ndotv, 1.0-surface.roughness);
 
     // Diffuse from ambient
     diffuse = (1.0 - metallic) * (vec3(1.0) - ambientFresnel) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), surface.normal).xyz;
