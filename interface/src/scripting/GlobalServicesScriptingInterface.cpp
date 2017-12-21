@@ -52,8 +52,7 @@ const QString GlobalServicesScriptingInterface::getUsername() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (accountManager->isLoggedIn()) {
         return accountManager->getAccountInfo().getUsername();
-    }
-    else {
+    } else {
         return "Unknown user";
     }
 }
