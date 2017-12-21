@@ -454,6 +454,8 @@ task cleanDependencies(type: Delete) {
     delete 'app/src/main/res/values/libs.xml'
 }
 
+// FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.  
+// See the comment on the qtBundle task above
 /*
 // FIXME derive the path from the gradle environment
 def toolchain = [
