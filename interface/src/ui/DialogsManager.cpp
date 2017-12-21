@@ -31,7 +31,7 @@
 
 #include "scripting/HMDScriptingInterface.h"
 
-static const QVariant TABLET_ADDRESS_DIALOG = "TabletAddressDialog.qml";
+static const QVariant TABLET_ADDRESS_DIALOG = "hifi/tablet/TabletAddressDialog.qml";
 template<typename T>
 void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
     if (!member) {
@@ -91,7 +91,7 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
             ConnectionFailureDialog::hide();
         }
     } else {
-        static const QUrl url("../../dialogs/TabletConnectionFailureDialog.qml");
+        static const QUrl url("dialogs/TabletConnectionFailureDialog.qml");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
         if (visible) {
             tablet->initialScreen(url);

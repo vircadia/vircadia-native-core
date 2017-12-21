@@ -16,16 +16,14 @@
 #define hifi_QmlCommerce_h
 
 #include <QJsonObject>
-#include <OffscreenQmlDialog.h>
 
 #include <QPixmap>
 
-class QmlCommerce : public OffscreenQmlDialog {
+class QmlCommerce : public QObject {
     Q_OBJECT
-    HIFI_QML_DECL
 
 public:
-    QmlCommerce(QQuickItem* parent = nullptr);
+    QmlCommerce();
 
 signals:
     void walletStatusResult(uint walletStatus);
