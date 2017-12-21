@@ -27,6 +27,7 @@ namespace Simulation {
     const uint32_t DIRTY_PHYSICS_ACTIVATION = 0x0800; // should activate object in physics engine
     const uint32_t DIRTY_SIMULATOR_ID = 0x1000; // the simulatorID has changed
     const uint32_t DIRTY_SIMULATION_OWNERSHIP_PRIORITY = 0x2000; // our own bid priority has changed
+    const uint32_t NO_BOOTSTRAPPING = 0x4000;
 
     const uint32_t DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION;
     const uint32_t DIRTY_VELOCITIES = DIRTY_LINEAR_VELOCITY | DIRTY_ANGULAR_VELOCITY;

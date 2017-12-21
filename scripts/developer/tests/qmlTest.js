@@ -1,7 +1,7 @@
 print("Launching web window");
 qmlWindow = new OverlayWindow({
     title: 'Test Qml', 
-    source: "https://s3.amazonaws.com/DreamingContent/qml/content.qml", 
+    source: "qrc:///qml/OverlayWindowTest.qml", 
     height: 240, 
     width: 320, 
     toolWindow: false,

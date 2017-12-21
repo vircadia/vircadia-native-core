@@ -36,8 +36,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             titleBarSecurityImage.source = "";
@@ -50,8 +50,12 @@ Item {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
+                passphraseField.error = true;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth failure");
             } else {
-                sendSignalToParent({method: 'authSuccess'});;
+                sendSignalToParent({method: 'authSuccess'});
+                passphraseField.error = false;
+                UserActivityLogger.commercePassphraseAuthenticationStatus("auth success");
             }
         }
     }
@@ -70,6 +74,7 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
+            passphraseField.error = false;
             passphraseField.focus = true;
             sendSignalToParent({method: 'disableHmdPreview'});
         } else {
@@ -206,19 +211,9 @@ Item {
                 root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = true;
-                    root.isPasswordField = (passphraseField.echoMode === TextInput.Password);
-                    mouse.accepted = false;
-                }
-            }
-
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
-                commerce.setPassphrase(passphraseField.text);
+                Commerce.setPassphrase(passphraseField.text);
             }
         }
 
@@ -258,7 +253,7 @@ Item {
                 source: "image://security/securityImage";
                 cache: false;
                 onVisibleChanged: {
-                    commerce.getSecurityImage();
+                    Commerce.getSecurityImage();
                 }
             }
             Item {
@@ -326,7 +321,7 @@ Item {
                 text: "Submit"
                 onClicked: {
                     submitPassphraseInputButton.enabled = false;
-                    commerce.setPassphrase(passphraseField.text);
+                    Commerce.setPassphrase(passphraseField.text);
                 }
             }
 
@@ -346,6 +341,7 @@ Item {
                 text: "Cancel"
                 onClicked: {
                     sendSignalToParent({method: 'passphrasePopup_cancelClicked'});
+                    UserActivityLogger.commercePassphraseAuthenticationStatus("passphrase modal cancelled");
                 }
             }
         }
@@ -360,25 +356,6 @@ Item {
             bottom: parent.bottom;
             left: parent.left;
             right: parent.right;
-        }
-
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
         }
 
         HifiControlsUit.Keyboard {

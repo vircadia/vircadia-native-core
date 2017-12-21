@@ -24,6 +24,7 @@ static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/exp
 
 static const QString CLI_INPUT_PARAMETER = "i";
 static const QString CLI_OUTPUT_PARAMETER = "o";
+static const QString CLI_TYPE_PARAMETER = "t";
 
 Oven::Oven(int argc, char* argv[]) :
     QApplication(argc, argv)
@@ -39,7 +40,8 @@ Oven::Oven(int argc, char* argv[]) :
    
     parser.addOptions({
         { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
-        { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" }
+        { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" },
+        { CLI_TYPE_PARAMETER, "Type of asset.", "type" }
     });
     parser.addHelpOption();
     parser.process(*this);
@@ -59,7 +61,8 @@ Oven::Oven(int argc, char* argv[]) :
             BakerCLI* cli = new BakerCLI(this);
             QUrl inputUrl(QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER)));
             QUrl outputUrl(QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER)));
-            cli->bakeFile(inputUrl, outputUrl.toString());
+            QString type = parser.isSet(CLI_TYPE_PARAMETER) ? parser.value(CLI_TYPE_PARAMETER) : QString::null;
+            cli->bakeFile(inputUrl, outputUrl.toString(), type);
         } else {
             parser.showHelp();
             QApplication::quit();

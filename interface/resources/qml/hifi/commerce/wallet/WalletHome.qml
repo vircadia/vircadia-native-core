@@ -28,8 +28,8 @@ Item {
     property bool historyReceived: false;
     property int pendingCount: 0;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onBalanceResult : {
             balanceText.text = result.data.balance;
@@ -68,6 +68,7 @@ Item {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
+            transactionHistoryModel.clear();
             usernameText.text = Account.username;
         }
     }
@@ -134,8 +135,8 @@ Item {
             onVisibleChanged: {
                 if (visible) {
                     historyReceived = false;
-                    commerce.balance();
-                    commerce.history();
+                    Commerce.balance();
+                    Commerce.history();
                 } else {
                     refreshTimer.stop();
                 }
@@ -164,8 +165,8 @@ Item {
         interval: 4000;
         onTriggered: {
             console.log("Refreshing Wallet Home...");
-            commerce.balance();
-            commerce.history();
+            Commerce.balance();
+            Commerce.history();
         }
     }
 
