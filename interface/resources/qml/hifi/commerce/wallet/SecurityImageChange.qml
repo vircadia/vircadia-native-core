@@ -26,8 +26,8 @@ Item {
     id: root;
     property bool justSubmitted: false;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
         
         onSecurityImageResult: {
             securityImageChangePageSecurityImage.source = "";
