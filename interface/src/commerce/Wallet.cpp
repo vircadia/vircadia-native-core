@@ -555,7 +555,7 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
 
         unsigned int signatureBytes = 0;
 
-        qCInfo(commerce) << "Signing text" << text << "with key at" << ecPrivateKey;
+        qCInfo(commerce) << "Hashing and signing plaintext" << text << "with key at address" << ecPrivateKey;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 

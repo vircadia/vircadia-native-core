@@ -61,7 +61,7 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
 
 void Ledger::signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure) {
     auto wallet = DependencyManager::get<Wallet>();
-    QString signature = wallet->signWithKey(text, key); 
+    QString signature = wallet->signWithKey(text, key);
     QJsonObject request;
     request[propertyName] = QString(text);
     if (!controlled_failure) {
