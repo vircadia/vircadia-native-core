@@ -331,7 +331,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
     if (state.clusterTransforms.size() == 1) {
-#ifdef SKIN_COMP
+#if defined(SKIN_COMP) || defined(SKIN_DQ)
         renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0].getMatrix()));
 #else
         renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
@@ -366,26 +366,11 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-#ifdef SKIN_COMP
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::TransformComponents>& clusterTransforms) {
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>& clusterTransforms) {
     // Once computed the cluster matrices, update the buffer(s)
     if (clusterTransforms.size() > 1) {
         if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(Model::TransformComponents),
-                (const gpu::Byte*) clusterTransforms.data());
-        }
-        else {
-            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(Model::TransformComponents),
-                (const gpu::Byte*) clusterTransforms.data());
-        }
-    }
-}
-#else
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterTransforms) {
-    // Once computed the cluster matrices, update the buffer(s)
-    if (clusterTransforms.size() > 1) {
-        if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(glm::mat4),
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(TransformType),
                 (const gpu::Byte*) clusterTransforms.data());
         }
         else {
@@ -394,8 +379,6 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clu
         }
     }
 }
-#endif
-
 
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform) {
     _transform = renderTransform;
@@ -561,15 +544,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-#ifdef SKIN_COMP
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformComponents>& clusterTransforms) {
-#else
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterTransforms) {
-#endif
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms) {
     _adjustedLocalBound = _localBound;
     if (clusterTransforms.size() > 0) {
-#ifdef SKIN_COMP
-        // AJT: TODO: optimize
+#if defined(SKIN_COMP) || defined(SKIN_DQ)
         _adjustedLocalBound.transform(clusterTransforms[0].getMatrix());
 #else
         _adjustedLocalBound.transform(clusterTransforms[0]);
@@ -577,8 +556,7 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
 
         for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
             AABox clusterBound = _localBound;
-#ifdef SKIN_COMP
-            // AJT: TODO: optimize
+#if defined(SKIN_COMP) || defined(SKIN_DQ)
             clusterBound.transform(clusterTransforms[i].getMatrix());
 #else
             clusterBound.transform(clusterTransforms[i]);

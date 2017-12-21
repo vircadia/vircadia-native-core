@@ -30,6 +30,7 @@
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
+#include <DualQuaternion.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
@@ -43,7 +44,7 @@
         }                                       \
     } while(false)
 
-#define SKIN_COMP
+#define SKIN_DQ
 
 class AbstractViewStateInterface;
 class QScriptEngine;
@@ -255,6 +256,7 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+#if defined(SKIN_COMP)
     class TransformComponents {
     public:
         TransformComponents() {}
@@ -290,15 +292,43 @@ public:
         glm::vec4 _trans { 0.0f, 0.0f, 0.0f, 0.0f };
         glm::vec4 _padding { 0.0f, 0.0f, 0.0f, 0.0f };
     };
+#elif defined(SKIN_DQ)
+    class TransformDualQuaternion {
+    public:
+        TransformDualQuaternion() {}
+        TransformDualQuaternion(const glm::mat4& m) {
+            AnimPose p(m);
+            _scale.x = p.scale().x;
+            _scale.y = p.scale().y;
+            _scale.z = p.scale().z;
+            _dq = DualQuaternion(p.rot(), p.trans());
+        }
+        TransformDualQuaternion(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+            _scale.x = scale.x;
+            _scale.y = scale.y;
+            _scale.z = scale.z;
+            _dq = DualQuaternion(rot, trans);
+        }
+        glm::vec3 getScale() const { return glm::vec3(_scale); }
+        glm::quat getRot() const { return _dq.getRotation(); }
+        glm::vec3 getTrans() const { return _dq.getTranslation(); }
+        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
+    protected:
+        glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
+        DualQuaternion _dq;
+        glm::vec4 _padding;
+    };
+#endif
 
     class MeshState {
     public:
-#ifdef SKIN_COMP
+#if defined(SKIN_COMP)
         std::vector<TransformComponents> clusterTransforms;
+#elif defined(SKIN_DQ)
+        std::vector<TransformDualQuaternion> clusterTransforms;
 #else
         std::vector<glm::mat4> clusterTransforms;
 #endif
-
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }

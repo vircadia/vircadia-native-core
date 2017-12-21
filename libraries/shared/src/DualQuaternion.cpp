@@ -12,6 +12,9 @@
 #include "GLMHelpers.h"
 
 // delegating constructor
+DualQuaternion::DualQuaternion() : _real(1.0f, 0.0f, 0.0f, 0.0), _imag(0.0f, 0.0f, 0.0f, 0.0f) {
+}
+
 DualQuaternion::DualQuaternion(const glm::mat4& m) : DualQuaternion(glmExtractRotation(m), extractTranslation(m)) {
 }
 

@@ -58,11 +58,14 @@ void SoftAttachmentModel::updateClusterMatrices() {
             } else {
                 jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             }
-#ifdef SKIN_COMP
-            // AJT: TODO: Optimize
+#if defined(SKIN_COMP)
             glm::mat4 m;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
             state.clusterTransforms[j] = Model::TransformComponents(m);
+#elif defined(SKIN_DQ)
+            glm::mat4 m;
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
 #else
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif

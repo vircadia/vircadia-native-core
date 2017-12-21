@@ -117,11 +117,16 @@ void CauterizedModel::updateClusterMatrices() {
             const FBXCluster& cluster = mesh.clusters.at(j);
 
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-#ifdef SKIN_COMP
-            // AJT: TODO: optimize
+#if defined(SKIN_COMP)
             glm::mat4 m;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+            AnimPose p(m);
             state.clusterTransforms[j] = Model::TransformComponents(m);
+#elif defined(SKIN_DQ)
+            glm::mat4 m;
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+            AnimPose p(m);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
 #else
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
@@ -149,11 +154,16 @@ void CauterizedModel::updateClusterMatrices() {
                     jointMatrix = cauterizeMatrix;
                 }
 
-#ifdef SKIN_COMP
-                // AJT: TODO: optimize
+#if defined(SKIN_COMP)
                 glm::mat4 m;
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                AnimPose p(m);
                 state.clusterTransforms[j] = Model::TransformComponents(m);
+#elif defined(SKIN_DQ)
+                glm::mat4 m;
+                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
+                AnimPose p(m);
+                state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
 #else
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
@@ -224,7 +234,7 @@ void CauterizedModel::updateRenderItems() {
 
                     Transform renderTransform = modelTransform;
                     if (clusterTransforms.size() == 1) {
-#ifdef SKIN_COMP
+#if defined(SKIN_COMP) || defined(SKIN_DQ)
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
 #else
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
@@ -234,7 +244,7 @@ void CauterizedModel::updateRenderItems() {
 
                     renderTransform = modelTransform;
                     if (clusterTransformsCauterized.size() == 1) {
-#ifdef SKIN_COMP
+#if defined(SKIN_COMP) || defined(SKIN_DQ)
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0].getMatrix()));
 #else
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0]));

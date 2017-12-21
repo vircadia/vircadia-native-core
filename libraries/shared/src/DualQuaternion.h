@@ -19,6 +19,7 @@
 
 class DualQuaternion {
 public:
+    DualQuaternion();
     explicit DualQuaternion(const glm::mat4& m);
     DualQuaternion(const glm::quat& real, const glm::quat& imag);
     DualQuaternion(const glm::quat& rotation, const glm::vec3& translation);
