@@ -15,7 +15,7 @@ var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/a
 
 var MIRROR_JOINT_DATA = true;
 var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
-var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
+var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000));
 var THROTTLE = false;
 var THROTTLE_RATE = 100;
 var doppelgangers = [];
@@ -24,8 +24,7 @@ function Doppelganger(avatar) {
     this.initialProperties = {
         name: 'Hifi-Doppelganger',
         type: 'Model',
-        modelURL: TEST_MODEL_URL,
-        // dimensions: getAvatarDimensions(avatar),
+        modelURL: MyAvatar.skeletonModelURL,
         position: putDoppelgangerAcrossFromAvatar(this, avatar),
         rotation: rotateDoppelgangerTowardAvatar(this, avatar),
         collisionsWillMove: false,
@@ -33,7 +32,7 @@ function Doppelganger(avatar) {
         script: FREEZE_TOGGLER_SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {
-                grabbable: false,
+                grabbable: true,
                 wantsTrigger: true
             }
         })
@@ -48,7 +47,7 @@ function getJointData(avatar) {
     var jointNames = MyAvatar.jointNames;
     jointNames.forEach(function(joint, index) {
         var translation = MyAvatar.getJointTranslation(index);
-        var rotation = MyAvatar.getJointRotation(index)
+        var rotation = MyAvatar.getJointRotation(index);
         allJointData.push({
             joint: joint,
             index: index,
@@ -65,9 +64,10 @@ function setJointData(doppelganger, relativeXforms) {
     var i, l = relativeXforms.length;
     for (i = 0; i < l; i++) {
         jointRotations.push(relativeXforms[i].rot);
+        //Entities.setAbsoluteJointRotationInObjectFrame(doppelganger.id, i, relativeXforms[i].rot);
     }
-    Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
 
+    Entities.setLocalJointRotations(doppelganger.id, jointRotations);
     return true;
 }
 
@@ -127,7 +127,7 @@ var JOINT_MIRROR_NAME_MAP = {
     LeftHandPinky2: "RightHandPinky2",
     LeftHandPinky3: "RightHandPinky3",
     LeftHandPinky4: "RightHandPinky4",
-    LeftHandPinky: "RightHandPinky",
+    LeftHandPinky: "RightHandPinky"
 };
 
 // maps joint names to parent joint names.
@@ -192,7 +192,7 @@ var JOINT_PARENT_NAME_MAP = {
     LeftHandPinky1: "LeftHand",
     LeftHandPinky2: "LeftHandPinky1",
     LeftHandPinky3: "LeftHandPinky2",
-    LeftHandPinky: "LeftHandPinky3",
+    LeftHandPinky: "LeftHandPinky3"
 };
 
 // maps joint indices to parent joint indices.
@@ -395,7 +395,7 @@ function connectDoppelgangerUpdates() {
 }
 
 function disconnectDoppelgangerUpdates() {
-    print('SHOULD DISCONNECT')
+    print('SHOULD DISCONNECT');
     if (isConnected === true) {
         Script.update.disconnect(updateDoppelganger);
     }
@@ -465,13 +465,13 @@ function handleFreezeMessages(channel, message, sender) {
     } catch (e) {
         print('error parsing wearable message');
     }
-    print('MESSAGE ACTION::' + parsedMessage.action)
+    print('MESSAGE ACTION::' + parsedMessage.action);
     if (parsedMessage.action === 'freeze') {
-        print('ACTUAL FREEZE')
+        print('ACTUAL FREEZE');
         disconnectDoppelgangerUpdates();
     }
     if (parsedMessage.action === 'unfreeze') {
-        print('ACTUAL UNFREEZE')
+        print('ACTUAL UNFREEZE');
 
         connectDoppelgangerUpdates();
     }
@@ -496,7 +496,7 @@ function handleWearableMessages(channel, message, sender) {
     } catch (e) {
         print('error parsing wearable message');
     }
-    print('parsed message!!!')
+    print('parsed message!!!');
 
     if (channel === 'Hifi-Doppelganger-Wearable') {
         mirrorEntitiesForDoppelganger(doppelgangers[0], parsedMessage);
@@ -511,13 +511,13 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
     var doppelgangerProps = Entities.getEntityProperties(doppelganger.id);
 
     var action = parsedMessage.action;
-    print('IN MIRROR ENTITIES CALL' + action)
+    print('IN MIRROR ENTITIES CALL' + action);
 
     var baseEntity = parsedMessage.baseEntity;
 
     var wearableProps = Entities.getEntityProperties(baseEntity);
 
-    print('WEARABLE PROPS::')
+    print('WEARABLE PROPS::');
     delete wearableProps.id;
     delete wearableProps.created;
     delete wearableProps.age;
@@ -613,7 +613,7 @@ function getBaseEntityForMirrorEntity(mirrorEntity) {
 
 makeDoppelgangerForMyAvatar();
 subscribeToWearableMessages();
-subscribeToWearableMessagesForAvatar();
+//subscribeToWearableMessagesForAvatar();
 subscribeToFreezeMessages();
 
 function cleanup() {
