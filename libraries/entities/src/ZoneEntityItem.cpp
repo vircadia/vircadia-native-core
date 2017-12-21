@@ -211,6 +211,9 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_HAZE_MODE;
     requestedProperties += _hazeProperties.getEntityProperties(params);
 
+    requestedProperties += PROP_KEY_LIGHT_MODE;
+    requestedProperties += PROP_AMBIENT_LIGHT_MODE;
+
     return requestedProperties;
 }
 

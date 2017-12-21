@@ -164,13 +164,20 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 
     if (_visible) {
-        // FInally, push the light visible in the frame
-        // THe directional key light for sure
-        _stage->_currentFrame.pushSunLight(_sunIndex);
+        // Finally, push the light visible in the frame
+        if (_keyLightMode == COMPONENT_MODE_ENABLED) {
+            _stage->_currentFrame.pushSunLight(_sunIndex);
+        } else if (_keyLightMode == COMPONENT_MODE_DISABLED) {
+            // DEAL WITH OFF LIGHT
+        }
 
         // The ambient light only if it has a valid texture to render with
         if (_validAmbientTexture || _validSkyboxTexture) {
-            _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+            if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
+                _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+            } else if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
+                // DEAL WITH OFF LIGHT
+            }
         }
 
         // The background only if the mode is not inherit
@@ -481,6 +488,14 @@ void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
 
 void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
     _hazeMode = mode;
+}
+
+void ZoneEntityRenderer::setKeyLightMode(ComponentMode mode) {
+    _keyLightMode = mode;
+}
+
+void ZoneEntityRenderer::setAmbientLightMode(ComponentMode mode) {
+    _ambientLightMode = mode;
 }
 
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {

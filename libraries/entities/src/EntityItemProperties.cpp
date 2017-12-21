@@ -388,6 +388,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+    CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
+    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -622,6 +624,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
     }
 
     // Web only
@@ -808,8 +813,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
-
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(keyLightMode, KeyLightMode);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -966,8 +972,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
     COPY_PROPERTY_IF_CHANGED(backgroundMode);
-
     COPY_PROPERTY_IF_CHANGED(hazeMode);
+    COPY_PROPERTY_IF_CHANGED(keyLightMode);
+    COPY_PROPERTY_IF_CHANGED(ambientLightMode);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -1241,6 +1248,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 
+        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
+
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
         // FIXME - these are not yet handled
@@ -1485,6 +1495,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 _staticHaze.setProperties(properties);
                 _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+
+                APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
+                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1835,6 +1849,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
  
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
    }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -2413,6 +2430,14 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     if (hazeModeChanged()) {
         out += "hazeMode";
+    }
+
+    if (keyLightModeChanged()) {
+        out += "keyLightMode";
+    }
+
+    if (ambientLightModeChanged()) {
+        out += "ambientLightMode";
     }
 
     if (voxelVolumeSizeChanged()) {
