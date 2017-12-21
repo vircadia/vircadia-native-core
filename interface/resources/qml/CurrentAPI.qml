@@ -127,7 +127,6 @@ Item {
         HifiControls.Button {
             id: addMember;
             enabled: true;
-            fontSize: 30
             text: "+"
             width: 50
             height: 50
