@@ -107,7 +107,6 @@ public:
     void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
 
     gpu::BufferPointer _clusterBuffer;
-    ModelWeakPointer _model;
 
     int _meshIndex;
     int _shapeID;
@@ -119,6 +118,7 @@ public:
 private:
     void initCache(const ModelPointer& model);
 
+    gpu::BufferPointer _blendedVertexBuffer;
     render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
     int _layer { render::Item::LAYER_3D };

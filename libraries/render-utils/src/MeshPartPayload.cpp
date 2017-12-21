@@ -325,7 +325,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
-    _model = model;
+    _blendedVertexBuffer = model->_blendedVertexBuffers[_meshIndex];
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -493,10 +493,9 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
         batch.setInputFormat((_drawMesh->getVertexFormat()));
 
-        ModelPointer model = _model.lock();
-        if (model) {
-            batch.setInputBuffer(0, model->_blendedVertexBuffers[_meshIndex], 0, sizeof(glm::vec3));
-            batch.setInputBuffer(1, model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
+        if (_blendedVertexBuffer) {
+            batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
+            batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
             batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
         } else {
             batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
@@ -521,11 +520,6 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
-
-    ModelPointer model = _model.lock();
-    if (!model || !model->isAddedToScene() || !model->isVisible()) {
-        return; // bail asap
-    }
 
     if (!args) {
         return;

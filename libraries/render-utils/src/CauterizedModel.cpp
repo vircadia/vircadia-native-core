@@ -182,6 +182,7 @@ void CauterizedModel::updateRenderItems() {
             bool isVisible = self->isVisible();
             bool isLayeredInFront = self->isLayeredInFront();
             bool isLayeredInHUD = self->isLayeredInHUD();
+            bool enableCauterization = self->getEnableCauterization();
 
             render::Transaction transaction;
             for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
@@ -194,7 +195,7 @@ void CauterizedModel::updateRenderItems() {
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
                 transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized, invalidatePayloadShapeKey,
-                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](CauterizedMeshPartPayload& data) {
+                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, enableCauterization](CauterizedMeshPartPayload& data) {
                     data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
 
                     Transform renderTransform = modelTransform;
@@ -209,6 +210,7 @@ void CauterizedModel::updateRenderItems() {
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
 
+                    data.setEnableCauterization(enableCauterization);
                     data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
                     data.setLayer(isLayeredInFront, isLayeredInHUD);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
