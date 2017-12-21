@@ -217,8 +217,6 @@ gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, co
         if (!result) {
             _texturesByHashes[hash] = texture;
             result = texture;
-        } else {
-            qCWarning(modelnetworking) << "QQQ Swapping out texture with previous live texture in hash " << hash.c_str();
         }
     }
     return result;
