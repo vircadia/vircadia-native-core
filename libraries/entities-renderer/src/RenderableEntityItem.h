@@ -17,13 +17,14 @@
 #include <Sound.h>
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
+#include <graphics-scripting/ScriptableModel.h>
 
 class EntityTreeRenderer;
 
 namespace render { namespace entities {
 
 // Base class for all renderable entities
-class EntityRenderer : public QObject, public std::enable_shared_from_this<EntityRenderer>, public PayloadProxyInterface, protected ReadWriteLockable {
+class EntityRenderer : public QObject, public std::enable_shared_from_this<EntityRenderer>, public PayloadProxyInterface, protected ReadWriteLockable, public scriptable::ModelProvider {
     Q_OBJECT
 
     using Pointer = std::shared_ptr<EntityRenderer>;
@@ -37,7 +38,7 @@ public:
     virtual bool wantsKeyboardFocus() const { return false; }
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
-    const EntityItemPointer& getEntity() { return _entity; }
+    const EntityItemPointer& getEntity() const { return _entity; }
     const ItemID& getRenderItemID() const { return _renderItemID; }
 
     const SharedSoundPointer& getCollisionSound() { return _collisionSound; }
@@ -54,6 +55,7 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);

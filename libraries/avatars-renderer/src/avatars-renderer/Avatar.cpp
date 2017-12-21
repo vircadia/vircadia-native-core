@@ -35,6 +35,8 @@
 #include "ModelEntityItem.h"
 #include "RenderableModelEntityItem.h"
 
+#include <graphics-scripting/ScriptableModel.h>
+
 #include "Logging.h"
 
 using namespace std;
@@ -1759,4 +1761,30 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+scriptable::ScriptableModel Avatar::getScriptableModel(bool* ok) {
+    qDebug() << "Avatar::getScriptableModel" ;
+    if (!_skeletonModel || !_skeletonModel->isLoaded()) {
+        return scriptable::ModelProvider::modelUnavailableError(ok);
+    }
+    scriptable::ScriptableModel result;
+    result.metadata = {
+        { "avatarID", getSessionUUID().toString() },
+        { "url", _skeletonModelURL.toString() },
+        { "origin", "Avatar/avatar::" + _displayName },
+        { "textures", _skeletonModel->getTextures() },
+    };
+    result.mixin(_skeletonModel->getScriptableModel(ok));
+
+    // FIXME: for now access to attachment models are merged with the main avatar model
+    for (auto& attachmentModel : _attachmentModels) {
+        if (attachmentModel->isLoaded()) {
+            result.mixin(attachmentModel->getScriptableModel(ok));
+        }
+    }
+    if (ok) {
+        *ok = true;
+    }
+    return result;
 }

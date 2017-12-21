@@ -166,6 +166,7 @@
 #include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
+#include "graphics-scripting/ModelScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -198,7 +199,6 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
-#include <ModelScriptingInterface.h>
 
 #include <PickManager.h>
 #include <PointerManager.h>
@@ -593,6 +593,66 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
+
+class ApplicationMeshProvider : public scriptable::ModelProviderFactory  {
+public:
+    virtual scriptable::ModelProviderPointer lookupModelProvider(QUuid uuid) {
+        QString error;
+
+        scriptable::ModelProviderPointer provider;
+        if (auto entityInterface = getEntityModelProvider(static_cast<EntityItemID>(uuid))) {
+            provider = entityInterface;
+        } else if (auto overlayInterface = getOverlayModelProvider(static_cast<OverlayID>(uuid))) {
+            provider = overlayInterface;
+        } else if (auto avatarInterface = getAvatarModelProvider(uuid)) {
+            provider = avatarInterface;
+        }
+
+        return provider;
+    }
+
+    scriptable::ModelProviderPointer getEntityModelProvider(EntityItemID entityID) {
+        scriptable::ModelProviderPointer provider;
+        auto entityTreeRenderer = qApp->getEntities();
+        auto entityTree = entityTreeRenderer->getTree();
+        if (auto entity = entityTree->findEntityByID(entityID)) {
+            if (auto renderer = entityTreeRenderer->renderableForEntityId(entityID)) {
+                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(renderer);
+                provider->metadata["providerType"] = "entity";
+            } else {
+                qCWarning(interfaceapp) << "no renderer for entity ID" << entityID.toString();
+            }
+        }
+        return provider;
+    }
+
+    scriptable::ModelProviderPointer getOverlayModelProvider(OverlayID overlayID) {
+        scriptable::ModelProviderPointer provider;
+        auto &overlays = qApp->getOverlays();
+        if (auto overlay = overlays.getOverlay(overlayID)) {
+            if (auto base3d = std::dynamic_pointer_cast<Base3DOverlay>(overlay)) {
+                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(base3d);
+                provider->metadata["providerType"] = "overlay";
+            } else {
+                qCWarning(interfaceapp) << "no renderer for overlay ID" << overlayID.toString();
+            }
+        }
+        return provider;
+    }
+
+    scriptable::ModelProviderPointer getAvatarModelProvider(QUuid sessionUUID) {
+        scriptable::ModelProviderPointer provider;
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        if (auto avatar = avatarManager->getAvatarBySessionID(sessionUUID)) {
+            if (avatar->getSessionUUID() == sessionUUID) {
+                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(avatar);
+                provider->metadata["providerType"] = "avatar";
+            }
+        }
+        return provider;
+    }
+};
+
 static const QString STATE_IN_HMD = "InHMD";
 static const QString STATE_CAMERA_FULL_SCREEN_MIRROR = "CameraFSM";
 static const QString STATE_CAMERA_FIRST_PERSON = "CameraFirstPerson";
@@ -737,6 +797,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
+    DependencyManager::set<ModelScriptingInterface>();
+    DependencyManager::registerInheritance<scriptable::ModelProviderFactory, ApplicationMeshProvider>();
+    DependencyManager::set<ApplicationMeshProvider>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
@@ -5914,6 +5977,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
+
+    ModelScriptingInterface::registerMetaTypes(scriptEngine.data());
+    scriptEngine->registerGlobalObject("Model", DependencyManager::get<ModelScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());

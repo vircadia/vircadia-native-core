@@ -179,3 +179,18 @@ Transform Shape3DOverlay::evalRenderTransform() {
     transform.setRotation(rotation);
     return transform;
 }
+
+scriptable::ScriptableModel Shape3DOverlay::getScriptableModel(bool* ok) {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto vertexColor = ColorUtils::toVec3(_color);
+    scriptable::ScriptableModel result;
+    result.metadata = {
+        { "origin", "Shape3DOverlay::"+shapeStrings[_shape] },
+        { "overlayID", getID() },
+    };
+    result.meshes << geometryCache->meshFromShape(_shape, vertexColor);
+    if (ok) {
+        *ok = true;
+    }
+    return result;
+}

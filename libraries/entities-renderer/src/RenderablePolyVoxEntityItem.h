@@ -32,7 +32,7 @@ namespace render { namespace entities {
 class PolyVoxEntityRenderer;
 } } 
 
-class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem, public scriptable::ModelProvider {
     friend class render::entities::PolyVoxEntityRenderer;
 
 public:
@@ -113,7 +113,7 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    bool getMeshes(MeshProxyList& result) override;
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
 
 private:
     bool updateOnCount(const ivec3& v, uint8_t toValue);
@@ -163,6 +163,9 @@ class PolyVoxEntityRenderer : public TypedEntityRenderer<RenderablePolyVoxEntity
 
 public:
     PolyVoxEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override {
+        return asTypedEntity<RenderablePolyVoxEntityItem>()->getScriptableModel(ok);
+    }
     
 protected:
     virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape(); }

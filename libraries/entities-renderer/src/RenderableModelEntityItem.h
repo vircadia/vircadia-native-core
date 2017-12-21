@@ -111,7 +111,6 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override;
     const void* getCollisionMeshKey() const { return _collisionMeshKey; }
 
 signals:
@@ -141,6 +140,7 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;

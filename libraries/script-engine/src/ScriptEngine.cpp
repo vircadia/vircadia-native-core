@@ -73,8 +73,6 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
-#include "ModelScriptingInterface.h"
-
 
 #include <Profile.h>
 
@@ -710,10 +708,6 @@ void ScriptEngine::init() {
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
     registerGlobalObject("DebugDraw", &DebugDraw::getInstance());
-
-    registerGlobalObject("Model", new ModelScriptingInterface(this));
-    qScriptRegisterMetaType(this, meshToScriptValue, meshFromScriptValue);
-    qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
 
     registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 }

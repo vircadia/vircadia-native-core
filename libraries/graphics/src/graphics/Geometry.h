@@ -56,6 +56,7 @@ public:
     // Attribute Buffers
     size_t getNumAttributes() const { return _attributeBuffers.size(); }
     void addAttribute(Slot slot, const BufferView& buffer);
+    void removeAttribute(Slot slot);
     const BufferView getAttributeBuffer(int attrib) const;
 
     // Stream format

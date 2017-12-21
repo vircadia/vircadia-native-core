@@ -1967,19 +1967,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-    {
-        int i = 0;
-        for (const auto& mesh : geometry.meshes) {
-            auto name = geometry.getModelNameOfMesh(i++);
-            if (!name.isEmpty()) {
-                if (mesh._mesh) {
-                    mesh._mesh->displayName += "#" + name;
-                } else {
-                    qDebug() << "modelName but no mesh._mesh" << name;
-                }
-            }
-        }
-    }
+
     return geometryPtr;
 }
 
@@ -1995,7 +1983,7 @@ FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
-    qCDebug(modelformat) << "Reading FBX: " << url;
+    qDebug() << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

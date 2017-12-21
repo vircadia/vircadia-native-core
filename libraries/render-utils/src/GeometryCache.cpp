@@ -2407,3 +2407,48 @@ void GeometryCache::renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, 
     assert(pipeline != nullptr);
     renderInstances(args, batch, color, true, pipeline, GeometryCache::Cube);
 }
+
+graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec3 color) {
+    auto shapeData = getShapeData(geometryShape);
+
+    qDebug() << "GeometryCache::getMeshProxyListFromShape" << shapeData << stringFromShape(geometryShape);
+
+    auto cloneBufferView = [](const gpu::BufferView& in) -> gpu::BufferView {
+        auto buffer = std::make_shared<gpu::Buffer>(*in._buffer); // copy
+        // FIXME: gpu::BufferView seems to have a bug where constructing a new instance from an existing one
+        //   results in over-multiplied buffer/view sizes -- hence constructing manually here from each input prop
+        auto out = gpu::BufferView(buffer, in._offset, in._size, in._stride, in._element);
+        Q_ASSERT(out.getNumElements() == in.getNumElements());
+        Q_ASSERT(out._size == in._size);
+        Q_ASSERT(out._buffer->getSize() == in._buffer->getSize());
+        return out;
+    };
+    
+    auto positionsBufferView = cloneBufferView(shapeData->_positionView);
+    auto normalsBufferView = cloneBufferView(shapeData->_normalView);
+    auto indexBufferView = cloneBufferView(shapeData->_indicesView);
+
+    gpu::BufferView::Size numVertices = positionsBufferView.getNumElements();
+    Q_ASSERT(numVertices == normalsBufferView.getNumElements());
+
+    // apply input color across all vertices
+    auto colorsBufferView = cloneBufferView(shapeData->_normalView);
+    for (gpu::BufferView::Size i = 0; i < numVertices; i++) {
+        colorsBufferView.edit<glm::vec3>((gpu::BufferView::Index)i) = color;
+    }
+
+    graphics::MeshPointer mesh(new graphics::Mesh());
+    mesh->setVertexBuffer(positionsBufferView);
+    mesh->setIndexBuffer(indexBufferView);
+    mesh->addAttribute(gpu::Stream::NORMAL, normalsBufferView);
+    mesh->addAttribute(gpu::Stream::COLOR, colorsBufferView);
+
+    const auto startIndex = 0, baseVertex = 0;
+    graphics::Mesh::Part part(startIndex, (graphics::Index)indexBufferView.getNumElements(), baseVertex, graphics::Mesh::TRIANGLES);
+    auto partBuffer = new gpu::Buffer(sizeof(graphics::Mesh::Part), (gpu::Byte*)&part);
+    mesh->setPartBuffer(gpu::BufferView(partBuffer, gpu::Element::PART_DRAWCALL));
+
+    mesh->displayName = QString("GeometryCache/shape::%1").arg(GeometryCache::stringFromShape(geometryShape));
+
+    return mesh;
+}

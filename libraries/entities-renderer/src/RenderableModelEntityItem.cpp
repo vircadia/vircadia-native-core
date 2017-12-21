@@ -950,13 +950,18 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
-    auto model = getModel();
+
+scriptable::ScriptableModel render::entities::ModelEntityRenderer::getScriptableModel(bool* ok) {
+    ModelPointer model;
+    withReadLock([&] {
+        model = _model;
+    });
+
     if (!model || !model->isLoaded()) {
-        return false;
+        return scriptable::ModelProvider::modelUnavailableError(ok);
     }
-    BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
-    return !result.isEmpty();
+
+    return _model->getScriptableModel(ok);
 }
 
 void RenderableModelEntityItem::simulateRelayedJoints() {

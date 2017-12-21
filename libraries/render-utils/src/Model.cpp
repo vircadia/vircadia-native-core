@@ -26,7 +26,7 @@
 #include <GLMHelpers.h>
 #include <TBBHelpers.h>
 
-#include <model-networking/SimpleMeshProxy.h>
+#include <graphics-scripting/ScriptableModel.h>
 #include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
@@ -573,15 +573,21 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-MeshProxyList Model::getMeshes() const {
-    MeshProxyList result;
+scriptable::ScriptableModel Model::getScriptableModel(bool* ok) {
+    scriptable::ScriptableModel result;
     const Geometry::Pointer& renderGeometry = getGeometry();
-    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
 
     if (!isLoaded()) {
+        qDebug() << "Model::getScriptableModel -- !isLoaded";
+        if (ok) {
+            *ok = false;
+        }
         return result;
     }
 
+// TODO: remove -- this was an earlier approach using renderGeometry instead of FBXGeometry
+#if 0 // renderGeometry approach
+    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
     Transform offset;
     offset.setScale(_scale);
     offset.postTranslate(_offset);
@@ -591,20 +597,67 @@ MeshProxyList Model::getMeshes() const {
         if (!mesh) {
             continue;
         }
-
-        MeshProxy* meshProxy = new SimpleMeshProxy(
-            mesh->map(
-                [=](glm::vec3 position) {
-                    return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
-                },
-                [=](glm::vec3 color) { return color; },
-                [=](glm::vec3 normal) {
-                    return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
-                },
-                [&](uint32_t index) { return index; }));
-        result << meshProxy;
+        qDebug() << "Model::getScriptableModel #" << i++ << mesh->displayName;
+        auto newmesh = mesh->map(
+            [=](glm::vec3 position) {
+                return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
+            },
+            [=](glm::vec3 color) { return color; },
+            [=](glm::vec3 normal) {
+                return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
+            },
+            [&](uint32_t index) { return index; });
+        newmesh->displayName = mesh->displayName;
+        result << newmesh;
     }
-
+#endif
+    const FBXGeometry& geometry = getFBXGeometry();
+    auto mat4toVariant = [](const glm::mat4& mat4) -> QVariant {
+        QVector<float> floats;
+        floats.resize(16);
+        memcpy(floats.data(), &mat4, sizeof(glm::mat4));
+        QVariant v;
+        v.setValue<QVector<float>>(floats);
+        return v;
+    };
+    result.metadata = {
+        { "url", _url.toString() },
+        { "textures", renderGeometry->getTextures() },
+        { "offset", vec3toVariant(_offset) },
+        { "scale", vec3toVariant(_scale) },
+        { "rotation", quatToVariant(_rotation) },
+        { "translation", vec3toVariant(_translation) },
+        { "meshToModel", mat4toVariant(glm::scale(_scale) * glm::translate(_offset)) },
+        { "meshToWorld", mat4toVariant(createMatFromQuatAndPos(_rotation, _translation) * (glm::scale(_scale) * glm::translate(_offset))) },
+        { "geometryOffset", mat4toVariant(geometry.offset) },
+    };
+    QVariantList submeshes;
+    int numberOfMeshes = geometry.meshes.size();
+    for (int i = 0; i < numberOfMeshes; i++) {
+        const FBXMesh& fbxMesh = geometry.meshes.at(i);
+        auto mesh = fbxMesh._mesh;
+        if (!mesh) {
+            continue;
+        }
+        result.meshes << std::const_pointer_cast<graphics::Mesh>(mesh);
+        auto extraInfo = geometry.getModelNameOfMesh(i);
+        qDebug() << "Model::getScriptableModel #" << i << QString(mesh->displayName) << extraInfo;
+        submeshes << QVariantMap{
+            { "index", i },
+            { "meshIndex", fbxMesh.meshIndex },
+            { "modelName", extraInfo },
+            { "transform", mat4toVariant(fbxMesh.modelTransform) },
+            { "extents", QVariantMap({
+                { "minimum", vec3toVariant(fbxMesh.meshExtents.minimum) },
+                { "maximum", vec3toVariant(fbxMesh.meshExtents.maximum) },
+            })},
+        };
+    }
+    if (ok) {
+        *ok = true;
+    }
+    qDebug() << "//Model::getScriptableModel -- #" << result.meshes.size();
+    result.metadata["submeshes"] = submeshes;
     return result;
 }
 

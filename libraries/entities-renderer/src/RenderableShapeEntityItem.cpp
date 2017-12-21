@@ -156,3 +156,24 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     const auto triCount = geometryCache->getShapeTriangleCount(geometryShape);
     args->_details._trianglesRendered += (int)triCount;
 }
+
+scriptable::ScriptableModel ShapeEntityRenderer::getScriptableModel(bool* ok)  {
+    scriptable::ScriptableModel result;
+    result.metadata = {
+        { "entityID", getEntity()->getID().toString() },
+        { "shape", entity::stringFromShape(_shape) },
+        { "userData", getEntity()->getUserData() },
+    };
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    auto geometryShape = geometryCache->getShapeForEntityShape(_shape);
+    auto vertexColor = glm::vec3(_color);
+    auto success = false;
+    if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
+        result.meshes << mesh;
+        success = true;
+    }
+    if (ok) {
+        *ok = success;
+    }
+    return result;
+}

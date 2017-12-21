@@ -20,6 +20,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
+#include <graphics-scripting/ScriptableModel.h>
 #include <GLMHelpers.h>
 
 
@@ -53,7 +54,7 @@ class Texture;
 
 using AvatarPhysicsCallback = std::function<void(uint32_t)>;
 
-class Avatar : public AvatarData {
+class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
     /**jsdoc
@@ -272,6 +273,8 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

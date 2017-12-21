@@ -59,6 +59,7 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
 
+    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
 protected:
     Transform evalRenderTransform() override;
 

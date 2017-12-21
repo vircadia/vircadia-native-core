@@ -7,6 +7,7 @@ link_hifi_libraries(shared ktx gpu graphics model-networking render animation fb
 include_hifi_library_headers(networking)
 include_hifi_library_headers(octree)
 include_hifi_library_headers(audio)
+include_hifi_library_headers(graphics-scripting) # for ScriptableModel.h
 
 if (NOT ANDROID)
   target_nsight()
