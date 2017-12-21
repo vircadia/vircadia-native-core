@@ -33,6 +33,7 @@ Rectangle {
     property string itemName;
     property string itemId;
     property string itemHref;
+    property string itemAuthor;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
     property int itemPrice: -1;
@@ -81,12 +82,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
-                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
                 root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
-                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -879,6 +880,7 @@ Rectangle {
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
                 referrer = message.params.referrer;
+                itemAuthor = message.params.itemAuthor;
                 setBuyText();
             break;
             default:
