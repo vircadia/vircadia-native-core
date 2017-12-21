@@ -266,7 +266,7 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-static const QString INSPECTION_CERTIFICATE_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 void ContextOverlayInterface::openInspectionCertificate() {
     // lets open the tablet to the inspection certificate QML
     if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {

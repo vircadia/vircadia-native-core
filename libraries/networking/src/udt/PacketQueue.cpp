@@ -15,7 +15,7 @@
 
 using namespace udt;
 
-PacketQueue::PacketQueue() {
+PacketQueue::PacketQueue(MessageNumber messageNumber) : _currentMessageNumber(messageNumber) {
     _channels.emplace_back(new std::list<PacketPointer>());
 }
 

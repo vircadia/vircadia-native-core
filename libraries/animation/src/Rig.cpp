@@ -1641,9 +1641,17 @@ void Rig::initAnimGraph(const QUrl& url) {
         // load the anim graph
         _animLoader.reset(new AnimNodeLoader(url));
         _animLoading = true;
-        connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+        std::weak_ptr<AnimSkeleton> weakSkeletonPtr = _animSkeleton;
+        connect(_animLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr](AnimNode::Pointer nodeIn) {
             _animNode = nodeIn;
-            _animNode->setSkeleton(_animSkeleton);
+
+            // abort load if the previous skeleton was deleted.
+            auto sharedSkeletonPtr = weakSkeletonPtr.lock();
+            if (!sharedSkeletonPtr) {
+                return;
+            }
+
+            _animNode->setSkeleton(sharedSkeletonPtr);
 
             if (_userAnimState.clipNodeEnum != UserAnimState::None) {
                 // restore the user animation we had before reset.
@@ -1651,6 +1659,7 @@ void Rig::initAnimGraph(const QUrl& url) {
                 _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
                 overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
             }
+
             // restore the role animations we had before reset.
             for (auto& roleAnimState : _roleAnimStates) {
                 auto roleState = roleAnimState.second;
