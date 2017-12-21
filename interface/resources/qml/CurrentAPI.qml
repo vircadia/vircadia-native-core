@@ -18,10 +18,7 @@ Item {
     width: parent.width
     height: parent.height   
 
-
-    property bool keyboardEnabled: false
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
+    property var hideQtMethods: true
     
     property var maxUpdateValues: 20
     property var maxReloadValues: 200
@@ -31,7 +28,7 @@ Item {
     property var evaluatingIdx: -1
     property Component scrollSlider
     property Component keyboard
-
+    
     Rectangle {
         color: "white"
         width: parent.width
@@ -375,9 +372,6 @@ Item {
                 }
             }
         }
-
-
-
     }
     
     HifiControls.GlyphButton {
@@ -417,6 +411,30 @@ Item {
         } 
     }
 
+    HifiControls.CheckBox {
+        id: hideQt
+        boxSize: 25
+        boxRadius: 3
+        checked: true
+        anchors.left: clipboard.right
+        anchors.leftMargin: 8
+        anchors.verticalCenter: clipboard.verticalCenter
+        anchors.margins: 2
+        onClicked: {
+            hideQtMethods = checked;
+            addListElements();
+        }
+    }
+
+    HifiControls.Label {
+        id: hideLabel
+        anchors.left: hideQt.right
+        anchors.verticalCenter: clipboard.verticalCenter
+        anchors.margins: 2
+        font.pixelSize: 15
+        text: "Hide Qt Methods"
+    }
+
     HifiControls.Keyboard {
         id: keyboard;
         raised: false;
@@ -425,7 +443,7 @@ Item {
             left: parent.left;
             right: parent.right;
         }
-                    // "\ue02b"
+
         Keys.onPressed: {
             console.log(event.nativeScanCode);
             if (event.key == Qt.Key_Left) {
@@ -433,8 +451,6 @@ Item {
             }
         }
     }
-    
-
 
     function addNewMember() {
         apiMembers.push({member: searchBar.text, type: "user", value: valueBar.text, hasValue: true});
@@ -595,7 +611,17 @@ Item {
                         'apiType': filteredArray[i].type, 
                         'apiValue': filteredArray[i].value};
 
-            memberModel.append(data);
+            if (hideQtMethods) {
+                var chain = data.apiMember.split("."); 
+                var method = chain[chain.length-1];
+                if (method != "destroyed" &&
+                    method != "objectName" &&
+                    method != "objectNameChanged") {
+                    memberModel.append(data);
+                } 
+            } else {
+                memberModel.append(data);
+            }
         }
 
         computeMembersWithValues();
