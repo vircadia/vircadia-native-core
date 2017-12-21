@@ -17,7 +17,8 @@
 const int ELEMENT_MARGIN = 7;
 const int ELEMENT_HEIGHT = 32;
 const int CHECKBOX_MARGIN = 12;
-const int CHECKBOX_WIDTH = 140;
+const int CHECKBOX_WIDTH = 110;
+const int COMBOBOX_WIDTH = 160;
 const int BUTTON_MARGIN = 8;
 
 class QPushButton;

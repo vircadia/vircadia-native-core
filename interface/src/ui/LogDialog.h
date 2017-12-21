@@ -16,6 +16,7 @@
 
 class QCheckBox;
 class QPushButton;
+class QComboBox;
 class QResizeEvent;
 class AbstractLoggerInterface;
 
@@ -25,17 +26,21 @@ class LogDialog : public BaseLogDialog {
 public:
     LogDialog(QWidget* parent, AbstractLoggerInterface* logger);
 
-private slots:
+    private slots:
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(int);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
     QString getCurrentLog() override;
-    
+
 private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
+    QCheckBox* _debugPrintBox;
+    QCheckBox* _infoPrintBox;
+    QCheckBox* _criticalPrintBox;
+    QComboBox* _filterDropdown;
 
     AbstractLoggerInterface* _logger;
 };

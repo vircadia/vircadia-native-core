@@ -20,7 +20,7 @@
 
 #include <PathUtils.h>
 
-const int TOP_BAR_HEIGHT = 46;
+const int TOP_BAR_HEIGHT = 85;
 const int INITIAL_WIDTH = 720;
 const int INITIAL_HEIGHT = 480;
 const int MINIMAL_WIDTH = 700;
