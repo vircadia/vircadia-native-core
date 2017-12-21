@@ -2557,11 +2557,15 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
                 ec);
             long error = ERR_get_error();
             if (error != 0 || answer == -1) {
-                const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+                qCWarning(entities) << "ERROR while verifying signature!"
                     << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+                while (error != 0) {
+                    const char* error_str = ERR_error_string(error, NULL);
+                    qCWarning(entities) << "EC error:" << error_str;
+                    error = ERR_get_error();
+                }
             }
             EC_KEY_free(ec);
             if (bio) {
