@@ -5932,7 +5932,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
+#ifndef ANDROID
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+#endif
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
@@ -5983,6 +5985,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("App", this);
+    scriptEngine->registerFunction("App", "isAndroid", Application::isAndroid, 0);
 
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
@@ -7565,6 +7570,18 @@ void Application::updateThreadPoolCount() const {
     qCDebug(interfaceapp) << "Reserved threads " << reservedThreads;
     qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
+}
+
+QScriptValue Application::isAndroid(QScriptContext* context, QScriptEngine* engine) {
+    return QScriptValue(engine, isAndroid());
+}
+
+bool Application::isAndroid() {
+#ifdef Q_OS_ANDROID
+    return true;
+#else
+    return false;
+#endif
 }
 
 void Application::updateSystemTabletMode() {

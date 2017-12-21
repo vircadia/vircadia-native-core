@@ -32,6 +32,8 @@ QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+    static const QString staticResourcePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
 #else
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -72,7 +74,11 @@ QString PathUtils::getAppLocalDataPath() {
     }
 
     // otherwise return standard path
+#ifndef Q_OS_ANDROID
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
+#else
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/";
+#endif
 }
 
 QString PathUtils::getAppDataFilePath(const QString& filename) {
