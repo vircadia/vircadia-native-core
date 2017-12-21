@@ -54,6 +54,9 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
+            passphraseField.error = false;
+            passphraseFieldAgain.error = false;
+            currentPassphraseField.error = false;
             if (root.shouldImmediatelyFocus) {
                 focusFirstTextField();
             }

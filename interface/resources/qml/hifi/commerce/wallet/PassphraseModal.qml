@@ -50,9 +50,11 @@ Item {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
+                passphraseField.error = true;
                 UserActivityLogger.commercePassphraseAuthenticationStatus("auth failure");
             } else {
                 sendSignalToParent({method: 'authSuccess'});
+                passphraseField.error = false;
                 UserActivityLogger.commercePassphraseAuthenticationStatus("auth success");
             }
         }
@@ -72,6 +74,7 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
+            passphraseField.error = false;
             passphraseField.focus = true;
             sendSignalToParent({method: 'disableHmdPreview'});
         } else {
