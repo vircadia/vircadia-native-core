@@ -1190,13 +1190,14 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
     }
 
     QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----\n"; 
-    QByteArray hashedActualNonce = QCryptographicHash::hash(QByteArray::fromBase64(actualNonce.toUtf8()), QCryptographicHash::Sha256);
+    QByteArray hashedActualNonce = QCryptographicHash::hash(QByteArray(actualNonce.toUtf8()), QCryptographicHash::Sha256);
     bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), hashedActualNonce, QByteArray::fromBase64(nonce.toUtf8()));
 
     if (verificationSuccess) {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed.\nHashed actual nonce (digest):" << hashedActualNonce << "\nSent nonce (signature)" << nonce << "\nKey" << key;
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed. Actual nonce:" << actualNonce <<
+            "\nHashed actual nonce (digest):" << hashedActualNonce << "\nSent nonce (signature)" << nonce << "\nKey" << key;
     }
 
     return verificationSuccess;
