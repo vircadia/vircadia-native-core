@@ -92,8 +92,32 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
     endResetModel();
 }
 
+TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
+    : QSortFilterProxyModel(parent){
+}
+
+int TabletButtonsProxyModel::currentPage() const {
+    return _currentPage;
+}
+
+void TabletButtonsProxyModel::setCurrentPage(int currentPage) {
+    _currentPage = currentPage;
+    invalidateFilter();
+}
+
+bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
+        const QModelIndex &sourceParent) const {
+    return (sourceRow >= _currentPage*12 && sourceRow < _currentPage*12);
+}
+
+bool TabletButtonsProxyModel::lessThan(const QModelIndex &left,
+                                      const QModelIndex &right) const {
+    return true;
+}
+
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
+    qmlRegisterType<TabletButtonsProxyModel>("TabletScriptingInterface", 1, 0, "TabletButtonsProxyModel");
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
@@ -276,6 +300,7 @@ TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent)
         qCWarning(uiLogging) << "Creating tablet proxy on wrong thread " << _name;
     }
     connect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
+    _buttonsProxy.setSourceModel(&_buttons);
 }
 
 TabletProxy::~TabletProxy() {

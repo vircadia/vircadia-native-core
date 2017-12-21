@@ -16,6 +16,7 @@
 #include <QtCore/QUuid>
 #include <QtCore/QVariant>
 #include <QtCore/QAbstractListModel>
+#include <QSortFilterProxyModel>
 
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptEngine>
@@ -118,6 +119,26 @@ protected:
 
 Q_DECLARE_METATYPE(TabletButtonListModel*);
 
+class TabletButtonsProxyModel : public QSortFilterProxyModel
+{
+    Q_OBJECT
+
+public:
+    TabletButtonsProxyModel(QObject *parent = 0);
+
+    int currentPage() const;
+    Q_INVOKABLE void setCurrentPage(int currentPage);
+
+protected:
+    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+
+private:
+    int _currentPage;
+};
+
+Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
+
 /**jsdoc
  * @class TabletProxy
  * @property name {string} READ_ONLY: name of this tablet
@@ -131,6 +152,7 @@ class TabletProxy : public QObject {
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
     Q_PROPERTY(TabletButtonListModel* buttons READ getButtons CONSTANT)
+    Q_PROPERTY(TabletButtonsProxyModel* buttonsOnPage READ getButtonsOnPage CONSTANT)
 public:
     TabletProxy(QObject* parent, const QString& name);
     ~TabletProxy();
@@ -234,6 +256,8 @@ public:
     QQuickItem* getQmlMenu() const;
 
     TabletButtonListModel* getButtons() { return &_buttons; }
+    TabletButtonsProxyModel* getButtonsOnPage() { return &_buttonsProxy; }
+
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet
@@ -293,6 +317,7 @@ protected:
     bool _showRunningScripts { false };
 
     TabletButtonListModel _buttons;
+    TabletButtonsProxyModel _buttonsProxy;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);
