@@ -1255,7 +1255,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _currentTextures = newTextures;
         }
     }
-    if(entity->_needsJointSimulation) {
+    if (entity->_needsJointSimulation) {
         entity->copyAnimationJointDataToModel();
     }
     entity->updateModelBounds();
