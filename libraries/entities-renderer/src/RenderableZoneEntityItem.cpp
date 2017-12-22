@@ -181,7 +181,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
         // The ambient light only if it has a valid texture to render with
         if (_validAmbientTexture || _validSkyboxTexture) {
-            if (_ambientLightMode != BACKGROUND_MODE_INHERIT) {
+            if (_ambientLightMode != COMPONENT_MODE_INHERIT) {
                 _stage->_currentFrame.pushAmbientLight(_ambientIndex);
             }
         }
