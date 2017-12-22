@@ -191,6 +191,8 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 
     pendingMessage.enqueuePacket(std::move(packet));
 
+    bool processedLastOrOnly = false;
+
     while (pendingMessage.hasAvailablePackets()) {
         auto packet = pendingMessage.removeNextPacket();
 
@@ -201,8 +203,12 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
         // if this was the last or only packet, then we can remove the pending message from our hash
         if (packetPosition == Packet::PacketPosition::LAST ||
             packetPosition == Packet::PacketPosition::ONLY) {
-            _pendingReceivedMessages.erase(messageNumber);
+            processedLastOrOnly = true;
         }
+    }
+
+    if (processedLastOrOnly) {
+        _pendingReceivedMessages.erase(messageNumber);
     }
 }
 
