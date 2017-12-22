@@ -122,11 +122,6 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputFormat((_drawMesh->getVertexFormat()));
 
     batch.setInputStream(0, _drawMesh->getVertexStream());
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
 }
 
 void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
@@ -502,11 +497,6 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
             batch.setInputFormat((_drawMesh->getVertexFormat()));
             batch.setInputStream(0, _drawMesh->getVertexStream());
         }
-    }
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
 

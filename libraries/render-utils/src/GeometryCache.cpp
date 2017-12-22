@@ -760,6 +760,20 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
     _shapes[shape].drawWire(batch);
 }
 
+void GeometryCache::renderShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
+    batch.setInputFormat(getSolidStreamFormat());
+    // Color must be set after input format
+    batch._glColor4f(color.r, color.g, color.b, color.a);
+    _shapes[shape].draw(batch);
+}
+
+void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
+    batch.setInputFormat(getSolidStreamFormat());
+    // Color must be set after input format
+    batch._glColor4f(color.r, color.g, color.b, color.a);
+    _shapes[shape].drawWire(batch);
+}
+
 void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     batch.setInputBuffer(gpu::Stream::COLOR, colorView);
@@ -811,12 +825,28 @@ void GeometryCache::renderWireCube(gpu::Batch& batch) {
     renderWireShape(batch, Cube);
 }
 
+void GeometryCache::renderCube(gpu::Batch& batch, const glm::vec4& color) {
+    renderShape(batch, Cube, color);
+}
+
+void GeometryCache::renderWireCube(gpu::Batch& batch, const glm::vec4& color) {
+    renderWireShape(batch, Cube, color);
+}
+
 void GeometryCache::renderSphere(gpu::Batch& batch) {
     renderShape(batch, Sphere);
 }
 
 void GeometryCache::renderWireSphere(gpu::Batch& batch) {
     renderWireShape(batch, Sphere);
+}
+
+void GeometryCache::renderSphere(gpu::Batch& batch, const glm::vec4& color) {
+    renderShape(batch, Sphere, color);
+}
+
+void GeometryCache::renderWireSphere(gpu::Batch& batch, const glm::vec4& color) {
+    renderWireShape(batch, Sphere, color);
 }
 
 void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
