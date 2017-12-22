@@ -2090,7 +2090,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         bool success = true;
         serializeActions(success, _allActionsDataCache);
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
-        _objectActions.remove(actionID);
         setDynamicDataNeedsTransmit(true);
         return success;
     }
