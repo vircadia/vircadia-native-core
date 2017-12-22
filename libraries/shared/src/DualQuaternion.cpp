@@ -63,18 +63,15 @@ glm::vec3 DualQuaternion::xformVector(const glm::vec3& rhs) const {
     return _real * rhs;
 }
 
-// AJT: UNTESTED
 DualQuaternion DualQuaternion::inverse() const {
     glm::quat invReal = glm::inverse(_real);
     return DualQuaternion(invReal, - invReal * _imag * invReal);
 }
 
-// AJT: UNTESTED
 DualQuaternion DualQuaternion::conjugate() const {
     return DualQuaternion(glm::conjugate(_real), glm::conjugate(_imag));
 }
 
-// AJT: UNTESTED
 float DualQuaternion::length() const {
     float dot = this->dot(*this);
     return sqrtf(dot);

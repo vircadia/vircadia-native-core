@@ -276,7 +276,7 @@ void Model::updateRenderItems() {
 
                 Transform renderTransform = modelTransform;
                 if (clusterTransforms.size() == 1) {
-#if defined(SKIN_COMP) || defined(SKIN_DQ)
+#if defined(SKIN_DQ)
                     renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
 #else
                     renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
@@ -1183,11 +1183,7 @@ void Model::updateClusterMatrices() {
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-#if defined(SKIN_COMP)
-            glm::mat4 mat;
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
-            state.clusterTransforms[j] = TransformComponents(mat);
-#elif defined(SKIN_DQ)
+#if defined(SKIN_DQ)
             glm::mat4 mat;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
             state.clusterTransforms[j] = TransformDualQuaternion(mat);

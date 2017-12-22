@@ -43,20 +43,19 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 prevR = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0][0], clusterMatrix[0][1], clusterMatrix[0][2]);
-        vec4 real = vec4(clusterMatrix[1][0], clusterMatrix[1][1], clusterMatrix[1][2], clusterMatrix[1][3]);
-        vec4 imag = vec4(clusterMatrix[2][0], clusterMatrix[2][1], clusterMatrix[2][2], clusterMatrix[2][3]);
+        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 real = clusterMatrix[1];
+        vec4 imag = clusterMatrix[2];
 
+        // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (i == 0) {
-            prevR = real;
-        } else if (dot(prevR, real) < 0) {
+        if (dot(real, polarityReference) < 0) {
             dqClusterWeight = -clusterWeight;
         }
 
@@ -108,20 +107,19 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 prevR = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0][0], clusterMatrix[0][1], clusterMatrix[0][2]);
-        vec4 real = vec4(clusterMatrix[1][0], clusterMatrix[1][1], clusterMatrix[1][2], clusterMatrix[1][3]);
-        vec4 imag = vec4(clusterMatrix[2][0], clusterMatrix[2][1], clusterMatrix[2][2], clusterMatrix[2][3]);
+        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 real = clusterMatrix[1];
+        vec4 imag = clusterMatrix[2];
 
+        // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (i == 0) {
-            prevR = real;
-        } else if (dot(prevR, real) < 0) {
+        if (dot(real, polarityReference) < 0) {
             dqClusterWeight = -clusterWeight;
         }
 
@@ -174,20 +172,19 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 prevR = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0][0], clusterMatrix[0][1], clusterMatrix[0][2]);
-        vec4 real = vec4(clusterMatrix[1][0], clusterMatrix[1][1], clusterMatrix[1][2], clusterMatrix[1][3]);
-        vec4 imag = vec4(clusterMatrix[2][0], clusterMatrix[2][1], clusterMatrix[2][2], clusterMatrix[2][3]);
+        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 real = clusterMatrix[1];
+        vec4 imag = clusterMatrix[2];
 
+        // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (i == 0) {
-            prevR = real;
-        } else if (dot(prevR, real) < 0) {
+        if (dot(real, polarityReference) < 0) {
             dqClusterWeight = -clusterWeight;
         }
 
@@ -323,56 +320,6 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     skinnedPosition = vec4(rotateByQuat(rAccum, (vec3(inPosition) * sAccum)) + tAccum, 1);
     skinnedNormal = rotateByQuat(rAccum, inNormal);
     skinnedTangent = rotateByQuat(rAccum, inTangent);
-}
-*/
-
-/*
-// ORIGINAL
-void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
-
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
-        float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
-    }
-
-    skinnedPosition = newPosition;
-}
-
-void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
-                        out vec4 skinnedPosition, out vec3 skinnedNormal) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
-
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
-        float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
-        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
-    }
-
-    skinnedPosition = newPosition;
-    skinnedNormal = newNormal.xyz;
-}
-
-void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal, vec3 inTangent,
-                               out vec4 skinnedPosition, out vec3 skinnedNormal, out vec3 skinnedTangent) {
-    vec4 newPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 newTangent = vec4(0.0, 0.0, 0.0, 0.0);
-
-    for (int i = 0; i < INDICES_PER_VERTEX; i++) {
-        mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
-        float clusterWeight = skinClusterWeight[i];
-        newPosition += clusterMatrix * inPosition * clusterWeight;
-        newNormal += clusterMatrix * vec4(inNormal.xyz, 0.0) * clusterWeight;
-        newTangent += clusterMatrix * vec4(inTangent.xyz, 0.0) * clusterWeight;
-    }
-
-    skinnedPosition = newPosition;
-    skinnedNormal = newNormal.xyz;
-    skinnedTangent = newTangent.xyz;
 }
 */
 

@@ -88,9 +88,7 @@ public:
 
     void notifyLocationChanged() override;
 
-#if defined(SKIN_COMP)
-    using TransformType = Model::TransformComponents;
-#elif defined(SKIN_DQ)
+#if defined(SKIN_DQ)
     using TransformType = Model::TransformDualQuaternion;
 #else
     using TransformType = glm::mat4;

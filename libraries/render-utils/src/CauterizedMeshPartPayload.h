@@ -15,9 +15,7 @@ class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
-#if defined(SKIN_COMP)
-    using TransformType = Model::TransformComponents;
-#elif defined(SKIN_DQ)
+#if defined(SKIN_DQ)
     using TransformType = Model::TransformDualQuaternion;
 #else
     using TransformType = glm::mat4;

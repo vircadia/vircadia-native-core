@@ -256,43 +256,8 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
-#if defined(SKIN_COMP)
-    class TransformComponents {
-    public:
-        TransformComponents() {}
-        TransformComponents(const glm::mat4& m) {
-            AnimPose p(m);
-            _scale.x = p.scale().x;
-            _scale.y = p.scale().y;
-            _scale.z = p.scale().z;
-            _rot = p.rot();
-            _trans.x = p.trans().x;
-            _trans.y = p.trans().y;
-            _trans.z = p.trans().z;
-        }
 
-        TransformComponents(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
-            _scale.x = scale.x;
-            _scale.y = scale.y;
-            _scale.z = scale.z;
-            _rot = rot;
-            _trans.x = trans.x;
-            _trans.y = trans.y;
-            _trans.z = trans.z;
-        }
-
-        glm::vec3 getScale() const { return glm::vec3(_scale); }
-        glm::quat getRot() const { return _rot; }
-        glm::vec3 getTrans() const { return glm::vec3(_trans); }
-        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
-
-    protected:
-        glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
-        glm::quat _rot { 1.0f, 0.0f, 0.0f, 0.0f };
-        glm::vec4 _trans { 0.0f, 0.0f, 0.0f, 0.0f };
-        glm::vec4 _padding { 0.0f, 0.0f, 0.0f, 0.0f };
-    };
-#elif defined(SKIN_DQ)
+#if defined(SKIN_DQ)
     class TransformDualQuaternion {
     public:
         TransformDualQuaternion() {}
@@ -313,7 +278,7 @@ public:
         glm::quat getRot() const { return _dq.getRotation(); }
         glm::vec3 getTrans() const { return _dq.getTranslation(); }
         glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
-    public:  // AJT: TODO FIX ME.
+    protected:
         glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
         DualQuaternion _dq;
         glm::vec4 _padding;
@@ -322,9 +287,7 @@ public:
 
     class MeshState {
     public:
-#if defined(SKIN_COMP)
-        std::vector<TransformComponents> clusterTransforms;
-#elif defined(SKIN_DQ)
+#if defined(SKIN_DQ)
         std::vector<TransformDualQuaternion> clusterTransforms;
 #else
         std::vector<glm::mat4> clusterTransforms;
