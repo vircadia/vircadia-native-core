@@ -56,10 +56,8 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
         float dqClusterWeight = clusterWeight;
         if (i == 0) {
             prevR = real;
-        } else {
-            if (dot(prevR, real) < 0) {
-                dqClusterWeight = -clusterWeight;
-            }
+        } else if (dot(prevR, real) < 0) {
+            dqClusterWeight = -clusterWeight;
         }
 
         sAccum += scale * clusterWeight;
@@ -123,10 +121,8 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
         float dqClusterWeight = clusterWeight;
         if (i == 0) {
             prevR = real;
-        } else {
-            if (dot(prevR, real) < 0) {
-                dqClusterWeight = -clusterWeight;
-            }
+        } else if (dot(prevR, real) < 0) {
+            dqClusterWeight = -clusterWeight;
         }
 
         sAccum += scale * clusterWeight;
@@ -191,10 +187,8 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
         float dqClusterWeight = clusterWeight;
         if (i == 0) {
             prevR = real;
-        } else {
-            if (dot(prevR, real) < 0) {
-                dqClusterWeight = -clusterWeight;
-            }
+        } else if (dot(prevR, real) < 0) {
+            dqClusterWeight = -clusterWeight;
         }
 
         sAccum += scale * clusterWeight;

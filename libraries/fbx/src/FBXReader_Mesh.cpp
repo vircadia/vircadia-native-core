@@ -583,7 +583,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         // we need 16 bits instead of just 8 for clusterIndices
         clusterIndicesSize *= 2;
     }
-    int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(uint8_t);
+    int clusterWeightsSize = fbxMesh.clusterWeights.size() * sizeof(uint16_t);
 
     int normalsOffset = 0;
     int tangentsOffset = normalsOffset + normalsSize;
@@ -662,7 +662,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (clusterWeightsSize) {
         mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
-                                            gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::XYZW)));
+                                            gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW)));
     }
 
 

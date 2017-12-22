@@ -113,12 +113,7 @@ void CauterizedModel::updateClusterMatrices() {
     for (int i = 0; i < (int)_meshStates.size(); i++) {
         Model::MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
-#if defined(SKIN_DQ)
-        // HACK: FOR DQ go thru reverse order!
-        for (int j = mesh.clusters.size() - 1; j >= 0; j--) {
-#else
         for (int j = 0; j < mesh.clusters.size(); j++) {
-#endif
             const FBXCluster& cluster = mesh.clusters.at(j);
 
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
@@ -132,25 +127,6 @@ void CauterizedModel::updateClusterMatrices() {
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
             AnimPose p(m);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
-
-            // AJT: HACK n^2!!!! fix me, find parent clusterTransform.
-            int parentIndex = _rig.getJointParentIndex(cluster.jointIndex);
-            int parentClusterIndex = -1;
-            // scan for parent!
-            for (int ii = mesh.clusters.size() - 1; ii > j; ii--) {
-                if (mesh.clusters[ii].jointIndex == parentIndex) {
-                    parentClusterIndex = ii;
-                    break;
-                }
-            }
-
-            // ensure that we have the same polarity as our parent!
-            if (parentClusterIndex >= 0) {
-                //if (state.clusterTransforms[parentClusterIndex]._dq.dot(state.clusterTransforms[j]._dq) < 0.0f) {
-                if (glm::dot(state.clusterTransforms[parentClusterIndex]._dq.real(), state.clusterTransforms[j]._dq.real()) < 0.0f) {
-                    state.clusterTransforms[j]._dq = -state.clusterTransforms[j]._dq;
-                }
-            }
 #else
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
@@ -171,12 +147,7 @@ void CauterizedModel::updateClusterMatrices() {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
 
-#if defined(SKIN_DQ)
-            // HACK: FOR DQ go thru reverse order!
-            for (int j = mesh.clusters.size() - 1; j >= 0; j--) {
-#else
-                for (int j = 0; j < mesh.clusters.size(); j++) {
-#endif
+            for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
 
                 auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
@@ -194,25 +165,6 @@ void CauterizedModel::updateClusterMatrices() {
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
                 AnimPose p(m);
                 state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
-
-                // AJT: HACK n^2!!!! fix me, find parent clusterTransform.
-                int parentIndex = _rig.getJointParentIndex(cluster.jointIndex);
-                int parentClusterIndex = -1;
-                // scan for parent!
-                for (int ii = mesh.clusters.size() - 1; ii > j; ii--) {
-                    if (mesh.clusters[ii].jointIndex == parentIndex) {
-                        parentClusterIndex = ii;
-                        break;
-                    }
-                }
-
-                // ensure that we have the same polarity as our parent!
-                if (parentClusterIndex >= 0) {
-                    //if (state.clusterTransforms[parentClusterIndex]._dq.dot(state.clusterTransforms[j]._dq) < 0.0f) {
-                    if (glm::dot(state.clusterTransforms[parentClusterIndex]._dq.real(), state.clusterTransforms[j]._dq.real()) < 0.0f) {
-                        state.clusterTransforms[j]._dq = -state.clusterTransforms[j]._dq;
-                    }
-                }
 #else
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif

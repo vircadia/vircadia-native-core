@@ -224,7 +224,7 @@ public:
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
     QVector<uint16_t> clusterIndices;
-    QVector<uint8_t> clusterWeights;
+    QVector<uint16_t> clusterWeights;
     QVector<int32_t> originalIndices;
 
     QVector<FBXCluster> clusters;
