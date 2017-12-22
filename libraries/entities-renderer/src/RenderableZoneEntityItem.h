@@ -95,6 +95,9 @@ private:
     indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _ambientIndex{ LightStage::INVALID_INDEX };
 
+    const int NO_STORED_VALUE { -1 };
+    indexed_container::Index sunOnIndex { NO_STORED_VALUE };
+
     BackgroundStagePointer _backgroundStage;
     BackgroundStage::Index _backgroundIndex{ BackgroundStage::INVALID_INDEX };
 

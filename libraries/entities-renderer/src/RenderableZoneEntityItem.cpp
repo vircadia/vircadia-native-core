@@ -165,7 +165,17 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
     if (_visible) {
         // Finally, push the light visible in the frame
-        if (_keyLightMode != BACKGROUND_MODE_INHERIT) {
+        if (_keyLightMode == COMPONENT_MODE_DISABLED && sunOnIndex == NO_STORED_VALUE) {
+			// Just turned off, store previous value before changing
+            sunOnIndex = _sunIndex;
+            _sunIndex = _stage->getSunOffLight();
+        } else if (_keyLightMode == COMPONENT_MODE_ENABLED && sunOnIndex != NO_STORED_VALUE) {
+			// Just turned on, restore previous value before clearing stored value
+            _sunIndex = sunOnIndex;
+            sunOnIndex = NO_STORED_VALUE;
+        } 
+
+        if (_keyLightMode != COMPONENT_MODE_INHERIT) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
