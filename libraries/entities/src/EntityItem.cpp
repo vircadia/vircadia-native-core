@@ -26,6 +26,7 @@
 #include <GLMHelpers.h>
 #include <Octree.h>
 #include <PhysicsHelpers.h>
+#include <Profile.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <LogHandler.h>
@@ -115,6 +116,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_EDITION_NUMBER;
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
+    requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
 
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
@@ -272,6 +274,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+        APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
@@ -820,6 +823,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -985,6 +989,7 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
 }
 
 void EntityItem::simulate(const quint64& now) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Simulate");
     if (getLastSimulated() == 0) {
         setLastSimulated(now);
     }
@@ -1040,6 +1045,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "StepKinematicMotion");
     // get all the data
     Transform transform;
     glm::vec3 linearVelocity;
@@ -1250,6 +1256,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -1357,6 +1364,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
@@ -1625,6 +1633,10 @@ void EntityItem::setParentID(const QUuid& value) {
 
         if (!value.isNull() && (value == Physics::getSessionUUID() || value == AVATAR_SELF_ID)) {
             newParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
+        }
+
+        if (!oldParentID.isNull() && (oldParentID == Physics::getSessionUUID() || oldParentID == AVATAR_SELF_ID)) {
+            oldParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
         }
 
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
@@ -2808,6 +2820,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
 DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
+DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVersion)
 
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;
@@ -2865,7 +2878,7 @@ void EntityItem::retrieveMarketplacePublicKey() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath("/api/v1/commerce/marketplace_key");
     QJsonObject request;
     networkRequest.setUrl(requestURL);

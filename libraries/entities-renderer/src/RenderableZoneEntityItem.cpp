@@ -27,6 +27,8 @@
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
+static const unsigned int SUN_SHADOW_CASCADE_COUNT{ 4 };
+static const float SUN_SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 using namespace render::entities;
@@ -116,7 +118,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
-                _shadowIndex = _stage->addShadow(_sunIndex);
+                _shadowIndex = _stage->addShadow(_sunIndex, SUN_SHADOW_MAX_DISTANCE, SUN_SHADOW_CASCADE_COUNT);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }

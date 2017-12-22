@@ -20,6 +20,8 @@ import "../"
 import "../toolbars"
 import "../../styles-uit" as HifiStyles
 import "../../controls-uit" as HifiControls
+import QtQuick.Controls 2.2 as QQC2
+import QtQuick.Templates 2.2 as T
 
 // references HMD, AddressManager, AddressBarDialog from root context
 
@@ -223,7 +225,7 @@ StackView {
                 visible: addressLine.text.length === 0
             }
 
-            TextField {
+            QQC2.TextField {
                 id: addressLine
                 width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
@@ -238,16 +240,36 @@ StackView {
                     addressBarDialog.keyboardEnabled = false;
                     toggleOrGo();
                 }
-                placeholderText: "Type domain address here"
+
+                // unfortunately TextField from Quick Controls 2 disallow customization of placeHolderText color without creation of new style
+                property string placeholderText2: "Type domain address here"
                 verticalAlignment: TextInput.AlignBottom
-                style: TextFieldStyle {
-                    textColor: hifi.colors.text
-                    placeholderTextColor: "gray"
-                    font {
-                        family: hifi.fonts.fontFamily
-                        pixelSize: hifi.fonts.pixelSize * 0.75
+
+                font {
+                    family: hifi.fonts.fontFamily
+                    pixelSize: hifi.fonts.pixelSize * 0.75
+                }
+
+                color: hifi.colors.text
+                background: Item {}
+
+                QQC2.Label {
+                    T.TextField {
+                        id: control
+
+                        padding: 6 // numbers taken from Qt\5.9.2\Src\qtquickcontrols2\src\imports\controls\TextField.qml
+                        leftPadding: padding + 4
                     }
-                    background: Item {}
+
+                    font: parent.font
+
+                    x: control.leftPadding
+                    y: control.topPadding
+
+                    text: parent.placeholderText2
+                    verticalAlignment: "AlignVCenter"
+                    color: 'gray'
+                    visible: parent.text === ''
                 }
             }
 

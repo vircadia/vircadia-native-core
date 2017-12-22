@@ -318,7 +318,10 @@ int GLBackend::makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slot
                 if (requestedBinding != slotBindings.end()) {
                     if (binding != (*requestedBinding)._location) {
                         binding = (*requestedBinding)._location;
-                        glProgramUniform1i(glprogram, location, binding);
+                        for (auto i = 0; i < size; i++) {
+                            // If we are working with an array of textures, reserve for each elemet
+                            glProgramUniform1i(glprogram, location+i, binding+i);
+                        }
                     }
                 }
 

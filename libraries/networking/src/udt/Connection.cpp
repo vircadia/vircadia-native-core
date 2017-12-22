@@ -11,6 +11,8 @@
 
 #include "Connection.h"
 
+#include <random>
+
 #include <QtCore/QThread>
 
 #include <NumericalConstants.h>
@@ -60,6 +62,15 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     _ack2Packet = ControlPacket::create(ControlPacket::ACK2, ACK2_PAYLOAD_BYTES);
     _lossReport = ControlPacket::create(ControlPacket::NAK, NAK_PACKET_PAYLOAD_BYTES);
     _handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, HANDSHAKE_ACK_PAYLOAD_BYTES);
+
+
+    // setup psuedo-random number generation shared by all connections
+    static std::random_device rd;
+    static std::mt19937 generator(rd());
+    static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
+
+    // randomize the intial sequence number
+    _initialSequenceNumber = SequenceNumber(distribution(generator));
 }
 
 Connection::~Connection() {
@@ -79,10 +90,10 @@ void Connection::stopSendQueue() {
         // tell the send queue to stop and be deleted
         
         sendQueue->stop();
+
+        _lastMessageNumber = sendQueue->getCurrentMessageNumber();
+
         sendQueue->deleteLater();
-        
-        // since we're stopping the send queue we should consider our handshake ACK not receieved
-        _hasReceivedHandshakeACK = false;
         
         // wait on the send queue thread so we know the send queue is gone
         sendQueueThread->quit();
@@ -101,13 +112,19 @@ void Connection::setMaxBandwidth(int maxBandwidth) {
 
 SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
-
         // we may have a sequence number from the previous inactive queue - re-use that so that the
         // receiver is getting the sequence numbers it expects (given that the connection must still be active)
 
         // Lasily create send queue
-        _sendQueue = SendQueue::create(_parentSocket, _destination);
-        _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
+
+        if (!_hasReceivedHandshakeACK) {
+            // First time creating a send queue for this connection
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _initialSequenceNumber - 1, _lastMessageNumber, _hasReceivedHandshakeACK);
+            _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
+        } else {
+            // Connection already has a handshake from a previous send queue
+            _sendQueue = SendQueue::create(_parentSocket, _destination, _lastReceivedACK, _lastMessageNumber, _hasReceivedHandshakeACK);
+        }
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
@@ -142,14 +159,6 @@ void Connection::queueInactive() {
 #ifdef UDT_CONNECTION_DEBUG
     qCDebug(networking) << "Connection to" << _destination << "has stopped its SendQueue.";
 #endif
-    
-    if (!_hasReceivedHandshake || !_isReceivingData) {
-#ifdef UDT_CONNECTION_DEBUG
-        qCDebug(networking) << "Connection SendQueue to" << _destination << "stopped and no data is being received - stopping connection.";
-#endif
-        
-        deactivate();
-    }
 }
 
 void Connection::queueTimeout() {
@@ -184,11 +193,16 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 
     while (pendingMessage.hasAvailablePackets()) {
         auto packet = pendingMessage.removeNextPacket();
-        _parentSocket->messageReceived(std::move(packet));
-    }
 
-    if (pendingMessage.isComplete()) {
-        _pendingReceivedMessages.erase(messageNumber);
+        auto packetPosition = packet->getPacketPosition();
+
+        _parentSocket->messageReceived(std::move(packet));
+
+        // if this was the last or only packet, then we can remove the pending message from our hash
+        if (packetPosition == Packet::PacketPosition::LAST ||
+            packetPosition == Packet::PacketPosition::ONLY) {
+            _pendingReceivedMessages.erase(messageNumber);
+        }
     }
 }
 
@@ -208,19 +222,6 @@ void Connection::sync() {
             && duration_cast<seconds>(sincePacketReceive).count() >= MIN_SECONDS_BEFORE_EXPIRY ) {
             // the receive side of this connection is expired
             _isReceivingData = false;
-            
-            // if we don't have a send queue that means the whole connection has expired and we can emit our signal
-            // otherwise we'll wait for it to also timeout before cleaning up
-            if (!_sendQueue) {
-
-#ifdef UDT_CONNECTION_DEBUG
-                qCDebug(networking) << "Connection to" << _destination << "no longer receiving any data and there is currently no send queue - stopping connection.";
-#endif
-                
-                deactivate();
-                
-                return;
-            }
         }
         
         // reset the number of light ACKs or non SYN ACKs during this sync interval
@@ -241,26 +242,6 @@ void Connection::sync() {
                 // Send a timeout NAK packet
                 sendTimeoutNAK();
             }
-        }
-    } else if (!_sendQueue) {
-        // we haven't received a packet and we're not sending
-        // this most likely means we were started erroneously
-        // check the start time for this connection and auto expire it after 5 seconds of not receiving or sending any data
-        static const int CONNECTION_NOT_USED_EXPIRY_SECONDS = 5;
-        auto secondsSinceStart = duration_cast<seconds>(p_high_resolution_clock::now() - _connectionStart).count();
-        
-        if (secondsSinceStart >= CONNECTION_NOT_USED_EXPIRY_SECONDS) {
-            // it's been CONNECTION_NOT_USED_EXPIRY_SECONDS and nothing has actually happened with this connection
-            // consider it inactive and emit our inactivity signal
-            
-#ifdef UDT_CONNECTION_DEBUG
-            qCDebug(networking) << "Connection to" << _destination << "did not receive or send any data in last"
-                << CONNECTION_NOT_USED_EXPIRY_SECONDS << "seconds - stopping connection.";
-#endif
-            
-            deactivate();
-            
-            return;
         }
     }
 }
@@ -444,7 +425,6 @@ void Connection::sendHandshakeRequest() {
 }
 
 bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, int packetSize, int payloadSize) {
-    
     if (!_hasReceivedHandshake) {
         // Refuse to process any packets until we've received the handshake
         // Send handshake request to re-request a handshake
@@ -536,7 +516,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
-    
+
     return !wasDuplicate;
 }
 
@@ -827,11 +807,13 @@ void Connection::processHandshakeACK(ControlPacketPointer controlPacket) {
         SequenceNumber initialSequenceNumber;
         controlPacket->readPrimitive(&initialSequenceNumber);
 
-        // hand off this handshake ACK to the send queue so it knows it can start sending
-        getSendQueue().handshakeACK(initialSequenceNumber);
-        
-        // indicate that handshake ACK was received
-        _hasReceivedHandshakeACK = true;
+        if (initialSequenceNumber == _initialSequenceNumber) {
+            // hand off this handshake ACK to the send queue so it knows it can start sending
+            getSendQueue().handshakeACK();
+
+            // indicate that handshake ACK was received
+            _hasReceivedHandshakeACK = true;
+        }
     }
 }
 

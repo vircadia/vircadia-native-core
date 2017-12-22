@@ -61,8 +61,8 @@ public:
 
     void notifyRenderVariableChange() const;
 
-    void setProperties(const QVariantMap& properties) override;
-    QVariant getProperty(const QString& property) override;
+    virtual void setProperties(const QVariantMap& properties) override;
+    virtual QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal);
