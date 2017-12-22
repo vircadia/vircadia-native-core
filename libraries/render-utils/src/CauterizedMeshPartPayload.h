@@ -21,9 +21,12 @@ public:
 
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
+    void setEnableCauterization(bool enableCauterization) { _enableCauterization = enableCauterization; }
+
 private:
     gpu::BufferPointer _cauterizedClusterBuffer;
     Transform _cauterizedTransform;
+    bool _enableCauterization { false };
 };
 
 #endif // hifi_CauterizedMeshPartPayload_h

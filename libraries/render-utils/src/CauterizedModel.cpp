@@ -178,6 +178,12 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
+            bool isWireframe = self->isWireframe();
+            bool isVisible = self->isVisible();
+            bool isLayeredInFront = self->isLayeredInFront();
+            bool isLayeredInHUD = self->isLayeredInHUD();
+            bool enableCauterization = self->getEnableCauterization();
+
             render::Transaction transaction;
             for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
 
@@ -186,7 +192,10 @@ void CauterizedModel::updateRenderItems() {
                 auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
                 auto clusterMatricesCauterized(self->getCauterizeMeshState(meshIndex).clusterMatrices);
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
+                bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized, invalidatePayloadShapeKey,
+                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, enableCauterization](CauterizedMeshPartPayload& data) {
                     data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
 
                     Transform renderTransform = modelTransform;
@@ -200,6 +209,11 @@ void CauterizedModel::updateRenderItems() {
                         renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
+
+                    data.setEnableCauterization(enableCauterization);
+                    data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
                 });
             }
 

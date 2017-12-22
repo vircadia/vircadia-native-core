@@ -291,6 +291,9 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
                     // release the new packet
                     releaseQueuedPacketList(nodeUUID, std::move(newPacket));
 
+                    // tell the sent packet history that we used a sequence number for an untracked packet
+                    auto& sentPacketHistory = _sentPacketHistories[nodeUUID];
+                    sentPacketHistory.untrackedPacketSent(sequence);
                 } else {
 
                     std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID].first; //only a NLPacket for now
