@@ -332,7 +332,10 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     Transform renderTransform = transform;
     if (state.clusterTransforms.size() == 1) {
 #if defined(SKIN_DQ)
-        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0].getMatrix()));
+        Transform transform(state.clusterTransforms[0].getRotation(),
+                            state.clusterTransforms[0].getScale(),
+                            state.clusterTransforms[0].getTranslation());
+        renderTransform = transform.worldTransform(Transform(transform));
 #else
         renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
 #endif
@@ -549,7 +552,10 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Transform
     _adjustedLocalBound = _localBound;
     if (clusterTransforms.size() > 0) {
 #if defined(SKIN_DQ)
-        _adjustedLocalBound.transform(clusterTransforms[0].getMatrix());
+        Transform rootTransform(clusterTransforms[0].getRotation(),
+                                clusterTransforms[0].getScale(),
+                                clusterTransforms[0].getTranslation());
+        _adjustedLocalBound.transform(rootTransform);
 #else
         _adjustedLocalBound.transform(clusterTransforms[0]);
 #endif
@@ -557,7 +563,10 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Transform
         for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
             AABox clusterBound = _localBound;
 #if defined(SKIN_DQ)
-            clusterBound.transform(clusterTransforms[i].getMatrix());
+            Transform transform(clusterTransforms[i].getRotation(),
+                                clusterTransforms[i].getScale(),
+                                clusterTransforms[i].getTranslation());
+            clusterBound.transform(transform);
 #else
             clusterBound.transform(clusterTransforms[i]);
 #endif

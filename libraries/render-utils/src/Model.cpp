@@ -277,7 +277,10 @@ void Model::updateRenderItems() {
                 Transform renderTransform = modelTransform;
                 if (clusterTransforms.size() == 1) {
 #if defined(SKIN_DQ)
-                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
+                    Transform transform(clusterTransforms[0].getRotation(),
+                                        clusterTransforms[0].getScale(),
+                                        clusterTransforms[0].getTranslation());
+                    renderTransform = modelTransform.worldTransform(Transform(transform));
 #else
                     renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
 #endif
@@ -1184,6 +1187,7 @@ void Model::updateClusterMatrices() {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
+            // AJT: TODO: optimize
             glm::mat4 mat;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
             state.clusterTransforms[j] = TransformDualQuaternion(mat);

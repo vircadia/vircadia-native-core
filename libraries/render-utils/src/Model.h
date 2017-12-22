@@ -36,14 +36,8 @@
 #include "TextureCache.h"
 #include "Rig.h"
 
-#define SKIN_ASSERT(cond)                       \
-    do {                                        \
-        if (!(cond)) {                          \
-            int* p = 0;                         \
-            *p = 0xbadf00d;                     \
-        }                                       \
-    } while(false)
-
+// Use dual quaternion skinning!
+// Must match define in Skinning.slh
 #define SKIN_DQ
 
 class AbstractViewStateInterface;
@@ -275,9 +269,9 @@ public:
             _dq = DualQuaternion(rot, trans);
         }
         glm::vec3 getScale() const { return glm::vec3(_scale); }
-        glm::quat getRot() const { return _dq.getRotation(); }
-        glm::vec3 getTrans() const { return _dq.getTranslation(); }
-        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
+        glm::quat getRotation() const { return _dq.getRotation(); }
+        glm::vec3 getTranslation() const { return _dq.getTranslation(); }
+        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRotation(), getTranslation()); };
     protected:
         glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
         DualQuaternion _dq;

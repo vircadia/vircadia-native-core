@@ -112,9 +112,9 @@ void CauterizedModel::updateClusterMatrices() {
 
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
+            // AJT: TODO: optimize
             glm::mat4 m;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-            AnimPose p(m);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
 #else
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
@@ -145,9 +145,9 @@ void CauterizedModel::updateClusterMatrices() {
                 }
 
 #if defined(SKIN_DQ)
+                // AJT: TODO: optimize
                 glm::mat4 m;
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-                AnimPose p(m);
                 state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
 #else
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
@@ -220,7 +220,10 @@ void CauterizedModel::updateRenderItems() {
                     Transform renderTransform = modelTransform;
                     if (clusterTransforms.size() == 1) {
 #if defined(SKIN_DQ)
-                        renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0].getMatrix()));
+                        Transform transform(clusterTransforms[0].getRotation(),
+                                            clusterTransforms[0].getScale(),
+                                            clusterTransforms[0].getTranslation());
+                        renderTransform = modelTransform.worldTransform(transform);
 #else
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
 #endif
@@ -230,7 +233,10 @@ void CauterizedModel::updateRenderItems() {
                     renderTransform = modelTransform;
                     if (clusterTransformsCauterized.size() == 1) {
 #if defined(SKIN_DQ)
-                        renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0].getMatrix()));
+                        Transform transform(clusterTransforms[0].getRotation(),
+                                            clusterTransforms[0].getScale(),
+                                            clusterTransforms[0].getTranslation());
+                        renderTransform = modelTransform.worldTransform(Transform(transform));
 #else
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0]));
 #endif
