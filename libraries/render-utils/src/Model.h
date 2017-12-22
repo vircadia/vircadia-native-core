@@ -122,7 +122,6 @@ public:
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
 
-    void init();
     void reset();
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
@@ -346,11 +345,7 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-
-protected:
-
     virtual void deleteGeometry();
-    void initJointTransforms();
 
     QVector<float> _blendshapeCoefficients;
 
@@ -418,6 +413,8 @@ protected:
 
     bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
+
+    bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:
     float _loadingPriority { 0.0f };

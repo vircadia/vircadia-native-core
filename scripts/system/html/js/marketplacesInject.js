@@ -243,13 +243,14 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href) {
+    function buyButtonClicked(id, name, author, price, href, referrer) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
             itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href
+            itemHref: href,
+            referrer: referrer
         }));
     }
 
@@ -316,7 +317,8 @@
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'));
+                $(this).attr('data-href'),
+                "mainPage");
         });
     }
 
@@ -415,12 +417,13 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if ('availabile' === availability) {
+                    if ('available' === availability) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             $('#top-center').find('h1').text(),
                             $('#creator').find('.value').text(),
                             cost,
-                            href);
+                            href,
+                            "itemPage");
                         }
                     });
                 maybeAddPurchasesButton();
