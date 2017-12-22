@@ -1674,16 +1674,12 @@ void EntityItem::setParentID(const QUuid& value) {
 
 glm::vec3 EntityItem::getScaledDimensions() const {
     glm::vec3 scale = getSNScale();
-    return glm::vec3(_unscaledDimensions.x * scale.x,
-                     _unscaledDimensions.y * scale.y,
-                     _unscaledDimensions.z * scale.z);
+    return _unscaledDimensions * scale;
 }
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
     glm::vec3 parentScale = getSNScale();
-    setUnscaledDimensions(glm::vec3(value.x / parentScale.x,
-                                    value.y / parentScale.y,
-                                    value.z / parentScale.z));
+    setUnscaledDimensions(value * parentScale);
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {

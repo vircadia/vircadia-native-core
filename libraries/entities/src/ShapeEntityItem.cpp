@@ -206,12 +206,12 @@ void ShapeEntityItem::setColor(const QColor& value) {
 
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
-	if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
+    if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
         glm::vec3 newDimensions = value;
         newDimensions.y = MAX_FLAT_DIMENSION;
         EntityItem::setUnscaledDimensions(newDimensions);
-	} else {
+    } else {
         EntityItem::setUnscaledDimensions(value);
     }
 }
