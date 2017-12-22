@@ -59,26 +59,37 @@ glm::vec3 DualQuaternion::getTranslation() const {
     return glm::vec3(result.x, result.y, result.z);
 }
 
-
 glm::vec3 DualQuaternion::xformVector(const glm::vec3& rhs) const {
     return _real * rhs;
 }
 
+// AJT: UNTESTED
 DualQuaternion DualQuaternion::inverse() const {
     glm::quat invReal = glm::inverse(_real);
     return DualQuaternion(invReal, - invReal * _imag * invReal);
 }
 
+// AJT: UNTESTED
 DualQuaternion DualQuaternion::conjugate() const {
     return DualQuaternion(glm::conjugate(_real), glm::conjugate(_imag));
 }
 
+// AJT: UNTESTED
 float DualQuaternion::length() const {
-    DualQuaternion result = *this * conjugate();
-    return sqrtf(result._real.w);
+    float dot = this->dot(*this);
+    return sqrtf(dot);
 }
 
 DualQuaternion DualQuaternion::normalize() const {
     float invLen = 1.0f / length();
     return *this * invLen;
+}
+
+float DualQuaternion::dot(const DualQuaternion& rhs) const {
+    DualQuaternion result = *this * conjugate();
+    return result._real.w;
+}
+
+DualQuaternion DualQuaternion::operator-() const {
+    return DualQuaternion(-_real, -_imag);
 }

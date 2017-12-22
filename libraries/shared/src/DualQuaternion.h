@@ -44,12 +44,15 @@ public:
     DualQuaternion conjugate() const;
     float length() const;
     DualQuaternion normalize() const;
+    float dot(const DualQuaternion& rhs) const;
+    DualQuaternion operator-() const;
 
 protected:
     friend QDebug operator<<(QDebug debug, const DualQuaternion& pose);
     glm::quat _real;
     glm::quat _imag;
 };
+
 
 inline QDebug operator<<(QDebug debug, const DualQuaternion& dq) {
     debug << "AnimPose, real = (" << dq._real.x << dq._real.y << dq._real.z << dq._real.w << "), imag = (" << dq._imag.x << dq._imag.y << dq._imag.z << dq._imag.w << ")";

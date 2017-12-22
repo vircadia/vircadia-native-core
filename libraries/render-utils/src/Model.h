@@ -313,7 +313,7 @@ public:
         glm::quat getRot() const { return _dq.getRotation(); }
         glm::vec3 getTrans() const { return _dq.getTranslation(); }
         glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRot(), getTrans()); };
-    protected:
+    public:  // AJT: TODO FIX ME.
         glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
         DualQuaternion _dq;
         glm::vec4 _padding;
