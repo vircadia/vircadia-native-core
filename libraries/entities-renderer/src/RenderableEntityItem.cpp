@@ -141,6 +141,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
 }
 
 EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity) {
+    connect(entity.get(), &EntityItem::requestRenderUpdate, this, &EntityRenderer::requestRenderUpdate);
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -328,10 +329,6 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     auto newModelTransform = _entity->getTransformToCenter(success);
     // FIXME can we use a stale model transform here?
     if (success && newModelTransform != _modelTransform) {
-        return true;
-    }
-
-    if (_visible != entity->getVisible()) {
         return true;
     }
 

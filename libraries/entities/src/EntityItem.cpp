@@ -2692,9 +2692,17 @@ bool EntityItem::getVisible() const {
 }
 
 void EntityItem::setVisible(bool value) {
+    bool changed = false;
     withWriteLock([&] {
-        _visible = value;
+        if (_visible != value) {
+            changed = true;
+            _visible = value;
+        }
     });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
 }
 
 bool EntityItem::isChildOfMyAvatar() const {
