@@ -185,6 +185,11 @@ public:
     
     Frame _currentFrame;
     
+    Index getAmbientOffLight() { return _ambientOffLight; }
+    Index getPointOffLight() { return _pointOffLight; }
+    Index getSpotOffLight() { return _spotOffLight; }
+    Index getSunOffLight() { return _sunOffLight; }
+
 protected:
 
     struct Desc {
@@ -198,6 +203,18 @@ protected:
     Shadows _shadows;
     Descs _descs;
     LightMap _lightMap;
+
+    // define off lights
+
+    const LightPointer ambientOffLight { std::make_shared<model::Light>() };
+    const LightPointer pointOffLight { std::make_shared<model::Light>() };
+    const LightPointer spotOffLight { std::make_shared<model::Light>() };
+    const LightPointer sunOffLight { std::make_shared<model::Light>() };
+
+    Index  _ambientOffLight;
+    Index  _pointOffLight;
+    Index  _spotOffLight;
+    Index  _sunOffLight;
 
 };
 using LightStagePointer = std::shared_ptr<LightStage>;

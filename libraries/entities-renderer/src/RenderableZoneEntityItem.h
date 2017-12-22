@@ -46,8 +46,8 @@ protected:
 
 private:
     void updateKeyZoneItemFromEntity();
-    void updateKeySunFromEntity();
-    void updateKeyAmbientFromEntity();
+    void updateKeySunFromEntity(const TypedEntityPointer& entity);
+    void updateKeyAmbientFromEntity(const TypedEntityPointer& entity);
     void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();

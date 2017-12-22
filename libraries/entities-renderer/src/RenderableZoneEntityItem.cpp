@@ -165,18 +165,14 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
     if (_visible) {
         // Finally, push the light visible in the frame
-        if (_keyLightMode == COMPONENT_MODE_ENABLED) {
+        if (_keyLightMode != BACKGROUND_MODE_INHERIT) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
-        } else if (_keyLightMode == COMPONENT_MODE_DISABLED) {
-            // DEAL WITH OFF LIGHT
         }
 
         // The ambient light only if it has a valid texture to render with
         if (_validAmbientTexture || _validSkyboxTexture) {
-            if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
+            if (_ambientLightMode != BACKGROUND_MODE_INHERIT) {
                 _stage->_currentFrame.pushAmbientLight(_ambientIndex);
-            } else if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
-                // DEAL WITH OFF LIGHT
             }
         }
 
@@ -200,7 +196,6 @@ void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction&
 #endif
     Parent::removeFromScene(scene, transaction);
 }
-
 
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
@@ -244,11 +239,11 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     updateKeyZoneItemFromEntity();
 
     if (sunChanged) {
-        updateKeySunFromEntity();
+        updateKeySunFromEntity(entity);
     }
 
     if (sunChanged || skyboxChanged) {
-        updateKeyAmbientFromEntity();
+        updateKeyAmbientFromEntity(entity);
     }
 
     if (backgroundChanged || skyboxChanged) {
@@ -317,7 +312,9 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
     return false;
 }
 
-void ZoneEntityRenderer::updateKeySunFromEntity() {
+void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity) {
+    setKeyLightMode((ComponentMode)entity->getKeyLightMode());
+
     const auto& sunLight = editSunLight();
     sunLight->setType(model::Light::SUN);
     sunLight->setPosition(_lastPosition);
@@ -329,7 +326,9 @@ void ZoneEntityRenderer::updateKeySunFromEntity() {
     sunLight->setDirection(_keyLightProperties.getDirection());
 }
 
-void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
+void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& entity) {
+    setAmbientLightMode((ComponentMode)entity->getAmbientLightMode());
+
     const auto& ambientLight = editAmbientLight();
     ambientLight->setType(model::Light::AMBIENT);
     ambientLight->setPosition(_lastPosition);
