@@ -183,10 +183,7 @@ float specularDistribution(SurfaceData surface) {
     // Add geometric factors G1(n,l) and G1(n,v)
     float smithInvG1NdotL = evalSmithInvG1(surface.roughness4, surface.ndotl);
     denom *= surface.smithInvG1NdotV * smithInvG1NdotL;
-    // Don't divide by PI as diffuse isn't either. The real PBR formula normalizes
-    // by PI on both but if we decide to not do it, it is just as if we
-    // multiplied all our lights by PI
-    //denom *= 3.1415926;
+    // Don't divide by PI as it will be done later
     float power = surface.roughness4 / denom;
     return power;
 }
@@ -200,8 +197,11 @@ vec4 evalPBRShading(float metallic, vec3 fresnel, SurfaceData surface) {
     vec3 fresnelColor = fresnelSchlickColor(fresnel, surface);
     float power = specularDistribution(surface);
     vec3 specular = fresnelColor * power * angleAttenuation;
+    float diffuse = (1.0 - metallic) * angleAttenuation * (1.0 - fresnelColor.x);
 
-    return vec4(specular, (1.0 - metallic) * angleAttenuation * (1.0 - fresnelColor.x));
+    specular /= 3.1415926;
+    diffuse /= 3.1415926;
+    return vec4(specular, diffuse);
 }
 
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
@@ -213,8 +213,11 @@ vec4 evalPBRShadingDielectric(SurfaceData surface, float fresnel) {
     float fresnelScalar = fresnelSchlickScalar(fresnel, surface);
     float power = specularDistribution(surface);
     vec3 specular = vec3(fresnelScalar) * power * angleAttenuation;
+    float diffuse = angleAttenuation * (1.0 - fresnelScalar);
 
-    return vec4(specular,  angleAttenuation * (1.0 - fresnelScalar));
+    specular /= 3.1415926;
+    diffuse /= 3.1415926;
+    return vec4(specular, diffuse);
 }
 
 vec4 evalPBRShadingMetallic(SurfaceData surface, vec3 fresnel) {
@@ -226,6 +229,7 @@ vec4 evalPBRShadingMetallic(SurfaceData surface, vec3 fresnel) {
     float power = specularDistribution(surface);
     vec3 specular = fresnelColor * power * angleAttenuation;
 
+    specular /= 3.1415926;
     return vec4(specular, 0.f);
 }
 
