@@ -2076,12 +2076,12 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
             _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
             forEachDescendant([&](SpatiallyNestablePointer child) {
-                    if (child->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                        entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                        entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
-                    }
-                });
+                if (child->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                    entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                    entity->clearDirtyFlags(Simulation::NO_BOOTSTRAPPING);
+                }
+            });
         } else {
             // NO-OP: we assume NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
