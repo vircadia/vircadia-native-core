@@ -410,7 +410,8 @@ Rectangle {
             Rectangle {
                 id: buyTextContainer;
                 visible: buyText.text !== "";
-                anchors.top: parent.top;
+                anchors.top: cancelPurchaseButton.bottom;
+                anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 height: buyText.height + 30;
@@ -465,8 +466,8 @@ Rectangle {
                 enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || !itemIsJson;
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
-                anchors.topMargin: buyTextContainer.visible ? 12 : 16;
+                anchors.top: checkoutActionButtonsContainer.top;
+                anchors.topMargin: 16;
                 height: 40;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
@@ -926,11 +927,11 @@ Rectangle {
                 buyText.text = "";
             }
         } else {
-            buyText.text = "This free item <b>will not</b> be added to your <b>Purchases</b>. Non-entities can't yet be purchased for HFC.";
-            buyTextContainer.color = "#FFD6AD";
-            buyTextContainer.border.color = "#FAC07D";
-            buyGlyph.text = hifi.glyphs.alert;
-            buyGlyph.size = 46;
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
+            buyTextContainer.color = hifi.colors.white;
+            buyTextContainer.border.color = hifi.colors.white;
+            buyGlyph.text = "";
+            buyGlyph.size = 0;
         }
     }
 
