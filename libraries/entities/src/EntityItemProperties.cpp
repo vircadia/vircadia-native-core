@@ -2613,7 +2613,8 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
         return false;
     }
 
-    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    auto keyByteArray = publicKey.toUtf8();
+    auto key = keyByteArray.constData();
     int keyLength = publicKey.length();
 
     BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
@@ -2631,19 +2632,23 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             // ECSDA verification prototype: note that type is currently ignored
             // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
             // const unsigned char *sig, int siglen, EC_KEY *eckey);
-            bool answer = ECDSA_verify(0,
+            int answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
                 ec);
             long error = ERR_get_error();
-            if (error != 0) {
-                const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+            if (error != 0 || answer == -1) {
+                qCWarning(entities) << "ERROR while verifying signature!"
                     << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+                while (error != 0) {
+                    const char* error_str = ERR_error_string(error, NULL);
+                    qCWarning(entities) << "EC error:" << error_str;
+                    error = ERR_get_error();
+                }
             }
             EC_KEY_free(ec);
             if (bio) {
@@ -2652,7 +2657,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             if (evp_key) {
                 EVP_PKEY_free(evp_key);
             }
-            return answer;
+            return (answer == 1);
         } else {
             if (bio) {
                 BIO_free(bio);

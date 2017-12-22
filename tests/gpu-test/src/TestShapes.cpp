@@ -29,19 +29,18 @@ void TestShapes::renderTest(size_t testId, RenderArgs* args) {
     float seconds = secTimestampNow() - startSecs;
     seconds /= 4.0f;
     batch.setModelTransform(Transform());
-    batch._glColor4f(0.8f, 0.25f, 0.25f, 1.0f);
+    const auto color = glm::vec4(0.8f, 0.25f, 0.25f, 1.0f);
 
     bool wire = (seconds - floorf(seconds) > 0.5f);
     int shapeIndex = ((int)seconds) % TYPE_COUNT;
     if (wire) {
-        geometryCache->renderWireShape(batch, SHAPE[shapeIndex]);
+        geometryCache->renderWireShape(batch, SHAPE[shapeIndex], color);
     } else {
-        geometryCache->renderShape(batch, SHAPE[shapeIndex]);
+        geometryCache->renderShape(batch, SHAPE[shapeIndex], color);
     }
 
     batch.setModelTransform(Transform().setScale(1.01f));
-    batch._glColor4f(1, 1, 1, 1);
-    geometryCache->renderWireCube(batch);
+    geometryCache->renderWireCube(batch, glm::vec4(1,1,1,1));
 }
 
 
