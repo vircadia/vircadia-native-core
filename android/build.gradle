@@ -257,7 +257,7 @@ def parseQtDependencies = { List qtLibs ->
 def generateLibsXml = {
     def libDestinationDirectory = jniFolder
     def jarDestinationDirectory = new File(appDir, 'libs')
-    def assetDestinationDirectory = new File(appDir, 'src/main/assets/bundled');
+    def assetDestinationDirectory = new File(appDir, 'src/main/assets/--Added-by-androiddeployqt--');
     def libsXmlFile = new File(appDir, 'src/main/res/values/libs.xml')
     def libPrefix = 'lib' + File.separator
     def jarPrefix = 'jar' + File.separator
@@ -293,7 +293,7 @@ def generateLibsXml = {
         } else if (relativePath.startsWith('jar')) {
             destinationFile = new File(jarDestinationDirectory, relativePath.substring(jarPrefix.size()))
         } else {
-            xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("bundled/${relativePath}:${relativePath}".replace(File.separator, '/'))
+            xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("--Added-by-androiddeployqt--/${relativePath}:${relativePath}".replace(File.separator, '/'))
             destinationFile = new File(assetDestinationDirectory, relativePath)
         }
 
@@ -450,8 +450,67 @@ task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBina
 task cleanDependencies(type: Delete) {
     delete HIFI_ANDROID_PRECOMPILED
     delete 'app/src/main/jniLibs/arm64-v8a'
-    delete 'app/src/main/assets/bundled'
+    delete 'app/src/main/assets/--Added-by-androiddeployqt--'
     delete 'app/src/main/res/values/libs.xml'
+}
+
+task generateAssetsFileList() {
+    doLast {
+        def assetsPath = "${appDir}/src/main/assets/"
+        //def assetsPath = "/Users/cduarte/dev/workspace-hifi/hifiparallel/build_android_hifiqt59/interface/apk/assets/"
+        def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
+        //def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
+
+        def addedByAndroidDeployQtPath = assetsPath + addedByAndroidDeployQtName
+
+        def addedByAndroidDeployQt = new File(addedByAndroidDeployQtPath)
+        if (!addedByAndroidDeployQt.exists() && !addedByAndroidDeployQt.mkdirs()) {
+            throw new GradleScriptException("Failed to create directory " + addedByAndroidDeployQtPath, null);
+        }
+        def outputFilename = "/qt_cache_pregenerated_file_list"
+        //def outputFilename = "/qt_cache_pregenerated_file_list2"
+        def outputFile = new File(addedByAndroidDeployQtPath + outputFilename);
+        Map<String, List<String>> directoryContents = new TreeMap<>();
+
+        def dir = new File(assetsPath)
+        dir.eachFileRecurse (FileType.ANY) { file ->
+
+            def name = file.path.substring(assetsPath.length())
+            int slashIndex = name.lastIndexOf('/')
+            def pathName = slashIndex >= 0 ? name.substring(0, slashIndex) : "/"
+            def fileName = slashIndex >= 0 ? name.substring(pathName.length() + 1) : name
+            if (!fileName.isEmpty() && file.isDirectory() && !fileName.endsWith("/")) {
+                fileName += "/"
+            }
+
+            /*println ("full: [" + file.getAbsolutePath() + "]\n\t"
+                    + "path: [" + pathName + "]\n\t"
+                    + "name: [" + fileName + "]\n\t");*/
+
+            if (!directoryContents.containsKey(pathName)) {
+                directoryContents[pathName] = new ArrayList<String>()
+            }
+            if (!fileName.isEmpty()) {
+                directoryContents[pathName].add(fileName);
+            }
+        }
+        DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
+        for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
+            def entryList = e.getValue()
+            //stream << it.key() << entryList.size();
+            fos.writeInt(e.key.length()*2); // 2 bytes per char
+            fos.writeChars(e.key);
+            fos.writeInt(entryList.size());
+            //println ("dir: " + e.key + " size: " + entryList.size());
+            for (String entry: entryList) {
+                fos.writeInt(entry.length()*2);
+                fos.writeChars(entry);
+                //println("\tentry: " + entry);
+                //stream << entry;
+            }
+        }
+        fos.close();
+    }
 }
 
 /*

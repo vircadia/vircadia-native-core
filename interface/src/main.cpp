@@ -105,10 +105,16 @@ int main(int argc, const char* argv[]) {
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }
-    QFileInfo fInfo("assets:/scripts/test.js");
+
+    std::vector<QString> assetDirs = {
+            "/resources",
+            "/scripts",
+    };
     QDir dirInfo(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
-    QUrl androidPath = QUrl::fromLocalFile(dirInfo.canonicalPath() + "/scripts");
-    PathUtils::copyDirDeep("assets:/scripts", androidPath.toLocalFile());
+    for (std::vector<QString>::iterator it = assetDirs.begin() ; it != assetDirs.end(); ++it) {
+        QString dir = *it;
+        PathUtils::copyDirDeep("assets:" + dir, QUrl::fromLocalFile(dirInfo.canonicalPath() + dir).toLocalFile());
+    }
 
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
