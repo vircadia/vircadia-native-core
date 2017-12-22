@@ -927,7 +927,7 @@ Rectangle {
                 buyText.text = "";
             }
         } else {
-            buyText.text = '<i>Note: This free item will not show up in "My Purchases". You can access it again later from the Marketplace.</i>';
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
             buyTextContainer.color = hifi.colors.white;
             buyTextContainer.border.color = hifi.colors.white;
             buyGlyph.text = "";
