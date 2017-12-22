@@ -436,7 +436,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 wireEventBridge(true);
                 tablet.sendToQml({
                     method: 'updateWalletReferrer',
-                    referrer: message.itemId
+                    referrer: message.referrer === "itemPage" ? message.itemId : message.referrer
                 });
                 openWallet();
                 break;

@@ -61,9 +61,25 @@
     function fromQml(message) {
         switch (message.method) {
             case 'passphrasePopup_cancelClicked':
-            case 'walletSetup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoHomeScreen();
+                break;
+            case 'walletSetup_cancelClicked':
+                switch (message.referrer) {
+                    case '': // User clicked "Wallet" app
+                    case undefined:
+                    case null:
+                        tablet.gotoHomeScreen();
+                        break;
+                    case 'purchases':
+                    case 'marketplace cta':
+                    case 'mainPage':
+                        tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                        break;
+                    default: // User needs to return to an individual marketplace item URL
+                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
+                        break;
+                }
                 break;
             case 'needsLogIn_loginClicked':
                 openLoginWindow();

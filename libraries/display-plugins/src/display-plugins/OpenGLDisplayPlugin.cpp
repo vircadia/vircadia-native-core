@@ -679,6 +679,7 @@ void OpenGLDisplayPlugin::internalPresent() {
 void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
+    uint64_t startPresent = usecTimestampNow();
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
@@ -713,6 +714,7 @@ void OpenGLDisplayPlugin::present() {
 
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     }
+    _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
 
 float OpenGLDisplayPlugin::newFramePresentRate() const {

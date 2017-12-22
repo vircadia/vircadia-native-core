@@ -41,6 +41,7 @@ Rectangle {
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool isWearable;
+    property string referrer;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -131,7 +132,7 @@ Rectangle {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId});
+            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId, referrer: referrer});
         }
     }
 
@@ -877,6 +878,7 @@ Rectangle {
                 itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
+                referrer = message.params.referrer;
                 setBuyText();
             break;
             default:
