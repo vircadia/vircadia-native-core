@@ -3,6 +3,8 @@ import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 import QtQuick.Layouts 1.3
 
+import TabletScriptingInterface 1.0
+
 import "."
 import "../../styles-uit"
 import "../audio" as HifiAudio
@@ -14,12 +16,10 @@ Item {
 
     property int rowIndex: 6 // by default
     property int columnIndex: 1 // point to 'go to location'
-    readonly property int buttonsOnPage: 12
-    readonly property int buttonsRowsOnPage: 4
-    readonly property int buttonsColumnsOnPage: 3
 
     property var currentGridItems: null
-    property var gridPages: [];
+
+    focus: true
 
     Rectangle {
         id: bgTopBar
@@ -116,20 +116,21 @@ Item {
             clip: false
             currentIndex: -1
             property int previousIndex: -1
-
             Repeater {
                 id: pageRepeater
-                model: Math.ceil(tabletProxy.buttons.rowCount() / buttonsOnPage)
-                onCountChanged: console.warn("repeat count", count, tabletProxy.buttons.rowCount())
+                model: Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage)
                 onItemAdded: {
-                    item.pageIndex = index
+                    item.proxyModel.sourceModel = tabletProxy.buttons;
+                    item.proxyModel.pageIndex = index;
                 }
 
                 delegate: Item {
                     id: page
-                    property int pageIndex
-                    onPageIndexChanged: console.warn("page index", pageIndex)
-                    Grid {
+                    property TabletButtonsProxyModel proxyModel: TabletButtonsProxyModel {}
+
+                    GridView {
+                        id: flickable
+                        keyNavigationEnabled: false
                         anchors {
                             fill: parent
                             topMargin: 20
@@ -137,71 +138,57 @@ Item {
                             rightMargin: 30
                             bottomMargin: 0
                         }
-                        rows: 4; columns: 3; rowSpacing: 16; columnSpacing: 16;
-                        Repeater {
-                            id: buttonsRepeater
-                            model: tabletProxy.buttons.rowCount() - (((page.pageIndex + 1) *  buttonsOnPage) % buttonsOnPage)
-                            delegate: Item {
-                                id: wrapper
-                                width: 129
-                                height: 129
-                                property var proxy: modelData
+                        cellWidth: width/3
+                        cellHeight: cellWidth
+                        flow: GridView.LeftToRight
+                        model: page.proxyModel
 
-                                TabletButton {
-                                    id: tabletButton
-                                    anchors.centerIn: parent
-                                    onClicked: modelData.clicked()
-                                    state: wrapper.GridView.isCurrentItem ? "hover state" : "base state"
-                                }
+                        delegate: Item {
+                            id: wrapper
+                            width: flickable.cellWidth
+                            height: flickable.cellHeight
 
-                                Connections {
-                                    target: modelData;
-                                    onPropertiesChanged:  {
-                                        updateProperties();
-                                    }
-                                }
+                            property var proxy: modelData
 
-                                Component.onCompleted: updateProperties()
+                            TabletButton {
+                                id: tabletButton
+                                anchors.centerIn: parent
+                                onClicked: modelData.clicked()
+                                state: wrapper.GridView.isCurrentItem ? "hover state" : "base state"
+                            }
 
-                                function updateProperties() {
-                                    var keys = Object.keys(modelData.properties).forEach(function (key) {
-                                        if (tabletButton[key] !== modelData.properties[key]) {
-                                            tabletButton[key] = modelData.properties[key];
-                                        }
-                                    });
+                            Connections {
+                                target: modelData;
+                                onPropertiesChanged:  {
+                                    updateProperties();
                                 }
                             }
-                        }
-                        Component.onCompleted: {
-//                            tabletProxy.buttonsOnPage.setCurrentPage(page.index);
-//                            buttonsRepeater.model = tabletProxy.buttonsOnPage;
-//                            console.warn("buttons on page:", page.index, tabletProxy.buttonsOnPage.rowCount())
+
+                            Component.onCompleted: updateProperties()
+
+                            function updateProperties() {
+                                var keys = Object.keys(modelData.properties).forEach(function (key) {
+                                    if (tabletButton[key] !== modelData.properties[key]) {
+                                        tabletButton[key] = modelData.properties[key];
+                                    }
+                                });
+                            }
                         }
                     }
                 }
             }
 
             onCurrentIndexChanged: {
-//                if (swipeView.currentIndex < 0
-//                        || swipeView.itemAt(swipeView.currentIndex) === null
-//                        || swipeView.itemAt(swipeView.currentIndex).children[0] === null
-//                        || swipeView.itemAt(swipeView.currentIndex).children[0].children === null) {
-//                    return;
-//                }
+                if (swipeView.currentIndex < 0
+                        || swipeView.itemAt(swipeView.currentIndex) === null
+                        || swipeView.itemAt(swipeView.currentIndex).children[0] === null) {
+                    return;
+                }
 
-//                currentGridItems = swipeView.itemAt(swipeView.currentIndex).children[0].children;
+                currentGridItems = swipeView.itemAt(swipeView.currentIndex).children[0];
 
-//                var row = rowIndex < 0 ? 0 : rowIndex;
-//                var column = previousIndex > swipeView.currentIndex ? buttonsColumnsOnPage - 1 : 0;
-//                var index = row * buttonsColumnsOnPage + column;
-//                if (index < 0 || index >= currentGridItems.length) {
-//                    column = 0;
-//                    row = 0;
-//                }
-//                rowIndex = row;
-//                columnIndex = column;
-//                setCurrentItemState("hover state");
-//                previousIndex = currentIndex;
+                currentGridItems.currentIndex = (previousIndex > swipeView.currentIndex ? currentGridItems.count - 1 : 0);
+                previousIndex = currentIndex;
             }
 
             hoverEnabled: true
@@ -241,70 +228,61 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             count: swipeView.count
         }
-//        GridView {
-//            id: flickable
-//            anchors.top: parent.top
-//            anchors.topMargin: 15
-//            anchors.bottom: parent.bottom
-//            anchors.horizontalCenter: parent.horizontalCenter
-//            width: cellWidth * 3
-//            cellHeight: 145
-//            cellWidth: 145
-//            flow: GridView.LeftToRight
-//            model: tabletProxy.buttons
-//            delegate: Item {
-//                width: flickable.cellWidth
-//                height: flickable.cellHeight
-//                property var proxy: modelData
+    }
 
-//                TabletButton {
-//                    id: tabletButton
-//                    anchors.centerIn: parent
-//                    onClicked: modelData.clicked()
-//                    state: wrapper.GridView.isCurrentItem ? "hover state" : "base state"
-//                }
-
-//                Connections {
-//                    target: modelData;
-//                    onPropertiesChanged:  {
-//                        updateProperties();
-//                    }
-//                }
-
-//                Component.onCompleted: updateProperties()
-
-//                function updateProperties() {
-//                    var keys = Object.keys(modelData.properties).forEach(function (key) {
-//                        if (tabletButton[key] !== modelData.properties[key]) {
-//                            tabletButton[key] = modelData.properties[key];
-//                        }
-//                    });
-//                }
+    function setCurrentItemState(state) {
+//        var buttonIndex = rowIndex * TabletEnums.ButtonsColumnsOnPage + columnIndex;
+//        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
+//            if (currentGridItems[buttonIndex].isActive) {
+//                currentGridItems[buttonIndex].state = "active state";
+//            } else {
+//                currentGridItems[buttonIndex].state = state;
 //            }
 //        }
     }
 
-    function setCurrentItemState(state) {
-        var buttonIndex = rowIndex * buttonsColumnsOnPage + columnIndex;
-        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
-            if (currentGridItems[buttonIndex].isActive) {
-                currentGridItems[buttonIndex].state = "active state";
-            } else {
-                currentGridItems[buttonIndex].state = state;
+    Component.onCompleted: {
+        focus = true;
+        forceActiveFocus();
+    }
+
+    Keys.onRightPressed: {
+        if (!currentGridItems) {
+            return;
+        }
+
+        var index = currentGridItems.currentIndex;
+        currentGridItems.moveCurrentIndexRight();
+        console.warn("onRightPressed", index, currentGridItems.currentIndex, currentGridItems.count)
+        if (index === currentGridItems.count - 1 && index === currentGridItems.currentIndex) {
+            if (swipeView.currentIndex < swipeView.count - 1) {
+                swipeView.incrementCurrentIndex();
             }
         }
     }
 
-//    Keys.onRightPressed: flickable.moveCurrentIndexRight();
-//    Keys.onLeftPressed: flickable.moveCurrentIndexLeft();
-//    Keys.onDownPressed: flickable.moveCurrentIndexDown();
-//    Keys.onUpPressed: flickable.moveCurrentIndexUp();
-//    Keys.onReturnPressed: {
-//        if (flickable.currentItem) {
-//            flickable.currentItem.proxy.clicked();
-//            if (tabletRoot) {
-//                tabletRoot.playButtonClickSound();
-//            }
-//        }
-//    }
+    Keys.onLeftPressed: {
+        if (!currentGridItems) {
+            return;
+        }
+
+        var index = currentGridItems.currentIndex;
+        currentGridItems.moveCurrentIndexLeft();
+        console.warn("onLeftPressed", index, currentGridItems.currentIndex, currentGridItems.count)
+        if (index === 0 && index === currentGridItems.currentIndex) {
+            if (swipeView.currentIndex > 0) {
+                swipeView.decrementCurrentIndex();
+            }
+        }
+    }
+    Keys.onDownPressed: currentGridItems.moveCurrentIndexDown();
+    Keys.onUpPressed: currentGridItems.moveCurrentIndexUp();
+    Keys.onReturnPressed: {
+        if (currentGridItems.currentItem) {
+            currentGridItems.currentItem.proxy.clicked();
+            if (tabletRoot) {
+                tabletRoot.playButtonClickSound();
+            }
+        }
+    }
 }

@@ -47,6 +47,10 @@ public:
     enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
     Q_ENUM(TabletAudioEvents)
 
+    //Different useful constants
+    enum TabletConstants { ButtonsColumnsOnPage = 3, ButtonsRowsOnPage = 4, ButtonsOnPage = 12 };
+    Q_ENUM(TabletConstants)
+
     TabletScriptingInterface();
     virtual ~TabletScriptingInterface();
     static const QString QML;
@@ -123,18 +127,23 @@ class TabletButtonsProxyModel : public QSortFilterProxyModel
 {
     Q_OBJECT
 
+    Q_PROPERTY(int pageIndex READ pageIndex WRITE setPageIndex NOTIFY pageIndexChanged)
 public:
     TabletButtonsProxyModel(QObject *parent = 0);
+    int pageIndex() const;
 
-    int currentPage() const;
-    Q_INVOKABLE void setCurrentPage(int currentPage);
+public slots:
+    void setPageIndex(int pageIndex);
+
+signals:
+    void pageIndexChanged(int pageIndex);
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
     bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
-    int _currentPage;
+    int _pageIndex;
 };
 
 Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
@@ -152,7 +161,6 @@ class TabletProxy : public QObject {
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
     Q_PROPERTY(TabletButtonListModel* buttons READ getButtons CONSTANT)
-    Q_PROPERTY(TabletButtonsProxyModel* buttonsOnPage READ getButtonsOnPage CONSTANT)
 public:
     TabletProxy(QObject* parent, const QString& name);
     ~TabletProxy();
@@ -256,7 +264,6 @@ public:
     QQuickItem* getQmlMenu() const;
 
     TabletButtonListModel* getButtons() { return &_buttons; }
-    TabletButtonsProxyModel* getButtonsOnPage() { return &_buttonsProxy; }
 
 signals:
     /**jsdoc
@@ -317,7 +324,6 @@ protected:
     bool _showRunningScripts { false };
 
     TabletButtonListModel _buttons;
-    TabletButtonsProxyModel _buttonsProxy;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);

@@ -93,21 +93,28 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
 }
 
 TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
-    : QSortFilterProxyModel(parent){
+    : QSortFilterProxyModel(parent), _pageIndex(-1) {
 }
 
-int TabletButtonsProxyModel::currentPage() const {
-    return _currentPage;
+int TabletButtonsProxyModel::pageIndex() const {
+    return _pageIndex;
 }
 
-void TabletButtonsProxyModel::setCurrentPage(int currentPage) {
-    _currentPage = currentPage;
+void TabletButtonsProxyModel::setPageIndex(int pageIndex)
+{
+    if (_pageIndex == pageIndex)
+        return;
+
+    _pageIndex = pageIndex;
     invalidateFilter();
+    emit pageIndexChanged(_pageIndex);
 }
 
 bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
-        const QModelIndex &sourceParent) const {
-    return (sourceRow >= _currentPage*12 && sourceRow < _currentPage*12);
+                                               const QModelIndex &sourceParent) const {
+    Q_UNUSED(sourceParent);
+    return (sourceRow >= _pageIndex*TabletScriptingInterface::ButtonsOnPage
+            && sourceRow < (_pageIndex + 1)*TabletScriptingInterface::ButtonsOnPage);
 }
 
 bool TabletButtonsProxyModel::lessThan(const QModelIndex &left,
@@ -300,7 +307,6 @@ TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent)
         qCWarning(uiLogging) << "Creating tablet proxy on wrong thread " << _name;
     }
     connect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
-    _buttonsProxy.setSourceModel(&_buttons);
 }
 
 TabletProxy::~TabletProxy() {
