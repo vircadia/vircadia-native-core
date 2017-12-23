@@ -622,7 +622,7 @@ void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer&
         _isLayeredInFront = isLayeredInFront;
 
         bool isVisible = _isVisible;
-        bool isLayeredInHUD = _isLayeredInFront;
+        bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
@@ -646,7 +646,7 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         _isLayeredInHUD = isLayeredInHUD;
 
         bool isVisible = _isVisible;
-        bool isLayeredInFront = isLayeredInFront;
+        bool isLayeredInFront = _isLayeredInFront;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
