@@ -303,6 +303,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     batch.setInputBuffer(0, _verticesBuffer, 0, sizeof(Vertex));
 
 #ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
+    // glColor4f must be called after setInputFormat if it must be taken into account
     if (_isFading) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
     } else {
