@@ -118,20 +118,16 @@ public:
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
 
-    static const uint32_t DEFAULT_HAZE_MODE{ (uint32_t)COMPONENT_MODE_INHERIT };
-    static const uint32_t DEFAULT_KEY_LIGHT_MODE{ (uint32_t)COMPONENT_MODE_ENABLED };    // so as not to change previous behaviour 
-    static const uint32_t DEFAULT_AMBIENT_LIGHT_MODE{ (uint32_t)COMPONENT_MODE_ENABLED };
-
 protected:
     KeyLightPropertyGroup _keyLightProperties;
 
     ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
     QString _compoundShapeURL;
 
-    BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-    uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
-    uint32_t _keyLightMode{ DEFAULT_KEY_LIGHT_MODE };
-    uint32_t _ambientLightMode{ DEFAULT_AMBIENT_LIGHT_MODE };
+    BackgroundMode _backgroundMode { BACKGROUND_MODE_INHERIT };
+    uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
+    uint32_t _keyLightMode { COMPONENT_MODE_INHERIT };
+    uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
