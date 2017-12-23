@@ -253,6 +253,7 @@ protected:
 
     struct InputStageState {
         bool _invalidFormat { true };
+        bool _hadColorAttribute{ true };
         Stream::FormatPointer _format;
         std::string _formatKey;
 

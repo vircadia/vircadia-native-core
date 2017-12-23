@@ -349,7 +349,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
 
-            const EntityRendererPointer& getRenderer() const { return _renderer; }
+            EntityRendererPointer getRenderer() const { return _renderer; }
         private:
             EntityRendererPointer _renderer;
         };
@@ -382,7 +382,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                const auto renderable = sortedRenderables.top().getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
                 sortedRenderables.pop();
