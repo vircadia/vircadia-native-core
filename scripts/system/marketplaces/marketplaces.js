@@ -11,19 +11,21 @@
 /* global Tablet, Script, HMD, UserActivityLogger, Entities */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
+var selectionDisplay = null; // for gridTool.js to ignore
+
 (function () { // BEGIN LOCAL_SCOPE
 
-    Script.include("../libraries/WebTablet.js");
+    Script.include("/~/system/libraries/WebTablet.js");
+    Script.include("/~/system/libraries/gridTool.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH_BASE = "qml/hifi/commerce/checkout/Checkout.qml";
-    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + MARKETPLACE_CHECKOUT_QML_PATH_BASE;
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
-    var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+    var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -111,7 +113,7 @@
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
@@ -168,6 +170,33 @@
                 metaverseServerURL: Account.metaverseServerURL
             }
         }));
+    }
+
+    var grid = new Grid();
+    function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+        // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
+        // position in the given direction.
+        var CORNERS = [
+            { x: 0, y: 0, z: 0 },
+            { x: 0, y: 0, z: 1 },
+            { x: 0, y: 1, z: 0 },
+            { x: 0, y: 1, z: 1 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 0, z: 1 },
+            { x: 1, y: 1, z: 0 },
+            { x: 1, y: 1, z: 1 },
+        ];
+
+        // Go through all corners and find least (most negative) distance in front of position.
+        var distance = 0;
+        for (var i = 0, length = CORNERS.length; i < length; i++) {
+            var cornerVector =
+                Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+            var cornerDistance = Vec3.dot(cornerVector, direction);
+            distance = Math.min(cornerDistance, distance);
+        }
+        position = Vec3.sum(Vec3.multiply(distance, direction), position);
+        return position;
     }
 
     var HALF_TREE_SCALE = 16384;
@@ -257,10 +286,6 @@
                             }
                         }
                     }
-                }
-
-                if (isActive) {
-                    selectionManager.setSelections(pastedEntityIDs);
                 }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
@@ -411,7 +436,7 @@
                 wireEventBridge(true);
                 tablet.sendToQml({
                     method: 'updateWalletReferrer',
-                    referrer: message.itemId
+                    referrer: message.referrer === "itemPage" ? message.itemId : message.referrer
                 });
                 openWallet();
                 break;
@@ -428,8 +453,10 @@
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
             case 'checkout_itemLinkClicked':
-            case 'checkout_continueShopping':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'checkout_continueShopping':
+                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
             case 'purchases_itemInfoClicked':
@@ -464,7 +491,7 @@
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             case 'purchases_openGoTo':
-                tablet.loadQMLSource("TabletAddressDialog.qml");
+                tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
                 setCertificateInfo("", message.itemCertificateId);

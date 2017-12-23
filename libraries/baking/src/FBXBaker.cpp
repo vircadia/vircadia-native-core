@@ -607,7 +607,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 return;
                             }
 
-                            if (!TextureBaker::getSupportedFormats().contains(textureFileInfo.suffix())) {
+                            if (!image::getSupportedFormats().contains(textureFileInfo.suffix())) {
                                 // this is a texture format we don't bake, skip it
                                 handleWarning(fbxTextureFileName + " is not a bakeable texture format");
                                 continue;

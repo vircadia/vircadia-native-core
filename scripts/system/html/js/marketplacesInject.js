@@ -199,7 +199,7 @@
             var purchasesElement = document.createElement('a');
             var dropDownElement = document.getElementById('user-dropdown');
 
-            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" + 
+            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" +
                 "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
             $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
 
@@ -243,13 +243,15 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href) {
+    function buyButtonClicked(id, name, author, price, href, referrer) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
             itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href
+            itemHref: href,
+            referrer: referrer,
+            itemAuthor: author
         }));
     }
 
@@ -265,8 +267,10 @@
         });
 
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
-            $(this).attr('data-href', $(this).attr('href'));
-            $(this).attr('href', '#');
+            if ($(this).attr('href') !== '#') { // Guard necessary because of the AJAX nature of Marketplace site
+                $(this).attr('data-href', $(this).attr('href'));
+                $(this).attr('href', '#');
+            }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
@@ -314,7 +318,8 @@
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
                 $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'));
+                $(this).attr('data-href'),
+                "mainPage");
         });
     }
 
@@ -324,6 +329,19 @@
             if (document.activeElement) {
                 document.activeElement.blur();
             }
+        });
+    }
+
+    // fix for 10108 - marketplace category cannot scroll
+    function injectAddScrollbarToCategories() {
+        $('#categories-dropdown').on('show.bs.dropdown', function () {
+            $('body > div.container').css('display', 'none')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' })
+        });
+
+        $('#categories-dropdown').on('hide.bs.dropdown', function () {
+            $('body > div.container').css('display', '')
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' })
         });
     }
 
@@ -358,6 +376,7 @@
         }
 
         injectUnfocusOnSearch();
+        injectAddScrollbarToCategories();
     }
 
     function injectHiFiItemPageCode() {
@@ -373,27 +392,41 @@
 
                 var href = purchaseButton.attr('href');
                 purchaseButton.attr('href', '#');
-                purchaseButton.css({
-                    "background": "linear-gradient(#00b4ef, #0093C5)",
-                    "color": "#FFF",
-                    "font-weight": "600",
-                    "padding-bottom": "10px"
-                });
+                var availability = $.trim($('.item-availability').text());
+                if (availability === 'available') {
+                    purchaseButton.css({
+                        "background": "linear-gradient(#00b4ef, #0093C5)",
+                        "color": "#FFF",
+                        "font-weight": "600",
+                        "padding-bottom": "10px"
+                    });
+                } else {
+                    purchaseButton.css({
+                        "background": "linear-gradient(#a2a2a2, #fefefe)",
+                        "color": "#000",
+                        "font-weight": "600",
+                        "padding-bottom": "10px"
+                    });
+                }
 
                 var cost = $('.item-cost').text();
-
-                if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                if (availability !== 'available') {
+                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
+                } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
                 }
 
                 purchaseButton.on('click', function () {
-                    buyButtonClicked(window.location.pathname.split("/")[3],
-                        $('#top-center').find('h1').text(),
-                        $('#creator').find('.value').text(),
-                        cost,
-                        href);
-                });
+                    if ('available' === availability) {
+                        buyButtonClicked(window.location.pathname.split("/")[3],
+                            $('#top-center').find('h1').text(),
+                            $('#creator').find('.value').text(),
+                            cost,
+                            href,
+                            "itemPage");
+                        }
+                    });
                 maybeAddPurchasesButton();
             }
         }

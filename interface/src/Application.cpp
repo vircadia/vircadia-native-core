@@ -970,7 +970,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto addressManager = DependencyManager::get<AddressManager>();
 
@@ -1492,6 +1492,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        }
+    });
+
+    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [=](const EntityItemID& entityItemID) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        if (myAvatar) {
+            myAvatar->clearAvatarEntity(entityItemID);
         }
     });
 
@@ -2239,27 +2247,65 @@ extern void setupPreferences();
 void Application::initializeUi() {
     // Make sure all QML surfaces share the main thread GL context
     OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "OverlayWindowTest.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "Whitelist OverlayWindow worked";
+        context->setContextProperty("OverlayWindowTestString", "TestWorked");
+    });
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "hifi/audio/Audio.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "QQQ" << __FUNCTION__ << "Whitelist Audio worked";
+    });
+
 
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
-    QmlCommerce::registerType();
+    QmlContextCallback callback = [](QQmlContext* context) {
+        context->setContextProperty("Commerce", new QmlCommerce());
+    };
+    OffscreenQmlSurface::addWhitelistContextHandler({
+        QUrl{ "hifi/commerce/checkout/Checkout.qml" },
+        QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
+        QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
+        QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
+        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
+        QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
+        QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
+        QUrl{ "hifi/commerce/purchases/Purchases.qml" },
+        QUrl{ "hifi/commerce/wallet/Help.qml" },
+        QUrl{ "hifi/commerce/wallet/NeedsLogIn.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseChange.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseModal.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseSelection.qml" },
+        QUrl{ "hifi/commerce/wallet/Security.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
+        QUrl{ "hifi/commerce/wallet/SendMoney.qml" },
+        QUrl{ "hifi/commerce/wallet/Wallet.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
+    }, callback);
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
 
+    {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        tabletScriptingInterface->getTablet(SYSTEM_TABLET);
+    }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create();
 
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
-    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -2327,9 +2373,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-    surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -2811,10 +2854,10 @@ static int getEventQueueSize(QThread* thread) {
 static void dumpEventQueue(QThread* thread) {
     auto threadData = QThreadData::get2(thread);
     QMutexLocker locker(&threadData->postEventList.mutex);
-    qDebug() << "AJT: event list, size =" << threadData->postEventList.size();
+    qDebug() << "Event list, size =" << threadData->postEventList.size();
     for (auto& postEvent : threadData->postEventList) {
         QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
-        qDebug() << "AJT:    " << type;
+        qDebug() << "    " << type;
     }
 }
 #endif // DEBUG_EVENT_QUEUE
@@ -3220,8 +3263,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
         }
     }
 }
-
-
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
@@ -4281,9 +4322,11 @@ void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        float batchTime = (float)_gpuContext->getFrameTimerBatchAverage();
+        float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
-        DependencyManager::get<LODManager>()->autoAdjustLOD(batchTime, engineRunTime, deltaTime);
+        float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
+        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -4847,8 +4890,7 @@ void Application::update(float deltaTime) {
         if (_physicsEnabled) {
             {
                 PROFILE_RANGE(simulation_physics, "PreStep");
-
-                PerformanceTimer perfTimer("updateStates)");
+                PerformanceTimer perfTimer("preStep)");
                 static VectorOfMotionStates motionStates;
                 _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
@@ -4881,22 +4923,22 @@ void Application::update(float deltaTime) {
             }
             {
                 PROFILE_RANGE(simulation_physics, "Step");
-                PerformanceTimer perfTimer("stepSimulation");
+                PerformanceTimer perfTimer("step");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
                 PROFILE_RANGE(simulation_physics, "PostStep");
-                PerformanceTimer perfTimer("harvestChanges");
+                PerformanceTimer perfTimer("postStep");
                 if (_physicsEngine->hasOutgoingChanges()) {
                     // grab the collision events BEFORE handleOutgoingChanges() because at this point
                     // we have a better idea of which objects we own or should own.
                     auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
                     getEntities()->getTree()->withWriteLock([&] {
-                        PROFILE_RANGE(simulation_physics, "Harvest");
-                        PerformanceTimer perfTimer("handleOutgoingChanges");
+                        PROFILE_RANGE(simulation_physics, "HandleChanges");
+                        PerformanceTimer perfTimer("handleChanges");
 
                         const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                         _entitySimulation->handleChangedMotionStates(outgoingChanges);
@@ -4907,17 +4949,15 @@ void Application::update(float deltaTime) {
                     });
 
                     if (!_aboutToQuit) {
-                        // handleCollisionEvents() AFTER handleOutgoinChanges()
+                        // handleCollisionEvents() AFTER handleOutgoingChanges()
                         {
                             PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                            PerformanceTimer perfTimer("entities");
                             avatarManager->handleCollisionEvents(collisionEvents);
                             // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
                             // deadlock.)
                             _entitySimulation->handleCollisionEvents(collisionEvents);
                         }
 
-                        PROFILE_RANGE(simulation_physics, "UpdateEntities");
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                         getEntities()->update(true); // update the models...
@@ -4928,7 +4968,8 @@ void Application::update(float deltaTime) {
                         myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
                     }
 
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                    if (PerformanceTimer::isActive() &&
+                            Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
                             Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
                         _physicsEngine->harvestPerformanceStats();
                     }
@@ -5831,9 +5872,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
     qScriptRegisterMetaType(scriptEngine.data(),
                             wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-    scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    // FIXME remove these deprecated names for the tablet scripting interface
+    scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
 
     auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>().data();
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
@@ -5973,7 +6014,7 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         }
     }
 
-    if (defaultUpload) {
+    if (defaultUpload && !url.fileName().isEmpty() && url.isLocalFile()) {
         showAssetServerWidget(urlString);
     }
     return defaultUpload;
@@ -7240,13 +7281,17 @@ void Application::updateDisplayMode() {
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto desktop = offscreenUi->getDesktop();
 
     // Make the switch atomic from the perspective of other threads
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
-        bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
-        offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        bool wasRepositionLocked = false;
+        if (desktop) {
+            // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
+            wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
+            offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        }
 
         if (_displayPlugin) {
             disconnect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
@@ -7292,7 +7337,6 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);
-        auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);
         }
@@ -7505,4 +7549,9 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
+
+void Application::saveNextPhysicsStats(QString filename) {
+    _physicsEngine->saveNextPhysicsStats(filename);
+}
+
 #include "Application.moc"

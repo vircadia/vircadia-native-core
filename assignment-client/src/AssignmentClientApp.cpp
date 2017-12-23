@@ -46,8 +46,14 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption helpOption = parser.addHelpOption();
 
-    const QCommandLineOption clientTypeOption(ASSIGNMENT_TYPE_OVERRIDE_OPTION,
-                                              "run single assignment client of given type", "type");
+    QString typeDescription = "run single assignment client of given type\n# | Type\n============================";
+    for (Assignment::Type type = Assignment::FirstType;
+        type != Assignment::AllTypes;
+        type = static_cast<Assignment::Type>(static_cast<int>(type) + 1)) {
+        typeDescription.append(QStringLiteral("\n%1 | %2").arg(QString::number(type), Assignment::typeToString(type)));
+    }
+    const QCommandLineOption clientTypeOption(ASSIGNMENT_TYPE_OVERRIDE_OPTION, typeDescription, "type");
+
     parser.addOption(clientTypeOption);
 
     const QCommandLineOption poolOption(ASSIGNMENT_POOL_OPTION, "set assignment pool", "pool-name");

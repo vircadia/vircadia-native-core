@@ -31,7 +31,7 @@ class AnimInverseKinematics;
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
 
-class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+class Rig : public QObject {
     Q_OBJECT
 public:
     struct StateHandler {
@@ -230,6 +230,9 @@ public:
     void setEnableAnimations(bool enable);
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
+
+    const AnimPose& getModelOffsetPose() const { return _modelOffset; }
+    const AnimPose& getGeometryOffsetPose() const { return _geometryOffset; }
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
     void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }

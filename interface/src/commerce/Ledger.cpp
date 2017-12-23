@@ -61,7 +61,7 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
 
 void Ledger::signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure) {
     auto wallet = DependencyManager::get<Wallet>();
-    QString signature = key.isEmpty() ? "" : wallet->signWithKey(text, key);
+    QString signature = wallet->signWithKey(text, key);
     QJsonObject request;
     request[propertyName] = QString(text);
     if (!controlled_failure) {
@@ -130,7 +130,7 @@ QString amountString(const QString& label, const QString&color, const QJsonValue
     return result + QString("</font>");
 }
 
-static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 void Ledger::historySuccess(QNetworkReply& reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the

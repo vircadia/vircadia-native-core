@@ -74,6 +74,32 @@ static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING
         GeometryCache::Cylinder,
 } };
 
+/**jsdoc
+* <p>{@link Entities} and {@link Overlays} may have the following geometrical shapes:</p>
+* <table>
+*   <thead>
+*     <tr><th>Value</th><th>Description</th></tr>
+*   </thead>
+*   <tbody>
+*     <tr><td><code>Line</code></td><td>A 1D line oriented in 3 dimensions.</td></tr>
+*     <tr><td><code>Triangle</code></td><td>A triangular prism.</td></tr>
+*     <tr><td><code>Quad</code></td><td>A 2D square oriented in 3 dimensions.</tr>
+*     <tr><td><code>Hexagon</code></td><td>A hexagonal prism.</td></tr>
+*     <tr><td><code>Octagon</code></td><td>An octagonal prism.</td></tr>
+*     <tr><td><code>Circle</code></td><td>A 2D circle oriented in 3 dimensions.</td></td></tr>
+*     <tr><td><code>Cube</code></td><td>A cube.</td></tr>
+*     <tr><td><code>Sphere</code></td><td>A sphere.</td></tr>
+*     <tr><td><code>Tetrahedron</code></td><td>A tetrahedron.</td></tr>
+*     <tr><td><code>Octahedron</code></td><td>An octahedron.</td></tr>
+*     <tr><td><code>Dodecahedron</code></td><td>A dodecahedron.</td></tr>
+*     <tr><td><code>Icosahedron</code></td><td>An icosahedron.</td></tr>
+*     <tr><td><code>Torus</code></td><td>A torus. <em>Not implemented.</em></td></tr>
+*     <tr><td><code>Cone</code></td><td>A cone.</td></tr>
+*     <tr><td><code>Cylinder</code></td><td>A cylinder.</td></tr>
+*   </tbody>
+* </table>
+* @typedef {string} Shape
+*/
 static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
         "Line",
         "Triangle",
@@ -734,6 +760,20 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
     _shapes[shape].drawWire(batch);
 }
 
+void GeometryCache::renderShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
+    batch.setInputFormat(getSolidStreamFormat());
+    // Color must be set after input format
+    batch._glColor4f(color.r, color.g, color.b, color.a);
+    _shapes[shape].draw(batch);
+}
+
+void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color) {
+    batch.setInputFormat(getSolidStreamFormat());
+    // Color must be set after input format
+    batch._glColor4f(color.r, color.g, color.b, color.a);
+    _shapes[shape].drawWire(batch);
+}
+
 void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     batch.setInputBuffer(gpu::Stream::COLOR, colorView);
@@ -785,12 +825,28 @@ void GeometryCache::renderWireCube(gpu::Batch& batch) {
     renderWireShape(batch, Cube);
 }
 
+void GeometryCache::renderCube(gpu::Batch& batch, const glm::vec4& color) {
+    renderShape(batch, Cube, color);
+}
+
+void GeometryCache::renderWireCube(gpu::Batch& batch, const glm::vec4& color) {
+    renderWireShape(batch, Cube, color);
+}
+
 void GeometryCache::renderSphere(gpu::Batch& batch) {
     renderShape(batch, Sphere);
 }
 
 void GeometryCache::renderWireSphere(gpu::Batch& batch) {
     renderWireShape(batch, Sphere);
+}
+
+void GeometryCache::renderSphere(gpu::Batch& batch, const glm::vec4& color) {
+    renderShape(batch, Sphere, color);
+}
+
+void GeometryCache::renderWireSphere(gpu::Batch& batch, const glm::vec4& color) {
+    renderWireShape(batch, Sphere, color);
 }
 
 void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,

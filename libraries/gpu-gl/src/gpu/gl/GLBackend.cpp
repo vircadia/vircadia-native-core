@@ -40,10 +40,6 @@ static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(
 static GLBackend* INSTANCE{ nullptr };
 
 BackendPointer GLBackend::createBackend() {
-    // The ATI memory info extension only exposes 'free memory' so we want to force it to 
-    // cache the value as early as possible
-    getDedicatedMemory();
-
     // FIXME provide a mechanism to override the backend for testing
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
@@ -609,6 +605,10 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
     if (_input._colorAttribute != newColor) {
         _input._colorAttribute = newColor;
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
+        // Color has been changed and is not white. To prevent colors from bleeding
+        // between different objects, we need to set the _hadColorAttribute flag
+        // as if a previous render call had potential colors
+        _input._hadColorAttribute = (newColor != glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
     (void)CHECK_GL_ERROR();
 }
@@ -776,7 +776,7 @@ void GLBackend::recycle() const {
 
     GLVariableAllocationSupport::manageMemory();
     GLVariableAllocationSupport::_frameTexturesCreated = 0;
-
+    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {

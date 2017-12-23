@@ -32,7 +32,6 @@ private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
-    void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 

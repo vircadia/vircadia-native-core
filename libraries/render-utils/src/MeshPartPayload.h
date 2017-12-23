@@ -96,32 +96,32 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
+    void setKey(bool isVisible, bool isLayered);
+    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
+    void setShapeKey(bool invalidateShapeKey, bool isWireframe);
+
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
-    void initCache();
-
     void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
 
     gpu::BufferPointer _clusterBuffer;
-    ModelWeakPointer _model;
 
     int _meshIndex;
     int _shapeID;
 
     bool _isSkinned{ false };
     bool _isBlendShaped { false };
-    bool _materialNeedsUpdate { true };
+    bool _hasTangents { false };
 
 private:
+    void initCache(const ModelPointer& model);
 
-    enum State : uint8_t {
-        WAITING_TO_START = 0,
-        STARTED = 1,
-    };
-
-    mutable State _state { WAITING_TO_START } ;
+    gpu::BufferPointer _blendedVertexBuffer;
+    render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
+    render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    int _layer { render::Item::LAYER_3D };
 };
 
 namespace render {

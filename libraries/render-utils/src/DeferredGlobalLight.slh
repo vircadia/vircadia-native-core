@@ -91,6 +91,7 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
 
 <@endfunc@>
 
+<@include Haze.slh@>
 
 <@func declareEvalSkyboxGlobalColor(supportScattering)@>
 
@@ -100,8 +101,6 @@ vec3 albedo, vec3 fresnel, float metallic, float roughness
 <@if supportScattering@>
 <$declareDeferredCurvature()$>
 <@endif@>
-
-<@include Haze.slh@>
 
 vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal,
     vec3 albedo, vec3 fresnel, float metallic, float roughness
@@ -122,7 +121,6 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += ambientDiffuse;
     color += ambientSpecular;
 
-    // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation
@@ -135,52 +133,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
     // Attenuate the light if haze effect selected
     if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
-        // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
-        // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
-        //
-        // The distance is computed from the height and the directional light orientation
-        // The distance is limited to height * 1,000, which gives an angle of ~0.057 degrees
-
-        // Get directional light
-        Light light = getLight();
-        vec3 lightDirection = getLightDirection(light);
-
-        // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
-        float height_95p = 2000.0;
-        if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
-            height_95p = -log(0.05) / hazeParams.hazeKeyLightAltitudeFactor;
-        }
-
-        // Note that the sine will always be positive
-        float sin_pitch = sqrt(1.0 - lightDirection.y * lightDirection.y);
-            
-        float distance;
-        const float minimumSinPitch = 0.001;
-        if (sin_pitch < minimumSinPitch) {
-            distance = height_95p / minimumSinPitch;
-        } else {
-            distance = height_95p / sin_pitch;
-        }
-
-        // Position of fragment in world coordinates
-        vec4 worldFragPos = invViewMat * vec4(position, 0.0);
-
-        // Integration is from the fragment towards the light source
-        // Note that the haze base reference affects only the haze density as function of altitude
-        float hazeDensityDistribution =  
-            hazeParams.hazeKeyLightRangeFactor * 
-            exp(-hazeParams.hazeKeyLightAltitudeFactor * (worldFragPos.y - hazeParams.hazeBaseReference));
-
-        float hazeIntegral =  hazeDensityDistribution * distance;
-
-        // Note that t is constant and equal to -log(0.05)
-        //      float t = hazeParams.hazeAltitudeFactor * height_95p;
-        //      hazeIntegral *= (1.0 - exp (-t)) / t;
-        hazeIntegral *= 0.3171178;
-
-        float hazeAmount = 1.0 - exp(-hazeIntegral);
-
-        color = mix(color, vec3(0.0, 0.0, 0.0), hazeAmount);
+        color = computeHazeColorKeyLightAttenuation(color, lightDirection, position);    
     }
 
     return color;
@@ -213,9 +166,6 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 }
 <@endfunc@>
 
-
-
-
 <@func declareEvalGlobalLightingAlphaBlended()@>
 
 <$declareLightingAmbient(1, 1, 1)$>
@@ -233,7 +183,6 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     color += ambientDiffuse;
     color += ambientSpecular / opacity;
 
-
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
@@ -244,6 +193,43 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     return color;
 }
 
+vec3 evalGlobalLightingAlphaBlendedWithHaze(
+    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, 
+    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) 
+{
+    <$prepareGlobalLight()$>
+    
+    color += emissive * isEmissiveEnabled();
+
+    // Ambient
+    vec3 ambientDiffuse;
+    vec3 ambientSpecular;
+    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance);
+    color += ambientDiffuse;
+    color += ambientSpecular / opacity;
+
+    // Directional
+    vec3 directionalDiffuse;
+    vec3 directionalSpecular;
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
+    color += directionalDiffuse;
+    color += directionalSpecular / opacity;
+
+    // Haze
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+        vec4 colorV4 = computeHazeColor(
+            vec4(color, 1.0),               // fragment original color
+            position,                       // fragment position in eye   coordinates
+            fragEyeVector,                  // fragment position in world coordinates
+            invViewMat[3].y,                // eye      height   in world coordinates
+            lightDirection                  // keylight direction vector
+        );
+
+        color = colorV4.rgb;
+    }
+
+    return color;
+}
 <@endfunc@>
 
 

@@ -117,6 +117,55 @@ void AvatarData::setTargetScale(float targetScale) {
     }
 }
 
+float AvatarData::getDomainLimitedScale() const {
+    if (canMeasureEyeHeight()) {
+        const float minScale = getDomainMinScale();
+        const float maxScale = getDomainMaxScale();
+        return glm::clamp(_targetScale, minScale, maxScale);
+    } else {
+        // We can't make a good estimate.
+        return _targetScale;
+    }
+}
+
+void AvatarData::setDomainMinimumHeight(float domainMinimumHeight) {
+    _domainMinimumHeight = glm::clamp(domainMinimumHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
+}
+
+void AvatarData::setDomainMaximumHeight(float domainMaximumHeight) {
+    _domainMaximumHeight = glm::clamp(domainMaximumHeight, MIN_AVATAR_HEIGHT, MAX_AVATAR_HEIGHT);
+}
+
+float AvatarData::getDomainMinScale() const {
+    float unscaledHeight = getUnscaledHeight();
+    const float EPSILON = 1.0e-4f;
+    if (unscaledHeight <= EPSILON) {
+        unscaledHeight = DEFAULT_AVATAR_HEIGHT;
+    }
+    return _domainMinimumHeight / unscaledHeight;
+}
+
+float AvatarData::getDomainMaxScale() const {
+    float unscaledHeight = getUnscaledHeight();
+    const float EPSILON = 1.0e-4f;
+    if (unscaledHeight <= EPSILON) {
+        unscaledHeight = DEFAULT_AVATAR_HEIGHT;
+    }
+    return _domainMaximumHeight / unscaledHeight;
+}
+
+float AvatarData::getUnscaledHeight() const {
+    const float eyeHeight = getUnscaledEyeHeight();
+    const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+    return eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+}
+
+float AvatarData::getHeight() const {
+    const float eyeHeight = getEyeHeight();
+    const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+    return eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+}
+
 glm::vec3 AvatarData::getHandPosition() const {
     return getWorldOrientation() * _handPosition + getWorldPosition();
 }

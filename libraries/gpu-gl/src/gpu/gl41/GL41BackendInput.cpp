@@ -62,6 +62,8 @@ void GL41Backend::updateInput() {
 
         // now we need to bind the buffers and assign the attrib pointers
         if (_input._format) {
+            bool hasColorAttribute{ false };
+
             const Buffers& buffers = _input._buffers;
             const Offsets& offsets = _input._bufferOffsets;
             const Offsets& strides = _input._bufferStrides;
@@ -98,6 +100,8 @@ void GL41Backend::updateInput() {
                             uintptr_t pointer = (uintptr_t)(attrib._offset + offsets[bufferNum]);
                             GLboolean isNormalized = attrib._element.isNormalized();
 
+                            hasColorAttribute = hasColorAttribute || (slot == Stream::COLOR);
+
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {
                                 if (attrib._element.isInteger()) {
                                     glVertexAttribIPointer(slot + (GLuint)locNum, count, type, stride,
@@ -117,6 +121,15 @@ void GL41Backend::updateInput() {
                     }
                 }
             }
+
+            if (_input._hadColorAttribute && !hasColorAttribute) {
+                // The previous input stage had a color attribute but this one doesn't so reset
+                // color to pure white.
+                const auto white = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                glVertexAttrib4fv(Stream::COLOR, &white.r);
+                _input._colorAttribute = white;
+            }
+            _input._hadColorAttribute = hasColorAttribute;
         }
         // everything format related should be in sync now
         _input._invalidFormat = false;

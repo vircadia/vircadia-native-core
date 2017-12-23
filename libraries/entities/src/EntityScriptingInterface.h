@@ -423,6 +423,12 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
+
+    /**jsdoc
+    * Return the Static Certificate JSON for the specified {EntityID}.
+    * @return {QByteArray} The Static Certificate JSON for the specified entity.
+    */
+    Q_INVOKABLE QString getStaticCertificateJSON(const QUuid& entityID);
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
 signals:

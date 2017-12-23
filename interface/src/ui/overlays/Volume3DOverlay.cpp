@@ -62,6 +62,11 @@ void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Volume3DOverlay.
+/**jsdoc
+ * @typedef
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ */
 QVariant Volume3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
         return vec3toVariant(getDimensions());

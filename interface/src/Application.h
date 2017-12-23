@@ -280,6 +280,7 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void saveNextPhysicsStats(QString filename);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -432,6 +433,7 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
 private:
     static void initDisplay();
     void init();
