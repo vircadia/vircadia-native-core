@@ -141,21 +141,27 @@ Item {
                             bottomMargin: 0
                         }
 
-                        function setButtonState(buttonIndex) {
-                            var itemat = gridView.contentItem.children[buttonIndex];
+                        function setButtonState(buttonIndex, buttonstate) {
+                            if (buttonIndex < 0) {
+                                return;
+                            }
+
+                            var itemat = gridView.contentItem.children[buttonIndex].children[0];
+                            console.warn("changing item at", buttonIndex, state, itemat.objectName,
+                                         gridView.contentItem.children[buttonIndex].objectName)
                             if (itemat.isActive) {
                                 itemat.state = "active state";
                             } else {
-                                itemat.state = state;
+                                itemat.state = buttonstate;
                             }
                         }
 
                         onCurrentIndexChanged: {
-                            setButtonState(previousGridIndex)
+                            setButtonState(previousGridIndex, "base state");
                             rowIndex = Math.floor(currentIndex / TabletEnums.ButtonsColumnsOnPage);
                             columnIndex = currentIndex % TabletEnums.ButtonsColumnsOnPage
                             console.warn("current index", currentIndex, rowIndex, columnIndex)
-                            setButtonState(currentIndex)
+                            setButtonState(currentIndex, "hover state");
                             previousGridIndex = currentIndex
                         }
 
@@ -166,6 +172,7 @@ Item {
 
                         delegate: Item {
                             id: wrapper
+                            objectName: "wrapper"
                             width: gridView.cellWidth
                             height: gridView.cellHeight
 
@@ -214,6 +221,7 @@ Item {
 
                 currentGridItems.currentIndex = (previousIndex > swipeView.currentIndex ? currentGridItems.count - 1 : 0);
                 previousIndex = currentIndex;
+                setButtonState(currentIndex, "hover state");
             }
 
             hoverEnabled: true
