@@ -129,8 +129,10 @@ Item {
                     property TabletButtonsProxyModel proxyModel: TabletButtonsProxyModel {}
 
                     GridView {
-                        id: flickable
+                        id: gridView
                         keyNavigationEnabled: false
+                        highlightFollowsCurrentItem: false
+                        property int previousGridIndex: -1
                         anchors {
                             fill: parent
                             topMargin: 20
@@ -138,6 +140,25 @@ Item {
                             rightMargin: 30
                             bottomMargin: 0
                         }
+
+                        function setButtonState(buttonIndex) {
+                            var itemat = gridView.contentItem.children[buttonIndex];
+                            if (itemat.isActive) {
+                                itemat.state = "active state";
+                            } else {
+                                itemat.state = state;
+                            }
+                        }
+
+                        onCurrentIndexChanged: {
+                            setButtonState(previousGridIndex)
+                            rowIndex = Math.floor(currentIndex / TabletEnums.ButtonsColumnsOnPage);
+                            columnIndex = currentIndex % TabletEnums.ButtonsColumnsOnPage
+                            console.warn("current index", currentIndex, rowIndex, columnIndex)
+                            setButtonState(currentIndex)
+                            previousGridIndex = currentIndex
+                        }
+
                         cellWidth: width/3
                         cellHeight: cellWidth
                         flow: GridView.LeftToRight
@@ -145,16 +166,20 @@ Item {
 
                         delegate: Item {
                             id: wrapper
-                            width: flickable.cellWidth
-                            height: flickable.cellHeight
+                            width: gridView.cellWidth
+                            height: gridView.cellHeight
 
                             property var proxy: modelData
 
                             TabletButton {
                                 id: tabletButton
                                 anchors.centerIn: parent
+                                flickable: swipeView.contentItem;
                                 onClicked: modelData.clicked()
-                                state: wrapper.GridView.isCurrentItem ? "hover state" : "base state"
+                                onStateChanged: console.warn("state", state, uuid)
+//                                Component.onCompleted: {
+//                                    state = Qt.binding(function() { return wrapper.GridView.isCurrentItem ? "hover state" : "base state"; });
+//                                }
                             }
 
                             Connections {
@@ -231,14 +256,14 @@ Item {
     }
 
     function setCurrentItemState(state) {
-//        var buttonIndex = rowIndex * TabletEnums.ButtonsColumnsOnPage + columnIndex;
-//        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
-//            if (currentGridItems[buttonIndex].isActive) {
-//                currentGridItems[buttonIndex].state = "active state";
-//            } else {
-//                currentGridItems[buttonIndex].state = state;
-//            }
-//        }
+        var buttonIndex = rowIndex * TabletEnums.ButtonsColumnsOnPage + columnIndex;
+        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
+            if (currentGridItems[buttonIndex].isActive) {
+                currentGridItems[buttonIndex].state = "active state";
+            } else {
+                currentGridItems[buttonIndex].state = state;
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -253,7 +278,6 @@ Item {
 
         var index = currentGridItems.currentIndex;
         currentGridItems.moveCurrentIndexRight();
-        console.warn("onRightPressed", index, currentGridItems.currentIndex, currentGridItems.count)
         if (index === currentGridItems.count - 1 && index === currentGridItems.currentIndex) {
             if (swipeView.currentIndex < swipeView.count - 1) {
                 swipeView.incrementCurrentIndex();
@@ -268,7 +292,6 @@ Item {
 
         var index = currentGridItems.currentIndex;
         currentGridItems.moveCurrentIndexLeft();
-        console.warn("onLeftPressed", index, currentGridItems.currentIndex, currentGridItems.count)
         if (index === 0 && index === currentGridItems.currentIndex) {
             if (swipeView.currentIndex > 0) {
                 swipeView.decrementCurrentIndex();
