@@ -13,6 +13,7 @@
 #define hifi_ZoneEntityItem_h
 
 #include "KeyLightPropertyGroup.h"
+#include "AmbientLightPropertyGroup.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"

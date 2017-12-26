@@ -346,12 +346,12 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& en
 
 
     // Set the keylight
-    ambientLight->setAmbientIntensity(_keyLightProperties.getAmbientIntensity());
+    ambientLight->setAmbientIntensity(_ambientLightProperties.getAmbientIntensity());
 
-    if (_keyLightProperties.getAmbientURL().isEmpty()) {
+    if (_ambientLightProperties.getAmbientURL().isEmpty()) {
         setAmbientURL(_skyboxProperties.getURL());
     } else {
-        setAmbientURL(_keyLightProperties.getAmbientURL());
+        setAmbientURL(_ambientLightProperties.getAmbientURL());
     }
 }
 
