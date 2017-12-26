@@ -30,9 +30,30 @@ QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+    return staticResourcePath;
+}
+
+#ifdef DEV_BUILD
+const QString& PathUtils::projectRootPath() {
+    static QString sourceFolder;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        QDir thisDir = QFileInfo(__FILE__).absoluteDir();
+        sourceFolder = QDir::cleanPath(thisDir.absoluteFilePath("../../../"));
+    });
+    return sourceFolder;
+}
+#endif
+
+const QString& PathUtils::qmlBasePath() {
+#ifdef DEV_BUILD
+    static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
+#else
+    static const QString staticResourcePath = "qrc:///qml/";
 #endif
 
     return staticResourcePath;

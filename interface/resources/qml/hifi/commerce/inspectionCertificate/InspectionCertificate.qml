@@ -36,8 +36,8 @@ Rectangle {
     property bool isCertificateInvalid: false;
     // Style
     color: hifi.colors.faintGray;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onCertificateInfoResult: {
             if (result.status !== 'success') {
@@ -109,7 +109,7 @@ Rectangle {
 
     onCertificateIdChanged: {
         if (certificateId !== "") {
-            commerce.certificateInfo(certificateId);
+            Commerce.certificateInfo(certificateId);
         }
     }
 
