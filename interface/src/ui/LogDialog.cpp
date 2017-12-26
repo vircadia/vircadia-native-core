@@ -14,6 +14,7 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QComboBox>
+#include <QPlainTextEdit>
 
 #include <shared/AbstractLoggerInterface.h>
 
@@ -22,6 +23,8 @@ const int DEBUG_CHECKBOX_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
 const int CRITICAL_CHECKBOX_WIDTH = 85;
+const QString DEBUG = "[DEBUG]";
+const QString INFO = "[INFO]";
 
 LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLogDialog(parent) {
     _logger = logger;
@@ -39,31 +42,31 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
 
     _debugPrintBox = new QCheckBox("DEBUG", this);
     _debugPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, DEBUG_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
-    /*if (_logger->extraDebugging()) {
+    if (_logger->debugPrint()) {
     _extraDebuggingBox->setCheckState(Qt::Checked);
-    }*/
+    }
     _debugPrintBox->show();
-    //connect(_extraDebuggingBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    connect(_debugPrintBox, SIGNAL(stateChanged(int)), SLOT(handleDebugPrintBox(int)));
 
     _leftPad += DEBUG_CHECKBOX_WIDTH + BUTTON_MARGIN;
 
     _infoPrintBox = new QCheckBox("INFO", this);
     _infoPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, INFO_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
-    /*if (_logger->extraDebugging()) {
-    _extraDebuggingBox->setCheckState(Qt::Checked);
-    }*/
+    if (_logger->infoPrint()) {
+   _infoPrintBox->setCheckState(Qt::Checked);
+    }
     _infoPrintBox->show();
-    //connect(_infoPrintBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    connect(_infoPrintBox, SIGNAL(stateChanged(int)), SLOT(handleInfoPrintBox(int)));
 
     _leftPad += INFO_CHECKBOX_WIDTH + BUTTON_MARGIN;
 
     _criticalPrintBox = new QCheckBox("CRITICAL", this);
     _criticalPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, CRITICAL_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
-    /*if (_logger->extraDebugging()) {
-    _extraDebuggingBox->setCheckState(Qt::Checked);
-    }*/
+    if (_logger->criticalPrint()) {
+    _criticalPrintBox->setCheckState(Qt::Checked);
+    }
     _criticalPrintBox->show();
-    //connect(_criticalPrintBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    connect(_criticalPrintBox, SIGNAL(stateChanged(int)), SLOT(handleCriticalPrintBox(int)));
 
     _leftPad += CRITICAL_CHECKBOX_WIDTH + BUTTON_MARGIN;
 
@@ -80,21 +83,23 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown = new QComboBox(this);
     _filterDropdown->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, COMBOBOX_WIDTH, ELEMENT_HEIGHT);
     _filterDropdown->addItem("Select filter...");
-    _filterDropdown->addItem("hifi.scriptengine");
-    _filterDropdown->addItem("hifi.scriptengine.module");
-    _filterDropdown->addItem("hifi.shared");
-    _filterDropdown->addItem("hifi.interface.deadlock");
-    _filterDropdown->addItem("hifi.scriptengine.script");
+    _filterDropdown->addItem("default");
     _filterDropdown->addItem("hifi.audioclient");
+    _filterDropdown->addItem("hifi.avatars");
+    _filterDropdown->addItem("hifi.interface.deadlock");
+    _filterDropdown->addItem("hifi.modelformat");
     _filterDropdown->addItem("hifi.networking");
     _filterDropdown->addItem("hifi.networking.resource");
-    _filterDropdown->addItem("hifi.modelformat");
-    _filterDropdown->addItem("default");
+    _filterDropdown->addItem("hifi.scriptengine");
+    _filterDropdown->addItem("hifi.scriptengine.module");
+    _filterDropdown->addItem("hifi.scriptengine.script");
+    _filterDropdown->addItem("hifi.shared");
+    _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("qml");
     _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("hifi.avatars");
 
-    
+    connect(_filterDropdown, SIGNAL(_filterDropdown->currentIndexChanged(int)),this, SLOT(handleFilterDropdownChanged(int)));
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -115,8 +120,60 @@ void LogDialog::handleRevealButton() {
 
 void LogDialog::handleExtraDebuggingCheckbox(int state) {
     _logger->setExtraDebugging(state != 0);
+
+}
+
+void LogDialog::handleDebugPrintBox(int state) {
+    _logger->setDebugPrint(state != 0);
+    if (state != 0) {
+        _logTextBox->clear();
+    }
+}
+
+void LogDialog::handleInfoPrintBox(int state) {
+    _logger->setInfoPrint(state != 0);
+    if (state != 0) {
+        _logTextBox->clear();
+    }
+}
+
+void LogDialog::handleCriticalPrintBox(int state) {
+    _logger->setCriticalPrint(state != 0);
+    if (state != 0) {
+        _logTextBox->clear();
+    }
+}
+
+void LogDialog::handleFilterDropdownChanged(int selection) {
+    printf("%s\n", "Handle it!!!!!");
+    if (selection != 0) {
+        _filterSelection = "[" + _filterDropdown->currentText + "]";
+        printf("%s\n", selection);
+    }
 }
 
 QString LogDialog::getCurrentLog() {
     return _logger->getLogData();
+}
+
+void LogDialog::appendLogLine(QString logLine) {
+    if (logLine.contains(_searchTerm, Qt::CaseInsensitive) &&
+        logLine.contains(_filterSelection, Qt::CaseSensitive)) {
+        int indexToBold = _logTextBox->document()->characterCount();
+        _highlighter->setBold(indexToBold);
+
+        if (logLine.contains(DEBUG, Qt::CaseSensitive)) {
+            if (_logger->debugPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else if (logLine.contains(INFO, Qt::CaseSensitive)) {
+            if (_logger->infoPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else {
+            if (_logger->criticalPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        }
+    }
 }

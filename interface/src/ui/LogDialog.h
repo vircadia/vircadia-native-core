@@ -26,9 +26,16 @@ class LogDialog : public BaseLogDialog {
 public:
     LogDialog(QWidget* parent, AbstractLoggerInterface* logger);
 
-    private slots:
+public slots:
+    void appendLogLine(QString logLine) override;
+
+private slots:
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(int);
+    void handleDebugPrintBox(int);
+    void handleInfoPrintBox(int);
+    void handleCriticalPrintBox(int);
+    void handleFilterDropdownChanged(int);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -41,6 +48,7 @@ private:
     QCheckBox* _infoPrintBox;
     QCheckBox* _criticalPrintBox;
     QComboBox* _filterDropdown;
+    QString _filterSelection;
 
     AbstractLoggerInterface* _logger;
 };

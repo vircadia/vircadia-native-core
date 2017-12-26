@@ -24,7 +24,13 @@ public:
     AbstractLoggerInterface(QObject* parent = NULL);
     ~AbstractLoggerInterface();
     inline bool extraDebugging() { return _extraDebugging; }
+    inline bool debugPrint() { return _debugPrint; }
+    inline bool infoPrint() { return _infoPrint; }
+    inline bool criticalPrint() { return _criticalPrint; }
     inline void setExtraDebugging(bool debugging) { _extraDebugging = debugging; }
+    inline void setDebugPrint(bool debugging) { _debugPrint = debugging; }
+    inline void setInfoPrint(bool debugging) { _infoPrint = debugging; }
+    inline void setCriticalPrint(bool debugging) { _criticalPrint = debugging; }
 
     virtual void addMessage(const QString&) = 0;
     virtual QString getLogData() = 0;
@@ -36,6 +42,9 @@ signals:
 
 private:
     bool _extraDebugging{ false };
+    bool _debugPrint{ false };
+    bool _infoPrint{ false };
+    bool _criticalPrint{ true };
 };
 
 #endif // hifi_AbstractLoggerInterface_h

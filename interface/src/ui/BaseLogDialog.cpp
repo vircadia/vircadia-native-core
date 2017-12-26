@@ -16,7 +16,6 @@
 #include <QPlainTextEdit>
 #include <QTextCursor>
 #include <QPushButton>
-#include <QSyntaxHighlighter>
 
 #include <PathUtils.h>
 
@@ -33,21 +32,6 @@ const int FONT_WEIGHT = 75;
 const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
 const QColor BOLD_COLOR = QColor("#445c8c");
 const QString BOLD_PATTERN = "\\[\\d*\\/.*:\\d*:\\d*\\]";
-
-class Highlighter : public QSyntaxHighlighter {
-public:
-    Highlighter(QTextDocument* parent = nullptr);
-    void setBold(int indexToBold);
-    QString keyword;
-
-protected:
-    void highlightBlock(const QString& text) override;
-
-private:
-    QTextCharFormat boldFormat;
-    QTextCharFormat keywordFormat;
-    
-};
 
 BaseLogDialog::BaseLogDialog(QWidget* parent) : QDialog(parent, Qt::Window) {
     setWindowTitle("Base Log");
