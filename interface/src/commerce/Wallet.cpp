@@ -548,12 +548,15 @@ QStringList Wallet::listPublicKeys() {
 // the horror of code pages and so on (changing the bytes) by just returning a base64
 // encoded string representing the signature (suitable for http, etc...)
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
-    qCInfo(commerce) << "Signing text" << text << "with key" << key;
     EC_KEY* ecPrivateKey = NULL;
+
+    auto keyFilePathString = keyFilePath().toStdString();
     if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
         unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
 
         unsigned int signatureBytes = 0;
+
+        qCInfo(commerce) << "Hashing and signing plaintext" << text << "with key at address" << ecPrivateKey;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
@@ -747,12 +750,10 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     }
 
     EC_KEY_free(ec);
-    QByteArray ba = sig.toLocal8Bit();
-    const char *sigChar = ba.data();
 
     QByteArray textByteArray;
     if (status > -1) {
-        textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
+        textByteArray = sig.toUtf8();
     }
     textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
