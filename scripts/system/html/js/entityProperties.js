@@ -640,6 +640,7 @@ function loaded() {
 
         var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
 
+        // Key light
         var elZoneKeyLightModeInherit = document.getElementById("property-zone-key-light-mode-inherit");
         var elZoneKeyLightModeDisabled = document.getElementById("property-zone-key-light-mode-disabled");
         var elZoneKeyLightModeEnabled = document.getElementById("property-zone-key-light-mode-enabled");
@@ -649,16 +650,18 @@ function loaded() {
         var elZoneKeyLightColorGreen = document.getElementById("property-zone-key-light-color-green");
         var elZoneKeyLightColorBlue = document.getElementById("property-zone-key-light-color-blue");
         var elZoneKeyLightIntensity = document.getElementById("property-zone-key-intensity");
-        var elZoneKeyLightAmbientIntensity = document.getElementById("property-zone-key-ambient-intensity");
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
+        // Ambient light
         var elZoneAmbientLightModeInherit = document.getElementById("property-zone-ambient-light-mode-inherit");
         var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
         var elZoneAmbientLightModeEnabled = document.getElementById("property-zone-ambient-light-mode-enabled");
 
-        var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
+        var elZoneAmbientLightIntensity = document.getElementById("property-zone-key-ambient-intensity");
+        var elZoneAmbientLightURL = document.getElementById("property-zone-key-ambient-url");
 
+        // Haze
         var elZoneHazeModeInherit = document.getElementById("property-zone-haze-mode-inherit");
         var elZoneHazeModeDisabled = document.getElementById("property-zone-haze-mode-disabled");
         var elZoneHazeModeEnabled = document.getElementById("property-zone-haze-mode-enabled");
@@ -1012,7 +1015,7 @@ function loaded() {
                             elLightCutoff.value = properties.cutoff.toFixed(2);
 
                         } else if (properties.type === "Zone") {
-
+                            // Key light
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
                             elZoneKeyLightModeEnabled.checked = (properties.keyLightMode === 'enabled');
@@ -1024,16 +1027,18 @@ function loaded() {
                             elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
                             elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
-                            elZoneKeyLightAmbientIntensity.value = properties.keyLight.ambientIntensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
 
+                            // Ambient light
                             elZoneAmbientLightModeInherit.checked = (properties.ambientLightMode === 'inherit');
                             elZoneAmbientLightModeDisabled.checked = (properties.ambientLightMode === 'disabled');
                             elZoneAmbientLightModeEnabled.checked = (properties.ambientLightMode === 'enabled');
 
-                            elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
+                            elZoneAmbientLightIntensity.value = properties.ambientLight.ambientIntensity.toFixed(2);
+                            elZoneAmbientLightURL.value = properties.ambientLight.ambientURL;
 
+                            // Haze
                             elZoneHazeModeInherit.checked = (properties.hazeMode === 'inherit');
                             elZoneHazeModeDisabled.checked = (properties.hazeMode === 'disabled');
                             elZoneHazeModeEnabled.checked = (properties.hazeMode === 'enabled');
@@ -1399,6 +1404,7 @@ function loaded() {
 
         var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
             'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
+
         elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
@@ -1419,6 +1425,7 @@ function loaded() {
             }
         }));
 
+        // Key light
         var keyLightModeChanged = createZoneComponentModeChangedFunction('keyLightMode',
             elZoneKeyLightModeInherit, elZoneKeyLightModeDisabled, elZoneKeyLightModeEnabled);
 
@@ -1446,12 +1453,20 @@ function loaded() {
         }));
         var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', 
             elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
+
         elZoneKeyLightColorRed.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorGreen.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightColorBlue.addEventListener('change', zoneKeyLightColorChangeFunction);
         elZoneKeyLightIntensity.addEventListener('change', 
             createEmitGroupNumberPropertyUpdateFunction('keyLight', 'intensity'));
 
+        var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', 
+            elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
+
+        elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+        elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        // Ambient light
         var ambientLightModeChanged = createZoneComponentModeChangedFunction('ambientLightMode',
             elZoneAmbientLightModeInherit, elZoneAmbientLightModeDisabled, elZoneAmbientLightModeEnabled);
 
@@ -1459,16 +1474,13 @@ function loaded() {
         elZoneAmbientLightModeDisabled.addEventListener('change', ambientLightModeChanged);
         elZoneAmbientLightModeEnabled.addEventListener('change', ambientLightModeChanged);
 
-        elZoneKeyLightAmbientIntensity.addEventListener('change', 
-            createEmitGroupNumberPropertyUpdateFunction('keyLight', 'ambientIntensity'));
-        elZoneKeyLightAmbientURL.addEventListener('change', 
-            createEmitGroupTextPropertyUpdateFunction('keyLight', 'ambientURL'));
-        var zoneKeyLightDirectionChangeFunction = 
-            createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', 
-                elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
-        elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
-        elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+        elZoneAmbientLightIntensity.addEventListener('change',
+            createEmitGroupNumberPropertyUpdateFunction('ambientLight', 'ambientIntensity'));
 
+        elZoneAmbientLightURL.addEventListener('change',
+            createEmitGroupTextPropertyUpdateFunction('ambientLight', 'ambientURL'));
+
+        // Haze
         var hazeModeChanged = createZoneComponentModeChangedFunction('hazeMode',
             elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled);
 

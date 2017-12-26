@@ -212,7 +212,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
     // FIXME one of the bools here could become true between being fetched and being reset, 
     // resulting in a lost update
-    bool sunChanged = entity->keyLightPropertiesChanged();
+    bool keyLightChanged = entity->keyLightPropertiesChanged();
+    bool ambientLightChanged = entity->ambientLightPropertiesChanged();
     bool backgroundChanged = entity->backgroundPropertiesChanged();
     bool skyboxChanged = entity->skyboxPropertiesChanged();
     bool hazeChanged = entity->hazePropertiesChanged();
@@ -223,6 +224,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _lastDimensions = entity->getDimensions();
 
     _keyLightProperties = entity->getKeyLightProperties();
+    _ambientLightProperties = entity->getAmbientLightProperties();
     _skyboxProperties = entity->getSkyboxProperties();
     _hazeProperties = entity->getHazeProperties();
     _stageProperties = entity->getStageProperties();
@@ -248,12 +250,12 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
     updateKeyZoneItemFromEntity();
 
-    if (sunChanged) {
+    if (keyLightChanged) {
         updateKeySunFromEntity(entity);
     }
 
-    if (sunChanged || skyboxChanged) {
-        updateKeyAmbientFromEntity(entity);
+    if (ambientLightChanged || skyboxChanged) {
+        updateAmbientLightFromEntity(entity);
     }
 
     if (backgroundChanged || skyboxChanged) {
@@ -279,9 +281,11 @@ ItemKey ZoneEntityRenderer::getKey() {
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->keyLightPropertiesChanged() ||
+        entity->ambientLightPropertiesChanged() ||
         entity->backgroundPropertiesChanged() ||
         entity->hazePropertiesChanged() ||
         entity->skyboxPropertiesChanged()) {
+
         return true;
     }
 
@@ -336,7 +340,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     sunLight->setDirection(_keyLightProperties.getDirection());
 }
 
-void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& entity) {
+void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& entity) {
     setAmbientLightMode((ComponentMode)entity->getAmbientLightMode());
 
     const auto& ambientLight = editAmbientLight();
@@ -345,7 +349,7 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& en
     ambientLight->setOrientation(_lastRotation);
 
 
-    // Set the keylight
+    // Set the ambient light
     ambientLight->setAmbientIntensity(_ambientLightProperties.getAmbientIntensity());
 
     if (_ambientLightProperties.getAmbientURL().isEmpty()) {

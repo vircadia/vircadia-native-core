@@ -53,7 +53,11 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     withReadLock([&] {
         _keyLightProperties.getProperties(properties);
     });
-    
+
+    withReadLock([&] {
+        _ambientLightProperties.getProperties(properties);
+    });
+
     _stageProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
@@ -103,6 +107,9 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     withWriteLock([&] {
         _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
     });
+    withWriteLock([&] {
+        _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
+    });
 
     _stagePropertiesChanged = _stageProperties.setProperties(properties);
 
@@ -125,7 +132,8 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightMode, setKeyLightMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientLightMode, setAmbientLightMode);
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
+        _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
 }
@@ -146,6 +154,16 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged;
     bytesRead += bytesFromKeylight;
     dataAt += bytesFromKeylight;
+
+    int bytesFromAmbientlight;
+    withWriteLock([&] {
+        bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
+    });
+
+    somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+    bytesRead += bytesFromAmbientlight;
+    dataAt += bytesFromAmbientlight;
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                                propertyFlags, overwriteLocalData, _stagePropertiesChanged);
@@ -194,6 +212,10 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
         requestedProperties += _keyLightProperties.getEntityProperties(params);
     });
 
+    withReadLock([&] {
+        requestedProperties += _ambientLightProperties.getEntityProperties(params);
+    });
+
     requestedProperties += _stageProperties.getEntityProperties(params);
 
     requestedProperties += PROP_SHAPE_TYPE;
@@ -228,10 +250,13 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     bool successPropertyFits = true;
 
     _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                         propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+    _ambientLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
@@ -265,6 +290,7 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getAmbientLightModeString(_ambientLightMode);
 
     _keyLightProperties.debugDump();
+    _ambientLightProperties.debugDump();
     _skyboxProperties.debugDump();
     _hazeProperties.debugDump();
     _stageProperties.debugDump();
@@ -330,6 +356,7 @@ QString ZoneEntityItem::getCompoundShapeURL() const {
 void ZoneEntityItem::resetRenderingPropertiesChanged() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
+        _ambientLightPropertiesChanged = false;
         _backgroundPropertiesChanged = false;
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
