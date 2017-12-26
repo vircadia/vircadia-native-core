@@ -106,7 +106,7 @@ int GooglePolyScriptingInterface::getRandIntInRange(int length) {
 
 QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString category, QString format) {
     QString queries;
-    if (!validFormats.contains(format) || !validCategories.contains(category)) {
+    if (!validFormats.contains(format, Qt::CaseInsensitive) || !validCategories.contains(category, Qt::CaseInsensitive)) {
         return QUrl("");
     } else {
         if (!keyword.isEmpty()) {
