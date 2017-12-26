@@ -151,6 +151,10 @@ QVariant GooglePolyScriptingInterface::parseJSON(QUrl url, int fileType) {
     QByteArray jsonString = getHTTPRequest(url);
     QJsonDocument doc = QJsonDocument::fromJson(jsonString);
     QJsonObject obj = doc.object();
+    if (obj.isEmpty()) {
+        qCDebug(scriptengine) << "Assets with specified filters not found";
+        return "";
+    }
     if (obj.keys().first() == "error") {
         QString error = obj.value("error").toObject().value("message").toString();
         qCDebug(scriptengine) << error;
