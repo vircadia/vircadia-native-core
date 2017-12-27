@@ -24,9 +24,9 @@ Item {
     property int stableOrder: 0
     property var tabletRoot;
     property var flickable: null
+    property var gridView: null
 
-    property int row: -1
-    property int column: -1
+    property int buttonIndex: -1
 
     width: 129
     height: 129
@@ -138,7 +138,8 @@ Item {
         enabled: true
         preventStealing: false
         onClicked: {
-            tablet.setCurrentItemState("base state");
+            gridView.currentIndex = buttonIndex
+
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
                     tabletButton.isActive = false;
@@ -146,8 +147,6 @@ Item {
                     tabletButton.isActive = true;
                 }
             }
-            tablet.rowIndex = tabletButton.row
-            tablet.columnIndex = tabletButton.column
 
             tabletButton.clicked();
             if (tabletRoot) {
@@ -156,7 +155,7 @@ Item {
         }
 
         onEntered: {
-            tablet.setCurrentItemState("base state");
+            gridView.currentIndex = buttonIndex
             tabletButton.isEntered = true;
             Tablet.playSound(TabletEnums.ButtonHover);
 
@@ -165,8 +164,6 @@ Item {
             } else {
                 tabletButton.state = "hover state";
             }
-            tablet.rowIndex = tabletButton.row
-            tablet.columnIndex = tabletButton.column
         }
         onExited: {
             tabletButton.isEntered = false;

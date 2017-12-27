@@ -93,11 +93,25 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
 }
 
 TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
-    : QSortFilterProxyModel(parent), _pageIndex(-1) {
+    : QSortFilterProxyModel(parent) {
 }
 
 int TabletButtonsProxyModel::pageIndex() const {
     return _pageIndex;
+}
+
+int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
+    if (!sourceModel() || _pageIndex < 0) {
+        return -1;
+    }
+    TabletButtonListModel* model = static_cast<TabletButtonListModel*>(sourceModel());
+    for (int i = 0; i < model->rowCount(); i++) {
+        TabletButtonProxy* bproxy = model->data(model->index(i), ButtonProxyRole).value<TabletButtonProxy*>();
+        if (bproxy && bproxy->getUuid().toString().contains(uuid)) {
+            return i - (_pageIndex*TabletScriptingInterface::ButtonsOnPage);
+        }
+    }
+    return -1;
 }
 
 void TabletButtonsProxyModel::setPageIndex(int pageIndex)
@@ -115,11 +129,6 @@ bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
     Q_UNUSED(sourceParent);
     return (sourceRow >= _pageIndex*TabletScriptingInterface::ButtonsOnPage
             && sourceRow < (_pageIndex + 1)*TabletScriptingInterface::ButtonsOnPage);
-}
-
-bool TabletButtonsProxyModel::lessThan(const QModelIndex &left,
-                                      const QModelIndex &right) const {
-    return true;
 }
 
 TabletScriptingInterface::TabletScriptingInterface() {

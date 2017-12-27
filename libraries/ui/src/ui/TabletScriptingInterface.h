@@ -129,8 +129,9 @@ class TabletButtonsProxyModel : public QSortFilterProxyModel
 
     Q_PROPERTY(int pageIndex READ pageIndex WRITE setPageIndex NOTIFY pageIndexChanged)
 public:
-    TabletButtonsProxyModel(QObject *parent = 0);
+    TabletButtonsProxyModel(QObject* parent = 0);
     int pageIndex() const;
+    Q_INVOKABLE int buttonIndex(const QString& uuid);
 
 public slots:
     void setPageIndex(int pageIndex);
@@ -140,10 +141,9 @@ signals:
 
 protected:
     bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 
 private:
-    int _pageIndex;
+    int _pageIndex { -1 };
 };
 
 Q_DECLARE_METATYPE(TabletButtonsProxyModel*);

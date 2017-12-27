@@ -14,9 +14,6 @@ Item {
     objectName: "tablet"
     property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-    property int rowIndex: 6 // by default
-    property int columnIndex: 1 // point to 'go to location'
-
     property var currentGridItems: null
 
     focus: true
@@ -145,10 +142,9 @@ Item {
                             if (buttonIndex < 0) {
                                 return;
                             }
+                            console.warn("changing item at", buttonIndex, buttonstate)
 
                             var itemat = gridView.contentItem.children[buttonIndex].children[0];
-                            console.warn("changing item at", buttonIndex, state, itemat.objectName,
-                                         gridView.contentItem.children[buttonIndex].objectName)
                             if (itemat.isActive) {
                                 itemat.state = "active state";
                             } else {
@@ -158,9 +154,7 @@ Item {
 
                         onCurrentIndexChanged: {
                             setButtonState(previousGridIndex, "base state");
-                            rowIndex = Math.floor(currentIndex / TabletEnums.ButtonsColumnsOnPage);
-                            columnIndex = currentIndex % TabletEnums.ButtonsColumnsOnPage
-                            console.warn("current index", currentIndex, rowIndex, columnIndex)
+                            console.warn("current index", currentIndex)
                             setButtonState(currentIndex, "hover state");
                             previousGridIndex = currentIndex
                         }
@@ -181,12 +175,10 @@ Item {
                             TabletButton {
                                 id: tabletButton
                                 anchors.centerIn: parent
+                                gridView: wrapper.GridView.view
+                                buttonIndex: page.proxyModel.buttonIndex(uuid);
                                 flickable: swipeView.contentItem;
                                 onClicked: modelData.clicked()
-                                onStateChanged: console.warn("state", state, uuid)
-//                                Component.onCompleted: {
-//                                    state = Qt.binding(function() { return wrapper.GridView.isCurrentItem ? "hover state" : "base state"; });
-//                                }
                             }
 
                             Connections {
@@ -221,7 +213,6 @@ Item {
 
                 currentGridItems.currentIndex = (previousIndex > swipeView.currentIndex ? currentGridItems.count - 1 : 0);
                 previousIndex = currentIndex;
-                setButtonState(currentIndex, "hover state");
             }
 
             hoverEnabled: true
@@ -260,17 +251,6 @@ Item {
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             count: swipeView.count
-        }
-    }
-
-    function setCurrentItemState(state) {
-        var buttonIndex = rowIndex * TabletEnums.ButtonsColumnsOnPage + columnIndex;
-        if (currentGridItems !== null && buttonIndex >= 0 && buttonIndex < currentGridItems.length) {
-            if (currentGridItems[buttonIndex].isActive) {
-                currentGridItems[buttonIndex].state = "active state";
-            } else {
-                currentGridItems[buttonIndex].state = state;
-            }
         }
     }
 
