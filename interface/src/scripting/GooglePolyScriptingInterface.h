@@ -34,7 +34,7 @@ public slots:
     QString getModelInfo(const QString& input);
 
 private:
-    QString authCode;
+    QString _authCode;
 
     QUrl formatURLQuery(const QString& keyword, const QString& category, const QString& format);
     QString getModelURL(const QUrl& url);

@@ -37,7 +37,7 @@ GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
 }
 
 void GooglePolyScriptingInterface::setAPIKey(const QString& key) {
-    authCode = key;
+    _authCode = key;
 }
 
 QString GooglePolyScriptingInterface::getAssetList(const QString& keyword, const QString& category, const QString& format) {
@@ -94,7 +94,7 @@ QString GooglePolyScriptingInterface::getModelInfo(const QString& input) {
         }
     }
     QString urlString(GET_POLY_URL);
-    urlString = urlString.replace("model", name) + "key=" + authCode;
+    urlString = urlString.replace("model", name) + "key=" + _authCode;
     qCDebug(scriptengine) << "Google URL request: " << urlString;
     QUrl url(urlString);
     QString json = parseJSON(url, 2).toString();
@@ -123,7 +123,7 @@ QUrl GooglePolyScriptingInterface::formatURLQuery(const QString& keyword, const 
         if (!format.isEmpty()) {
             queries.append("&format=" + format);
         }
-        QString urlString(LIST_POLY_URL + "key=" + authCode + queries);
+        QString urlString(LIST_POLY_URL + "key=" + _authCode + queries);
         return QUrl(urlString);
     }
 }
