@@ -25,11 +25,11 @@
 #include "GooglePolyScriptingInterface.h"
 #include "ScriptEngineLogging.h"
 
-const QString listPolyUrl = "https://poly.googleapis.com/v1/assets?";
-const QString getPolyUrl = "https://poly.googleapis.com/v1/assets/model?";
+const QString LIST_POLY_URL = "https://poly.googleapis.com/v1/assets?";
+const QString GET_POLY_URL = "https://poly.googleapis.com/v1/assets/model?";
 
-const QStringList validFormats = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
-const QStringList validCategories = QStringList() << "animals" << "architecture" << "art" << "food" << 
+const QStringList VALID_FORMATS = QStringList() << "BLOCKS" << "FBX" << "GLTF" << "GLTF2" << "OBJ" << "TILT" << "";
+const QStringList VALID_CATEGORIES = QStringList() << "animals" << "architecture" << "art" << "food" << 
     "nature" << "objects" << "people" << "scenes" << "technology" << "transport" << "";
 
 GooglePolyScriptingInterface::GooglePolyScriptingInterface() {
@@ -75,22 +75,24 @@ QString GooglePolyScriptingInterface::getGLTF2(QString keyword, QString category
     QUrl url = formatURLQuery(keyword, category, "GLTF2");
     return getModelURL(url);
 }
-
-/* 
-// This method will not work until we support Tilt models
+ 
+// This method will not be useful until we support Tilt models
 QString GooglePolyScriptingInterface::getTilt(QString keyword, QString category) {
     QUrl url = formatURLQuery(keyword, category, "TILT");
     return getModelURL(url);
 }
-*/
 
 // Can provide asset name or full URL to model
 QString GooglePolyScriptingInterface::getModelInfo(QString name) {
     if (name.contains("poly.googleapis") || name.contains("poly.google.com")) {
         QStringList list = name.split("/");
-        name = list[4];
+        if (name.contains("poly.googleapis")) {
+            name = list[4];
+        } else {
+            name = list.last();
+        }
     }
-    QString urlString = QString(getPolyUrl);
+    QString urlString(GET_POLY_URL);
     urlString = urlString.replace("model", name) + "key=" + authCode;
     qCDebug(scriptengine) << "Google URL request: " << urlString;
     QUrl url(urlString);
@@ -106,7 +108,7 @@ int GooglePolyScriptingInterface::getRandIntInRange(int length) {
 
 QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString category, QString format) {
     QString queries;
-    if (!validFormats.contains(format, Qt::CaseInsensitive) || !validCategories.contains(category, Qt::CaseInsensitive)) {
+    if (!VALID_FORMATS.contains(format, Qt::CaseInsensitive) || !VALID_CATEGORIES.contains(category, Qt::CaseInsensitive)) {
         return QUrl("");
     } else {
         if (!keyword.isEmpty()) {
@@ -119,7 +121,7 @@ QUrl GooglePolyScriptingInterface::formatURLQuery(QString keyword, QString categ
         if (!format.isEmpty()) {
             queries.append("&format=" + format);
         }
-        QString urlString = QString(listPolyUrl + "key=" + authCode + queries);
+        QString urlString = QString(LIST_POLY_URL + "key=" + authCode + queries);
         return QUrl(urlString);
     }
 }
@@ -147,7 +149,6 @@ QByteArray GooglePolyScriptingInterface::getHTTPRequest(QUrl url) {
 
 // 0 = asset list, 1 = model from asset list, 2 = specific model
 QVariant GooglePolyScriptingInterface::parseJSON(QUrl url, int fileType) {
-    //QString firstItem = QString::fromUtf8(response->readAll());
     QByteArray jsonString = getHTTPRequest(url);
     QJsonDocument doc = QJsonDocument::fromJson(jsonString);
     QJsonObject obj = doc.object();

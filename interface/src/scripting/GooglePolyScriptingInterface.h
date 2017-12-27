@@ -30,18 +30,18 @@ public slots:
     QString getBlocks(QString keyword, QString category);
     QString getGLTF(QString keyword, QString category);
     QString getGLTF2(QString keyword, QString category);
-    //QString getTilt(QString keyword, QString category);
+    QString getTilt(QString keyword, QString category);
     QString getModelInfo(QString name);
 
 private:
+    QString authCode;
+
     QUrl formatURLQuery(QString keyword, QString category, QString format);
     QString getModelURL(QUrl url);
     QByteArray getHTTPRequest(QUrl url);
     QVariant parseJSON(QUrl url, int fileType);
     int getRandIntInRange(int length);
 
-    QString authCode;
-    
 };
 
 #endif // hifi_GooglePolyScriptingInterface_h
