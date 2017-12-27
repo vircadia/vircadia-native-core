@@ -22,24 +22,24 @@ public:
     GooglePolyScriptingInterface();
 
 public slots:
-    void setAPIKey(QString key);
+    void setAPIKey(const QString& key);
 
-    QString getAssetList(QString keyword, QString category, QString format);
-    QString getFBX(QString keyword, QString category);
-    QString getOBJ(QString keyword, QString category);
-    QString getBlocks(QString keyword, QString category);
-    QString getGLTF(QString keyword, QString category);
-    QString getGLTF2(QString keyword, QString category);
-    QString getTilt(QString keyword, QString category);
-    QString getModelInfo(QString name);
+    QString getAssetList(const QString& keyword, const QString& category, const QString& format);
+    QString getFBX(const QString& keyword, const QString& category);
+    QString getOBJ(const QString& keyword, const QString& category);
+    QString getBlocks(const QString& keyword, const QString& categoryy);
+    QString getGLTF(const QString& keyword, const QString& category);
+    QString getGLTF2(const QString& keyword, const QString& category);
+    QString getTilt(const QString& keyword, const QString& category);
+    QString getModelInfo(const QString& input);
 
 private:
     QString authCode;
 
-    QUrl formatURLQuery(QString keyword, QString category, QString format);
-    QString getModelURL(QUrl url);
-    QByteArray getHTTPRequest(QUrl url);
-    QVariant parseJSON(QUrl url, int fileType);
+    QUrl formatURLQuery(const QString& keyword, const QString& category, const QString& format);
+    QString getModelURL(const QUrl& url);
+    QByteArray getHTTPRequest(const QUrl& url);
+    QVariant parseJSON(const QUrl& url, int fileType);
     int getRandIntInRange(int length);
 
 };
