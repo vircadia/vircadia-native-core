@@ -277,7 +277,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
+            //currentMaterial.emissiveTextureFilename = "";
             currentMaterial.diffuseTextureFilename = "";
+            //currentMaterial.specularTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if ((token == "d") || (token == "Tr")) {
@@ -744,6 +746,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         if (!objMaterial.specularTextureFilename.isEmpty()) {
             fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+        }
+        if (!objMaterial.emissiveTextureFilename.isEmpty()) {
+            fbxMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
