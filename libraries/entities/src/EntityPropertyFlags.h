@@ -222,6 +222,7 @@ enum EntityPropertyList {
 
     PROP_KEY_LIGHT_MODE,
     PROP_AMBIENT_LIGHT_MODE,
+    PROP_SKYBOX_MODE,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

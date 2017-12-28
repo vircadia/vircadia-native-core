@@ -78,6 +78,7 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(skyboxMode, getSkyboxMode);
 
     return properties;
 }
@@ -131,6 +132,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightMode, setKeyLightMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientLightMode, setAmbientLightMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(skyboxMode, setSkyboxMode);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
         _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
@@ -199,6 +201,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
     READ_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
 
     return bytesRead;
 }
@@ -235,6 +238,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
+    requestedProperties += PROP_SKYBOX_MODE;
 
     return requestedProperties;
 }
@@ -276,6 +280,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)getKeyLightMode());
     APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)getAmbientLightMode());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)getSkyboxMode());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -288,6 +293,7 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);
     qCDebug(entities) << "               _keyLightMode:" << EntityItemProperties::getKeyLightModeString(_keyLightMode);
     qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getAmbientLightModeString(_ambientLightMode);
+    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getSkyboxModeString(_skyboxMode);
 
     _keyLightProperties.debugDump();
     _ambientLightProperties.debugDump();
@@ -395,4 +401,15 @@ void ZoneEntityItem::setAmbientLightMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getAmbientLightMode() const {
     return _ambientLightMode;
+}
+
+void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT) {
+        _skyboxMode = value;
+        _skyboxPropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getSkyboxMode() const {
+    return _skyboxMode;
 }

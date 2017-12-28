@@ -81,6 +81,9 @@ public:
     void setAmbientLightMode(uint32_t value);
     uint32_t getAmbientLightMode() const;
 
+    void setSkyboxMode(uint32_t value);
+    uint32_t getSkyboxMode() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
@@ -132,6 +135,7 @@ protected:
     uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
     uint32_t _keyLightMode { COMPONENT_MODE_INHERIT };
     uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
+    uint32_t _skyboxMode { COMPONENT_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;

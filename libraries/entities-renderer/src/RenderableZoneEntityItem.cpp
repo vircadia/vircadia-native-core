@@ -520,6 +520,10 @@ void ZoneEntityRenderer::setAmbientLightMode(ComponentMode mode) {
     _ambientLightMode = mode;
 }
 
+void ZoneEntityRenderer::setSkyboxMode(ComponentMode mode) {
+    _skyboxMode = mode;
+}
+
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {
     editSkybox()->setColor(color);
 }
