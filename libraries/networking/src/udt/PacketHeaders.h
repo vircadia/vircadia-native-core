@@ -202,6 +202,7 @@ enum class EntityVersion : PacketVersion {
     HazeEffect,
     StaticCertJsonVersionOne,
     OwnershipChallengeFix,
+    SoftEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

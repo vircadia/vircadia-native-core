@@ -62,6 +62,7 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotations, getJointRotations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
 
     _animationProperties.getProperties(properties);
     return properties;
@@ -80,6 +81,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
 
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
 
@@ -138,6 +140,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+    READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
 
     return bytesRead;
 }
@@ -155,6 +158,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_JOINT_ROTATIONS;
     requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
     requestedProperties += PROP_JOINT_TRANSLATIONS;
+    requestedProperties += PROP_RELAY_PARENT_JOINTS;
 
     return requestedProperties;
 }
@@ -185,6 +189,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
+    APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, getRelayParentJoints());
 }
 
 
@@ -583,6 +588,18 @@ bool ModelEntityItem::hasCompoundShapeURL() const {
 QString ModelEntityItem::getModelURL() const {
     return resultWithReadLock<QString>([&] {
         return _modelURL;
+    });
+}
+
+void ModelEntityItem::setRelayParentJoints(bool relayJoints) {
+    withWriteLock([&] {
+        _relayParentJoints = relayJoints;
+    });
+}
+
+bool ModelEntityItem::getRelayParentJoints() const {
+    return resultWithReadLock<bool>([&] {
+        return _relayParentJoints;
     });
 }
 

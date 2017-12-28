@@ -245,6 +245,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid, ENTITY_ITEM_DEFAULT_LAST_EDITED_BY);
 
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
+    DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
     static QString getHazeModeString(uint32_t mode);
