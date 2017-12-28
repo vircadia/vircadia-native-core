@@ -31,7 +31,7 @@ Original.CheckBox {
     hoverEnabled: true
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     onHoveredChanged: {

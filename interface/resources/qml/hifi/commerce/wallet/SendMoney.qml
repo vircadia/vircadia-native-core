@@ -24,8 +24,8 @@ Item {
 
     id: root;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
     }
 
     // "Unavailable"

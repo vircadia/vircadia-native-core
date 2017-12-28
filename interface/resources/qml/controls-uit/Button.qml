@@ -30,7 +30,7 @@ Original.Button {
 
     onHoveredChanged: {
         if (hovered) {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
 
@@ -41,7 +41,7 @@ Original.Button {
     }
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
         if (action !== null) {
             action.triggered()
         }

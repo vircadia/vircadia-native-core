@@ -127,7 +127,11 @@ void Assignment::swap(Assignment& otherAssignment) {
 }
 
 const char* Assignment::getTypeName() const {
-    switch (_type) {
+    return typeToString(_type);
+}
+
+const char* Assignment::typeToString(Assignment::Type type) {
+    switch (type) {
         case Assignment::AudioMixerType:
             return "audio-mixer";
         case Assignment::AvatarMixerType:

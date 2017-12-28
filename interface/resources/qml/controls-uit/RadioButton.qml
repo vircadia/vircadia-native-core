@@ -31,7 +31,7 @@ Original.RadioButton {
     readonly property int checkRadius: 2
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     onHoveredChanged: {

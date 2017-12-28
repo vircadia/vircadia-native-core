@@ -29,8 +29,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
     
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
     }
 
     //

@@ -30,14 +30,14 @@ Item {
 
     height: mainContainer.height + additionalDropdownHeight;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
             } else if (walletStatus === 3) {
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             } else if (walletStatus > 3) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
@@ -47,7 +47,7 @@ Item {
             if (!isLoggedIn) {
                 sendToParent({method: "needsLogIn"});
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -60,13 +60,13 @@ Item {
     }
 
     Component.onCompleted: {
-        commerce.getWalletStatus();
+        Commerce.getWalletStatus();
     }
 
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 

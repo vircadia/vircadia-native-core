@@ -75,12 +75,12 @@ FocusScope {
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: {
-                    tabletInterface.playSound(TabletEnums.ButtonHover);
+                    Tablet.playSound(TabletEnums.ButtonHover);
                     listView.currentIndex = index
                 }
 
                 onClicked: {
-                    tabletInterface.playSound(TabletEnums.ButtonClick);
+                    Tablet.playSound(TabletEnums.ButtonClick);
                     root.selected(item);
                 }
             }

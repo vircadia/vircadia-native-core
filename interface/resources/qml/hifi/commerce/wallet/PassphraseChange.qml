@@ -24,10 +24,6 @@ Item {
 
     id: root;
 
-    SecurityImageModel {
-        id: securityImageModel;
-    }
-
     // Username Text
     RalewayRegular {
         id: usernameText;

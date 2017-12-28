@@ -23,6 +23,9 @@ using namespace gpu;
 using PixelsPointer = Texture::PixelsPointer;
 using KtxStorage = Texture::KtxStorage;
 
+std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> KtxStorage::_cachedKtxFiles;
+std::mutex KtxStorage::_cachedKtxFilesMutex;
+
 struct GPUKTXPayload {
     using Version = uint8;
 
@@ -187,36 +190,44 @@ KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     }
 }
 
+// maybeOpenFile should be called with _cacheFileMutex already held to avoid modifying the file from multiple threads
 std::shared_ptr<storage::FileStorage> KtxStorage::maybeOpenFile() const {
-    // 1. Try to get the shared ptr
-    // 2. If it doesn't exist, grab the mutex around its creation
-    // 3. If it was created before we got the mutex, return it
-    // 4. Otherwise, create it
-
+    // Try to get the shared_ptr
     std::shared_ptr<storage::FileStorage> file = _cacheFile.lock();
     if (file) {
         return file;
     }
 
+    // If the file isn't open, create it and save a weak_ptr to it
+    file = std::make_shared<storage::FileStorage>(_filename.c_str());
+    _cacheFile = file;
+
     {
-        std::lock_guard<std::mutex> lock{ _cacheFileCreateMutex };
-
-        file = _cacheFile.lock();
-        if (file) {
-            return file;
-        }
-
-        file = std::make_shared<storage::FileStorage>(_filename.c_str());
-        _cacheFile = file;
+        // Add the shared_ptr to the global list of open KTX files, to be released at the beginning of the next present thread frame
+        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
+        _cachedKtxFiles.emplace_back(file, _cacheFileMutex);
     }
 
     return file;
+}
+
+void KtxStorage::releaseOpenKtxFiles() {
+    std::vector<std::pair<std::shared_ptr<storage::FileStorage>, std::shared_ptr<std::mutex>>> localKtxFiles;
+    {
+        std::lock_guard<std::mutex> lock(_cachedKtxFilesMutex);
+        localKtxFiles.swap(_cachedKtxFiles);
+    }
+    for (auto& cacheFileAndMutex : localKtxFiles) {
+        std::lock_guard<std::mutex> lock(*(cacheFileAndMutex.second));
+        cacheFileAndMutex.first.reset();
+    }
 }
 
 PixelsPointer KtxStorage::getMipFace(uint16 level, uint8 face) const {
     auto faceOffset = _ktxDescriptor->getMipFaceTexelsOffset(level, face);
     auto faceSize = _ktxDescriptor->getMipFaceTexelsSize(level, face);
     if (faceSize != 0 && faceOffset != 0) {
+        std::lock_guard<std::mutex> lock(*_cacheFileMutex);
         auto file = maybeOpenFile();
         if (file) {
             auto storageView = file->createView(faceSize, faceOffset);
@@ -262,6 +273,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         return;
     }
 
+    std::lock_guard<std::mutex> lock(*_cacheFileMutex);
     auto file = maybeOpenFile();
     if (!file) {
         qWarning() << "Failed to open file to assign mip data " << QString::fromStdString(_filename);
@@ -279,8 +291,6 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
     imageData += ktx::IMAGE_SIZE_WIDTH;
 
     {
-        std::lock_guard<std::mutex> lock { _cacheFileWriteMutex };
-
         if (level != _minMipLevelAvailable - 1) {
             qWarning() << "Invalid level to be stored";
             return;

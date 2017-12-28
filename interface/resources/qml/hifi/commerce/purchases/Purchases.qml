@@ -37,8 +37,8 @@ Rectangle {
     property bool isDebuggingFirstUseTutorial: false;
     // Style
     color: hifi.colors.white;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -53,13 +53,14 @@ Rectangle {
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("marketplace purchases");
                 }
             } else if (walletStatus === 3) {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
-                    commerce.inventory();
+                    Commerce.inventory();
                 }
             } else {
                 console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
@@ -70,7 +71,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -196,7 +197,7 @@ Rectangle {
         Component.onCompleted: {
             securityImageResultReceived = false;
             purchasesReceived = false;
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -217,7 +218,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -232,7 +233,7 @@ Rectangle {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
                     root.activeView = "initialize";
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
@@ -253,7 +254,7 @@ Rectangle {
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
-                        commerce.inventory();
+                        Commerce.inventory();
                     break;
                 }
             }
@@ -593,7 +594,7 @@ Rectangle {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
                 console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
-                commerce.inventory();
+                Commerce.inventory();
             }
         }
     }
