@@ -36,7 +36,7 @@ Original.RadioButton {
 
     onHoveredChanged: {
         if (hovered) {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
 
@@ -45,6 +45,8 @@ Original.RadioButton {
         width: boxSize
         height: boxSize
         radius: 7
+        x: radioButton.leftPadding
+        y: parent.height / 2 - height / 2
         gradient: Gradient {
             GradientStop {
                 position: 0.2
@@ -77,6 +79,8 @@ Original.RadioButton {
         text: radioButton.text
         size: hifi.fontSizes.inputLabel
         color: isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText
-        x: radioButton.boxSize / 2
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
+        leftPadding: radioButton.indicator.width + radioButton.spacing
     }
 }
