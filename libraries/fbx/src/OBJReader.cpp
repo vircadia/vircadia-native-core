@@ -467,14 +467,34 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
                 QByteArray token = tokenizer.getDatum();
-                if (!isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
+                auto firstChar = token[0];
+                // Tokenizer treats line endings as whitespace. Non-digit and non-negative sign indicates done;
+                if (!isdigit(firstChar) && firstChar != '-') {
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
                 QList<QByteArray> parts = token.split('/');
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
-                const QByteArray noData {};
+                // If indices are negative relative indices then adjust them to absolute indices based on current vector sizes
+                // Also add 1 to each index as 1 will be subtracted later on from each index in OBJFace::add
+                int part0 = parts[0].toInt();
+                if (part0 < 0) {
+                    parts[0].setNum(vertices.size() - abs(part0) + 1);
+                }
+                if (parts.count() > 1) {
+                    int part1 = parts[1].toInt();
+                    if (part1 < 0) {
+                        parts[1].setNum(textureUVs.size() - abs(part1) + 1);
+                    }
+                    if (parts.count() > 2) {
+                        int part2 = parts[2].toInt();
+                        if (part2 < 0) {
+                            parts[2].setNum(normals.size() - abs(part2) + 1);
+                        }
+                    }
+                }
+                const QByteArray noData{};
                 face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData,
                          vertices, vertexColors);
                 face.groupName = currentGroup;
