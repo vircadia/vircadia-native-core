@@ -654,6 +654,8 @@ function loaded() {
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
         // Ambient light
+        var elCopySkyboxURLToAmbientURL = document.getElementById("copy-skybox-url-to-ambient-url");
+
         var elZoneAmbientLightModeInherit = document.getElementById("property-zone-ambient-light-mode-inherit");
         var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
         var elZoneAmbientLightModeEnabled = document.getElementById("property-zone-ambient-light-mode-enabled");
@@ -1467,6 +1469,13 @@ function loaded() {
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
         // Ambient light
+        elCopySkyboxURLToAmbientURL.addEventListener("click", function () {
+             EventBridge.emitWebEvent(JSON.stringify({
+                 type: "action",
+                 action: "copySkyboxURLToAmbientURL"
+             }));
+        });
+
         var ambientLightModeChanged = createZoneComponentModeChangedFunction('ambientLightMode',
             elZoneAmbientLightModeInherit, elZoneAmbientLightModeDisabled, elZoneAmbientLightModeEnabled);
 

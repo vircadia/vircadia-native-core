@@ -536,6 +536,46 @@
                         <div></div>
                     </div>
                 </div>
+            <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section background-section">
+                    Background
+                </legend>
+                <div class="zone-group zone-section background-section property dropdown">
+                    <label>Background mode</label>
+                    <select name="SelectBackgroundMode" id="property-zone-background-mode">
+                        <option value="inherit">Nothing</option>
+                        <option value="skybox">Skybox</option>
+                    </select>
+                </div>
+            </fieldset>
+            <fieldset class="minor skybox-section">
+                <legend class="sub-section-header zone-group zone-section skybox-section">
+                    Skybox
+                </legend>
+                <fieldset class="zone-group zone-section skybox-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-skybox-color"></div>
+                    <legend>Skybox color</legend>
+                    <div class="tuple">
+                        <div>
+                            <input type="number" class="red" id="property-zone-skybox-color-red">
+                            <label for="property-zone-skybox-color-red">Red:</label>
+                        </div>
+                        <div>
+                            <input type="number" class="green" id="property-zone-skybox-color-green">
+                            <label for="property-zone-skybox-color-green">Green:</label>
+                        </div>
+                        <div>
+                            <input type="number" class="blue" id="property-zone-skybox-color-blue">
+                            <label for="property-zone-skybox-color-blue">Blue:</label>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="zone-group zone-section skybox-section property url ">
+                    <label for="property-zone-skybox-url" width="80">Skybox URL</label>
+                    <input type="text" id="property-zone-skybox-url">
+                    <input type="button" id="copy-skybox-url-to-ambient-url" value="Copy URL to Ambient">
+                </div>
+            </fieldset>
                 <div class="sub-section-header zone-group zone-section ambient-section">
                     <label>Ambient Light</label>
                 </div>
@@ -668,39 +708,7 @@
                     </div>
                 </fieldset>
             </fieldset>
-            <fieldset class="minor">
-                <legend class="sub-section-header zone-group zone-section background-section">
-                    Background
-                </legend>
-                <div class="zone-group zone-section background-section property dropdown">
-                    <label>Background mode</label>
-                    <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                        <option value="inherit">Nothing</option>
-                        <option value="skybox">Skybox</option>
-                    </select>
-                </div>
-            </fieldset>
-            <fieldset class="minor skybox-section">
-                <legend class="sub-section-header zone-group zone-section skybox-section">
-                    Skybox
-                </legend>
-                <fieldset class="zone-group zone-section skybox-section property rgb fstuple">
-                    <div class="color-picker" id="property-zone-skybox-color"></div>
-                    <legend>Skybox color</legend>
-                    <div class="tuple">
-                        <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
-                    </div>
-                </fieldset>
-                <div class="zone-group zone-section skybox-section property url ">
-                    <label for="property-zone-skybox-url">Skybox URL</label>
-                    <input type="text" id="property-zone-skybox-url">
-                </div>
-            </fieldset>
         </fieldset>
-
-
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
                 Text<span>M</span>
