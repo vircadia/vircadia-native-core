@@ -14,6 +14,12 @@
 
 #include <EntityTreeRenderer.h>
 #include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
+#include <commerce/Ledger.h>
+
+#include <PointerManager.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -34,14 +40,14 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
-    _selectionToSceneHandler.initialize("contextOverlayHighlightList");
-
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
+    _entityPropertyFlags += PROP_CLIENT_ONLY;
+    _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::createOrDestroyContextOverlay);
@@ -53,23 +59,28 @@ ContextOverlayInterface::ContextOverlayInterface() {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
             QVariantMap props;
-            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * (CONTEXT_OVERLAY_TABLET_DISTANCE * (cameraOrientation * Vectors::FRONT))));
+            float sensorToWorldScale = myAvatar->getSensorToWorldScale();
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
             props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
             _contextOverlayJustClicked = false;
         }
     });
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-
     connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
+    {
+        _selectionScriptingInterface->enableListHighlight("contextOverlayHighlightList", QVariantMap());
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
+    _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 
-static const uint32_t MOUSE_HW_ID = 0;
-static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
@@ -89,7 +100,7 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
         if (contextOverlayFilterPassed(entityItemID)) {
-            if (event.getID() == MOUSE_HW_ID) {
+            if (event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID())) {
                 enableEntityHighlight(entityItemID);
             }
 
@@ -140,7 +151,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 glm::vec3 normal;
                 boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
-                if (event.getID() == LEFT_HAND_HW_ID) {
+                if (DependencyManager::get<PointerManager>()->isLeftHand(event.getID())) {
                     offsetAngle *= -1.0f;
                 }
                 contextOverlayPosition = cameraPosition +
@@ -161,9 +172,9 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
-            _contextOverlay->setPosition(contextOverlayPosition);
+            _contextOverlay->setWorldPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
-            _contextOverlay->setRotation(entityProperties.getRotation());
+            _contextOverlay->setWorldOrientation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
 
             return true;
@@ -180,7 +191,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    Setting::Handle<bool> _settingSwitch{ "commerce", true };
     if (_settingSwitch.get()) {
         return (entityProperties.getCertificateID().length() != 0);
     } else {
@@ -210,7 +221,7 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        Setting::Handle<bool> _settingSwitch{ "commerce", false };
+        Setting::Handle<bool> _settingSwitch{ "commerce", true };
         if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {
@@ -242,28 +253,113 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (contextOverlayFilterPassed(entityID) && _enabled && event.getID() != MOUSE_HW_ID) {
+    bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
+    if (contextOverlayFilterPassed(entityID) && _enabled && !isMouse) {
         enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (_currentEntityWithContextOverlay != entityID && _enabled && event.getID() != MOUSE_HW_ID) {
+    bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
+    if (_currentEntityWithContextOverlay != entityID && _enabled && !isMouse) {
         disableEntityHighlight(entityID);
     }
 }
 
-static const QString INSPECTION_CERTIFICATE_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 void ContextOverlayInterface::openInspectionCertificate() {
     // lets open the tablet to the inspection certificate QML
     if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
         _hmdScriptingInterface->openTablet();
+
+        setLastInspectedEntity(_currentEntityWithContextOverlay);
+
+        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        if (entityProperties.getClientOnly()) {
+            if (entityProperties.verifyStaticCertificateProperties()) {
+                SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
+
+                if (entityServer) {
+                    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+                    QNetworkRequest networkRequest;
+                    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+                    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+                    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+                    QJsonObject request;
+                    request["certificate_id"] = entityProperties.getCertificateID();
+                    networkRequest.setUrl(requestURL);
+
+                    QNetworkReply* networkReply = NULL;
+                    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+                    connect(networkReply, &QNetworkReply::finished, [=]() {
+                        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                        jsonObject = jsonObject["data"].toObject();
+
+                        if (networkReply->error() == QNetworkReply::NoError) {
+                            if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                                qCDebug(entities) << "invalid_reason not empty";
+                            } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
+                                qCDebug(entities) << "'transfer_status' is 'failed'";
+                            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
+                                qCDebug(entities) << "'transfer_status' is 'pending'";
+                            } else {
+                                QString ownerKey = jsonObject["transfer_recipient_key"].toString();
+
+                                QByteArray certID = entityProperties.getCertificateID().toUtf8();
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                                QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
+
+                                int certIDByteArraySize = certID.length();
+                                int textByteArraySize = text.length();
+                                int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
+
+                                auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                    true);
+                                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(textByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
+                                challengeOwnershipPacket->write(certID);
+                                challengeOwnershipPacket->write(text);
+                                challengeOwnershipPacket->write(nodeToChallengeByteArray);
+                                nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
+
+                                // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
+                                if (thread() != QThread::currentThread()) {
+                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                    return;
+                                } else {
+                                    startChallengeOwnershipTimer();
+                                }
+                            }
+                        } else {
+                            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                                "More info:" << networkReply->readAll();
+                        }
+
+                        networkReply->deleteLater();
+                    });
+                } else {
+                    qCWarning(context_overlay) << "Couldn't get Entity Server!";
+                }
+            } else {
+                auto ledger = DependencyManager::get<Ledger>();
+                _challengeOwnershipTimeoutTimer.stop();
+                emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+                qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
+            }
+        }
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
@@ -291,5 +387,41 @@ void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityI
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     if (_currentEntityWithContextOverlay == entityID) {
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+    }
+}
+
+void ContextOverlayInterface::startChallengeOwnershipTimer() {
+    auto ledger = DependencyManager::get<Ledger>();
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+
+    connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
+        qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
+        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+    });
+
+    _challengeOwnershipTimeoutTimer.start(5000);
+}
+
+void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto ledger = DependencyManager::get<Ledger>();
+
+    _challengeOwnershipTimeoutTimer.stop();
+
+    int certIDByteArraySize;
+    int textByteArraySize;
+
+    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&textByteArraySize);
+
+    QString certID(packet->read(certIDByteArraySize));
+    QString text(packet->read(textByteArraySize));
+
+    EntityItemID id;
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
+
+    if (verificationSuccess) {
+        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+    } else {
+        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
     }
 }

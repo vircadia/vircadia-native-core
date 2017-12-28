@@ -19,7 +19,9 @@
 
 class Plane {
 public:
-    Plane(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) { set3Points(v1,v2,v3); }
+    Plane(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3) { set3Points(v1, v2, v3); }
+    Plane(const glm::vec3 &normal, const glm::vec3 &point) { setNormalAndPoint(normal, point); }
+    Plane(float a, float b, float c, float d) { setCoefficients(a, b, c, d); }
     Plane() : _normal(0.0f), _point(0.0f), _dCoefficient(0.0f) {};
     ~Plane() {} ;
 

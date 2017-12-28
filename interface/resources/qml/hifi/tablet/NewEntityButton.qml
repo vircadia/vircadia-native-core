@@ -123,11 +123,11 @@ Item {
         hoverEnabled: true
         enabled: true
         onClicked: {
-            tabletInterface.playSound(TabletEnums.ButtonClick);
+            Tablet.playSound(TabletEnums.ButtonClick);
             newEntityButton.clicked();
         }
         onEntered: {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
             newEntityButton.state = "hover state";
         }
         onExited: {

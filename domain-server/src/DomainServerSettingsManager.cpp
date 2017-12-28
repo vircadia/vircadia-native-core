@@ -29,6 +29,7 @@
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
+#include <SettingHelpers.h>
 #include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
 #include "DomainServerNodeData.h"
@@ -43,12 +44,7 @@ const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
-static Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
-
-DomainServerSettingsManager::DomainServerSettingsManager() :
-    _descriptionArray(),
-    _configMap()
-{
+DomainServerSettingsManager::DomainServerSettingsManager() {
     // load the description object from the settings description
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
@@ -100,12 +96,34 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
     _argumentList = argumentList;
 
-    // after 1.7 we no longer use the master or merged configs - this is kept in place for migration
-    _configMap.loadMasterAndUserConfig(_argumentList);
+    _configMap.loadConfig(_argumentList);
+
+    static const auto VERSION_SETTINGS_KEYPATH = "version";
+    QVariant* versionVariant = _configMap.valueForKeyPath(VERSION_SETTINGS_KEYPATH);
+
+    if (!versionVariant) {
+        versionVariant = _configMap.valueForKeyPath(VERSION_SETTINGS_KEYPATH, true);
+        *versionVariant = _descriptionVersion;
+        persistToFile();
+        qDebug() << "No version in config file, setting to current version" << _descriptionVersion;
+    }
+
+    {
+        // Backward compatibility migration code
+        // The config version used to be stored in a different file
+        // This moves it to the actual config file.
+        Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
+        if (JSON_SETTING_VERSION.isSet()) {
+            auto version = JSON_SETTING_VERSION.get();
+            *versionVariant = version;
+            persistToFile();
+            QFile::remove(settingsFilename());
+        }
+    }
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
-    double oldVersion = JSON_SETTING_VERSION.get();
+    double oldVersion = versionVariant->toDouble();
 
     if (oldVersion != _descriptionVersion) {
         const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
@@ -137,12 +155,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 QVariant* restrictedAccess = _configMap.valueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH, true);
 
                 *restrictedAccess = QVariant(true);
-
-                // write the new settings to the json file
-                persistToFile();
-
-                // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -172,12 +184,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                     *entityServerVariant = entityServerMap;
                 }
-
-                // write the new settings to the json file
-                persistToFile();
-
-                // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
 
         }
@@ -195,12 +201,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 qDebug() << "Migrating plaintext password to SHA256 hash in domain-server settings.";
 
                 *passwordVariant = QCryptographicHash::hash(plaintextPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
-
-                // write the new settings to file
-                persistToFile();
-
-                // reload the master and user config so the merged config is correct
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -283,19 +283,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             packPermissions();
         }
 
-        if (oldVersion < 1.7) {
-            // This was prior to the removal of the master config file
-            // So we write the merged config to the user config file, and stop reading from the user config file
-
-            qDebug() << "Migrating merged config to user config file. The master config file is deprecated.";
-
-            // replace the user config by the merged config
-            _configMap.getConfig() = _configMap.getMergedConfig();
-
-            // persist the new config so the user config file has the correctly merged config
-            persistToFile();
-        }
-
         if (oldVersion < 1.8) {
             unpackPermissions();
             // This was prior to addition of domain content replacement, add that to localhost permissions by default
@@ -316,16 +303,36 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QVariant* wizardCompletedOnce = _configMap.valueForKeyPath(WIZARD_COMPLETED_ONCE, true);
 
             *wizardCompletedOnce = QVariant(true);
-
-            // write the new settings to the json file
-            persistToFile();
         }
+        if (oldVersion < 2.1) {
+            // convert old avatar scale settings into avatar height.
+
+            const QString AVATAR_MIN_SCALE_KEYPATH = "avatars.min_avatar_scale";
+            const QString AVATAR_MAX_SCALE_KEYPATH = "avatars.max_avatar_scale";
+            const QString AVATAR_MIN_HEIGHT_KEYPATH = "avatars.min_avatar_height";
+            const QString AVATAR_MAX_HEIGHT_KEYPATH = "avatars.max_avatar_height";
+
+            QVariant* avatarMinScale = _configMap.valueForKeyPath(AVATAR_MIN_SCALE_KEYPATH);
+            if (avatarMinScale) {
+                float scale = avatarMinScale->toFloat();
+                _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+            }
+
+            QVariant* avatarMaxScale = _configMap.valueForKeyPath(AVATAR_MAX_SCALE_KEYPATH);
+            if (avatarMaxScale) {
+                float scale = avatarMaxScale->toFloat();
+                _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+            }
+        }
+
+        // write the current description version to our settings
+        *versionVariant = _descriptionVersion;
+
+        // write the new settings to the json file
+        persistToFile();
     }
 
     unpackPermissions();
-
-    // write the current description version to our settings
-    JSON_SETTING_VERSION.set(_descriptionVersion);
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
@@ -563,6 +570,7 @@ void DomainServerSettingsManager::unpackPermissions() {
             } else {
                 // anonymous, logged in, and friend users get connect permissions by default
                 perms->set(NodePermissions::Permission::canConnectToDomain);
+                perms->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
             }
 
             // add the permissions to the standard map
@@ -684,7 +692,7 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                 bool newPermissions = false;
 
                 if (!verifiedUsername.isEmpty()) {
-                    // if we have a verified user name for this user, we apply the kick to the username
+                    // if we have a verified user name for this user, we first apply the kick to the username
 
                     // check if there were already permissions
                     bool hadPermissions = havePermissionsForName(verifiedUsername);
@@ -696,7 +704,14 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
 
                     // ensure that the connect permission is clear
                     userPermissions->clear(NodePermissions::Permission::canConnectToDomain);
-                } else {
+                }
+
+                // if we didn't have a username, or this domain-server uses the "multi-kick" setting to
+                // kick logged in users via username AND machine fingerprint (or IP as fallback)
+                // then we remove connect permissions for the machine fingerprint (or IP as fallback)
+                const QString MULTI_KICK_SETTINGS_KEYPATH = "security.multi_kick_logged_in";
+
+                if (verifiedUsername.isEmpty() || valueOrDefaultValueForKeyPath(MULTI_KICK_SETTINGS_KEYPATH).toBool()) {
                     // remove connect permissions for the machine fingerprint
                     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
                     if (nodeData) {
@@ -731,8 +746,8 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         // TODO: soon we will have feedback (in the form of a message to the client) after we kick.  When we
                         // do, we will have a success flag, and perhaps a reason for failure.  For now, just don't do it.
                         if (kickAddress == limitedNodeList->getPublicSockAddr().getAddress() ||
-                                kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
-                                kickAddress.isLoopback() ) {
+                            kickAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                            kickAddress.isLoopback() ) {
                             qWarning() << "attempt to kick node running on same machine as domain server, ignoring KickRequest";
                             return;
                         }
@@ -1288,9 +1303,6 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             settingsVariant.remove(rootKey);
         }
     }
-
-    // re-merge the user and master configs after a settings change
-    _configMap.mergeMasterAndUserConfigs();
 
     return needRestart;
 }

@@ -81,9 +81,9 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
 
         _shape = entity->getShape();
-        _position = entity->getPosition();
+        _position = entity->getWorldPosition();
         _dimensions = entity->getDimensions();
-        _orientation = entity->getOrientation();
+        _orientation = entity->getWorldOrientation();
         _renderTransform = getModelTransform();
 
         if (_shape == entity::Sphere) {
@@ -137,11 +137,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     });
 
     if (proceduralRender) {
-        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShape(batch, geometryShape);
+            geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
-            geometryCache->renderShape(batch, geometryShape);
+            geometryCache->renderShape(batch, geometryShape, outColor);
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect

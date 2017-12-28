@@ -15,21 +15,7 @@
 #include <string>
 #include <memory>
 #include <queue>
-
-/* VS2010 defines stdint.h, but not inttypes.h */
-#if defined(_MSC_VER)
-typedef signed char  int8_t;
-typedef signed short int16_t;
-typedef signed int   int32_t;
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed long long   int64_t;
-typedef unsigned long long quint64;
-#define PRId64 "I64d"
-#else
 #include <inttypes.h>
-#endif
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -49,6 +35,7 @@ typedef unsigned long long quint64;
 #include <QtScript/QScriptValueIterator>
 #include <QReadWriteLock>
 
+#include <AvatarConstants.h>
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
@@ -271,9 +258,6 @@ namespace AvatarDataPacket {
     size_t maxJointDataSize(size_t numJoints);
 }
 
-static const float MAX_AVATAR_SCALE = 1000.0f;
-static const float MIN_AVATAR_SCALE = .005f;
-
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
 
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
@@ -351,7 +335,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
+    Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
@@ -359,14 +343,14 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
 
-    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientationViaScript)
+    Q_PROPERTY(glm::quat orientation READ getWorldOrientation WRITE setOrientationViaScript)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
     Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
 
-    Q_PROPERTY(glm::vec3 velocity READ getVelocity WRITE setVelocity)
-    Q_PROPERTY(glm::vec3 angularVelocity READ getAngularVelocity WRITE setAngularVelocity)
+    Q_PROPERTY(glm::vec3 velocity READ getWorldVelocity WRITE setWorldVelocity)
+    Q_PROPERTY(glm::vec3 angularVelocity READ getWorldAngularVelocity WRITE setWorldAngularVelocity)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
@@ -498,12 +482,52 @@ public:
     //  Scale
     virtual void setTargetScale(float targetScale);
 
-    float getDomainLimitedScale() const { return glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale); }
+    float getDomainLimitedScale() const;
 
-    void setDomainMinimumScale(float domainMinimumScale)
-        { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
-    void setDomainMaximumScale(float domainMaximumScale)
-        { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
+    /**jsdoc
+     * returns the minimum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMinScale
+     * @returns {number} minimum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMinScale() const;
+
+    /**jsdoc
+     * returns the maximum scale allowed for this avatar in the current domain.
+     * This value can change as the user changes avatars or when changing domains.
+     * @function AvatarData.getDomainMaxScale
+     * @returns {number} maximum scale allowed for this avatar in the current domain.
+     */
+    Q_INVOKABLE float getDomainMaxScale() const;
+
+    // returns eye height of avatar in meters, ignoreing avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight;
+    virtual float getUnscaledEyeHeight() const { return DEFAULT_AVATAR_EYE_HEIGHT; }
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const { return false; }
+
+    /**jsdoc
+     * Provides read only access to the current eye height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function AvatarData.getEyeHeight
+     * @returns {number} eye height of avatar in meters
+     */
+    Q_INVOKABLE virtual float getEyeHeight() const { return _targetScale * getUnscaledEyeHeight(); }
+
+    /**jsdoc
+     * Provides read only access to the current height of the avatar.
+     * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
+     * @function AvatarData.getHeight
+     * @returns {number} height of avatar in meters
+     */
+    Q_INVOKABLE virtual float getHeight() const;
+
+    float getUnscaledHeight() const;
+
+    void setDomainMinimumHeight(float domainMinimumHeight);
+    void setDomainMaximumHeight(float domainMaximumHeight);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -617,7 +641,7 @@ public:
 
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
-    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     void insertDetachedEntityID(const QUuid entityID);
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
@@ -642,14 +666,6 @@ public:
     virtual glm::quat getOrientationOutbound() const;
 
     static const float OUT_OF_VIEW_PENALTY;
-
-    static void sortAvatars(
-        QList<AvatarSharedPointer> avatarList,
-        const ViewFrustum& cameraView,
-        std::priority_queue<AvatarPriority>& sortedAvatarsOut,
-        std::function<uint64_t(AvatarSharedPointer)> getLastUpdated,
-        std::function<float(AvatarSharedPointer)> getBoundingRadius,
-        std::function<bool(AvatarSharedPointer)> shouldIgnore);
 
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
@@ -720,8 +736,8 @@ protected:
 
     // Body scale
     float _targetScale;
-    float _domainMinimumScale { MIN_AVATAR_SCALE };
-    float _domainMaximumScale { MAX_AVATAR_SCALE };
+    float _domainMinimumHeight { MIN_AVATAR_HEIGHT };
+    float _domainMaximumHeight { MAX_AVATAR_HEIGHT };
 
     //  Hand state (are we grabbing something or not)
     char _handState;
@@ -903,7 +919,7 @@ public:
     void fromJson(const QJsonObject& json);
 
     QVariant toVariant() const;
-    void fromVariant(const QVariant& variant);
+    bool fromVariant(const QVariant& variant);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);

@@ -26,8 +26,8 @@
     // Relevant Variables:
     //   -WALLET_QML_SOURCE: The path to the Wallet QML
     //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var onWalletScreen = false;
     function onButtonClicked() {
         if (!tablet) {
@@ -61,9 +61,25 @@
     function fromQml(message) {
         switch (message.method) {
             case 'passphrasePopup_cancelClicked':
-            case 'walletSetup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoHomeScreen();
+                break;
+            case 'walletSetup_cancelClicked':
+                switch (message.referrer) {
+                    case '': // User clicked "Wallet" app
+                    case undefined:
+                    case null:
+                        tablet.gotoHomeScreen();
+                        break;
+                    case 'purchases':
+                    case 'marketplace cta':
+                    case 'mainPage':
+                        tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                        break;
+                    default: // User needs to return to an individual marketplace item URL
+                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
+                        break;
+                }
                 break;
             case 'needsLogIn_loginClicked':
                 openLoginWindow();
@@ -145,7 +161,7 @@
     var button;
     var buttonName = "WALLET";
     var tablet = null;
-    var walletEnabled = Settings.getValue("commerce", false);
+    var walletEnabled = Settings.getValue("commerce", true);
     function startup() {
         if (walletEnabled) {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

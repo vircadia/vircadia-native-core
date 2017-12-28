@@ -26,6 +26,8 @@ public:
     
     virtual bool is3D() const override { return false; }
 
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return 1; }
+
     // getters
     int getX() const { return _bounds.x(); }
     int getY() const { return _bounds.y(); }

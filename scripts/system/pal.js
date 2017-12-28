@@ -40,7 +40,7 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
-var PAL_QML_SOURCE = "../Pal.qml";
+var PAL_QML_SOURCE = "hifi/Pal.qml";
 var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
@@ -189,7 +189,6 @@ function HighlightedEntity(id, entityProperties) {
             green: 0x91,
             blue: 0x29
         },
-        lineWidth: 1.0,
         ignoreRayIntersection: true,
         drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
     });

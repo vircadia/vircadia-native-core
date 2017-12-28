@@ -59,7 +59,8 @@ protected:
     OctreePacketData _packetData;
     QWeakPointer<Node> _node;
     OctreeServer* _myServer { nullptr };
-
+    QUuid _nodeUuid;
+    
 private:
     /// Called before a packetDistributor pass to allow for pre-distribution processing
     virtual void preDistributionProcessing() {};
@@ -70,8 +71,6 @@ private:
     virtual bool shouldStartNewTraversal(OctreeQueryNode* nodeData, bool viewFrustumChanged) { return viewFrustumChanged || !hasSomethingToSend(nodeData); }
     virtual void preStartNewScene(OctreeQueryNode* nodeData, bool isFullScene);
     virtual bool shouldTraverseAndSend(OctreeQueryNode* nodeData) { return hasSomethingToSend(nodeData); }
-
-    QUuid _nodeUuid;
 
     int _truePacketsSent { 0 }; // available for debug stats
     int _trueBytesSent { 0 }; // available for debug stats

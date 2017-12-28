@@ -185,7 +185,7 @@ logTrace = function(str) {
 // (the vector that would move the point outside the sphere)
 // otherwise returns false
 findSphereHit = function(point, sphereRadius) {
-    var EPSILON = 0.000001;	//smallish positive number - used as margin of error for some computations
+    var EPSILON = 0.000001;     //smallish positive number - used as margin of error for some computations
     var vectorLength = Vec3.length(point);
     if (vectorLength < EPSILON) {
         return true;
@@ -400,24 +400,28 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * sensorScaleOffsetOverride;
-    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleOffsetOverride;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride;
+    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleFactor * sensorScaleOffsetOverride;
+    var screenWidth = 0.82 * tabletWidth;
+    var screenHeight = 0.81 * tabletHeight;
+    var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
     Overlays.editOverlay(HMD.tabletScreenID, {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dimensions: {x: landscape ? screenHeight : screenWidth, y: landscape ? screenWidth : screenHeight, z: 0.1},
         dpi: tabletDpi
     });
 
     // update homeButton
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * sensorScaleOffsetOverride;
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20) - 0.003 * sensorScaleFactor) * sensorScaleOffsetOverride;
+    // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
+    var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     Overlays.editOverlay(HMD.homeButtonID, {
-        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Overlays.editOverlay(HMD.homeButtonHighlightID, {
-        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
-        outerRadius: 25 * tabletScaleFactor,
-        innerRadius: 20 * tabletScaleFactor
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };

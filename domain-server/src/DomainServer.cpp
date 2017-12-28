@@ -94,7 +94,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + metaversePath };
+    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -420,7 +420,7 @@ bool DomainServer::optionallySetupOAuth() {
 
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
-        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL();
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -830,26 +830,6 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
 void DomainServer::updateICEServerAddresses() {
     if (_iceAddressLookupID == INVALID_ICE_LOOKUP_ID) {
         _iceAddressLookupID = QHostInfo::lookupHost(_iceServerAddr, this, SLOT(handleICEHostInfo(QHostInfo)));
-
-        // there seems to be a 5.9 bug where lookupHost never calls our slot
-        // so we add a single shot manual "timeout" to fire it off again if it hasn't called back yet
-        static const int ICE_ADDRESS_LOOKUP_TIMEOUT_MS = 5000;
-        QTimer::singleShot(ICE_ADDRESS_LOOKUP_TIMEOUT_MS, this, &DomainServer::timeoutICEAddressLookup);
-    }
-}
-
-void DomainServer::timeoutICEAddressLookup() {
-    if (_iceAddressLookupID != INVALID_ICE_LOOKUP_ID) {
-        // we waited 5s and didn't hear back for our ICE DNS lookup
-        // so time that one out and kick off another
-
-        qDebug() << "IP address lookup timed out for" << _iceServerAddr << "- retrying";
-
-        QHostInfo::abortHostLookup(_iceAddressLookupID);
-
-        _iceAddressLookupID = INVALID_ICE_LOOKUP_ID;
-
-        updateICEServerAddresses();
     }
 }
 
@@ -965,7 +945,7 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
 
 void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes) {
     // enumerate over all assignment types and see if we've already excluded it
-    for (Assignment::Type defaultedType = Assignment::AudioMixerType;
+    for (Assignment::Type defaultedType = Assignment::FirstType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
@@ -2179,7 +2159,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonDocument doc(root);
 
 
-            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/v1/places/" + place_id };
+            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/v1/places/" + place_id };
 
             url.setQuery("access_token=" + accessTokenVariant->toString());
 
@@ -3007,9 +2987,20 @@ void DomainServer::handleKeypairChange() {
 
 void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     // clear the ICE address lookup ID so that it can fire again
-    _iceAddressLookupID = -1;
+    _iceAddressLookupID = INVALID_ICE_LOOKUP_ID;
 
-    if (hostInfo.error() != QHostInfo::NoError) {
+    // enumerate the returned addresses and collect only valid IPv4 addresses
+    QList<QHostAddress> sanitizedAddresses = hostInfo.addresses();
+    auto it = sanitizedAddresses.begin();
+    while (it != sanitizedAddresses.end()) {
+        if (!it->isNull() && it->protocol() == QAbstractSocket::IPv4Protocol) {
+            ++it;
+        } else {
+            it = sanitizedAddresses.erase(it);
+        }
+    }
+
+    if (hostInfo.error() != QHostInfo::NoError || sanitizedAddresses.empty()) {
         qWarning() << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
 
         // if we don't have an ICE server to use yet, trigger a retry
@@ -3022,7 +3013,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     } else {
         int countBefore = _iceServerAddresses.count();
 
-        _iceServerAddresses = hostInfo.addresses();
+        _iceServerAddresses = sanitizedAddresses;
 
         if (countBefore == 0) {
             qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;

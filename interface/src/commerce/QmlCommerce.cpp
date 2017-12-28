@@ -16,9 +16,7 @@
 #include "Wallet.h"
 #include <AccountManager.h>
 
-HIFI_QML_DEF(QmlCommerce)
-
-QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
+QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);
@@ -30,6 +28,12 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
     connect(wallet.data(), &Wallet::walletStatusResult, this, &QmlCommerce::walletStatusResult);
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
+    connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
+    
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
+        setPassphrase("");
+    });
 }
 
 void QmlCommerce::getWalletStatus() {
@@ -77,19 +81,28 @@ void QmlCommerce::buy(const QString& assetId, int cost, const bool controlledFai
 void QmlCommerce::balance() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->balance(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->balance(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::inventory() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->inventory(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->inventory(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::history() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    ledger->history(wallet->listPublicKeys());
+    QStringList cachedPublicKeys = wallet->listPublicKeys();
+    if (!cachedPublicKeys.isEmpty()) {
+        ledger->history(cachedPublicKeys);
+    }
 }
 
 void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& newPassphrase) {
@@ -119,6 +132,11 @@ void QmlCommerce::reset() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     ledger->reset();
+    wallet->reset();
+}
+
+void QmlCommerce::resetLocalWalletOnly() {
+    auto wallet = DependencyManager::get<Wallet>();
     wallet->reset();
 }
 

@@ -11,8 +11,11 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Dialogs 1.2 as OriginalDialogs
+
 import "../../styles-uit"
 import "../../controls-uit"
+import "../dialogs"
 
 Rectangle {
     id: newModelDialog
@@ -24,6 +27,15 @@ Rectangle {
     property bool keyboardEnabled: false
     property bool punctuationMode: false
     property bool keyboardRasied: false
+
+    function errorMessageBox(message) {
+        return desktop.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
+        });
+    }
 
     Item {
         id: column1
@@ -98,7 +110,6 @@ Rectangle {
                 CheckBox {
                     id: dynamic
                     text: qsTr("Dynamic")
-                    
                 }
 
                 Row {
@@ -117,6 +128,7 @@ Rectangle {
                     Text {
                         id: text2
                         width: 160
+                        x: dynamic.width / 2
                         color: "#ffffff"
                         text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic, and should not be used as floors")
                         wrapMode: Text.WordWrap
@@ -139,15 +151,40 @@ Rectangle {
 
                 ComboBox {
                     id: collisionType
+
+                    property int priorIndex: 0
+                    property string staticMeshCollisionText: "Exact - All polygons"
+                    property var collisionArray: ["No Collision",
+                                                  "Basic - Whole model",
+                                                  "Good - Sub-meshes",
+                                                  staticMeshCollisionText, 
+                                                  "Box", 
+                                                  "Sphere"]
+
                     width: 200
                     z: 100
                     transformOrigin: Item.Center
-                    model: ["No Collision",
-                            "Basic - Whole model",
-                            "Good - Sub-meshes",
-                            "Exact - All polygons", 
-                            "Box", 
-                            "Sphere"]
+                    model: collisionArray
+
+                    onCurrentIndexChanged: {
+                        if (collisionArray[currentIndex] === staticMeshCollisionText) {
+                            
+                            if (dynamic.checked) {
+                                currentIndex = priorIndex;
+
+                                errorMessageBox("Models with Automatic Collisions set to \"" 
+                                                    + staticMeshCollisionText + "\" cannot be dynamic.");
+                                //--EARLY EXIT--( Can't have a static mesh model that's dynamic )
+                                return;
+                            }
+
+                            dynamic.enabled = false;
+                        } else {
+                            dynamic.enabled = true;
+                        }
+
+                        priorIndex = currentIndex;
+                    }
                 }
 
                 Row {
@@ -155,10 +192,10 @@ Rectangle {
                     width: 200
                     height: 400
                     spacing: 5
-                    
-                    anchors {
-                        rightMargin: 15
-                    }
+
+                    anchors.horizontalCenter: column3.horizontalCenter
+                    anchors.horizontalCenterOffset: -20
+
                     Button {
                         id: button1
                         text: qsTr("Add")

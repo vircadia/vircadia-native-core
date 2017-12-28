@@ -37,7 +37,7 @@ AABox Planar3DOverlay::getBounds() const {
 
 void Planar3DOverlay::setDimensions(const glm::vec2& value) {
     _dimensions = value;
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Planar3DOverlay::setProperties(const QVariantMap& properties) {
@@ -58,6 +58,10 @@ void Planar3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Planar3DOverlay.
+/**jsdoc
+ * @property {Vec2} dimensions=1,1 - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ */
 QVariant Planar3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
         return vec2toVariant(getDimensions());
@@ -69,7 +73,7 @@ QVariant Planar3DOverlay::getProperty(const QString& property) {
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
     // FIXME - face and surfaceNormal not being returned
-    return findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), getDimensions(), distance);
+    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getDimensions(), distance);
 }
 
 Transform Planar3DOverlay::evalRenderTransform() {

@@ -41,8 +41,15 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase, PacketType::EntityPhysics, PacketType::ChallengeOwnership },
-                                            this, "handleEntityPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
+        PacketType::EntityEdit,
+        PacketType::EntityErase,
+        PacketType::EntityPhysics,
+        PacketType::ChallengeOwnership,
+        PacketType::ChallengeOwnershipRequest,
+        PacketType::ChallengeOwnershipReply },
+        this,
+        "handleEntityPacket");
 
     connect(&_dynamicDomainVerificationTimer, &QTimer::timeout, this, &EntityServer::startDynamicDomainVerification);
     _dynamicDomainVerificationTimer.setSingleShot(true);
@@ -459,7 +466,7 @@ void EntityServer::startDynamicDomainVerification() {
         EntityItemPointer entity = tree->findEntityByEntityItemID(i.value());
 
         if (entity) {
-            if (!entity->verifyStaticCertificateProperties()) {
+            if (!entity->getProperties().verifyStaticCertificateProperties()) {
                 qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
                     << "static certificate verification.";
                 // Delete the entity if it doesn't pass static certificate verification
@@ -470,7 +477,7 @@ void EntityServer::startDynamicDomainVerification() {
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
                 networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
                 QJsonObject request;
                 request["certificate_id"] = i.key();

@@ -34,7 +34,6 @@ int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int xColorMetaTypeId = qRegisterMetaType<xColor>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
-int rayPickResultMetaTypeId = qRegisterMetaType<RayPickResult>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
 int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
@@ -57,7 +56,6 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
     qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
-    qScriptRegisterMetaType(engine, rayPickResultToScriptValue, rayPickResultFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
@@ -563,6 +561,14 @@ QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
     return obj;
 }
 
+/**jsdoc
+ * Defines a rectangular portion of an image or screen.
+ * @typedef {object} Rect
+ * @property {number} x - Integer left, x-coordinate value.
+ * @property {number} y - Integer top, y-coordinate value.
+ * @property {number} width - Integer width of the rectangle.
+ * @property {number} height - Integer height of the rectangle.
+ */
 QVariant qRectToVariant(const QRect& rect) {
     QVariantMap obj;
     obj["x"] = rect.x();
@@ -615,7 +621,13 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
     }
 }
 
-
+/**jsdoc
+ * An RGB color value.
+ * @typedef {object} Color
+ * @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+ * @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
+ */
 QVariant xColorToVariant(const xColor& color) {
     QVariantMap obj;
     obj["red"] = color.red;
@@ -753,26 +765,6 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
-QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("type", rayPickResult.type);
-    QScriptValue objectID = quuidToScriptValue(engine, rayPickResult.objectID);
-    obj.setProperty("objectID", objectID);
-    obj.setProperty("distance", rayPickResult.distance);
-    QScriptValue intersection = vec3toScriptValue(engine, rayPickResult.intersection);
-    obj.setProperty("intersection", intersection);
-    obj.setProperty("intersects", rayPickResult.type != NONE);
-    QScriptValue searchRay = pickRayToScriptValue(engine, rayPickResult.searchRay);
-    obj.setProperty("searchRay", searchRay);
-    QScriptValue surfaceNormal = vec3toScriptValue(engine, rayPickResult.surfaceNormal);
-    obj.setProperty("surfaceNormal", surfaceNormal);
-    return obj;
-}
-
-void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult) {
-    // TODO: cannot currently accept RayPickResults from JS
-}
-
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("type", collision.type);
@@ -812,6 +804,12 @@ void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid) {
     uuid = fromString;
 }
 
+/**jsdoc
+ * A 2D size value.
+ * @typedef {object} Size
+ * @property {number} height - The height value.
+ * @property {number} width - The width value.
+ */
 QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("width", qSizeF.width());

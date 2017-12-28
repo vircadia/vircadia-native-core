@@ -31,13 +31,15 @@ Rectangle {
     property bool keyboardRaised: false;
     property bool isPassword: false;
 
+    anchors.fill: (typeof parent === undefined) ? undefined : parent;
+
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -47,14 +49,23 @@ Rectangle {
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
+                    Commerce.resetLocalWalletOnly();
+                    var timestamp = new Date();
+                    walletSetup.startingTimestamp = timestamp;
+                    walletSetup.setupAttemptID = generateUUID();
+                    UserActivityLogger.commerceWalletSetupStarted(timestamp, setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
+                        (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("wallet app");
                 }
             } else if (walletStatus === 3) {
-                root.activeView = "walletHome";
-                commerce.getSecurityImage();
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletHome";
+                    Commerce.getSecurityImage();
+                }
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
@@ -64,7 +75,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -74,10 +85,6 @@ Rectangle {
                 titleBarSecurityImage.source = "image://security/securityImage";
             }
         }
-    }
-
-    SecurityImageModel {
-        id: securityImageModel;
     }
 
     HifiCommerceCommon.CommerceLightbox {
@@ -172,9 +179,9 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_finished') {
-                    if (msg.referrer === '') {
+                    if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
                         root.activeView = "initialize";
-                        commerce.getWalletStatus();
+                        Commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {
                         sendToScript({method: 'goToPurchases'});
                     } else {
@@ -203,17 +210,19 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                    root.isPassword = msg.isPasswordField;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
-                    root.activeView = "security";
-                } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
-                    root.activeView = "security";
-                } else {
-                    sendToScript(msg);
+                if (passphraseChange.visible) {
+                    if (msg.method === 'walletSetup_raiseKeyboard') {
+                        root.keyboardRaised = true;
+                        root.isPassword = msg.isPasswordField;
+                    } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                        root.keyboardRaised = false;
+                    } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
+                        root.activeView = "security";
+                    } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
+                        root.activeView = "security";
+                    } else {
+                        sendToScript(msg);
+                    }
                 }
             }
         }
@@ -254,7 +263,7 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -275,7 +284,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -289,7 +298,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
@@ -336,6 +345,7 @@ Rectangle {
                     passphraseChange.clearPassphraseFields();
                     passphraseChange.resetSubmitButton();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageChange.initModel();
                     root.activeView = "securityImageChange";
                 }
             }
@@ -666,25 +676,6 @@ Rectangle {
             right: parent.right;
         }
 
-        Image {
-            id: lowerKeyboardButton;
-            z: 999;
-            source: "images/lowerKeyboard.png";
-            anchors.right: keyboard.right;
-            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
-            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
-            height: 50;
-            width: 60;
-
-            MouseArea {
-                anchors.fill: parent;
-
-                onClicked: {
-                    root.keyboardRaised = false;
-                }
-            }
-        }
-
         HifiControlsUit.Keyboard {
             id: keyboard;
             raised: HMD.mounted && root.keyboardRaised;
@@ -719,12 +710,28 @@ Rectangle {
             case 'updateWalletReferrer':
                 walletSetup.referrer = message.referrer;
             break;
+            case 'inspectionCertificate_resetCert':
+                // NOP
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }
     }
     signal sendToScript(var message);
 
+    // generateUUID() taken from:
+    // https://stackoverflow.com/a/8809472
+    function generateUUID() { // Public Domain/MIT
+        var d = new Date().getTime();
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+            d += performance.now(); //use high-precision timer if available
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
     //
     // FUNCTION DEFINITIONS END
     //

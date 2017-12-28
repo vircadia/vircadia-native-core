@@ -28,7 +28,6 @@ void serverWait();
 // Create a fence and synchronously wait on the fence
 void clientWait();
 
-gpu::Size getDedicatedMemory();
 gpu::Size getFreeDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);
@@ -110,6 +109,7 @@ static const GLenum ELEMENT_TYPE_TO_GL[gpu::NUM_TYPES] = {
     GL_SHORT,
     GL_UNSIGNED_SHORT,
     GL_BYTE,
+    GL_UNSIGNED_BYTE,
     GL_UNSIGNED_BYTE
 };
 

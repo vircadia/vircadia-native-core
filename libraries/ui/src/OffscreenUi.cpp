@@ -28,6 +28,7 @@
 
 #include "ui/Logging.h"
 
+#include <PointerManager.h>
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -84,7 +85,35 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     return false;
 }
 
+static QTouchDevice _touchDevice;
 OffscreenUi::OffscreenUi() {
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        _touchDevice.setCapabilities(QTouchDevice::Position);
+        _touchDevice.setType(QTouchDevice::TouchScreen);
+        _touchDevice.setName("OffscreenUiTouchDevice");
+        _touchDevice.setMaximumTouchPoints(4);
+    });
+
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenUi::hoverBeginEvent);
+    connect(pointerManager.data(), &PointerManager::hoverContinueHUD, this, &OffscreenUi::handlePointerEvent);
+    connect(pointerManager.data(), &PointerManager::hoverEndHUD, this, &OffscreenUi::hoverEndEvent);
+    connect(pointerManager.data(), &PointerManager::triggerBeginHUD, this, &OffscreenUi::handlePointerEvent);
+    connect(pointerManager.data(), &PointerManager::triggerContinueHUD, this, &OffscreenUi::handlePointerEvent);
+    connect(pointerManager.data(), &PointerManager::triggerEndHUD, this, &OffscreenUi::handlePointerEvent);
+}
+
+void OffscreenUi::hoverBeginEvent(const PointerEvent& event) {
+    OffscreenQmlSurface::hoverBeginEvent(event, _touchDevice);
+}
+
+void OffscreenUi::hoverEndEvent(const PointerEvent& event) {
+    OffscreenQmlSurface::hoverEndEvent(event, _touchDevice);
+}
+
+void OffscreenUi::handlePointerEvent(const PointerEvent& event) {
+    OffscreenQmlSurface::handlePointerEvent(event, _touchDevice);
 }
 
 QObject* OffscreenUi::getFlags() {
@@ -105,9 +134,6 @@ void OffscreenUi::create() {
     myContext->setContextProperty("OffscreenUi", this);
     myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
     myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-    myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -720,7 +746,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
         return QString();
     }
     qCDebug(uiLogging) << result.toString();
-    return result.toUrl().toLocalFile();
+    return result.toString();
 }
 
 ModalDialogListener* OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
@@ -1072,6 +1098,26 @@ bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
     // let the parent class do it's work
     bool result = OffscreenQmlSurface::eventFilter(originalDestination, event);
 
+    switch (event->type()) {
+        // Fall through
+        case QEvent::MouseButtonDblClick:
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonRelease:
+        case QEvent::MouseMove: {
+            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos());
+            // FIXME: touch events are always being accepted.  Use mouse events on the OffScreenUi for now, and investigate properly switching to touch events
+            // (using handlePointerEvent) later
+            QMouseEvent mappedEvent(mouseEvent->type(), transformedPos, mouseEvent->screenPos(), mouseEvent->button(), mouseEvent->buttons(), mouseEvent->modifiers());
+            mappedEvent.ignore();
+            if (QCoreApplication::sendEvent(getWindow(), &mappedEvent)) {
+                return mappedEvent.isAccepted();
+            }
+            break;
+        }
+        default:
+            break;
+    }
 
     // Check if this is a key press/release event that might need special attention
     auto type = event->type();

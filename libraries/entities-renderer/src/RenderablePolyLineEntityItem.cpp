@@ -154,8 +154,8 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     entity->resetPolyLineChanged();
 
     _polylineTransform = Transform();
-    _polylineTransform.setTranslation(entity->getPosition());
-    _polylineTransform.setRotation(entity->getRotation());
+    _polylineTransform.setTranslation(entity->getWorldPosition());
+    _polylineTransform.setRotation(entity->getWorldOrientation());
 
     if (pointsChanged) {
         _lastPoints = entity->getLinePoints();
@@ -303,6 +303,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     batch.setInputBuffer(0, _verticesBuffer, 0, sizeof(Vertex));
 
 #ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
+    // glColor4f must be called after setInputFormat if it must be taken into account
     if (_isFading) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
     } else {

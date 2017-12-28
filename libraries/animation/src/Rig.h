@@ -31,7 +31,7 @@ class AnimInverseKinematics;
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
 
-class Rig : public QObject, public std::enable_shared_from_this<Rig> {
+class Rig : public QObject {
     Q_OBJECT
 public:
     struct StateHandler {
@@ -231,6 +231,9 @@ public:
 
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
+    const AnimPose& getModelOffsetPose() const { return _modelOffset; }
+    const AnimPose& getGeometryOffsetPose() const { return _geometryOffset; }
+
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
     void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
     void setEnableDebugDrawIKChains(bool enableDebugDrawIKChains) { _enableDebugDrawIKChains = enableDebugDrawIKChains; }
@@ -335,8 +338,22 @@ protected:
         float firstFrame;
         float lastFrame;
     };
+    
+    struct RoleAnimState {
+       RoleAnimState() {}
+       RoleAnimState(const QString& roleId, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            role(roleId), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        QString role;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
 
     UserAnimState _userAnimState;
+    std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };

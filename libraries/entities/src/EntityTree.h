@@ -93,6 +93,8 @@ public:
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode) override;
+    virtual void processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
+    virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -273,6 +275,11 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
+    QByteArray computeNonce(const QString& certID, const QString ownerKey);
+    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
+
+    void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void deletingEntityPointer(EntityItem* entityID);
@@ -327,7 +334,7 @@ protected:
     QHash<QString, EntityItemID> _entityCertificateIDMap;
 
     mutable QReadWriteLock _certNonceMapLock;
-    QHash<QString, QUuid> _certNonceMap;
+    QHash<QString, QPair<QUuid, QString>> _certNonceMap;
 
     EntitySimulationPointer _simulation;
 
@@ -375,9 +382,11 @@ protected:
     Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
 private:
-    QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
-    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce);
+    void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
+
+    std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 };
 
 #endif // hifi_EntityTree_h

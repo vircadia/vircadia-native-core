@@ -15,7 +15,7 @@
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable*/
+   isInEditMode, HMD entityIsGrabbable, Pointers, PickType RayPick*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -260,15 +260,16 @@ function Grabber() {
 
     this.mouseRayOverlays = RayPick.createRayPick({
         joint: "Mouse",
-        filter: RayPick.PICK_OVERLAYS,
+        filter: Picks.PICK_OVERLAYS,
         enabled: true
     });
     RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     var renderStates = [{name: "grabbed", end: beacon}];
-    this.mouseRayEntities = LaserPointers.createLaserPointer({
+    this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
-        filter: RayPick.PICK_ENTITIES,
+        filter: Picks.PICK_ENTITIES,
         faceAvatar: true,
+        scaleWithAvatar: true,
         enabled: true,
         renderStates: renderStates
     });
@@ -315,19 +316,23 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
+    if (event.isAlt || event.isMeta) {
+        return;
+    }
+
     if (Overlays.getOverlayAtPoint(Reticle.position) > 0) {
         // the mouse is pointing at an overlay; don't look for entities underneath the overlay.
         return;
     }
 
     var overlayResult = RayPick.getPrevRayPickResult(this.mouseRayOverlays);
-    if (overlayResult.type != RayPick.INTERSECTED_NONE) {
+    if (overlayResult.type != Picks.INTERSECTED_NONE) {
         return;
     }
 
-    var pickResults = LaserPointers.getPrevRayPickResult(this.mouseRayEntities);
-    if (pickResults.type == RayPick.INTERSECTED_NONE) {
-        LaserPointers.setRenderState(this.mouseRayEntities, "");
+    var pickResults = Pointers.getPrevPickResult(this.mouseRayEntities);
+    if (pickResults.type == Picks.INTERSECTED_NONE) {
+        Pointers.setRenderState(this.mouseRayEntities, "");
         return;
     }
 
@@ -344,8 +349,8 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    LaserPointers.setRenderState(this.mouseRayEntities, "grabbed");
-    LaserPointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
+    Pointers.setRenderState(this.mouseRayEntities, "grabbed");
+    Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
 
     mouse.startDrag(event);
 
@@ -358,7 +363,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     var objectBoundingDiameter = Vec3.length(entityProperties.dimensions);
     beacon.dimensions.y = objectBoundingDiameter;
-    LaserPointers.editRenderState(this.mouseRayEntities, "grabbed", {end: beacon});
+    Pointers.editRenderState(this.mouseRayEntities, "grabbed", {end: beacon});
     this.maxDistance = objectBoundingDiameter / MAX_SOLID_ANGLE;
     if (Vec3.distance(this.startPosition, cameraPosition) > this.maxDistance) {
         // don't allow grabs of things far away
@@ -435,7 +440,7 @@ Grabber.prototype.releaseEvent = function(event) {
 
         this.actionID = null;
 
-        LaserPointers.setRenderState(this.mouseRayEntities, "");
+        Pointers.setRenderState(this.mouseRayEntities, "");
 
         var args = "mouse";
         Entities.callEntityMethod(this.entityID, "releaseGrab", args);
@@ -590,7 +595,7 @@ Grabber.prototype.keyPressEvent = function(event) {
 };
 
 Grabber.prototype.cleanup = function() {
-    LaserPointers.removeLaserPointer(this.mouseRayEntities);
+    Pointers.removePointer(this.mouseRayEntities);
     RayPick.removeRayPick(this.mouseRayOverlays);
 };
 

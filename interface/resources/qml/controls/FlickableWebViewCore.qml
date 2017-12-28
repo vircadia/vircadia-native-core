@@ -21,10 +21,18 @@ Item {
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
 
+    width: parent.width
+
     property bool interactive: false
 
     StylesUIt.HifiConstants {
         id: hifi
+    }
+
+    function unfocus() {
+        webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
+            console.log('unfocus completed: ', result);
+        });
     }
 
     function onLoadingChanged(loadRequest) {
@@ -41,7 +49,7 @@ Item {
         }
 
         if (WebEngineView.LoadFailedStatus === loadRequest.status) {
-            console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+            console.log("Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
         }
 
         if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
@@ -52,7 +60,8 @@ Item {
     WebEngineView {
         id: webViewCore
 
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
@@ -85,20 +94,19 @@ Item {
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
-        property string newUrl: ""
-
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
+
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
                 webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
             }
+            // Ensure the JS from the web-engine makes it to our logging
+            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+            });
         }
 
         onFeaturePermissionRequested: {
@@ -128,5 +136,11 @@ Item {
         visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
+    }
+
+    Keys.onPressed: {
+        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false;
+        }
     }
 }

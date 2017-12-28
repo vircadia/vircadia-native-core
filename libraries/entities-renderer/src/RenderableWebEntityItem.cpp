@@ -30,6 +30,8 @@
 using namespace render;
 using namespace render::entities;
 
+static const QString WEB_ENTITY_QML = "controls/WebEntityView.qml";
+
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount{ 0 };
 // Don't allow more than 100 concurrent web views
@@ -69,7 +71,7 @@ void WebEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity)
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_contextPosition != entity->getPosition()) {
+    if (_contextPosition != entity->getWorldPosition()) {
         return true;
     }
 
@@ -124,12 +126,15 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     withWriteLock([&] {
         // This work must be done on the main thread
         if (!hasWebSurface()) {
-            buildWebSurface(entity);
+            // If we couldn't create a new web surface, exit
+            if (!buildWebSurface(entity)) {
+                return;
+            }
         }
 
-        if (_contextPosition != entity->getPosition()) {
+        if (_contextPosition != entity->getWorldPosition()) {
             // update globalPosition
-            _contextPosition = entity->getPosition();
+            _contextPosition = entity->getWorldPosition();
             _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
         }
 
@@ -188,7 +193,6 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     });
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
@@ -218,6 +222,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     };
 
     {
+    	// FIXME use the surface cache instead of explicit creation
         _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
         _webSurface->create();
     }
@@ -227,6 +232,8 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
     _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
+    // Let us interact with the keyboard
+    _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     _fadeStartTime = usecTimestampNow();
     loadSourceURL();
     _webSurface->resume();
@@ -289,7 +296,6 @@ void WebEntityRenderer::loadSourceURL() {
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _lastSourceUrl.toLower().endsWith(".htm") || _lastSourceUrl.toLower().endsWith(".html")) {
         _contentType = htmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
 
         // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
         if (sourceUrl.host().endsWith("youtube.com", Qt::CaseInsensitive)) {
@@ -298,12 +304,11 @@ void WebEntityRenderer::loadSourceURL() {
             _webSurface->setMaxFps(DEFAULT_MAX_FPS);
         }
 
-        _webSurface->load("WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
+        _webSurface->load("controls/WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
             item->setProperty("url", _lastSourceUrl);
         });
     } else {
         _contentType = qmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_lastSourceUrl);
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -312,83 +317,28 @@ void WebEntityRenderer::loadSourceURL() {
     }
 }
 
+void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->hoverBeginEvent(webEvent, _touchDevice);
+    }
+}
+
 void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface && _pressed) {
-        // If the user mouses off the entity while the button is down, simulate a touch end.
-        QTouchEvent::TouchPoint point;
-        point.setId(event.getID());
-        point.setState(Qt::TouchPointReleased);
-        glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _lastDPI);
-        QPointF windowPoint(windowPos.x, windowPos.y);
-        point.setScenePos(windowPoint);
-        point.setPos(windowPoint);
-        QList<QTouchEvent::TouchPoint> touchPoints;
-        touchPoints.push_back(point);
-        QTouchEvent* touchEvent = new QTouchEvent(QEvent::TouchEnd, nullptr,
-            Qt::NoModifier, Qt::TouchPointReleased, touchPoints);
-        touchEvent->setWindow(_webSurface->getWindow());
-        touchEvent->setDevice(&_touchDevice);
-        touchEvent->setTarget(_webSurface->getRootItem());
-        QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->hoverEndEvent(webEvent, _touchDevice);
     }
 }
 
 void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
     // Ignore mouse interaction if we're locked
-    if (_lastLocked || !_webSurface) {
-        return;
-    }
-
-    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _lastDPI);
-    QPointF windowPoint(windowPos.x, windowPos.y);
-    if (event.getType() == PointerEvent::Move) {
-        // Forward a mouse move event to webSurface
-        QMouseEvent* mouseEvent = new QMouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
-    }
-
-    {
-        // Forward a touch update event to webSurface
-        if (event.getType() == PointerEvent::Press) {
-            this->_pressed = true;
-        } else if (event.getType() == PointerEvent::Release) {
-            this->_pressed = false;
-        }
-
-        QEvent::Type type;
-        Qt::TouchPointState touchPointState;
-        switch (event.getType()) {
-            case PointerEvent::Press:
-                type = QEvent::TouchBegin;
-                touchPointState = Qt::TouchPointPressed;
-                break;
-            case PointerEvent::Release:
-                type = QEvent::TouchEnd;
-                touchPointState = Qt::TouchPointReleased;
-                break;
-            case PointerEvent::Move:
-            default:
-                type = QEvent::TouchUpdate;
-                touchPointState = Qt::TouchPointMoved;
-                break;
-        }
-
-        QTouchEvent::TouchPoint point;
-        point.setId(event.getID());
-        point.setState(touchPointState);
-        point.setPos(windowPoint);
-        point.setScreenPos(windowPoint);
-        QList<QTouchEvent::TouchPoint> touchPoints;
-        touchPoints.push_back(point);
-
-        QTouchEvent* touchEvent = new QTouchEvent(type);
-        touchEvent->setWindow(_webSurface->getWindow());
-        touchEvent->setDevice(&_touchDevice);
-        touchEvent->setTarget(_webSurface->getRootItem());
-        touchEvent->setTouchPoints(touchPoints);
-        touchEvent->setTouchPointStates(touchPointState);
-
-        QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+    if (!_lastLocked && _webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->handlePointerEvent(webEvent, _touchDevice);
     }
 }
 

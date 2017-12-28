@@ -5,7 +5,9 @@ import TabletScriptingInterface 1.0
 Item {
     id: tabletButton
 
-    property string captionColorOverride: ""
+    property color defaultCaptionColor: "#ffffff"
+    property color captionColor: defaultCaptionColor
+
     property var uuid;
     property string icon: "icons/tablet-icons/edit-i.svg"
     property string hoverIcon: tabletButton.icon
@@ -105,7 +107,7 @@ Item {
 
     Text {
         id: text
-        color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
+        color: captionColor
         text: tabletButton.text
         font.bold: true
         font.pixelSize: 18
@@ -121,7 +123,6 @@ Item {
         enabled: true
         preventStealing: true
         onClicked: {
-            console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
                     tabletButton.isActive = false;
@@ -131,12 +132,12 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletInterface.playSound(TabletEnums.ButtonClick);
+                Tablet.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
 
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
@@ -171,7 +172,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
+                color: captionColor
                 text: tabletButton.hoverText
             }
 
@@ -197,7 +198,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
+                color: captionColor !== defaultCaptionColor ? captionColor : "#333333"
                 text: tabletButton.activeText
             }
 
@@ -228,7 +229,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
+                color: captionColor !== defaultCaptionColor ? captionColor : "#333333"
                 text: tabletButton.activeHoverText
             }
 

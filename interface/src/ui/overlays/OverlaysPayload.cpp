@@ -68,8 +68,8 @@ namespace render {
             if (overlay->getAnchor() == Overlay::MY_AVATAR) {
                 auto batch = args->_batch;
                 auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-                glm::quat myAvatarRotation = avatar->getOrientation();
-                glm::vec3 myAvatarPosition = avatar->getPosition();
+                glm::quat myAvatarRotation = avatar->getWorldOrientation();
+                glm::vec3 myAvatarPosition = avatar->getWorldPosition();
                 float angle = glm::degrees(glm::angle(myAvatarRotation));
                 glm::vec3 axis = glm::axis(myAvatarRotation);
                 float myAvatarScale = avatar->getModelScale();
@@ -87,4 +87,10 @@ namespace render {
     template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
         return overlay->getShapeKey();
     }
+
+
+    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems) {
+        return overlay->fetchMetaSubItems(subItems);
+    }
 }
+

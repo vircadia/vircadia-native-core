@@ -87,15 +87,18 @@ protected:
 
     bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
+    void queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList);
+
     void queuePendingPacketToNodes(std::unique_ptr<NLPacket> packet);
     void queuePacketToNodes(std::unique_ptr<NLPacket> packet);
     std::unique_ptr<NLPacket> initializePacket(PacketType type, qint64 nodeClockSkew);
     void releaseQueuedPacket(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packetBuffer); // releases specific queued packet
+    void releaseQueuedPacketList(const QUuid& nodeID, std::unique_ptr<NLPacketList> packetList);
 
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
-    std::unordered_map<QUuid, std::unique_ptr<NLPacket>> _pendingEditPackets;
+    std::unordered_map<QUuid, PacketOrPacketList> _pendingEditPackets;
 
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;

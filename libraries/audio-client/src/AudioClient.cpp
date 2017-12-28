@@ -79,6 +79,7 @@ Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
 Mutex _deviceMutex;
+Mutex _recordMutex;
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -222,8 +223,7 @@ AudioClient::AudioClient() :
     // initialize wasapi; if getAvailableDevices is called from the CheckDevicesThread before this, it will crash
     getAvailableDevices(QAudio::AudioInput);
     getAvailableDevices(QAudio::AudioOutput);
-
-
+    
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     connect(_checkDevicesTimer, &QTimer::timeout, [this] {
@@ -1845,11 +1845,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
         AudioRingBuffer::ConstIterator lastPopOutput = _receivedAudioStream.getLastPopOutput();
         lastPopOutput.readSamples(scratchBuffer, networkSamplesPopped);
-
         for (int i = 0; i < networkSamplesPopped; i++) {
             mixBuffer[i] = convertToFloat(scratchBuffer[i]);
         }
-
         samplesRequested = networkSamplesPopped;
     }
 
@@ -1911,6 +1909,13 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         bytesWritten = maxSize;
     }
 
+    // send output buffer for recording
+    if (_audio->_isRecording) {
+        Lock lock(_recordMutex);
+        _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+    }
+
+
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);
     _audio->_stats.updateOutputMsUnplayed(msecsAudioOutputUnplayed);
@@ -1920,6 +1925,22 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     return bytesWritten;
+}
+
+bool AudioClient::startRecording(const QString& filepath) {
+    if (!_audioFileWav.create(_outputFormat, filepath)) {
+        qDebug() << "Error creating audio file: " + filepath;
+        return false;
+    }
+    _isRecording = true;
+    return true;
+}
+
+void AudioClient::stopRecording() {
+    if (_isRecording) {
+        _isRecording = false;
+        _audioFileWav.close();
+    }
 }
 
 void AudioClient::loadSettings() {

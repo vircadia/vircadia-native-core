@@ -163,7 +163,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float SCALE_CHANGE_EPSILON = 0.01f;
+const float SCALE_CHANGE_EPSILON = 0.001f;
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
@@ -210,6 +210,24 @@ int Model::getRenderInfoTextureCount() {
     return _renderInfoTextureCount;
 }
 
+bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
+    if (!getGeometry()) {
+        return true;
+    }
+
+    const FBXGeometry& geometry = getFBXGeometry();
+    const auto& networkMeshes = getGeometry()->getMeshes();
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size()) {
+        _needsFixupInScene = true;     // trigger remove/add cycle
+        invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
+        return true;
+    }
+
+    return false;
+}
+
 void Model::updateRenderItems() {
     if (!_addedToScene) {
         return;
@@ -226,7 +244,7 @@ void Model::updateRenderItems() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
-        if (!self) {
+        if (!self || !self->isLoaded()) {
             return;
         }
 
@@ -237,24 +255,32 @@ void Model::updateRenderItems() {
         Transform modelTransform = self->getTransform();
         modelTransform.setScale(glm::vec3(1.0f));
 
-        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
+        bool isWireframe = self->isWireframe();
+        bool isVisible = self->isVisible();
+        bool isLayeredInFront = self->isLayeredInFront();
+        bool isLayeredInHUD = self->isLayeredInHUD();
 
         render::Transaction transaction;
-        foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
-                ModelPointer model = data._model.lock();
-                if (model && model->isLoaded()) {
-                    // Ensure the model geometry was not reset between frames
-                    if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+        for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
-                        const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                        Transform renderTransform = modelTransform;
-                        if (state.clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                    }
+            auto itemID = self->_modelMeshRenderItemIDs[i];
+            auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+
+            bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices, invalidatePayloadShapeKey,
+                    isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateClusterBuffer(clusterMatrices);
+                Transform renderTransform = modelTransform;
+                if (clusterMatrices.size() == 1) {
+                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                 }
+                data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+                data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
         }
 
@@ -276,20 +302,11 @@ void Model::setRenderItemsNeedUpdate() {
     emit requestRenderUpdate();
 }
 
-void Model::initJointTransforms() {
-    if (isLoaded()) {
-        glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-        _rig.setModelOffset(modelOffset);
-    }
-}
-
-void Model::init() {
-}
-
 void Model::reset() {
     if (isLoaded()) {
         const FBXGeometry& geometry = getFBXGeometry();
         _rig.reset(geometry);
+        emit rigReset();
     }
 }
 
@@ -311,7 +328,7 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            _meshStates.append(state);
+            _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
             // later in ModelMeshPayload, however the vast majority of meshes will not have them.
@@ -326,6 +343,7 @@ bool Model::updateGeometry() {
             _blendedVertexBuffers.push_back(buffer);
         }
         needFullUpdate = true;
+        emit rigReady();
     }
     return needFullUpdate;
 }
@@ -686,6 +704,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     foreach(auto item, _collisionRenderItemsMap.keys()) {
         transaction.removeItem(item);
@@ -1127,24 +1146,13 @@ void Model::updateClusterMatrices() {
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    for (int i = 0; i < _meshStates.size(); i++) {
+    for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-        }
-
-        // Once computed the cluster matrices, update the buffer(s)
-        if (mesh.clusters.size() > 1) {
-            if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
-            } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                (const gpu::Byte*) state.clusterMatrices.constData());
-            }
         }
     }
 
@@ -1255,7 +1263,7 @@ void Model::createVisibleRenderItemSet() {
     const auto& meshes = _renderGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)meshes.size() != _meshStates.size()) {
+    if (meshes.size() != _meshStates.size()) {
         qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1264,6 +1272,7 @@ void Model::createVisibleRenderItemSet() {
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1286,6 +1295,7 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
     }
@@ -1327,7 +1337,7 @@ void Model::createCollisionRenderItemSet() {
 }
 
 bool Model::isRenderable() const {
-    return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 class CollisionRenderGeometry : public Geometry {

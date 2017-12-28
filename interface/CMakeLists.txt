@@ -12,8 +12,10 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 
-set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
-generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)      
+if (NOT DEV_BUILD)
+    set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
+    generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
+endif()      
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -80,7 +82,9 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
+if (NOT DEV_BUILD)
 list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
+endif()
 
 if (UNIX)
   install(

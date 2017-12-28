@@ -122,7 +122,6 @@ public:
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
 
-    void init();
     void reset();
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
@@ -204,6 +203,9 @@ public:
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
 
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
+
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
@@ -246,8 +248,7 @@ public:
 
     class MeshState {
     public:
-        QVector<glm::mat4> clusterMatrices;
-        gpu::BufferPointer clusterBuffer;
+        std::vector<glm::mat4> clusterMatrices;
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -262,6 +263,8 @@ public:
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
 
+    void scaleToFit();
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -269,14 +272,13 @@ signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
     void requestRenderUpdate();
+    void rigReady();
+    void rigReset();
 
 protected:
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-
-    /// Returns the unscaled extents of the model's mesh
-    Extents getUnscaledMeshExtents() const;
 
     /// Clear the joint states
     void clearJointState(int index);
@@ -315,12 +317,11 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    QVector<MeshState> _meshStates;
+    std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void scaleToFit();
     void snapToRegistrationPoint();
 
     void computeMeshPartLocalBounds();
@@ -344,11 +345,7 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-
-protected:
-
     virtual void deleteGeometry();
-    void initJointTransforms();
 
     QVector<float> _blendshapeCoefficients;
 
@@ -387,8 +384,9 @@ protected:
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
-
     render::ItemIDs _modelMeshRenderItemIDs;
+    using ShapeInfo = struct { int meshIndex; };
+    std::vector<ShapeInfo> _modelMeshRenderItemShapes;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
@@ -415,6 +413,8 @@ protected:
 
     bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
+
+    bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:
     float _loadingPriority { 0.0f };

@@ -14,21 +14,22 @@
 #include <RegisteredMetaTypes.h>
 
 Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
-    Base3DOverlay(volume3DOverlay)
+    Base3DOverlay(volume3DOverlay),
+    _localBoundingBox(volume3DOverlay->_localBoundingBox)
 {
 }
 
 AABox Volume3DOverlay::getBounds() const {
     auto extents = Extents{_localBoundingBox};
-    extents.rotate(getRotation());
-    extents.shiftBy(getPosition());
+    extents.rotate(getWorldOrientation());
+    extents.shiftBy(getWorldPosition());
 
     return AABox(extents);
 }
 
 void Volume3DOverlay::setDimensions(const glm::vec3& value) {
     _localBoundingBox.setBox(-value / 2.0f, value);
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Volume3DOverlay::setProperties(const QVariantMap& properties) {
@@ -61,6 +62,11 @@ void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Volume3DOverlay.
+/**jsdoc
+ * @typedef
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ */
 QVariant Volume3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
         return vec3toVariant(getDimensions());

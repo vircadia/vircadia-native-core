@@ -20,7 +20,7 @@
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
-        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
             metaverseServerURL.toString(), "metaverse.highfidelity.io"
@@ -62,7 +62,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
 
     // During the period in which we have HFC commerce in the system, but not applied everywhere:
     const QString tokenStringCommerce{ "Chrome/48.0 (HighFidelityInterface WithHFC)" };
-    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    Setting::Handle<bool> _settingSwitch{ "commerce", true };
     bool isMoney = _settingSwitch.get();
 
     const QString tokenString = !isAuthable ? tokenStringMobile : (isMoney ? tokenStringCommerce : tokenStringMetaverse);

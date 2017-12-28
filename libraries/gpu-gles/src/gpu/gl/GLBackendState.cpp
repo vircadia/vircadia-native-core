@@ -56,11 +56,11 @@ void GLBackend::syncPipelineStateCache() {
 
 void GLBackend::do_setStateFillMode(int32 mode) {
     if (_pipeline._stateCache.fillMode != mode) {
-        static GLenum GL_FILL_MODES[] = { /*GL_POINT, GL_LINE, GL_FILL*/ };
+        //static GLenum GL_FILL_MODES[] = { /*GL_POINT, GL_LINE, GL_FILL*/ };
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL_MODES[mode]);
         qDebug() << "TODO: GLBackendState.cpp:do_setStateFillMode GL_POINT";
         qDebug() << "TODO: GLBackendState.cpp:do_setStateFillMode GL_LINE";
         qDebug() << "TODO: GLBackendState.cpp:do_setStateFillMode GL_FILL";
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL_MODES[mode]);
         qDebug() << "TODO: GLBackendState.cpp:do_setStateFillMode glPolygonMode";
         (void)CHECK_GL_ERROR();
 
