@@ -282,8 +282,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             //currentMaterial.specularTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
-        } else if ((token == "d") || (token == "Tr")) {
+        } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
+        } else if (token == "Tr") {
+            currentMaterial.opacity = 1.0f - tokenizer.getFloat();
         } else if (token == "Ka") {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Kd") {
