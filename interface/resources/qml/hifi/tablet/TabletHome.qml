@@ -139,11 +139,10 @@ Item {
                         }
 
                         function setButtonState(buttonIndex, buttonstate) {
-                            if (buttonIndex < 0) {
+                            if (buttonIndex < 0 || gridView.contentItem === undefined
+                                    || gridView.contentItem.children.length - 1 < buttonIndex) {
                                 return;
                             }
-                            console.warn("changing item at", buttonIndex, buttonstate)
-
                             var itemat = gridView.contentItem.children[buttonIndex].children[0];
                             if (itemat.isActive) {
                                 itemat.state = "active state";
@@ -154,7 +153,6 @@ Item {
 
                         onCurrentIndexChanged: {
                             setButtonState(previousGridIndex, "base state");
-                            console.warn("current index", currentIndex)
                             setButtonState(currentIndex, "hover state");
                             previousGridIndex = currentIndex
                         }
@@ -166,7 +164,6 @@ Item {
 
                         delegate: Item {
                             id: wrapper
-                            objectName: "wrapper"
                             width: gridView.cellWidth
                             height: gridView.cellHeight
 
