@@ -165,14 +165,14 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
     if (_visible) {
         // Finally, push the light visible in the frame
-        if (_keyLightMode == COMPONENT_MODE_DISABLED && sunOnIndex == NO_STORED_VALUE) {
+        if (_keyLightMode == COMPONENT_MODE_DISABLED && _sunOnIndex == NO_STORED_VALUE) {
 			// Just turned off, store previous value before changing
-            sunOnIndex = _sunIndex;
+            _sunOnIndex = _sunIndex;
             _sunIndex = _stage->getSunOffLight();
-        } else if (_keyLightMode == COMPONENT_MODE_ENABLED && sunOnIndex != NO_STORED_VALUE) {
+        } else if (_keyLightMode == COMPONENT_MODE_ENABLED && _sunOnIndex != NO_STORED_VALUE) {
 			// Just turned on, restore previous value before clearing stored value
-            _sunIndex = sunOnIndex;
-            sunOnIndex = NO_STORED_VALUE;
+            _sunIndex = _sunOnIndex;
+            _sunOnIndex = NO_STORED_VALUE;
         } 
 
         if (_keyLightMode != COMPONENT_MODE_INHERIT) {
@@ -180,10 +180,19 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         }
 
         // The ambient light only if it has a valid texture to render with
-        if (_validAmbientTexture || _validSkyboxTexture) {
-            if (_ambientLightMode != COMPONENT_MODE_INHERIT) {
-                _stage->_currentFrame.pushAmbientLight(_ambientIndex);
-            }
+        if (_ambientLightMode == COMPONENT_MODE_DISABLED && _ambientOnIndex == NO_STORED_VALUE) {
+            // Just turned off, store previous value before changing
+            _ambientOnIndex = _ambientIndex;
+            _ambientIndex = _stage->getAmbientOffLight();
+        }
+        else if (_ambientLightMode == COMPONENT_MODE_ENABLED && _ambientOnIndex != NO_STORED_VALUE) {
+            // Just turned on, restore previous value before clearing stored value
+            _ambientIndex = _ambientOnIndex;
+            _ambientOnIndex = NO_STORED_VALUE;
+        }
+
+        if (_ambientLightMode != COMPONENT_MODE_INHERIT && (_validAmbientTexture || _validSkyboxTexture)) {
+            _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
         // The background only if the mode is not inherit
