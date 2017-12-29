@@ -103,6 +103,7 @@ private:
     const int NO_STORED_VALUE { -1 };
     indexed_container::Index _sunOnIndex { NO_STORED_VALUE };
     indexed_container::Index _ambientOnIndex { NO_STORED_VALUE };
+    indexed_container::Index _skyboxOnIndex { NO_STORED_VALUE };
 
     BackgroundStagePointer _backgroundStage;
     BackgroundStage::Index _backgroundIndex{ BackgroundStage::INVALID_INDEX };

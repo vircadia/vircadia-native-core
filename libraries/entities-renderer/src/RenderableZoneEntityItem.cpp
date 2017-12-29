@@ -179,6 +179,22 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
+        // The background only if the mode is not inherit
+        if (_skyboxMode == COMPONENT_MODE_DISABLED && _skyboxOnIndex == NO_STORED_VALUE) {
+            // Just turned off, store previous value before changing
+            _skyboxOnIndex = _backgroundIndex;
+            _backgroundIndex = _stage->getSunOffLight();
+        }
+        else if (_skyboxMode == COMPONENT_MODE_ENABLED && _skyboxOnIndex != NO_STORED_VALUE) {
+            // Just turned on, restore previous value before clearing stored value
+            _backgroundIndex = _skyboxOnIndex;
+            _skyboxOnIndex = NO_STORED_VALUE;
+        }
+
+        if (_skyboxMode != COMPONENT_MODE_INHERIT) {
+            _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+        }
+
         // The ambient light only if it has a valid texture to render with
         if (_ambientLightMode == COMPONENT_MODE_DISABLED && _ambientOnIndex == NO_STORED_VALUE) {
             // Just turned off, store previous value before changing
@@ -195,11 +211,6 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
-        // The background only if the mode is not inherit
-        if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
-            _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
-        }
-
         // Haze only if the mode is not inherit
         if (_hazeMode != COMPONENT_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
@@ -214,6 +225,11 @@ void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction&
     }
 #endif
     Parent::removeFromScene(scene, transaction);
+
+    // clear flags
+    _sunOnIndex = NO_STORED_VALUE;
+    _ambientOnIndex = NO_STORED_VALUE;
+    _skyboxOnIndex = NO_STORED_VALUE;
 }
 
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -399,6 +415,8 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
+    setSkyboxMode((ComponentMode)entity->getSkyboxMode());
+
     editBackground();
     setBackgroundMode(entity->getBackgroundMode());
     setSkyboxColor(_skyboxProperties.getColorVec3());
