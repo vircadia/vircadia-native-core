@@ -17,9 +17,9 @@
 Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
 
-namespace gpu { namespace gl { 
+#define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes))
 
-    static const GLint TRANSFORM_OBJECT_SLOT  { 14 }; // SSBO binding slot
+namespace gpu { namespace gl { 
 
 // Create a fence and inject a GPU wait on the fence
 void serverWait();
@@ -27,32 +27,12 @@ void serverWait();
 // Create a fence and synchronously wait on the fence
 void clientWait();
 
-gpu::Size getDedicatedMemory();
 gpu::Size getFreeDedicatedMemory();
 ComparisonFunction comparisonFuncFromGL(GLenum func);
 State::StencilOp stencilOpFromGL(GLenum stencilOp);
 State::BlendOp blendOpFromGL(GLenum blendOp);
 State::BlendArg blendArgFromGL(GLenum blendArg);
 void getCurrentGLState(State::Data& state);
-
-struct ShaderObject {
-    GLuint glshader { 0 };
-    GLuint glprogram { 0 };
-    GLint transformCameraSlot { -1 };
-    GLint transformObjectSlot { -1 };
-};
-
-int makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers);
-int makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers);
-int makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs);
-int makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs);
-//CLIMAX_MERGE_START
-//makeResourceBufferSlots has been added to glbacked as a virtual function and is being used in gl42 and gl45 overrides.
-//Since these files dont exist in the andoid version create a stub here.
-int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& resourceBuffers);
-//CLIMAX_MERGE_END
-void makeProgramBindings(ShaderObject& shaderObject);
 
 enum GLSyncState {
     // The object is currently undergoing no processing, although it's content
@@ -128,6 +108,7 @@ static const GLenum ELEMENT_TYPE_TO_GL[gpu::NUM_TYPES] = {
     GL_SHORT,
     GL_UNSIGNED_SHORT,
     GL_BYTE,
+    GL_UNSIGNED_BYTE,
     GL_UNSIGNED_BYTE
 };
 
@@ -156,6 +137,7 @@ class GLQuery;
 class GLState;
 class GLShader;
 class GLTexture;
+struct ShaderObject;
 
 } } // namespace gpu::gl 
 

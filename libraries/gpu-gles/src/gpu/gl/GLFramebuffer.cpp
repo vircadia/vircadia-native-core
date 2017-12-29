@@ -21,7 +21,7 @@ GLFramebuffer::~GLFramebuffer() {
     } 
 }
 
-bool GLFramebuffer::checkStatus(GLenum target) const {
+bool GLFramebuffer::checkStatus() const {
     bool result = false;
     switch (_status) {
     case GL_FRAMEBUFFER_COMPLETE:

@@ -22,17 +22,18 @@
 #include "nvToolsExt.h"
 #endif
 
+#include <shared/GlobalAppProperties.h>
 #include <GPUIdent.h>
 #include <gl/QOpenGLContextWrapper.h>
 #include <QtCore/QProcessEnvironment>
 
 #include "GLTexture.h"
 #include "GLShader.h"
+
 using namespace gpu;
 using namespace gpu::gl;
 
 static GLBackend* INSTANCE{ nullptr };
-static const char* GL_BACKEND_PROPERTY_NAME = "com.highfidelity.gl.backend";
 
 BackendPointer GLBackend::createBackend() {
     // FIXME provide a mechanism to override the backend for testing
@@ -45,18 +46,17 @@ BackendPointer GLBackend::createBackend() {
 
     result->initInput();
     result->initTransform();
+    result->initTextureManagementStage();
 
     INSTANCE = result.get();
     void* voidInstance = &(*result);
-    qApp->setProperty(GL_BACKEND_PROPERTY_NAME, QVariant::fromValue(voidInstance));
-
-    gl::GLTexture::initTextureTransferHelper();
+    qApp->setProperty(hifi::properties::gl::BACKEND, QVariant::fromValue(voidInstance));
     return result;
 }
 
 GLBackend& getBackend() {
     if (!INSTANCE) {
-        INSTANCE = static_cast<GLBackend*>(qApp->property(GL_BACKEND_PROPERTY_NAME).value<void*>());
+        INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
     }
     return *INSTANCE;
 }
@@ -65,9 +65,6 @@ bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindin
     return GLShader::makeProgram(getBackend(), shader, slotBindings);
 }
 
-std::array<QString, 45> commandNames = { 
-        {QString("draw"),QString("drawIndexed"),QString("drawInstanced"),QString("drawIndexedInstanced"),QString("multiDrawIndirect"),QString("multiDrawIndexedIndirect"),QString("setInputFormat"),QString("setInputBuffer"),QString("setIndexBuffer"),QString("setIndirectBuffer"),QString("setModelTransform"),QString("setViewTransform"),QString("setProjectionTransform"),QString("setViewportTransform"),QString("setDepthRangeTransform"),QString("setPipeline"),QString("setStateBlendFactor"),QString("setStateScissorRect"),QString("setUniformBuffer"),QString("setResourceTexture"),QString("setFramebuffer"),QString("clearFramebuffer"),QString("blit"),QString("generateTextureMips"),QString("beginQuery"),QString("endQuery"),QString("getQuery"),QString("resetStages"),QString("runLambda"),QString("startNamedCall"),QString("stopNamedCall"),QString("glUniform1i"),QString("glUniform1f"),QString("glUniform2f"),QString("glUniform3f"),QString("glUniform4f"),QString("glUniform3fv"),QString("glUniform4fv"),QString("glUniform4iv"),QString("glUniformMatrix3fv"),QString("glUniformMatrix4fv"),QString("glColor4f"),QString("pushProfileRange"),QString("popProfileRange"),QString("NUM_COMMANDS")}
-};
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
@@ -161,6 +158,12 @@ void GLBackend::init() {
         qCDebug(gpugllogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
         */
 
+#if THREADED_TEXTURE_BUFFERING
+        // This has to happen on the main thread in order to give the thread 
+        // pool a reasonable parent object
+        GLVariableAllocationSupport::TransferJob::startBufferingThread();
+#endif
+
     });
 }
 
@@ -171,8 +174,6 @@ GLBackend::GLBackend() {
 
 
 GLBackend::~GLBackend() {
-    resetStages();
-
     killInput();
     killTransform();
 }
@@ -193,7 +194,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
         }
     }
 
-    { // Sync all the buffers
+    { // Sync all the transform states
         ANDROID_PROFILE(render, "syncCPUTransform", 0xffaaaaff, 1)
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
@@ -207,6 +208,14 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
                     _transform.preUpdate(_commandIndex, _stereo);
+                    break;
+
+                case Batch::COMMAND_disableContextStereo:
+                    _stereo._contextDisable = true;
+                    break;
+
+                case Batch::COMMAND_restoreContextStereo:
+                    _stereo._contextDisable = false;
                     break;
 
                 case Batch::COMMAND_setViewportTransform:
@@ -263,7 +272,8 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                {ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
+                {
+		ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 }
@@ -298,6 +308,11 @@ void GLBackend::render(const Batch& batch) {
         renderPassTransfer(batch);
     }
 
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo.isStereo()) {
+        glEnable(GL_CLIP_DISTANCE0);
+    }
+#endif
     {
         //PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
         ANDROID_PROFILE(render, "RenderPassDraw", 0xff00ddff, 1)
@@ -413,7 +428,7 @@ void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1f(
+    glUniform1i(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
         batch._params[paramOffset + 0]._int);
     (void)CHECK_GL_ERROR();
@@ -731,9 +746,9 @@ void GLBackend::recycle() const {
         }
     }
 
-#ifndef THREADED_TEXTURE_TRANSFER
-    gl::GLTexture::_textureTransferHelper->process();
-#endif
+    GLVariableAllocationSupport::manageMemory();
+    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
