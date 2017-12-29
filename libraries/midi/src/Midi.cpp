@@ -244,13 +244,13 @@ void Midi::MidiCleanup() {
     midihout.clear();
 }
 #else
-void Midi::sendRaw(int device, int raw) {
+void Midi::sendRawMessage(int device, int raw) {
 }
 
 void Midi::sendNote(int status, int note, int velocity) {
 }
 
-void Midi::sendMessage(int device, int channel, int type, int note, int velocity)
+void Midi::sendMessage(int device, int channel, int type, int note, int velocity){
 }
 
 void Midi::MidiSetup() {
