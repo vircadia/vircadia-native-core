@@ -224,6 +224,8 @@ enum EntityPropertyList {
     PROP_AMBIENT_LIGHT_MODE,
     PROP_SKYBOX_MODE,
 
+    PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
