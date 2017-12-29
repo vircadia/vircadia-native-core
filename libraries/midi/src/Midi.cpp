@@ -124,7 +124,6 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
         }
         if (thruModeEnabled) {
             instance->sendNote(status, note, velocity);        // relay the message on to all other midi devices.
-            //instance->sendMessage();
         }
         instance->rawMidiReceived(device, raw);        // notify the javascript
         instance->midiReceived(device, raw, channel, status, type, note, velocity, bend, program);        // notify the javascript
@@ -225,7 +224,6 @@ void Midi::MidiSetup() {
     }
 
     allNotesOff();
-
 }
 
 void Midi::MidiCleanup() {
@@ -316,7 +314,6 @@ void Midi::sendMidiMessage(int device, int channel, int type, int note, int velo
 
 void Midi::allNotesOff() {
     sendNote(MIDI_CONTROL_CHANGE, MIDI_CHANNEL_MODE_ALL_NOTES_OFF, 0);        // all notes off
-//    sendMessage();// all notes off
 }
 
 void Midi::resetDevices() {
