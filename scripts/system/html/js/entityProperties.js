@@ -1104,8 +1104,15 @@ function loaded() {
                             elZoneFilterURL.value = properties.filterURL;
 
                             // Show/hide sections as required
-                            showElements(document.getElementsByClassName('skybox-section'), 
+                            showElements(document.getElementsByClassName('skybox-section'),
                                 elZoneSkyboxModeEnabled.checked);
+                            showElements(document.getElementsByClassName('keylight-section'),
+                                elZoneKeyLightModeEnabled.checked);
+                            showElements(document.getElementsByClassName('ambient-section'),
+                                elZoneAmbientLightModeEnabled.checked);
+                            showElements(document.getElementsByClassName('haze-section'),
+                                elZoneHazeModeEnabled.checked);
+
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
