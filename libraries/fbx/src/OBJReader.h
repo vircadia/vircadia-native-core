@@ -56,11 +56,13 @@ public:
     float opacity;
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
+    glm::vec3 emissiveColor;
     QByteArray diffuseTextureFilename;
     QByteArray specularTextureFilename;
+    QByteArray emissiveTextureFilename;
     bool used { false };
     bool userSpecifiesUV { false };
-    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f) {}
+    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f) {}
 };
 
 class OBJReader: public QObject { // QObject so we can make network requests.
