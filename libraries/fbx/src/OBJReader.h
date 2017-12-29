@@ -62,7 +62,7 @@ public:
     QByteArray emissiveTextureFilename;
     bool used { false };
     bool userSpecifiesUV { false };
-    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.9f) {}
+    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f) {}
 };
 
 class OBJReader: public QObject { // QObject so we can make network requests.

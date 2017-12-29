@@ -277,9 +277,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
-            //currentMaterial.emissiveTextureFilename = "";
             currentMaterial.diffuseTextureFilename = "";
-            //currentMaterial.specularTextureFilename = "";
+            currentMaterial.emissiveTextureFilename = "";
+            currentMaterial.specularTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "d") {
@@ -287,12 +287,16 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Tr") {
             currentMaterial.opacity = 1.0f - tokenizer.getFloat();
         } else if (token == "Ka") {
-            currentMaterial.emissiveColor = tokenizer.getVec3();
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+            #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
+        } else if (token == "Ke") {
+            currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Ka") || (token == "map_Kd") || (token == "map_Ks")) {
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks")) {
             QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
@@ -300,10 +304,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 #endif
                 break;
             }
-            if (token == "map_Ka") {
-                currentMaterial.emissiveTextureFilename = filename;
-            } else if (token == "map_Kd") {
+            if (token == "map_Kd") {
                 currentMaterial.diffuseTextureFilename = filename;
+            } else if (token == "map_Ke") {
+                currentMaterial.emissiveTextureFilename = filename;
             } else if( token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
             }
