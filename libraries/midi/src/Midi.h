@@ -34,8 +34,8 @@ public:
     static void USBchanged();
 
 private:
-    static std::vector<QString> midiinexclude;
-    static std::vector<QString> midioutexclude;
+    static std::vector<QString> midiInExclude;
+    static std::vector<QString> midiOutExclude;
 
 private:
     void MidiSetup();

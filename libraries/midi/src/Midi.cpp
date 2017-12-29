@@ -27,8 +27,6 @@ const int MIDI_SHIFT_STATUS = 4;
 const int MIDI_SHIFT_NOTE = 8;
 const int MIDI_SHIFT_VELOCITY = 16;
 const int MIDI_SHIFT_PITCH_BEND = 9;
-
-#endif
 //  Status Decode
 const int MIDI_NOTE_OFF = 0x8;
 const int MIDI_NOTE_ON = 0x9;
@@ -38,6 +36,8 @@ const int MIDI_PROGRAM_CHANGE = 0xc;
 const int MIDI_CHANNEL_PRESSURE = 0xd;
 const int MIDI_PITCH_BEND_CHANGE = 0xe;
 const int MIDI_SYSTEM_MESSAGE = 0xf;
+#endif
+
 
 const int MIDI_CHANNEL_MODE_ALL_NOTES_OFF = 0x07b;
 
@@ -53,8 +53,8 @@ static bool typeChanPressureEnabled = false;
 static bool typePitchBendEnabled = true;
 static bool typeSystemMessageEnabled = false;
 
-std::vector<QString> Midi::midiinexclude;
-std::vector<QString> Midi::midioutexclude;
+std::vector<QString> Midi::midiInExclude;
+std::vector<QString> Midi::midiOutExclude;
 
 #if defined Q_OS_WIN32
 
@@ -191,8 +191,8 @@ void Midi::MidiSetup() {
         midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
 
         bool found = false;
-        for (int j = 0; j < midiinexclude.size(); j++) {
-            if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) {
+        for (int j = 0; j < midiInExclude.size(); j++) {
+            if (midiInExclude[j].toStdString().compare(incaps.szPname) == 0) {
                 found = true;
                 break;
             }
@@ -210,8 +210,8 @@ void Midi::MidiSetup() {
         midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
 
         bool found = false;
-        for (int j = 0; j < midioutexclude.size(); j++) {
-            if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) {
+        for (int j = 0; j < midiOutExclude.size(); j++) {
+            if (midiOutExclude[j].toStdString().compare(outcaps.szPname) == 0) {
                 found = true;
                 break;
             }
@@ -292,7 +292,7 @@ void Midi::midiHardwareChange() {
 Midi::Midi() {
     instance = this;
 #if defined Q_OS_WIN32
-    midioutexclude.push_back("Microsoft GS Wavetable Synth");        // we don't want to hear this thing (Lags)
+    midiOutExclude.push_back("Microsoft GS Wavetable Synth");        // we don't want to hear this thing (Lags)
 #endif
     MidiSetup();
 }
@@ -338,8 +338,7 @@ QStringList Midi::listMidiDevices(bool output) {
             midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
             rv.append(outcaps.szPname);
         }
-    }
-    else {
+    } else {
         MIDIINCAPS incaps;
         for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
             midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
@@ -352,17 +351,16 @@ QStringList Midi::listMidiDevices(bool output) {
 
 void Midi::unblockMidiDevice(QString name, bool output) {
     if (output) {
-        for (unsigned long i = 0; i < midioutexclude.size(); i++) {
-            if (midioutexclude[i].toStdString().compare(name.toStdString()) == 0) {
-                midioutexclude.erase(midioutexclude.begin() + i);
+        for (unsigned long i = 0; i < midiOutExclude.size(); i++) {
+            if (midiOutExclude[i].toStdString().compare(name.toStdString()) == 0) {
+                midiOutExclude.erase(midiOutExclude.begin() + i);
                 break;
             }
         }
-    }
-    else {
-        for (unsigned long i = 0; i < midiinexclude.size(); i++) {
-            if (midiinexclude[i].toStdString().compare(name.toStdString()) == 0) {
-                midiinexclude.erase(midiinexclude.begin() + i);
+    } else {
+        for (unsigned long i = 0; i < midiInExclude.size(); i++) {
+            if (midiInExclude[i].toStdString().compare(name.toStdString()) == 0) {
+                midiInExclude.erase(midiInExclude.begin() + i);
                 break;
             }
         }
@@ -372,10 +370,9 @@ void Midi::unblockMidiDevice(QString name, bool output) {
 void Midi::blockMidiDevice(QString name, bool output) {
     unblockMidiDevice(name, output);        // make sure it's only in there once
     if (output) {
-        midioutexclude.push_back(name);
-    }
-    else {
-        midiinexclude.push_back(name);
+        midiOutExclude.push_back(name);
+    } else {
+        midiInExclude.push_back(name);
     }
 }
 
