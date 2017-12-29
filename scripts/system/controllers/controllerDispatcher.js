@@ -20,7 +20,6 @@ controllerDispatcherPluginsNeedSort = false;
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-Script.include("/~/system/libraries/handTouch.js");
 
 (function() {
     Script.include("/~/system/libraries/pointersUtils.js");
