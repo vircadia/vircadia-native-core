@@ -30,7 +30,7 @@ public:
     void midiHardwareChange();  // relay hardware change to Javascript
     void sendRawMessage(int device, int raw);  // relay midi message to MIDI outputs
     void sendNote(int status, int note, int velocity);  // relay a note to MIDI outputs
-    void sendMessage(int device, int channel, int type, int note, int velocity);  // relay a message to MIDI outputs,  Future add: (int device) 
+    void sendMessage(int device, int channel, int type, int note, int velocity);  // relay a message to MIDI outputs
     static void USBchanged();
 
 private:
