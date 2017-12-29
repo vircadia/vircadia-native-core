@@ -83,6 +83,7 @@ function disableProperties() {
 function showElements(els, show) {
     for (var i = 0; i < els.length; i++) {
         els[i].style.display = (show) ? 'table' : 'none';
+
     }
 }
 
@@ -698,8 +699,6 @@ function loaded() {
         var elZoneStageDay = document.getElementById("property-zone-stage-day");
         var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
-        var elZoneBackgroundMode = document.getElementById("property-zone-background-mode");
-
         var elZoneSkyboxColor = document.getElementById("property-zone-skybox-color");
         var elZoneSkyboxColorRed = document.getElementById("property-zone-skybox-color-red");
         var elZoneSkyboxColorGreen = document.getElementById("property-zone-skybox-color-green");
@@ -1093,9 +1092,6 @@ function loaded() {
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
-                            elZoneBackgroundMode.value = properties.backgroundMode;
-                            setDropdownText(elZoneBackgroundMode);
-
                             elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red + "," + 
                                                        properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
                             elZoneSkyboxColorRed.value = properties.skybox.color.red;
@@ -1107,8 +1103,9 @@ function loaded() {
                             elZoneGhostingAllowed.checked = properties.ghostingAllowed;
                             elZoneFilterURL.value = properties.filterURL;
 
+                            // Show/hide sections as required
                             showElements(document.getElementsByClassName('skybox-section'), 
-                                elZoneBackgroundMode.value === 'skybox');
+                                elZoneSkyboxModeEnabled.checked);
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1479,7 +1476,6 @@ function loaded() {
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
         // Skybox
-
         var skyboxModeChanged = createZoneComponentModeChangedFunction('skyboxMode',
             elZoneSkyboxModeInherit, elZoneSkyboxModeDisabled, elZoneSkyboxModeEnabled);
 
@@ -1587,8 +1583,6 @@ function loaded() {
             createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
         elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'day'));
         elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'hour'));
-
-        elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
 
         var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox', 'color',
             elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
