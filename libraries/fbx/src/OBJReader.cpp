@@ -282,6 +282,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.specularTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
+        } else if (token == "Ni") {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            #endif
         } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
         } else if (token == "Tr") {
