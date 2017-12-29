@@ -3,6 +3,7 @@
 //  libraries/midi/src
 //
 //  Created by Burt Sloane
+//  Modified by Bruce Brown
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -21,11 +22,15 @@
 
 class Midi : public QObject, public Dependency {
     Q_OBJECT
-    SINGLETON_DEPENDENCY
+        SINGLETON_DEPENDENCY
 
 public:
-    void noteReceived(int status, int note, int velocity);    // relay a note to Javascript
-    void sendNote(int status, int note, int vel);            // relay a note to MIDI outputs
+    void rawMidiReceived(int device, int raw); //relay raw midi data to Javascript
+    void midiReceived(int device, int raw, int channel, int status, int type, int note, int velocity, int bend, int program);  // relay a note to Javascript
+    void midiHardwareChange();  // relay hardware change to Javascript
+    void sendRawMessage(int device, int raw);  // relay midi message to MIDI outputs
+    void sendNote(int status, int note, int velocity);  // relay a note to MIDI outputs
+    void sendMessage(int device, int channel, int type, int note, int velocity);  // relay a message to MIDI outputs,  Future add: (int device) 
     static void USBchanged();
 
 private:
@@ -38,31 +43,54 @@ private:
 
 signals:
     void midiNote(QVariantMap eventData);
+    void midiMessage(QVariantMap eventData);
+    void midiRaw(QVariantMap eventData);
+    void midiReset();
 
-public slots:
-/// play a note on all connected devices
-/// @param {int} status: 0x80 is noteoff, 0x90 is noteon (if velocity=0, noteoff), etc
-/// @param {int} note: midi note number
-/// @param {int} velocity: note velocity (0 means noteoff)
-Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
+    public slots:
+    // Send Raw Midi Packet to all connected devices
+    Q_INVOKABLE void sendRawDword(int device, int raw);
 
-/// turn off all notes on all connected devices
-Q_INVOKABLE void allNotesOff();
+    // Send Midi Message to all connected devices 
+    Q_INVOKABLE void sendMidiMessage(int device, int channel, int type, int note, int velocity);
+    /// play a note on all connected devices
+    /// @param {int} status: 0x80 is noteoff, 0x90 is noteon (if velocity=0, noteoff), etc
+    /// @param {int} note: midi note number
+    /// @param {int} velocity: note velocity (0 means noteoff)
 
-/// clean up and re-discover attached devices
-Q_INVOKABLE void resetDevices();
+    Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
 
-/// ask for a list of inputs/outputs
-Q_INVOKABLE QStringList listMidiDevices(bool output);
+    /// turn off all notes on all connected devices
+    Q_INVOKABLE void allNotesOff();
 
-/// block an input/output by name
-Q_INVOKABLE void blockMidiDevice(QString name, bool output);
+    /// clean up and re-discover attached devices
+    Q_INVOKABLE void resetDevices();
 
-/// unblock an input/output by name
-Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
+    /// ask for a list of inputs/outputs
+    Q_INVOKABLE QStringList listMidiDevices(bool output);
 
-/// repeat all incoming notes to all outputs (default disabled)
-Q_INVOKABLE void thruModeEnable(bool enable);
+    /// block an input/output by name
+    Q_INVOKABLE void blockMidiDevice(QString name, bool output);
+
+    /// unblock an input/output by name
+    Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
+
+    /// repeat all incoming notes to all outputs (default disabled)
+    Q_INVOKABLE void thruModeEnable(bool enable);
+
+    /// broadcast on all unblocked devices
+    Q_INVOKABLE void broadcastEnable(bool enable);
+    
+    /// filter by event types
+    Q_INVOKABLE void typeNoteOffEnable(bool enable);
+    Q_INVOKABLE void typeNoteOnEnable(bool enable);
+    Q_INVOKABLE void typePolyKeyPressureEnable(bool enable);
+    Q_INVOKABLE void typeControlChangeEnable(bool enable);
+    Q_INVOKABLE void typeProgramChangeEnable(bool enable);
+    Q_INVOKABLE void typeChanPressureEnable(bool enable);
+    Q_INVOKABLE void typePitchBendEnable(bool enable);
+    Q_INVOKABLE void typeSystemMessageEnable(bool enable);
+
 
 public:
     Midi();
