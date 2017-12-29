@@ -289,7 +289,7 @@ void ModelEntityItem::debugDump() const {
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
     qCDebug(entities) << "    edited ago:" << getEditedAgo();
     qCDebug(entities) << "    position:" << getWorldPosition();
-    qCDebug(entities) << "    dimensions:" << getDimensions();
+    qCDebug(entities) << "    dimensions:" << getScaledDimensions();
     qCDebug(entities) << "    model URL:" << getModelURL();
     qCDebug(entities) << "    compound shape URL:" << getCompoundShapeURL();
 }
