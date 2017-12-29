@@ -297,7 +297,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
         } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks")) {
-            QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
+            QByteArray filename = QString(tokenizer.getLineAsDatum()).toUtf8();
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
