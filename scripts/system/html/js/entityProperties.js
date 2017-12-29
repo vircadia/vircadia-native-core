@@ -1492,10 +1492,9 @@ function loaded() {
 
         // Ambient light
         elCopySkyboxURLToAmbientURL.addEventListener("click", function () {
-             EventBridge.emitWebEvent(JSON.stringify({
-                 type: "action",
-                 action: "copySkyboxURLToAmbientURL"
-             }));
+            document.getElementById("property-zone-key-ambient-url").value = properties.skybox.url;
+            properties.ambientLight.ambientURL = properties.skybox.url;
+            updateProperties(properties);
         });
 
         var ambientLightModeChanged = createZoneComponentModeChangedFunction('ambientLightMode',

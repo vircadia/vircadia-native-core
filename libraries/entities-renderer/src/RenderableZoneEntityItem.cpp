@@ -184,8 +184,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Just turned off, store previous value before changing
             _skyboxOnIndex = _backgroundIndex;
             _backgroundIndex = _stage->getSunOffLight();
-        }
-        else if (_skyboxMode == COMPONENT_MODE_ENABLED && _skyboxOnIndex != NO_STORED_VALUE) {
+        } else if (_skyboxMode == COMPONENT_MODE_ENABLED && _skyboxOnIndex != NO_STORED_VALUE) {
             // Just turned on, restore previous value before clearing stored value
             _backgroundIndex = _skyboxOnIndex;
             _skyboxOnIndex = NO_STORED_VALUE;
@@ -200,14 +199,13 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Just turned off, store previous value before changing
             _ambientOnIndex = _ambientIndex;
             _ambientIndex = _stage->getAmbientOffLight();
-        }
-        else if (_ambientLightMode == COMPONENT_MODE_ENABLED && _ambientOnIndex != NO_STORED_VALUE) {
+        } else if (_ambientLightMode == COMPONENT_MODE_ENABLED && _ambientOnIndex != NO_STORED_VALUE) {
             // Just turned on, restore previous value before clearing stored value
             _ambientIndex = _ambientOnIndex;
             _ambientOnIndex = NO_STORED_VALUE;
         }
 
-        if (_ambientLightMode != COMPONENT_MODE_INHERIT && (_validAmbientTexture || _validSkyboxTexture)) {
+        if (_ambientLightMode != COMPONENT_MODE_INHERIT && (_validAmbientTexture)) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 

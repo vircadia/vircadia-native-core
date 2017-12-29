@@ -2089,8 +2089,6 @@ var PropertiesTool = function (opts) {
                         Entities.reloadServerScripts(selectionManager.selections[i]);
                     }
                 }
-            } else if (data.action === "copySkyboxURLToAmbientURL") {
-                Window.notifyEditError("I DON'T KNOW HOW :(");
             }
         } else if (data.type === "propertiesPageReady") {
             updateSelections(true);
