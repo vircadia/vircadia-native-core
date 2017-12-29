@@ -332,7 +332,7 @@ void MySkeletonModel::updateFingers() {
                     }
                     prevAbsRot = pose.getRotation();
                 } else {
-                    _rig.clearJointAnimationPriority(index);
+                    // _rig.clearJointAnimationPriority(index);
                 }
             }
         }
