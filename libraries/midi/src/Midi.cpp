@@ -74,7 +74,7 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
             if (midihin[i] == hMidiIn) {
                 midihin[i] = NULL;
                 instance->allNotesOff();
-                //instance->midiHardwareChange();
+                instance->midiHardwareChange();
             }
         }
         break;
@@ -143,7 +143,7 @@ void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_P
             if (midihout[i] == hmo) {
                 midihout[i] = NULL;
                 instance->allNotesOff();
-                //instance->midiHardwareChange();
+                instance->midiHardwareChange();
             }
         }
         break;
@@ -225,7 +225,6 @@ void Midi::MidiSetup() {
     }
 
     allNotesOff();
-    //midiHardwareChange();
 
 }
 
