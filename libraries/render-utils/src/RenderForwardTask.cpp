@@ -18,6 +18,9 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include "StencilMaskPass.h"
+#include "ZoneRenderer.h"
+#include "FadeEffect.h"
+#include "BackgroundStage.h"
 
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -27,33 +30,50 @@
 #include "nop_frag.h"
 
 using namespace render;
-extern void initForwardPipelines(ShapePlumber& plumber);
+extern void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initForwardPipelines(*shapePlumber);
+    initForwardPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
-//    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
 //    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
-//    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
+    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
 //    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
 //    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
+    //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
 //    const auto& spatialSelection = items[1];
 
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
     task.addJob<Draw>("DrawOpaques", opaques, shapePlumber);
     task.addJob<Stencil>("Stencil");
-    task.addJob<DrawBackground>("DrawBackground", background);
 
-    // Bounds do not draw on stencil buffer, so they must come last
-    task.addJob<DrawBounds>("DrawBounds", opaques);
+    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
+
+    // Filter zones from the general metas bucket
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
+//    task.addJob<DrawBackground>("DrawBackground", background);
+    // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+
+    { // Debug the bounds of the rendered items, still look at the zbuffer
+
+        task.addJob<DrawBounds>("DrawMetaBounds", metas);
+        task.addJob<DrawBounds>("DrawBounds", opaques);
+
+        task.addJob<DrawBounds>("DrawZones", zones);
+    }
+
+    task.addJob<Draw>("DrawTransparents", transparents, shapePlumber);
+
 
     // Blit!
     task.addJob<Blit>("Blit", framebuffer);

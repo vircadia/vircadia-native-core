@@ -11,8 +11,8 @@ include_directories("${INTERFACE_DIR}/src")
 target_link_libraries(native-lib android log m interface)
 
 set(GVR_ROOT "${HIFI_ANDROID_PRECOMPILED}/gvr/gvr-android-sdk-1.101.0/")
-target_include_directories(native-lib PRIVATE  "${GVR_ROOT}/libraries/headers")
-target_link_libraries(native-lib "${GVR_ROOT}/libraries/libgvr.so")
+target_include_directories(native-lib PRIVATE  "${GVR_ROOT}/libraries/headers" "libraries/ui/src")
+target_link_libraries(native-lib "${GVR_ROOT}/libraries/libgvr.so" ui)
 
 # finished libraries
 # core -> qt
