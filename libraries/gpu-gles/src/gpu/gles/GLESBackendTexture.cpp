@@ -476,7 +476,6 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 void GLESVariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
     uint16_t numMips = _gpuObject.getNumMips();
     withPreservedTexture([&] {
-        qDebug() << "[TEXTURE] is compressed: " << _texelFormat.isCompressed();
         if (_texelFormat.isCompressed()) {
             copyCompressedTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
         } else {

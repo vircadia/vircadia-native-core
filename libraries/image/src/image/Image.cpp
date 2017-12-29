@@ -689,6 +689,7 @@ void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>
     }
 #else
     texture->setAutoGenerateMips(true);
+    texture->assignStoredMip(0, image.byteCount(), image.constBits());
 #endif
 }
 
@@ -727,9 +728,15 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
     bool validAlpha = image.hasAlphaChannel();
     bool alphaAsMask = false;
 
+#ifndef ANDROID
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
+#else
+    if (image.format() != QImage::Format_RGBA8888) {
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+    }
+#endif
 
     if (validAlpha) {
         processTextureAlpha(image, validAlpha, alphaAsMask);
