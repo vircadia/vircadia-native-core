@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
@@ -27,8 +26,7 @@ TextField {
     property bool hasRoundedBorder: false
     property bool error: false;
     property bool hasClearButton: false;
-
-    placeholderText: textField.placeholderText
+    property alias textColor: textField.color
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
@@ -42,41 +40,56 @@ TextField {
     // workaround for https://bugreports.qt.io/browse/QTBUG-49297
     Keys.onPressed: {
         switch (event.key) {
-            case Qt.Key_Return: 
-            case Qt.Key_Enter: 
-                event.accepted = true;
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+            event.accepted = true;
 
-                // emit accepted signal manually
-                if (acceptableInput) {
-                    accepted();
-                }
+            // emit accepted signal manually
+            if (acceptableInput) {
+                accepted();
+            }
         }
     }
 
-    style: TextFieldStyle {
-        textColor: {
-            if (isLightColorScheme) {
-                if (textField.activeFocus) {
-                    hifi.colors.black
-                } else {
-                    hifi.colors.lightGray
-                }
-            } else if (isFaintGrayColorScheme) {
-                if (textField.activeFocus) {
-                    hifi.colors.black
-                } else {
-                    hifi.colors.lightGray
-                }
+    Text {
+        id: placeholder
+        x: textField.leftPadding
+        y: textField.topPadding
+        width: textField.width - (textField.leftPadding + textField.rightPadding)
+        height: textField.height - (textField.topPadding + textField.bottomPadding)
+
+        text: textField.placeholderText
+        font: textField.font
+        color: textField.placeholderTextColor
+        verticalAlignment: textField.verticalAlignment
+        visible: !textField.length && !textField.preeditText && (!textField.activeFocus || textField.horizontalAlignment !== Qt.AlignHCenter)
+        elide: Text.ElideRight
+    }
+
+    color: {
+        if (isLightColorScheme) {
+            if (textField.activeFocus) {
+                hifi.colors.black
             } else {
-                if (textField.activeFocus) {
-                    hifi.colors.white
-                } else {
-                    hifi.colors.lightGrayText
-                }
+                hifi.colors.lightGray
+            }
+        } else if (isFaintGrayColorScheme) {
+            if (textField.activeFocus) {
+                hifi.colors.black
+            } else {
+                hifi.colors.lightGray
+            }
+        } else {
+            if (textField.activeFocus) {
+                hifi.colors.white
+            } else {
+                hifi.colors.lightGrayText
             }
         }
-        background: Rectangle {
-            color: {
+    }
+
+    background: Rectangle {
+        color: {
             if (isLightColorScheme) {
                 if (textField.activeFocus) {
                     hifi.colors.white
@@ -97,44 +110,45 @@ TextField {
                 }
             }
         }
-            border.color: textField.error ? hifi.colors.redHighlight :
-            (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
-            border.width: textField.activeFocus || hasRoundedBorder || textField.error ? 1 : 0
-            radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
+        border.color: textField.error ? hifi.colors.redHighlight :
+                                        (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
+        border.width: textField.activeFocus || hasRoundedBorder || textField.error ? 1 : 0
+        radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
 
-            HiFiGlyphs {
-                text: hifi.glyphs.search
-                color: textColor
-                size: hifi.fontSizes.textFieldSearchIcon
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: hifi.dimensions.textPadding - 2
-                visible: isSearchField
-            }
+        HiFiGlyphs {
+            text: hifi.glyphs.search
+            color: textColor
+            size: hifi.fontSizes.textFieldSearchIcon
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: hifi.dimensions.textPadding - 2
+            visible: isSearchField
+        }
 
-            HiFiGlyphs {
-                text: hifi.glyphs.error
-                color: textColor
-                size: 40
-                anchors.right: parent.right
-                anchors.rightMargin: hifi.dimensions.textPadding - 2
-                anchors.verticalCenter: parent.verticalCenter
-                visible: hasClearButton && textField.text !== "";
+        HiFiGlyphs {
+            text: hifi.glyphs.error
+            color: textColor
+            size: 40
+            anchors.right: parent.right
+            anchors.rightMargin: hifi.dimensions.textPadding - 2
+            anchors.verticalCenter: parent.verticalCenter
+            visible: hasClearButton && textField.text !== "";
 
-                MouseArea {
-                    anchors.fill: parent;
-                    onClicked: {
-                        textField.text = "";
-                    }
+            MouseArea {
+                anchors.fill: parent;
+                onClicked: {
+                    textField.text = "";
                 }
             }
         }
-        placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
-        selectedTextColor: hifi.colors.black
-        selectionColor: hifi.colors.primaryHighlight
-        padding.left: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
-        padding.right: (hasClearButton ? textField.height - 2 : 0) + hifi.dimensions.textPadding
     }
+
+    property color placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
+    selectedTextColor: hifi.colors.black
+    selectionColor: hifi.colors.primaryHighlight
+    leftPadding: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
+    rightPadding: (hasClearButton ? textField.height - 2 : 0) + hifi.dimensions.textPadding
+
 
     HifiControls.Label {
         id: textFieldLabel
