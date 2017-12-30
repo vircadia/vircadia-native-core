@@ -32,6 +32,7 @@
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
+#include "ModelEntityItem.h"
 
 #include "Logging.h"
 
@@ -347,6 +348,20 @@ void Avatar::updateAvatarEntities() {
     setAvatarEntityDataChanged(false);
 }
 
+void Avatar::relayJointDataToChildren() {
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto entity = std::dynamic_pointer_cast<EntityItem>(child);
+            if (entity) {
+                auto  modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+                if (modelEntity) {
+                    qDebug() << "--------> update modelEntityJoints <----------";
+                }
+            }
+        }
+    });
+}
+
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
 
@@ -379,6 +394,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             }
             head->setScale(getModelScale());
             head->simulate(deltaTime);
+            relayJointDataToChildren();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
