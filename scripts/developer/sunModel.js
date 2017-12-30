@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  Code is based on the NOAA model - see https://www.esrl.noaa.gov/gmd/grad/solcalc/
+//  Sun angle is based on the NOAA model - see https://www.esrl.noaa.gov/gmd/grad/solcalc/
 //
 (function() {
     // Utility functions for trig. calculations
@@ -213,10 +213,10 @@
                           Math.cos(latitude) * Math.cos(theta_rads) * Math.cos(hourAngleRadians);
                 csz     = Math.min(1.0, Math.max(-1.0, csz));
                 
-                var zenith  = toDegrees(Math.acos(csz));
-                var azDenom = ( Math.cos(latitude) * Math.sin(toRadians(zenith)));
+                var zenith_degs  = toDegrees(Math.acos(csz));
+                var azDenom = ( Math.cos(latitude) * Math.sin(toRadians(zenith_degs)));
                 if (Math.abs(azDenom) > 0.001) {
-                    azRad = (( Math.sin(latitude) * Math.cos(toRadians(zenith)) ) - Math.sin(theta_rads)) / azDenom;
+                    azRad = (( Math.sin(latitude) * Math.cos(toRadians(zenith_degs)) ) - Math.sin(theta_rads)) / azDenom;
                     if (Math.abs(azRad) > 1.0) {
                         if (azRad < 0.0) {
                             azRad = -1.0;
@@ -240,7 +240,7 @@
                 }
 
                 // Atmospheric Refraction correction
-                var exoatmElevation = 90.0 - zenith;
+                var exoatmElevation = 90.0 - zenith_degs;
                 if (exoatmElevation > 85.0) {
                     var refractionCorrection = 0.0;
                 } else {
@@ -257,7 +257,7 @@
                     refractionCorrection = refractionCorrection / 3600.0;
                 }
 
-                var solarZenith = zenith - refractionCorrection;
+                var solarZenith = zenith_degs - refractionCorrection;
                 var solarAltitude_degs = 90.0 - solarZenith; // aka solar elevation
                
                 // Convert to XYZ
@@ -268,7 +268,24 @@
                 var zPos =  Math.cos(solarAltitude) * Math.cos(solarAzimuth);
                 var yPos = -Math.sin(solarAltitude);
 
-                Entities.editEntity(entityID, { keyLight : {direction: { x: xPos, y: yPos, z: zPos }}});
+                // Compute intensity, modelling the atmosphere as a spherical shell
+                // The optical air mass ratio at zenith is 1.0, and around 38.0 at the horizon
+                // The ratio is limited between 1 and 38
+                var EARTH_RADIUS_KM = 6371.0;
+                var ATMOSPHERE_THICKNESS_KM = 9.0;
+                var r = EARTH_RADIUS_KM / ATMOSPHERE_THICKNESS_KM;
+
+                var opticalAirMassRatio = Math.sqrt(r * r * csz * csz + 2 * r + 1) - r * csz;
+                opticalAirMassRatio = Math.min(38.0, Math.max(1.0, opticalAirMassRatio));
+                
+                Entities.editEntity(
+                    entityID, { 
+                        keyLight : {
+                            direction: { x: xPos, y: yPos, z: zPos },
+                            intensity: 1.0 / opticalAirMassRatio
+                        }
+                    }
+                );
             },
 
             COMPUTATION_CYCLE
