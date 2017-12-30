@@ -4279,7 +4279,7 @@ void Application::init() {
 
     getEntities()->init();
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
-        auto dims = item.getDimensions();
+        auto dims = item.getScaledDimensions();
         auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
@@ -4633,7 +4633,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 _lastAcceptedKeyPress = usecTimestampNow();
 
                 setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
     }

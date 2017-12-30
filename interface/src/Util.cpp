@@ -407,7 +407,7 @@ void shapeInfoCalculator(const ShapeEntityItem * const shapeEntity, ShapeInfo &s
     ShapeInfo::PointList points;
     pointCollection.push_back(points);
 
-    GeometryCache::computeSimpleHullPointListForShape((int)shapeEntity->getShape(), shapeEntity->getDimensions(), pointCollection.back());
+    GeometryCache::computeSimpleHullPointListForShape((int)shapeEntity->getShape(), shapeEntity->getScaledDimensions(), pointCollection.back());
     shapeInfo.setPointCollection(pointCollection);
 }
 
