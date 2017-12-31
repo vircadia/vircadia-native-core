@@ -183,7 +183,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         if (_skyboxMode == COMPONENT_MODE_DISABLED && _skyboxOnIndex == NO_STORED_VALUE) {
             // Just turned off, store previous value before changing
             _skyboxOnIndex = _backgroundIndex;
-            _backgroundIndex = _stage->getSunOffLight();
+            _backgroundIndex = INVALID_INDEX;
         } else if (_skyboxMode == COMPONENT_MODE_ENABLED && _skyboxOnIndex != NO_STORED_VALUE) {
             // Just turned on, restore previous value before clearing stored value
             _backgroundIndex = _skyboxOnIndex;
