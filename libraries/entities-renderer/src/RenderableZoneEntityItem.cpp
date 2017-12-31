@@ -190,7 +190,8 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _skyboxOnIndex = NO_STORED_VALUE;
         }
 
-        if (_skyboxMode != COMPONENT_MODE_INHERIT) {
+        // _backgroundMode is kept for legacy purposes
+        if (_skyboxMode != COMPONENT_MODE_INHERIT || _backgroundMode != BACKGROUND_MODE_INHERIT) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
@@ -205,7 +206,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _ambientOnIndex = NO_STORED_VALUE;
         }
 
-        if (_ambientLightMode != COMPONENT_MODE_INHERIT && (_validAmbientTexture)) {
+        if (_ambientLightMode != COMPONENT_MODE_INHERIT && _validAmbientTexture) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
