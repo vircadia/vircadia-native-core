@@ -667,7 +667,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
-        glm::vec3 dimensions = entity->getDimensions();
+        glm::vec3 dimensions = entity->getScaledDimensions();
         glm::vec3 registrationPoint = entity->getRegistrationPoint();
         glm::vec3 corner = -(dimensions * registrationPoint);
 
@@ -763,7 +763,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
         glm::vec3 penetration;
         if (!success || entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
 
-            glm::vec3 dimensions = entity->getDimensions();
+            glm::vec3 dimensions = entity->getScaledDimensions();
 
             // FIXME - consider allowing the entity to determine penetration so that
             //         entities could presumably dull actuall hull testing if they wanted to
