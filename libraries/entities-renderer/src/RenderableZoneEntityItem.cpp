@@ -145,10 +145,8 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         updateSkyboxMap();
 
         if (_needBackgroundUpdate) {
-            if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
+            if (_skyboxMode == COMPONENT_MODE_ENABLED && BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
-            } else {
-
             }
             _needBackgroundUpdate = false;
         }
