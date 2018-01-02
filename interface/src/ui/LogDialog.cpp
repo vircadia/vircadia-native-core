@@ -89,14 +89,23 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
 
     _filterDropdown = new QComboBox(this);
     _filterDropdown->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, COMBOBOX_WIDTH, ELEMENT_HEIGHT);
-    _filterDropdown->addItem("Select filter...");
+    _filterDropdown->addItem("Select secondary filter...");
     _filterDropdown->addItem("default");
+    _filterDropdown->addItem("hifi.audio");
     _filterDropdown->addItem("hifi.audioclient");
+    _filterDropdown->addItem("hifi.animation");
     _filterDropdown->addItem("hifi.avatars");
+    _filterDropdown->addItem("hifi.commerce");
+    _filterDropdown->addItem("hifi.controllers");
+    _filterDropdown->addItem("hifi.gl");
+    _filterDropdown->addItem("hifi.gpu.gl");
+    _filterDropdown->addItem("hifi.interface");
     _filterDropdown->addItem("hifi.interface.deadlock");
     _filterDropdown->addItem("hifi.modelformat");
     _filterDropdown->addItem("hifi.networking");
     _filterDropdown->addItem("hifi.networking.resource");
+    _filterDropdown->addItem("hifi.plugins");
+    _filterDropdown->addItem("hifi.render");
     _filterDropdown->addItem("hifi.scriptengine");
     _filterDropdown->addItem("hifi.scriptengine.module");
     _filterDropdown->addItem("hifi.scriptengine.script");
