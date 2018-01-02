@@ -19,7 +19,7 @@
 #include <shared/AbstractLoggerInterface.h>
 
 const int REVEAL_BUTTON_WIDTH = 122;
-const int SHOW_ALL_BUTTON_WIDTH = 100;
+const int SHOW_ALL_BUTTON_WIDTH = 80;
 const int DEBUG_CHECKBOX_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
@@ -89,7 +89,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
 
     _filterDropdown = new QComboBox(this);
     _filterDropdown->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, COMBOBOX_WIDTH, ELEMENT_HEIGHT);
-    _filterDropdown->addItem("Select secondary filter...");
+    _filterDropdown->addItem("No secondary filter...");
     _filterDropdown->addItem("default");
     _filterDropdown->addItem("hifi.audio");
     _filterDropdown->addItem("hifi.audioclient");
@@ -112,8 +112,6 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown->addItem("hifi.shared");
     _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("qml");
-    _filterDropdown->addItem("hifi.ui");
-    _filterDropdown->addItem("hifi.avatars");
 
     connect(_filterDropdown, SIGNAL(currentIndexChanged(int)), this, SLOT(handleFilterDropdownChanged(int)));
 }
@@ -166,8 +164,7 @@ void LogDialog::handleCriticalPrintBox(int state) {
 void LogDialog::handleFilterDropdownChanged(int selection) {
     if (selection != 0) {
         _filterSelection = "[" + _filterDropdown->currentText() + "]";
-    }
-    else {
+    } else {
         _filterSelection = "";
     }
     printLogFile();

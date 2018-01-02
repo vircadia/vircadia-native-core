@@ -69,7 +69,6 @@ QPushButton#revealLogButton {
 
 QPushButton#showAllButton {
     font-family: Helvetica, Arial, sans-serif;
-    padding-left: 10px;
     background-color: #333333;
     color: #BBBBBB;
     border-width: 0;
