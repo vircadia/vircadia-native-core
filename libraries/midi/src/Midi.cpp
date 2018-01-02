@@ -31,14 +31,13 @@ const int MIDI_SHIFT_PITCH_BEND = 9;
 const int MIDI_NOTE_OFF = 0x8;
 const int MIDI_NOTE_ON = 0x9;
 const int MIDI_POLYPHONIC_KEY_PRESSURE = 0xa;
-const int MIDI_CONTROL_CHANGE = 0xb;
 const int MIDI_PROGRAM_CHANGE = 0xc;
 const int MIDI_CHANNEL_PRESSURE = 0xd;
 const int MIDI_PITCH_BEND_CHANGE = 0xe;
 const int MIDI_SYSTEM_MESSAGE = 0xf;
 #endif
 
-
+const int MIDI_CONTROL_CHANGE = 0xb;
 const int MIDI_CHANNEL_MODE_ALL_NOTES_OFF = 0x07b;
 
 static Midi* instance = NULL;        // communicate this to non-class callbacks
