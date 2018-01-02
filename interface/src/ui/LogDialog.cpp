@@ -99,7 +99,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("hifi.avatars");
 
-    connect(_filterDropdown, SIGNAL(_filterDropdown->currentIndexChanged(int)),this, SLOT(handleFilterDropdownChanged(int)));
+    connect(_filterDropdown, SIGNAL(currentIndexChanged(int)),this, SLOT(handleFilterDropdownChanged(int)));
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -145,10 +145,11 @@ void LogDialog::handleCriticalPrintBox(int state) {
 }
 
 void LogDialog::handleFilterDropdownChanged(int selection) {
-    printf("%s\n", "Handle it!!!!!");
     if (selection != 0) {
-        _filterSelection = "[" + _filterDropdown->currentText + "]";
-        printf("%s\n", selection);
+        _filterSelection = "[" + _filterDropdown->currentText() + "]";
+    }
+    else {
+        _filterSelection = "";
     }
 }
 
