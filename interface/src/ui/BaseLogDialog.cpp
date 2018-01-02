@@ -95,7 +95,7 @@ void BaseLogDialog::initControls() {
     connect(_logTextBox, SIGNAL(selectionChanged()), SLOT(updateSelection()));
 }
 
-void BaseLogDialog::showEvent(QShowEvent* event)  {
+void BaseLogDialog::showEvent(QShowEvent* event) {
     showLogData();
 }
 
@@ -124,7 +124,7 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
         if (selectedTerm == searchText) {
-          return;
+            return;
         }
     }
 
@@ -147,7 +147,8 @@ void BaseLogDialog::toggleSearchPrev() {
     if (searchCursor.hasSelection()) {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm, QTextDocument::FindBackward);
-    } else {
+    }
+    else {
         handleSearchTextChanged(_searchTextBox->text());
     }
 }
@@ -157,7 +158,8 @@ void BaseLogDialog::toggleSearchNext() {
     if (searchCursor.hasSelection()) {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm);
-    } else {
+    }
+    else {
         handleSearchTextChanged(_searchTextBox->text());
     }
 }

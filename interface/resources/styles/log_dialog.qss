@@ -67,6 +67,16 @@ QPushButton#revealLogButton {
     font-size: 11px;
 }
 
+QPushButton#showAllButton {
+    font-family: Helvetica, Arial, sans-serif;
+    padding-left: 10px;
+    background-color: #333333;
+    color: #BBBBBB;
+    border-width: 0;
+    border-radius: 9px;
+    font-size: 11px;
+}
+
 QCheckBox {
     font-family: Helvetica, Arial, sans-serif;
     text-align: center;

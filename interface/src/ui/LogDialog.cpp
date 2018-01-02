@@ -106,7 +106,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("hifi.avatars");
 
-    connect(_filterDropdown, SIGNAL(currentIndexChanged(int)),this, SLOT(handleFilterDropdownChanged(int)));
+    connect(_filterDropdown, SIGNAL(currentIndexChanged(int)), this, SLOT(handleFilterDropdownChanged(int)));
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -178,11 +178,13 @@ void LogDialog::appendLogLine(QString logLine) {
             if (_logger->debugPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }
-        } else if (logLine.contains(INFO, Qt::CaseSensitive)) {
+        }
+        else if (logLine.contains(INFO, Qt::CaseSensitive)) {
             if (_logger->infoPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }
-        } else {
+        }
+        else {
             if (_logger->criticalPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }

@@ -26,10 +26,10 @@ class LogDialog : public BaseLogDialog {
 public:
     LogDialog(QWidget* parent, AbstractLoggerInterface* logger);
 
-public slots:
+    public slots:
     void appendLogLine(QString logLine) override;
 
-private slots:
+    private slots:
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(int);
     void handleDebugPrintBox(int);

@@ -48,10 +48,10 @@ public:
     BaseLogDialog(QWidget* parent);
     ~BaseLogDialog();
 
-public slots:
+    public slots:
     virtual void appendLogLine(QString logLine);
 
-private slots:
+    private slots:
     void updateSelection();
     void handleSearchButton();
     void handleSearchTextChanged(QString text);
@@ -59,7 +59,7 @@ private slots:
     void toggleSearchNext();
 
 protected:
-    int _leftPad { 0 };
+    int _leftPad{ 0 };
     QString _searchTerm;
     QPlainTextEdit* _logTextBox{ nullptr };
     Highlighter* _highlighter{ nullptr };
@@ -69,11 +69,11 @@ protected:
     virtual QString getCurrentLog() = 0;
 
 private:
-    QPushButton* _searchButton { nullptr };
-    QLineEdit* _searchTextBox { nullptr };
-    QPushButton* _searchPrevButton { nullptr };
-    QPushButton* _searchNextButton { nullptr };
-    
+    QPushButton* _searchButton{ nullptr };
+    QLineEdit* _searchTextBox{ nullptr };
+    QPushButton* _searchPrevButton{ nullptr };
+    QPushButton* _searchNextButton{ nullptr };
+
     void initControls();
     void showLogData();
 };
