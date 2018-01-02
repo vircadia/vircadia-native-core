@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1585</width>
-    <height>694</height>
+    <width>1782</width>
+    <height>942</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,10 +16,10 @@
   <widget class="QLabel" name="expectedImage">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>170</y>
-     <width>720</width>
-     <height>362</height>
+     <x>10</x>
+     <y>25</y>
+     <width>800</width>
+     <height>450</height>
     </rect>
    </property>
    <property name="text">
@@ -29,28 +29,41 @@
   <widget class="QLabel" name="resultImage">
    <property name="geometry">
     <rect>
-     <x>760</x>
-     <y>170</y>
-     <width>720</width>
-     <height>362</height>
+     <x>900</x>
+     <y>25</y>
+     <width>800</width>
+     <height>450</height>
     </rect>
    </property>
    <property name="text">
     <string>result image</string>
    </property>
   </widget>
+  <widget class="QLabel" name="diffImage">
+   <property name="geometry">
+    <rect>
+     <x>540</x>
+     <y>480</y>
+     <width>800</width>
+     <height>450</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>diff image</string>
+   </property>
+  </widget>
   <widget class="QLabel" name="resultFilename">
    <property name="geometry">
     <rect>
-     <x>760</x>
-     <y>90</y>
-     <width>800</width>
+     <x>60</x>
+     <y>660</y>
+     <width>480</width>
      <height>28</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>16</pointsize>
+     <pointsize>12</pointsize>
     </font>
    </property>
    <property name="text">
@@ -60,15 +73,15 @@
   <widget class="QLabel" name="expectedFilename">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>90</y>
-     <width>700</width>
+     <x>60</x>
+     <y>630</y>
+     <width>480</width>
      <height>28</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>16</pointsize>
+     <pointsize>12</pointsize>
     </font>
    </property>
    <property name="text">
@@ -78,15 +91,15 @@
   <widget class="QLabel" name="imagePath">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>30</y>
+     <x>20</x>
+     <y>600</y>
      <width>1200</width>
      <height>28</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>16</pointsize>
+     <pointsize>12</pointsize>
     </font>
    </property>
    <property name="text">
@@ -97,7 +110,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>600</y>
+     <y>790</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -109,8 +122,8 @@
   <widget class="QPushButton" name="failTestButton">
    <property name="geometry">
     <rect>
-     <x>330</x>
-     <y>600</y>
+     <x>120</x>
+     <y>790</y>
      <width>75</width>
      <height>23</height>
     </rect>
@@ -122,32 +135,58 @@
   <widget class="QPushButton" name="abortTestsButton">
    <property name="geometry">
     <rect>
-     <x>630</x>
-     <y>600</y>
-     <width>75</width>
+     <x>210</x>
+     <y>790</y>
+     <width>121</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>Abort Tests</string>
+    <string>Abort current test</string>
    </property>
   </widget>
   <widget class="QLabel" name="errorLabel">
    <property name="geometry">
     <rect>
-     <x>810</x>
-     <y>600</y>
-     <width>720</width>
+     <x>30</x>
+     <y>850</y>
+     <width>500</width>
      <height>28</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>16</pointsize>
+     <pointsize>12</pointsize>
     </font>
    </property>
    <property name="text">
     <string>similarity</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>5</y>
+     <width>151</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Expected Image</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>930</x>
+     <y>5</y>
+     <width>151</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Actual Image</string>
    </property>
   </widget>
  </widget>
