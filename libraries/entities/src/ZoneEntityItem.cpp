@@ -242,7 +242,7 @@ void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "                  position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
+    qCDebug(entities) << "                dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
     qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);

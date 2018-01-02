@@ -250,7 +250,8 @@
             itemName: name,
             itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href,
-            referrer: referrer
+            referrer: referrer,
+            itemAuthor: author
         }));
     }
 
