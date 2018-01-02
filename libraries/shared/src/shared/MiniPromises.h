@@ -1,19 +1,19 @@
 #pragma once
 
-// Minimalist threadsafe Promise-like helper for instrumenting asynchronous results
+// Minimalist threadsafe Promise-like helper for managing asynchronous results
 //
-// This class pivots around composable continuation-style callback handlers:
+// This class pivots around continuation-style callback handlers:
 //     auto successCallback = [=](QVariantMap result) { .... }
 //     auto errorCallback = [=](QString error) { .... }
 //     auto combinedCallback = [=](QString error, QVariantMap result) { .... }
 //
 // * Callback Handlers are automatically invoked on the right thread (the Promise's thread).
 // * Callbacks can be assigned anytime during a Promise's life and "do the right thing".
-//   - ie: for code clarity you can define success cases first (or maintain time order)
+//   - ie: for code clarity you can define success cases first or choose to maintain time order
 // * "Deferred" concept can be used to publish outcomes.
 // * "Promise" concept be used to subscribe to outcomes.
 //
-// See AssetScriptingInterface.cpp for some examples of using to simplify chained async result.
+// See AssetScriptingInterface.cpp for some examples of using to simplify chained async results.
 
 #include <QtCore/QObject>
 #include <QtCore/QThread>
@@ -25,35 +25,37 @@
 class MiniPromise : public QObject, public std::enable_shared_from_this<MiniPromise>, public ReadWriteLockable {
     Q_OBJECT
 public:
-    using handlerFunction = std::function<void(QString error, QVariantMap result)>;
-    using successFunction = std::function<void(QVariantMap result)>;
-    using errorFunction = std::function<void(QString error)>;
-    using handlers = QVector<handlerFunction>;
+    using HandlerFunction = std::function<void(QString error, QVariantMap result)>;
+    using SuccessFunction = std::function<void(QVariantMap result)>;
+    using ErrorFunction = std::function<void(QString error)>;
+    using HandlerFunctions = QVector<HandlerFunction>;
     using Promise = std::shared_ptr<MiniPromise>;
-    MiniPromise(const QString debugName) { setObjectName(debugName); }
+
+    static int metaTypeID;
+
     MiniPromise() {}
+    MiniPromise(const QString debugName) { setObjectName(debugName); }
+
     ~MiniPromise() {
-        qDebug() << "~MiniPromise" << objectName();
         if (!_rejected && !_resolved) {
-            qWarning() << "====== WARNING: unhandled MiniPromise" << objectName() << _error << _result;
+            qWarning() << "MiniPromise::~MiniPromise -- destroying unhandled promise:" << objectName() << _error << _result;
+        }
+    }
+    Promise self() { return shared_from_this(); }
+
+    Q_INVOKABLE void executeOnPromiseThread(std::function<void()> function) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(
+                this, "executeOnPromiseThread", Qt::BlockingQueuedConnection,
+                Q_ARG(std::function<void()>, function));
+        } else {
+            function();
         }
     }
 
-    QString _error;
-    QVariantMap _result;
-    std::atomic<bool> _rejected{false};
-    std::atomic<bool> _resolved{false};
-    handlers _onresolve;
-    handlers _onreject;
-    handlers _onfinally;
-
-    Promise self() { return shared_from_this(); }
-
     // result aggregation helpers -- eg: deferred->defaults(interimResultMap)->ready(...)
-
     // copy values from the input map, but only for keys that don't already exist
     Promise mixin(const QVariantMap& source) {
-        qDebug() << objectName() << "mixin";
         withWriteLock([&]{
             for (const auto& key : source.keys()) {
                 if (!_result.contains(key)) {
@@ -65,7 +67,6 @@ public:
     }
     // copy values from the input map, replacing any existing keys
     Promise assignResult(const QVariantMap& source) {
-        qDebug() << objectName() << "assignResult";
         withWriteLock([&]{
             for (const auto& key : source.keys()) {
                 _result[key] = source[key];
@@ -74,15 +75,15 @@ public:
         return self();
     }
 
-    // TODO: I think calling as "ready" makes it read better, but is customary Promise "finally" sufficient?
-    Promise ready(handlerFunction always) { return finally(always); }
-    Promise finally(handlerFunction always) {
+    // callback registration methods
+    Promise ready(HandlerFunction always) { return finally(always); }
+    Promise finally(HandlerFunction always) {
         if (!_rejected && !_resolved) {
             withWriteLock([&]{
                 _onfinally << always;
             });
         } else {
-            qDebug() << "finally (already resolved/rejected)" << objectName();
+            qWarning() << "MiniPromise::finally() called after promise was already rejected or resolved:" << objectName();
             executeOnPromiseThread([&]{
                 withReadLock([&]{
                     always(_error, _result);
@@ -91,20 +92,20 @@ public:
         }
         return self();
     }
-    Promise fail(errorFunction errorOnly) {
+    Promise fail(ErrorFunction errorOnly) {
         return fail([this, errorOnly](QString error, QVariantMap result) {
             errorOnly(error);
         });
     }
 
-    Promise fail(handlerFunction failFunc) {
+    Promise fail(HandlerFunction failFunc) {
         if (!_rejected) {
             withWriteLock([&]{
                 _onreject << failFunc;
             });
         } else {
             executeOnPromiseThread([&]{
-                qDebug() << "fail (already rejected)" << objectName();
+                qWarning() << "MiniPromise::fail() called after promise was already rejected:" << objectName();
                 withReadLock([&]{
                     failFunc(_error, _result);
                 });
@@ -113,19 +114,19 @@ public:
         return self();
     }
 
-    Promise then(successFunction successOnly) {
+    Promise then(SuccessFunction successOnly) {
         return then([this, successOnly](QString error, QVariantMap result) {
             successOnly(result);
         });
     }
-    Promise then(handlerFunction successFunc) {
+    Promise then(HandlerFunction successFunc) {
         if (!_resolved) {
             withWriteLock([&]{
                 _onresolve << successFunc;
             });
         } else {
             executeOnPromiseThread([&]{
-                qDebug() << "fail (already resolved)" << objectName();
+                qWarning() << "MiniPromise::then() called after promise was already resolved:" << objectName();
                 withReadLock([&]{
                     successFunc(_error, _result);
                 });
@@ -133,9 +134,9 @@ public:
         }
         return self();
     }
-    // register combined success/error handlers
-    Promise then(successFunction successOnly, errorFunction errorOnly) {
-        // note: first arg can be null (see ES6 .then(null, errorHandler) conventions)
+
+    // NOTE: first arg may be null (see ES6 .then(null, errorHandler) conventions)
+    Promise then(SuccessFunction successOnly, ErrorFunction errorOnly) {
         if (successOnly) {
             then(successOnly);
         }
@@ -146,8 +147,8 @@ public:
     }
 
     // trigger methods
+    // handle() automatically resolves or rejects the promise (based on whether an error value occurred)
     Promise handle(QString error, const QVariantMap& result) {
-        qDebug() << "handle" << objectName() << error;
         if (error.isEmpty()) {
             resolve(error, result);
         } else {
@@ -155,23 +156,64 @@ public:
         }
         return self();
     }
+
     Promise resolve(QVariantMap result) {
         return resolve(QString(), result);
     }
+    Promise resolve(QString error, const QVariantMap& result) {
+        setState(true, error, result);
 
-    Q_INVOKABLE void executeOnPromiseThread(std::function<void()> function) {
-        if (QThread::currentThread() != thread()) {
-            qDebug() << "-0-0-00-0--0" << objectName() << "executeOnPromiseThread -- wrong thread" << QThread::currentThread();
-            QMetaObject::invokeMethod(
-                this, "executeOnPromiseThread", Qt::BlockingQueuedConnection,
-                Q_ARG(std::function<void()>, function));
-        } else {
-            function();
-        }
+        QString localError;
+        QVariantMap localResult;
+        HandlerFunctions resolveHandlers;
+        HandlerFunctions finallyHandlers;
+        withReadLock([&]{
+            localError = _error;
+            localResult = _result;
+            resolveHandlers = _onresolve;
+            finallyHandlers = _onfinally;
+        });
+        executeOnPromiseThread([&]{
+            for (const auto& onresolve : resolveHandlers) {
+                onresolve(localError, localResult);
+            }
+            for (const auto& onfinally : finallyHandlers) {
+                onfinally(localError, localResult);
+            }
+        });
+        return self();
     }
 
+    Promise reject(QString error) {
+        return reject(error, QVariantMap());
+    }
+    Promise reject(QString error, const QVariantMap& result) {
+        setState(false, error, result);
+
+        QString localError;
+        QVariantMap localResult;
+        HandlerFunctions rejectHandlers;
+        HandlerFunctions finallyHandlers;
+        withReadLock([&]{
+            localError = _error;
+            localResult = _result;
+            rejectHandlers = _onreject;
+            finallyHandlers = _onfinally;
+        });
+        executeOnPromiseThread([&]{
+            for (const auto& onreject : rejectHandlers) {
+                onreject(localError, localResult);
+            }
+            for (const auto& onfinally : finallyHandlers) {
+                onfinally(localError, localResult);
+            }
+        });
+        return self();
+    }
+
+private:
+
     Promise setState(bool resolved, QString error, const QVariantMap& result) {
-        qDebug() << "setState" << objectName() << resolved << error;
         if (resolved) {
             _resolved = true;
         } else {
@@ -181,65 +223,16 @@ public:
             _error = error;
         });
         assignResult(result);
-        qDebug() << "//setState" << objectName() << resolved << error;
         return self();
     }
-    Promise resolve(QString error, const QVariantMap& result) {
-        setState(true, error, result);
-        qDebug() << "handle" << objectName() << error;
-        {
-            QString error;
-            QVariantMap result;
-            handlers toresolve;
-            handlers tofinally;
-            withReadLock([&]{
-                error = _error;
-                result = _result;
-                toresolve = _onresolve;
-                tofinally = _onfinally;
-            });
-            executeOnPromiseThread([&]{
-                for (const auto& onresolve : toresolve) {
-                    onresolve(error, result);
-                }
-                for (const auto& onfinally : tofinally) {
-                    onfinally(error, result);
-                }
-            });
-        }
-        return self();
-    }
-    Promise reject(QString error) {
-        return reject(error, QVariantMap());
-    }
-    Promise reject(QString error, const QVariantMap& result) {
-        setState(false, error, result);
-        qDebug() << "handle" << objectName() << error;
-        {
-            QString error;
-            QVariantMap result;
-            handlers toreject;
-            handlers tofinally;
-            withReadLock([&]{
-                error = _error;
-                result = _result;
-                toreject = _onreject;
-                tofinally = _onfinally;
-            });
-            executeOnPromiseThread([&]{
-                for (const auto& onreject : toreject) {
-                    onreject(error, result);
-                }
-                for (const auto& onfinally : tofinally) {
-                    onfinally(error, result);
-                }
-                if (toreject.isEmpty() && tofinally.isEmpty()) {
-                    qWarning() << "WARNING: unhandled MiniPromise::reject" << objectName() << error << result;
-                }
-            });
-        }
-        return self();
-    }
+
+    QString _error;
+    QVariantMap _result;
+    std::atomic<bool> _rejected{false};
+    std::atomic<bool> _resolved{false};
+    HandlerFunctions _onresolve;
+    HandlerFunctions _onreject;
+    HandlerFunctions _onfinally;
 };
 
 inline MiniPromise::Promise makePromise(const QString& hint = QString()) {

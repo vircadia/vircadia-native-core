@@ -1,4 +1,2 @@
 #include "MiniPromises.h"
-namespace {
-    int promiseMetaTypeId = qRegisterMetaType<MiniPromise::Promise>("MiniPromise::Promise");
-}
+int MiniPromise::metaTypeID = qRegisterMetaType<MiniPromise::Promise>("MiniPromise::Promise");
