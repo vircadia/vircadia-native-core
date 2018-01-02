@@ -686,18 +686,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
         } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
-            // we sent a bid before this packet could have been sent from the server
-            // so we ignore it and pretend we own the object's simulation
+            // we sent a bid already but maybe before this packet was sent from the server
             weOwnSimulation = true;
             if (newSimOwner.getID().isNull()) {
-                // entity-server is trying to clear someone  else's ownership
-                // but we want to own it, therefore we ignore this clear event
+                // the entity-server is trying to clear someone else's ownership
                 if (!_simulationOwner.isNull()) {
-                    // someone else really did own it
                     markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                     somethingChanged = true;
                     _simulationOwner.clearCurrentOwner();
                 }
+            } else if (newSimOwner.getID() == myNodeID) {
+                // the entity-server is awarding us ownership which is what we want
+                _simulationOwner.set(newSimOwner);
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
