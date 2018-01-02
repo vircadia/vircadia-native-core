@@ -262,7 +262,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                                      currentMaterial.emissiveColor << " diffuse texture:" << 
                                      currentMaterial.diffuseTextureFilename << " specular texture:" << 
                                      currentMaterial.specularTextureFilename << " emissive texture:" << 
-                                     currentMaterial.emissiveTextureFilename;
+                                     currentMaterial.emissiveTextureFilename << " bump texture:" <<
+                                     currentMaterial.bumpTextureFilename;
                 #endif
                 return;
         }
@@ -280,6 +281,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.diffuseTextureFilename = "";
             currentMaterial.emissiveTextureFilename = "";
             currentMaterial.specularTextureFilename = "";
+            currentMaterial.bumpTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "Ni") {
@@ -300,8 +302,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks")) {
-            QByteArray filename = QString(tokenizer.getLineAsDatum()).toUtf8();
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump")) {
+            QByteArray textureLine = QString(tokenizer.getLineAsDatum()).toUtf8();
+            QByteArray filename = textureLine; // TODO: parse texture options and filename from line
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
@@ -314,6 +317,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 currentMaterial.emissiveTextureFilename = filename;
             } else if( token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
+            } else if (token == "map_bump") {
+                currentMaterial.bumpTextureFilename = filename;
             }
         }
     }
@@ -779,6 +784,10 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         if (!objMaterial.emissiveTextureFilename.isEmpty()) {
             fbxMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
+        }
+        if (!objMaterial.bumpTextureFilename.isEmpty()) {
+            fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
+            fbxMaterial.normalTexture.isBumpmap = true;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
