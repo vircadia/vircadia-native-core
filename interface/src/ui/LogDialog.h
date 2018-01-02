@@ -36,19 +36,23 @@ private slots:
     void handleInfoPrintBox(int);
     void handleCriticalPrintBox(int);
     void handleFilterDropdownChanged(int);
+    void handleShowAllButton();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
     QString getCurrentLog() override;
+    void printLogFile();
 
 private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
+    QPushButton* _showAllButton;
     QCheckBox* _debugPrintBox;
     QCheckBox* _infoPrintBox;
     QCheckBox* _criticalPrintBox;
     QComboBox* _filterDropdown;
     QString _filterSelection;
+    QString log;
 
     AbstractLoggerInterface* _logger;
 };

@@ -19,6 +19,7 @@
 #include <shared/AbstractLoggerInterface.h>
 
 const int REVEAL_BUTTON_WIDTH = 122;
+const int SHOW_ALL_BUTTON_WIDTH = 100;
 const int DEBUG_CHECKBOX_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
@@ -36,6 +37,12 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _revealLogButton->show();
     connect(_revealLogButton, SIGNAL(clicked()), SLOT(handleRevealButton()));
 
+    _showAllButton = new QPushButton("Show All", this);
+    // set object name for css styling
+    _showAllButton->setObjectName("showAllButton");
+    _showAllButton->show();
+    connect(_showAllButton, SIGNAL(clicked()), SLOT(handleShowAllButton()));
+
     connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
 
     _leftPad = DEBUG_CHECKBOX_LEFT;
@@ -43,7 +50,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _debugPrintBox = new QCheckBox("DEBUG", this);
     _debugPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, DEBUG_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->debugPrint()) {
-    _extraDebuggingBox->setCheckState(Qt::Checked);
+        _debugPrintBox->setCheckState(Qt::Checked);
     }
     _debugPrintBox->show();
     connect(_debugPrintBox, SIGNAL(stateChanged(int)), SLOT(handleDebugPrintBox(int)));
@@ -53,7 +60,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _infoPrintBox = new QCheckBox("INFO", this);
     _infoPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, INFO_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->infoPrint()) {
-   _infoPrintBox->setCheckState(Qt::Checked);
+        _infoPrintBox->setCheckState(Qt::Checked);
     }
     _infoPrintBox->show();
     connect(_infoPrintBox, SIGNAL(stateChanged(int)), SLOT(handleInfoPrintBox(int)));
@@ -63,7 +70,7 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _criticalPrintBox = new QCheckBox("CRITICAL", this);
     _criticalPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, CRITICAL_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->criticalPrint()) {
-    _criticalPrintBox->setCheckState(Qt::Checked);
+        _criticalPrintBox->setCheckState(Qt::Checked);
     }
     _criticalPrintBox->show();
     connect(_criticalPrintBox, SIGNAL(stateChanged(int)), SLOT(handleCriticalPrintBox(int)));
@@ -108,6 +115,10 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         ELEMENT_MARGIN,
         REVEAL_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
+    _showAllButton->setGeometry(width() - ELEMENT_MARGIN - REVEAL_BUTTON_WIDTH - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
+        ELEMENT_MARGIN,
+        SHOW_ALL_BUTTON_WIDTH,
+        ELEMENT_HEIGHT);
     _filterDropdown->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH,
         ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT,
         COMBOBOX_WIDTH,
@@ -118,30 +129,29 @@ void LogDialog::handleRevealButton() {
     _logger->locateLog();
 }
 
+void LogDialog::handleShowAllButton() {
+    _logTextBox->clear();
+    log = getCurrentLog();
+    _logTextBox->appendPlainText(log);
+}
+
 void LogDialog::handleExtraDebuggingCheckbox(int state) {
     _logger->setExtraDebugging(state != 0);
-
 }
 
 void LogDialog::handleDebugPrintBox(int state) {
     _logger->setDebugPrint(state != 0);
-    if (state != 0) {
-        _logTextBox->clear();
-    }
+    printLogFile();
 }
 
 void LogDialog::handleInfoPrintBox(int state) {
     _logger->setInfoPrint(state != 0);
-    if (state != 0) {
-        _logTextBox->clear();
-    }
+    printLogFile();
 }
 
 void LogDialog::handleCriticalPrintBox(int state) {
     _logger->setCriticalPrint(state != 0);
-    if (state != 0) {
-        _logTextBox->clear();
-    }
+    printLogFile();
 }
 
 void LogDialog::handleFilterDropdownChanged(int selection) {
@@ -151,6 +161,7 @@ void LogDialog::handleFilterDropdownChanged(int selection) {
     else {
         _filterSelection = "";
     }
+    printLogFile();
 }
 
 QString LogDialog::getCurrentLog() {
@@ -176,5 +187,14 @@ void LogDialog::appendLogLine(QString logLine) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }
         }
+    }
+}
+
+void LogDialog::printLogFile() {
+    _logTextBox->clear();
+    log = getCurrentLog();
+    QStringList logList = log.split('\n');
+    for (const auto& message : logList) {
+        appendLogLine(message);
     }
 }
