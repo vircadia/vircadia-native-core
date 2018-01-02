@@ -66,6 +66,12 @@ public:
     OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f) {}
 };
 
+class OBJMaterialTextureOptions {
+public:
+    float bumpMultiplier;
+    OBJMaterialTextureOptions() : bumpMultiplier(1.0f) {}
+};
+
 class OBJReader: public QObject { // QObject so we can make network requests.
     Q_OBJECT
 public:
@@ -87,6 +93,7 @@ private:
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
+    void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
     bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 
     int _partCounter { 0 };

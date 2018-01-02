@@ -303,8 +303,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
         } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump")) {
-            QByteArray textureLine = QString(tokenizer.getLineAsDatum()).toUtf8();
-            QByteArray filename = textureLine; // TODO: parse texture options and filename from line
+            const QByteArray textureLine = tokenizer.getLineAsDatum();
+            QByteArray filename;
+            OBJMaterialTextureOptions textureOptions;
+            parseTextureLine(textureLine, filename, textureOptions);
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
@@ -315,11 +317,34 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 currentMaterial.diffuseTextureFilename = filename;
             } else if (token == "map_Ke") {
                 currentMaterial.emissiveTextureFilename = filename;
-            } else if( token == "map_Ks" ) {
+            } else if (token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
             } else if (token == "map_bump") {
                 currentMaterial.bumpTextureFilename = filename;
             }
+        }
+    }
+} 
+
+void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
+    QString parser = textureLine;
+    while (parser.length() > 0) {
+        if (parser.startsWith("-bm")) {
+            parser.remove(0, 4);
+            int multiplierEnd = parser.indexOf(' ');
+            if (multiplierEnd < 0) {
+                multiplierEnd = parser.length();
+            }
+            QString multiplier = parser.left(multiplierEnd);
+            textureOptions.bumpMultiplier = std::stof(multiplier.toStdString());
+            parser.remove(0, multiplier.length() + 1);
+        } else {
+            int fileEnd = parser.indexOf(' ');
+            if (fileEnd < 0) {
+                fileEnd = parser.length();
+            }
+            filename = parser.left(fileEnd).toUtf8();
+            parser.remove(0, filename.length() + 1);
         }
     }
 }
