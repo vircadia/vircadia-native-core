@@ -2044,9 +2044,9 @@ var PropertiesTool = function (opts) {
 
                         // If any of the natural dimensions are not 0, resize
                         if (properties.type === "Model" && naturalDimensions.x === 0 && naturalDimensions.y === 0 &&
-                                naturalDimensions.z === 0) {
+                            naturalDimensions.z === 0) {
                             Window.notifyEditError("Cannot reset entity to its natural dimensions: Model URL" +
-                                         " is invalid or the model has not yet been loaded.");
+                                " is invalid or the model has not yet been loaded.");
                         } else {
                             Entities.editEntity(selectionManager.selections[i], {
                                 dimensions: properties.naturalDimensions

@@ -53,7 +53,11 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     withReadLock([&] {
         _keyLightProperties.getProperties(properties);
     });
-    
+
+    withReadLock([&] {
+        _ambientLightProperties.getProperties(properties);
+    });
+
     _stageProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
@@ -71,6 +75,10 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
     _hazeProperties.getProperties(properties);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(skyboxMode, getSkyboxMode);
 
     return properties;
 }
@@ -100,6 +108,9 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     withWriteLock([&] {
         _keyLightPropertiesChanged = _keyLightProperties.setProperties(properties);
     });
+    withWriteLock([&] {
+        _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
+    });
 
     _stagePropertiesChanged = _stageProperties.setProperties(properties);
 
@@ -115,11 +126,16 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
-	
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     _hazePropertiesChanged = _hazeProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightMode, setKeyLightMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientLightMode, setAmbientLightMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(skyboxMode, setSkyboxMode);
+
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
+        _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
 }
@@ -140,6 +156,16 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged;
     bytesRead += bytesFromKeylight;
     dataAt += bytesFromKeylight;
+
+    int bytesFromAmbientlight;
+    withWriteLock([&] {
+        bytesFromAmbientlight = _ambientLightProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _ambientLightPropertiesChanged);
+    });
+
+    somethingChanged = somethingChanged || _ambientLightPropertiesChanged;
+    bytesRead += bytesFromAmbientlight;
+    dataAt += bytesFromAmbientlight;
 
     int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                                propertyFlags, overwriteLocalData, _stagePropertiesChanged);
@@ -173,6 +199,10 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromHaze;
     dataAt += bytesFromHaze;
 
+    READ_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
+    READ_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
+
     return bytesRead;
 }
 
@@ -183,6 +213,10 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
 
     withReadLock([&] {
         requestedProperties += _keyLightProperties.getEntityProperties(params);
+    });
+
+    withReadLock([&] {
+        requestedProperties += _ambientLightProperties.getEntityProperties(params);
     });
 
     requestedProperties += _stageProperties.getEntityProperties(params);
@@ -202,6 +236,10 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_HAZE_MODE;
     requestedProperties += _hazeProperties.getEntityProperties(params);
 
+    requestedProperties += PROP_KEY_LIGHT_MODE;
+    requestedProperties += PROP_AMBIENT_LIGHT_MODE;
+    requestedProperties += PROP_SKYBOX_MODE;
+
     return requestedProperties;
 }
 
@@ -216,10 +254,13 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     bool successPropertyFits = true;
 
     _keyLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                         propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+    _ambientLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
@@ -236,6 +277,10 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
     _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+    APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)getKeyLightMode());
+    APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)getAmbientLightMode());
+    APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)getSkyboxMode());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -246,8 +291,12 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
     qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);
+    qCDebug(entities) << "               _keyLightMode:" << EntityItemProperties::getKeyLightModeString(_keyLightMode);
+    qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getAmbientLightModeString(_ambientLightMode);
+    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getSkyboxModeString(_skyboxMode);
 
     _keyLightProperties.debugDump();
+    _ambientLightProperties.debugDump();
     _skyboxProperties.debugDump();
     _hazeProperties.debugDump();
     _stageProperties.debugDump();
@@ -313,6 +362,7 @@ QString ZoneEntityItem::getCompoundShapeURL() const {
 void ZoneEntityItem::resetRenderingPropertiesChanged() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
+        _ambientLightPropertiesChanged = false;
         _backgroundPropertiesChanged = false;
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
@@ -329,4 +379,37 @@ void ZoneEntityItem::setHazeMode(const uint32_t value) {
 
 uint32_t ZoneEntityItem::getHazeMode() const {
     return _hazeMode;
+}
+
+void ZoneEntityItem::setKeyLightMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT) {
+        _keyLightMode = value;
+        _keyLightPropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getKeyLightMode() const {
+    return _keyLightMode;
+}
+
+void ZoneEntityItem::setAmbientLightMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT) {
+        _ambientLightMode = value;
+        _ambientLightPropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getAmbientLightMode() const {
+    return _ambientLightMode;
+}
+
+void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
+    if (value < COMPONENT_MODE_ITEM_COUNT) {
+        _skyboxMode = value;
+        _skyboxPropertiesChanged = true;
+    }
+}
+
+uint32_t ZoneEntityItem::getSkyboxMode() const {
+    return _skyboxMode;
 }

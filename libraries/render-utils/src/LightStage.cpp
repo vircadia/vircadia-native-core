@@ -28,6 +28,34 @@ static const auto MAX_BIAS = 0.006f;
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
+    // Add off lights
+    const LightPointer ambientOffLight { std::make_shared<model::Light>() };
+    ambientOffLight->setAmbientIntensity(0.0f);
+    ambientOffLight->setColor(model::Vec3(0.0));
+    ambientOffLight->setIntensity(0.0f);
+    ambientOffLight->setType(model::Light::Type::AMBIENT);
+    _ambientOffLight = addLight(ambientOffLight);
+
+    const LightPointer pointOffLight { std::make_shared<model::Light>() };
+    pointOffLight->setAmbientIntensity(0.0f);
+    pointOffLight->setColor(model::Vec3(0.0));
+    pointOffLight->setIntensity(0.0f);
+    pointOffLight->setType(model::Light::Type::POINT);
+    _pointOffLight = addLight(pointOffLight);
+
+    const LightPointer spotOffLight { std::make_shared<model::Light>() };
+    spotOffLight->setAmbientIntensity(0.0f);
+    spotOffLight->setColor(model::Vec3(0.0));
+    spotOffLight->setIntensity(0.0f);
+    spotOffLight->setType(model::Light::Type::SPOT);
+    _spotOffLight = addLight(spotOffLight);
+
+    const LightPointer sunOffLight { std::make_shared<model::Light>() };
+    sunOffLight->setAmbientIntensity(0.0f);
+    sunOffLight->setColor(model::Vec3(0.0));
+    sunOffLight->setIntensity(0.0f);
+    sunOffLight->setType(model::Light::Type::SUN);
+    _sunOffLight = addLight(sunOffLight);
 }
 
 LightStage::Shadow::Schema::Schema() {
