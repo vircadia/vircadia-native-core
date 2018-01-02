@@ -29,7 +29,6 @@
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
-    var metaverseServerURL = "https://metaverse.highfidelity.com";
     var marketplaceBaseURL = "https://highfidelity.com";
 
     function injectCommonCode(isDirectoryPage) {
@@ -695,11 +694,9 @@
                         commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
-                        metaverseServerURL = parsedJsonMessage.data.metaverseServerURL;
-                        if (metaverseServerURL.indexOf('metaverse.') !== -1) {
-                            marketplaceBaseURL = metaverseServerURL.replace('metaverse.', '');
-                        } else {
-                            marketplaceBaseURL = metaverseServerURL;
+                        marketplaceBaseURL = parsedJsonMessage.data.metaverseServerURL;
+                        if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
+                            marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
                         }
                         injectCode();
                     }
