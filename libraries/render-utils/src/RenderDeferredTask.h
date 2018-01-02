@@ -16,7 +16,6 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
-
 class BeginGPURangeTimer {
 public:
     using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;

@@ -12,13 +12,16 @@
 #include <mutex>
 #include <atomic>
 
-#include <QObject>
-#include <QVariant>
+#include <QtCore/QObject>
+#include <QtCore/QUuid>
+#include <QtCore/QVariant>
+#include <QtCore/QAbstractListModel>
+
 #include <QtScript/QScriptValue>
-#include <QScriptEngine>
-#include <QScriptValueIterator>
-#include <QQuickItem>
-#include <QUuid>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValueIterator>
+
+#include <QtQuick/QQuickItem>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -90,6 +93,31 @@ protected:
     bool _toolbarMode { false };
 };
 
+class TabletButtonListModel : public QAbstractListModel {
+    Q_OBJECT
+
+public:
+    TabletButtonListModel();
+    ~TabletButtonListModel();
+
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override { Q_UNUSED(parent); return (int)_buttons.size(); }
+    QHash<int, QByteArray> roleNames() const override { return _roles; }
+    Qt::ItemFlags flags(const QModelIndex& index) const override { return _flags; }
+    QVariant data(const QModelIndex& index, int role) const override;
+
+
+protected:
+    friend class TabletProxy;
+    TabletButtonProxy* addButton(const QVariant& properties);
+    void removeButton(TabletButtonProxy* button);
+    using List = std::list<QSharedPointer<TabletButtonProxy>>;
+    static QHash<int, QByteArray> _roles;
+    static Qt::ItemFlags _flags;
+    std::vector<QSharedPointer<TabletButtonProxy>> _buttons;
+};
+
+Q_DECLARE_METATYPE(TabletButtonListModel*);
+
 /**jsdoc
  * @class TabletProxy
  * @property name {string} READ_ONLY: name of this tablet
@@ -99,9 +127,10 @@ protected:
 class TabletProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString name READ getName)
-    Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode)
+    Q_PROPERTY(bool toolbarMode READ getToolbarMode WRITE setToolbarMode NOTIFY toolbarModeChanged)
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
+    Q_PROPERTY(TabletButtonListModel* buttons READ getButtons CONSTANT)
 public:
     TabletProxy(QObject* parent, const QString& name);
     ~TabletProxy();
@@ -204,6 +233,7 @@ public:
 
     QQuickItem* getQmlMenu() const;
 
+    TabletButtonListModel* getButtons() { return &_buttons; }
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet
@@ -236,21 +266,19 @@ signals:
     */
     void tabletShownChanged();
 
+    void toolbarModeChanged();
+
 protected slots:
-    void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
     void onTabletShown();
+
 protected:
-    void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
-    void addButtonsToToolbar();
-    void removeButtonsFromToolbar();
 
     bool _initialScreen { false };
     QVariant _currentPathLoaded { "" };
     QString _name;
-    std::vector<QSharedPointer<TabletButtonProxy>> _tabletButtonProxies;
     QQuickItem* _qmlTabletRoot { nullptr };
     OffscreenQmlSurface* _qmlOffscreenSurface { nullptr };
     QmlWindowClass* _desktopWindow { nullptr };
@@ -263,6 +291,8 @@ protected:
     std::pair<QVariant, bool> _initialWebPathParams;
     bool _landscape { false };
     bool _showRunningScripts { false };
+
+    TabletButtonListModel _buttons;
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);
@@ -274,12 +304,10 @@ Q_DECLARE_METATYPE(TabletProxy*);
 class TabletButtonProxy : public QObject {
     Q_OBJECT
     Q_PROPERTY(QUuid uuid READ getUuid)
+    Q_PROPERTY(QVariantMap properties READ getProperties NOTIFY propertiesChanged)
 public:
     TabletButtonProxy(const QVariantMap& properties);
     ~TabletButtonProxy();
-
-    void setQmlButton(QQuickItem* qmlButton);
-    void setToolbarButtonProxy(QObject* toolbarButtonProxy);
 
     QUuid getUuid() const { return _uuid; }
 
@@ -297,9 +325,6 @@ public:
      */
     Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
-public slots:
-    void clickedSlot() { emit clicked(); }
-
 signals:
     /**jsdoc
      * Signaled when this button has been clicked on by the user.
@@ -307,12 +332,11 @@ signals:
      * @returns {Signal}
      */
     void clicked();
+    void propertiesChanged();
 
 protected:
     QUuid _uuid;
     int _stableOrder;
-    QQuickItem* _qmlButton { nullptr };
-    QObject* _toolbarButtonProxy { nullptr };
     QVariantMap _properties;
 };
 

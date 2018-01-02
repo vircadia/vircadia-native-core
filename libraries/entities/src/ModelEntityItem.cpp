@@ -245,7 +245,7 @@ void ModelEntityItem::updateFrameCount() {
     if (_currentFrame < 0.0f) {
         return;
     }
-    
+
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
@@ -263,7 +263,7 @@ void ModelEntityItem::updateFrameCount() {
     }
 
     int updatedFrameCount = getAnimationLastFrame() - getAnimationFirstFrame() + 1;
-    
+
     if (!getAnimationHold() && getAnimationIsPlaying()) {
         float deltaTime = (float)interval / (float)USECS_PER_SECOND;
         _currentFrame += (deltaTime * getAnimationFPS());
@@ -283,8 +283,6 @@ void ModelEntityItem::updateFrameCount() {
         // qCDebug(entities)  << "in update frame " << _currentFrame;
         setAnimationCurrentFrame(_currentFrame);
     }
-
-    
 }
 
 void ModelEntityItem::debugDump() const {
