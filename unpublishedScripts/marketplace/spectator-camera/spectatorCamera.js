@@ -393,7 +393,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = Script.resourcesPath() + "qml/hifi/SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = "hifi/SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {

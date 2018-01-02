@@ -191,6 +191,7 @@
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
+#include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
@@ -698,6 +699,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
+    DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
@@ -2248,27 +2250,65 @@ extern void setupPreferences();
 void Application::initializeUi() {
     // Make sure all QML surfaces share the main thread GL context
     OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "OverlayWindowTest.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "Whitelist OverlayWindow worked";
+        context->setContextProperty("OverlayWindowTestString", "TestWorked");
+    });
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "hifi/audio/Audio.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "QQQ" << __FUNCTION__ << "Whitelist Audio worked";
+    });
+
 
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
-    QmlCommerce::registerType();
+    QmlContextCallback callback = [](QQmlContext* context) {
+        context->setContextProperty("Commerce", new QmlCommerce());
+    };
+    OffscreenQmlSurface::addWhitelistContextHandler({
+        QUrl{ "hifi/commerce/checkout/Checkout.qml" },
+        QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
+        QUrl{ "hifi/commerce/common/EmulatedMarketplaceHeader.qml" },
+        QUrl{ "hifi/commerce/common/FirstUseTutorial.qml" },
+        QUrl{ "hifi/commerce/common/SortableListModel.qml" },
+        QUrl{ "hifi/commerce/inspectionCertificate/InspectionCertificate.qml" },
+        QUrl{ "hifi/commerce/purchases/PurchasedItem.qml" },
+        QUrl{ "hifi/commerce/purchases/Purchases.qml" },
+        QUrl{ "hifi/commerce/wallet/Help.qml" },
+        QUrl{ "hifi/commerce/wallet/NeedsLogIn.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseChange.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseModal.qml" },
+        QUrl{ "hifi/commerce/wallet/PassphraseSelection.qml" },
+        QUrl{ "hifi/commerce/wallet/Security.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
+        QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
+        QUrl{ "hifi/commerce/wallet/SendMoney.qml" },
+        QUrl{ "hifi/commerce/wallet/Wallet.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
+    }, callback);
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
 
+    {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        tabletScriptingInterface->getTablet(SYSTEM_TABLET);
+    }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create();
 
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
-    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -2336,9 +2376,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-    surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -4244,7 +4281,7 @@ void Application::init() {
 
     getEntities()->init();
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
-        auto dims = item.getDimensions();
+        auto dims = item.getScaledDimensions();
         auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
@@ -4288,9 +4325,11 @@ void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        float batchTime = (float)_gpuContext->getFrameTimerBatchAverage();
+        float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
-        DependencyManager::get<LODManager>()->autoAdjustLOD(batchTime, engineRunTime, deltaTime);
+        float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
+        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -4596,7 +4635,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 _lastAcceptedKeyPress = usecTimestampNow();
 
                 setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
     }
@@ -5836,9 +5875,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
     qScriptRegisterMetaType(scriptEngine.data(),
                             wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-    scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    // FIXME remove these deprecated names for the tablet scripting interface
+    scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
 
     auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>().data();
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
@@ -5904,6 +5943,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine.data(), steamClient.get()));
@@ -7245,13 +7285,17 @@ void Application::updateDisplayMode() {
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto desktop = offscreenUi->getDesktop();
 
     // Make the switch atomic from the perspective of other threads
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
-        bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
-        offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        bool wasRepositionLocked = false;
+        if (desktop) {
+            // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
+            wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
+            offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        }
 
         if (_displayPlugin) {
             disconnect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
@@ -7297,7 +7341,6 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);
-        auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);
         }

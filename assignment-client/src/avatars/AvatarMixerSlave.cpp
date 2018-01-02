@@ -214,7 +214,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         uint64_t getTimestamp() const override {
             return _lastEncodeTime;
         }
-        const AvatarSharedPointer& getAvatar() const { return _avatar; }
+        AvatarSharedPointer getAvatar() const { return _avatar; }
 
     private:
         AvatarSharedPointer _avatar;
@@ -326,7 +326,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     while (!sortedAvatars.empty()) {
-        const auto& avatarData = sortedAvatars.top().getAvatar();
+        const auto avatarData = sortedAvatars.top().getAvatar();
         sortedAvatars.pop();
         remainingAvatars--;
 

@@ -89,17 +89,19 @@ void UserActivityLoggerScriptingInterface::doLogAction(QString action, QJsonObje
                               Q_ARG(QJsonObject, details));
 }
 
-void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, int cost, bool firstPurchaseOfThisItem) {
+void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, QString contentCreator, int cost, bool firstPurchaseOfThisItem) {
     QJsonObject payload;
     payload["marketplaceID"] = marketplaceID;
+    payload["contentCreator"] = contentCreator;
     payload["cost"] = cost;
     payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
     doLogAction("commercePurchaseSuccess", payload);
 }
 
-void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
+void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, QString contentCreator, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
     QJsonObject payload;
     payload["marketplaceID"] = marketplaceID;
+    payload["contentCreator"] = contentCreator;
     payload["cost"] = cost;
     payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
     payload["errorDetails"] = errorDetails;

@@ -21,8 +21,10 @@
 #include <QtCore/QWaitCondition>
 
 #include <GLMHelpers.h>
+#include <NumericalConstants.h>
 #include <RegisteredMetaTypes.h>
 #include <shared/Bilateral.h>
+#include <SimpleMovingAverage.h>
 #include <gpu/Forward.h>
 #include "Plugin.h"
 
@@ -203,6 +205,7 @@ public:
     virtual void cycleDebugOutput() {}
 
     void waitForPresent();
+    float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; } // in msec
 
     std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
@@ -219,6 +222,8 @@ protected:
     gpu::ContextPointer _gpuContext;
 
     std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
+
+    MovingAverage<float, 10> _movingAveragePresent;
 
 private:
     QMutex _presentMutex;
