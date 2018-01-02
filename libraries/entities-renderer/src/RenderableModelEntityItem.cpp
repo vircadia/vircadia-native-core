@@ -1203,6 +1203,12 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (entity->_relayParentJoints) {
+        ModelPointer model = entity->getModel();
+        if (model && model->isLoaded()) {
+            qDebug() << "relaying joints";
+            entity->copyAnimationJointDataToModel();
+            model->simulate(0.0f);
+        }
     }
     // Check for addition
     if (_hasModel && !(bool)_model) {

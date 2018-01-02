@@ -349,13 +349,32 @@ void Avatar::updateAvatarEntities() {
 }
 
 void Avatar::relayJointDataToChildren() {
+    int index = 0;
     forEachChild([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Entity) {
             auto entity = std::dynamic_pointer_cast<EntityItem>(child);
             if (entity) {
                 auto  modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
                 if (modelEntity) {
-                    qDebug() << "--------> update modelEntityJoints <----------";
+                    index++;
+                    if (modelEntity->getRelayParentJoints()) {
+                        QVector<glm::quat> jointRotations;
+                        QVector<bool> jointRotationsSet;
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        QStringList avatarJointNames = getJointNames();
+                        foreach (const QString& jointName, modelJointNames) {
+                            bool containsJoint = avatarJointNames.contains(jointName);
+                            if (!containsJoint) {
+                                return;
+                            }
+                            int jointIndex = getJointIndex(jointName);
+                            int modelJointIndex = modelEntity->getJointIndex(jointName);
+                            jointRotationsSet.append(true);
+                            jointRotations.append(getJointRotation(jointIndex));
+                        }
+                        modelEntity->setJointRotationsSet(jointRotationsSet);
+                        modelEntity->setJointRotations(jointRotations);
+                    }
                 }
             }
         }
