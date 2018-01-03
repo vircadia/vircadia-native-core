@@ -359,21 +359,26 @@ void Avatar::relayJointDataToChildren() {
                     index++;
                     if (modelEntity->getRelayParentJoints()) {
                         QVector<glm::quat> jointRotations;
-                        QVector<bool> jointRotationsSet;
+                        QVector<glm::vec3> jointTranslations;
+                        QVector<bool> jointSet;
                         QStringList modelJointNames = modelEntity->getJointNames();
                         QStringList avatarJointNames = getJointNames();
                         foreach (const QString& jointName, modelJointNames) {
                             bool containsJoint = avatarJointNames.contains(jointName);
                             if (!containsJoint) {
-                                return;
+                                qDebug() << "Warning: Parent does not have joint -" << jointName;
+                                continue;
                             }
                             int jointIndex = getJointIndex(jointName);
                             int modelJointIndex = modelEntity->getJointIndex(jointName);
-                            jointRotationsSet.append(true);
+                            jointSet.append(true);
                             jointRotations.append(getJointRotation(jointIndex));
+                            jointTranslations.append(getJointTranslation(jointIndex));
                         }
-                        modelEntity->setJointRotationsSet(jointRotationsSet);
+                        modelEntity->setJointRotationsSet(jointSet);
+                        //modelEntity->setJointTranslationsSet(jointSet);
                         modelEntity->setJointRotations(jointRotations);
+                        //modelEntity->setJointTranslations(jointTranslations);
                     }
                 }
             }
