@@ -36,8 +36,6 @@ BaseAssetScriptingInterface::BaseAssetScriptingInterface(QObject* parent) : QObj
 
 
 bool BaseAssetScriptingInterface::initializeCache() {
-    qDebug() << "BaseAssetScriptingInterface::getCacheStatus -- current values" << _cache.cacheDirectory() << _cache.cacheSize() << _cache.maximumCacheSize();
-
     // NOTE: *instances* of QNetworkDiskCache are not thread-safe -- however, different threads can effectively
     // use the same underlying cache if configured with identical settings.  Once AssetClient's disk cache settings
     // become available we configure our instance to match.
@@ -50,29 +48,23 @@ bool BaseAssetScriptingInterface::initializeCache() {
     }
 
     // attempt to initialize the cache
-    qDebug() << "BaseAssetScriptingInterface::getCacheStatus -- invoking AssetClient::init" << assetClient().data();
     QMetaObject::invokeMethod(assetClient().data(), "init");
 
-    qDebug() << "BaseAssetScriptingInterface::getCacheStatus querying cache status" << QThread::currentThread();
     Promise deferred = makePromise("BaseAssetScriptingInterface--queryCacheStatus");
     deferred->then([&](QVariantMap result) {
-        qDebug() << "//queryCacheStatus" << QThread::currentThread();
         auto cacheDirectory = result.value("cacheDirectory").toString();
-        auto cacheSize = result.value("cacheSize").toLongLong();
         auto maximumCacheSize = result.value("maximumCacheSize").toLongLong();
-        qDebug() << "///queryCacheStatus" << cacheDirectory << cacheSize << maximumCacheSize;
         _cache.setCacheDirectory(cacheDirectory);
         _cache.setMaximumCacheSize(maximumCacheSize);
     });
     deferred->fail([&](QString error) {
-        qDebug() << "//queryCacheStatus ERROR" << QThread::currentThread() << error;
+        qDebug() << "BaseAssetScriptingInterface::queryCacheStatus ERROR" << QThread::currentThread() << error;
     });
     assets->cacheInfoRequest(deferred);
     return false; // cache is not ready yet
 }
 
 QVariantMap BaseAssetScriptingInterface::getCacheStatus() {
-    //assetClient()->cacheInfoRequest(this, "onCacheInfoResponse");
     return {
         { "cacheDirectory", _cache.cacheDirectory() },
         { "cacheSize", _cache.cacheSize() },
@@ -104,7 +96,6 @@ QVariantMap BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
 }
 
 QVariantMap BaseAssetScriptingInterface::loadFromCache(const QUrl& url) {
-    qDebug() << "loadFromCache" << url;
     QVariantMap result = {
         { "metadata", queryCacheMeta(url) },
         { "data", QByteArray() },
@@ -112,7 +103,6 @@ QVariantMap BaseAssetScriptingInterface::loadFromCache(const QUrl& url) {
     // caller is responsible for the deletion of the ioDevice, hence the unique_ptr
     if (auto ioDevice = std::unique_ptr<QIODevice>(_cache.data(url))) {
         QByteArray data = ioDevice->readAll();
-        qCDebug(asset_client) << url.toDisplayString() << "loaded from disk cache (" << data.size() << " bytes)";
         result["data"] = data;
     }
     return result;
@@ -170,7 +160,6 @@ Promise BaseAssetScriptingInterface::loadAsset(QString asset, bool decompress, Q
         Q_ASSERT(thread() == QThread::currentThread());
         fetched->mixin(result);
         if (decompress) {
-            qDebug() << "loadAsset::decompressBytes...";
             decompressBytes(result.value("data").toByteArray())
                 ->mixin(result)
                 ->ready([=](QString error, QVariantMap result) {
@@ -182,7 +171,6 @@ Promise BaseAssetScriptingInterface::loadAsset(QString asset, bool decompress, Q
     });
 
     fetched->ready([=](QString error, QVariantMap result) {
-        qDebug() << "loadAsset::fetched" << error;
         if (responseType == "arraybuffer") {
             loaded->resolve(NoError, result);
         } else {
@@ -268,7 +256,6 @@ Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
     Promise deferred = makePromise(__FUNCTION__);
 
     QObject::connect(assetRequest, &AssetRequest::finished, assetRequest, [this, deferred](AssetRequest* request) {
-        qDebug() << "...BaseAssetScriptingInterface::downloadBytes" << request->getErrorString();
         // note: we are now on the "Resource Manager" thread
         Q_ASSERT(QThread::currentThread() == request->thread());
         Q_ASSERT(request->getState() == AssetRequest::Finished);
@@ -287,7 +274,6 @@ Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
             error = request->getError();
             result = { { "error", request->getError() } };
         }
-        qDebug() << "//BaseAssetScriptingInterface::downloadBytes" << error << result.keys();
         // forward thread-safe copies back to our thread
         deferred->handle(error, result);
         request->deleteLater();
