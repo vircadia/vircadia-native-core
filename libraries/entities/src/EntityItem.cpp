@@ -2082,17 +2082,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         }
 
         EntityDynamicPointer action = _objectActions[actionID];
-
-        action->setOwnerEntity(nullptr);
-        action->setIsMine(false);
-
-        if (simulation) {
-            action->removeFromSimulation(simulation);
-        }
-
-        bool success = true;
-        serializeActions(success, _allActionsDataCache);
-        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         auto removedActionType = action->getType();
         if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
@@ -2109,7 +2098,17 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
+        action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
         _objectActions.remove(actionID);
+
+        if (simulation) {
+            action->removeFromSimulation(simulation);
+        }
+
+        bool success = true;
+        serializeActions(success, _allActionsDataCache);
+        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         setDynamicDataNeedsTransmit(true);
         return success;
     }
