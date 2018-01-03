@@ -20,12 +20,23 @@
 
 const int REVEAL_BUTTON_WIDTH = 122;
 const int SHOW_ALL_BUTTON_WIDTH = 80;
-const int DEBUG_CHECKBOX_LEFT = 25;
+const int MARGIN_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
 const int CRITICAL_CHECKBOX_WIDTH = 85;
-const QString DEBUG = "[DEBUG]";
-const QString INFO = "[INFO]";
+const int WARNING_CHECKBOX_WIDTH = 80;
+const int SUPPRESS_CHECKBOX_WIDTH = 87;
+const int FATAL_CHECKBOX_WIDTH = 70;
+const int UNKNOWN_CHECKBOX_WIDTH = 80;
+const int SECOND_ROW = ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT;
+const int THIRD_ROW = SECOND_ROW + ELEMENT_MARGIN + ELEMENT_HEIGHT;
+const QString DEBUG_TEXT = "[DEBUG]";
+const QString INFO_TEXT = "[INFO]";
+const QString CRITICAL_TEXT = "[CRITICAL]";
+const QString WARNING_TEXT = "[WARNING]";
+const QString FATAL_TEXT = "[FATAL]";
+const QString SUPPRESS_TEXT = "[SUPPRESS]";
+const QString UNKNOWN_TEXT = "[UNKNOWN]";
 
 LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLogDialog(parent) {
     _logger = logger;
@@ -35,60 +46,76 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     // set object name for css styling
     _revealLogButton->setObjectName("revealLogButton");
     _revealLogButton->show();
-    connect(_revealLogButton, SIGNAL(clicked()), SLOT(handleRevealButton()));
+    connect(_revealLogButton, &QPushButton::clicked, this, &LogDialog::handleRevealButton);
 
-    _showAllButton = new QPushButton("Show All", this);
-    // set object name for css styling
-    _showAllButton->setObjectName("showAllButton");
-    _showAllButton->show();
-    connect(_showAllButton, SIGNAL(clicked()), SLOT(handleShowAllButton()));
+    connect(_logger, &AbstractLoggerInterface::logReceived, this, &LogDialog::appendLogLine);
 
-    connect(_logger, SIGNAL(logReceived(QString)), this, SLOT(appendLogLine(QString)), Qt::QueuedConnection);
-
-    _leftPad = DEBUG_CHECKBOX_LEFT;
-
+    _leftPad = MARGIN_LEFT;
     _debugPrintBox = new QCheckBox("DEBUG", this);
-    _debugPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, DEBUG_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    _debugPrintBox->setGeometry(_leftPad, SECOND_ROW, DEBUG_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->debugPrint()) {
         _debugPrintBox->setCheckState(Qt::Checked);
     }
     _debugPrintBox->show();
-    connect(_debugPrintBox, SIGNAL(stateChanged(int)), SLOT(handleDebugPrintBox(int)));
+    connect(_debugPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleDebugPrintBox);
 
     _leftPad += DEBUG_CHECKBOX_WIDTH + BUTTON_MARGIN;
-
     _infoPrintBox = new QCheckBox("INFO", this);
-    _infoPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, INFO_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    _infoPrintBox->setGeometry(_leftPad, SECOND_ROW, INFO_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->infoPrint()) {
         _infoPrintBox->setCheckState(Qt::Checked);
     }
     _infoPrintBox->show();
-    connect(_infoPrintBox, SIGNAL(stateChanged(int)), SLOT(handleInfoPrintBox(int)));
+    connect(_infoPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleInfoPrintBox);
 
     _leftPad += INFO_CHECKBOX_WIDTH + BUTTON_MARGIN;
-
     _criticalPrintBox = new QCheckBox("CRITICAL", this);
-    _criticalPrintBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, CRITICAL_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    _criticalPrintBox->setGeometry(_leftPad, SECOND_ROW, CRITICAL_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
     if (_logger->criticalPrint()) {
         _criticalPrintBox->setCheckState(Qt::Checked);
     }
     _criticalPrintBox->show();
-    connect(_criticalPrintBox, SIGNAL(stateChanged(int)), SLOT(handleCriticalPrintBox(int)));
+    connect(_criticalPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleCriticalPrintBox);
 
     _leftPad += CRITICAL_CHECKBOX_WIDTH + BUTTON_MARGIN;
-
-    _extraDebuggingBox = new QCheckBox("Extra debugging", this);
-    _extraDebuggingBox->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, CHECKBOX_WIDTH, ELEMENT_HEIGHT);
-    if (_logger->extraDebugging()) {
-        _extraDebuggingBox->setCheckState(Qt::Checked);
+    _warningPrintBox = new QCheckBox("WARNING", this);
+    _warningPrintBox->setGeometry(_leftPad, SECOND_ROW, WARNING_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    if (_logger->warningPrint()) {
+        _warningPrintBox->setCheckState(Qt::Checked);
     }
-    _extraDebuggingBox->show();
-    connect(_extraDebuggingBox, SIGNAL(stateChanged(int)), SLOT(handleExtraDebuggingCheckbox(int)));
+    _warningPrintBox->show();
+    connect(_warningPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleWarningPrintBox);
 
-    _leftPad += CHECKBOX_WIDTH + BUTTON_MARGIN;
+    _leftPad += WARNING_CHECKBOX_WIDTH + BUTTON_MARGIN;
+    _suppressPrintBox = new QCheckBox("SUPPRESS", this);
+    _suppressPrintBox->setGeometry(_leftPad, SECOND_ROW, SUPPRESS_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    if (_logger->suppressPrint()) {
+        _suppressPrintBox->setCheckState(Qt::Checked);
+    }
+    _suppressPrintBox->show();
+    connect(_suppressPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleSuppressPrintBox);
 
+    _leftPad += SUPPRESS_CHECKBOX_WIDTH + BUTTON_MARGIN;
+    _fatalPrintBox = new QCheckBox("FATAL", this);
+    _fatalPrintBox->setGeometry(_leftPad, SECOND_ROW, FATAL_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    if (_logger->fatalPrint()) {
+        _fatalPrintBox->setCheckState(Qt::Checked);
+    }
+    _fatalPrintBox->show();
+    connect(_fatalPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleFatalPrintBox);
+
+    _leftPad += FATAL_CHECKBOX_WIDTH + BUTTON_MARGIN;
+    _unknownPrintBox = new QCheckBox("UNKNOWN", this);
+    _unknownPrintBox->setGeometry(_leftPad, SECOND_ROW, UNKNOWN_CHECKBOX_WIDTH, ELEMENT_HEIGHT);
+    if (_logger->unknownPrint()) {
+        _unknownPrintBox->setCheckState(Qt::Checked);
+    }
+    _unknownPrintBox->show();
+    connect(_unknownPrintBox, &QCheckBox::stateChanged, this, &LogDialog::handleUnknownPrintBox);
+
+    _leftPad = MARGIN_LEFT;
     _filterDropdown = new QComboBox(this);
-    _filterDropdown->setGeometry(_leftPad, ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT, COMBOBOX_WIDTH, ELEMENT_HEIGHT);
+    _filterDropdown->setGeometry(_leftPad, THIRD_ROW, COMBOBOX_WIDTH, ELEMENT_HEIGHT);
     _filterDropdown->addItem("No secondary filter...");
     _filterDropdown->addItem("default");
     _filterDropdown->addItem("hifi.audio");
@@ -113,8 +140,22 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown->addItem("hifi.shared");
     _filterDropdown->addItem("hifi.ui");
     _filterDropdown->addItem("qml");
+    connect(_filterDropdown, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &LogDialog::handleFilterDropdownChanged);
 
-    connect(_filterDropdown, SIGNAL(currentIndexChanged(int)), this, SLOT(handleFilterDropdownChanged(int)));
+    _extraDebuggingBox = new QCheckBox("Extra debugging", this);
+    if (_logger->extraDebugging()) {
+        _extraDebuggingBox->setCheckState(Qt::Checked);
+    }
+    _extraDebuggingBox->show();
+    connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleExtraDebuggingCheckbox);
+
+    _showAllButton = new QPushButton("Show All", this);
+    // set object name for css styling
+    _showAllButton->setObjectName("showAllButton");
+    _showAllButton->show();
+    connect(_showAllButton, &QPushButton::clicked, this, &LogDialog::handleShowAllButton);
+
+    
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -123,12 +164,12 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         ELEMENT_MARGIN,
         REVEAL_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _showAllButton->setGeometry(width() - ELEMENT_MARGIN - REVEAL_BUTTON_WIDTH - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
-        ELEMENT_MARGIN,
+    _showAllButton->setGeometry(width() - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
+        THIRD_ROW,
         SHOW_ALL_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _filterDropdown->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH,
-        ELEMENT_MARGIN + ELEMENT_MARGIN + ELEMENT_HEIGHT,
+    _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
+        THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
 }
@@ -139,7 +180,7 @@ void LogDialog::handleRevealButton() {
 
 void LogDialog::handleShowAllButton() {
     _logTextBox->clear();
-    log = getCurrentLog();
+    QString log = getCurrentLog();
     _logTextBox->appendPlainText(log);
 }
 
@@ -162,6 +203,26 @@ void LogDialog::handleCriticalPrintBox(int state) {
     printLogFile();
 }
 
+void LogDialog::handleWarningPrintBox(int state) {
+    _logger->setWarningPrint(state != 0);
+    printLogFile();
+}
+
+void LogDialog::handleSuppressPrintBox(int state) {
+    _logger->setSuppressPrint(state != 0);
+    printLogFile();
+}
+
+void LogDialog::handleFatalPrintBox(int state) {
+    _logger->setFatalPrint(state != 0);
+    printLogFile();
+}
+
+void LogDialog::handleUnknownPrintBox(int state) {
+    _logger->setUnknownPrint(state != 0);
+    printLogFile();
+}
+
 void LogDialog::handleFilterDropdownChanged(int selection) {
     if (selection != 0) {
         _filterSelection = "[" + _filterDropdown->currentText() + "]";
@@ -181,18 +242,32 @@ void LogDialog::appendLogLine(QString logLine) {
         int indexToBold = _logTextBox->document()->characterCount();
         _highlighter->setBold(indexToBold);
 
-        if (logLine.contains(DEBUG, Qt::CaseSensitive)) {
+        if (logLine.contains(DEBUG_TEXT, Qt::CaseSensitive)) {
             if (_logger->debugPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }
-        }
-        else if (logLine.contains(INFO, Qt::CaseSensitive)) {
+        } else if (logLine.contains(INFO_TEXT, Qt::CaseSensitive)) {
             if (_logger->infoPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
-            }
-        }
-        else {
+            } 
+        } else if (logLine.contains(CRITICAL_TEXT, Qt::CaseSensitive)) {
             if (_logger->criticalPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else if (logLine.contains(WARNING_TEXT, Qt::CaseSensitive)) {
+            if (_logger->warningPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else if (logLine.contains(SUPPRESS_TEXT, Qt::CaseSensitive)) {
+            if (_logger->suppressPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else if (logLine.contains(FATAL_TEXT, Qt::CaseSensitive)) {
+            if (_logger->fatalPrint()) {
+                _logTextBox->appendPlainText(logLine.trimmed());
+            }
+        } else {
+            if (_logger->unknownPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
             }
         }
@@ -201,7 +276,7 @@ void LogDialog::appendLogLine(QString logLine) {
 
 void LogDialog::printLogFile() {
     _logTextBox->clear();
-    log = getCurrentLog();
+    QString log = getCurrentLog();
     QStringList logList = log.split('\n');
     for (const auto& message : logList) {
         appendLogLine(message);

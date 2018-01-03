@@ -19,7 +19,7 @@
 
 #include <PathUtils.h>
 
-const int TOP_BAR_HEIGHT = 85;
+const int TOP_BAR_HEIGHT = 124;
 const int INITIAL_WIDTH = 720;
 const int INITIAL_HEIGHT = 480;
 const int MINIMAL_WIDTH = 700;
@@ -61,7 +61,7 @@ void BaseLogDialog::initControls() {
     _searchButton->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_BUTTON_WIDTH, ELEMENT_HEIGHT);
     _leftPad += SEARCH_BUTTON_WIDTH;
     _searchButton->show();
-    connect(_searchButton, SIGNAL(clicked()), SLOT(handleSearchButton()));
+    connect(_searchButton, &QPushButton::clicked, this, &BaseLogDialog::handleSearchButton);
 
     _searchTextBox = new QLineEdit(this);
     // disable blue outline in Mac
@@ -69,8 +69,8 @@ void BaseLogDialog::initControls() {
     _searchTextBox->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_TEXT_WIDTH, ELEMENT_HEIGHT);
     _leftPad += SEARCH_TEXT_WIDTH + BUTTON_MARGIN;
     _searchTextBox->show();
-    connect(_searchTextBox, SIGNAL(textChanged(QString)), SLOT(handleSearchTextChanged(QString)));
-    connect(_searchTextBox, SIGNAL(returnPressed()), SLOT(toggleSearchNext()));
+    connect(_searchTextBox, &QLineEdit::textChanged, this, &BaseLogDialog::handleSearchTextChanged);
+    connect(_searchTextBox, &QLineEdit::returnPressed, this, &BaseLogDialog::toggleSearchNext);
 
     _searchPrevButton = new QPushButton(this);
     _searchPrevButton->setObjectName("searchPrevButton");
@@ -78,7 +78,7 @@ void BaseLogDialog::initControls() {
     _searchPrevButton->setText("Prev");
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + BUTTON_MARGIN;
     _searchPrevButton->show();
-    connect(_searchPrevButton, SIGNAL(clicked()), SLOT(toggleSearchPrev()));
+    connect(_searchPrevButton, &QPushButton::clicked, this, &BaseLogDialog::toggleSearchPrev);
 
     _searchNextButton = new QPushButton(this);
     _searchNextButton->setObjectName("searchNextButton");
@@ -86,13 +86,13 @@ void BaseLogDialog::initControls() {
     _searchNextButton->setText("Next");
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + CHECKBOX_MARGIN;
     _searchNextButton->show();
-    connect(_searchNextButton, SIGNAL(clicked()), SLOT(toggleSearchNext()));
+    connect(_searchNextButton, &QPushButton::clicked, this, &BaseLogDialog::toggleSearchNext);
 
     _logTextBox = new QPlainTextEdit(this);
     _logTextBox->setReadOnly(true);
     _logTextBox->show();
     _highlighter = new Highlighter(_logTextBox->document());
-    connect(_logTextBox, SIGNAL(selectionChanged()), SLOT(updateSelection()));
+    connect(_logTextBox, &QPlainTextEdit::selectionChanged, this, &BaseLogDialog::updateSelection);
 }
 
 void BaseLogDialog::showEvent(QShowEvent* event) {
@@ -116,10 +116,7 @@ void BaseLogDialog::handleSearchButton() {
 }
 
 void BaseLogDialog::handleSearchTextChanged(QString searchText) {
-    if (searchText.isEmpty()) {
-        return;
-    }
-
+   
     QTextCursor cursor = _logTextBox->textCursor();
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
@@ -147,8 +144,7 @@ void BaseLogDialog::toggleSearchPrev() {
     if (searchCursor.hasSelection()) {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm, QTextDocument::FindBackward);
-    }
-    else {
+    } else {
         handleSearchTextChanged(_searchTextBox->text());
     }
 }
@@ -158,8 +154,7 @@ void BaseLogDialog::toggleSearchNext() {
     if (searchCursor.hasSelection()) {
         QString selectedTerm = searchCursor.selectedText();
         _logTextBox->find(selectedTerm);
-    }
-    else {
+    } else {
         handleSearchTextChanged(_searchTextBox->text());
     }
 }

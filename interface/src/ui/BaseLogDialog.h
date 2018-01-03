@@ -48,10 +48,10 @@ public:
     BaseLogDialog(QWidget* parent);
     ~BaseLogDialog();
 
-    public slots:
+public slots:
     virtual void appendLogLine(QString logLine);
 
-    private slots:
+private slots:
     void updateSelection();
     void handleSearchButton();
     void handleSearchTextChanged(QString text);
