@@ -34,6 +34,8 @@
 
 MessageID AssetClient::_currentID = 0;
 
+using AssetUtils::AssetMappingOperationType;
+
 AssetClient::AssetClient() {
     _cacheDir = qApp->property(hifi::properties::APP_LOCAL_DATA_PATH).toString();
     setCustomDeleter([](Dependency* dependency){
@@ -251,7 +253,7 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
                                 ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+    if (hash.length() != AssetUtils::SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return false;
     }
@@ -263,7 +265,7 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
 
         auto messageID = ++_currentID;
 
-        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(start) + sizeof(end);
+        auto payloadSize = sizeof(messageID) + AssetUtils::SHA256_HASH_LENGTH + sizeof(start) + sizeof(end);
         auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
 
         qCDebug(asset_client) << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
@@ -295,7 +297,7 @@ MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callbac
     if (assetServer) {
         auto messageID = ++_currentID;
 
-        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH;
+        auto payloadSize = sizeof(messageID) + AssetUtils::SHA256_HASH_LENGTH;
         auto packet = NLPacket::create(PacketType::AssetGetInfo, payloadSize, true);
 
         packet->writePrimitive(messageID);
@@ -317,7 +319,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
 
     MessageID messageID;
     message->readPrimitive(&messageID);
-    auto assetHash = message->read(SHA256_HASH_LENGTH);
+    auto assetHash = message->read(AssetUtils::SHA256_HASH_LENGTH);
 
     AssetServerError error;
     message->readPrimitive(&error);
@@ -351,7 +353,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
 void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto assetHash = message->readHead(SHA256_HASH_LENGTH);
+    auto assetHash = message->readHead(AssetUtils::SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
@@ -751,7 +753,7 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message
     if (error) {
         qCWarning(asset_client) << "Error uploading file to asset server";
     } else {
-        auto hash = message->read(SHA256_HASH_LENGTH);
+        auto hash = message->read(AssetUtils::SHA256_HASH_LENGTH);
         hashString = hash.toHex();
 
         qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;

@@ -21,6 +21,7 @@
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
 
+using namespace AssetUtils;
 
 namespace std {
     template <>

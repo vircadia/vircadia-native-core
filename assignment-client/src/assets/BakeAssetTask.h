@@ -22,6 +22,8 @@
 
 #include <AssetUtils.h>
 
+using namespace AssetUtils;
+
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
 public:

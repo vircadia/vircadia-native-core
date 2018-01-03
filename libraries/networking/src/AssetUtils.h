@@ -19,6 +19,8 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
+namespace AssetUtils {
+
 using DataOffset = int64_t;
 
 using AssetPath = QString;
@@ -85,18 +87,6 @@ bool isValidHash(const QString& hashString);
 
 QString bakingStatusToString(BakingStatus status);
 
-// backwards-compatible namespace aliases
-// (allows new code to be explicit -- eg: `AssetUtils::isValidPath(path)` vs. `isValidPath(path)`)
-namespace AssetUtils {
-    static const auto& loadFromCache = ::loadFromCache;
-    static const auto& saveToCache = ::saveToCache;
-    static const auto& hashData = ::hashData;
-    static const auto& getATPUrl = ::getATPUrl;
-    static const auto& extractAssetHash = ::extractAssetHash;
-    static const auto& isValidFilePath = ::isValidFilePath;
-    static const auto& isValidPath = ::isValidPath;
-    static const auto& isValidHash = ::isValidHash;
-};
-
+} // namespace AssetUtils
 
 #endif // hifi_AssetUtils_h

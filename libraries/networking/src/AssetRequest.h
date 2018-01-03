@@ -52,7 +52,7 @@ public:
     const State& getState() const { return _state; }
     const Error& getError() const { return _error; }
     const QString getErrorString() const;
-    QUrl getUrl() const { return ::getATPUrl(_hash); }
+    QUrl getUrl() const { return AssetUtils::getATPUrl(_hash); }
     QString getHash() const { return _hash; }
 
     bool loadedFromCache() const { return _loadedFromCache; }

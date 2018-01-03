@@ -52,7 +52,7 @@ void AssetRequest::start() {
     }
 
     // in case we haven't parsed a valid hash, return an error now
-    if (!isValidHash(_hash)) {
+    if (!AssetUtils::isValidHash(_hash)) {
         _error = InvalidHash;
         _state = Finished;
 
@@ -61,7 +61,7 @@ void AssetRequest::start() {
     }
     
     // Try to load from cache
-    _data = loadFromCache(getUrl());
+    _data = AssetUtils::loadFromCache(getUrl());
     if (!_data.isNull()) {
         _error = NoError;
 
@@ -104,7 +104,7 @@ void AssetRequest::start() {
                     break;
             }
         } else {
-            if (!_byteRange.isSet() && hashData(data).toHex() != _hash) {
+            if (!_byteRange.isSet() && AssetUtils::hashData(data).toHex() != _hash) {
                 // the hash of the received data does not match what we expect, so we return an error
                 _error = HashVerificationFailed;
             }
@@ -115,7 +115,7 @@ void AssetRequest::start() {
                 emit progress(_totalReceived, data.size());
 
                 if (!_byteRange.isSet()) {
-                    saveToCache(getUrl(), data);
+                    AssetUtils::saveToCache(getUrl(), data);
                 }
             }
         }

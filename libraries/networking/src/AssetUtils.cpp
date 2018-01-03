@@ -23,6 +23,8 @@
 
 #include "ResourceManager.h"
 
+namespace AssetUtils {
+
 // Extract the valid AssetHash portion from atp: URLs like "[atp:]HASH[.fbx][?query]"
 // (or an invalid AssetHash if not found)
 AssetHash extractAssetHash(const QString& input) {
@@ -131,3 +133,5 @@ QString bakingStatusToString(BakingStatus status) {
             return "--";
     }
 }
+
+} // namespace AssetUtils

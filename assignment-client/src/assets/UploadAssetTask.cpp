@@ -20,6 +20,7 @@
 
 #include "ClientServerUtils.h"
 
+using namespace AssetUtils;
 
 UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir, uint64_t filesizeLimit) :
@@ -54,7 +55,7 @@ void UploadAssetTask::run() {
     } else {
         QByteArray fileData = buffer.read(fileSize);
         
-        auto hash = hashData(fileData);
+        auto hash = AssetUtils::hashData(fileData);
         auto hexHash = hash.toHex();
         
         qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID())
@@ -66,7 +67,7 @@ void UploadAssetTask::run() {
         
         if (file.exists()) {
             // check if the local file has the correct contents, otherwise we overwrite
-            if (file.open(QIODevice::ReadOnly) && hashData(file.readAll()) == hash) {
+            if (file.open(QIODevice::ReadOnly) && AssetUtils::hashData(file.readAll()) == hash) {
                 qDebug() << "Not overwriting existing verified file: " << hexHash;
 
                 existingCorrectFile = true;
