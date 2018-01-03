@@ -403,8 +403,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     face = triangleSetFace;
                     bestModelTriangle = triangleSetTriangle;
                     bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                    extraInfo["_worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                    extraInfo["_meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                    extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                    extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
                     bestSubMeshIndex = subMeshIndex;
                 }
             }

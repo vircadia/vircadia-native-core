@@ -641,7 +641,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
-    EntityItemID somethingIntersected;
+    EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
         if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
             || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
@@ -695,7 +695,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
                             face = localFace;
                             surfaceNormal = localSurfaceNormal;
                             extraInfo = localExtraInfo;
-                            somethingIntersected = entity->getEntityItemID();
+                            entityID = entity->getEntityItemID();
                         }
                     }
                 } else {
@@ -705,14 +705,14 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
-                        somethingIntersected = entity->getEntityItemID();
+                        entityID = entity->getEntityItemID();
                     }
                 }
             }
         }
         entityNumber++;
     });
-    return somethingIntersected;
+    return entityID;
 }
 
 // TODO: change this to use better bounding shape for entity than sphere

@@ -1831,7 +1831,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         }
     }
     {
-        int i=0;
+        int i = 0;
         for (const auto& mesh : geometry.meshes) {
             auto name = geometry.getModelNameOfMesh(i++);
             if (!name.isEmpty()) {

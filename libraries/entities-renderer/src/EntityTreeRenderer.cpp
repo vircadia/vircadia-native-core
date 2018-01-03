@@ -759,7 +759,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickReleaseOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        glm::vec2 pos2D = projectOntoEntityXYPlane( entity, ray, rayPickResult);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
