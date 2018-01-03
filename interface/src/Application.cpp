@@ -737,6 +737,7 @@ const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 100.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
+const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
 
@@ -756,6 +757,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _desktopTabletScale("desktopTabletScale", DEFAULT_DESKTOP_TABLET_SCALE_PERCENT),
     _desktopTabletBecomesToolbarSetting("desktopTabletBecomesToolbar", DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR),
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
+    _preferStylusOverLaserSetting("preferStylusOverLaser", DEFAULT_PREFER_STYLUS_OVER_LASER),
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
@@ -2580,6 +2582,10 @@ void Application::setDesktopTabletBecomesToolbarSetting(bool value) {
 void Application::setHmdTabletBecomesToolbarSetting(bool value) {
     _hmdTabletBecomesToolbarSetting.set(value);
     updateSystemTabletMode();
+}
+
+void Application::setPreferStylusOverLaser(bool value) {
+    _preferStylusOverLaserSetting.set(value);
 }
 
 void Application::setPreferAvatarFingerOverStylus(bool value) {
