@@ -680,6 +680,7 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
 
 void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS
+#if !defined(Q_OS_ANDROID)
     PROFILE_RANGE(resource_parse, "generateMips");
 
     if (image.format() == QIMAGE_HDR_FORMAT) {
@@ -687,9 +688,18 @@ void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>
     } else  {
         generateLDRMips(texture, std::move(image), abortProcessing, face);
     }
+
+#else
+    //texture->setAutoGenerateMips(false);
+    texture->assignStoredMip(0, image.byteCount(), image.constBits());
+    for (uint16 level = 1; level < texture->getNumMips(); ++level) {
+        QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
+        QImage mipImage = image.scaled(mipSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        texture->assignStoredMip(level, mipImage.byteCount(), mipImage.constBits());
+    }
+#endif
 #else
     texture->setAutoGenerateMips(true);
-    texture->assignStoredMip(0, image.byteCount(), image.constBits());
 #endif
 }
 
@@ -776,6 +786,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
         }
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -882,6 +893,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -918,6 +930,7 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
