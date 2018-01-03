@@ -323,33 +323,124 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 currentMaterial.specularTextureFilename = filename;
             } else if ((token == "map_bump") || (token == "bump")) {
                 currentMaterial.bumpTextureFilename = filename;
-                currentMaterial.bumpMultiplier = textureOptions.bumpMultiplier;
+                currentMaterial.bumpTextureOptions = textureOptions;
             }
         }
     }
 } 
 
+bool OBJReader::parseTextureLineFloat(QString& parser, float& result) {
+    if (parser.length() == 0) {
+        return false;
+    }
+    auto firstChar = parser[0];
+    if ((firstChar < '0' || firstChar > '9') && firstChar != '-') {
+        return false;
+    }
+    int floatEnd = parser.indexOf(' ');
+    if (floatEnd < 0) {
+        floatEnd = parser.length();
+    }
+    QString floatStr = parser.left(floatEnd);
+    try
+    {
+        result = std::stof(floatStr.toStdString());
+        parser.remove(0, floatStr.length() + 1);
+        return true;
+    }
+    catch (const std::exception& /*e*/)
+    {
+        return false;
+    }
+}
+
+bool OBJReader::parseTextureLineString(QString& parser, QByteArray& result) {
+    if (parser.length() == 0) {
+        return false;
+    }
+    int stringEnd = parser.indexOf(' ');
+    if (stringEnd < 0) {
+        stringEnd = parser.length();
+    }
+    result = parser.left(stringEnd).toUtf8();
+    parser.remove(0, result.length() + 1);
+    return true;
+}
+
 void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
+    // Texture options reference http://paulbourke.net/dataformats/mtl/
+    // and https://wikivisually.com/wiki/Material_Template_Library
     QString parser = textureLine;
     while (parser.length() > 0) {
-        if (parser.startsWith("-bm")) {
-            parser.remove(0, 4);
-            int multiplierEnd = parser.indexOf(' ');
-            if (multiplierEnd < 0) {
-                multiplierEnd = parser.length();
-            }
-            QString multiplier = parser.left(multiplierEnd);
-            textureOptions.bumpMultiplier = std::stof(multiplier.toStdString());
-            parser.remove(0, multiplier.length() + 1);
-        } else if (parser[0] == '-') {
-            // TO DO
-        } else {
-            int fileEnd = parser.indexOf(' ');
-            if (fileEnd < 0) {
-                fileEnd = parser.length();
-            }
-            filename = parser.left(fileEnd).toUtf8();
-            parser.remove(0, filename.length() + 1);
+        if (parser.startsWith("-blendu") || parser.startsWith("-blendv")) {
+            parser.remove(0, 11); // remove through "-blendu on " or "-blendu off"
+            if (parser[0] == ' ') // extra character for space after off
+                parser.remove(0, 1);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -blendu/-blendv";
+            #endif
+        } else if (parser.startsWith("-bm")) {
+            parser.remove(0, 4); // remove through "-bm "
+            parseTextureLineFloat(parser, textureOptions.bumpMultiplier);
+        } else if (parser.startsWith("-boost")) {
+            parser.remove(0, 7); // remove through "-boost "
+            float ignore;
+            parseTextureLineFloat(parser, ignore);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -boost";
+            #endif
+        } else if (parser.startsWith("-cc")) {
+            parser.remove(0, 7); // remove through "-cc on " or "-cc off"
+            if (parser[0] == ' ') // extra character for space after off
+                parser.remove(0, 1);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -cc";
+            #endif
+        } else if (parser.startsWith("-clamp")) {
+            parser.remove(0, 10); // remove through "-clamp on " or "-clamp off"
+            if (parser[0] == ' ') // extra character for space after off
+                parser.remove(0, 1);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -clamp";
+            #endif
+        } else if (parser.startsWith("-imfchan")) {
+            parser.remove(0, 11); // remove through "-imfchan X "
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -imfchan";
+            #endif
+        } else if (parser.startsWith("-mm")) {
+            parser.remove(0, 4); // remove through "-mm "
+            float ignore;
+            parseTextureLineFloat(parser, ignore);
+            parseTextureLineFloat(parser, ignore);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -mm";
+            #endif
+        } else if (parser.startsWith("-o") || parser.startsWith("-s") || parser.startsWith("-t")) {
+            parser.remove(0, 3); // remove through "-o "
+            float ignore;
+            parseTextureLineFloat(parser, ignore);
+            parseTextureLineFloat(parser, ignore);
+            parseTextureLineFloat(parser, ignore);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -o/-s/-t";
+            #endif
+        } else if (parser.startsWith("-texres")) {
+            parser.remove(0, 8); // remove through "-texres "
+            float ignore;
+            parseTextureLineFloat(parser, ignore);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -texres";
+            #endif
+        } else if (parser.startsWith("-type")) {
+            parser.remove(0, 6); // remove through "-type "
+            QByteArray ignore;
+            parseTextureLineString(parser, ignore);
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -type";
+            #endif
+        } else { // assume filename
+            parseTextureLineString(parser, filename);
         }
     }
 }
@@ -818,7 +909,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.bumpTextureFilename.isEmpty()) {
             fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
             fbxMaterial.normalTexture.isBumpmap = true;
-            fbxMaterial.bumpMultiplier = objMaterial.bumpMultiplier;
+            fbxMaterial.bumpMultiplier = objMaterial.bumpTextureOptions.bumpMultiplier;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
