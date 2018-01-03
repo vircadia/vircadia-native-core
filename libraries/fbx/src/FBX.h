@@ -178,6 +178,8 @@ public:
     float emissiveIntensity{ 1.0f };
     float ambientFactor{ 1.0f };
 
+    float bumpMultiplier{ 1.0f };
+
     QString materialID;
     QString name;
     QString shadingModel;

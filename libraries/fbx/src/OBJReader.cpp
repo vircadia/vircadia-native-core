@@ -302,7 +302,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump")) {
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump")) {
             const QByteArray textureLine = tokenizer.getLineAsDatum();
             QByteArray filename;
             OBJMaterialTextureOptions textureOptions;
@@ -319,8 +319,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                 currentMaterial.emissiveTextureFilename = filename;
             } else if (token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
-            } else if (token == "map_bump") {
+            } else if ((token == "map_bump") || (token == "bump")) {
                 currentMaterial.bumpTextureFilename = filename;
+                currentMaterial.bumpMultiplier = textureOptions.bumpMultiplier;
             }
         }
     }
@@ -338,6 +339,8 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             QString multiplier = parser.left(multiplierEnd);
             textureOptions.bumpMultiplier = std::stof(multiplier.toStdString());
             parser.remove(0, multiplier.length() + 1);
+        } else if (parser[0] == '-') {
+            // TO DO
         } else {
             int fileEnd = parser.indexOf(' ');
             if (fileEnd < 0) {
@@ -813,6 +816,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.bumpTextureFilename.isEmpty()) {
             fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
             fbxMaterial.normalTexture.isBumpmap = true;
+            fbxMaterial.bumpMultiplier = objMaterial.bumpMultiplier;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);

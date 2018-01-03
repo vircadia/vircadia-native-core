@@ -61,9 +61,10 @@ public:
     QByteArray specularTextureFilename;
     QByteArray emissiveTextureFilename;
     QByteArray bumpTextureFilename;
+    float bumpMultiplier;
     bool used { false };
     bool userSpecifiesUV { false };
-    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f) {}
+    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), bumpMultiplier(1.0f) {}
 };
 
 class OBJMaterialTextureOptions {
