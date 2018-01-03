@@ -88,6 +88,7 @@ public:
     EntityPropertyFlags getChangedProperties() const;
 
     bool transformChanged() const;
+    bool getScalesWithParent() const;
     bool parentRelatedPropertyChanged() const;
     bool queryAACubeRelatedPropertyChanged() const;
 
@@ -227,6 +228,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
     DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glmVec3, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
