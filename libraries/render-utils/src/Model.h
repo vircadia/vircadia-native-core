@@ -204,6 +204,9 @@ public:
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
 
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
+
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
@@ -270,14 +273,13 @@ signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
     void requestRenderUpdate();
+    void rigReady();
+    void rigReset();
 
 protected:
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-
-    /// Returns the unscaled extents of the model's mesh
-    Extents getUnscaledMeshExtents() const;
 
     /// Clear the joint states
     void clearJointState(int index);

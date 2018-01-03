@@ -55,17 +55,15 @@
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
-
 #include "raypick/PointerScriptingInterface.h"
 
-static const float DPI = 30.47f;
-static const float INCHES_TO_METERS = 1.0f / 39.3701f;
+static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
+Web3DOverlay::Web3DOverlay() {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("Web3DOverlayTouchDevice");
@@ -82,7 +80,6 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
     _dpi(Web3DOverlay->_dpi),
-    _resolution(Web3DOverlay->_resolution),
     _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
@@ -154,7 +151,7 @@ void Web3DOverlay::buildWebSurface() {
             setupQmlSurface();
         }
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
-        _webSurface->resize(QSize(_resolution.x, _resolution.y));
+        onResizeWebSurface();
         _webSurface->resume();
     });
 
@@ -203,7 +200,6 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
         _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
         _webSurface->getSurfaceContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
@@ -223,9 +219,6 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
-        // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-        _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
-
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
         // mark the TabletProxy object as cpp ownership.
         QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
@@ -244,8 +237,16 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 }
 
 void Web3DOverlay::onResizeWebSurface() {
-    _mayNeedResize = false;
-    _webSurface->resize(QSize(_resolution.x, _resolution.y));
+    glm::vec2 dims = glm::vec2(getDimensions());
+    dims *= METERS_TO_INCHES * _dpi;
+
+    // ensure no side is never larger then MAX_WINDOW_SIZE
+    float max = (dims.x > dims.y) ? dims.x : dims.y;
+    if (max > MAX_WINDOW_SIZE) {
+        dims *= MAX_WINDOW_SIZE / max;
+    }
+
+    _webSurface->resize(QSize(dims.x, dims.y));
 }
 
 unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
@@ -266,12 +267,12 @@ void Web3DOverlay::render(RenderArgs* args) {
         return;
     }
 
-    if (_currentMaxFPS != _desiredMaxFPS) {
-        setMaxFPS(_desiredMaxFPS);
-    }
-
     if (_mayNeedResize) {
         emit resizeWebSurface();
+    }
+
+    if (_currentMaxFPS != _desiredMaxFPS) {
+        setMaxFPS(_desiredMaxFPS);
     }
 
     vec4 color(toGlm(getColor()), getAlpha());
@@ -310,7 +311,7 @@ void Web3DOverlay::render(RenderArgs* args) {
 Transform Web3DOverlay::evalRenderTransform() {
     Transform transform = Parent::evalRenderTransform();
     transform.setScale(1.0f);
-    transform.postScale(glm::vec3(getSize(), 1.0f));
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
     return transform;
 }
 
@@ -434,18 +435,10 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
-    auto resolution = properties["resolution"];
-    if (resolution.isValid()) {
-        bool valid;
-        auto res = vec2FromVariant(resolution, valid);
-        if (valid) {
-            _resolution = res;
-        }
-    }
-
     auto dpi = properties["dpi"];
     if (dpi.isValid()) {
         _dpi = dpi.toFloat();
+        _mayNeedResize = true;
     }
 
     auto maxFPS = properties["maxFPS"];
@@ -467,19 +460,75 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
             _inputMode = Touch;
         }
     }
-
-    _mayNeedResize = true;
 }
 
+// Web3DOverlay overrides the meaning of Planar3DOverlay's dimensions property.
+/**jsdoc
+ * These are the properties of a <code>web3d</code> {@link Overlays.OverlayType|OverlayType}.
+ * @typedef {object} Overlays.Web3DProperties
+ *
+ * @property {string} type=web3d - Has the value <code>"web3d"</code>. <em>Read-only.</em>
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
+ *     rotating as you move your avatar.
+ *
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
+ *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
+ *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
+ *     be removed.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ *
+ * @property {string} url - The URL of the Web page to display.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {Vec2} resolution - <strong>Deprecated:</strong> This property has been removed. 
+ * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
+ * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
+ *     <code>scale</code>, <code>size</code>.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
+ * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has
+ *     keyboard focus.
+ * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
+ */
 QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }
     if (property == "scriptURL") {
         return _scriptURL;
-    }
-    if (property == "resolution") {
-        return vec2toVariant(_resolution);
     }
     if (property == "dpi") {
         return _dpi;
@@ -536,17 +585,18 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-glm::vec2 Web3DOverlay::getSize() const {
-    return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
-};
-
 bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-    // FIXME - face and surfaceNormal not being returned
+    glm::vec2 dimensions = getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
 
-    // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
-
-    // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getSize(), distance);
+    if (findRayRectangleIntersection(origin, direction, rotation, position, dimensions, distance)) {
+        surfaceNormal = rotation * Vectors::UNIT_Z;
+        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {

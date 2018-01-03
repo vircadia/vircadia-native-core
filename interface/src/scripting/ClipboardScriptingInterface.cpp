@@ -34,7 +34,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, const 
     return retVal;
 }
 
-bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float scale) {
     bool retVal;
     BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
@@ -42,7 +42,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, float 
                               Q_ARG(float, x),
                               Q_ARG(float, y),
                               Q_ARG(float, z),
-                              Q_ARG(float, s));
+                              Q_ARG(float, scale));
     return retVal;
 }
 

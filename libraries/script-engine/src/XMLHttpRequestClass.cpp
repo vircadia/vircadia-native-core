@@ -22,7 +22,7 @@
 #include "ScriptEngine.h"
 #include "XMLHttpRequestClass.h"
 
-const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/";
+const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/";
 
 Q_DECLARE_METATYPE(QByteArray*)
 

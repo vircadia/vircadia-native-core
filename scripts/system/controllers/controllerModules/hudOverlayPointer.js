@@ -63,7 +63,7 @@
 
         this.pointingAtTablet = function(controllerData) {
             var rayPick = controllerData.rayPicks[this.hand];
-            return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && HMD.homeButtonID && (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID));
         };
 
         this.getOtherModule = function() {

@@ -158,7 +158,7 @@ public:
 
     glm::uvec2 getUiSize() const;
     QRect getRecommendedHUDRect() const;
-    QSize getDeviceSize() const;
+    glm::vec2 getDeviceSize() const;
     bool hasFocus() const;
 
     void showCursor(const Cursor::Icon& cursor);
@@ -228,8 +228,6 @@ public:
 
     FileLogger* getLogger() const { return _logger; }
 
-    glm::vec2 getViewportDimensions() const;
-
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
@@ -282,6 +280,7 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void saveNextPhysicsStats(QString filename);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -434,6 +433,7 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
 private:
     static void initDisplay();
     void init();

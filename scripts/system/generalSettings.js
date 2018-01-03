@@ -18,7 +18,7 @@
     var buttonName = "Settings";
     var toolBar = null;
     var tablet = null;
-    var settings = "TabletGeneralPreferences.qml"
+    var settings = "hifi/tablet/TabletGeneralPreferences.qml"
     function onClicked(){
         if (tablet) {
             tablet.loadQMLSource(settings);

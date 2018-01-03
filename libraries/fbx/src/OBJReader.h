@@ -11,7 +11,7 @@ public:
         DATUM_TOKEN = 0x100,
         COMMENT_TOKEN = 0x101
     };
-    int nextToken();
+    int nextToken(bool allowSpaceChar = false);
     const QByteArray& getDatum() const { return _datum; }
     bool isNextTokenFloat();
     const QByteArray getLineAsDatum(); // some "filenames" have spaces in them

@@ -315,12 +315,21 @@ Wallet::Wallet() {
         }
 
         walletScriptingInterface->setWalletStatus(status);
-        emit walletStatusResult(status);
     });
 
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         getWalletStatus();
+        _publicKeys.clear();
+
+        if (_securityImage) {
+            delete _securityImage;
+        }
+        _securityImage = nullptr;
+
+        // tell the provider we got nothing
+        updateImageProvider();
+        _passphrase->clear();
     });
 }
 
@@ -481,6 +490,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
+        DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
         return true;
     }
 
@@ -493,6 +503,7 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
             return true;
         }
     }
@@ -537,12 +548,15 @@ QStringList Wallet::listPublicKeys() {
 // the horror of code pages and so on (changing the bytes) by just returning a base64
 // encoded string representing the signature (suitable for http, etc...)
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
-    qCInfo(commerce) << "Signing text" << text << "with key" << key;
     EC_KEY* ecPrivateKey = NULL;
+
+    auto keyFilePathString = keyFilePath().toStdString();
     if ((ecPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
         unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
 
         unsigned int signatureBytes = 0;
+
+        qCInfo(commerce) << "Hashing and signing plaintext" << text << "with key at address" << ecPrivateKey;
 
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
@@ -736,12 +750,10 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     }
 
     EC_KEY_free(ec);
-    QByteArray ba = sig.toLocal8Bit();
-    const char *sigChar = ba.data();
 
     QByteArray textByteArray;
     if (status > -1) {
-        textByteArray = QByteArray(sigChar, (int) strlen(sigChar));
+        textByteArray = sig.toUtf8();
     }
     textByteArraySize = textByteArray.size();
     int certIDSize = certID.size();
@@ -791,15 +803,12 @@ void Wallet::account() {
 
 void Wallet::getWalletStatus() {
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
-    uint status;
 
     if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
         // This will set account info for the wallet, allowing us to decrypt and display the security image.
         account();
     } else {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
-        emit walletStatusResult(status);
-        walletScriptingInterface->setWalletStatus(status);
+        walletScriptingInterface->setWalletStatus((uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN);
         return;
     }
 }

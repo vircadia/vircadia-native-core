@@ -154,6 +154,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.update = function () {
+            try {
+                _this.updateInternal();
+            }  catch (e) {
+                print(e);
+            }
+            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
+        };
+
+        this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
             }
@@ -403,6 +412,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -412,6 +422,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
@@ -422,6 +433,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -432,6 +444,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
@@ -470,7 +483,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.cleanup = function () {
-            Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPick);
@@ -501,5 +513,5 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
-    Script.update.connect(controllerDispatcher.update);
+    Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());

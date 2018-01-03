@@ -65,7 +65,7 @@ void main(void) {
     vec3 fragNormal;
     <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
 
-    vec4 color = vec4(evalGlobalLightingAlphaBlended(
+    vec4 color = vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
         occlusionTex,
