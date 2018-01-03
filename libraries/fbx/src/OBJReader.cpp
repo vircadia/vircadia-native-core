@@ -256,12 +256,12 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << 
-                                     currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << 
-                                     " specular color:" << currentMaterial.specularColor << " emissive color:" << 
-                                     currentMaterial.emissiveColor << " diffuse texture:" << 
-                                     currentMaterial.diffuseTextureFilename << " specular texture:" << 
-                                     currentMaterial.specularTextureFilename << " emissive texture:" << 
+                qCDebug(modelformat) << "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
+                                     " shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity <<
+                                     " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << 
+                                     currentMaterial.specularColor << " emissive color:" << currentMaterial.emissiveColor << 
+                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" <<
+                                     currentMaterial.specularTextureFilename << " emissive texture:" <<
                                      currentMaterial.emissiveTextureFilename << " bump texture:" <<
                                      currentMaterial.bumpTextureFilename;
                 #endif
@@ -302,6 +302,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
+        } else if (token == "illum") {
+            currentMaterial.illuminationModel = tokenizer.getFloat();
         } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump")) {
             const QByteArray textureLine = tokenizer.getLineAsDatum();
             QByteArray filename;
@@ -824,8 +826,45 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
         modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
+        // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
+        switch (objMaterial.illuminationModel) {
+            case 0: // Color on and Ambient off
+                fbxMaterial.ambientFactor = 0.0f;
+                break;
+            case 1: // Color on and Ambient on
+                fbxMaterial.ambientFactor = 1.0f;
+                break;
+            case 2: // Highlight on
+                fbxMaterial.specularFactor = 1.0f;
+                break;
+            case 3: // Reflection on and Ray trace on
+                break;
+            case 4: // Transparency: Glass on and Reflection: Ray trace on
+                fbxMaterial.opacity = 0.0f;
+                break;
+            case 5: // Reflection: Fresnel on and Ray trace on
+                modelMaterial->setFresnel(glm::vec3(1.0f));
+                break;
+            case 6: // Transparency: Refraction on and Reflection: Fresnel off and Ray trace on
+                fbxMaterial.opacity = 0.0f;
+                modelMaterial->setFresnel(glm::vec3(0.0f));
+                break;
+            case 7: // Transparency: Refraction on and Reflection: Fresnel on and Ray trace on
+                fbxMaterial.opacity = 0.0f;
+                modelMaterial->setFresnel(glm::vec3(1.0f));
+                break;
+            case 8: // Reflection on and Ray trace off
+                break;
+            case 9: // Transparency: Glass on and Reflection: Ray trace off
+                fbxMaterial.opacity = 0.0f;
+                break;
+            case 10: // Casts shadows onto invisible surfaces
+                // Do nothing?
+                break;
+        }
+
         if (fbxMaterial.opacity <= 0.0f) {
-            modelMaterial->setOpacity(1.0f);
+            modelMaterial->setOpacity(0.0f); // previous was 1.0f?
         } else {
             modelMaterial->setOpacity(fbxMaterial.opacity);
         }
