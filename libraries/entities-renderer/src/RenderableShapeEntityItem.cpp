@@ -63,7 +63,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_dimensions != entity->getDimensions()) {
+    if (_dimensions != entity->getScaledDimensions()) {
         return true;
     }
 
@@ -82,7 +82,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
-        _dimensions = entity->getDimensions();
+        _dimensions = entity->getScaledDimensions();
         _orientation = entity->getWorldOrientation();
         _renderTransform = getModelTransform();
 

@@ -37,7 +37,7 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         lightPayload.editBound() = render::Item::Bound();
     }
 
-    glm::vec3 dimensions = entity->getDimensions();
+    glm::vec3 dimensions = entity->getScaledDimensions();
     float largestDiameter = glm::compMax(dimensions);
     light->setMaximumRadius(largestDiameter / 2.0f);
 

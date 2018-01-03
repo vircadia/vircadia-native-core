@@ -29,7 +29,7 @@
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
-    var metaverseServerURL = "https://metaverse.highfidelity.com";
+    var marketplaceBaseURL = "https://highfidelity.com";
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -58,7 +58,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === metaverseServerURL + "/marketplace?";
+        var isInitialHiFiPage = location.href === marketplaceBaseURL + "/marketplace?";
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -70,7 +70,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = (metaverseServerURL + "/marketplace?");
+            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -89,7 +89,7 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = "http://www.highfidelity.com/marketplace";
+            window.location = marketplaceBaseURL + "/marketplace";
         });
     }
 
@@ -658,9 +658,9 @@
         var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
-        if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
+        if (location.href.indexOf(marketplaceBaseURL + "/") !== -1) { pageType = HIFI; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
-        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
+        if (location.href.indexOf(marketplaceBaseURL + "/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
@@ -694,7 +694,10 @@
                         commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
-                        metaverseServerURL = parsedJsonMessage.data.metaverseServerURL;
+                        marketplaceBaseURL = parsedJsonMessage.data.metaverseServerURL;
+                        if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
+                            marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
+                        }
                         injectCode();
                     }
                 }

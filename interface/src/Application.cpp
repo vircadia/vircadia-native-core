@@ -191,6 +191,7 @@
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
+#include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
@@ -698,6 +699,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
+    DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
@@ -4279,7 +4281,7 @@ void Application::init() {
 
     getEntities()->init();
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
-        auto dims = item.getDimensions();
+        auto dims = item.getScaledDimensions();
         auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
@@ -4633,7 +4635,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 _lastAcceptedKeyPress = usecTimestampNow();
 
                 setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
     }
@@ -5941,6 +5943,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine.data(), steamClient.get()));
