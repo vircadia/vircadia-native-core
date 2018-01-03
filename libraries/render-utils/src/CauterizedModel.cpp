@@ -112,7 +112,6 @@ void CauterizedModel::updateClusterMatrices() {
 
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
-            // AJT: TODO: optimize
             glm::mat4 m;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
@@ -145,7 +144,6 @@ void CauterizedModel::updateClusterMatrices() {
                 }
 
 #if defined(SKIN_DQ)
-                // AJT: TODO: optimize
                 glm::mat4 m;
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
                 state.clusterTransforms[j] = Model::TransformDualQuaternion(m);

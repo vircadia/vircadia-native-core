@@ -1178,6 +1178,7 @@ void Model::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
+
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
@@ -1187,7 +1188,6 @@ void Model::updateClusterMatrices() {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
-            // AJT: TODO: optimize
             glm::mat4 mat;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
             state.clusterTransforms[j] = TransformDualQuaternion(mat);

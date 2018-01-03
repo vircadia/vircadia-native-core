@@ -60,7 +60,6 @@ void SoftAttachmentModel::updateClusterMatrices() {
                 jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             }
 
-            // AJT: TODO: OPTIMIZE
             glm::mat4 m;
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
