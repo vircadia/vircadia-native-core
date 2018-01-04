@@ -19,6 +19,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     function InVREditMode(hand) {
         this.hand = hand;
         this.disableModules = false;
+        var NO_HAND_LASER = -1; // Invalid hand parameter so that default laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
             200, // Not too high otherwise the tablet laser doesn't work.
             this.hand === RIGHT_HAND
@@ -26,7 +27,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
-            makeLaserParams(-1, false) // Invalid hand parameter so that default laser is not displayed.
+            makeLaserParams(NO_HAND_LASER, false)
         );
 
         this.pointingAtTablet = function (objectID) {
