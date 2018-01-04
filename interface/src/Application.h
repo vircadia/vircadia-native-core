@@ -209,7 +209,9 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
-    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    // FIXME: Remove setting completely or make available through JavaScript API?
+    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
