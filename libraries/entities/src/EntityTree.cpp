@@ -354,10 +354,12 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // else: We assume the sender really did believe it was the simulation owner when it sent
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
-                    if (entity->getSimulatorID().isNull() || entity->getSimulatorID() == senderID) {
-                        // the sender is taking or asserting ownership
-                        // but we never grant priorities lower than RECRUIT
+                    if (entity->getSimulatorID().isNull()) {
+                        // the sender is taking ownership
                         properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        simulationBlocked = false;
+                    } else if (entity->getSimulatorID() == senderID) {
+                        // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
