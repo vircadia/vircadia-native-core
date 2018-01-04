@@ -76,18 +76,28 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.updateAllwaysOn = function () {
+            var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
+            this.parameters.handLaser.allwaysOn = !Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
+        };
+
         this.isReady = function (controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
             if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) &&
                 !otherModuleRunning) {
-                return makeRunningValues(true, [], []);
+                this.updateAllwaysOn();
+                if (this.parameters.handLaser.allwaysOn || controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
+                    return makeRunningValues(true, [], []);
+                }
             }
             return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if ((controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE || (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) && !grabModuleNeedsToRun) {
+            if (!grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+                || this.parameters.handLaser.allwaysOn
+                && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
