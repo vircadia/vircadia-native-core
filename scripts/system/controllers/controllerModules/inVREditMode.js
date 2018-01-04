@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
-   makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName
+   makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -25,8 +25,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
-            100
+            100,
+            makeLaserParams(this.hand, false)
         );
+
+        this.pointingAtTablet = function (objectID) {
+            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
+                return true;
+            }
+            return false;
+        };
 
         this.isReady = function (controllerData) {
             if (this.disableModules) {
@@ -42,13 +50,24 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet stylus.
-            // Includes the tablet laser.
             var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
                 ? "RightTabletStylusInput"
                 : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
                 if (tabletReady.active) {
+                    return makeRunningValues(false, [], []);
+                }
+            }
+
+            // Tablet surface.
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput"
+                : "LeftWebSurfaceLaserInput");
+            if (overlayLaser) {
+                var overlayLaserReady = overlayLaser.isReady(controllerData);
+                var target = controllerData.rayPicks[this.hand].objectID;
+                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
                     return makeRunningValues(false, [], []);
                 }
             }
