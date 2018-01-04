@@ -13,7 +13,6 @@
 #define hifi_OctreeHeadlessViewer_h
 
 #include <OctreeProcessor.h>
-#include <JurisdictionListener.h>
 #include <OctreeQuery.h>
 
 
@@ -23,8 +22,6 @@ class OctreeHeadlessViewer : public OctreeProcessor {
 public:
     OctreeHeadlessViewer();
     virtual ~OctreeHeadlessViewer() {};
-
-    void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
     
     OctreeQuery& getOctreeQuery() { return _octreeQuery; }
 
@@ -57,7 +54,6 @@ public slots:
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
 
 private:
-    JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
 
     ViewFrustum _viewFrustum;
