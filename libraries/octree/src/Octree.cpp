@@ -1020,16 +1020,6 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
         return bytesAtThisLevel;
     }
 
-    // If we've been provided a jurisdiction map, then we need to honor it.
-    if (params.jurisdictionMap) {
-        // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
-        // but once we're in our own jurisdiction, then we need to make sure we're not below it.
-        if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), CHECK_NODE_ONLY)) {
-            params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
-            return bytesAtThisLevel;
-        }
-    }
-
     ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
     if (octreeQueryNode->getUsesFrustum() && !params.recurseEverything) {
         float boundaryDistance = boundaryDistanceForRenderLevel(element->getLevel() + params.boundaryLevelAdjust,
@@ -1152,18 +1142,9 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer childElement = element->getChildAtIndex(i);
 
-        // if the caller wants to include childExistsBits, then include them even if not in view, if however,
-        // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
-        // even if they don't in our local tree
-        bool notMyJurisdiction = false;
-        if (params.jurisdictionMap) {
-            notMyJurisdiction = JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(element->getOctalCode(), i);
-        }
-        if (params.includeExistsBits) {
-            // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
-            if (childElement || notMyJurisdiction) {
-                childrenExistInTreeBits += (1 << (7 - i));
-            }
+        // if the caller wants to include childExistsBits, then include them
+        if (params.includeExistsBits && childElement) {
+            childrenExistInTreeBits += (1 << (7 - i));
         }
 
         sortedChildren[i] = childElement;

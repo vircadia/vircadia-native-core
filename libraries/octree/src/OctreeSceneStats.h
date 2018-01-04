@@ -17,7 +17,6 @@
 #include <NodeList.h>
 #include <shared/ReadWriteLockable.h>
 
-#include "JurisdictionMap.h"
 #include "OctreePacketData.h"
 #include "SequenceNumberStats.h"
 #include "OctalCode.h"
@@ -39,7 +38,7 @@ public:
     OctreeSceneStats& operator= (const OctreeSceneStats& other); // copy assignment
 
     /// Call when beginning the computation of a scene. Initializes internal structures
-    void sceneStarted(bool fullScene, bool moving, const OctreeElementPointer& root, JurisdictionMap* jurisdictionMap);
+    void sceneStarted(bool fullScene, bool moving, const OctreeElementPointer& root);
     bool getIsSceneStarted() const { return _isStarted; }
 
     /// Call when the computation of a scene is completed. Finalizes internal structures
@@ -142,12 +141,6 @@ public:
     /// Returns a UI formatted value of an item tracked by OctreeSceneStats
     /// \param Item item The item from the stats you're interested in.
     const char* getItemValue(Item item);
-
-    /// Returns OctCode for root element of the jurisdiction of this particular octree server
-    OctalCodePtr getJurisdictionRoot() const { return _jurisdictionRoot; }
-
-    /// Returns list of OctCodes for end elements of the jurisdiction of this particular octree server
-    const OctalCodePtrList& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
     bool isFullScene() const { return _isFullScene; }
@@ -277,9 +270,6 @@ private:
     static ItemInfo _ITEMS[];
     static const int MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
-
-    OctalCodePtr _jurisdictionRoot;
-    std::vector<OctalCodePtr> _jurisdictionEndNodes;
 };
 
 /// Map between element IDs and their reported OctreeSceneStats. Typically used by classes that need to know which elements sent
