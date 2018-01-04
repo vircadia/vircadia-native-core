@@ -367,21 +367,17 @@ void Avatar::relayJointDataToChildren() {
                         if (!containsJoint) {
                             int jointIndex = modelEntity->getJointIndex(jointName);
                             jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                            jointTranslation - modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                            jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
                         } else {
                             int jointIndex = getJointIndex(jointName);
                             jointRotation = getJointRotation(jointIndex);
                             jointTranslation = getJointTranslation(jointIndex);
                         }
                         jointSet.append(true);
-                        jointRotations.append(jointRotation);
-                        jointTranslations.append(jointTranslation);
+                        int modelJointIndex = modelEntity->getJointIndex(jointName);
+                        modelEntity->setLocalJointRotation(modelJointIndex, jointRotation);
+                        modelEntity->setLocalJointTranslation(modelJointIndex, jointTranslation);
                     }
-
-                    modelEntity->setJointRotationsSet(jointSet);
-                    modelEntity->setJointTranslationsSet(jointSet);
-                    modelEntity->setJointRotations(jointRotations);
-                    modelEntity->setJointTranslations(jointTranslations);
                     modelEntity->simulateRelayedJoints();
                 }
             }
