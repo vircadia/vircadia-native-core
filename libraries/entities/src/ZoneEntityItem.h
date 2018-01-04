@@ -132,10 +132,13 @@ protected:
     QString _compoundShapeURL;
 
     BackgroundMode _backgroundMode { BACKGROUND_MODE_INHERIT };
-    uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
+    
+    // The following 3 values are the defaults for zone creation
     uint32_t _keyLightMode { COMPONENT_MODE_INHERIT };
-    uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
     uint32_t _skyboxMode { COMPONENT_MODE_INHERIT };
+    uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
+
+    uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;

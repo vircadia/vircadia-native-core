@@ -91,10 +91,10 @@ private:
 
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
 
-    ComponentMode _hazeMode { COMPONENT_MODE_INHERIT };
     ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _skyboxMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _hazeMode { COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
