@@ -25,8 +25,11 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property bool historyReceived: false;
+    property bool initialHistoryReceived: false;
+    property bool historyRequestPending: true;
+    property bool noMoreHistoryData: false;
     property int pendingCount: 0;
+    property int currentHistoryPage: 1;
 
     Connections {
         target: Commerce;
@@ -36,32 +39,50 @@ Item {
         }
 
         onHistoryResult : {
-            historyReceived = true;
-            if (result.status === 'success') {
-                var sameItemCount = 0;
-                tempTransactionHistoryModel.clear();
-                
-                tempTransactionHistoryModel.append(result.data.history);
-        
-                for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                    if (!transactionHistoryModel.get(i)) {
-                        sameItemCount = -1;
-                        break;
-                    } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
-                    tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
-                        sameItemCount++;
-                    }
-                }
+            root.initialHistoryReceived = true;
+            root.historyRequestPending = false;
 
-                if (sameItemCount !== tempTransactionHistoryModel.count) {
-                    transactionHistoryModel.clear();
+            if (result.status === 'success') {
+                if (result.data.history.length === 0) {
+                    root.noMoreHistoryData = true;
+                } else if (root.currentHistoryPage === 1) {
+                    var sameItemCount = 0;
+                    tempTransactionHistoryModel.clear();
+                
+                    tempTransactionHistoryModel.append(result.data.history);
+        
                     for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                        transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                        if (!transactionHistoryModel.get(i)) {
+                            sameItemCount = -1;
+                            break;
+                        } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
+                        tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
+                            sameItemCount++;
+                        }
                     }
-                    calculatePendingAndInvalidated();
+
+                    if (sameItemCount !== tempTransactionHistoryModel.count) {
+                        transactionHistoryModel.clear();
+                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                            transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                        }
+                        calculatePendingAndInvalidated();
+                    }
+                } else {
+                    // This prevents data from being displayed out-of-order,
+                    // but may also result in missing pages of data when scrolling quickly...
+                    if (root.currentHistoryPage === result.current_page) {
+                        transactionHistoryModel.append(result.data.history);
+                        calculatePendingAndInvalidated();
+                    }
                 }
             }
-            refreshTimer.start();
+
+            // Only auto-refresh if the user hasn't scrolled
+            // and there is more data to grab
+            if (root.currentHistoryPage === 1 && !root.noMoreHistoryData) {
+                refreshTimer.start();
+            }
         }
     }
 
@@ -134,9 +155,13 @@ Item {
 
             onVisibleChanged: {
                 if (visible) {
-                    historyReceived = false;
+                    transactionHistoryModel.clear();
                     Commerce.balance();
-                    Commerce.history();
+                    initialHistoryReceived = false;
+                    root.currentHistoryPage = 1;
+                    root.noMoreHistoryData = false;
+                    root.historyRequestPending = true;
+                    Commerce.history(root.currentHistoryPage);
                 } else {
                     refreshTimer.stop();
                 }
@@ -164,9 +189,10 @@ Item {
         id: refreshTimer;
         interval: 4000;
         onTriggered: {
-            console.log("Refreshing Wallet Home...");
+            console.log("Refreshing 1st Page of Recent Activity...");
+            root.historyRequestPending = true;
             Commerce.balance();
-            Commerce.history();
+            Commerce.history(1);
         }
     }
 
@@ -241,7 +267,7 @@ Item {
             anchors.right: parent.right;
 
             Item {
-                visible: transactionHistoryModel.count === 0 && root.historyReceived;
+                visible: transactionHistoryModel.count === 0 && root.initialHistoryReceived;
                 anchors.centerIn: parent;
                 width: parent.width - 12;
                 height: parent.height;
@@ -364,7 +390,12 @@ Item {
                 onAtYEndChanged: {
                     if (transactionHistory.atYEnd) {
                         console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        // Grab next page of results and append to model
+                        if (!root.historyRequestPending && !root.noMoreHistoryData) {
+                            // Grab next page of results and append to model
+                            root.historyRequestPending = true;
+                            Commerce.history(++root.currentHistoryPage);
+                            console.log("Fetching Page " + root.currentHistoryPage + " of Recent Activity...");
+                        }
                     }
                 }
             }

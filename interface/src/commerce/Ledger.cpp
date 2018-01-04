@@ -72,11 +72,11 @@ void Ledger::signedSend(const QString& propertyName, const QByteArray& text, con
     send(endpoint, success, fail, QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
-void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+void Ledger::keysQuery(const QString& endpoint, QJsonObject& requestParams, const QString& success, const QString& fail) {
     auto wallet = DependencyManager::get<Wallet>();
-    QJsonObject request;
-    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, request);
+    requestParams["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
 }
 
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure) {
@@ -104,11 +104,11 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
 }
 
 void Ledger::balance(const QStringList& keys) {
-    keysQuery("balance", "balanceSuccess", "balanceFailure");
+    keysQuery("balance", QJsonObject(), "balanceSuccess", "balanceFailure");
 }
 
 void Ledger::inventory(const QStringList& keys) {
-    keysQuery("inventory", "inventorySuccess", "inventoryFailure");
+    keysQuery("inventory", QJsonObject(), "inventorySuccess", "inventoryFailure");
 }
 
 QString amountString(const QString& label, const QString&color, const QJsonValue& moneyValue, const QJsonValue& certsValue) {
@@ -176,8 +176,11 @@ void Ledger::historyFailure(QNetworkReply& reply) {
     failResponse("history", reply);
 }
 
-void Ledger::history(const QStringList& keys) {
-    keysQuery("history", "historySuccess", "historyFailure");
+void Ledger::history(const QStringList& keys, const QString& pageNumber) {
+    QJsonObject params;
+    params["per_page"] = 7;
+    params["page"] = pageNumber;
+    keysQuery("history", params, "historySuccess", "historyFailure");
 }
 
 // The api/failResponse is called just for the side effect of logging.

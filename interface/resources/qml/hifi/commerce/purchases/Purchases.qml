@@ -472,6 +472,13 @@ Rectangle {
                     }
                 }
             }
+
+            onAtYEndChanged: {
+                if (purchasesContentsList.atYEnd) {
+                    console.log("User scrolled to the bottom of 'My Purchases'.");
+                    // Grab next page of results and append to model
+                }
+            }
         }
 
         Item {
