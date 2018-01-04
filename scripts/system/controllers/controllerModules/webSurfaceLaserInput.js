@@ -18,6 +18,7 @@ Script.include("/~/system/libraries/controllers.js");
 (function() {
     function WebSurfaceLaserInput(hand) {
         this.hand = hand;
+        this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
         this.running = false;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -91,7 +92,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.isReady = function(controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
-            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+                && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             if ((!otherModuleRunning || isTriggerPressed)
                     && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) {
                 this.updateAllwaysOn();
