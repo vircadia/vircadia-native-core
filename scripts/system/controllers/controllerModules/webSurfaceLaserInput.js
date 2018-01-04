@@ -81,10 +81,15 @@ Script.include("/~/system/libraries/controllers.js");
             this.parameters.handLaser.allwaysOn = !Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
         };
 
+        this.dominantHand = function () {
+            return MyAvatar.getDominantHand() === "right" ? 1 : 0;
+        };
+
         this.isReady = function (controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
-            if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) &&
-                !otherModuleRunning) {
+            otherModuleRunning = otherModuleRunning && this.dominantHand() !== this.hand;
+            if (!otherModuleRunning
+                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) {
                 this.updateAllwaysOn();
                 if (this.parameters.handLaser.allwaysOn || controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
                     return makeRunningValues(true, [], []);
@@ -94,8 +99,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData, deltaTime) {
+            var otherModuleRunning = this.getOtherModule().running;
+            otherModuleRunning = otherModuleRunning && this.dominantHand() !== this.hand;
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (!grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+            if (!otherModuleRunning && !grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
                 || this.parameters.handLaser.allwaysOn
                 && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
