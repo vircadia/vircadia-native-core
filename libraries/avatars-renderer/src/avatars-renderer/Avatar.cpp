@@ -355,9 +355,6 @@ void Avatar::relayJointDataToChildren() {
             auto modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
             if (modelEntity) {
                 if (modelEntity->getRelayParentJoints()) {
-                    QVector<glm::quat> jointRotations;
-                    QVector<glm::vec3> jointTranslations;
-                    QVector<bool> jointSet;
                     QStringList modelJointNames = modelEntity->getJointNames();
                     QStringList avatarJointNames = getJointNames();
                     foreach (const QString& jointName, modelJointNames) {
@@ -373,7 +370,6 @@ void Avatar::relayJointDataToChildren() {
                             jointRotation = getJointRotation(jointIndex);
                             jointTranslation = getJointTranslation(jointIndex);
                         }
-                        jointSet.append(true);
                         int modelJointIndex = modelEntity->getJointIndex(jointName);
                         modelEntity->setLocalJointRotation(modelJointIndex, jointRotation);
                         modelEntity->setLocalJointTranslation(modelJointIndex, jointTranslation);
