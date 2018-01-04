@@ -155,7 +155,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
         // (1) we own it but may need to change the priority OR...
         // (2) we don't own it but should bid (because a local script has been changing physics properties)
         uint8_t newPriority = isLocallyOwned() ? _entity->getSimulationOwner().getPriority() : _entity->getSimulationOwner().getPendingPriority();
-        _outgoingPriority = glm::max(_outgoingPriority, newPriority);
+        upgradeOutgoingPriority(newPriority);
 
         // reset bid expiry so that we bid ASAP
         _nextOwnershipBid = 0;
@@ -403,7 +403,8 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_entity->dynamicDataNeedsTransmit()) {
-        _outgoingPriority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
+        uint8_t priority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
+        upgradeOutgoingPriority(priority);
         return true;
     }
 
@@ -513,6 +514,9 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
         }
         return shouldBid;
+    } else {
+        // make sure _outgoingPriority is not less than current owned priority
+        upgradeOutgoingPriority(_entity->getSimulationPriority());
     }
 
     return remoteSimulationOutOfSync(simulationStep);
