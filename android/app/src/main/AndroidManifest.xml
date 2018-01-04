@@ -63,8 +63,6 @@
         </activity>
     </application>
 
-    <!-- Tell the system this app requires OpenGL ES 3.0. -->
-    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>
     <uses-feature android:name="android.hardware.vr.high_performance" android:required="true"/>
 

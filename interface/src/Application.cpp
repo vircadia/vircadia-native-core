@@ -212,6 +212,7 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #ifdef ANDROID
 #include <QtAndroidExtras/QAndroidJniObject>
+#include <android/log.h>
 #endif
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -556,7 +557,34 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     if (!logMessage.isEmpty()) {
 #ifdef Q_OS_WIN
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");
+        OutputDebugStringA("\n");i
+#elif defined Q_OS_ANDROID
+        QString report=message;
+        if (context.file && !QString(context.file).isEmpty()) {
+            report+=" at ";
+            report+=QString(context.file);
+            report+=" : ";
+            report+=QString::number(context.line);
+        }
+        const char*const local=report.toLocal8Bit().constData();
+        switch (type) {
+            case QtDebugMsg:
+                __android_log_write(ANDROID_LOG_DEBUG,"Interface",local);
+                break;
+            case QtInfoMsg:
+                __android_log_write(ANDROID_LOG_INFO,"Interface",local);
+                break;
+            case QtWarningMsg:
+                __android_log_write(ANDROID_LOG_WARN,"Interface",local);
+                break;
+            case QtCriticalMsg:
+                __android_log_write(ANDROID_LOG_ERROR,"Interface",local);
+                break;
+            case QtFatalMsg:
+            default:
+                __android_log_write(ANDROID_LOG_FATAL,"Interface",local);
+                abort();
+        }
 #endif
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
@@ -845,10 +873,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     _logger = new FileLogger(this);
-#ifndef Q_OS_ANDROID
-    // this prevents using logcat
     qInstallMessageHandler(messageHandler);
-#endif
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("High Fidelity Interface");
@@ -2344,8 +2369,11 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
+#ifndef Q_OS_ANDROID
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-
+#else
+    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
+#endif
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);

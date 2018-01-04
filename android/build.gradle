@@ -457,9 +457,7 @@ task cleanDependencies(type: Delete) {
 task generateAssetsFileList() {
     doLast {
         def assetsPath = "${appDir}/src/main/assets/"
-        //def assetsPath = "/Users/cduarte/dev/workspace-hifi/hifiparallel/build_android_hifiqt59/interface/apk/assets/"
         def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
-        //def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
 
         def addedByAndroidDeployQtPath = assetsPath + addedByAndroidDeployQtName
 
@@ -468,7 +466,6 @@ task generateAssetsFileList() {
             throw new GradleScriptException("Failed to create directory " + addedByAndroidDeployQtPath, null);
         }
         def outputFilename = "/qt_cache_pregenerated_file_list"
-        //def outputFilename = "/qt_cache_pregenerated_file_list2"
         def outputFile = new File(addedByAndroidDeployQtPath + outputFilename);
         Map<String, List<String>> directoryContents = new TreeMap<>();
 
@@ -483,10 +480,6 @@ task generateAssetsFileList() {
                 fileName += "/"
             }
 
-            /*println ("full: [" + file.getAbsolutePath() + "]\n\t"
-                    + "path: [" + pathName + "]\n\t"
-                    + "name: [" + fileName + "]\n\t");*/
-
             if (!directoryContents.containsKey(pathName)) {
                 directoryContents[pathName] = new ArrayList<String>()
             }
@@ -497,16 +490,12 @@ task generateAssetsFileList() {
         DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
         for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
             def entryList = e.getValue()
-            //stream << it.key() << entryList.size();
             fos.writeInt(e.key.length()*2); // 2 bytes per char
             fos.writeChars(e.key);
             fos.writeInt(entryList.size());
-            //println ("dir: " + e.key + " size: " + entryList.size());
             for (String entry: entryList) {
                 fos.writeInt(entry.length()*2);
                 fos.writeChars(entry);
-                //println("\tentry: " + entry);
-                //stream << entry;
             }
         }
         fos.close();
