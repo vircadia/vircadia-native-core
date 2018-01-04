@@ -70,6 +70,7 @@ int OBJTokenizer::nextToken(bool allowSpaceChar /*= false*/) {
         }
         switch (ch) {
             case '#': {
+                _datum = "";
                 _comment = _device->readLine(); // stash comment for a future call to getComment
                 return COMMENT_TOKEN;
             }
