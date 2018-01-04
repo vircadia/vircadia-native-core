@@ -65,7 +65,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.deleteContextOverlay = function() {
-            var farGrabModule = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity");
+            var farGrabModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity");
             if (farGrabModule) {
                 var entityWithContextOverlay = farGrabModule.entityWithContextOverlay;
 
@@ -76,7 +77,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.updateAllwaysOn = function () {
+        this.updateAllwaysOn = function() {
             var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
             this.parameters.handLaser.allwaysOn = !Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
         };
@@ -87,7 +88,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.dominantHandOverride = false;
 
-        this.isReady = function (controllerData) {
+        this.isReady = function(controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
@@ -105,14 +106,14 @@ Script.include("/~/system/libraries/controllers.js");
             return makeRunningValues(false, [], []);
         };
 
-        this.run = function (controllerData, deltaTime) {
+        this.run = function(controllerData, deltaTime) {
             var otherModuleRunning = this.getOtherModule().running;
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
             if (!otherModuleRunning && !grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
                 || this.parameters.handLaser.allwaysOn
-                && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
+                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
