@@ -228,8 +228,6 @@ public:
 
     FileLogger* getLogger() const { return _logger; }
 
-    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
-
     float getRenderResolutionScale() const;
 
     qint64 getCurrentSessionRuntime() const { return _sessionRunTimer.elapsed(); }
@@ -450,7 +448,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -571,7 +569,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
