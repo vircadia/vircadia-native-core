@@ -222,7 +222,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto orientation = myAvatar->getLocalOrientation();
     _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
-    // evaluate AnimGraph animation and update jointStates.
+    //// evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);
 
     Rig::EyeParameters eyeParams;
@@ -323,17 +323,22 @@ void MySkeletonModel::updateFingers() {
         for (auto& link : chain) {
             int index = _rig.indexOfJoint(link.second);
             if (index >= 0) {
+                if (_jointRotationFrameOffsetMap.find(index) == _jointRotationFrameOffsetMap.end()) {
+                    _jointRotationFrameOffsetMap.insert(std::pair<int, int>(index, 0));
+                }
                 auto pose = myAvatar->getControllerPoseInSensorFrame(link.first);
                 if (pose.valid) {
                     glm::quat relRot = glm::inverse(prevAbsRot) * pose.getRotation();
                     // only set the rotation for the finger joints, not the hands.
                     if (link.first != controller::Action::LEFT_HAND && link.first != controller::Action::RIGHT_HAND) {
                         _rig.setJointRotation(index, true, relRot, CONTROLLER_PRIORITY);
+                        _jointRotationFrameOffsetMap.find(index)->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else {
-                    // _rig.clearJointAnimationPriority(index);
+                } else if (_jointRotationFrameOffsetMap.find(index)->second == 1){
+                    _rig.clearJointAnimationPriority(index);
                 }
+                _jointRotationFrameOffsetMap.find(index)->second++;
             }
         }
     }
