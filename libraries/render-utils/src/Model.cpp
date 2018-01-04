@@ -1188,10 +1188,13 @@ void Model::updateClusterMatrices() {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
-            glm::mat4 mat;
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, mat);
-            state.clusterTransforms[j] = TransformDualQuaternion(mat);
+            auto jointPose = _rig.getJointPose(cluster.jointIndex);
+            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+            Transform clusterTransform;
+            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
 #else
+            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
         }

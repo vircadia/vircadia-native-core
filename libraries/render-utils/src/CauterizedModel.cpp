@@ -109,13 +109,14 @@ void CauterizedModel::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-
-            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
-            glm::mat4 m;
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-            state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
+            auto jointPose = _rig.getJointPose(cluster.jointIndex);
+            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+            Transform clusterTransform;
+            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
 #else
+            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
         }
@@ -123,14 +124,17 @@ void CauterizedModel::updateClusterMatrices() {
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
-
+#if defined(SKIN_DQ)
+        AnimPose cauterizePose = _rig.getJointPose(geometry.neckJointIndex);
+        cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
+#else
         static const glm::mat4 zeroScale(
             glm::vec4(0.0001f, 0.0f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0001f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0001f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
-
+#endif
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
@@ -138,18 +142,19 @@ void CauterizedModel::updateClusterMatrices() {
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
 
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                    jointMatrix = cauterizeMatrix;
-                }
-
+                if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
+                    // not cauterized so just copy the value from the non-cauterized version.
+                    state.clusterTransforms[j] = _meshStates[i].clusterTransforms[j];
+                } else {
 #if defined(SKIN_DQ)
-                glm::mat4 m;
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, m);
-                state.clusterTransforms[j] = Model::TransformDualQuaternion(m);
+                    Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
+                    Transform clusterTransform;
+                    Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                    state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
 #else
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
+                    glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
+                }
             }
         }
     }

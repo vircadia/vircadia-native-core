@@ -115,6 +115,7 @@ public:
 
     int jointIndex;
     glm::mat4 inverseBindMatrix;
+    Transform inverseBindTransform;
 };
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;

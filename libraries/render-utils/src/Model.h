@@ -268,6 +268,10 @@ public:
             _scale.z = scale.z;
             _dq = DualQuaternion(rot, trans);
         }
+        TransformDualQuaternion(const Transform& transform) {
+            _scale = glm::vec4(transform.getScale(), 0.0f);
+            _dq = DualQuaternion(transform.getRotation(), transform.getTranslation());
+        }
         glm::vec3 getScale() const { return glm::vec3(_scale); }
         glm::quat getRotation() const { return _dq.getRotation(); }
         glm::vec3 getTranslation() const { return _dq.getTranslation(); }

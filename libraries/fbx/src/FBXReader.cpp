@@ -1613,6 +1613,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+                fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
