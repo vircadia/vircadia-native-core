@@ -21,27 +21,36 @@ namespace controller {
 
     Pose ExponentialSmoothingFilter::apply(Pose value) const {
 
-        // to perform filtering in sensor space, we need to compute the transformations.
-        auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        const InputCalibrationData calibrationData = userInputMapper->getInputCalibrationData();
-        glm::mat4 sensorToAvatarMat = glm::inverse(calibrationData.avatarMat) * calibrationData.sensorToWorldMat;
-        glm::mat4 avatarToSensorMat = glm::inverse(calibrationData.sensorToWorldMat) * calibrationData.avatarMat;
+        if (value.isValid()) {
 
-        // transform pose into sensor space.
-        Pose sensorValue = value.transform(avatarToSensorMat);
+            // to perform filtering in sensor space, we need to compute the transformations.
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            const InputCalibrationData calibrationData = userInputMapper->getInputCalibrationData();
+            glm::mat4 sensorToAvatarMat = glm::inverse(calibrationData.avatarMat) * calibrationData.sensorToWorldMat;
+            glm::mat4 avatarToSensorMat = glm::inverse(calibrationData.sensorToWorldMat) * calibrationData.avatarMat;
 
-        if (value.isValid() && _oldSensorValue.isValid()) {
+            // transform pose into sensor space.
+            Pose sensorValue = value.transform(avatarToSensorMat);
 
-            // exponential smoothing filter
-            sensorValue.translation = _translationConstant * sensorValue.getTranslation() + (1.0f - _translationConstant) * _oldSensorValue.getTranslation();
-            sensorValue.rotation = safeMix(sensorValue.getRotation(), _oldSensorValue.getRotation(), _rotationConstant);
+            if (_prevSensorValue.isValid()) {
+                // exponential smoothing filter
+                sensorValue.translation = _translationConstant * sensorValue.getTranslation() + (1.0f - _translationConstant) * _prevSensorValue.getTranslation();
+                sensorValue.rotation = safeMix(sensorValue.getRotation(), _prevSensorValue.getRotation(), _rotationConstant);
 
-            _oldSensorValue = sensorValue;
+                // remember previous sensor space value.
+                _prevSensorValue = sensorValue;
 
-            // transform back into avatar space
-            return sensorValue.transform(sensorToAvatarMat);
+                // transform back into avatar space
+                return sensorValue.transform(sensorToAvatarMat);
+            } else {
+                // remember previous sensor space value.
+                _prevSensorValue = sensorValue;
+
+                // no previous value to smooth with, so return value unchanged
+                return value;
+            }
         } else {
-            _oldSensorValue = sensorValue;
+            // return invalid value unchanged
             return value;
         }
     }
@@ -51,8 +60,8 @@ namespace controller {
         if (parameters.isObject()) {
             auto obj = parameters.toObject();
             if (obj.contains(JSON_ROTATION) && obj.contains(JSON_TRANSLATION)) {
-                _rotationConstant = obj[JSON_ROTATION].toDouble();
-                _translationConstant = obj[JSON_TRANSLATION].toDouble();
+                _rotationConstant = glm::clamp((float)obj[JSON_ROTATION].toDouble(), 0.0f, 1.0f);
+                _translationConstant = glm::clamp((float)obj[JSON_TRANSLATION].toDouble(), 0.0f, 1.0f);
                 return true;
             }
         }

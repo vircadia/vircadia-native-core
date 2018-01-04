@@ -34,7 +34,7 @@ namespace controller {
         float _translationConstant { 0.375f };
         float _rotationConstant { 0.375f };
 
-        mutable Pose _oldSensorValue { Pose() };  // sensor space
+        mutable Pose _prevSensorValue { Pose() };  // sensor space
     };
 
 }
