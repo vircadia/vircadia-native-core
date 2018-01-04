@@ -56,8 +56,6 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
