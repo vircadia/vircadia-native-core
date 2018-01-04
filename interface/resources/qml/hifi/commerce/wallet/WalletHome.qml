@@ -30,6 +30,7 @@ Item {
     property bool noMoreHistoryData: false;
     property int pendingCount: 0;
     property int currentHistoryPage: 1;
+    property var pagesAlreadyAdded: new Array();
 
     Connections {
         target: Commerce;
@@ -43,6 +44,8 @@ Item {
             root.historyRequestPending = false;
 
             if (result.status === 'success') {
+                var currentPage = parseInt(result.current_page);
+
                 if (result.data.history.length === 0) {
                     root.noMoreHistoryData = true;
                 } else if (root.currentHistoryPage === 1) {
@@ -69,10 +72,43 @@ Item {
                         calculatePendingAndInvalidated();
                     }
                 } else {
-                    // This prevents data from being displayed out-of-order,
-                    // but may also result in missing pages of data when scrolling quickly...
-                    if (root.currentHistoryPage === result.current_page) {
-                        transactionHistoryModel.append(result.data.history);
+                    if (root.pagesAlreadyAdded.indexOf(currentPage) !== -1) {
+                        console.log("Page " + currentPage + " of history has already been added to the list.");
+                    } else {
+                        // First, add the history result to a temporary model
+                        tempTransactionHistoryModel.clear();
+                        tempTransactionHistoryModel.append(result.data.history);
+
+                        // Make a note that we've already added this page to the model...
+                        root.pagesAlreadyAdded.push(currentPage);
+
+                        var insertionIndex = 0;
+                        // If there's nothing in the model right now, we don't need to modify insertionIndex.
+                        if (transactionHistoryModel.count !== 0) {
+                            var currentIteratorPage;
+                            // Search through the whole transactionHistoryModel and look for the insertion point.
+                            // The insertion point is found when the result page from the server is less than
+                            //     the page that the current item came from, OR when we've reached the end of the whole model.
+                            for (var i = 0; i < transactionHistoryModel.count; i++) {
+                                currentIteratorPage = transactionHistoryModel.get(i).resultIsFromPage;
+                        
+                                if (currentPage < currentIteratorPage) {
+                                    insertionIndex = i;
+                                    break;
+                                } else if (i === transactionHistoryModel.count - 1) {
+                                    insertionIndex = i + 1;
+                                    break;
+                                }
+                            }
+                        }
+                    
+                        // Go through the results we just got back from the server, setting the "resultIsFromPage"
+                        //     property of those results and adding them to the main model.
+                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                            tempTransactionHistoryModel.setProperty(i, "resultIsFromPage", currentPage);
+                            transactionHistoryModel.insert(i + insertionIndex, tempTransactionHistoryModel.get(i))
+                        }
+
                         calculatePendingAndInvalidated();
                     }
                 }
@@ -189,10 +225,12 @@ Item {
         id: refreshTimer;
         interval: 4000;
         onTriggered: {
-            console.log("Refreshing 1st Page of Recent Activity...");
-            root.historyRequestPending = true;
-            Commerce.balance();
-            Commerce.history(1);
+            if (root.currentHistoryPage === 1) {
+                console.log("Refreshing 1st Page of Recent Activity...");
+                root.historyRequestPending = true;
+                Commerce.balance();
+                Commerce.history(1);
+            }
         }
     }
 

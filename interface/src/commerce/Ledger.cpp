@@ -169,6 +169,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     QJsonObject newDataData;
     newDataData["history"] = newHistoryArray;
     newData["data"] = newDataData;
+    newData["current_page"] = data["current_page"].toInt();
     emit historyResult(newData);
 }
 
