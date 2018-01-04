@@ -83,13 +83,13 @@ public:
     virtual bool contains(const glm::vec3& point) const override;
 
     virtual bool shouldBePhysical() const override;
+    void simulateRelayedJoints();
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
-
 
     virtual glm::quat getLocalJointRotation(int index) const override;
     virtual glm::vec3 getLocalJointTranslation(int index) const override;

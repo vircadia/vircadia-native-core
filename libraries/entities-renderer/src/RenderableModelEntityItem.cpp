@@ -929,6 +929,15 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     return !result.isEmpty();
 }
 
+void RenderableModelEntityItem::simulateRelayedJoints() {
+    ModelPointer model = getModel();
+    if (model && model->isLoaded()) {
+        copyAnimationJointDataToModel();
+        model->simulate(0.0f);
+        model->updateRenderItems();
+    }
+}
+
 void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
@@ -1202,13 +1211,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         return;
     }
 
-    if (entity->_relayParentJoints) {
-        ModelPointer model = entity->getModel();
-        if (model && model->isLoaded()) {
-            entity->copyAnimationJointDataToModel();
-            model->simulate(0.0f);
-        }
-    }
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());

@@ -33,6 +33,7 @@
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
 #include "ModelEntityItem.h"
+#include "RenderableModelEntityItem.h"
 
 #include "Logging.h"
 
@@ -349,37 +350,39 @@ void Avatar::updateAvatarEntities() {
 }
 
 void Avatar::relayJointDataToChildren() {
-    int index = 0;
     forEachChild([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Entity) {
-            auto entity = std::dynamic_pointer_cast<EntityItem>(child);
-            if (entity) {
-                auto  modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-                if (modelEntity) {
-                    index++;
-                    if (modelEntity->getRelayParentJoints()) {
-                        QVector<glm::quat> jointRotations;
-                        QVector<glm::vec3> jointTranslations;
-                        QVector<bool> jointSet;
-                        QStringList modelJointNames = modelEntity->getJointNames();
-                        QStringList avatarJointNames = getJointNames();
-                        foreach (const QString& jointName, modelJointNames) {
-                            bool containsJoint = avatarJointNames.contains(jointName);
-                            if (!containsJoint) {
-                                qDebug() << "Warning: Parent does not have joint -" << jointName;
-                                continue;
-                            }
+            auto modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
+            if (modelEntity) {
+                if (modelEntity->getRelayParentJoints()) {
+                    QVector<glm::quat> jointRotations;
+                    QVector<glm::vec3> jointTranslations;
+                    QVector<bool> jointSet;
+                    QStringList modelJointNames = modelEntity->getJointNames();
+                    QStringList avatarJointNames = getJointNames();
+                    foreach (const QString& jointName, modelJointNames) {
+                        bool containsJoint = avatarJointNames.contains(jointName);
+                        glm::quat jointRotation;
+                        glm::vec3 jointTranslation;
+                        if (!containsJoint) {
+                            int jointIndex = modelEntity->getJointIndex(jointName);
+                            jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                            jointTranslation - modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                        } else {
                             int jointIndex = getJointIndex(jointName);
-                            int modelJointIndex = modelEntity->getJointIndex(jointName);
-                            jointSet.append(true);
-                            jointRotations.append(getJointRotation(jointIndex));
-                            jointTranslations.append(getJointTranslation(jointIndex));
+                            jointRotation = getJointRotation(jointIndex);
+                            jointTranslation = getJointTranslation(jointIndex);
                         }
-                        modelEntity->setJointRotationsSet(jointSet);
-                        //modelEntity->setJointTranslationsSet(jointSet);
-                        modelEntity->setJointRotations(jointRotations);
-                        //modelEntity->setJointTranslations(jointTranslations);
+                        jointSet.append(true);
+                        jointRotations.append(jointRotation);
+                        jointTranslations.append(jointTranslation);
                     }
+
+                    modelEntity->setJointRotationsSet(jointSet);
+                    modelEntity->setJointTranslationsSet(jointSet);
+                    modelEntity->setJointRotations(jointRotations);
+                    modelEntity->setJointTranslations(jointTranslations);
+                    modelEntity->simulateRelayedJoints();
                 }
             }
         }
