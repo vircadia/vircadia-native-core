@@ -9,6 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* jslint bitwise: true */
+
+/* global Script, Overlays, Controller, Vec3, Quat, MyAvatar, Entities
+*/
+
 (function(){
 
     var updateFingerWithIndex = 0;
@@ -376,7 +381,7 @@
         }       
         // Calculate new interpolation data 
         var totalDistance = addVals(dataClose[side][finger], dataOpen[side][finger], -1);
-        var percent = varsToDebug.fingerPercent[side][finger];
+        percent = varsToDebug.fingerPercent[side][finger];
         var newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1);
         
         // Assign animation interpolation steps
@@ -453,16 +458,17 @@
         updateSphereHand("left");
 
         // Assign interpolated values
-        var i, j, index;
+        var i, j, index, finger, names, quatRot;
+		
         for (i = 0; i < dataKeys.length; i++) {
-            var finger = dataKeys[i];
-            var names = getJointNames("Right", finger, 3);
+            finger = dataKeys[i];
+            names = getJointNames("Right", finger, 3);
             dataCurrent["right"][finger] = addVals(dataCurrent["right"][finger], dataDelta["right"][finger], 1);
             for (j = 0; j < names.length; j++) {
                 index = MyAvatar.getJointIndex(names[j]);
                 // if no finger is touching restate the default poses
                 if (getTouching("right")) {
-                    var quatRot = Quat.fromVec3Degrees(dataCurrent["right"][finger][j]);
+                    quatRot = Quat.fromVec3Degrees(dataCurrent["right"][finger][j]);
                     MyAvatar.setJointRotation(index, quatRot);  
                 } else {
                     MyAvatar.clearJointData(index);
@@ -471,14 +477,14 @@
         }
 
         for (i = 0; i < dataKeys.length; i++) {
-            var finger = dataKeys[i];
-            var names = getJointNames("Left", finger, 3);
+            finger = dataKeys[i];
+            names = getJointNames("Left", finger, 3);
             dataCurrent["left"][finger] = addVals(dataCurrent["left"][finger], dataDelta["left"][finger], 1);
             for (j = 0; j < names.length; j++) {
                 index = MyAvatar.getJointIndex(names[j]);
                 // if no finger is touching restate the default poses
                 if (getTouching("left")) {
-                    var quatRot = Quat.fromVec3Degrees(dataCurrent["left"][finger][j]);
+                    quatRot = Quat.fromVec3Degrees(dataCurrent["left"][finger][j]);
                     MyAvatar.setJointRotation(index, quatRot);  
                 } else {
                     MyAvatar.clearJointData(index);
