@@ -56,8 +56,8 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
+        UNUSED_PACKET_TYPE_1,
+        UNUSED_PACKET_TYPE_2,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -213,7 +213,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
-    ConnectionIdentifier = 20
+    ConnectionIdentifier = 20,
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
