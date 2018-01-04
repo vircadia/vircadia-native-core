@@ -53,7 +53,9 @@ const QString& PathUtils::projectRootPath() {
 #endif
 
 const QString& PathUtils::qmlBasePath() {
-#ifdef DEV_BUILD
+#ifdef Q_OS_ANDROID
+    static const QString staticResourcePath = QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/").toString();
+#elif defined (DEV_BUILD)
     static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
 #else
     static const QString staticResourcePath = "qrc:///qml/";

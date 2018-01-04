@@ -12,7 +12,7 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 
-if (NOT DEV_BUILD)
+if ANDROID OR (NOT DEV_BUILD)
     set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
     generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
 endif()      
