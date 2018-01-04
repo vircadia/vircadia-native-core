@@ -292,6 +292,12 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.opacity = tokenizer.getFloat();
         } else if (token == "Tr") {
             currentMaterial.opacity = 1.0f - tokenizer.getFloat();
+        } else if (token == "illum") {
+            currentMaterial.illuminationModel = tokenizer.getFloat();
+        } else if (token == "Tf") {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << tokenizer.getVec3();
+            #endif
         } else if (token == "Ka") {
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
@@ -302,8 +308,6 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if (token == "illum") {
-            currentMaterial.illuminationModel = tokenizer.getFloat();
         } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump")) {
             const QByteArray textureLine = tokenizer.getLineAsDatum();
             QByteArray filename;
@@ -917,6 +921,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
         modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
+        /*
         // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
         switch (objMaterial.illuminationModel) {
             case 0: // Color on and Ambient off
@@ -953,12 +958,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 // Do nothing?
                 break;
         }
+        */
 
-        if (fbxMaterial.opacity <= 0.0f) {
-            modelMaterial->setOpacity(0.0f); // previous was 1.0f?
-        } else {
-            modelMaterial->setOpacity(fbxMaterial.opacity);
-        }
+        modelMaterial->setOpacity(fbxMaterial.opacity);
     }
 
     return geometryPtr;
