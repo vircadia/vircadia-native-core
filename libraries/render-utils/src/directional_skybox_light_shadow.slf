@@ -26,8 +26,9 @@ void main(void) {
     DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-    vec4 worldPos = getViewInverse() * vec4(frag.position.xyz, 1.0);
-    float shadowAttenuation = evalShadowAttenuation(worldPos);
+    vec4 viewPos = vec4(frag.position.xyz, 1.0);
+    vec4 worldPos = getViewInverse() * viewPos;
+    float shadowAttenuation = evalShadowAttenuation(worldPos, -viewPos.z, frag.normal);
 
     // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT) {

@@ -141,3 +141,16 @@ void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int times
     payload["secondsToComplete"] = secondsToComplete;
     doLogAction("commerceWalletSetupFinished", payload);
 }
+
+void UserActivityLoggerScriptingInterface::commercePassphraseEntry(QString source) {
+    QJsonObject payload;
+    payload["source"] = source;
+    doLogAction("commercePassphraseEntry", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commercePassphraseAuthenticationStatus(QString status) {
+    QJsonObject payload;
+    payload["status"] = status;
+    doLogAction("commercePassphraseAuthenticationStatus", payload);
+
+}

@@ -1,0 +1,96 @@
+<!
+//  ShadowCore.slh
+//  libraries/render-utils/src
+//
+//  Created by Olivier Prat on 11/13/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SHADOW_CORE_SLH@>
+<@def SHADOW_CORE_SLH@>
+
+<@include Shadows_shared.slh@>
+
+layout(std140) uniform shadowTransformBuffer {
+	ShadowParameters shadow;
+};
+
+int getShadowCascadeCount() {
+    return shadow.cascadeCount;
+}
+
+float getShadowCascadeInvBlendWidth() {
+    return shadow.invCascadeBlendWidth;
+}
+
+float evalShadowFalloff(float depth) {
+    return clamp((shadow.maxDistance-depth) * shadow.invFalloffDistance, 0.0, 1.0);
+}
+
+mat4 getShadowReprojection(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].reprojection;
+}
+
+float getShadowScale() {
+	return shadow.invMapSize;
+}
+
+float getShadowBias(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].bias;
+}
+
+vec3 getShadowDirInViewSpace() {
+    return shadow.lightDirInViewSpace;
+}
+
+// Compute the texture coordinates from world coordinates
+vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
+	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
+	return vec4(shadowCoord.xyz, 1.0);
+}
+
+bool isShadowCascadeProjectedOnPixel(vec4 cascadeTexCoords) {
+    bvec2 greaterThanZero = greaterThanEqual(cascadeTexCoords.xy, vec2(0));
+    bvec2 lessThanOne = lessThanEqual(cascadeTexCoords.xy, vec2(1));
+    return all(greaterThanZero) && all(lessThanOne);
+}
+
+int getFirstShadowCascadeOnPixel(int startCascadeIndex, vec4 worldPosition, out vec4 cascadeShadowCoords) {
+    int cascadeIndex;
+    startCascadeIndex = min(startCascadeIndex, getShadowCascadeCount()-1);
+    for (cascadeIndex=startCascadeIndex ; cascadeIndex<getShadowCascadeCount() ; cascadeIndex++) {
+        cascadeShadowCoords = evalShadowTexcoord(cascadeIndex, worldPosition);
+        if (isShadowCascadeProjectedOnPixel(cascadeShadowCoords)) {
+            return cascadeIndex;
+        }
+    }
+    return cascadeIndex;
+}
+
+float evalShadowCascadeWeight(vec4 cascadeTexCoords) {
+    // Inspired by DirectX CascadeShadowMaps11 example
+    vec2 distanceToOne = vec2(1.0) - cascadeTexCoords.xy;
+    float blend1 = min( cascadeTexCoords.x, cascadeTexCoords.y );
+    float blend2 = min( distanceToOne.x, distanceToOne.y );
+    float blend = min( blend1, blend2 );
+    return clamp(blend * getShadowCascadeInvBlendWidth(), 0.0, 1.0);
+}
+
+float determineShadowCascadesOnPixel(vec4 worldPosition, float viewDepth, out vec4 cascadeShadowCoords[2], out ivec2 cascadeIndices) {
+    cascadeIndices.x = getFirstShadowCascadeOnPixel(0, worldPosition, cascadeShadowCoords[0]);
+    cascadeIndices.y = cascadeIndices.x+1;
+    if (cascadeIndices.x < (getShadowCascadeCount()-1)) {
+        cascadeIndices.y = getFirstShadowCascadeOnPixel(cascadeIndices.y, worldPosition, cascadeShadowCoords[1]);
+
+        float firstCascadeWeight = evalShadowCascadeWeight(cascadeShadowCoords[0]);
+        float secondCascadeWeight = evalShadowCascadeWeight(cascadeShadowCoords[1]);
+        // Returns the mix amount between first and second cascade.
+        return ((1.0-firstCascadeWeight) * secondCascadeWeight) / (firstCascadeWeight + secondCascadeWeight);
+    } else {
+        return 0.0;
+    }
+}
+
+<@endif@>

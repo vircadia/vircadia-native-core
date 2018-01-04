@@ -532,7 +532,7 @@ bool Scene::isSelectionEmpty(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
-        return false;
+        return true;
     } else {
         return (*found).second.isEmpty();
     }

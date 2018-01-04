@@ -10,6 +10,52 @@
 
 #include "Camera.h"
 
+/**jsdoc
+ * <p>Camera modes affect the position of the camera and the controls for camera movement. The camera can be in one of the
+ * following modes:</p>
+ * <table>
+ *   <thead>
+ *     <tr>
+ *       <th>Mode</th>
+ *       <th>String</th>
+ *       <th>Description</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td><strong>First&nbsp;Person</strong></td>
+ *       <td><code>"first&nbsp;person"</code></td>
+ *       <td>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with your
+ *       avatar.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Third&nbsp;Person</strong></td>
+ *       <td><code>"third&nbsp;person"</code></td>
+ *       <td>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates with
+ *       your avatar.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Mirror</strong></td>
+ *       <td><code>"mirror"</code></td>
+ *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with your 
+ *       avatar.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Independent</strong></td>
+ *       <td><code>"independent"</code></td>
+ *       <td>The camera's position and orientation don't change with your avatar movement. Instead, they can be set via 
+ *       scripting.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><strong>Entity</strong></td>
+ *       <td><code>"entity"</code></td>
+ *       <td>The camera's position and orientation are set to be the same as a specified entity's, and move with the entity as
+ *       it moves.
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Camera.Mode
+ */
 CameraMode stringToMode(const QString& mode) {
     if (mode == "third person") {
         return CAMERA_MODE_THIRD_PERSON;
@@ -131,6 +177,18 @@ void Camera::loadViewFrustum(ViewFrustum& frustum) const {
     frustum.calculate();
 }
 
+/**jsdoc
+ * A ViewFrustum has a "keyhole" shape: a regular frustum for stuff that is visible plus a central sphere for stuff that is
+ * nearby (for physics simulation).
+ *
+ * @typedef {object} ViewFrustum
+ * @property {Vec3} position - The location of the frustum's apex.
+ * @property {Quat} orientation - The direction that the frustum is looking at.
+ * @property {number} centerRadius - Center radius of the keyhole in meters.
+ * @property {number} fieldOfView - Horizontal field of view in degrees.
+ * @property {number} aspectRatio - Aspect ratio of the frustum.
+ * @property {Mat4} projection - The projection matrix for the view defined by the frustum.
+ */
 QVariantMap Camera::getViewFrustum() {
     ViewFrustum frustum;
     loadViewFrustum(frustum);

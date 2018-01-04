@@ -23,10 +23,10 @@ static const float WEB_STYLUS_LENGTH = 0.2f;
 static const float TABLET_MIN_HOVER_DISTANCE = -0.1f;
 static const float TABLET_MAX_HOVER_DISTANCE = 0.1f;
 static const float TABLET_MIN_TOUCH_DISTANCE = -0.1f;
-static const float TABLET_MAX_TOUCH_DISTANCE = 0.01f;
+static const float TABLET_MAX_TOUCH_DISTANCE = 0.005f;
 
 static const float HOVER_HYSTERESIS = 0.01f;
-static const float TOUCH_HYSTERESIS = 0.02f;
+static const float TOUCH_HYSTERESIS = 0.001f;
 
 static const float STYLUS_MOVE_DELAY = 0.33f * USECS_PER_SECOND;
 static const float TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0481f;

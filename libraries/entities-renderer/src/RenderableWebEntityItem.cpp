@@ -30,6 +30,8 @@
 using namespace render;
 using namespace render::entities;
 
+static const QString WEB_ENTITY_QML = "controls/WebEntityView.qml";
+
 const float METERS_TO_INCHES = 39.3701f;
 static uint32_t _currentWebCount{ 0 };
 // Don't allow more than 100 concurrent web views
@@ -218,6 +220,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     };
 
     {
+    	// FIXME use the surface cache instead of explicit creation
         _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
         _webSurface->create();
     }
@@ -291,7 +294,6 @@ void WebEntityRenderer::loadSourceURL() {
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _lastSourceUrl.toLower().endsWith(".htm") || _lastSourceUrl.toLower().endsWith(".html")) {
         _contentType = htmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/controls/"));
 
         // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
         if (sourceUrl.host().endsWith("youtube.com", Qt::CaseInsensitive)) {
@@ -300,12 +302,11 @@ void WebEntityRenderer::loadSourceURL() {
             _webSurface->setMaxFps(DEFAULT_MAX_FPS);
         }
 
-        _webSurface->load("WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
+        _webSurface->load("controls/WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
             item->setProperty("url", _lastSourceUrl);
         });
     } else {
         _contentType = qmlContent;
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_lastSourceUrl);
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();

@@ -88,53 +88,6 @@ gpu::Size getFreeDedicatedMemory() {
     return result;
 }
 
-gpu::Size getDedicatedMemory() {
-    static Size dedicatedMemory { 0 };
-    static std::once_flag once;
-    std::call_once(once, [&] {
-#ifdef Q_OS_WIN
-        if (!dedicatedMemory && wglGetGPUIDsAMD && wglGetGPUInfoAMD) {
-            UINT maxCount = wglGetGPUIDsAMD(0, 0);
-            std::vector<UINT> ids;
-            ids.resize(maxCount);
-            wglGetGPUIDsAMD(maxCount, &ids[0]);
-            GLuint memTotal;
-            wglGetGPUInfoAMD(ids[0], WGL_GPU_RAM_AMD, GL_UNSIGNED_INT, sizeof(GLuint), &memTotal);
-            dedicatedMemory = MB_TO_BYTES(memTotal);
-        }
-#endif
-
-        if (!dedicatedMemory) {
-            GLint atiGpuMemory[4];
-            // not really total memory, but close enough if called early enough in the application lifecycle
-            glGetIntegerv(GL_TEXTURE_FREE_MEMORY_ATI, atiGpuMemory);
-            if (GL_NO_ERROR == glGetError()) {
-                dedicatedMemory = KB_TO_BYTES(atiGpuMemory[0]);
-            }
-        }
-
-        if (!dedicatedMemory) {
-            GLint nvGpuMemory { 0 };
-            glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &nvGpuMemory);
-            if (GL_NO_ERROR == glGetError()) {
-                dedicatedMemory = KB_TO_BYTES(nvGpuMemory);
-            }
-        }
-
-        if (!dedicatedMemory) {
-            auto gpuIdent = GPUIdent::getInstance();
-            if (gpuIdent && gpuIdent->isValid()) {
-                dedicatedMemory = MB_TO_BYTES(gpuIdent->getMemory());
-            }
-        }
-    });
-
-    return dedicatedMemory;
-}
-
-
-
-
 ComparisonFunction comparisonFuncFromGL(GLenum func) {
     if (func == GL_NEVER) {
         return NEVER;

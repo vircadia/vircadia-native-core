@@ -19,14 +19,41 @@
 #include <QDir>
 #include <QUrl>
 #include <QtCore/QStandardPaths>
+#include <QRegularExpression>
 #include <mutex> // std::once
 #include "shared/GlobalAppProperties.h"
+#include "SharedUtil.h"
+
+// Format: AppName-PID-Timestamp
+// Example: ...
+QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#endif
+    return staticResourcePath;
+}
+
+#ifdef DEV_BUILD
+const QString& PathUtils::projectRootPath() {
+    static QString sourceFolder;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        QDir thisDir = QFileInfo(__FILE__).absoluteDir();
+        sourceFolder = QDir::cleanPath(thisDir.absoluteFilePath("../../../"));
+    });
+    return sourceFolder;
+}
+#endif
+
+const QString& PathUtils::qmlBasePath() {
+#ifdef DEV_BUILD
+    static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
+#else
+    static const QString staticResourcePath = "qrc:///qml/";
 #endif
 
     return staticResourcePath;
@@ -60,12 +87,46 @@ QString PathUtils::generateTemporaryDir() {
     QString appName = qApp->applicationName();
     for (auto i = 0; i < 64; ++i) {
         auto now = std::chrono::system_clock::now().time_since_epoch().count();
-        QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
+        auto dirName = TEMP_DIR_FORMAT.arg(appName).arg(qApp->applicationPid()).arg(now);
+        QDir tempDir = rootTempDir.filePath(dirName);
         if (tempDir.mkpath(".")) {
             return tempDir.absolutePath();
         }
     }
     return "";
+}
+
+// Delete all temporary directories for an application
+int PathUtils::removeTemporaryApplicationDirs(QString appName) {
+    if (appName.isNull()) {
+        appName = qApp->applicationName();
+    }
+
+    auto dirName = TEMP_DIR_FORMAT.arg(appName).arg("*").arg("*");
+
+    QDir rootTempDir = QDir::tempPath();
+    auto dirs = rootTempDir.entryInfoList({ dirName }, QDir::Dirs);
+    int removed = 0;
+    for (auto& dir : dirs) {
+        auto dirName = dir.fileName();
+        auto absoluteDirPath = QDir(dir.absoluteFilePath());
+        QRegularExpression re { "^" + QRegularExpression::escape(appName) + "\\-(?<pid>\\d+)\\-(?<timestamp>\\d+)$" };
+
+        auto match = re.match(dirName);
+        if (match.hasMatch()) {
+            auto pid = match.capturedRef("pid").toLongLong();
+            auto timestamp = match.capturedRef("timestamp");
+            if (!processIsRunning(pid)) {
+                qDebug() << "  Removing old temporary directory: " << dir.absoluteFilePath();
+                absoluteDirPath.removeRecursively();
+                removed++;
+            } else {
+                qDebug() << "  Not removing (process is running): " << dir.absoluteFilePath();
+            }
+        }
+    }
+
+    return removed;
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
