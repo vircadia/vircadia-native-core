@@ -26,7 +26,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
-            makeLaserParams(this.hand, false)
+            makeLaserParams(-1, false) // Invalid hand parameter so that default laser is not displayed.
         );
 
         this.pointingAtTablet = function (objectID) {
