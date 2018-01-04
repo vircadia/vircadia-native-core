@@ -116,8 +116,8 @@ void BaseLogDialog::handleSearchButton() {
 }
 
 void BaseLogDialog::handleSearchTextChanged(QString searchText) {
-   
     QTextCursor cursor = _logTextBox->textCursor();
+
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
         if (selectedTerm == searchText) {
@@ -137,6 +137,10 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
     _highlighter->rehighlight();
+}
+
+void BaseLogDialog::clearSearch() {
+    _searchTextBox->setText("");
 }
 
 void BaseLogDialog::toggleSearchPrev() {

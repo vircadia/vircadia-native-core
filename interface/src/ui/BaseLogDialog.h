@@ -67,6 +67,7 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
     virtual QString getCurrentLog() = 0;
+    void clearSearch();
 
 private:
     QPushButton* _searchButton{ nullptr };

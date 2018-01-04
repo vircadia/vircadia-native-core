@@ -19,7 +19,7 @@
 #include <shared/AbstractLoggerInterface.h>
 
 const int REVEAL_BUTTON_WIDTH = 122;
-const int SHOW_ALL_BUTTON_WIDTH = 80;
+const int CLEAR_FILTER_BUTTON_WIDTH = 80;
 const int MARGIN_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
@@ -149,13 +149,12 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _extraDebuggingBox->show();
     connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleExtraDebuggingCheckbox);
 
-    _showAllButton = new QPushButton("Show All", this);
+    _clearFilterButton = new QPushButton("Clear Filters", this);
     // set object name for css styling
-    _showAllButton->setObjectName("showAllButton");
-    _showAllButton->show();
-    connect(_showAllButton, &QPushButton::clicked, this, &LogDialog::handleShowAllButton);
-
-    
+    _clearFilterButton->setObjectName("showAllButton");
+    _clearFilterButton->show();
+    connect(_clearFilterButton, &QPushButton::clicked, this, &LogDialog::handleClearFilterButton);
+    handleClearFilterButton();
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -164,11 +163,11 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         ELEMENT_MARGIN,
         REVEAL_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _showAllButton->setGeometry(width() - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
+    _clearFilterButton->setGeometry(width() - ELEMENT_MARGIN - CLEAR_FILTER_BUTTON_WIDTH,
         THIRD_ROW,
-        SHOW_ALL_BUTTON_WIDTH,
+        CLEAR_FILTER_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - SHOW_ALL_BUTTON_WIDTH,
+    _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - CLEAR_FILTER_BUTTON_WIDTH,
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
@@ -178,10 +177,26 @@ void LogDialog::handleRevealButton() {
     _logger->locateLog();
 }
 
-void LogDialog::handleShowAllButton() {
-    _logTextBox->clear();
-    QString log = getCurrentLog();
-    _logTextBox->appendPlainText(log);
+void LogDialog::handleClearFilterButton() {
+    _logger->setExtraDebugging(false);
+    _extraDebuggingBox->setCheckState(Qt::Unchecked);
+    _logger->setDebugPrint(false);
+    _debugPrintBox->setCheckState(Qt::Unchecked);
+    _logger->setInfoPrint(false);
+    _infoPrintBox->setCheckState(Qt::Unchecked);
+    _logger->setCriticalPrint(true);
+    _criticalPrintBox->setCheckState(Qt::Checked);
+    _logger->setWarningPrint(true);
+    _warningPrintBox->setCheckState(Qt::Checked);
+    _logger->setSuppressPrint(true);
+    _suppressPrintBox->setCheckState(Qt::Checked);
+    _logger->setFatalPrint(true);
+    _fatalPrintBox->setCheckState(Qt::Checked);
+    _logger->setUnknownPrint(true);
+    _unknownPrintBox->setCheckState(Qt::Checked);
+    clearSearch();
+    _filterDropdown->setCurrentIndex(0);
+    printLogFile();
 }
 
 void LogDialog::handleExtraDebuggingCheckbox(int state) {

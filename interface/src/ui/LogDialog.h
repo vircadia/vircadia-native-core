@@ -40,7 +40,7 @@ private slots:
     void handleFatalPrintBox(int);
     void handleUnknownPrintBox(int);
     void handleFilterDropdownChanged(int);
-    void handleShowAllButton();
+    void handleClearFilterButton();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -50,7 +50,7 @@ protected:
 private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
-    QPushButton* _showAllButton;
+    QPushButton* _clearFilterButton;
     QCheckBox* _debugPrintBox;
     QCheckBox* _infoPrintBox;
     QCheckBox* _criticalPrintBox;
