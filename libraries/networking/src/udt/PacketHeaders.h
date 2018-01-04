@@ -212,7 +212,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
-    ConnectionIdentifier = 20
+    ConnectionIdentifier = 20,
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
