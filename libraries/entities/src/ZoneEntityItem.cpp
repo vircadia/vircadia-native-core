@@ -290,10 +290,10 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
-    qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);
-    qCDebug(entities) << "               _keyLightMode:" << EntityItemProperties::getKeyLightModeString(_keyLightMode);
-    qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getAmbientLightModeString(_ambientLightMode);
-    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getSkyboxModeString(_skyboxMode);
+    qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getComponentModeString(_hazeMode);
+    qCDebug(entities) << "               _keyLightMode:" << EntityItemProperties::getComponentModeString(_keyLightMode);
+    qCDebug(entities) << "               _ambientLightMode:" << EntityItemProperties::getComponentModeString(_ambientLightMode);
+    qCDebug(entities) << "               _skyboxMode:" << EntityItemProperties::getComponentModeString(_skyboxMode);
 
     _keyLightProperties.debugDump();
     _ambientLightProperties.debugDump();

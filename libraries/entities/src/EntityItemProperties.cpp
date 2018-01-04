@@ -224,7 +224,7 @@ QString EntityItemProperties::getHazeModeAsString() const {
     }
 }
 
-QString EntityItemProperties::getHazeModeString(uint32_t mode) {
+QString EntityItemProperties::getComponentModeString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[mode].second;
@@ -253,15 +253,6 @@ QString EntityItemProperties::getKeyLightModeAsString() const {
     }
 }
 
-QString EntityItemProperties::getKeyLightModeString(uint32_t mode) {
-    // return "enabled" if mode is not valid
-    if (mode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[mode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
-}
-
 void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
     auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
         return (pair.second == keyLightMode);
@@ -282,15 +273,6 @@ QString EntityItemProperties::getAmbientLightModeAsString() const {
     }
 }
 
-QString EntityItemProperties::getAmbientLightModeString(uint32_t mode) {
-    // return "enabled" if mode is not valid
-    if (mode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[mode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
-}
-
 void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
     auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
         return (pair.second == ambientLightMode);
@@ -306,15 +288,6 @@ QString EntityItemProperties::getSkyboxModeAsString() const {
     // return "enabled" if _skyboxMode is not valid
     if (_skyboxMode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[_skyboxMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
-}
-
-QString EntityItemProperties::getSkyboxModeString(uint32_t mode) {
-    // return "enabled" if mode is not valid
-    if (mode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[mode].second;
     } else {
         return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
     }

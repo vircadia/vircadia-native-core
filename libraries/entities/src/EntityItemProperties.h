@@ -255,10 +255,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
-    static QString getHazeModeString(uint32_t mode);
-    static QString getKeyLightModeString(uint32_t mode);
-    static QString getAmbientLightModeString(uint32_t mode);
-    static QString getSkyboxModeString(uint32_t mode);
+    static QString getComponentModeString(uint32_t mode);
 
 public:
     float getMaxDimension() const { return glm::compMax(_dimensions); }

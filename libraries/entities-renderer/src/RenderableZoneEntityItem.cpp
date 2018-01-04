@@ -163,48 +163,23 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
     if (_visible) {
         // Finally, push the light visible in the frame
-        if (_keyLightMode == COMPONENT_MODE_DISABLED && _sunOnIndex == NO_STORED_VALUE) {
-			// Just turned off, store previous value before changing
-            _sunOnIndex = _sunIndex;
-            _sunIndex = _stage->getSunOffLight();
-        } else if (_keyLightMode == COMPONENT_MODE_ENABLED && _sunOnIndex != NO_STORED_VALUE) {
-			// Just turned on, restore previous value before clearing stored value
-            _sunIndex = _sunOnIndex;
-            _sunOnIndex = NO_STORED_VALUE;
-        } 
-
-        if (_keyLightMode != COMPONENT_MODE_INHERIT) {
+        if (_keyLightMode == COMPONENT_MODE_DISABLED) {
+            _stage->_currentFrame.pushSunLight(_stage->getSunOffLight());
+        } else if (_keyLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
         // The background only if the mode is not inherit
-        if (_skyboxMode == COMPONENT_MODE_DISABLED && _skyboxOnIndex == NO_STORED_VALUE) {
-            // Just turned off, store previous value before changing
-            _skyboxOnIndex = _backgroundIndex;
-            _backgroundIndex = INVALID_INDEX;
-        } else if (_skyboxMode == COMPONENT_MODE_ENABLED && _skyboxOnIndex != NO_STORED_VALUE) {
-            // Just turned on, restore previous value before clearing stored value
-            _backgroundIndex = _skyboxOnIndex;
-            _skyboxOnIndex = NO_STORED_VALUE;
-        }
-
-        // _backgroundMode is kept for legacy purposes
-        if (_skyboxMode != COMPONENT_MODE_INHERIT || _backgroundMode != BACKGROUND_MODE_INHERIT) {
+        if (_skyboxMode == COMPONENT_MODE_DISABLED) {
+            _backgroundStage->_currentFrame.pushBackground(INVALID_INDEX);
+        } else if (_skyboxMode == COMPONENT_MODE_ENABLED) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
         // The ambient light only if it has a valid texture to render with
-        if (_ambientLightMode == COMPONENT_MODE_DISABLED && _ambientOnIndex == NO_STORED_VALUE) {
-            // Just turned off, store previous value before changing
-            _ambientOnIndex = _ambientIndex;
-            _ambientIndex = _stage->getAmbientOffLight();
-        } else if (_ambientLightMode == COMPONENT_MODE_ENABLED && _ambientOnIndex != NO_STORED_VALUE) {
-            // Just turned on, restore previous value before clearing stored value
-            _ambientIndex = _ambientOnIndex;
-            _ambientOnIndex = NO_STORED_VALUE;
-        }
-
-        if (_ambientLightMode != COMPONENT_MODE_INHERIT && _validAmbientTexture) {
+        if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
+            _stage->_currentFrame.pushAmbientLight(_stage->getAmbientOffLight());
+        } else if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
@@ -222,11 +197,6 @@ void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction&
     }
 #endif
     Parent::removeFromScene(scene, transaction);
-
-    // clear flags
-    _sunOnIndex = NO_STORED_VALUE;
-    _ambientOnIndex = NO_STORED_VALUE;
-    _skyboxOnIndex = NO_STORED_VALUE;
 }
 
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -276,7 +246,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
         updateKeySunFromEntity(entity);
     }
 
-    if (ambientLightChanged || skyboxChanged) {
+    if (ambientLightChanged) {
         updateAmbientLightFromEntity(entity);
     }
 
