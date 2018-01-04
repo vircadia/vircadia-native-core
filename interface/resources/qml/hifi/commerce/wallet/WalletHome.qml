@@ -116,7 +116,7 @@ Item {
 
             // Only auto-refresh if the user hasn't scrolled
             // and there is more data to grab
-            if (root.currentHistoryPage === 1 && !root.noMoreHistoryData) {
+            if (transactionHistory.atYBeginning && !root.noMoreHistoryData) {
                 refreshTimer.start();
             }
         }
@@ -225,7 +225,7 @@ Item {
         id: refreshTimer;
         interval: 4000;
         onTriggered: {
-            if (root.currentHistoryPage === 1) {
+            if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
                 root.historyRequestPending = true;
                 Commerce.balance();
