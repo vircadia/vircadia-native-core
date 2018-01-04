@@ -495,7 +495,7 @@ Script.include("/~/system/libraries/Xform.js");
                                     var props = Entities.getEntityProperties(rayPickInfo.objectID);
                                     var pointerEvent = {
                                         type: "Move",
-                                        id: this.hand + 1, // 0 is reserved for hardware mouse
+                                        id: _this.hand + 1, // 0 is reserved for hardware mouse
                                         pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID, rayPickInfo.intersection, props),
                                         pos3D: rayPickInfo.intersection,
                                         normal: rayPickInfo.surfaceNormal,
