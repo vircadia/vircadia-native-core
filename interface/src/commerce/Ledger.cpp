@@ -179,7 +179,7 @@ void Ledger::historyFailure(QNetworkReply& reply) {
 
 void Ledger::history(const QStringList& keys, const QString& pageNumber) {
     QJsonObject params;
-    params["per_page"] = 7;
+    params["per_page"] = 100;
     params["page"] = pageNumber;
     keysQuery("history", params, "historySuccess", "historyFailure");
 }
