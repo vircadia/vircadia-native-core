@@ -33,7 +33,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
-	"system/controllers/handTouch.js"
+    "system/controllers/handTouch.js"
     //"system/chat.js"
 ];
 

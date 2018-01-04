@@ -222,7 +222,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto orientation = myAvatar->getLocalOrientation();
     _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
-    //// evaluate AnimGraph animation and update jointStates.
+    // evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);
 
     Rig::EyeParameters eyeParams;

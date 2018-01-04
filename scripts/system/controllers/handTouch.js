@@ -12,17 +12,17 @@
 (function(){
 
     var updateFingerWithIndex = 0;
-	
-	// Keys to access finger data
+    
+    // Keys to access finger data
     var dataKeys = ["pinky", "ring", "middle", "index", "thumb"];
     
-	// Additionally close the hands to achieve a grabbing effect 
+    // Additionally close the hands to achieve a grabbing effect 
     var grabPercent = { left: 0, 
                         right: 0 };
     
     // var isGrabbing = false;
-	
-	// Store which fingers are touching - if all false restate the default poses 
+    
+    // Store which fingers are touching - if all false restate the default poses 
     var isTouching = {
         left: {
             pinky: false, 
@@ -39,8 +39,8 @@
         }
     }
     
-	// joint data for opened pose
-	
+    // joint data for opened pose
+    
     var dataOpen = {
         left: {
             pinky: [{x: -0.18262, y:-2.666, z:-25.11229}, {x: 1.28845, y:0, z:1.06604}, {x: -3.967, y:0, z:-0.8351} ], 
@@ -56,8 +56,8 @@
             index: [{x: -0.111, y: 0, z: -2.2816}, {x: 1.217, y: 0, z: -0.90168}, {x: -3.967, y: 0, z: 2.62649}]
         }
     }
-	
-	// joint data for closed hand
+    
+    // joint data for closed hand
 
     var dataClose = {
         left: {
@@ -75,8 +75,8 @@
         }
     }
     
-	// joint data for the current frame
-	
+    // joint data for the current frame
+    
     var dataCurrent = {
         left:{
             pinky:[{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
@@ -93,8 +93,8 @@
             index: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}]
         }
     } 
-	
-	// interpolated values on joint data to smooth movement 
+    
+    // interpolated values on joint data to smooth movement 
     
     var dataDelta = {
         left:{
@@ -113,24 +113,24 @@
         }
     }
     
-	// Acquire an updated value per hand every 5 frames
-	
+    // Acquire an updated value per hand every 5 frames
+    
     var animationSteps = 5;
     
-	// Debugging info
-	
+    // Debugging info
+    
     var showSphere = false;
     var showLines = false;
     
-	// store the rays for the fingers - only for debug purposes
-	
+    // store the rays for the fingers - only for debug purposes
+    
     var fingerRays = {  
         left:{pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined}, 
         right:{pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined}
     };
     
-	// Register object with API Debugger 
-	
+    // Register object with API Debugger 
+    
     var varsToDebug = {
         toggleDebugSphere: function(){
             showSphere = !showSphere;
@@ -163,8 +163,8 @@
             rightSecondaryValue: 0
         }
     }
-	
-	// Add/Subtract the joint data - per finger joint
+    
+    // Add/Subtract the joint data - per finger joint
     
     function addVals(val1, val2, sign) {
         var val = [];
@@ -178,8 +178,8 @@
         return val;
     }
     
-	// Multiply/Divide  the joint data - per finger joint
-	
+    // Multiply/Divide  the joint data - per finger joint
+    
     function multiplyValsBy(val1, num) {
         var val = [];
         for (var i = 0; i < val1.length; i++) {
@@ -190,8 +190,8 @@
         }
         return val;
     }
-	
-	// Calculate the finger lengths by adding its joint lengths
+    
+    // Calculate the finger lengths by adding its joint lengths
     
     function getJointDistances(jointNamesArray) {
         var result = {distances: [], totalDistance: 0}
@@ -206,27 +206,27 @@
         }
         return result;
     }
-	
-	// Calculate the sphere that look up for entities, the center of the palm, perpendicular vector from the palm plane and origin of the the finger rays
+    
+    // Calculate the sphere that look up for entities, the center of the palm, perpendicular vector from the palm plane and origin of the the finger rays
     
     function estimatePalmData(side) {
         // Return data object
-		var data = {position: undefined, perpendicular: undefined, distance: undefined, fingers: {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined}};        
+        var data = {position: undefined, perpendicular: undefined, distance: undefined, fingers: {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined}};        
         
         var jointOffset = { x: 0, y: 0, z: 0 }; 
-		
+        
         var upperSide = side[0].toUpperCase() + side.substring(1);
         var jointIndexHand = MyAvatar.getJointIndex(upperSide + "Hand");
-		
-		// Store position of the hand joint
+        
+        // Store position of the hand joint
         var worldPosHand = MyAvatar.jointToWorldPoint(jointOffset, jointIndexHand);
         var minusWorldPosHand = {x:-worldPosHand.x, y:-worldPosHand.y, z:-worldPosHand.z};
         
-		// Data for finger rays
+        // Data for finger rays
         var directions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
         var positions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
         
-		// Calculate palm center
+        // Calculate palm center
         var palmCenter = {x:0, y:0, z:0};
         palmCenter = Vec3.sum(worldPosHand, palmCenter);
         
@@ -249,10 +249,10 @@
         }
         
         data.perpendicular = side == "right" ? Vec3.normalize(Vec3.cross(directions["ring"], directions["pinky"])) : Vec3.normalize(Vec3.cross(directions["pinky"],directions["ring"]));
-		
-		
+        
+        
         data.position = Vec3.multiply(1.0/9, palmCenter); // Hand joint + 2 * 4 fingers(no thumb) = 9
-		
+        
         data.distance = 1.55*Vec3.distance(data.position, positions["index"]);
 
         // move back thumb check up origin
@@ -262,11 +262,11 @@
         return data;
     }
     
-	// Register GlobalDebugger for API Debugger
+    // Register GlobalDebugger for API Debugger
     Script.registerValue("GlobalDebugger", varsToDebug);
 
-	// Create debug overlays - finger rays + palm rays + spheres
-	
+    // Create debug overlays - finger rays + palm rays + spheres
+    
     for (var i = 0; i < dataKeys.length; i++) {
         fingerRays["left"][dataKeys[i]] = Overlays.addOverlay("line3d", {
             color: { red: 0, green: 0, blue: 255 },
@@ -313,18 +313,18 @@
     }
     
     function updateSphereHand(side) {
-		
+        
         var palmData = estimatePalmData(side);
         var palmPoint = palmData.position;
         var dist = 1.5*palmData.distance;
-		
-		// Situate the debugging overlays 
-		
+        
+        // Situate the debugging overlays 
+        
         var checkOffset = { x: palmData.perpendicular.x * dist, 
                             y: palmData.perpendicular.y * dist, 
                             z: palmData.perpendicular.z * dist };
         
-		
+        
         var spherePos = Vec3.sum(palmPoint, checkOffset);
         var checkPoint = Vec3.sum(palmPoint, Vec3.multiply(2, checkOffset));
         
@@ -351,9 +351,9 @@
                 visible: showLines
             });
         }       
-		
-		// Update the intersection of only one finger at a time
-		
+        
+        // Update the intersection of only one finger at a time
+        
         var finger = dataKeys[updateFingerWithIndex];
         
         var grabbables = Entities.findEntities(spherePos, dist);
@@ -363,18 +363,18 @@
             var direction = Vec3.normalize(Vec3.subtract(checkPoint, origin));
             var intersection = Entities.findRayIntersection({origin: origin, direction: direction}, true, grabbables, [], true, false);
             var percent = 0.75;
-			var isAbleToGrab = intersection.intersects && intersection.distance < 2.5*dist;
-			// Store if this finger is touching something
-			isTouching[side][finger] = isAbleToGrab;
+            var isAbleToGrab = intersection.intersects && intersection.distance < 2.5*dist;
+            // Store if this finger is touching something
+            isTouching[side][finger] = isAbleToGrab;
             if (isAbleToGrab) {
-				// update the open/close percentage for this finger 
+                // update the open/close percentage for this finger 
                 percent = intersection.distance/(2.5*dist);
                 var grabMultiplier = finger === "thumb" ? 0.2 : 0.05;
                 percent += grabMultiplier * grabPercent[side];
             } 
             varsToDebug.fingerPercent[side][finger] = percent; // store the current open/close percentage
         }       
-		// Calculate new interpolation data 
+        // Calculate new interpolation data 
         var totalDistance = addVals(dataClose[side][finger], dataOpen[side][finger], -1);
         var percent = varsToDebug.fingerPercent[side][finger];
         var newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1);
@@ -383,7 +383,7 @@
         dataDelta[side][finger] = multiplyValsBy(addVals(newFingerData, dataCurrent[side][finger], -1), 1.0/animationSteps);
     }
     
-	// Recreate the finger joint names - and how many 0 to count
+    // Recreate the finger joint names - and how many 0 to count
     function getJointNames(side, finger, count) {
         var names = [];
         for (var i = 1; i < count+1; i++) {
@@ -393,11 +393,11 @@
         return names;
     }
 
-	// Capture the controller values
-	
+    // Capture the controller values
+    
     var leftTriggerPress = function (value) {
         varsToDebug.triggerValues.leftTriggerValue = value;
-		// the value for the trigger increments the hand-close percentage 
+        // the value for the trigger increments the hand-close percentage 
         grabPercent["left"] = value;
     };
     var leftTriggerClick = function (value) {
@@ -405,7 +405,7 @@
     };
     var rightTriggerPress = function (value) {
         varsToDebug.triggerValues.rightTriggerValue = value;
-		// the value for the trigger increments the hand-close percentage 
+        // the value for the trigger increments the hand-close percentage 
         grabPercent["right"] = value;
     };
     var rightTriggerClick = function (value) {
@@ -431,60 +431,60 @@
     mapping.from([Controller.Standard.RightGrip]).peek().to(rightSecondaryPress);
 
     Controller.enableMapping(MAPPING_NAME);
-	
-	function getTouching(side) {
-		var animating = false;
-		for (var i = 0; i < dataKeys.length; i++) {
-			var finger = dataKeys[i];
-			animating = animating || isTouching[side][finger];
-		}
-		return animating;
-	}
-	
+    
+    function getTouching(side) {
+        var animating = false;
+        for (var i = 0; i < dataKeys.length; i++) {
+            var finger = dataKeys[i];
+            animating = animating || isTouching[side][finger];
+        }
+        return animating;
+    }
+    
     Script.update.connect(function(){
-		
-		// iterate fingers
-		
-		updateFingerWithIndex = (updateFingerWithIndex < dataKeys.length-1) ? updateFingerWithIndex + 1 : 0;
         
-		// precalculate data
-		
+        // iterate fingers
+        
+        updateFingerWithIndex = (updateFingerWithIndex < dataKeys.length-1) ? updateFingerWithIndex + 1 : 0;
+        
+        // precalculate data
+        
         updateSphereHand("right");
         updateSphereHand("left");
 
-		// Assign interpolated values
-		var i, j, index;
-		for (i = 0; i < dataKeys.length; i++) {
-			var finger = dataKeys[i];
-			var names = getJointNames("Right", finger, 3);
-			dataCurrent["right"][finger] = addVals(dataCurrent["right"][finger], dataDelta["right"][finger], 1);
-			for (j = 0; j < names.length; j++) {
-				index = MyAvatar.getJointIndex(names[j]);
-				// if no finger is touching restate the default poses
-				if (getTouching("right")) {
-					var quatRot = Quat.fromVec3Degrees(dataCurrent["right"][finger][j]);
-					MyAvatar.setJointRotation(index, quatRot);  
-				} else {
-					MyAvatar.clearJointData(index);
-				}
-			}
-		}
+        // Assign interpolated values
+        var i, j, index;
+        for (i = 0; i < dataKeys.length; i++) {
+            var finger = dataKeys[i];
+            var names = getJointNames("Right", finger, 3);
+            dataCurrent["right"][finger] = addVals(dataCurrent["right"][finger], dataDelta["right"][finger], 1);
+            for (j = 0; j < names.length; j++) {
+                index = MyAvatar.getJointIndex(names[j]);
+                // if no finger is touching restate the default poses
+                if (getTouching("right")) {
+                    var quatRot = Quat.fromVec3Degrees(dataCurrent["right"][finger][j]);
+                    MyAvatar.setJointRotation(index, quatRot);  
+                } else {
+                    MyAvatar.clearJointData(index);
+                }
+            }
+        }
 
-		for (i = 0; i < dataKeys.length; i++) {
-			var finger = dataKeys[i];
-			var names = getJointNames("Left", finger, 3);
-			dataCurrent["left"][finger] = addVals(dataCurrent["left"][finger], dataDelta["left"][finger], 1);
-			for (j = 0; j < names.length; j++) {
-				index = MyAvatar.getJointIndex(names[j]);
-				// if no finger is touching restate the default poses
-				if (getTouching("left")) {
-					var quatRot = Quat.fromVec3Degrees(dataCurrent["left"][finger][j]);
-					MyAvatar.setJointRotation(index, quatRot);  
-				} else {
-					MyAvatar.clearJointData(index);
-				}
-			}
-		}
+        for (i = 0; i < dataKeys.length; i++) {
+            var finger = dataKeys[i];
+            var names = getJointNames("Left", finger, 3);
+            dataCurrent["left"][finger] = addVals(dataCurrent["left"][finger], dataDelta["left"][finger], 1);
+            for (j = 0; j < names.length; j++) {
+                index = MyAvatar.getJointIndex(names[j]);
+                // if no finger is touching restate the default poses
+                if (getTouching("left")) {
+                    var quatRot = Quat.fromVec3Degrees(dataCurrent["left"][finger][j]);
+                    MyAvatar.setJointRotation(index, quatRot);  
+                } else {
+                    MyAvatar.clearJointData(index);
+                }
+            }
+        }
 
     });
 
