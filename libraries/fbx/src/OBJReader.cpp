@@ -286,8 +286,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "Ni") {
+            float ignore = tokenizer.getFloat();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << ignore;
             #endif
         } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
@@ -296,12 +297,14 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "illum") {
             currentMaterial.illuminationModel = tokenizer.getFloat();
         } else if (token == "Tf") {
+            glm::vec3 ignore = tokenizer.getVec3();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << tokenizer.getVec3();
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << ignore;
             #endif
         } else if (token == "Ka") {
+            glm::vec3 ignore = tokenizer.getVec3();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << ignore;
             #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
@@ -379,8 +382,9 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
     while (parser.length() > 0) {
         if (parser.startsWith("-blendu") || parser.startsWith("-blendv")) {
             parser.remove(0, 11); // remove through "-blendu on " or "-blendu off"
-            if (parser[0] == ' ') // extra character for space after off
+            if (parser[0] == ' ') { // extra character for space after off
                 parser.remove(0, 1);
+            }
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -blendu/-blendv";
             #endif
@@ -396,15 +400,17 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             #endif
         } else if (parser.startsWith("-cc")) {
             parser.remove(0, 7); // remove through "-cc on " or "-cc off"
-            if (parser[0] == ' ') // extra character for space after off
+            if (parser[0] == ' ') { // extra character for space after off
                 parser.remove(0, 1);
+            }
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -cc";
             #endif
         } else if (parser.startsWith("-clamp")) {
             parser.remove(0, 10); // remove through "-clamp on " or "-clamp off"
-            if (parser[0] == ' ') // extra character for space after off
+            if (parser[0] == ' ') { // extra character for space after off
                 parser.remove(0, 1);
+            }
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -clamp";
             #endif
@@ -922,44 +928,76 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
         modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
-        /*
+        bool applyTransparency = false;
+        bool applyShininess = false;
+        bool applyRoughness = false;
+        bool applyNonMetallic = false;
+        bool fresnelOn = false;
+        bool fresnelOff = false;
+
         // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
         switch (objMaterial.illuminationModel) {
             case 0: // Color on and Ambient off
-                fbxMaterial.ambientFactor = 0.0f;
+                // We don't support ambient - do nothing?
                 break;
             case 1: // Color on and Ambient on
-                fbxMaterial.ambientFactor = 1.0f;
+                // We don't support ambient - do nothing?
                 break;
             case 2: // Highlight on
                 fbxMaterial.specularFactor = 1.0f;
                 break;
             case 3: // Reflection on and Ray trace on
+                applyShininess = true;
                 break;
             case 4: // Transparency: Glass on and Reflection: Ray trace on
-                fbxMaterial.opacity = 0.0f;
+                applyTransparency = true;
+                applyShininess = true;
                 break;
             case 5: // Reflection: Fresnel on and Ray trace on
-                modelMaterial->setFresnel(glm::vec3(1.0f));
+                applyShininess = true;
+                fresnelOn = true;
                 break;
             case 6: // Transparency: Refraction on and Reflection: Fresnel off and Ray trace on
-                fbxMaterial.opacity = 0.0f;
-                modelMaterial->setFresnel(glm::vec3(0.0f));
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyShininess = true;
+                fresnelOff = true;
                 break;
             case 7: // Transparency: Refraction on and Reflection: Fresnel on and Ray trace on
-                fbxMaterial.opacity = 0.0f;
-                modelMaterial->setFresnel(glm::vec3(1.0f));
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyShininess = true;
+                fresnelOn = true;
                 break;
             case 8: // Reflection on and Ray trace off
+                applyShininess = true;
                 break;
             case 9: // Transparency: Glass on and Reflection: Ray trace off
-                fbxMaterial.opacity = 0.0f;
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyRoughness = true;
                 break;
             case 10: // Casts shadows onto invisible surfaces
                 // Do nothing?
                 break;
+        }      
+
+        if (applyTransparency && fbxMaterial.opacity <= 0.1f) {
+            fbxMaterial.opacity = 0.1f;
         }
-        */
+        if (applyShininess) {
+            modelMaterial->setRoughness(0.25f);
+        } else if (applyRoughness) {
+            modelMaterial->setRoughness(1.0f);
+        }
+        if (applyNonMetallic) {
+            modelMaterial->setMetallic(0.0f);
+        }
+        if (fresnelOn) {
+            modelMaterial->setFresnel(glm::vec3(1.0f));
+        } else if (fresnelOff) {
+            modelMaterial->setFresnel(glm::vec3(0.0f));
+        }
 
         modelMaterial->setOpacity(fbxMaterial.opacity);
     }
