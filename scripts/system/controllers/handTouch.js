@@ -263,15 +263,23 @@
         var directions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
         var positions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
         
+        var thumbLength = 0;
+        var weightCount = 0;
+        
         // Calculate palm center
+        
+        var handJointWeight = 1;
+        var fingerJointWeight = 2;
+        
         var palmCenter = {x:0, y:0, z:0};
         palmCenter = Vec3.sum(worldPosHand, palmCenter);
         
-        var thumbLength = 0;
+        weightCount += handJointWeight;
         
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
-            var jointNames = getJointNames(side, finger, 4);
+            var jointSuffixes = 4; // Get 4 joint names with suffix numbers (0, 1, 2, 3)
+            var jointNames = getJointNames(side, finger, jointSuffixes);
             var fingerLength = getJointDistances(jointNames).totalDistance;
             
             var jointIndex = MyAvatar.getJointIndex(jointNames[0]);
@@ -281,7 +289,9 @@
             if (finger != "thumb") {
                 // finger joints have double the weight than the hand joint
                 // This would better position the palm estimation
-                palmCenter = Vec3.sum(Vec3.multiply(2, positions[finger]), palmCenter); 
+                
+                palmCenter = Vec3.sum(Vec3.multiply(fingerJointWeight, positions[finger]), palmCenter); 
+                weightCount += fingerJointWeight;
             } else {
                 thumbLength = fingerLength;
             }
@@ -293,14 +303,14 @@
                              Vec3.normalize(Vec3.cross(directions["index"], directions["pinky"])): 
                              Vec3.normalize(Vec3.cross(directions["pinky"], directions["index"]));
         
+        data.position = Vec3.multiply(1.0/weightCount, palmCenter);
         
-        data.position = Vec3.multiply(1.0/9, palmCenter); // 1(weight) * Hand joint + 2(weight) * 4 fingers(no thumb) = 9
-        
-        data.distance = 1.55*Vec3.distance(data.position, positions["index"]); // 1.55 based on test/error for the sphere radius that best fits the hand
+        var palmDistanceMultiplier = 1.55 // 1.55 based on test/error for the sphere radius that best fits the hand
+        data.distance = palmDistanceMultiplier*Vec3.distance(data.position, positions["index"]); 
 
         // move back thumb ray origin
-        
-        data.fingers["thumb"] = Vec3.sum(data.fingers["thumb"], Vec3.multiply( -0.2 * thumbLength, data.perpendicular));
+        var thumbBackMultiplier = 0.2;
+        data.fingers["thumb"] = Vec3.sum(data.fingers["thumb"], Vec3.multiply( -thumbBackMultiplier * thumbLength, data.perpendicular));
         
         return data;
     }
@@ -358,7 +368,8 @@
     function acquireDefaultPose(side) {
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
-            var names = getJointNames(side, finger, 3);
+            var jointSuffixes = 3; // We need rotation of the 0, 1 and 2 joints
+            var names = getJointNames(side, finger, jointSuffixes);
             for (var j = 0; j < names.length; j++) {
                 var index = MyAvatar.getJointIndex(names[j]);
                 var rotation = Quat.safeEulerAngles(MyAvatar.getJointRotation(index));
@@ -420,7 +431,7 @@
             var origin = palmData.fingers[finger];
             var direction = Vec3.normalize(Vec3.subtract(checkPoint, origin));
             var intersection = Entities.findRayIntersection({origin: origin, direction: direction}, true, grabbables, [], true, false);
-            var percent = 0.38;
+            var percent = 0; // Initialize
             var isAbleToGrab = intersection.intersects && intersection.distance < 1.5*dist;
             if (isAbleToGrab && !getTouching(side)) {
                 acquireDefaultPose(side);  // take a snapshot of the default pose before touch starts
@@ -430,7 +441,8 @@
             isTouching[side][finger] = isAbleToGrab;
             if (isAbleToGrab) {
                 // update the open/close percentage for this finger 
-                percent = intersection.distance/(2.5*dist);
+                var distanceMultiplier = 2.5;
+                percent = intersection.distance/(distanceMultiplier*dist);
                 var grabMultiplier = finger === "thumb" ? 0.2 : 0.05;
                 percent += grabMultiplier * grabPercent[side];
                 
@@ -447,7 +459,7 @@
     }
     
     // Recreate the finger joint names
-	
+    
     function getJointNames(side, finger, count) {
         var names = [];
         for (var i = 1; i < count+1; i++) {
@@ -496,7 +508,7 @@
 
     Controller.enableMapping(MAPPING_NAME);
     
-	
+    
     function getTouching(side) {
         var animating = false;
         for (var i = 0; i < fingerKeys.length; i++) {
@@ -526,7 +538,8 @@
             
             for (var i = 0; i < fingerKeys.length; i++) {
                 var finger = fingerKeys[i];
-                var names = getJointNames(side, finger, 3);
+                var jointSuffixes = 3; // We need to update rotation of the 0, 1 and 2 joints
+                var names = getJointNames(side, finger, jointSuffixes); 
                 
                 // Add the animation increments
                 

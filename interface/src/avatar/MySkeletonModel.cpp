@@ -335,7 +335,7 @@ void MySkeletonModel::updateFingers() {
                         _jointRotationFrameOffsetMap.find(index)->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else if (_jointRotationFrameOffsetMap.find(index)->second == 1){
+                } else if (_jointRotationFrameOffsetMap.find(index)->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
                     _rig.clearJointAnimationPriority(index);
                 }
                 _jointRotationFrameOffsetMap.find(index)->second++;
