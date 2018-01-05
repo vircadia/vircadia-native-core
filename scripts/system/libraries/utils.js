@@ -418,11 +418,13 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Overlays.editOverlay(HMD.homeButtonHighlightID, {
         localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };
