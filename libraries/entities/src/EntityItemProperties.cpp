@@ -231,7 +231,7 @@ QString EntityItemProperties::getComponentModeString(uint32_t mode) {
     }
 }
 
-const auto EntityItemProperties::findComponent(const QString& mode) {
+const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
     return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
         return (pair.second == mode);
     });
