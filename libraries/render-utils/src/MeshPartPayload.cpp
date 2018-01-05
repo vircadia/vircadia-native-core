@@ -501,7 +501,6 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     if (_clusterBuffer) {
         batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }
