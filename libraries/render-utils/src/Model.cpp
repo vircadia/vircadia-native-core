@@ -1186,7 +1186,6 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
 #if defined(SKIN_DQ)
             auto jointPose = _rig.getJointPose(cluster.jointIndex);
             Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
