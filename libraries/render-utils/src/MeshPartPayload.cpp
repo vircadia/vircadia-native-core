@@ -377,7 +377,7 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>&
                 (const gpu::Byte*) clusterTransforms.data());
         }
         else {
-            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(glm::mat4),
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(TransformType),
                 (const gpu::Byte*) clusterTransforms.data());
         }
     }
