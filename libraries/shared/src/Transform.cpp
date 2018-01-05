@@ -19,7 +19,7 @@
 #include "shared/JSONHelpers.h"
 
 void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix) {
-    const float ACCURACY_THREASHOLD = 0.000001f;
+    const float ACCURACY_THREASHOLD = 0.00001f;
 
     // Following technique taken from:
     // http://callumhay.blogspot.com/2010/10/decomposing-affine-transforms.html
@@ -49,7 +49,7 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
     // extract scale of the matrix as the length of each axis
     Mat3 scaleMat = glm::inverse(rotationMat) * rotationScaleMatrix;
 
-    scale = glm::max(Vec3(ACCURACY_THREASHOLD), Vec3(scaleMat[0][0], scaleMat[1][1], scaleMat[2][2]));
+    scale = Vec3(scaleMat[0][0], scaleMat[1][1], scaleMat[2][2]);
 
     // Let's work on a local matrix containing rotation only
     Mat3 matRot(

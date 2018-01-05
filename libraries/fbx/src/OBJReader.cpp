@@ -473,13 +473,13 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                     if (part < 0) {
                         switch (i) {
                             case 0:
-                                parts[i].setNum(vertices.size() - abs(part) + 1);
+                                parts[i].setNum(vertices.size() + part + 1);
                                 break;
                             case 1:
-                                parts[i].setNum(textureUVs.size() - abs(part) + 1);
+                                parts[i].setNum(textureUVs.size() + part + 1);
                                 break;
                             case 2:
-                                parts[i].setNum(normals.size() - abs(part) + 1);
+                                parts[i].setNum(normals.size() + part + 1);
                                 break;
                         }
                     }
