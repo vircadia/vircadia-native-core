@@ -31,10 +31,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         );
 
         this.pointingAtTablet = function (objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
-                return true;
-            }
-            return false;
+            return objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID;
         };
 
         this.isReady = function (controllerData) {

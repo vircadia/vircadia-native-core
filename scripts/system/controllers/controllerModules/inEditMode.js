@@ -44,10 +44,7 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
-                return true;
-            }
-            return false;
+            return objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID;
         };
 
         this.sendPickData = function(controllerData) {
