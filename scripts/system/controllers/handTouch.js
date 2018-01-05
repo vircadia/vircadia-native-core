@@ -19,7 +19,7 @@
     var updateFingerWithIndex = 0;
     
     // Keys to access finger data
-    var dataKeys = ["pinky", "ring", "middle", "index", "thumb"];
+    var fingerKeys = ["pinky", "ring", "middle", "index", "thumb"];
     
     // Additionally close the hands to achieve a grabbing effect 
     var grabPercent = { left: 0, 
@@ -42,6 +42,13 @@
             thumb: false, 
             index: false
         }
+    }
+    
+    // frame count for transition to default pose
+    
+    var countToDefault = {
+        left: 0,
+        right: 0
     }
     
     // joint data for opened pose
@@ -67,18 +74,39 @@
     var dataClose = {
         left: {
             pinky:[{x: 75.45709, y:-8.01347, z:-22.54823}, {x: 69.562, y:0, z:1.06604}, {x: 74.73801, y:0, z:-0.8351}], 
-            middle: [{x: 66.0237, y:-2.42536, z:-6.13193}, {x: 72.63042, y:0, z:-0.71834}, {x: 75.19901, y:0, z:0.83978}], 
+            middle: [{x: 66.0237, y:-2.42536, z:-6.13193}, {x: 65.63042, y:0, z:-0.71834}, {x: 60.19901, y:0, z:0.83978}], 
             ring: [{x: 71.52988, y:-2.35423, z:-16.21694}, {x: 64.44739, y:0, z:0.68153}, {x: 70.518, y:0, z:-0.69295}], 
             thumb: [{x: 33.83371, y:-15.19106, z:34.66116}, {x: 0, y:0, z:-43.42915}, {x: 0, y:0, z:-30.18613}], 
             index: [{x: 35.56082, y:-1.21056, z:-2.07362}, {x: 79.79845, y:-0.01107, z:0.93037}, {x: 68.767, y:0, z:-2.64018}]
         }, right: {
             pinky:[{x: 75.45702, y: 8.013, z: 22.41022}, {x: 69.562, y: 0, z: -1.03973}, {x: 74.738, y: 0, z: 0.86424}], 
-            middle: [{x: 66.02399, y: 2.425, z: 6.11638}, {x: 72.63002, y: 0, z: 0.71427}, {x: 72.63, y: 0, z: -0.85103}], 
+            middle: [{x: 66.02399, y: 2.425, z: 6.11638}, {x: 65.63002, y: 0, z: 0.71427}, {x: 60.63, y: 0, z: -0.85103}], 
             ring: [{x: 71.53, y: 5.022, z: 16.33612}, {x: 64.447, y: 0, z: -0.64524}, {x: 70.51801, y: 0, z: 0.69807}], 
             thumb: [{x: 33.834, y: 15.191, z: -34.52131}, {x: 0, y: 0, z: 43.41122}, {x: 0, y: 0, z: 30.24818}], 
             index: [{x: 35.633, y: 1.215, z: -6.6376}, {x: 79.72701, y: 0, z: -0.90168}, {x: 68.76701, y: 0, z: 2.62649}]
         }
     }
+    
+    // snapshot for the default pose
+    
+    var dataDefault = {
+        left:{
+            pinky:[{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            middle: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            ring: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            thumb: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            index: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}],
+            set: false
+        },
+        right:{
+            pinky:[{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            middle: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            ring: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            thumb: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}], 
+            index: [{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0},{x: 0, y: 0, z: 0}],
+            set: false
+        }
+    } 
     
     // joint data for the current frame
     
@@ -118,9 +146,13 @@
         }
     }
     
-    // Acquire an updated value per hand every 5 frames
+    // Acquire an updated value per hand every 5 frames when finger is touching (faster in)
     
-    var animationSteps = 5;
+    var touchAnimationSteps = 5;
+    
+    // Acquire an updated value per hand every 10 frames when finger is returning to default position (slower out) 
+    
+    var defaultAnimationSteps = 10;
     
     // Debugging info
     
@@ -145,18 +177,18 @@
         },
         fingerPercent: {
             left: {
-                pinky: 0.75, 
-                middle: 0.75, 
-                ring: 0.75, 
-                thumb: 0.75, 
-                index: 0.75
+                pinky: 0.38, 
+                middle: 0.38, 
+                ring: 0.38, 
+                thumb: 0.38, 
+                index: 0.38
             } , 
             right: {
-                pinky: 0.75, 
-                middle: 0.75, 
-                ring: 0.75, 
-                thumb: 0.75, 
-                index: 0.75
+                pinky: 0.38, 
+                middle: 0.38, 
+                ring: 0.38, 
+                thumb: 0.38, 
+                index: 0.38
             }
         },
         triggerValues: {
@@ -237,9 +269,9 @@
         
         var thumbLength = 0;
         
-        for (var i = 0; i < dataKeys.length; i++) {
-            var finger = dataKeys[i];
-            var jointNames = getJointNames(upperSide, finger, 4);
+        for (var i = 0; i < fingerKeys.length; i++) {
+            var finger = fingerKeys[i];
+            var jointNames = getJointNames(side, finger, 4);
             var fingerLength = getJointDistances(jointNames).totalDistance;
             
             var jointIndex = MyAvatar.getJointIndex(jointNames[0]);
@@ -247,20 +279,26 @@
             directions[finger] = Vec3.normalize(Vec3.sum(positions[finger], minusWorldPosHand));
             data.fingers[finger] = Vec3.sum(positions[finger], Vec3.multiply(fingerLength, directions[finger]));
             if (finger != "thumb") {
-                palmCenter = Vec3.sum(Vec3.multiply(2, positions[finger]), palmCenter); // Hand joint + 2 * 4 fingers(no thumb) = 9
+                // finger joints have double the weight than the hand joint
+                // This would better position the palm estimation
+                palmCenter = Vec3.sum(Vec3.multiply(2, positions[finger]), palmCenter); 
             } else {
                 thumbLength = fingerLength;
             }
         }
         
-        data.perpendicular = side == "right" ? Vec3.normalize(Vec3.cross(directions["ring"], directions["pinky"])) : Vec3.normalize(Vec3.cross(directions["pinky"],directions["ring"]));
+        // perpendicular change direction depending on the side
+        
+        data.perpendicular = (side == "right") ? 
+                             Vec3.normalize(Vec3.cross(directions["index"], directions["pinky"])): 
+                             Vec3.normalize(Vec3.cross(directions["pinky"], directions["index"]));
         
         
-        data.position = Vec3.multiply(1.0/9, palmCenter); // Hand joint + 2 * 4 fingers(no thumb) = 9
+        data.position = Vec3.multiply(1.0/9, palmCenter); // 1(weight) * Hand joint + 2(weight) * 4 fingers(no thumb) = 9
         
-        data.distance = 1.55*Vec3.distance(data.position, positions["index"]);
+        data.distance = 1.55*Vec3.distance(data.position, positions["index"]); // 1.55 based on test/error for the sphere radius that best fits the hand
 
-        // move back thumb check up origin
+        // move back thumb ray origin
         
         data.fingers["thumb"] = Vec3.sum(data.fingers["thumb"], Vec3.multiply( -0.2 * thumbLength, data.perpendicular));
         
@@ -272,14 +310,14 @@
 
     // Create debug overlays - finger rays + palm rays + spheres
     
-    for (var i = 0; i < dataKeys.length; i++) {
-        fingerRays["left"][dataKeys[i]] = Overlays.addOverlay("line3d", {
+    for (var i = 0; i < fingerKeys.length; i++) {
+        fingerRays["left"][fingerKeys[i]] = Overlays.addOverlay("line3d", {
             color: { red: 0, green: 0, blue: 255 },
             start: { x:0, y:0, z:0 },
             end: { x:0, y:1, z:0 },
             visible: showLines
         });
-        fingerRays["right"][dataKeys[i]] = Overlays.addOverlay("line3d", {
+        fingerRays["right"][fingerKeys[i]] = Overlays.addOverlay("line3d", {
             color: { red: 0, green: 0, blue: 255 },
             start: { x:0, y:0, z:0 },
             end: { x:0, y:1, z:0 },
@@ -317,6 +355,19 @@
         })
     }
     
+    function acquireDefaultPose(side) {
+        for (var i = 0; i < fingerKeys.length; i++) {
+            var finger = fingerKeys[i];
+            var names = getJointNames(side, finger, 3);
+            for (var j = 0; j < names.length; j++) {
+                var index = MyAvatar.getJointIndex(names[j]);
+                var rotation = Quat.safeEulerAngles(MyAvatar.getJointRotation(index));
+                dataDefault[side][finger][j] = dataCurrent[side][finger][j] = rotation;
+            }
+        }
+        dataDefault[side].set = true;
+    }
+    
     function updateSphereHand(side) {
         
         var palmData = estimatePalmData(side);
@@ -349,9 +400,9 @@
             visible: showSphere
         });     
 
-        for (var i = 0; i < dataKeys.length; i++) {
-            Overlays.editOverlay(fingerRays[side][dataKeys[i]], {
-                start: palmData.fingers[dataKeys[i]],
+        for (var i = 0; i < fingerKeys.length; i++) {
+            Overlays.editOverlay(fingerRays[side][fingerKeys[i]], {
+                start: palmData.fingers[fingerKeys[i]],
                 end: checkPoint,
                 visible: showLines
             });
@@ -359,16 +410,22 @@
         
         // Update the intersection of only one finger at a time
         
-        var finger = dataKeys[updateFingerWithIndex];
+        var finger = fingerKeys[updateFingerWithIndex];
         
         var grabbables = Entities.findEntities(spherePos, dist);
-                
+        var newFingerData = dataDefault[side][finger];
+        var animationSteps = defaultAnimationSteps;
+        
         if (grabbables.length > 0) {    
             var origin = palmData.fingers[finger];
             var direction = Vec3.normalize(Vec3.subtract(checkPoint, origin));
             var intersection = Entities.findRayIntersection({origin: origin, direction: direction}, true, grabbables, [], true, false);
-            var percent = 0.75;
-            var isAbleToGrab = intersection.intersects && intersection.distance < 2.5*dist;
+            var percent = 0.38;
+            var isAbleToGrab = intersection.intersects && intersection.distance < 1.5*dist;
+            if (isAbleToGrab && !getTouching(side)) {
+                acquireDefaultPose(side);  // take a snapshot of the default pose before touch starts
+                newFingerData = dataDefault[side][finger]; // assign default pose to finger data
+            }
             // Store if this finger is touching something
             isTouching[side][finger] = isAbleToGrab;
             if (isAbleToGrab) {
@@ -376,23 +433,25 @@
                 percent = intersection.distance/(2.5*dist);
                 var grabMultiplier = finger === "thumb" ? 0.2 : 0.05;
                 percent += grabMultiplier * grabPercent[side];
+                
+                // Calculate new interpolation data
+                var totalDistance = addVals(dataClose[side][finger], dataOpen[side][finger], -1);
+                newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1); // assign close/open ratio to finger to simulate touch
+                animationSteps = touchAnimationSteps;
             } 
-            varsToDebug.fingerPercent[side][finger] = percent; // store the current open/close percentage
+            varsToDebug.fingerPercent[side][finger] = percent;
         }       
-        // Calculate new interpolation data 
-        var totalDistance = addVals(dataClose[side][finger], dataOpen[side][finger], -1);
-        percent = varsToDebug.fingerPercent[side][finger];
-        var newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1);
-        
-        // Assign animation interpolation steps
+               
+        // Calculate animation increments
         dataDelta[side][finger] = multiplyValsBy(addVals(newFingerData, dataCurrent[side][finger], -1), 1.0/animationSteps);
     }
     
-    // Recreate the finger joint names - and how many 0 to count
+    // Recreate the finger joint names
+	
     function getJointNames(side, finger, count) {
         var names = [];
         for (var i = 1; i < count+1; i++) {
-            var name = side+"Hand"+finger[0].toUpperCase()+finger.substring(1)+(i);
+            var name = side[0].toUpperCase()+side.substring(1)+"Hand"+finger[0].toUpperCase()+finger.substring(1)+(i);
             names.push(name);
         }
         return names;
@@ -437,61 +496,56 @@
 
     Controller.enableMapping(MAPPING_NAME);
     
+	
     function getTouching(side) {
         var animating = false;
-        for (var i = 0; i < dataKeys.length; i++) {
-            var finger = dataKeys[i];
+        for (var i = 0; i < fingerKeys.length; i++) {
+            var finger = fingerKeys[i];
             animating = animating || isTouching[side][finger];
         }
-        return animating;
+        return animating; // return false only if none of the fingers are touching
     }
     
     Script.update.connect(function(){
         
-        // iterate fingers
+        // index of the finger that needs to be updated this frame
         
-        updateFingerWithIndex = (updateFingerWithIndex < dataKeys.length-1) ? updateFingerWithIndex + 1 : 0;
+        updateFingerWithIndex = (updateFingerWithIndex < fingerKeys.length-1) ? updateFingerWithIndex + 1 : 0;
         
-        // precalculate data
         
-        updateSphereHand("right");
-        updateSphereHand("left");
-
-        // Assign interpolated values
-        var i, j, index, finger, names, quatRot;
-		
-        for (i = 0; i < dataKeys.length; i++) {
-            finger = dataKeys[i];
-            names = getJointNames("Right", finger, 3);
-            dataCurrent["right"][finger] = addVals(dataCurrent["right"][finger], dataDelta["right"][finger], 1);
-            for (j = 0; j < names.length; j++) {
-                index = MyAvatar.getJointIndex(names[j]);
-                // if no finger is touching restate the default poses
-                if (getTouching("right")) {
-                    quatRot = Quat.fromVec3Degrees(dataCurrent["right"][finger][j]);
-                    MyAvatar.setJointRotation(index, quatRot);  
-                } else {
-                    MyAvatar.clearJointData(index);
+        
+        ["right", "left"].forEach(function(side){
+            
+            // recalculate the base data
+            updateSphereHand(side);
+            
+            // this vars manage the transition to default pose
+            var isHandTouching = getTouching(side);
+            countToDefault[side] = isHandTouching ? 0 : countToDefault[side] + 1;
+            
+            
+            for (var i = 0; i < fingerKeys.length; i++) {
+                var finger = fingerKeys[i];
+                var names = getJointNames(side, finger, 3);
+                
+                // Add the animation increments
+                
+                dataCurrent[side][finger] = addVals(dataCurrent[side][finger], dataDelta[side][finger], 1); 
+                
+                // update every finger joint
+                
+                for (var j = 0; j < names.length; j++) {
+                    var index = MyAvatar.getJointIndex(names[j]);
+                    // if no finger is touching restate the default poses
+                    if (isHandTouching || (dataDefault[side].set && countToDefault[side] < 5*touchAnimationSteps)) {
+                        var quatRot = Quat.fromVec3Degrees(dataCurrent[side][finger][j]);
+                        MyAvatar.setJointRotation(index, quatRot);  
+                    } else {
+                        MyAvatar.clearJointData(index);
+                    }
                 }
             }
-        }
-
-        for (i = 0; i < dataKeys.length; i++) {
-            finger = dataKeys[i];
-            names = getJointNames("Left", finger, 3);
-            dataCurrent["left"][finger] = addVals(dataCurrent["left"][finger], dataDelta["left"][finger], 1);
-            for (j = 0; j < names.length; j++) {
-                index = MyAvatar.getJointIndex(names[j]);
-                // if no finger is touching restate the default poses
-                if (getTouching("left")) {
-                    quatRot = Quat.fromVec3Degrees(dataCurrent["left"][finger][j]);
-                    MyAvatar.setJointRotation(index, quatRot);  
-                } else {
-                    MyAvatar.clearJointData(index);
-                }
-            }
-        }
-
+        });
     });
 
 }())
