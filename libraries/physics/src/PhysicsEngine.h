@@ -64,6 +64,7 @@ public:
     void harvestPerformanceStats();
     void printPerformanceStatsToFile(const QString& filename);
     void updateContactMap();
+    void doOwnershipInfectionForConstraints();
 
     bool hasOutgoingChanges() const { return _hasOutgoingChanges; }
 
