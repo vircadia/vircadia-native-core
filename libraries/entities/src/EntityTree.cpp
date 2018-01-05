@@ -2285,9 +2285,16 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         if (!entityMap.contains("keyLightMode")) {
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
         }
+
         if (!entityMap.contains("skyboxMode")) {
-            properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+            if (entityMap.contains("backgroundMode") && properties.getBackgroundMode() == "inherit") {
+                // The content creator has set the combo to NOTHING - this is actually inherit
+                properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+            } else {
+                properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+            }
         }
+
         if (!entityMap.contains("ambientLightMode")) {
             properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
         }
