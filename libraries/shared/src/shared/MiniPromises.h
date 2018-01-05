@@ -83,7 +83,6 @@ public:
                 _onfinally << always;
             });
         } else {
-            qWarning() << "MiniPromise::finally() called after promise was already rejected or resolved:" << objectName();
             executeOnPromiseThread([&]{
                 withReadLock([&]{
                     always(_error, _result);
@@ -105,7 +104,6 @@ public:
             });
         } else {
             executeOnPromiseThread([&]{
-                qWarning() << "MiniPromise::fail() called after promise was already rejected:" << objectName();
                 withReadLock([&]{
                     failFunc(_error, _result);
                 });
@@ -126,7 +124,6 @@ public:
             });
         } else {
             executeOnPromiseThread([&]{
-                qWarning() << "MiniPromise::then() called after promise was already resolved:" << objectName();
                 withReadLock([&]{
                     successFunc(_error, _result);
                 });
