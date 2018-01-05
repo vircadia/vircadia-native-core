@@ -24,7 +24,6 @@
 #include <SimpleMovingAverage.h>
 #include <ViewFrustum.h>
 
-#include "JurisdictionMap.h"
 #include "OctreeElement.h"
 #include "OctreeElementBag.h"
 #include "OctreePacketData.h"
@@ -62,7 +61,6 @@ const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
 
 #define IGNORE_COVERAGE_MAP      NULL
-#define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
@@ -77,7 +75,6 @@ public:
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
     bool forceSendScene;
-    JurisdictionMap* jurisdictionMap;
     NodeData* nodeData;
 
     // output hints from the encode process
@@ -87,7 +84,6 @@ public:
         NULL_NODE,
         NULL_NODE_DATA,
         TOO_DEEP,
-        OUT_OF_JURISDICTION,
         LOD_SKIP,
         OUT_OF_VIEW,
         WAS_IN_VIEW,
@@ -105,7 +101,6 @@ public:
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
         bool forceSendScene = true,
-        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
         NodeData* nodeData = nullptr) :
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
@@ -115,7 +110,6 @@ public:
             boundaryLevelAdjust(boundaryLevelAdjust),
             octreeElementSizeScale(octreeElementSizeScale),
             forceSendScene(forceSendScene),
-            jurisdictionMap(jurisdictionMap),
             nodeData(nodeData),
             stopReason(UNKNOWN)
     {
@@ -131,7 +125,6 @@ public:
             case DIDNT_FIT: qDebug("DIDNT_FIT"); break;
             case NULL_NODE: qDebug("NULL_NODE"); break;
             case TOO_DEEP: qDebug("TOO_DEEP"); break;
-            case OUT_OF_JURISDICTION: qDebug("OUT_OF_JURISDICTION"); break;
             case LOD_SKIP: qDebug("LOD_SKIP"); break;
             case OUT_OF_VIEW: qDebug("OUT_OF_VIEW"); break;
             case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
@@ -148,7 +141,6 @@ public:
             case DIDNT_FIT: return QString("DIDNT_FIT"); break;
             case NULL_NODE: return QString("NULL_NODE"); break;
             case TOO_DEEP: return QString("TOO_DEEP"); break;
-            case OUT_OF_JURISDICTION: return QString("OUT_OF_JURISDICTION"); break;
             case LOD_SKIP: return QString("LOD_SKIP"); break;
             case OUT_OF_VIEW: return QString("OUT_OF_VIEW"); break;
             case WAS_IN_VIEW: return QString("WAS_IN_VIEW"); break;
