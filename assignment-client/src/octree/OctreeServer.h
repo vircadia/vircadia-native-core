@@ -44,6 +44,7 @@ public:
     bool wantsVerboseDebug() const { return _verboseDebug; }
 
     OctreePointer getOctree() { return _tree; }
+    JurisdictionMap* getJurisdiction() { return _jurisdiction; }
 
     int getPacketsPerClientPerInterval() const { return std::min(_packetsPerClientPerInterval,
                                 std::max(1, getPacketsTotalPerInterval() / std::max(1, getCurrentClientCount()))); }
@@ -137,6 +138,7 @@ private slots:
     void domainSettingsRequestComplete();
     void handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message);
     void removeSendThread();
@@ -188,6 +190,8 @@ protected:
     bool _debugReceiving;
     bool _debugTimestampNow;
     bool _verboseDebug;
+    JurisdictionMap* _jurisdiction;
+    JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
 

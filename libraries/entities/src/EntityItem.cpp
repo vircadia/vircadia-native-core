@@ -686,18 +686,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
         } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
-            // we sent a bid already but maybe before this packet was sent from the server
+            // we sent a bid before this packet could have been sent from the server
+            // so we ignore it and pretend we own the object's simulation
             weOwnSimulation = true;
             if (newSimOwner.getID().isNull()) {
-                // the entity-server is trying to clear someone else's ownership
+                // entity-server is trying to clear someone  else's ownership
+                // but we want to own it, therefore we ignore this clear event
                 if (!_simulationOwner.isNull()) {
+                    // someone else really did own it
                     markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                     somethingChanged = true;
                     _simulationOwner.clearCurrentOwner();
                 }
-            } else if (newSimOwner.getID() == myNodeID) {
-                // the entity-server is awarding us ownership which is what we want
-                _simulationOwner.set(newSimOwner);
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
@@ -2082,6 +2082,17 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         }
 
         EntityDynamicPointer action = _objectActions[actionID];
+
+        action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
+
+        if (simulation) {
+            action->removeFromSimulation(simulation);
+        }
+
+        bool success = true;
+        serializeActions(success, _allActionsDataCache);
+        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         auto removedActionType = action->getType();
         if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
@@ -2098,17 +2109,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
-        action->setOwnerEntity(nullptr);
-        action->setIsMine(false);
         _objectActions.remove(actionID);
-
-        if (simulation) {
-            action->removeFromSimulation(simulation);
-        }
-
-        bool success = true;
-        serializeActions(success, _allActionsDataCache);
-        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         setDynamicDataNeedsTransmit(true);
         return success;
     }

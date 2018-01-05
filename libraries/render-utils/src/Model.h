@@ -82,9 +82,9 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
+    void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
+    void setLayeredInFront(bool layered, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }

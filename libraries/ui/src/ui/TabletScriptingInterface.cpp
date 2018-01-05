@@ -92,48 +92,8 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
     endResetModel();
 }
 
-TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
-    : QSortFilterProxyModel(parent) {
-}
-
-int TabletButtonsProxyModel::pageIndex() const {
-    return _pageIndex;
-}
-
-int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
-    if (!sourceModel() || _pageIndex < 0) {
-        return -1;
-    }
-    TabletButtonListModel* model = static_cast<TabletButtonListModel*>(sourceModel());
-    for (int i = 0; i < model->rowCount(); i++) {
-        TabletButtonProxy* bproxy = model->data(model->index(i), ButtonProxyRole).value<TabletButtonProxy*>();
-        if (bproxy && bproxy->getUuid().toString().contains(uuid)) {
-            return i - (_pageIndex*TabletScriptingInterface::ButtonsOnPage);
-        }
-    }
-    return -1;
-}
-
-void TabletButtonsProxyModel::setPageIndex(int pageIndex)
-{
-    if (_pageIndex == pageIndex)
-        return;
-
-    _pageIndex = pageIndex;
-    invalidateFilter();
-    emit pageIndexChanged(_pageIndex);
-}
-
-bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
-                                               const QModelIndex &sourceParent) const {
-    Q_UNUSED(sourceParent);
-    return (sourceRow >= _pageIndex*TabletScriptingInterface::ButtonsOnPage
-            && sourceRow < (_pageIndex + 1)*TabletScriptingInterface::ButtonsOnPage);
-}
-
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
-    qmlRegisterType<TabletButtonsProxyModel>("TabletScriptingInterface", 1, 0, "TabletButtonsProxyModel");
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
@@ -807,7 +767,6 @@ void TabletProxy::sendToQml(const QVariant& msg) {
         QMetaObject::invokeMethod(_desktopWindow, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
-
 
 
 OffscreenQmlSurface* TabletProxy::getTabletSurface() {

@@ -16,7 +16,6 @@
 #include <QtCore/QUuid>
 #include <QtCore/QVariant>
 #include <QtCore/QAbstractListModel>
-#include <QSortFilterProxyModel>
 
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptEngine>
@@ -46,10 +45,6 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
     enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
     Q_ENUM(TabletAudioEvents)
-
-    //Different useful constants
-    enum TabletConstants { ButtonsColumnsOnPage = 3, ButtonsRowsOnPage = 4, ButtonsOnPage = 12 };
-    Q_ENUM(TabletConstants)
 
     TabletScriptingInterface();
     virtual ~TabletScriptingInterface();
@@ -122,31 +117,6 @@ protected:
 };
 
 Q_DECLARE_METATYPE(TabletButtonListModel*);
-
-class TabletButtonsProxyModel : public QSortFilterProxyModel
-{
-    Q_OBJECT
-
-    Q_PROPERTY(int pageIndex READ pageIndex WRITE setPageIndex NOTIFY pageIndexChanged)
-public:
-    TabletButtonsProxyModel(QObject* parent = 0);
-    int pageIndex() const;
-    Q_INVOKABLE int buttonIndex(const QString& uuid);
-
-public slots:
-    void setPageIndex(int pageIndex);
-
-signals:
-    void pageIndexChanged(int pageIndex);
-
-protected:
-    bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
-
-private:
-    int _pageIndex { -1 };
-};
-
-Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
 
 /**jsdoc
  * @class TabletProxy
@@ -264,7 +234,6 @@ public:
     QQuickItem* getQmlMenu() const;
 
     TabletButtonListModel* getButtons() { return &_buttons; }
-
 signals:
     /**jsdoc
      * Signaled when this tablet receives an event from the html/js embedded in the tablet

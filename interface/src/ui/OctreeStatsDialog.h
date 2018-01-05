@@ -19,6 +19,7 @@
 #include <OctreeSceneStats.h>
 
 #define MAX_STATS 100
+#define MAX_VOXEL_SERVERS 50
 #define DEFAULT_COLOR 0
 
 class OctreeStatsDialog : public QDialog {
@@ -46,22 +47,18 @@ protected:
     void RemoveStatItem(int item);
     void showAllOctreeServers();
 
-    void showOctreeServersOfType(NodeType_t serverType);
+    void showOctreeServersOfType(int& serverNumber, NodeType_t serverType, 
+                    const char* serverTypeName, NodeToJurisdictionMap& serverJurisdictions);
 
 private:
-    enum details {
-        LESS,
-        MORE,
-        MOST
-    };
 
-    QFormLayout* _form { nullptr };
+    typedef enum { LESS, MORE, MOST } details;
+
+    QFormLayout* _form;
     QLabel* _labels[MAX_STATS];
-    NodeToOctreeSceneStats* _model { nullptr };
-    int _statCount { 0 };
-
-    int _octreeServerLabel;
-
+    NodeToOctreeSceneStats* _model;
+    int _statCount;
+    
     int _sendingMode;
     int _serverElements;
     int _localElements;
@@ -75,14 +72,16 @@ private:
     int _processedPacketsTiming;
     int _outboundEditPackets;
     
-    const int SAMPLES_PER_SECOND { 10 };
-    SimpleMovingAverage _averageUpdatesPerSecond { SAMPLES_PER_SECOND };
-    quint64 _lastWindowAt { usecTimestampNow() };
-    quint64 _lastKnownTrackedEdits { 0 };
+    const int SAMPLES_PER_SECOND = 10;
+    SimpleMovingAverage _averageUpdatesPerSecond;
+    quint64 _lastWindowAt = usecTimestampNow();
+    quint64 _lastKnownTrackedEdits = 0;
 
-    quint64 _lastRefresh { 0 };
+    quint64 _lastRefresh = 0;
 
-    details _extraServerDetails { LESS };
+    int _octreeServerLables[MAX_VOXEL_SERVERS];
+    int _octreeServerLabelsCount;
+    details _extraServerDetails[MAX_VOXEL_SERVERS];
 };
 
 #endif // hifi_OctreeStatsDialog_h

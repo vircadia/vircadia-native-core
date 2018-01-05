@@ -594,72 +594,47 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
-    if (_isVisible != isVisible) {
-        _isVisible = isVisible;
-
-        bool isLayeredInFront = _isLayeredInFront;
-        bool isLayeredInHUD = _isLayeredInHUD;
+void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) {
+    if (_isVisible != newValue) {
+        _isVisible = newValue;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-            });
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-            });
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
 
-void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene) {
-    if (_isLayeredInFront != isLayeredInFront) {
-        _isLayeredInFront = isLayeredInFront;
-
-        bool isVisible = _isVisible;
-        bool isLayeredInHUD = _isLayeredInHUD;
+void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInFront != layered) {
+        _isLayeredInFront = layered;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-                data.setLayer(isLayeredInFront, isLayeredInHUD);
-            });
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-                data.setLayer(isLayeredInFront, isLayeredInHUD);
-            });
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
-void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene) {
-    if (_isLayeredInHUD != isLayeredInHUD) {
-        _isLayeredInHUD = isLayeredInHUD;
-
-        bool isVisible = _isVisible;
-        bool isLayeredInFront = _isLayeredInFront;
+void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != layered) {
+        _isLayeredInHUD = layered;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-                data.setLayer(isLayeredInFront, isLayeredInHUD);
-            });
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
-                data.setLayer(isLayeredInFront, isLayeredInHUD);
-            });
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
         }
         scene->enqueueTransaction(transaction);
     }

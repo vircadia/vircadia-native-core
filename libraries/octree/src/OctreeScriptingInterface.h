@@ -14,18 +14,21 @@
 
 #include <QtCore/QObject>
 
+#include "JurisdictionListener.h"
 #include "OctreeEditPacketSender.h"
 
 /// handles scripting of Particle commands from JS passed to assigned clients
 class OctreeScriptingInterface : public QObject {
     Q_OBJECT
 public:
-    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = nullptr);
+    OctreeScriptingInterface(OctreeEditPacketSender* packetSender = NULL, JurisdictionListener* jurisdictionListener = NULL);
 
     ~OctreeScriptingInterface();
 
     OctreeEditPacketSender* getPacketSender() const { return _packetSender; }
+    JurisdictionListener* getJurisdictionListener() const { return _jurisdictionListener; }
     void setPacketSender(OctreeEditPacketSender* packetSender);
+    void setJurisdictionListener(JurisdictionListener* jurisdictionListener);
     void init();
 
     virtual NodeType_t getServerNodeType() const = 0;
@@ -83,7 +86,9 @@ public slots:
 protected:
     /// attached OctreeEditPacketSender that handles queuing and sending of packets to VS
     OctreeEditPacketSender* _packetSender = nullptr;
+    JurisdictionListener* _jurisdictionListener = nullptr;
     bool _managedPacketSender;
+    bool _managedJurisdictionListener;
     bool _initialized;
 };
 

@@ -103,7 +103,6 @@
             case 'transactionHistory_linkClicked':
                 tablet.gotoWebScreen(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
-            case 'goToPurchases_fromWalletHome':
             case 'goToPurchases':
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 break;

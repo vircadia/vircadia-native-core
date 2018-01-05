@@ -94,6 +94,7 @@ Agent::Agent(ReceivedMessage& message) :
     packetReceiver.registerListenerForTypes(
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
+    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 
 
@@ -145,6 +146,17 @@ void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNo
         _entityViewer.processDatagram(*message, senderNode);
     } else if (packetType == PacketType::EntityErase) {
         _entityViewer.processEraseMessage(*message, senderNode);
+    }
+}
+
+void Agent::handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    NodeType_t nodeType;
+    message->peekPrimitive(&nodeType);
+
+    // PacketType_JURISDICTION, first byte is the node type...
+    if (nodeType == NodeType::EntityServer) {
+        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
+            queueReceivedPacket(message, senderNode);
     }
 }
 
@@ -471,7 +483,10 @@ void Agent::executeScript() {
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
+    // we need to make sure that init has been called for our EntityScriptingInterface
+    // so that it actually has a jurisdiction listener when we ask it for it next
     entityScriptingInterface->init();
+    _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
 
     _entityViewer.init();
 

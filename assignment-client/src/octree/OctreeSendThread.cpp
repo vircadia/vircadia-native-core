@@ -391,7 +391,8 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
 
         nodeData->sceneStart(usecTimestampNow() - CHANGE_FUDGE);
         // start tracking our stats
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getOctree()->getRoot());
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged,
+                                     _myServer->getOctree()->getRoot(), _myServer->getJurisdiction());
 
         preStartNewScene(nodeData, isFullScene);
     }
@@ -506,7 +507,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
     float octreeSizeScale = nodeData->getOctreeSizeScale();
     EncodeBitstreamParams params(INT_MAX, WANT_EXISTS_BITS, DONT_CHOP,
                                 viewFrustumChanged, boundaryLevelAdjust, octreeSizeScale,
-                                isFullScene, nodeData);
+                                isFullScene, _myServer->getJurisdiction(), nodeData);
     // Our trackSend() function is implemented by the server subclass, and will be called back as new entities/data elements are sent
     params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
         _myServer->trackSend(dataID, dataEdited, _nodeUuid);

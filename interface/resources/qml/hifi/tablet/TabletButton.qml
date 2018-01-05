@@ -23,25 +23,10 @@ Item {
     property double sortOrder: 100
     property int stableOrder: 0
     property var tabletRoot;
-    property var flickable: null
-    property var gridView: null
-
-    property int buttonIndex: -1
-
     width: 129
     height: 129
 
     signal clicked()
-
-    Connections {
-        target: flickable
-        onMovingChanged: {
-            //when flick/move started, and hover is on, clean hove state
-            if (flickable.moving && tabletButton.state.indexOf("hover") !== -1) {
-                tabletButton.state = (tabletButton.isActive) ? "active state" : "base state";
-            }
-        }
-    }
 
     function changeProperty(key, value) {
         tabletButton[key] = value;
@@ -136,10 +121,8 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         enabled: true
-        preventStealing: false
+        preventStealing: true
         onClicked: {
-            gridView.currentIndex = buttonIndex
-
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
                     tabletButton.isActive = false;
@@ -147,15 +130,12 @@ Item {
                     tabletButton.isActive = true;
                 }
             }
-
             tabletButton.clicked();
             if (tabletRoot) {
                 Tablet.playSound(TabletEnums.ButtonClick);
             }
         }
-
         onEntered: {
-            gridView.currentIndex = buttonIndex
             tabletButton.isEntered = true;
             Tablet.playSound(TabletEnums.ButtonHover);
 
