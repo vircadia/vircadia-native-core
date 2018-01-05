@@ -182,16 +182,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         controllerDispatcherPlugins[b].parameters.priority;
                 });
 
-                var output = "controllerDispatcher -- new plugin order: ";
-                for (var k = 0; k < _this.orderedPluginNames.length; k++) {
-                    var dbgPluginName = _this.orderedPluginNames[k];
-                    var priority = controllerDispatcherPlugins[dbgPluginName].parameters.priority;
-                    output += dbgPluginName + ":" + priority;
-                    if (k + 1 < _this.orderedPluginNames.length) {
-                        output += ", ";
-                    }
-                }
-
                 controllerDispatcherPluginsNeedSort = false;
             }
 
