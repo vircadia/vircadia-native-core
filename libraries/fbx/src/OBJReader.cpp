@@ -468,19 +468,19 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 assert(parts.count() <= 3);
                 // If indices are negative relative indices then adjust them to absolute indices based on current vector sizes
                 // Also add 1 to each index as 1 will be subtracted later on from each index in OBJFace::add
-                int part0 = parts[0].toInt();
-                if (part0 < 0) {
-                    parts[0].setNum(vertices.size() - abs(part0) + 1);
-                }
-                if (parts.count() > 1) {
-                    int part1 = parts[1].toInt();
-                    if (part1 < 0) {
-                        parts[1].setNum(textureUVs.size() - abs(part1) + 1);
-                    }
-                    if (parts.count() > 2) {
-                        int part2 = parts[2].toInt();
-                        if (part2 < 0) {
-                            parts[2].setNum(normals.size() - abs(part2) + 1);
+                for (int i = 0; i < parts.count(); ++i) {
+                    int part = parts[i].toInt();
+                    if (part < 0) {
+                        switch (i) {
+                            case 0:
+                                parts[i].setNum(vertices.size() - abs(part) + 1);
+                                break;
+                            case 1:
+                                parts[i].setNum(textureUVs.size() - abs(part) + 1);
+                                break;
+                            case 2:
+                                parts[i].setNum(normals.size() - abs(part) + 1);
+                                break;
                         }
                     }
                 }
