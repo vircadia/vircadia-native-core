@@ -1080,7 +1080,7 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
-        if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
+        if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
             return true;
         }
 
