@@ -385,7 +385,6 @@ void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer&
     setSkyboxMode((ComponentMode)entity->getSkyboxMode());
 
     editBackground();
-    setBackgroundMode(entity->getBackgroundMode());
     setSkyboxColor(_skyboxProperties.getColorVec3());
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());

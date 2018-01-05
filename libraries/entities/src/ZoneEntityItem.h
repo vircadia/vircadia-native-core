@@ -69,9 +69,6 @@ public:
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
     AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
 
-    void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
-    BackgroundMode getBackgroundMode() const { return _backgroundMode; }
-
     void setHazeMode(const uint32_t value);
     uint32_t getHazeMode() const;
 
