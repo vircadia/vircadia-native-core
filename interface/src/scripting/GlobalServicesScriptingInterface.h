@@ -35,17 +35,25 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     
-    Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
+    Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
+    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
     
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    const QString& getUsername() const;
+    const QString getUsername() const;
+    bool loggedIn() const { return _loggedIn; }
+    QUrl getMetaverseServerURL() { return DependencyManager::get<AccountManager>()->getMetaverseServerURL(); }
     
 public slots:
     DownloadInfoResult getDownloadInfo();
     void updateDownloadInfo();
+
+    bool isLoggedIn();
+    bool checkAndSignalForAccessToken();
+    void logOut();
     
 private slots:
     void loggedOut();
@@ -55,18 +63,22 @@ private slots:
     void setFindableBy(const QString& discoverabilityMode);
     void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
+    void onUsernameChanged(const QString& username);
+
 signals:
     void connected();
     void disconnected(const QString& reason);
     void myUsernameChanged(const QString& username);
     void downloadInfoChanged(DownloadInfoResult info);
     void findableByChanged(const QString& discoverabilityMode);
+    void loggedInChanged(bool loggedIn);
 
 private:
     GlobalServicesScriptingInterface();
     ~GlobalServicesScriptingInterface();
     
     bool _downloading;
+    bool _loggedIn{ false };
 };
 
 #endif // hifi_GlobalServicesScriptingInterface_h
