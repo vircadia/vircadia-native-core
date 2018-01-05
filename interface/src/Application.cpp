@@ -1442,7 +1442,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
     connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
 
-
     this->installEventFilter(this);
 
 #ifdef HAVE_DDE
@@ -1466,8 +1465,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         applicationUpdater->checkForUpdate();
     }
 
-    // Now that menu is initialized we can sync myAvatar with it's state.
-    myAvatar->updateMotionBehaviorFromMenu();
+    Menu::getInstance()->setIsOptionChecked(MenuOption::ActionMotorControl, true);
 
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -2319,9 +2317,10 @@ void Application::initializeUi() {
 
     setupPreferences();
 
-    // For some reason there is already an "Application" object in the QML context,
-    // though I can't find it. Hence, "ApplicationInterface"
-    surfaceContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+    // in Qt 5.10.0 there is already an "Audio" object in the QML context
+    // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
+    surfaceContext->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
+
     surfaceContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     surfaceContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
 
@@ -6142,7 +6141,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("../../hifi/dialogs/TabletAssetServer.qml");
+            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
@@ -6715,7 +6714,7 @@ void Application::loadLODToolsDialog() {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->lodTools();
     } else {
-        tablet->pushOntoStack("../../hifi/dialogs/TabletLODTools.qml");
+        tablet->pushOntoStack("hifi/dialogs/TabletLODTools.qml");
     }
 }
 
@@ -6727,7 +6726,7 @@ void Application::loadEntityStatisticsDialog() {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->octreeStatsDetails();
     } else {
-        tablet->pushOntoStack("../../hifi/dialogs/TabletEntityStatistics.qml");
+        tablet->pushOntoStack("hifi/dialogs/TabletEntityStatistics.qml");
     }
 }
 
@@ -6738,7 +6737,7 @@ void Application::loadDomainConnectionDialog() {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->showDomainConnectionDialog();
     } else {
-        tablet->pushOntoStack("../../hifi/dialogs/TabletDCDialog.qml");
+        tablet->pushOntoStack("hifi/dialogs/TabletDCDialog.qml");
     }
 }
 
