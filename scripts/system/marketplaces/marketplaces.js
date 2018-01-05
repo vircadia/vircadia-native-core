@@ -28,6 +28,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
+    var REZZING_SOUND = SoundCache.getSound(Script.resolvePath("../assets/sounds/rezzing.wav"));
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -341,6 +342,15 @@ var selectionDisplay = null; // for gridTool.js to ignore
                     // we currently assume a wearable is a single entity
                     Entities.editEntity(pastedEntityIDs[0], offsets);
                 }
+
+                var firstEntityProps = Entities.getEntityProperties(pastedEntityIDs[0], ["position"]);
+                var rezzedPos = firstEntityProps.position;
+
+                Audio.playSound(REZZING_SOUND, {
+                    volume: 1.0,
+                    position: rezzedPos
+                })
+
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
             }
