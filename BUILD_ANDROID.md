@@ -2,9 +2,9 @@ Please read the [general build guide](BUILD.md) for information on building othe
 
 # Dependencies
 
-*Currently Android building is only supported on 64 bit Linux host environments*
+Building is currently supported on OSX, Windows and Linux platforms, but developers intending to do work on the library dependencies are strongly urged to use 64 bit Linux as a build platform
 
-You will need the following tools to build our Android targets.
+You will need the following tools to build Android targets.
 
 * [Gradle](https://gradle.org/install/)
 * [Android Studio](https://developer.android.com/studio/index.html)

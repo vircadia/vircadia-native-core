@@ -18,7 +18,7 @@
 
 GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    connect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::onUsernameChanged);
     connect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
     connect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 
@@ -31,11 +31,14 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
             this, &GlobalServicesScriptingInterface::discoverabilityModeChanged);
+
+    _loggedIn = isLoggedIn();
+    emit loggedInChanged(_loggedIn);
 }
 
 GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    disconnect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    disconnect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::onUsernameChanged);
     disconnect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
     disconnect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 }
@@ -45,8 +48,28 @@ GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance(
     return &sharedInstance;
 }
 
-const QString& GlobalServicesScriptingInterface::getUsername() const {
-    return DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
+const QString GlobalServicesScriptingInterface::getUsername() const {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
+    } else {
+        return "Unknown user";
+    }
+}
+
+bool GlobalServicesScriptingInterface::isLoggedIn() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->isLoggedIn();
+}
+
+bool GlobalServicesScriptingInterface::checkAndSignalForAccessToken() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->checkAndSignalForAccessToken();
+}
+
+void GlobalServicesScriptingInterface::logOut() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->logout();
 }
 
 void GlobalServicesScriptingInterface::loggedOut() {
@@ -75,6 +98,12 @@ void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabil
 
 void GlobalServicesScriptingInterface::discoverabilityModeChanged(Discoverability::Mode discoverabilityMode) {
     emit findableByChanged(DiscoverabilityManager::findableByString(discoverabilityMode));
+}
+
+void GlobalServicesScriptingInterface::onUsernameChanged(const QString& username) {
+    _loggedIn = (username != QString());
+    emit myUsernameChanged(username);
+    emit loggedInChanged(_loggedIn);
 }
 
 DownloadInfoResult::DownloadInfoResult() :
