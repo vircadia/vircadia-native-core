@@ -14,7 +14,6 @@
 
 #include <SharedUtil.h>
 #include <NodeList.h> // for MAX_PACKET_SIZE
-#include <JurisdictionSender.h>
 
 const int MAX_FILENAME_LENGTH = 1024;
 
