@@ -237,8 +237,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
     _debugSending(false),
     _debugReceiving(false),
     _verboseDebug(false),
-    _jurisdiction(NULL),
-    _jurisdictionSender(NULL),
     _octreeInboundPacketProcessor(NULL),
     _persistThread(NULL),
     _started(time(0)),
@@ -257,12 +255,6 @@ OctreeServer::~OctreeServer() {
         delete[] _parsedArgV;
     }
 
-    if (_jurisdictionSender) {
-        _jurisdictionSender->terminating();
-        _jurisdictionSender->terminate();
-        _jurisdictionSender->deleteLater();
-    }
-
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
         _octreeInboundPacketProcessor->terminate();
@@ -274,9 +266,6 @@ OctreeServer::~OctreeServer() {
         _persistThread->terminate();
         _persistThread->deleteLater();
     }
-
-    delete _jurisdiction;
-    _jurisdiction = NULL;
 
     // cleanup our tree here...
     qDebug() << qPrintable(_safeServerName) << "server START cleaning up octree... [" << this << "]";
@@ -933,10 +922,6 @@ void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> me
     }
 }
 
-void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    _jurisdictionSender->queueReceivedPacket(message, senderNode);
-}
-
 void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message) {
     if (!_isFinished && !_isShuttingDown) {
         // these messages are only allowed to come from the domain server, so make sure that is the case
@@ -1111,23 +1096,6 @@ void OctreeServer::readConfiguration() {
         qDebug() << "statusPort= DISABLED";
     }
 
-    QString jurisdictionFile;
-    if (readOptionString(QString("jurisdictionFile"), settingsSectionObject, jurisdictionFile)) {
-        qDebug("jurisdictionFile=%s", qPrintable(jurisdictionFile));
-        qDebug("about to readFromFile().... jurisdictionFile=%s", qPrintable(jurisdictionFile));
-        _jurisdiction = new JurisdictionMap(qPrintable(jurisdictionFile));
-        qDebug("after readFromFile().... jurisdictionFile=%s", qPrintable(jurisdictionFile));
-    } else {
-        QString jurisdictionRoot;
-        bool hasRoot = readOptionString(QString("jurisdictionRoot"), settingsSectionObject, jurisdictionRoot);
-        QString jurisdictionEndNodes;
-        bool hasEndNodes = readOptionString(QString("jurisdictionEndNodes"), settingsSectionObject, jurisdictionEndNodes);
-
-        if (hasRoot || hasEndNodes) {
-            _jurisdiction = new JurisdictionMap(qPrintable(jurisdictionRoot), qPrintable(jurisdictionEndNodes));
-        }
-    }
-
     readOptionBool(QString("verboseDebug"), settingsSectionObject, _verboseDebug);
     qDebug("verboseDebug=%s", debug::valueOf(_verboseDebug));
 
@@ -1241,7 +1209,6 @@ void OctreeServer::domainSettingsRequestComplete() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(getMyQueryMessageType(), this, "handleOctreeQueryPacket");
     packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
-    packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
     packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacement");
     packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURL");
 
@@ -1365,13 +1332,6 @@ void OctreeServer::domainSettingsRequestComplete() {
         _persistThread->initialize(true);
     }
 
-    // set up our jurisdiction broadcaster...
-    if (_jurisdiction) {
-        _jurisdiction->setNodeType(getMyNodeType());
-    }
-    _jurisdictionSender = new JurisdictionSender(_jurisdiction, getMyNodeType());
-    _jurisdictionSender->initialize(true);
-
     // set up our OctreeServerPacketProcessor
     _octreeInboundPacketProcessor = new OctreeInboundPacketProcessor(this);
     _octreeInboundPacketProcessor->initialize(true);
@@ -1439,10 +1399,6 @@ void OctreeServer::aboutToFinish() {
 
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
-    }
-
-    if (_jurisdictionSender) {
-        _jurisdictionSender->terminating();
     }
 
     // Shut down all the send threads

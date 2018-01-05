@@ -66,7 +66,7 @@ Item {
             source: "image://security/securityImage";
             cache: false;
             onVisibleChanged: {
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             }
         }
         Item {
@@ -194,7 +194,7 @@ Item {
                     securityImageSubmitButton.text = "Submitting...";
                     securityImageSubmitButton.enabled = false;
                     var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
-                    commerce.chooseSecurityImage(securityImagePath);
+                    Commerce.chooseSecurityImage(securityImagePath);
                 }
             }
         }
