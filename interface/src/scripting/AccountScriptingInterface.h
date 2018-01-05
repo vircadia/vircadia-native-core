@@ -17,18 +17,12 @@
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(QString username READ getUsername NOTIFY usernameChanged)
-    Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
-
     /**jsdoc
      * @namespace Account
      * @property username {String} username if user is logged in, otherwise it returns "Unknown user"
      */
-
-public:
-
-    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
-    QUrl getMetaverseServerURL() { return DependencyManager::get<AccountManager>()->getMetaverseServerURL(); }
+    Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(bool loggedIn READ loggedIn)
 
 signals:
 
@@ -56,21 +50,11 @@ public slots:
      * @return {bool} true when user is logged into the High Fidelity metaverse.
      */
     bool isLoggedIn();
-    bool checkAndSignalForAccessToken();
     void logOut();
 
 public:
-    AccountScriptingInterface(QObject* parent = nullptr);
-    bool loggedIn() const {
-        return m_loggedIn;
-    }
-
-private slots:
-    void onUsernameChanged(QString username);
-
-private:
-    bool m_loggedIn { false };
-
+    AccountScriptingInterface(QObject* parent = nullptr) {}
+    bool loggedIn() const;
 };
 
 #endif // hifi_AccountScriptingInterface_h

@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Tablet, Script, HMD, UserActivityLogger, Entities */
+/* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 var selectionDisplay = null; // for gridTool.js to ignore
@@ -219,6 +220,41 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     function rezEntity(itemHref, isWearable) {
         var success = Clipboard.importEntities(itemHref);
+        var wearableLocalPosition = null;
+        var wearableLocalRotation = null;
+        var wearableLocalDimensions = null;
+        var wearableDimensions = null;
+
+        if (isWearable) {
+            var wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.transforms");
+            if (!wearableTransforms) {
+                // TODO delete this clause
+                wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.tranforms");
+            }
+            var certPos = itemHref.search("certificate_id="); // TODO how do I parse a URL from here?
+            if (certPos >= 0) {
+                certPos += 15; // length of "certificate_id="
+                var certURLEncoded = itemHref.substring(certPos);
+                var certB64Encoded = decodeURIComponent(certURLEncoded);
+                for (var key in wearableTransforms) {
+                    if (wearableTransforms.hasOwnProperty(key)) {
+                        var certificateTransforms = wearableTransforms[key].certificateTransforms;
+                        if (certificateTransforms) {
+                            for (var certID in certificateTransforms) {
+                                if (certificateTransforms.hasOwnProperty(certID) &&
+                                    certID == certB64Encoded) {
+                                    var certificateTransform = certificateTransforms[certID];
+                                    wearableLocalPosition = certificateTransform.localPosition;
+                                    wearableLocalRotation = certificateTransform.localRotation;
+                                    wearableLocalDimensions = certificateTransform.localDimensions;
+                                    wearableDimensions = certificateTransform.dimensions;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (success) {
             var VERY_LARGE = 10000;
@@ -286,6 +322,24 @@ var selectionDisplay = null; // for gridTool.js to ignore
                             }
                         }
                     }
+                }
+
+                if (isWearable) {
+                    // apply the relative offsets saved during checkout
+                    var offsets = {};
+                    if (wearableLocalPosition) {
+                        offsets.localPosition = wearableLocalPosition;
+                    }
+                    if (wearableLocalRotation) {
+                        offsets.localRotation = wearableLocalRotation;
+                    }
+                    if (wearableLocalDimensions) {
+                        offsets.localDimensions = wearableLocalDimensions;
+                    } else if (wearableDimensions) {
+                        offsets.dimensions = wearableDimensions;
+                    }
+                    // we currently assume a wearable is a single entity
+                    Entities.editEntity(pastedEntityIDs[0], offsets);
                 }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
