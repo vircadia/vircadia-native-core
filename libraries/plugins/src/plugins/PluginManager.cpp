@@ -177,10 +177,6 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     return steamClientPlugin;
 }
 
-#ifndef Q_OS_ANDROID
-
-static DisplayPluginList displayPlugins;
-
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
@@ -194,7 +190,7 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
 
     std::call_once(once, [&] {
         // Grab the built in plugins
-        displayPlugins = _displayPluginProvider();
+        _displayPlugins = _displayPluginProvider();
 
 
         // Now grab the dynamic plugins
@@ -202,11 +198,11 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
             DisplayProvider* displayProvider = qobject_cast<DisplayProvider*>(loader->instance());
             if (displayProvider) {
                 for (auto displayPlugin : displayProvider->getDisplayPlugins()) {
-                    displayPlugins.push_back(displayPlugin);
+                    _displayPlugins.push_back(displayPlugin);
                 }
             }
         }
-        for (auto plugin : displayPlugins) {
+        for (auto plugin : _displayPlugins) {
             connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
             connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);
@@ -214,21 +210,17 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
         }
 
     });
-    return displayPlugins;
+    return _displayPlugins;
 }
 
 void PluginManager::disableDisplayPlugin(const QString& name) {
-    for (size_t i = 0; i < displayPlugins.size(); ++i) {
-        if (displayPlugins[i]->getName() == name) {
-            displayPlugins.erase(displayPlugins.begin() + i);
-            break;
-        }
-    }
+    std::remove_if(_displayPlugins.begin(), _displayPlugins.end(), [&](const DisplayPluginPointer& plugin){
+        return plugin->getName() == name;
+    });
 }
 
 
 const InputPluginList& PluginManager::getInputPlugins() {
-    static InputPluginList inputPlugins;
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {
         qCDebug(plugins) << "Added device: " << deviceName;
@@ -240,7 +232,7 @@ const InputPluginList& PluginManager::getInputPlugins() {
     };
 
     std::call_once(once, [&] {
-        inputPlugins = _inputPluginProvider();
+        _inputPlugins = _inputPluginProvider();
 
         // Now grab the dynamic plugins
         for (auto loader : getLoadedPlugins()) {
@@ -248,20 +240,20 @@ const InputPluginList& PluginManager::getInputPlugins() {
             if (inputProvider) {
                 for (auto inputPlugin : inputProvider->getInputPlugins()) {
                     if (inputPlugin->isSupported()) {
-                        inputPlugins.push_back(inputPlugin);
+                        _inputPlugins.push_back(inputPlugin);
                     }
                 }
             }
         }
 
-        for (auto plugin : inputPlugins) {
+        for (auto plugin : _inputPlugins) {
             connect(plugin.get(), &Plugin::deviceConnected, this, deviceAddedCallback, Qt::QueuedConnection);
             connect(plugin.get(), &Plugin::subdeviceConnected, this, subdeviceAddedCallback, Qt::QueuedConnection);
             plugin->setContainer(_container);
             plugin->init();
         }
     });
-    return inputPlugins;
+    return _inputPlugins;
 }
 
 void PluginManager::setPreferredDisplayPlugins(const QStringList& displays) {
@@ -328,4 +320,3 @@ void PluginManager::shutdown() {
         }
     }
 }
-#endif

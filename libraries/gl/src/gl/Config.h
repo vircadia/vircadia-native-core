@@ -14,10 +14,15 @@
 
 #include <QtCore/QtGlobal>
 
-#if defined(QT_OPENGL_ES_3_1)
-// Minimum GL ES version required is 3.1
+#if defined(Q_OS_ANDROID)
+#define HIFI_GLES
+#define HIFI_EGL
+#endif
+
+#if defined(HIFI_GLES)
+// Minimum GL ES version required is 3.2
 #define GL_MIN_VERSION_MAJOR 0x03
-#define GL_MIN_VERSION_MINOR 0x01
+#define GL_MIN_VERSION_MINOR 0x02
 #define GL_DEFAULT_VERSION_MAJOR GL_MIN_VERSION_MAJOR
 #define GL_DEFAULT_VERSION_MINOR GL_MIN_VERSION_MINOR
 #else
@@ -30,10 +35,12 @@
 
 #define MINIMUM_GL_VERSION ((GL_MIN_VERSION_MAJOR << 8) | GL_MIN_VERSION_MINOR)
 
-#if defined(Q_OS_ANDROID)
-
+#if defined(HIFI_GLES)
 #include <EGL/egl.h>
-#include <GLES3/gl31.h>
+#endif
+
+#if defined(HIFI_GLES)
+#include <GLES3/gl32.h>
 
 #define GL_DEPTH_COMPONENT32_OES          0x81A7
 #define GL_TIME_ELAPSED_EXT               0x88BF
@@ -55,7 +62,7 @@ extern "C" {
     extern PFNGLFRAMEBUFFERTEXTUREEXTPROC glFramebufferTextureEXT;
 }
 
-#else // !defined(Q_OS_ANDROID)
+#else // !defined(HIFI_GLES)
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GL/glew.h>

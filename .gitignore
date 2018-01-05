@@ -18,9 +18,12 @@ local.properties
 android/gradle*
 android/.gradle
 android/app/src/main/jniLibs
+android/app/libs
+android/app/src/main/res/values/libs.xml
+android/app/src/main/assets/bundled
 
 # VSCode
-# List taken from Github Global Ignores master@435c4d92 
+# List taken from Github Global Ignores master@435c4d92
 # https://github.com/github/gitignore/commits/master/Global/VisualStudioCode.gitignore
 .vscode/*
 !.vscode/settings.json
@@ -66,7 +69,7 @@ gvr-interface/libs/*
 # ignore files for various dev environments
 TAGS
 *.sw[po]
-*.qmlc
+*.jsc
 
 # ignore QML compilation output
 *.qmlc
