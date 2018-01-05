@@ -142,7 +142,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.processStylus(controllerData)) {
+            var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
+            var isUsingStylus = Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
+
+            if (isUsingStylus && this.processStylus(controllerData)) {
                 Pointers.enablePointer(this.pointer);
                 return makeRunningValues(true, [], []);
             } else {

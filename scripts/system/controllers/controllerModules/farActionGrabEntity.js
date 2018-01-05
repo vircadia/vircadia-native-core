@@ -14,7 +14,7 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-   Picks, makeLaserLockInfo Xform
+   Picks, makeLaserLockInfo Xform, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -119,7 +119,7 @@ Script.include("/~/system/libraries/Xform.js");
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
-            this.hand);
+            makeLaserParams(this.hand, false));
 
 
         this.handToController = function() {
