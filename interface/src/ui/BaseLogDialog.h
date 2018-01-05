@@ -13,17 +13,33 @@
 #define hifi_BaseLogDialog_h
 
 #include <QDialog>
+#include <QSyntaxHighlighter>
 
 const int ELEMENT_MARGIN = 7;
 const int ELEMENT_HEIGHT = 32;
 const int CHECKBOX_MARGIN = 12;
-const int CHECKBOX_WIDTH = 140;
+const int CHECKBOX_WIDTH = 110;
+const int COMBOBOX_WIDTH = 160;
 const int BUTTON_MARGIN = 8;
 
 class QPushButton;
 class QLineEdit;
 class QPlainTextEdit;
-class Highlighter;
+
+class Highlighter : public QSyntaxHighlighter {
+public:
+    Highlighter(QTextDocument* parent = nullptr);
+    void setBold(int indexToBold);
+    QString keyword;
+
+protected:
+    void highlightBlock(const QString& text) override;
+
+private:
+    QTextCharFormat boldFormat;
+    QTextCharFormat keywordFormat;
+
+};
 
 class BaseLogDialog : public QDialog {
     Q_OBJECT
@@ -33,7 +49,7 @@ public:
     ~BaseLogDialog();
 
 public slots:
-    void appendLogLine(QString logLine);
+    virtual void appendLogLine(QString logLine);
 
 private slots:
     void updateSelection();
@@ -43,21 +59,22 @@ private slots:
     void toggleSearchNext();
 
 protected:
-    int _leftPad { 0 };
+    int _leftPad{ 0 };
+    QString _searchTerm;
+    QPlainTextEdit* _logTextBox{ nullptr };
+    Highlighter* _highlighter{ nullptr };
 
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
     virtual QString getCurrentLog() = 0;
+    void clearSearch();
 
 private:
-    QPushButton* _searchButton { nullptr };
-    QLineEdit* _searchTextBox { nullptr };
-    QPlainTextEdit* _logTextBox { nullptr };
-    QPushButton* _searchPrevButton { nullptr };
-    QPushButton* _searchNextButton { nullptr };
-    QString _searchTerm;
-    Highlighter* _highlighter { nullptr };
-    
+    QPushButton* _searchButton{ nullptr };
+    QLineEdit* _searchTextBox{ nullptr };
+    QPushButton* _searchPrevButton{ nullptr };
+    QPushButton* _searchNextButton{ nullptr };
+
     void initControls();
     void showLogData();
 };
