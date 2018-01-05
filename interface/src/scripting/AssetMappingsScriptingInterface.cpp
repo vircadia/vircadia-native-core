@@ -33,7 +33,7 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setDynamicSortFilter(true);
     _proxyModel.setSortLocaleAware(true);
     _proxyModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
-    _proxyModel.sort(Qt::SortOrder::AscendingOrder);
+    _proxyModel.sort(0);
 }
 
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
