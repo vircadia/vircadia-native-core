@@ -53,6 +53,8 @@ ext {
         'Qt5WebSockets',
         'Qt5Widgets',
         'Qt5XmlPatterns',
+        'Qt5Concurrent',
+        'Qt5Svg',
         // Android specific
         'Qt5AndroidExtras',
         'Qt5WebView',
@@ -499,6 +501,22 @@ task generateAssetsFileList() {
             }
         }
         fos.close();
+    }
+}
+
+task copyInterfaceAssets() {
+    doLast {
+        def resourcesDir = new File("${appDir}/../../interface/resources")
+        def scriptsDir = new File("${appDir}/../../scripts")
+        def assetsDir = new File(appDir, 'src/main/assets')
+        copy {
+            from resourcesDir
+            into new File(assetsDir, "resources")
+        }
+        copy {
+            from scriptsDir
+            into new File(assetsDir, "scripts")
+        }
     }
 }
 
