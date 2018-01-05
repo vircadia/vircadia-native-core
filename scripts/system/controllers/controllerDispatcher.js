@@ -145,11 +145,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return deltaTime;
         };
 
-        this.setIgnoreTablet = function() {
+        this.setIgnorePointerItems = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
-                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat([HMD.tabletID]));
-                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
+                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
             }
         };
 
@@ -168,7 +168,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             var deltaTime = _this.updateTimings();
-            _this.setIgnoreTablet();
+            _this.setIgnorePointerItems();
 
             if (controllerDispatcherPluginsNeedSort) {
                 _this.orderedPluginNames = [];
@@ -388,8 +388,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat(HMD.tabletID));
-            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat(HMD.tabletID));
+            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist);
+            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist);
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
