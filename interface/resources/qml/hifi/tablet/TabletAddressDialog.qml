@@ -72,10 +72,14 @@ StackView {
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         updateLocationText(false);
-        addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
+        Qt.callLater(function() {
+            addressBarDialog.keyboardEnabled = HMD.active;
+            addressLine.forceActiveFocus();
+        })
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
