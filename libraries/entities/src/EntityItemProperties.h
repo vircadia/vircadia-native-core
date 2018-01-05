@@ -47,6 +47,13 @@
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
+using ComponentPair = std::pair<const ComponentMode, const QString>;
+const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
+    ComponentPair { COMPONENT_MODE_INHERIT, { "inherit" } },
+    ComponentPair { COMPONENT_MODE_DISABLED, { "disabled" } },
+    ComponentPair { COMPONENT_MODE_ENABLED, { "enabled" } }
+} };
+
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
@@ -255,7 +262,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
+
     static QString getComponentModeString(uint32_t mode);
+    static QString getComponentModeAsString(uint32_t mode);
+
+    const auto findComponent(const QString& mode);
 
 public:
     float getMaxDimension() const { return glm::compMax(_dimensions); }

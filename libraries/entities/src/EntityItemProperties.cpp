@@ -208,20 +208,18 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
     }
 }
 
-using ComponentPair = std::pair<const ComponentMode, const QString>;
-const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
-        ComponentPair{ COMPONENT_MODE_INHERIT,{ "inherit" } },
-        ComponentPair{ COMPONENT_MODE_DISABLED,{ "disabled" } },
-        ComponentPair{ COMPONENT_MODE_ENABLED,{ "enabled" } }
-} };
-
-QString EntityItemProperties::getHazeModeAsString() const {
-    // return "inherit" if _hazeMode is not valid
-    if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_hazeMode].second;
+QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
+    // return "inherit" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
     } else {
         return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
     }
+
+}
+
+QString EntityItemProperties::getHazeModeAsString() const {
+    return getComponentModeAsString(_hazeMode);
 }
 
 QString EntityItemProperties::getComponentModeString(uint32_t mode) {
@@ -233,10 +231,14 @@ QString EntityItemProperties::getComponentModeString(uint32_t mode) {
     }
 }
 
-void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == hazeMode);
+const auto EntityItemProperties::findComponent(const QString& mode) {
+    return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
+        return (pair.second == mode);
     });
+}
+
+void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
+    auto result = findComponent(hazeMode);
 
     if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
@@ -245,18 +247,11 @@ void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
 }
 
 QString EntityItemProperties::getKeyLightModeAsString() const {
-    // return "enabled" if _keyLightMode is not valid
-    if (_keyLightMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_keyLightMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
+    return getComponentModeAsString(_keyLightMode);
 }
 
 void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == keyLightMode);
-    });
+    auto result = findComponent(keyLightMode);
 
     if (result != COMPONENT_MODES.end()) {
         _keyLightMode = result->first;
@@ -265,18 +260,11 @@ void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode
 }
 
 QString EntityItemProperties::getAmbientLightModeAsString() const {
-    // return "enabled" if _ambientLightMode is not valid
-    if (_ambientLightMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_ambientLightMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
+    return getComponentModeAsString(_ambientLightMode);
 }
 
 void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == ambientLightMode);
-    });
+    auto result = findComponent(ambientLightMode);
 
     if (result != COMPONENT_MODES.end()) {
         _ambientLightMode = result->first;
@@ -285,18 +273,11 @@ void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientL
 }
 
 QString EntityItemProperties::getSkyboxModeAsString() const {
-    // return "enabled" if _skyboxMode is not valid
-    if (_skyboxMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_skyboxMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_ENABLED].second;
-    }
+    return getComponentModeAsString(_skyboxMode);
 }
 
 void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == skyboxMode);
-    });
+    auto result = findComponent(skyboxMode);
 
     if (result != COMPONENT_MODES.end()) {
         _skyboxMode = result->first;
