@@ -229,7 +229,7 @@ void PolyVoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   POLYVOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
+    qCDebug(entities) << "          dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
@@ -377,7 +377,7 @@ EntityItemID PolyVoxEntityItem::getZPNeighborID() const {
 glm::vec3 PolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
     withReadLock([&] {
-        glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
         if (isEdged()) {
             result = scale / -2.0f;
         }
@@ -392,7 +392,7 @@ glm::mat4 PolyVoxEntityItem::voxelToLocalMatrix() const {
         voxelVolumeSize = _voxelVolumeSize;
     });
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes

@@ -46,7 +46,7 @@ void LoginDialog::showWithSelection()
     if (tablet->getToolbarMode()) {
         LoginDialog::show();
     } else {
-        static const QUrl url("../../dialogs/TabletLoginDialog.qml");
+        static const QUrl url("dialogs/TabletLoginDialog.qml");
         tablet->initialScreen(url);
         if (!hmd->getShouldShowTablet()) {
             hmd->openTablet();

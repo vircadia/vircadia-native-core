@@ -31,13 +31,15 @@ Rectangle {
     property bool keyboardRaised: false;
     property bool isPassword: false;
 
+    anchors.fill: (typeof parent === undefined) ? undefined : parent;
+
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -47,7 +49,7 @@ Rectangle {
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
                     root.activeView = "walletSetup";
-                    commerce.resetLocalWalletOnly();
+                    Commerce.resetLocalWalletOnly();
                     var timestamp = new Date();
                     walletSetup.startingTimestamp = timestamp;
                     walletSetup.setupAttemptID = generateUUID();
@@ -60,8 +62,10 @@ Rectangle {
                     UserActivityLogger.commercePassphraseEntry("wallet app");
                 }
             } else if (walletStatus === 3) {
-                root.activeView = "walletHome";
-                commerce.getSecurityImage();
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletHome";
+                    Commerce.getSecurityImage();
+                }
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
@@ -71,7 +75,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -177,7 +181,7 @@ Rectangle {
                 if (msg.method === 'walletSetup_finished') {
                     if (msg.referrer === '' || msg.referrer === 'marketplace cta') {
                         root.activeView = "initialize";
-                        commerce.getWalletStatus();
+                        Commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {
                         sendToScript({method: 'goToPurchases'});
                     } else {
@@ -206,17 +210,19 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                    root.isPassword = msg.isPasswordField;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
-                    root.activeView = "security";
-                } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
-                    root.activeView = "security";
-                } else {
-                    sendToScript(msg);
+                if (passphraseChange.visible) {
+                    if (msg.method === 'walletSetup_raiseKeyboard') {
+                        root.keyboardRaised = true;
+                        root.isPassword = msg.isPasswordField;
+                    } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                        root.keyboardRaised = false;
+                    } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
+                        root.activeView = "security";
+                    } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
+                        root.activeView = "security";
+                    } else {
+                        sendToScript(msg);
+                    }
                 }
             }
         }
@@ -257,7 +263,7 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -278,7 +284,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -292,7 +298,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }

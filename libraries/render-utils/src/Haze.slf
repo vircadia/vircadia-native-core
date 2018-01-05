@@ -23,6 +23,7 @@
 <@include Haze.slh@>
 
 uniform sampler2D colorMap;
+uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearDepthMap, texcoord).x;
@@ -45,104 +46,15 @@ void main(void) {
         discard;
     }
 
-    // Distance to fragment 
-    vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
-    float distance = length(eyeFragPos.xyz);
-
     vec4 fragColor = texture(colorMap, varTexCoord0);
-    vec4 hazeColor  = vec4(hazeParams.hazeColor, 1.0);
+    vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
 
-    // Directional light component is a function of the angle from the eye, between the fragment and the sun
-    DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
-    vec4 worldFragPos = getViewInverse() * eyeFragPos;
-    vec3 eyeFragDir = normalize(worldFragPos.xyz);
+    mat4 viewInverse = getViewInverse();
+    vec4 worldFragPos = viewInverse * eyeFragPos;
+    vec4 worldEyePos = viewInverse[3];
 
     Light light = getLight();
     vec3 lightDirection = getLightDirection(light);
 
-    float glareComponent = max(0.0, dot(eyeFragDir, -lightDirection));
-    float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
-
-    vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
-
-    // Use the haze colour for the glare colour, if blend is not enabled
-    vec4 blendedHazeColor;
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
-        blendedHazeColor = mix(hazeColor, glareColor, power);
-    } else {
-        blendedHazeColor = hazeColor;
-    }
-
-    vec4 potentialFragColor;
-
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) == HAZE_MODE_IS_MODULATE_COLOR) {
-        // Compute separately for each colour
-        // Haze is based on both range and altitude
-        // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
-
-        // The eyepoint position is in the last column of the matrix
-        vec3 worldEyePos = getViewInverse()[3].xyz;
-
-        // Note that the haze base reference affects only the haze density as function of altitude
-        vec3 hazeDensityDistribution =  
-            hazeParams.colorModulationFactor * 
-            exp(-hazeParams.hazeHeightFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
-
-        vec3 hazeIntegral =  hazeDensityDistribution * distance;
-
-        const float slopeThreshold = 0.01;
-        float deltaHeight = worldFragPos.y - worldEyePos.y;
-        if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeHeightFactor * deltaHeight;
-            hazeIntegral *= (1.0 - exp (-t)) / t;
-        }
-
-        vec3 hazeAmount = 1.0 - exp(-hazeIntegral);
-
-        // Compute color after haze effect
-        potentialFragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), vec4(hazeAmount, 1.0));
-    } else if ((hazeParams.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) {
-        // Haze is based only on range
-        float hazeAmount = 1.0 - exp(-distance * hazeParams.hazeRangeFactor);
-
-        // Compute color after haze effect
-        potentialFragColor = mix(fragColor, blendedHazeColor, hazeAmount);
-    } else {
-        // Haze is based on both range and altitude
-        // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
-
-        // The eyepoint position is in the last column of the matrix
-        vec3 worldEyePos = getViewInverse()[3].xyz;
-
-        // Note that the haze base reference affects only the haze density as function of altitude
-        float hazeDensityDistribution =  
-            hazeParams.hazeRangeFactor * 
-            exp(-hazeParams.hazeHeightFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
-
-        float hazeIntegral =  hazeDensityDistribution * distance;
-
-        const float slopeThreshold = 0.01;
-        float deltaHeight = worldFragPos.y - worldEyePos.y;
-        if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeHeightFactor * deltaHeight;
-            // Protect from wild values
-            if (abs(t) > 0.0000001) {
-                hazeIntegral *= (1.0 - exp (-t)) / t;
-            }
-        }
-
-        float hazeAmount = 1.0 - exp(-hazeIntegral);
-
-        // Compute color after haze effect
-        potentialFragColor = mix(fragColor, blendedHazeColor, hazeAmount);
-    }
-
-    // Mix with background at far range
-    const float BLEND_DISTANCE = 27000.0;
-    if (distance > BLEND_DISTANCE) {
-        outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlend);
-    } else {
-        outFragColor = potentialFragColor;
-    }
+    outFragColor = computeHazeColor(fragColor, eyeFragPos.xyz, worldFragPos.xyz, worldEyePos.y, lightDirection);
 }
-
