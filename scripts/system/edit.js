@@ -279,13 +279,11 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM) &&
+                !(properties.type === "Zone" || properties.type === "Light")) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
-            }
-
-            if (properties.type === "Zone" || properties.type === "Light") {
+            } else {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
-                properties.dynamic = false;
             }
 
             entityID = Entities.addEntity(properties);
