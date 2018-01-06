@@ -31,6 +31,8 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
     _proxyModel.setSortRole(Qt::DisplayRole);
     _proxyModel.setDynamicSortFilter(true);
+    _proxyModel.setSortLocaleAware(true);
+    _proxyModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     _proxyModel.sort(0);
 }
 
