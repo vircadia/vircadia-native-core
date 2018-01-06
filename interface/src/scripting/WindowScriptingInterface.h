@@ -34,7 +34,9 @@ void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptR
 
 
 /**jsdoc
- * The Window API provides various facilities not covered elsewhere.
+ * The Window API provides various facilities not covered elsewhere: window dimensions, window focus, normal or entity camera
+ * view, clipboard, announcements, user connections, common dialog boxes, snapshots, file import, domain changes, domain 
+ * physics.
  *
  * @namespace Window
  * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other 
@@ -187,8 +189,8 @@ public slots:
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @returns {string} The path and name of the file if one is chosen, otherwise <code>null</code>.
      * @example <caption>Ask the user to choose an image file.</caption>
-     * var file = Window.browse("Select Image File", Paths.resources, "Images (*.png *.jpg *.svg)");
-     * print("File: " + file);
+     * var filename = Window.browse("Select Image File", Paths.resources, "Images (*.png *.jpg *.svg)");
+     * print("File: " + filename);
      */
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
@@ -202,8 +204,8 @@ public slots:
      * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to choose an image file without waiting for the answer.</caption>
-     * function onOpenFileChanged(file) {
-     *     print("File: " + file);
+     * function onOpenFileChanged(filename) {
+     *     print("File: " + filename);
      * }
      * Window.openFileChanged.connect(onOpenFileChanged);
      *
@@ -220,11 +222,11 @@ public slots:
      * @param {string} directory="" - The initial directory to start browsing at.
      * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
-     * @returns {string} The path and name of the file is one is specified, otherwise <code>null</code>. If a single file type
+     * @returns {string} The path and name of the file if one is specified, otherwise <code>null</code>. If a single file type
      *     is specified in the nameFilter, that file type extension is automatically appended to the result when appropriate.
      * @example <caption>Ask the user to specify a file to save to.</caption>
-     * var file = Window.save("Save to JSON file", Paths.resources, "*.json");
-     * print("File: " + file);
+     * var filename = Window.save("Save to JSON file", Paths.resources, "*.json");
+     * print("File: " + filename);
      */
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
@@ -238,8 +240,8 @@ public slots:
      * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to specify a file to save to without waiting for an answer.</caption>
-     * function onSaveFileChanged(file) {
-     *     print("File: " + file);
+     * function onSaveFileChanged(filename) {
+     *     print("File: " + filename);
      * }
      * Window.saveFileChanged.connect(onSaveFileChanged);
      *
@@ -289,9 +291,9 @@ public slots:
      * @function Window.showAssetServer
      * @param {string} uploadFile="" - The path and name of a file to upload to the asset server.
      * @example <caption>Upload a file to the asset server.</caption>
-     * var file = Window.browse("Select File to Add to Asset Server", Paths.resources);
-     * print("File: " + file);
-     * Window.showAssetServer(file);
+     * var filename = Window.browse("Select File to Add to Asset Server", Paths.resources);
+     * print("File: " + filename);
+     * Window.showAssetServer(filename);
      */
     void showAssetServer(const QString& upload = "");
 
@@ -321,8 +323,8 @@ public slots:
      * @param {boolean} includeAnimated=false - If <code>true</code>, a moving image is captured as an animated GIF in addition 
      *     to a still image.
      * @param {number} aspectRatio=0 - The width/height ratio of the snapshot required. If the value is <code>0</code> the
-     *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one or 
-     *     other dimension is adjusted in order to match the aspect ratio.
+     *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
+     *     dimensions is adjusted in order to match the aspect ratio.
      * @example <caption>Using the snapshot function and signals.</caption>
      * function onStillSnapshottaken(path, notify) {
      *     print("Still snapshot taken: " + path);
@@ -356,7 +358,7 @@ public slots:
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
-     * indicates whether or not you successfully made a user connection.
+     * indicates whether or a user connection was successfully made using the Web API.
      * @function Window.makeConnection
      * @param {boolean} success - If <code>true</code> then {@link Window.connectionAdded|connectionAdded} is emitted, otherwise
      *     {@link Window.connectionError|connectionError} is emitted.
@@ -416,7 +418,7 @@ public slots:
      * Set what to show on the PC display: normal view or entity camera view. The entity camera is configured using
      * {@link Camera.setCameraEntity} and {@link Camera|Camera.mode}.
      * @function Window.setDisplayTexture
-     * @param {Window.DisplayTexture} name - The view to display.
+     * @param {Window.DisplayTexture} texture - The view to display.
      * @returns {boolean} <code>true</code> if the display texture was successfully set, otherwise <code>false</code>.
      */
     // See spectatorCamera.js for Valid parameter values.
@@ -445,17 +447,18 @@ public slots:
     bool setDisplayTexture(const QString& name);
 
     /**jsdoc
-     * Check if a 2D point is within the drawable area of the HUD overlay.
+     * Check if a 2D point is within the desktop window if in desktop mode, or the drawable area of the HUD overlay if in HMD
+     * mode.
      * @function Window.isPointOnDesktopWindow
-     * @param {Vec2} point - The point to check in HMD display coordinates.
+     * @param {Vec2} point - The point to check.
      * @returns {boolean} <code>true</code> if the point is within the window or HUD, otherwise <code>false</code>.
      */
     bool isPointOnDesktopWindow(QVariant point);
 
     /**jsdoc
-     * Get the size of the drawable area of the Interface window if in desktop mode or the HMD display if in HMD mode.
+     * Get the size of the drawable area of the Interface window if in desktop mode or the HMD rendering surface if in HMD mode.
      * @function Window.getDeviceSize
-     * @returns {Vec2} The width and height of the Interface window or HMD display, in pixels.
+     * @returns {Vec2} The width and height of the Interface window or HMD rendering surface, in pixels.
      */
     glm::vec2 getDeviceSize() const;
 
@@ -521,13 +524,19 @@ signals:
      * @function Window.domainChanged
      * @param {string} domain - The domain's IP address.
      * @returns {Signal}
+     * @example <caption>Report when you change domains.</caption>
+     * function onDomainChanged(domain) {
+     *     print("Domain changed: " + domain);
+     * }
+     *
+     * Window.domainChanged.connect(onDomainChanged);
      */
     void domainChanged(const QString& domain);
 
     /**jsdoc
-     * Triggered when you try to navigate to a *.svo or *.svo.json URL in a Web browser within Interface.
+     * Triggered when you try to navigate to a *.json, *.svo, or *.svo.json URL in a Web browser within Interface.
      * @function Window.svoImportRequested
-     * @param {string} url - The URL of the SVO file to import/
+     * @param {string} url - The URL of the file to import.
      * @returns {Signal}
      */
     void svoImportRequested(const QString& url);
@@ -543,7 +552,7 @@ signals:
     void domainConnectionRefused(const QString& reasonMessage, int reasonCode, const QString& extraInfo);
 
     /**jsdoc
-     * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot}} with 
+     * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
      *     <code>includeAnimated = false</code>.
      * @function Window.stillSnapshotTaken
      * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
@@ -611,7 +620,7 @@ signals:
      * Triggered when the user closes a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
      * @function Window.messageBoxClosed
      * @param {number} id - The ID of the message box that was closed.
-     * @param {number} button - The button that the user clicked. If the user presses Esc the Cancel button value is returned,
+     * @param {number} button - The button that the user clicked. If the user presses Esc, the Cancel button value is returned,
      *    whether or not the Cancel button is displayed in the message box.
      * @returns {Signal}
      */
