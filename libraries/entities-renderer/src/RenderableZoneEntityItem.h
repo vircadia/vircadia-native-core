@@ -46,8 +46,8 @@ protected:
 
 private:
     void updateKeyZoneItemFromEntity();
-    void updateKeySunFromEntity();
-    void updateKeyAmbientFromEntity();
+    void updateKeySunFromEntity(const TypedEntityPointer& entity);
+    void updateAmbientLightFromEntity(const TypedEntityPointer& entity);
     void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
@@ -55,7 +55,12 @@ private:
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
     void setBackgroundMode(BackgroundMode mode);
+
     void setHazeMode(ComponentMode mode);
+    void setKeyLightMode(ComponentMode mode);
+    void setAmbientLightMode(ComponentMode mode);
+    void setSkyboxMode(ComponentMode mode);
+
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
@@ -85,7 +90,11 @@ private:
     const model::HazePointer _haze{ std::make_shared<model::Haze>() };
 
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
-    ComponentMode _hazeMode{ COMPONENT_MODE_INHERIT };
+
+    ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _skyboxMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _hazeMode { COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
@@ -104,6 +113,7 @@ private:
     bool _needHazeUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
+    AmbientLightPropertyGroup _ambientLightProperties;
     HazePropertyGroup _hazeProperties;
     StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;

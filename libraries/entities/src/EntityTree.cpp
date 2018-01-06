@@ -2281,6 +2281,26 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setOwningAvatarID(myNodeID);
         }
 
+        // TEMPORARY fix for older content not containing these fields in the zones
+        if (properties.getType() == EntityTypes::EntityType::Zone) {
+            if (!entityMap.contains("keyLightMode")) {
+                properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            }
+
+            if (!entityMap.contains("skyboxMode")) {
+                if (entityMap.contains("backgroundMode") && properties.getBackgroundModeAsString() == "inherit") {
+                    // The content creator has set the combo to NOTHING - this is actually inherit
+                    properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+                } else {
+                    properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+                }
+            }
+
+            if (!entityMap.contains("ambientLightMode")) {
+                properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
