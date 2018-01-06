@@ -239,6 +239,7 @@ var toolBar = (function () {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
+
         if (position !== null && position !== undefined) {
             var direction;
             if (Camera.mode === "entity" || Camera.mode === "independent") {
@@ -281,6 +282,12 @@ var toolBar = (function () {
             if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             }
+
+            if (properties.type === "Zone" || properties.type === "Light") {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
+                properties.dynamic = false;
+            }
+
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {
