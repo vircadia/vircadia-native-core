@@ -191,6 +191,7 @@
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
+#include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
@@ -698,6 +699,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
     DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
+    DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
@@ -1189,8 +1191,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userActivityLogger.logAction("launch", properties);
     }
 
-    // Tell our entity edit sender about our known jurisdictions
-    _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
     _entityEditSender.setMyAvatar(myAvatar.get());
 
     // The entity octree will have to know about MyAvatar for the parentJointName import
@@ -1443,7 +1443,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
     connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
 
-
     this->installEventFilter(this);
 
 #ifdef HAVE_DDE
@@ -1467,8 +1466,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         applicationUpdater->checkForUpdate();
     }
 
-    // Now that menu is initialized we can sync myAvatar with it's state.
-    myAvatar->updateMotionBehaviorFromMenu();
+    Menu::getInstance()->setIsOptionChecked(MenuOption::ActionMotorControl, true);
 
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -4279,7 +4277,7 @@ void Application::init() {
 
     getEntities()->init();
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
-        auto dims = item.getDimensions();
+        auto dims = item.getScaledDimensions();
         auto maxSize = glm::compMax(dims);
 
         if (maxSize <= 0.0f) {
@@ -4557,7 +4555,7 @@ void Application::reloadResourceCaches() {
     _lastQueriedTime = 0;
     _octreeQuery.incrementConnectionID();
 
-    queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
+    queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
     DependencyManager::get<AssetClient>()->clearCache();
 
@@ -4633,7 +4631,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 _lastAcceptedKeyPress = usecTimestampNow();
 
                 setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
     }
@@ -5050,7 +5048,7 @@ void Application::update(float deltaTime) {
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-                queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
+                queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
             }
             sendAvatarViewFrustum();
             _lastQueriedViewFrustum = _viewFrustum;
@@ -5271,14 +5269,11 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
     }
-
-    //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
-    bool wantExtraDebugging = getLogger()->extraDebugging();
 
     ViewFrustum viewFrustum;
     copyViewFrustum(viewFrustum);
@@ -5294,147 +5289,22 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
-    // Iterate all of the nodes, and get a count of how many octree servers we have...
-    int totalServers = 0;
-    int inViewServers = 0;
-    int unknownJurisdictionServers = 0;
-
     auto nodeList = DependencyManager::get<NodeList>();
 
-    nodeList->eachNode([&](const SharedNodePointer& node) {
-        // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() && node->getType() == serverType) {
-            totalServers++;
+    auto node = nodeList->soloNodeOfType(serverType);
+    if (node && node->getActiveSocket()) {
+        _octreeQuery.setMaxQueryPacketsPerSecond(getMaxOctreePacketsPerSecond());
 
-            // get the server bounds for this server
-            QUuid nodeUUID = node->getUUID();
+        auto queryPacket = NLPacket::create(packetType);
 
-            // if we haven't heard from this voxel server, go ahead and send it a query, so we
-            // can get the jurisdiction...
-            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
-                unknownJurisdictionServers++;
-            } else {
-                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
+        // encode the query data
+        auto packetData = reinterpret_cast<unsigned char*>(queryPacket->getPayload());
+        int packetSize = _octreeQuery.getBroadcastData(packetData);
+        queryPacket->setPayloadSize(packetSize);
 
-                auto rootCode = map.getRootOctalCode();
-
-                if (rootCode) {
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode.get(), rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
-                                                  rootDetails.y * TREE_SCALE,
-                                                  rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
-                                        rootDetails.s * TREE_SCALE);
-                    if (viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
-                        inViewServers++;
-                    }
-                }
-            }
-        }
-    });
-
-    if (wantExtraDebugging) {
-        qCDebug(interfaceapp, "Servers: total %d, in view %d, unknown jurisdiction %d",
-            totalServers, inViewServers, unknownJurisdictionServers);
+        // make sure we still have an active socket
+        nodeList->sendUnreliablePacket(*queryPacket, *node);
     }
-
-    int perServerPPS = 0;
-    const int SMALL_BUDGET = 10;
-    int perUnknownServer = SMALL_BUDGET;
-    int totalPPS = getMaxOctreePacketsPerSecond();
-
-    // determine PPS based on number of servers
-    if (inViewServers >= 1) {
-        // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
-        // for each unknown jurisdiction server
-        perServerPPS = (totalPPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
-    } else {
-        if (unknownJurisdictionServers > 0) {
-            perUnknownServer = (totalPPS / unknownJurisdictionServers);
-        }
-    }
-
-    if (wantExtraDebugging) {
-        qCDebug(interfaceapp, "perServerPPS: %d perUnknownServer: %d", perServerPPS, perUnknownServer);
-    }
-
-    auto queryPacket = NLPacket::create(packetType);
-
-    nodeList->eachNode([&](const SharedNodePointer& node) {
-        // only send to the NodeTypes that are serverType
-        if (node->getActiveSocket() && node->getType() == serverType) {
-
-            // get the server bounds for this server
-            QUuid nodeUUID = node->getUUID();
-
-            bool inView = false;
-            bool unknownView = false;
-
-            // if we haven't heard from this voxel server, go ahead and send it a query, so we
-            // can get the jurisdiction...
-            if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
-                unknownView = true; // assume it's in view
-                if (wantExtraDebugging) {
-                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", assume it's visible.";
-                }
-            } else {
-                const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
-                auto rootCode = map.getRootOctalCode();
-
-                if (rootCode) {
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode.get(), rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x * TREE_SCALE,
-                                                  rootDetails.y * TREE_SCALE,
-                                                  rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
-                                        rootDetails.s * TREE_SCALE);
-
-
-                    inView = viewFrustum.cubeIntersectsKeyhole(serverBounds);
-                } else if (wantExtraDebugging) {
-                    qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
-                }
-            }
-
-            if (inView) {
-                _octreeQuery.setMaxQueryPacketsPerSecond(perServerPPS);
-            } else if (unknownView) {
-                if (wantExtraDebugging) {
-                    qCDebug(interfaceapp) << "no known jurisdiction for node " << *node << ", give it budget of "
-                                            << perUnknownServer << " to send us jurisdiction.";
-                }
-
-                // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
-                // If there's only one server, then don't do this, and just let the normal voxel query pass through
-                // as expected... this way, we will actually get a valid scene if there is one to be seen
-                if (totalServers > 1) {
-                    _octreeQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
-                    const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                    _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                    _octreeQuery.setCameraNearClip(0.1f);
-                    _octreeQuery.setCameraFarClip(0.1f);
-                    if (wantExtraDebugging) {
-                        qCDebug(interfaceapp) << "Using 'minimal' camera position for node" << *node;
-                    }
-                } else {
-                    if (wantExtraDebugging) {
-                        qCDebug(interfaceapp) << "Using regular camera position for node" << *node;
-                    }
-                }
-                _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
-            } else {
-                _octreeQuery.setMaxQueryPacketsPerSecond(0);
-            }
-
-            // encode the query data
-            int packetSize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
-            queryPacket->setPayloadSize(packetSize);
-
-            // make sure we still have an active socket
-            nodeList->sendUnreliablePacket(*queryPacket, *node);
-        }
-    });
 }
 
 
@@ -5548,11 +5418,6 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
-
-    // reset our node to stats and node to jurisdiction maps... since these must be changing...
-    _entityServerJurisdictions.withWriteLock([&] {
-        _entityServerJurisdictions.clear();
-    });
 
     _octreeServerSceneStats.withWriteLock([&] {
         _octreeServerSceneStats.clear();
@@ -5755,8 +5620,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
 }
 
 int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode) {
-    // But, also identify the sender, and keep track of the contained jurisdiction root for this server
-
     // parse the incoming stats datas stick it in a temporary object for now, while we
     // determine which server it belongs to
     int statsMessageLength = 0;
@@ -5770,42 +5633,6 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 
         if (octreeStats.isFullScene()) {
             _fullSceneReceivedCounter++;
-        }
-
-        // see if this is the first we've heard of this node...
-        NodeToJurisdictionMap* jurisdiction = nullptr;
-        QString serverType;
-        if (sendingNode->getType() == NodeType::EntityServer) {
-            jurisdiction = &_entityServerJurisdictions;
-            serverType = "Entity";
-        }
-
-        bool found = false;
-
-        jurisdiction->withReadLock([&] {
-            if (jurisdiction->find(nodeUUID) != jurisdiction->end()) {
-                found = true;
-                return;
-            }
-
-            VoxelPositionSize rootDetails;
-            voxelDetailsForCode(octreeStats.getJurisdictionRoot().get(), rootDetails);
-
-            qCDebug(interfaceapp, "stats from new %s server... [%f, %f, %f, %f]",
-                qPrintable(serverType),
-                (double)rootDetails.x, (double)rootDetails.y, (double)rootDetails.z, (double)rootDetails.s);
-        });
-
-        if (!found) {
-            // store jurisdiction details for later use
-            // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
-            // but OctreeSceneStats thinks it's just returning a reference to its contents. So we need to make a copy of the
-            // details from the OctreeSceneStats to construct the JurisdictionMap
-            JurisdictionMap jurisdictionMap;
-            jurisdictionMap.copyContents(octreeStats.getJurisdictionRoot(), octreeStats.getJurisdictionEndNodes());
-            jurisdiction->withWriteLock([&] {
-                (*jurisdiction)[nodeUUID] = jurisdictionMap;
-            });
         }
     });
 
@@ -5827,7 +5654,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
         return !entityServerNode || isPhysicsEnabled();
     });
 
-    // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
+    // setup the packet sender of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
@@ -5941,6 +5768,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine.data(), steamClient.get()));

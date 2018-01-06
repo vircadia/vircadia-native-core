@@ -63,7 +63,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_dimensions != entity->getDimensions()) {
+    if (_dimensions != entity->getScaledDimensions()) {
         return true;
     }
 
@@ -82,7 +82,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
-        _dimensions = entity->getDimensions();
+        _dimensions = entity->getScaledDimensions();
         _orientation = entity->getWorldOrientation();
         _renderTransform = getModelTransform();
 
@@ -137,11 +137,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     });
 
     if (proceduralRender) {
-        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShape(batch, geometryShape);
+            geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
-            geometryCache->renderShape(batch, geometryShape);
+            geometryCache->renderShape(batch, geometryShape, outColor);
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect

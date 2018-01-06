@@ -60,7 +60,7 @@ public:
     RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
     virtual ~RenderableModelEntityItem();
 
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     void doInitialModelSimulation();

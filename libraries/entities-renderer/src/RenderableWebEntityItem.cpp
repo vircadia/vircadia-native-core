@@ -126,7 +126,10 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     withWriteLock([&] {
         // This work must be done on the main thread
         if (!hasWebSurface()) {
-            buildWebSurface(entity);
+            // If we couldn't create a new web surface, exit
+            if (!buildWebSurface(entity)) {
+                return;
+            }
         }
 
         if (_contextPosition != entity->getWorldPosition()) {
@@ -146,7 +149,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         glm::vec2 windowSize = getWindowSize(entity);
         _webSurface->resize(QSize(windowSize.x, windowSize.y));
         _renderTransform = getModelTransform();
-        _renderTransform.postScale(entity->getDimensions());
+        _renderTransform.postScale(entity->getScaledDimensions());
     });
 }
 
@@ -190,7 +193,6 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     });
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
     DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
@@ -277,7 +279,7 @@ void WebEntityRenderer::destroyWebSurface() {
 }
 
 glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) const {
-    glm::vec2 dims = glm::vec2(entity->getDimensions());
+    glm::vec2 dims = glm::vec2(entity->getScaledDimensions());
     dims *= METERS_TO_INCHES * _lastDPI;
 
     // ensure no side is never larger then MAX_WINDOW_SIZE

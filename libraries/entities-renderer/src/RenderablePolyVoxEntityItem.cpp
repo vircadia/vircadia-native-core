@@ -213,7 +213,7 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
     withReadLock([&] {
-        glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
         if (isEdged(_voxelSurfaceStyle)) {
             result = scale / -2.0f;
         }
@@ -228,7 +228,7 @@ glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
         voxelVolumeSize = _voxelVolumeSize;
     });
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
@@ -393,7 +393,7 @@ bool RenderablePolyVoxEntityItem::setSphere(const vec3& centerWorldCoords, float
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
@@ -454,7 +454,7 @@ bool RenderablePolyVoxEntityItem::setCapsule(const vec3& startWorldCoords, const
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
@@ -580,7 +580,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     // the PolyVox ray intersection code requires a near and far point.
     // set ray cast length to long enough to cover all of the voxel space
     float distanceToEntity = glm::distance(origin, getWorldPosition());
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     float largestDimension = glm::compMax(dimensions) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
 
@@ -668,7 +668,7 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() const {
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_NONE) {
-        info.setParams(getShapeType(), 0.5f * getDimensions());
+        info.setParams(getShapeType(), 0.5f * getScaledDimensions());
         return;
     }
 
