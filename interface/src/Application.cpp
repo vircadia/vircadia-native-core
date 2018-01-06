@@ -212,6 +212,8 @@
 #if defined(Q_OS_ANDROID)
 #include <QtAndroidExtras/QAndroidJniObject>
 #include <android/log.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 #endif
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -238,6 +240,7 @@ extern "C" {
 extern "C" {
  
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
+    storage::FileStorage::setAssetManager(AAssetManager_fromJava(env, asset_mgr));
     qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
 }
 
@@ -332,7 +335,11 @@ static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
 static const QString DISABLE_WATCHDOG_FLAG("HIFI_DISABLE_WATCHDOG");
+#if defined(Q_OS_ANDROID)
+static bool DISABLE_WATCHDOG = true;
+#else
 static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
+#endif
 
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
@@ -1777,7 +1784,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     static int lastCountOfNearbyAvatars = -1;
     QTimer* checkNearbyAvatarsTimer = new QTimer(this);
     checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS); // 10 seconds, Qt::CoarseTimer ok
-    connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
+    connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, []() {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getWorldPosition(),
                                                                   NEARBY_AVATAR_RADIUS_METERS) - 1;

@@ -33,7 +33,7 @@ const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
 #elif defined (ANDROID)
-    static const QString staticResourcePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
+    static const QString staticResourcePath = "assets:/resources/";
 #else
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif

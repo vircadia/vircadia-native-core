@@ -13,8 +13,14 @@
 #include <stdint.h>
 #include <vector>
 #include <memory>
-#include <QFile>
-#include <QString>
+
+#include <QtCore/qtglobal>
+#include <QtCore/QFile>
+#include <QtCore/QString>
+
+#if defined(Q_OS_ANDROID)
+#include <android/asset_manager.h>
+#endif
 
 namespace storage {
     class Storage;
@@ -52,6 +58,9 @@ namespace storage {
 
     class FileStorage : public Storage {
     public:
+#if defined(Q_OS_ANDROID)
+        static void setAssetManager(AAssetManager* assetManager);
+#endif
         static StoragePointer create(const QString& filename, size_t size, const uint8_t* data);
         FileStorage(const QString& filename);
         ~FileStorage();
@@ -61,10 +70,13 @@ namespace storage {
 
         const uint8_t* data() const override { return _mapped; }
         uint8_t* mutableData() override { return _hasWriteAccess ? _mapped : nullptr; }
-        size_t size() const override { return _file.size(); }
+        size_t size() const override { return _size; }
         operator bool() const override { return _valid; }
     private:
-
+#if defined(Q_OS_ANDROID)
+        AAsset* _asset { nullptr };
+#endif
+        size_t _size { 0 };
         bool _valid { false };
         bool _hasWriteAccess { false };
         QFile _file;

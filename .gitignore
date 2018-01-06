@@ -77,3 +77,4 @@ TAGS
 # ignore node files for the console
 node_modules
 npm-debug.log
+*___jb_old___
