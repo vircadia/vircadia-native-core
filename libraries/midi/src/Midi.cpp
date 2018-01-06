@@ -65,86 +65,87 @@ std::vector<HMIDIOUT> midihout;
 
 void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
     switch (wMsg) {
-    case MIM_OPEN:
-        // message not used
-        break;
-    case MIM_CLOSE:
-        for (int i = 0; i < midihin.size(); i++) {
-            if (midihin[i] == hMidiIn) {
-                midihin[i] = NULL;
-                instance->allNotesOff();
-                instance->midiHardwareChange();
+        case MIM_OPEN:
+            // message not used
+            break;
+        case MIM_CLOSE:
+            for (int i = 0; i < midihin.size(); i++) {
+                if (midihin[i] == hMidiIn) {
+                    midihin[i] = NULL;
+                    instance->allNotesOff();
+                    instance->midiHardwareChange();
+                }
             }
-        }
-        break;
-    case MIM_DATA: {
-        int device = -1;
-        for (int i = 0; i < midihin.size(); i++) {
-            if (midihin[i] == hMidiIn) {
-                device = i;
+            break;
+        case MIM_DATA: {
+            int device = -1;
+            for (int i = 0; i < midihin.size(); i++) {
+                if (midihin[i] == hMidiIn) {
+                    device = i;
+                }
             }
+            int raw = dwParam1;
+            int channel = (MIDI_NIBBLE_MASK & dwParam1) + 1;
+            int status = MIDI_BYTE_MASK & dwParam1;
+            int type = MIDI_NIBBLE_MASK & (dwParam1 >> MIDI_SHIFT_STATUS);
+            int note = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_NOTE);
+            int velocity = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_VELOCITY);
+            int bend = 0;
+            int program = 0;
+            if (!typeNoteOffEnabled && type == MIDI_NOTE_OFF) {
+                return;
+            }
+            if (!typeNoteOnEnabled && type == MIDI_NOTE_ON) {
+                return;
+            }
+            if (!typePolyKeyPressureEnabled && type == MIDI_POLYPHONIC_KEY_PRESSURE) {
+                return;
+            }
+            if (!typeControlChangeEnabled && type == MIDI_CONTROL_CHANGE) {
+                return;
+            }
+            if (typeProgramChangeEnabled && type == MIDI_PROGRAM_CHANGE) {
+                program = note;
+                note = 0;
+            }
+            if (typeChanPressureEnabled && type == MIDI_CHANNEL_PRESSURE) {
+                velocity = note;
+                note = 0;
+            }
+            if (typePitchBendEnabled && type == MIDI_PITCH_BEND_CHANGE) {
+                bend = ((MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_NOTE)) | 
+                    (MIDI_PITCH_BEND_MASK & (dwParam1 >> MIDI_SHIFT_PITCH_BEND))) - 8192;
+                channel = 0;        // Weird values on different instruments
+                note = 0;
+                velocity = 0;
+            }
+            if (!typeSystemMessageEnabled && type == MIDI_SYSTEM_MESSAGE) {
+                return;
+            }
+            if (thruModeEnabled) {
+                instance->sendNote(status, note, velocity);        // relay the message on to all other midi devices.
+            }
+            instance->rawMidiReceived(device, raw);        // notify the javascript
+            instance->midiReceived(device, raw, channel, status, type, note, velocity, bend, program);        // notify the javascript
+            break;
         }
-        int raw = dwParam1;
-        int channel = (MIDI_NIBBLE_MASK & dwParam1) + 1;
-        int status = MIDI_BYTE_MASK & dwParam1;
-        int type = MIDI_NIBBLE_MASK & (dwParam1 >> MIDI_SHIFT_STATUS);
-        int note = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_NOTE);
-        int velocity = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_VELOCITY);
-        int bend = 0;
-        int program = 0;
-        if (!typeNoteOffEnabled && type == MIDI_NOTE_OFF) {
-            return;
-        }
-        if (!typeNoteOnEnabled && type == MIDI_NOTE_ON) {
-            return;
-        }
-        if (!typePolyKeyPressureEnabled && type == MIDI_POLYPHONIC_KEY_PRESSURE) {
-            return;
-        }
-        if (!typeControlChangeEnabled && type == MIDI_CONTROL_CHANGE) {
-            return;
-        }
-        if (typeProgramChangeEnabled && type == MIDI_PROGRAM_CHANGE) {
-            program = note;
-            note = 0;
-        }
-        if (typeChanPressureEnabled && type == MIDI_CHANNEL_PRESSURE) {
-            velocity = note;
-            note = 0;
-        }
-        if (typePitchBendEnabled && type == MIDI_PITCH_BEND_CHANGE) {
-            bend = ((MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_NOTE)) | (MIDI_PITCH_BEND_MASK & (dwParam1 >> MIDI_SHIFT_PITCH_BEND))) - 8192;
-            channel = 0;        // Weird values on different instruments
-            note = 0;
-            velocity = 0;
-        }
-        if (!typeSystemMessageEnabled && type == MIDI_SYSTEM_MESSAGE) {
-            return;
-        }
-        if (thruModeEnabled) {
-            instance->sendNote(status, note, velocity);        // relay the message on to all other midi devices.
-        }
-        instance->rawMidiReceived(device, raw);        // notify the javascript
-        instance->midiReceived(device, raw, channel, status, type, note, velocity, bend, program);        // notify the javascript
-        break;
-    }
     }
 }
 
 void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
     switch (wMsg) {
-    case MOM_OPEN:
-        // message not used
-        break;
-    case MOM_CLOSE:
-        for (int i = 0; i < midihout.size(); i++) {
-            if (midihout[i] == hmo) {
-                midihout[i] = NULL;
-                instance->allNotesOff();
-                instance->midiHardwareChange();
+        case MOM_OPEN:
+            // message not used
+            break;
+        case MOM_CLOSE:
+            for (int i = 0; i < midihout.size(); i++) {
+                if (midihout[i] == hmo) {
+                    midihout[i] = NULL;
+                    instance->allNotesOff();
+                    instance->midiHardwareChange();
+                }
             }
-        }
-        break;
+            break;
     }
 }
 

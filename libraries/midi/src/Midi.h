@@ -22,7 +22,7 @@
 
 class Midi : public QObject, public Dependency {
     Q_OBJECT
-        SINGLETON_DEPENDENCY
+    SINGLETON_DEPENDENCY
 
 public:
     void rawMidiReceived(int device, int raw); //relay raw midi data to Javascript
@@ -50,15 +50,25 @@ signals:
     public slots:
     // Send Raw Midi Packet to all connected devices
     Q_INVOKABLE void sendRawDword(int device, int raw);
+    /// Send Raw Midi message to selected device
+    /// @param {int} device: device number
+    /// @param {int} raw: raw midi message (DWORD)
 
     // Send Midi Message to all connected devices 
     Q_INVOKABLE void sendMidiMessage(int device, int channel, int type, int note, int velocity);
+    /// Send midi message to selected device/devices
+    /// @param {int} device: device number
+    /// @param {int} channel: channel number
+    /// @param {int} type: 0x8 is noteoff, 0x9 is noteon (if velocity=0, noteoff), etc
+    /// @param {int} note: midi note number
+    /// @param {int} velocity: note velocity (0 means noteoff)
+
+    // Send Midi Message to all connected devices 
+    Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
     /// play a note on all connected devices
     /// @param {int} status: 0x80 is noteoff, 0x90 is noteon (if velocity=0, noteoff), etc
     /// @param {int} note: midi note number
     /// @param {int} velocity: note velocity (0 means noteoff)
-
-    Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
 
     /// turn off all notes on all connected devices
     Q_INVOKABLE void allNotesOff();
