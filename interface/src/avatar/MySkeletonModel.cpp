@@ -323,22 +323,25 @@ void MySkeletonModel::updateFingers() {
         for (auto& link : chain) {
             int index = _rig.indexOfJoint(link.second);
             if (index >= 0) {
-                if (_jointRotationFrameOffsetMap.find(index) == _jointRotationFrameOffsetMap.end()) {
+                auto rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                if (rotationFrameOffset == _jointRotationFrameOffsetMap.end()) {
                     _jointRotationFrameOffsetMap.insert(std::pair<int, int>(index, 0));
+                    rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
                 }
                 auto pose = myAvatar->getControllerPoseInSensorFrame(link.first);
+                
                 if (pose.valid) {
                     glm::quat relRot = glm::inverse(prevAbsRot) * pose.getRotation();
                     // only set the rotation for the finger joints, not the hands.
                     if (link.first != controller::Action::LEFT_HAND && link.first != controller::Action::RIGHT_HAND) {
                         _rig.setJointRotation(index, true, relRot, CONTROLLER_PRIORITY);
-                        _jointRotationFrameOffsetMap.find(index)->second = 0;
+                        rotationFrameOffset->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else if (_jointRotationFrameOffsetMap.find(index)->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
+                } else if (rotationFrameOffset->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
                     _rig.clearJointAnimationPriority(index);
                 }
-                _jointRotationFrameOffsetMap.find(index)->second++;
+                rotationFrameOffset->second++;
             }
         }
     }
