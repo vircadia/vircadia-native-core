@@ -184,30 +184,6 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-using BackgroundPair = std::pair<const BackgroundMode, const QString>;
-const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = { {
-    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
-    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
-} };
-
-QString EntityItemProperties::getBackgroundModeAsString() const {
-    return BACKGROUND_MODES[_backgroundMode].second;
-}
-
-QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    return BACKGROUND_MODES[mode].second;
-}
-
-void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
-        return (pair.second == backgroundMode);
-    });
-    if (result != BACKGROUND_MODES.end()) {
-        _backgroundMode = result->first;
-        _backgroundModeChanged = true;
-    }
-}
-
 QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
@@ -215,7 +191,6 @@ QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
     } else {
         return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
     }
-
 }
 
 QString EntityItemProperties::getHazeModeAsString() const {
@@ -370,7 +345,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
-    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
@@ -602,8 +576,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
-
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
@@ -803,7 +775,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(keyLightMode, KeyLightMode);
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
@@ -965,7 +936,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
-    COPY_PROPERTY_IF_CHANGED(backgroundMode);
     COPY_PROPERTY_IF_CHANGED(hazeMode);
     COPY_PROPERTY_IF_CHANGED(keyLightMode);
     COPY_PROPERTY_IF_CHANGED(ambientLightMode);
@@ -1484,8 +1454,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
 
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
-
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
@@ -1842,7 +1810,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
@@ -2086,7 +2053,6 @@ void EntityItemProperties::markAllChanged() {
     _ambientLight.markAllChanged();
     _skybox.markAllChanged();
 
-    _backgroundModeChanged = true;
     _hazeModeChanged = true;
 
     _animation.markAllChanged();
@@ -2427,10 +2393,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (staticCertificateVersionChanged()) {
         out += "staticCertificateVersion";
-    }
-
-    if (backgroundModeChanged()) {
-        out += "backgroundMode";
     }
 
     if (hazeModeChanged()) {

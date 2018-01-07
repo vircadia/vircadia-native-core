@@ -488,10 +488,6 @@ void ZoneEntityRenderer::updateSkyboxMap() {
     }
 }
 
-void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
-    _backgroundMode = mode;
-}
-
 void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
     _hazeMode = mode;
 }

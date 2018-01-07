@@ -54,7 +54,6 @@ private:
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
-    void setBackgroundMode(BackgroundMode mode);
 
     void setHazeMode(ComponentMode mode);
     void setKeyLightMode(ComponentMode mode);
@@ -88,8 +87,6 @@ private:
     const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
     const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
     const model::HazePointer _haze{ std::make_shared<model::Haze>() };
-
-    BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
 
     ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };
