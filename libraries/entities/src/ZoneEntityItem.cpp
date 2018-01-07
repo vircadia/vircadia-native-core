@@ -218,7 +218,6 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
 
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
-    requestedProperties += PROP_BACKGROUND_MODE;
 
     withReadLock([&] {
         requestedProperties += _skyboxProperties.getEntityProperties(params);
