@@ -206,7 +206,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     // resulting in a lost update
     bool keyLightChanged = entity->keyLightPropertiesChanged();
     bool ambientLightChanged = entity->ambientLightPropertiesChanged();
-    bool backgroundChanged = entity->backgroundPropertiesChanged();
     bool skyboxChanged = entity->skyboxPropertiesChanged();
     bool hazeChanged = entity->hazePropertiesChanged();
 
@@ -250,7 +249,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
         updateAmbientLightFromEntity(entity);
     }
 
-    if (backgroundChanged || skyboxChanged) {
+    if (skyboxChanged) {
         updateKeyBackgroundFromEntity(entity);
     }
 
@@ -274,7 +273,6 @@ ItemKey ZoneEntityRenderer::getKey() {
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->keyLightPropertiesChanged() ||
         entity->ambientLightPropertiesChanged() ||
-        entity->backgroundPropertiesChanged() ||
         entity->hazePropertiesChanged() ||
         entity->skyboxPropertiesChanged()) {
 
