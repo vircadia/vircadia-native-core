@@ -54,6 +54,7 @@ public:
     // note: this is FS-case-sensitive version of parentURL.isParentOf(childURL)
     static bool isDescendantOf(const QUrl& childURL, const QUrl& parentURL);
     static QUrl defaultScriptsLocation(const QString& newDefault = "");
+    static void copyDirDeep(QString src, QString dst);
 
 };
 

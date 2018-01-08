@@ -1,10 +1,9 @@
 apply plugin: 'com.android.application'
 
-
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId "com.highfidelity.iface"
+        applicationId "io.highfidelity.hifiinterface"
         minSdkVersion 24
         targetSdkVersion 26
         versionCode 1

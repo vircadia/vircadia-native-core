@@ -40,6 +40,7 @@ ext {
     BUILD_BRANCH = project.hasProperty('BUILD_BRANCH') ? project.getProperty('BUILD_BRANCH') : ''
     EXEC_SUFFIX = Os.isFamily(Os.FAMILY_WINDOWS) ? '.exe' : ''
     QT5_DEPS = [
+        'Qt5Concurrent',
         'Qt5Core',
         'Qt5Gui',
         'Qt5Multimedia',
@@ -47,8 +48,11 @@ ext {
         'Qt5OpenGL',
         'Qt5Qml',
         'Qt5Quick',
+        'Qt5QuickControls2',
+        'Qt5QuickTemplates2',
         'Qt5Script',
         'Qt5ScriptTools',
+        'Qt5Svg',
         'Qt5WebChannel',
         'Qt5WebSockets',
         'Qt5Widgets',
@@ -257,7 +261,7 @@ def parseQtDependencies = { List qtLibs ->
 def generateLibsXml = {
     def libDestinationDirectory = jniFolder
     def jarDestinationDirectory = new File(appDir, 'libs')
-    def assetDestinationDirectory = new File(appDir, 'src/main/assets/bundled');
+    def assetDestinationDirectory = new File(appDir, 'src/main/assets/--Added-by-androiddeployqt--');
     def libsXmlFile = new File(appDir, 'src/main/res/values/libs.xml')
     def libPrefix = 'lib' + File.separator
     def jarPrefix = 'jar' + File.separator
@@ -293,7 +297,7 @@ def generateLibsXml = {
         } else if (relativePath.startsWith('jar')) {
             destinationFile = new File(jarDestinationDirectory, relativePath.substring(jarPrefix.size()))
         } else {
-            xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("bundled/${relativePath}:${relativePath}".replace(File.separator, '/'))
+            xmlParser.createNode(bundledAssetsNode, 'item', [:]).setValue("--Added-by-androiddeployqt--/${relativePath}:${relativePath}".replace(File.separator, '/'))
             destinationFile = new File(assetDestinationDirectory, relativePath)
         }
 
@@ -438,8 +442,8 @@ task extractGvrBinaries(dependsOn: extractDependencies) {
 task qtBundle {
     doLast {
         parseQtDependencies(QT5_DEPS)
-        //def qmlImportFolder = new File("${appDir}/../../interface/resources/qml/")
-        def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
+        def qmlImportFolder = new File("${appDir}/../../interface/resources/qml/")
+        //def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
         scanQmlImports(qmlImportFolder)
         generateLibsXml()
    }
@@ -450,8 +454,72 @@ task setupDependencies(dependsOn: [setupScribe, copyDependencies, extractGvrBina
 task cleanDependencies(type: Delete) {
     delete HIFI_ANDROID_PRECOMPILED
     delete 'app/src/main/jniLibs/arm64-v8a'
-    delete 'app/src/main/assets/bundled'
+    delete 'app/src/main/assets/--Added-by-androiddeployqt--'
     delete 'app/src/main/res/values/libs.xml'
+}
+
+task generateAssetsFileList() {
+    doLast {
+        def assetsPath = "${appDir}/src/main/assets/"
+        def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
+
+        def addedByAndroidDeployQtPath = assetsPath + addedByAndroidDeployQtName
+
+        def addedByAndroidDeployQt = new File(addedByAndroidDeployQtPath)
+        if (!addedByAndroidDeployQt.exists() && !addedByAndroidDeployQt.mkdirs()) {
+            throw new GradleScriptException("Failed to create directory " + addedByAndroidDeployQtPath, null);
+        }
+        def outputFilename = "/qt_cache_pregenerated_file_list"
+        def outputFile = new File(addedByAndroidDeployQtPath + outputFilename);
+        Map<String, List<String>> directoryContents = new TreeMap<>();
+
+        def dir = new File(assetsPath)
+        dir.eachFileRecurse (FileType.ANY) { file ->
+
+            def name = file.path.substring(assetsPath.length())
+            int slashIndex = name.lastIndexOf('/')
+            def pathName = slashIndex >= 0 ? name.substring(0, slashIndex) : "/"
+            def fileName = slashIndex >= 0 ? name.substring(pathName.length() + 1) : name
+            if (!fileName.isEmpty() && file.isDirectory() && !fileName.endsWith("/")) {
+                fileName += "/"
+            }
+
+            if (!directoryContents.containsKey(pathName)) {
+                directoryContents[pathName] = new ArrayList<String>()
+            }
+            if (!fileName.isEmpty()) {
+                directoryContents[pathName].add(fileName);
+            }
+        }
+        DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
+        for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
+            def entryList = e.getValue()
+            fos.writeInt(e.key.length()*2); // 2 bytes per char
+            fos.writeChars(e.key);
+            fos.writeInt(entryList.size());
+            for (String entry: entryList) {
+                fos.writeInt(entry.length()*2);
+                fos.writeChars(entry);
+            }
+        }
+        fos.close();
+    }
+}
+
+task copyInterfaceAssets() {
+    doLast {
+        def resourcesDir = new File("${appDir}/../../interface/resources")
+        def scriptsDir = new File("${appDir}/../../scripts")
+        def assetsDir = new File(appDir, 'src/main/assets')
+        copy {
+            from resourcesDir
+            into new File(assetsDir, "resources")
+        }
+        copy {
+            from scriptsDir
+            into new File(assetsDir, "scripts")
+        }
+    }
 }
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.  

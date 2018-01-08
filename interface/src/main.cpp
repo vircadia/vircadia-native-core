@@ -105,6 +105,18 @@ int main(int argc, const char* argv[]) {
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }
+
+#if defined(Q_OS_ANDROID)
+    std::vector<QString> assetDirs = {
+            "/resources",
+            "/scripts",
+    };
+    QDir dirInfo(QStandardPaths::writableLocation(QStandardPaths::CacheLocation));
+    for (std::vector<QString>::iterator it = assetDirs.begin() ; it != assetDirs.end(); ++it) {
+        QString dir = *it;
+        PathUtils::copyDirDeep("assets:" + dir, QUrl::fromLocalFile(dirInfo.canonicalPath() + dir).toLocalFile());
+    }
+#endif
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine

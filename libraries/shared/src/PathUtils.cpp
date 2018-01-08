@@ -17,6 +17,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QDir>
+#include <QDirIterator>
 #include <QUrl>
 #include <QtCore/QStandardPaths>
 #include <QRegularExpression>
@@ -31,6 +32,8 @@ QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#elif defined (ANDROID)
+    static const QString staticResourcePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources/";
 #else
     static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
 #endif
@@ -50,7 +53,9 @@ const QString& PathUtils::projectRootPath() {
 #endif
 
 const QString& PathUtils::qmlBasePath() {
-#ifdef DEV_BUILD
+#ifdef Q_OS_ANDROID
+    static const QString staticResourcePath = "qrc:///qml/";
+#elif defined (DEV_BUILD)
     static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
 #else
     static const QString staticResourcePath = "qrc:///qml/";
@@ -71,7 +76,11 @@ QString PathUtils::getAppLocalDataPath() {
     }
 
     // otherwise return standard path
+#ifdef Q_OS_ANDROID
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
+#endif
 }
 
 QString PathUtils::getAppDataFilePath(const QString& filename) {
@@ -203,3 +212,31 @@ bool PathUtils::isDescendantOf(const QUrl& childURL, const QUrl& parentURL) {
     QString parent = stripFilename(parentURL);
     return child.startsWith(parent, PathUtils::getFSCaseSensitivity());
 }
+
+void PathUtils::copyDirDeep(QString src, QString dst) {
+    QDir dir = QDir::root();
+    dir.mkpath(dst);
+    QDirIterator it(src, QStringList() << "*", QDir::Files|QDir::AllDirs, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString f = it.next();
+        QFileInfo fInfo(f);
+        QString newDst = dst + (dst.endsWith("/")?"":"/") + fInfo.fileName();
+        if (fInfo.isFile()) {
+            QFile dfile(f);
+            if (dfile.exists(f))
+            {
+                if (dfile.copy(newDst)) {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                } else {
+                    QFile::setPermissions(newDst, QFile::ReadOwner);
+                    // sometimes copy returns false but it worked anyway
+                    //qWarning() << "Could not copy to " << newDst;
+                }
+            }
+        } else if (fInfo.isDir() ) {
+            copyDirDeep(f, newDst);
+        }
+    }
+}
+
+

@@ -209,7 +209,10 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
-
+#if defined(Q_OS_ANDROID)
+#include <QtAndroidExtras/QAndroidJniObject>
+#include <android/log.h>
+#endif
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 #if defined(Q_OS_WIN)
@@ -231,6 +234,30 @@ extern "C" {
 }
 #endif
 
+#if defined(Q_OS_ANDROID)
+extern "C" {
+ 
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
+    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
+     qDebug() << "nativeOnPause";
+}
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResume(JNIEnv* env, jobject obj) {
+    qDebug() << "nativeOnResume";
+}
+
+
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExitVr(JNIEnv* env, jobject obj) {
+    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
+}
+
+
+}
+#endif
 enum ApplicationEvent {
     // Execute a lambda function
     Lambda = QEvent::User + 1,
@@ -530,6 +557,26 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 #ifdef Q_OS_WIN
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
+#elif defined Q_OS_ANDROID
+        const char * local=logMessage.toStdString().c_str();
+        switch (type) {
+            case QtDebugMsg:
+                __android_log_write(ANDROID_LOG_DEBUG,"Interface",local);
+                break;
+            case QtInfoMsg:
+                __android_log_write(ANDROID_LOG_INFO,"Interface",local);
+                break;
+            case QtWarningMsg:
+                __android_log_write(ANDROID_LOG_WARN,"Interface",local);
+                break;
+            case QtCriticalMsg:
+                __android_log_write(ANDROID_LOG_ERROR,"Interface",local);
+                break;
+            case QtFatalMsg:
+            default:
+                __android_log_write(ANDROID_LOG_FATAL,"Interface",local);
+                abort();
+        }
 #endif
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
@@ -636,11 +683,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
     DependencyManager::set<Preferences>();
-    DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, listenPort);
+    DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelCache>();
     DependencyManager::set<ScriptCache>();
@@ -2172,6 +2219,7 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    gl::initModuleGl();
     _glWidget->makeCurrent();
     _chromiumShareContext = new OffscreenGLCanvas();
     _chromiumShareContext->setObjectName("ChromiumShareContext");
@@ -2194,9 +2242,15 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+#ifdef Q_OS_ANDROID
+    bool isDeferred = false;
+#else
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+#endif
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
+#ifndef Q_OS_ANDROID
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, isDeferred);
+#endif
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -2305,8 +2359,11 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
+#ifdef Q_OS_ANDROID
+    offscreenUi->createDesktop(PathUtils::qmlBasePath() + "hifi/Desktop.qml");
+#else
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-
+#endif
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -3883,12 +3940,18 @@ void Application::idle() {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _renderEngine->getConfiguration();
     PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_gpuContext->getFrameTimerGPUAverage());
+    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
+    auto linearDepth = renderConfig->getConfig("LinearDepth");
+    auto surfaceGeometry = renderConfig->getConfig("SurfaceGeometry");
+    auto renderDeferred = renderConfig->getConfig("RenderDeferred");
+    auto toneAndPostRangeTimer = renderConfig->getConfig("ToneAndPostRangeTimer");
+
     PROFILE_COUNTER(render_detail, "gpuTimes", {
-        { "OpaqueRangeTimer", renderConfig->getConfig("OpaqueRangeTimer")->property("gpuRunTime") },
-        { "LinearDepth", renderConfig->getConfig("LinearDepth")->property("gpuRunTime") },
-        { "SurfaceGeometry", renderConfig->getConfig("SurfaceGeometry")->property("gpuRunTime") },
-        { "RenderDeferred", renderConfig->getConfig("RenderDeferred")->property("gpuRunTime") },
-        { "ToneAndPostRangeTimer", renderConfig->getConfig("ToneAndPostRangeTimer")->property("gpuRunTime") }
+        { "OpaqueRangeTimer", opaqueRangeTimer ? opaqueRangeTimer->property("gpuRunTime") : 0 },
+        { "LinearDepth", linearDepth ? linearDepth->property("gpuRunTime") : 0 },
+        { "SurfaceGeometry", surfaceGeometry ? surfaceGeometry->property("gpuRunTime") : 0 },
+        { "RenderDeferred", renderDeferred ? renderDeferred->property("gpuRunTime") : 0 },
+        { "ToneAndPostRangeTimer", toneAndPostRangeTimer ? toneAndPostRangeTimer->property("gpuRunTime") : 0 }
     });
 
     PROFILE_RANGE(app, __FUNCTION__);
@@ -4253,9 +4316,9 @@ void Application::init() {
     
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-
+#ifndef Q_OS_ANDROID
     DependencyManager::get<DeferredLightingEffect>()->init();
-
+#endif
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
@@ -5721,7 +5784,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
+#if !defined(Q_OS_ANDROID)
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+#endif
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
@@ -5772,6 +5837,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+
+    scriptEngine->registerGlobalObject("App", this);
+    scriptEngine->registerFunction("App", "isAndroid", Application::isAndroid, 0);
 
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
@@ -7354,6 +7422,18 @@ void Application::updateThreadPoolCount() const {
     qCDebug(interfaceapp) << "Reserved threads " << reservedThreads;
     qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
+}
+
+QScriptValue Application::isAndroid(QScriptContext* context, QScriptEngine* engine) {
+    return QScriptValue(engine, isAndroid());
+}
+
+bool Application::isAndroid() {
+#ifdef Q_OS_ANDROID
+    return true;
+#else
+    return false;
+#endif
 }
 
 void Application::updateSystemTabletMode() {

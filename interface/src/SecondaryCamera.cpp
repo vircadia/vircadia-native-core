@@ -203,10 +203,14 @@ public:
     }
 };
 
-void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
+void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
-    task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+    if (!isDeferred) {
+        task.addJob<RenderForwardTask>("Forward", items);
+    } else {
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+    }
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

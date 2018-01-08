@@ -84,7 +84,11 @@ void FileUtils::locateFile(QString filePath) {
 QString FileUtils::standardPath(QString subfolder) {
     // standard path
     // Mac: ~/Library/Application Support/Interface
+#ifdef Q_OS_ANDROID
+    QString path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+#else
     QString path = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+#endif
     if (!subfolder.startsWith("/")) {
         subfolder.prepend("/");
     }

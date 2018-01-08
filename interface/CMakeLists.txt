@@ -12,7 +12,7 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 
-if (NOT DEV_BUILD)
+if (ANDROID OR NOT DEV_BUILD)
     set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
     generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
 endif()      
@@ -74,7 +74,7 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-if (NOT DEV_BUILD)
+if (ANDROID OR NOT DEV_BUILD)
 list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
 endif()
 
@@ -93,21 +93,7 @@ endif()
 
 # setup the android parameters that will help us produce an APK
 if (ANDROID)
-  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
-  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
-
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
-
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
-  set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
-  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
-  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
-  set(ANDROID_APK_VERSION_NAME "0.1")
-  set(ANDROID_APK_VERSION_CODE 1)
-  set(ANDROID_APK_FULLSCREEN TRUE)
-  set(ANDROID_DEPLOY_QT_INSTALL "--install")
-
   set(BUILD_SHARED_LIBS ON)
 endif ()
 
@@ -262,15 +248,20 @@ endforeach()
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+if (ANDROID)
+  find_library(ANDROID_LOG_LIB log)
+  target_link_libraries(${TARGET_NAME} ${ANDROID_LOG_LIB})
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine
+  Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX)
+if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
@@ -278,7 +269,7 @@ if (UNIX)
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)
     endif ()
-endif(UNIX)
+endif()
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
@@ -362,20 +353,6 @@ if (WIN32)
 
     package_libraries_for_deployment()
 endif()
-
-if (ANDROID)
-  set(HIFI_URL_INTENT "<intent-filter>\
-    \n        <action android:name='android.intent.action.VIEW' />\
-    \n        <category android:name='android.intent.category.DEFAULT' />\
-    \n        <category android:name='android.intent.category.BROWSABLE' />\
-    \n        <data android:scheme='hifi' />\
-    \n      </intent-filter>"
-  )
-
-  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
-
-  qt_create_apk()
-endif ()
 
 add_dependency_external_projects(GifCreator)
 find_package(GifCreator REQUIRED)

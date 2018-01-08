@@ -16,13 +16,14 @@
 #if !defined(Q_OS_ANDROID)
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
-FileTypeProfile::FileTypeProfile(QObject* parent) :
-    QQuickWebEngineProfile(parent)
+FileTypeProfile::FileTypeProfile(QObject* parent) 
+    : QQuickWebEngineProfile(parent)
 {
     static const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (HighFidelityInterface)";
     setHttpUserAgent(WEB_ENGINE_USER_AGENT);
 
     auto requestInterceptor = new FileTypeRequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
+
 }
 #endif
