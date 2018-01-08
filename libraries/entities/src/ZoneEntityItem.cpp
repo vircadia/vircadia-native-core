@@ -362,7 +362,7 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
 }
 
 void ZoneEntityItem::setHazeMode(const uint32_t value) {
-    if (value < COMPONENT_MODE_ITEM_COUNT) {
+    if (value < COMPONENT_MODE_ITEM_COUNT && value != _hazeMode) {
         _hazeMode = value;
         _hazePropertiesChanged = true;
     }
@@ -373,7 +373,7 @@ uint32_t ZoneEntityItem::getHazeMode() const {
 }
 
 void ZoneEntityItem::setKeyLightMode(const uint32_t value) {
-    if (value < COMPONENT_MODE_ITEM_COUNT) {
+    if (value < COMPONENT_MODE_ITEM_COUNT && value != _keyLightMode) {
         _keyLightMode = value;
         _keyLightPropertiesChanged = true;
     }
@@ -384,7 +384,7 @@ uint32_t ZoneEntityItem::getKeyLightMode() const {
 }
 
 void ZoneEntityItem::setAmbientLightMode(const uint32_t value) {
-    if (value < COMPONENT_MODE_ITEM_COUNT) {
+    if (value < COMPONENT_MODE_ITEM_COUNT && value != _ambientLightMode) {
         _ambientLightMode = value;
         _ambientLightPropertiesChanged = true;
     }
@@ -395,7 +395,7 @@ uint32_t ZoneEntityItem::getAmbientLightMode() const {
 }
 
 void ZoneEntityItem::setSkyboxMode(const uint32_t value) {
-    if (value < COMPONENT_MODE_ITEM_COUNT) {
+    if (value < COMPONENT_MODE_ITEM_COUNT && value != _skyboxMode) {
         _skyboxMode = value;
         _skyboxPropertiesChanged = true;
     }

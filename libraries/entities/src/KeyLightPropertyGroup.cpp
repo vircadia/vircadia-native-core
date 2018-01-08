@@ -82,7 +82,7 @@ bool KeyLightPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     return true;
 }
 
-bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt,
+bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt, 
     int& processedBytes) {
         
     int bytesRead = 0;
@@ -92,7 +92,6 @@ bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFl
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
-    
    
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_COLOR, Color);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_INTENSITY, Intensity);

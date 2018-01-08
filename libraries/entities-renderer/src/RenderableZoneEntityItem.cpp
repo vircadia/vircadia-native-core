@@ -414,7 +414,6 @@ void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
     _ambientTextureURL = ambientUrl;
 
     if (_ambientTextureURL.isEmpty()) {
-        _validAmbientTexture = false;
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
 
@@ -442,7 +441,6 @@ void ZoneEntityRenderer::updateAmbientMap() {
                     _ambientLight->setAmbientSpherePreset(gpu::SphericalHarmonics::BREEZEWAY);
                 }
                 editAmbientLight()->setAmbientMap(texture);
-                _validAmbientTexture = true;
             } else {
                 qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << _ambientTexture->getURL();
             }
@@ -458,7 +456,6 @@ void ZoneEntityRenderer::setSkyboxURL(const QString& skyboxUrl) {
     _skyboxTextureURL = skyboxUrl;
 
     if (_skyboxTextureURL.isEmpty()) {
-        _validSkyboxTexture = false;
         _pendingSkyboxTexture = false;
         _skyboxTexture.clear();
 
@@ -478,7 +475,6 @@ void ZoneEntityRenderer::updateSkyboxMap() {
             auto texture = _skyboxTexture->getGPUTexture();
             if (texture) {
                 editSkybox()->setCubemap(texture);
-                _validSkyboxTexture = true;
             } else {
                 qCDebug(entitiesrenderer) << "Failed to load Skybox texture:" << _skyboxTexture->getURL();
             }
