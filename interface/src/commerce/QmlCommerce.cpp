@@ -87,12 +87,12 @@ void QmlCommerce::balance() {
     }
 }
 
-void QmlCommerce::inventory() {
+void QmlCommerce::inventory(const QString& pageNumber) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->inventory(cachedPublicKeys);
+        ledger->inventory(cachedPublicKeys, pageNumber);
     }
 }
 

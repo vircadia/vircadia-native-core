@@ -117,7 +117,7 @@ Rectangle {
     }
 
     onItemIdChanged: {
-        Commerce.inventory();
+        Commerce.inventory(1);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
 
@@ -945,7 +945,7 @@ Rectangle {
         }
         root.balanceReceived = false;
         root.purchasesReceived = false;
-        Commerce.inventory();
+        Commerce.inventory(1);
         Commerce.balance();
     }
 
