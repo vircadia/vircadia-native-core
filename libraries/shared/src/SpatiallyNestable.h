@@ -50,19 +50,28 @@ public:
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex);
 
-    static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
-    static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex,
+                                  bool scalesWithParent, bool& success);
+    static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex,
+                                  bool scalesWithParent, bool& success);
     static glm::vec3 worldToLocalVelocity(const glm::vec3& velocity, const QUuid& parentID,
-                                          int parentJointIndex, bool& success);
+                                          int parentJointIndex, bool scalesWithParent, bool& success);
     static glm::vec3 worldToLocalAngularVelocity(const glm::vec3& angularVelocity, const QUuid& parentID,
-                                                 int parentJointIndex, bool& success);
+                                                 int parentJointIndex, bool scalesWithParent, bool& success);
+    static glm::vec3 worldToLocalDimensions(const glm::vec3& dimensions, const QUuid& parentID,
+                                            int parentJointIndex, bool scalesWithParent, bool& success);
 
-    static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
-    static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex,
+                                  bool scalesWithParent, bool& success);
+    static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex,
+                                  bool scalesWithParent, bool& success);
     static glm::vec3 localToWorldVelocity(const glm::vec3& velocity,
-                                          const QUuid& parentID, int parentJointIndex, bool& success);
+                                          const QUuid& parentID, int parentJointIndex, bool scalesWithParent, bool& success);
     static glm::vec3 localToWorldAngularVelocity(const glm::vec3& angularVelocity,
-                                                 const QUuid& parentID, int parentJointIndex, bool& success);
+                                                 const QUuid& parentID, int parentJointIndex,
+                                                 bool scalesWithParent, bool& success);
+    static glm::vec3 localToWorldDimensions(const glm::vec3& dimensions, const QUuid& parentID,
+                                            int parentJointIndex, bool scalesWithParent, bool& success);
 
     static QString nestableTypeToString(NestableType nestableType);
 
@@ -139,6 +148,9 @@ public:
 
     virtual glm::vec3 getLocalSNScale() const;
     virtual void setLocalSNScale(const glm::vec3& scale);
+
+    virtual bool getScalesWithParent() const { return false; }
+    virtual glm::vec3 scaleForChildren() const { return glm::vec3(1.0f); }
 
     QList<SpatiallyNestablePointer> getChildren() const;
     bool hasChildren() const;

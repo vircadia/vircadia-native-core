@@ -26,6 +26,7 @@
 #include <GLMHelpers.h>
 #include <Octree.h>
 #include <PhysicsHelpers.h>
+#include <Profile.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
 #include <LogHandler.h>
@@ -49,6 +50,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 {
     setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
     setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
+    setUnscaledDimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     // explicitly set transform parts to set dirty flags used by batch rendering
     locationChanged();
     dimensionsChanged();
@@ -114,6 +116,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_EDITION_NUMBER;
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
+    requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
 
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
@@ -241,7 +244,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
@@ -271,6 +274,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+        APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
@@ -682,18 +686,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
         } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
-            // we sent a bid before this packet could have been sent from the server
-            // so we ignore it and pretend we own the object's simulation
+            // we sent a bid already but maybe before this packet was sent from the server
             weOwnSimulation = true;
             if (newSimOwner.getID().isNull()) {
-                // entity-server is trying to clear someone  else's ownership
-                // but we want to own it, therefore we ignore this clear event
+                // the entity-server is trying to clear someone else's ownership
                 if (!_simulationOwner.isNull()) {
-                    // someone else really did own it
                     markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                     somethingChanged = true;
                     _simulationOwner.clearCurrentOwner();
                 }
+            } else if (newSimOwner.getID() == myNodeID) {
+                // the entity-server is awarding us ownership which is what we want
+                _simulationOwner.set(newSimOwner);
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
@@ -776,7 +780,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setDimensions);
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setUnscaledDimensions);
     READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
 
@@ -819,6 +823,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -894,7 +899,7 @@ void EntityItem::debugDump() const {
     qCDebug(entities) << "EntityItem id:" << getEntityItemID();
     qCDebug(entities, " edited ago:%f", (double)getEditedAgo());
     qCDebug(entities, " position:%f,%f,%f", (double)position.x, (double)position.y, (double)position.z);
-    qCDebug(entities) << " dimensions:" << getDimensions();
+    qCDebug(entities) << " dimensions:" << getScaledDimensions();
 }
 
 // adjust any internal timestamps to fix clock skew for this server
@@ -919,7 +924,7 @@ void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSk
 }
 
 float EntityItem::computeMass() const {
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     return getDensity() * _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 }
 
@@ -938,7 +943,7 @@ void EntityItem::setMass(float mass) {
     // we must protect the density range to help maintain stability of physics simulation
     // therefore this method might not accept the mass that is supplied.
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
@@ -984,6 +989,7 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
 }
 
 void EntityItem::simulate(const quint64& now) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Simulate");
     if (getLastSimulated() == 0) {
         setLastSimulated(now);
     }
@@ -1039,6 +1045,7 @@ void EntityItem::simulate(const quint64& now) {
 }
 
 bool EntityItem::stepKinematicMotion(float timeElapsed) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "StepKinematicMotion");
     // get all the data
     Transform transform;
     glm::vec3 linearVelocity;
@@ -1172,7 +1179,7 @@ bool EntityItem::wantTerseEditLogging() const {
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
     glm::mat4 translation = glm::translate(getWorldPosition());
     glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
-    glm::mat4 scale = glm::scale(getDimensions());
+    glm::mat4 scale = glm::scale(getScaledDimensions());
     glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
     return translation * rotation * scale * registration;
 }
@@ -1212,7 +1219,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getUnscaledDimensions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getLocalVelocity);
@@ -1249,6 +1256,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
@@ -1319,7 +1327,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, setAcceleration);
 
     // these (along with "position" above) affect tree structure
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setUnscaledDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
 
     // these (along with all properties above) affect the simulation
@@ -1356,6 +1364,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
@@ -1421,7 +1430,7 @@ void EntityItem::recordCreationTime() {
 const Transform EntityItem::getTransformToCenter(bool& success) const {
     Transform result = getTransform(success);
     if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
-        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()) * getDimensions()); // Position to center
+        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()) * getScaledDimensions()); // Position to center
     }
     return result;
 }
@@ -1437,7 +1446,7 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
             // we want to compute the furthestExtent that an entity can extend out from its "position"
             // to do this we compute the max of these two vec3s: registration and 1-registration
             // and then scale by dimensions
-            glm::vec3 maxExtents = getDimensions() * glm::max(_registrationPoint, glm::vec3(1.0f) - _registrationPoint);
+            glm::vec3 maxExtents = getScaledDimensions() * glm::max(_registrationPoint, glm::vec3(1.0f) - _registrationPoint);
 
             // there exists a sphere that contains maxExtents for all rotations
             float radius = glm::length(maxExtents);
@@ -1462,7 +1471,7 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
         glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcMinAACube = false;
-            glm::vec3 dimensions = getDimensions();
+            glm::vec3 dimensions = getScaledDimensions();
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
@@ -1492,7 +1501,7 @@ AABox EntityItem::getAABox(bool& success) const {
         glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcAABox = false;
-            glm::vec3 dimensions = getDimensions();
+            glm::vec3 dimensions = getScaledDimensions();
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
@@ -1532,12 +1541,12 @@ bool EntityItem::shouldPuffQueryAACube() const {
 //    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
 //    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
 float EntityItem::getRadius() const {
-    return 0.5f * glm::length(getDimensions());
+    return 0.5f * glm::length(getScaledDimensions());
 }
 
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
     if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
-        glm::mat4 scale = glm::scale(getDimensions());
+        glm::mat4 scale = glm::scale(getScaledDimensions());
         glm::mat4 registration = scale * glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
         glm::vec3 regTransVec = glm::vec3(registration[3]); // extract position component from matrix
         info.setOffset(regTransVec);
@@ -1558,12 +1567,12 @@ bool EntityItem::contains(const glm::vec3& point) const {
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
-    info.setParams(getShapeType(), 0.5f * getDimensions());
+    info.setParams(getShapeType(), 0.5f * getScaledDimensions());
     adjustShapeInfoByRegistration(info);
 }
 
 float EntityItem::getVolumeEstimate() const {
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     return dimensions.x * dimensions.y * dimensions.z;
 }
 
@@ -1626,6 +1635,10 @@ void EntityItem::setParentID(const QUuid& value) {
             newParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
         }
 
+        if (!oldParentID.isNull() && (oldParentID == Physics::getSessionUUID() || oldParentID == AVATAR_SELF_ID)) {
+            oldParentNoBootstrapping |= Simulation::NO_BOOTSTRAPPING;
+        }
+
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
             if ((bool)(newParentNoBootstrapping & Simulation::NO_BOOTSTRAPPING)) {
                 markDirtyFlags(Simulation::NO_BOOTSTRAPPING);
@@ -1659,11 +1672,21 @@ void EntityItem::setParentID(const QUuid& value) {
     }
 }
 
-void EntityItem::setDimensions(const glm::vec3& value) {
+glm::vec3 EntityItem::getScaledDimensions() const {
+    glm::vec3 scale = getSNScale();
+    return _unscaledDimensions * scale;
+}
+
+void EntityItem::setScaledDimensions(const glm::vec3& value) {
+    glm::vec3 parentScale = getSNScale();
+    setUnscaledDimensions(value * parentScale);
+}
+
+void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
     glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
-    if (getDimensions() != newDimensions) {
+    if (getUnscaledDimensions() != newDimensions) {
         withWriteLock([&] {
-            _dimensions = newDimensions;
+            _unscaledDimensions = newDimensions;
         });
         locationChanged();
         dimensionsChanged();
@@ -2059,17 +2082,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         }
 
         EntityDynamicPointer action = _objectActions[actionID];
-
-        action->setOwnerEntity(nullptr);
-        action->setIsMine(false);
-
-        if (simulation) {
-            action->removeFromSimulation(simulation);
-        }
-
-        bool success = true;
-        serializeActions(success, _allActionsDataCache);
-        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         auto removedActionType = action->getType();
         if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
@@ -2086,7 +2098,17 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
+        action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
         _objectActions.remove(actionID);
+
+        if (simulation) {
+            action->removeFromSimulation(simulation);
+        }
+
+        bool success = true;
+        serializeActions(success, _allActionsDataCache);
+        _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         setDynamicDataNeedsTransmit(true);
         return success;
     }
@@ -2354,6 +2376,16 @@ void EntityItem::dimensionsChanged() {
     somethingChangedNotification();
 }
 
+bool EntityItem::getScalesWithParent() const {
+    // keep this logic the same as in EntityItemProperties::getScalesWithParent
+    if (getClientOnly()) {
+        QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
+        return !ancestorID.isNull();
+    } else {
+        return false;
+    }
+}
+
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
     // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
@@ -2361,7 +2393,7 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     if (success) {
         properties.setPosition(globalPosition + offset);
         properties.setRotation(getWorldOrientation());
-        properties.setDimensions(getDimensions());
+        properties.setDimensions(getScaledDimensions());
         // Should we do velocities and accelerations, too? This could end up being quite involved, which is why the method exists.
     } else {
         properties.setPosition(getQueryAACube().calcCenter() + offset); // best we can do
@@ -2783,6 +2815,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
 DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
+DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVersion)
 
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;

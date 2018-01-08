@@ -24,7 +24,6 @@ ModelOverlay::ModelOverlay()
     : _model(std::make_shared<Model>(nullptr, this)),
       _modelTextures(QVariantMap())
 {
-    _model->init();
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
 }
@@ -38,7 +37,6 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     _scaleToFit(modelOverlay->_scaleToFit),
     _loadPriority(modelOverlay->_loadPriority)
 {
-    _model->init();
     _model->setLoadingPriority(_loadPriority);
     if (_url.isValid()) {
         _updateModel = true;
@@ -99,6 +97,11 @@ void ModelOverlay::update(float deltatime) {
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
     }
     scene->enqueueTransaction(transaction);
+
+    if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        _model->updateRenderItems();
+    }
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -172,10 +175,12 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _url = urlValue.toString();
         _updateModel = true;
         _isLoaded = false;
+        _texturesLoaded = false;
     }
 
     auto texturesValue = properties["textures"];
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
+        _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
         QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
                                   Q_ARG(const QVariantMap&, textureMap));

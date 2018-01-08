@@ -23,6 +23,7 @@
 #include <QtCore/QString>
 #include <QtCore/QFileInfo>
 
+// FIXME quazip hasn't been built on the android toolchain
 #if !defined(Q_OS_ANDROID)
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -73,6 +74,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
 
 QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 #if defined(Q_OS_ANDROID)
+    // FIXME quazip hasn't been built on the android toolchain
     return QStringList();
 #else
     QDir dir(path);
@@ -137,6 +139,7 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
         return;
     }*/
     QFileInfoList files;
+    // FIXME quazip hasn't been built on the android toolchain
 #if !defined(Q_OS_ANDROID)
     if (file.fileName().contains(".zip")) {
         qCDebug(scriptengine) << "Extracting archive: " + file.fileName();

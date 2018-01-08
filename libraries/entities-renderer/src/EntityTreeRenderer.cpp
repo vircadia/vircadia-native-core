@@ -251,10 +251,10 @@ void EntityTreeRenderer::shutdown() {
 }
 
 void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
-    PROFILE_RANGE_EX(simulation_physics, "Add", 0xffff00ff, (uint64_t)_entitiesToAdd.size());
+    PROFILE_RANGE_EX(simulation_physics, "AddToScene", 0xffff00ff, (uint64_t)_entitiesToAdd.size());
     PerformanceTimer pt("add");
-    // Clear any expired entities 
-    // FIXME should be able to use std::remove_if, but it fails due to some 
+    // Clear any expired entities
+    // FIXME should be able to use std::remove_if, but it fails due to some
     // weird compilation error related to EntityItemID assignment operators
     for (auto itr = _entitiesToAdd.begin(); _entitiesToAdd.end() != itr; ) {
         if (itr->second.expired()) {
@@ -272,7 +272,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 continue;
             }
 
-            // Path to the parent transforms is not valid, 
+            // Path to the parent transforms is not valid,
             // don't add to the scene graph yet
             if (!entity->isParentPathComplete()) {
                 continue;
@@ -296,7 +296,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
 }
 
 void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
-    PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
+    PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
     _changedEntitiesGuard.withWriteLock([&] {
@@ -349,7 +349,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
 
-            const EntityRendererPointer& getRenderer() const { return _renderer; }
+            EntityRendererPointer getRenderer() const { return _renderer; }
         private:
             EntityRendererPointer _renderer;
         };
@@ -382,7 +382,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                const auto renderable = sortedRenderables.top().getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
                 sortedRenderables.pop();
@@ -612,7 +612,7 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
 
         glm::vec3 entityPosition = entity->getWorldPosition();
         glm::quat entityRotation = entity->getWorldOrientation();
-        glm::vec3 entityDimensions = entity->getDimensions();
+        glm::vec3 entityDimensions = entity->getScaledDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 
         // project the intersection point onto the local xy plane of the object.

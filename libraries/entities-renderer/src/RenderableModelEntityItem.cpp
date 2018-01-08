@@ -78,11 +78,11 @@ RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityI
 
 RenderableModelEntityItem::~RenderableModelEntityItem() { }
 
-void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
+void RenderableModelEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
-    if (getDimensions() != newDimensions) {
+    if (getUnscaledDimensions() != newDimensions) {
         _dimensionsInitialized = true;
-        ModelEntityItem::setDimensions(value);
+        ModelEntityItem::setUnscaledDimensions(value);
     }
 }
 
@@ -124,11 +124,11 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     // translation/rotation/scale/registration.  The first two are straightforward, but the latter two have guards to
     // make sure they don't happen after they've already been set.  Here we reset those guards. This doesn't cause the
     // entity values to change -- it just allows the model to match once it comes in.
-    model->setScaleToFit(false, getDimensions());
+    model->setScaleToFit(false, getScaledDimensions());
     model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
 
     // now recalculate the bounds and registration
-    model->setScaleToFit(true, getDimensions());
+    model->setScaleToFit(true, getScaledDimensions());
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
     model->setRotation(getWorldOrientation());
     model->setTranslation(getWorldPosition());
@@ -169,7 +169,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         return true;
     }
 
-    if (model->getScaleToFitDimensions() != getDimensions()) {
+    if (model->getScaleToFitDimensions() != getScaledDimensions()) {
         return true;
     }
 
@@ -209,17 +209,17 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
-    if (model->getScaleToFitDimensions() != getDimensions() ||
+    if (model->getScaleToFitDimensions() != getScaledDimensions() ||
             model->getRegistrationPoint() != getRegistrationPoint()) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
         // This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
-        model->setScaleToFit(false, getDimensions());
+        model->setScaleToFit(false, getScaledDimensions());
         model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
 
         // now recalculate the bounds and registration
-        model->setScaleToFit(true, getDimensions());
+        model->setScaleToFit(true, getScaledDimensions());
         model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         updateRenderItems = true;
         model->scaleToFit();
@@ -372,7 +372,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
@@ -993,19 +993,15 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     }
 
     {
-        // the current frame is set on the server in update() in ModelEntityItem.cpp     
-        int animationCurrentFrame = (int)(glm::floor(entity->getAnimationCurrentFrame()));
-        
-        // in the case where the last frame is greater than the framecount then clamp
-        // it to the end of the animation until it loops around. 
-        if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
-            animationCurrentFrame = 0;
+        float currentFrame = fmod(entity->getAnimationCurrentFrame(), (float)(frameCount));
+        if (currentFrame < 0.0f) {
+            currentFrame += (float)frameCount;
         }
-
-        if (animationCurrentFrame == _lastKnownCurrentFrame) {
+        int currentIntegerFrame = (int)(glm::floor(currentFrame));
+        if (currentIntegerFrame == _lastKnownCurrentFrame) {
             return;
         }
-        _lastKnownCurrentFrame = animationCurrentFrame;
+        _lastKnownCurrentFrame = currentIntegerFrame;
     }
 
     if (_jointMapping.size() != _model->getJointStateCount()) {
@@ -1084,6 +1080,10 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
+        if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+            return true;
+        }
+
         if (model->needsReload()) {
             return true;
         }
@@ -1157,7 +1157,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return true;
         }
 
-        if (model->getScaleToFitDimensions() != entity->getDimensions() ||
+        if (model->getScaleToFitDimensions() != entity->getScaledDimensions() ||
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
             return true;
         }
@@ -1213,7 +1213,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
-        model->init();
         entity->setModel(model);
         withWriteLock([&] { _model = model; });
     }
@@ -1221,6 +1220,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // From here on, we are guaranteed a populated model
     withWriteLock([&] {
         if (_parsedModelURL != model->getURL()) {
+            _texturesLoaded = false;
             model->setURL(_parsedModelURL);
         }
     });
@@ -1252,6 +1252,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (_lastTextures != entity->getTextures()) {
+        _texturesLoaded = false;
         _lastTextures = entity->getTextures();
         auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
         if (newTextures != _currentTextures) {
@@ -1306,12 +1307,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
+    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        model->updateRenderItems();
+    }
+
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-    
+
     // The code to deal with the change of properties is now in ModelEntityItem.cpp
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
