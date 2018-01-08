@@ -218,14 +218,40 @@ Pointer::PickedObject LaserPointer::getHoveredObject(const PickResultPointer& pi
     return PickedObject(rayPickResult->objectID, rayPickResult->type);
 }
 
-Pointer::Buttons LaserPointer::getPressedButtons() {
+Pointer::Buttons LaserPointer::getPressedButtons(const PickResultPointer& pickResult) {
     std::unordered_set<std::string> toReturn;
-    for (const PointerTrigger& trigger : _triggers) {
-        // TODO: right now, LaserPointers don't support axes, only on/off buttons
-        if (trigger.getEndpoint()->peek() >= 1.0f) {
-            toReturn.insert(trigger.getButton());
+    auto rayPickResult = std::static_pointer_cast<const RayPickResult>(pickResult);
+
+    if (rayPickResult) {
+        for (const PointerTrigger& trigger : _triggers) {
+            std::string button = trigger.getButton();
+            TriggerState& state = _states[button];
+            // TODO: right now, LaserPointers don't support axes, only on/off buttons
+            if (trigger.getEndpoint()->peek() >= 1.0f) {
+                toReturn.insert(button);
+
+                if (_previousButtons.find(button) == _previousButtons.end()) {
+                    // start triggering for buttons that were just pressed
+                    state.triggeredObject = PickedObject(rayPickResult->objectID, rayPickResult->type);
+                    state.intersection = rayPickResult->intersection;
+                    state.triggerPos2D = findPos2D(state.triggeredObject, rayPickResult->intersection);
+                    state.triggerStartTime = usecTimestampNow();
+                    state.surfaceNormal = rayPickResult->surfaceNormal;
+                    state.deadspotExpired = false;
+                    state.wasTriggering = true;
+                    state.triggering = true;
+                    _latestState = state;
+                }
+            } else {
+                // stop triggering for buttons that aren't pressed
+                state.wasTriggering = state.triggering;
+                state.triggering = false;
+                _latestState = state;
+            }
         }
+        _previousButtons = toReturn;
     }
+
     return toReturn;
 }
 
@@ -303,7 +329,7 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     return RenderState(startID, pathID, endID);
 }
 
-PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button, bool hover) {
     QUuid pickedID;
     glm::vec3 intersection, surfaceNormal, direction, origin;
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
@@ -316,20 +342,48 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
         pickedID = rayPickResult->objectID;
     }
 
-    glm::vec2 pos2D;
     if (pickedID != target.objectID) {
-        if (target.type == ENTITY) {
-            intersection = RayPick::intersectRayWithEntityXYPlane(target.objectID, origin, direction);
-        } else if (target.type == OVERLAY) {
-            intersection = RayPick::intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
-        }
+        intersection = findIntersection(target, origin, direction);
     }
-    if (target.type == ENTITY) {
-        pos2D = RayPick::projectOntoEntityXYPlane(target.objectID, intersection);
-    } else if (target.type == OVERLAY) {
-        pos2D = RayPick::projectOntoOverlayXYPlane(target.objectID, intersection);
-    } else if (target.type == HUD) {
-        pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
+    glm::vec2 pos2D = findPos2D(target, intersection);
+
+    // If we just started triggering and we haven't moved too much, don't update intersection and pos2D
+    TriggerState& state = hover ? _latestState : _states[button];
+    float sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+    float deadspotSquared = TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED * sensorToWorldScale * sensorToWorldScale;
+    bool withinDeadspot = usecTimestampNow() - state.triggerStartTime < POINTER_MOVE_DELAY && glm::distance2(pos2D, state.triggerPos2D) < deadspotSquared;
+    if ((state.triggering || state.wasTriggering) && !state.deadspotExpired && withinDeadspot) {
+        pos2D = state.triggerPos2D;
+        intersection = state.intersection;
+        surfaceNormal = state.surfaceNormal;
     }
+    if (!withinDeadspot) {
+        state.deadspotExpired = true;
+    }
+
     return PointerEvent(pos2D, intersection, surfaceNormal, direction);
+}
+
+glm::vec3 LaserPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
+    switch (pickedObject.type) {
+    case ENTITY:
+        return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
+    case OVERLAY:
+        return RayPick::intersectRayWithOverlayXYPlane(pickedObject.objectID, origin, direction);
+    default:
+        return glm::vec3(NAN);
+    }
+}
+
+glm::vec2 LaserPointer::findPos2D(const PickedObject& pickedObject, const glm::vec3& origin) {
+    switch (pickedObject.type) {
+    case ENTITY:
+        return RayPick::projectOntoEntityXYPlane(pickedObject.objectID, origin);
+    case OVERLAY:
+        return RayPick::projectOntoOverlayXYPlane(pickedObject.objectID, origin);
+    case HUD:
+        return DependencyManager::get<PickManager>()->calculatePos2DFromHUD(origin);
+    default:
+        return glm::vec2(NAN);
+    }
 }
