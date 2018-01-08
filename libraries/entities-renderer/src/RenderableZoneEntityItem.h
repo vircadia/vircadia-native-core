@@ -112,7 +112,6 @@ private:
     KeyLightPropertyGroup _keyLightProperties;
     AmbientLightPropertyGroup _ambientLightProperties;
     HazePropertyGroup _hazeProperties;
-    StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
 
     // More attributes used for rendering:
