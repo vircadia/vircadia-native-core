@@ -28,7 +28,7 @@ DualQuaternion::DualQuaternion(const glm::vec4& real, const glm::vec4& imag) :
 
 DualQuaternion::DualQuaternion(const glm::quat& rotation, const glm::vec3& translation) {
     _real = rotation;
-    _imag = glm::quat(0, 0.5f * translation.x, 0.5f * translation.y, 0.5f * translation.z) * rotation;
+    _imag = glm::quat(0.0f, 0.5f * translation.x, 0.5f * translation.y, 0.5f * translation.z) * rotation;
 }
 
 DualQuaternion DualQuaternion::operator*(const DualQuaternion& rhs) const {

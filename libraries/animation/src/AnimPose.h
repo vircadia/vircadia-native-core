@@ -46,8 +46,6 @@ public:
     const glm::vec3& trans() const { return _trans; }
     glm::vec3& trans() { return _trans; }
 
-    bool fuzzyEqual(const AnimPose& rhs) const;
-
 private:
     friend QDebug operator<<(QDebug debug, const AnimPose& pose);
     glm::vec3 _scale { 1.0f };
