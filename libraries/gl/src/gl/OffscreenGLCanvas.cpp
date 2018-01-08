@@ -52,16 +52,15 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
 
     _offscreenSurface->setFormat(_context->format());
     _offscreenSurface->create();
+
+    // Due to a https://bugreports.qt.io/browse/QTBUG-65125 we can't rely on `isValid`
+    // to determine if the offscreen surface was successfully created, so we use
+    // makeCurrent as a proxy test.  Bug is fixed in Qt 5.9.4
 #if defined(Q_OS_ANDROID)
     if (!_context->makeCurrent(_offscreenSurface)) {
         qFatal("Unable to make offscreen surface current");
     }
 #else
-    // For some reason, the offscreen surface is considered invalid on android
-    // possibly because of a bad format?  Would need to add some logging to the 
-    // eglpbuffer implementation used from the android platform plugin.  
-    // Alternatively investigate the use of an invisible surface view to do
-    // a 'native' offscreen surface
     if (!_offscreenSurface->isValid()) {
         qFatal("Offscreen surface is invalid");
     }

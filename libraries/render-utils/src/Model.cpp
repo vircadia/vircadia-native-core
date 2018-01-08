@@ -163,7 +163,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float SCALE_CHANGE_EPSILON = 0.001f;
+const float SCALE_CHANGE_EPSILON = 0.0000001f;
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
@@ -594,47 +594,72 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) {
-    if (_isVisible != newValue) {
-        _isVisible = newValue;
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
+    if (_isVisible != isVisible) {
+        _isVisible = isVisible;
+
+        bool isLayeredInFront = _isLayeredInFront;
+        bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
 
-void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
-    if (_isLayeredInFront != layered) {
-        _isLayeredInFront = layered;
+void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene) {
+    if (_isLayeredInFront != isLayeredInFront) {
+        _isLayeredInFront = isLayeredInFront;
+
+        bool isVisible = _isVisible;
+        bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
-void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
-    if (_isLayeredInHUD != layered) {
-        _isLayeredInHUD = layered;
+void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != isLayeredInHUD) {
+        _isLayeredInHUD = isLayeredInHUD;
+
+        bool isVisible = _isVisible;
+        bool isLayeredInFront = _isLayeredInFront;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
