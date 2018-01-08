@@ -373,7 +373,7 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
             renderer->onEntityChanged(_entity->getID());
         }
     }, Qt::QueuedConnection);
-    _changeHandlerId = entity->registerChangeHandler([this](const EntityItemID& changedEntity) { 
+    _changeHandlerId = entity->registerChangeHandler([](const EntityItemID& changedEntity) {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
             renderer->onEntityChanged(changedEntity);
