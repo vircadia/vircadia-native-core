@@ -46,10 +46,7 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
         }
         batch.setModelTransform(_cauterizedTransform);
     } else {
-        if (_clusterBuffer) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
-        }
-        batch.setModelTransform(_transform);
+        ModelMeshPartPayload::bindTransform(batch, locations, renderMode);
     }
 }
 
