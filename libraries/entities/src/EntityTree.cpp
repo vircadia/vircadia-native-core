@@ -2288,7 +2288,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             }
 
             if (!entityMap.contains("skyboxMode")) {
-                properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+                if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "nothing")) {
+                    properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+                } else {
+				    // either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
+                    properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+                }
             }
 
             if (!entityMap.contains("ambientLightMode")) {
