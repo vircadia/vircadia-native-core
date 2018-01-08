@@ -141,7 +141,10 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
 }
 
 EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity) {
-    connect(entity.get(), &EntityItem::requestRenderUpdate, this, &EntityRenderer::requestRenderUpdate);
+    connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
+        _needsRenderUpdate = true;
+        emit requestRenderUpdate();
+    });
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -312,6 +315,9 @@ void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
 // Returns true if the item needs to have updateInscene called because of internal rendering 
 // changes (animation, fading, etc)
 bool EntityRenderer::needsRenderUpdate() const {
+    if (_needsRenderUpdate) {
+        return true;
+    }
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -360,6 +366,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
+        _needsRenderUpdate = false;
     });
 }
 
