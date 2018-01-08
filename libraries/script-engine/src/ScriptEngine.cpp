@@ -1607,14 +1607,14 @@ QVariantMap ScriptEngine::fetchModuleSource(const QString& modulePath, const boo
     if (!loader->isFinished()) {
         QTimer monitor;
         QEventLoop loop;
-        QObject::connect(loader, &BatchLoader::finished, this, [this, &monitor, &loop]{
+        QObject::connect(loader, &BatchLoader::finished, this, [&monitor, &loop]{
             monitor.stop();
             loop.quit();
         });
 
         // this helps detect the case where stop() is invoked during the download
         //  but not seen in time to abort processing in onload()...
-        connect(&monitor, &QTimer::timeout, this, [this, &loop, &loader]{
+        connect(&monitor, &QTimer::timeout, this, [this, &loop]{
             if (isStopping()) {
                 loop.exit(-1);
             }
@@ -2247,7 +2247,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
         QTimer timeout;
         timeout.setSingleShot(true);
         timeout.start(SANDBOX_TIMEOUT);
-        connect(&timeout, &QTimer::timeout, [&sandbox, SANDBOX_TIMEOUT, scriptOrURL]{
+        connect(&timeout, &QTimer::timeout, [=, &sandbox]{
                 qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout(" << scriptOrURL << ")";
 
                 // Guard against infinite loops and non-performant code
