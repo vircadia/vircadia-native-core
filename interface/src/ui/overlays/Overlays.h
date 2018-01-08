@@ -233,6 +233,7 @@ public slots:
     /**jsdoc
      * Get the overlay script object.
      * @function Overlays.getOverlayObject
+     * @deprecated This function is deprecated and will soon be removed.
      * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
      * @returns {object} The script object for the overlay if found.
      */
