@@ -19,7 +19,7 @@
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptString>
 #include <QtScript/QScriptValue>
-#include <QDateTime>
+#include <QtCore/QDateTime>
 
 class ScriptEngine;
 

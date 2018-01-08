@@ -18,15 +18,12 @@
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
 HFWebEngineProfile::HFWebEngineProfile(QObject* parent) 
-#ifndef ANDROID 
-	: QQuickWebEngineProfile(parent)
-#endif
+    : QQuickWebEngineProfile(parent)
 {
-#ifndef ANDROID  setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
+    setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
     // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
    auto requestInterceptor = new HFWebEngineRequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
-#endif
 }
 
 #endif

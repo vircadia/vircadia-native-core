@@ -40,6 +40,7 @@ ext {
     BUILD_BRANCH = project.hasProperty('BUILD_BRANCH') ? project.getProperty('BUILD_BRANCH') : ''
     EXEC_SUFFIX = Os.isFamily(Os.FAMILY_WINDOWS) ? '.exe' : ''
     QT5_DEPS = [
+        'Qt5Concurrent',
         'Qt5Core',
         'Qt5Gui',
         'Qt5Multimedia',
@@ -47,14 +48,15 @@ ext {
         'Qt5OpenGL',
         'Qt5Qml',
         'Qt5Quick',
+        'Qt5QuickControls2',
+        'Qt5QuickTemplates2',
         'Qt5Script',
         'Qt5ScriptTools',
+        'Qt5Svg',
         'Qt5WebChannel',
         'Qt5WebSockets',
         'Qt5Widgets',
         'Qt5XmlPatterns',
-        'Qt5Concurrent',
-        'Qt5Svg',
         // Android specific
         'Qt5AndroidExtras',
         'Qt5WebView',

@@ -15,7 +15,7 @@
 #include <AudioClient.h>
 #include <QObject>
 #include <QFuture>
-#ifdef ANDROID
+#if defined(Q_OS_ANDROID)
 #include <QTcpSocket>
 #endif
 class LimitlessConnection : public QObject {

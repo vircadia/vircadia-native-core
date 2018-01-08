@@ -12,7 +12,7 @@ using namespace gpu;
 using namespace gpu::gl;
 
 bool GLTexelFormat::isCompressed() const {
-	return false;
+    return false;
 }
 
 GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {

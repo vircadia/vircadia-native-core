@@ -891,12 +891,12 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         GLuint fbo[2] {0, 0};
 
         // need mipmaps for blitting texture
-#ifndef ANDROID
+#if !defined(Q_OS_ANDROID)
 		glGenerateTextureMipmap(sourceTexture);
 #endif
 
         // create 2 fbos (one for initial texture, second for scaled one)
-#ifndef ANDROID
+#if !defined(Q_OS_ANDROID)
 	glCreateFramebuffers(2, fbo);
 #endif
 
@@ -928,8 +928,8 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         } else {
             newY = (target->height() - newHeight) / 2;
         }
-#ifndef ANDROID
-		glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#if !defined(Q_OS_ANDROID)
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
 #endif
 
         // don't delete the textures!

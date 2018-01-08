@@ -738,7 +738,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
     bool validAlpha = image.hasAlphaChannel();
     bool alphaAsMask = false;
 
-#ifndef ANDROID
+#if !defined(Q_OS_ANDROID)
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }

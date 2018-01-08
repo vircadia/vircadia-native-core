@@ -106,6 +106,7 @@ int main(int argc, const char* argv[]) {
         instanceMightBeRunning = false;
     }
 
+#if defined(Q_OS_ANDROID)
     std::vector<QString> assetDirs = {
             "/resources",
             "/scripts",
@@ -115,7 +116,7 @@ int main(int argc, const char* argv[]) {
         QString dir = *it;
         PathUtils::copyDirDeep("assets:" + dir, QUrl::fromLocalFile(dirInfo.canonicalPath() + dir).toLocalFile());
     }
-
+#endif
     // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine

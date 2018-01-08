@@ -58,14 +58,6 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-if (ANDROID)
-  set(PLATFORM_QT_COMPONENTS AndroidExtras)
-#  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
-else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
-endif ()
-
 find_package(
   Qt5 COMPONENTS
   Gui Multimedia Network OpenGL Qml Quick Script Svg
@@ -197,13 +189,6 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-if (NOT ANDROID)
-  set(NON_ANDROID_LIBRARIES gpu-gl)
-else()
-  set(ANDROID_LIBRARIES gpu-gles)
-endif ()
-
-
 # link required hifi libraries
 link_hifi_libraries(
   shared octree ktx gpu gl procedural model render
@@ -213,8 +198,6 @@ link_hifi_libraries(
   render-utils entities-renderer avatars-renderer ui auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
-  ${ANDROID_LIBRARIES}  
-  ${NON_ANDROID_LIBRARIES}
   ${PLATFORM_GL_BACKEND}
 )
 
@@ -266,19 +249,16 @@ endforeach()
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
 if (ANDROID)
-  #set(ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebView)
   find_library(ANDROID_LOG_LIB log)
   target_link_libraries(${TARGET_NAME} ${ANDROID_LOG_LIB})
-else()
-  set(NON_ANDROID_PLATFORM_QT_LIBRARIES Qt5::WebEngine)  
 endif ()
 
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel ${NON_ANDROID_PLATFORM_QT_LIBRARIES}
-  ${ANDROID_PLATFORM_QT_LIBRARIES}
+  Qt5::WebChannel
+  ${PLATFORM_QT_LIBRARIES}
 )
 
 if (UNIX AND NOT ANDROID)

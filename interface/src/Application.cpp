@@ -210,7 +210,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
-#ifdef ANDROID
+#if defined(Q_OS_ANDROID)
 #include <QtAndroidExtras/QAndroidJniObject>
 #include <android/log.h>
 #endif
@@ -235,7 +235,7 @@ extern "C" {
 }
 #endif
 
-#ifdef ANDROID
+#if defined(Q_OS_ANDROID)
 extern "C" {
  
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
@@ -557,16 +557,9 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     if (!logMessage.isEmpty()) {
 #ifdef Q_OS_WIN
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
-        OutputDebugStringA("\n");i
+        OutputDebugStringA("\n");
 #elif defined Q_OS_ANDROID
-        QString report=message;
-        if (context.file && !QString(context.file).isEmpty()) {
-            report+=" at ";
-            report+=QString(context.file);
-            report+=" : ";
-            report+=QString::number(context.line);
-        }
-        const char*const local=report.toLocal8Bit().constData();
+        const char * local=logMessage.toStdString().c_str();
         switch (type) {
             case QtDebugMsg:
                 __android_log_write(ANDROID_LOG_DEBUG,"Interface",local);
@@ -2252,10 +2245,10 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-#ifndef Q_OS_ANDROID
-    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#else
+#ifdef Q_OS_ANDROID
     bool isDeferred = false;
+#else
+    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
@@ -2369,10 +2362,10 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-#ifndef Q_OS_ANDROID
-    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+#ifdef Q_OS_ANDROID
+    offscreenUi->createDesktop(PathUtils::qmlBasePath() + "hifi/Desktop.qml");
 #else
-    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
 #endif
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -5960,7 +5953,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-#ifndef ANDROID
+#if !defined(Q_OS_ANDROID)
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
 #endif
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);

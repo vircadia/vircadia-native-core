@@ -54,7 +54,7 @@ const QString& PathUtils::projectRootPath() {
 
 const QString& PathUtils::qmlBasePath() {
 #ifdef Q_OS_ANDROID
-    static const QString staticResourcePath = QUrl::fromLocalFile(PathUtils::resourcesPath() + "qml/").toString();
+    static const QString staticResourcePath = "qrc:///qml/";
 #elif defined (DEV_BUILD)
     static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
 #else
@@ -76,10 +76,10 @@ QString PathUtils::getAppLocalDataPath() {
     }
 
     // otherwise return standard path
-#ifndef Q_OS_ANDROID
-    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
-#else
+#ifdef Q_OS_ANDROID
     return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/";
+#else
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
 #endif
 }
 
