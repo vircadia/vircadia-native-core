@@ -9,7 +9,7 @@
    makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD,
    INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, LaserPointers, RayPick, ContextOverlay, Picks
+   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, LaserPointers, RayPick, ContextOverlay, Picks, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -18,6 +18,7 @@ Script.include("/~/system/libraries/controllers.js");
 (function() {
     function WebSurfaceLaserInput(hand) {
         this.hand = hand;
+        this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
         this.running = false;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -25,7 +26,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
-            this.hand);
+            makeLaserParams(hand, true));
 
         this.grabModuleWantsNearbyOverlay = function(controllerData) {
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
@@ -65,7 +66,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.deleteContextOverlay = function() {
-            var farGrabModule = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity");
+            var farGrabModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity");
             if (farGrabModule) {
                 var entityWithContextOverlay = farGrabModule.entityWithContextOverlay;
 
@@ -76,25 +78,50 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.isReady = function (controllerData) {
+        this.updateAllwaysOn = function() {
+            var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
+            this.parameters.handLaser.allwaysOn = !Settings.getValue(PREFER_STYLUS_OVER_LASER, false);
+        };
+
+        this.getDominantHand = function() {
+            return MyAvatar.getDominantHand() === "right" ? 1 : 0;
+        };
+
+        this.dominantHandOverride = false;
+
+        this.isReady = function(controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
-            if ((this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) &&
-                !otherModuleRunning) {
-                if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
+            otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+                && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
+            if ((!otherModuleRunning || isTriggerPressed)
+                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) {
+                this.updateAllwaysOn();
+                if (isTriggerPressed) {
+                    this.dominantHandOverride = true; // Override dominant hand.
+                    this.getOtherModule().dominantHandOverride = false;
+                }
+                if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
                     return makeRunningValues(true, [], []);
                 }
             }
             return makeRunningValues(false, [], []);
         };
 
-        this.run = function (controllerData, deltaTime) {
+        this.run = function(controllerData, deltaTime) {
+            var otherModuleRunning = this.getOtherModule().running;
+            otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
+            otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE && !grabModuleNeedsToRun) {
+            if (!otherModuleRunning && !grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+                || this.parameters.handLaser.allwaysOn
+                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
             this.deleteContextOverlay();
             this.running = false;
+            this.dominantHandOverride = false;
             return makeRunningValues(false, [], []);
         };
     }

@@ -28,7 +28,7 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;
     std::call_once(once, [] {
-#if defined(Q_OS_ANDROID)
+#if defined(HIFI_GLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         format.setRedBufferSize(8);
         format.setGreenBufferSize(8);
