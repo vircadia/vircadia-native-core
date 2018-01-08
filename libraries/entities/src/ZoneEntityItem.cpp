@@ -355,7 +355,6 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
         _ambientLightPropertiesChanged = false;
-        _backgroundPropertiesChanged = false;
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
         _stagePropertiesChanged = false;

@@ -96,7 +96,6 @@ public:
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
-    bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
 
     bool hazePropertiesChanged() const { 
@@ -146,7 +145,6 @@ protected:
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
     bool _ambientLightPropertiesChanged { false };
-    bool _backgroundPropertiesChanged{ false };
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };
