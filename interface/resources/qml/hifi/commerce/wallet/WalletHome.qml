@@ -48,6 +48,7 @@ Item {
 
                 if (result.data.history.length === 0) {
                     root.noMoreHistoryData = true;
+                    console.log("No more data to retrieve from Commerce.history() endpoint.")
                 } else if (root.currentHistoryPage === 1) {
                     var sameItemCount = 0;
                     tempTransactionHistoryModel.clear();
