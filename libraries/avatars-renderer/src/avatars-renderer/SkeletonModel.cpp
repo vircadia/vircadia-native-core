@@ -37,6 +37,16 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
 SkeletonModel::~SkeletonModel() {
 }
 
+void SkeletonModel::setURL(const QUrl& url) {
+    _texturesLoaded = false;
+    Model::setURL(url);
+}
+
+void SkeletonModel::setTextures(const QVariantMap& textures) {
+    _texturesLoaded = false;
+    Model::setTextures(textures);
+}
+
 void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
@@ -140,6 +150,13 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         }
     } else {
         Parent::simulate(deltaTime, fullUpdate);
+    }
+
+    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem and ModelOverlay,
+    // but Avatars don't get updates in the same way
+    if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        updateRenderItems();
     }
 
     if (!isActive() || !_owningAvatar->isMyAvatar()) {

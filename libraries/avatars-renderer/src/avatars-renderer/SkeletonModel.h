@@ -31,6 +31,9 @@ public:
     SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     ~SkeletonModel();
 
+    Q_INVOKABLE void setURL(const QUrl& url) override;
+    Q_INVOKABLE void setTextures(const QVariantMap& textures) override;
+
     void initJointStates() override;
 
     void simulate(float deltaTime, bool fullUpdate = true) override;
@@ -115,8 +118,6 @@ protected:
 
     void computeBoundingShape();
 
-protected:
-
     bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
     Avatar* _owningAvatar;
@@ -128,6 +129,9 @@ protected:
     glm::vec3 _defaultEyeModelPosition;
 
     float _headClipDistance;  // Near clip distance to use if no separate head model
+
+private:
+    bool _texturesLoaded { false };
 };
 
 #endif // hifi_SkeletonModel_h
