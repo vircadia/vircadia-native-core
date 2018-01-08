@@ -1929,7 +1929,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
