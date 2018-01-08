@@ -34,12 +34,25 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 }
 
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
+
+    glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
+
+    // check for pinned hips.
+    auto hipsIndex = myAvatar->getJointIndex("Hips");
+    if (myAvatar->isJointPinned(hipsIndex)) {
+        Transform avatarTransform = myAvatar->getTransform();
+        AnimPose result = AnimPose(worldToSensorMat * avatarTransform.getMatrix() * Matrices::Y_180);
+        result.scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+        return result;
+    } else {
+        DebugDraw::getInstance().removeMarker("pinnedHips");
+    }
+
     glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
 
     glm::mat4 avatarToWorldMat = myAvatar->getTransform().getMatrix();
-    glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
