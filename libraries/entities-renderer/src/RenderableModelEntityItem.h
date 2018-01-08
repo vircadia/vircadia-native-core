@@ -60,7 +60,7 @@ public:
     RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
     virtual ~RenderableModelEntityItem();
 
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     void doInitialModelSimulation();
@@ -158,10 +158,11 @@ private:
     virtual bool isTransparent() const override { return false; }
 
     bool _hasModel { false };
-    ::ModelPointer _model;
+    ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
     QVariantMap _currentTextures;
+    bool _texturesLoaded { false };
     AnimationPropertyGroup _renderAnimationProperties;
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT

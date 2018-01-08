@@ -122,11 +122,6 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputFormat((_drawMesh->getVertexFormat()));
 
     batch.setInputStream(0, _drawMesh->getVertexStream());
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
 }
 
 void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
@@ -485,33 +480,18 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
-    if (!_isBlendShaped) {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-        batch.setInputStream(0, _drawMesh->getVertexStream());
+    batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
+    batch.setInputFormat((_drawMesh->getVertexFormat()));
+    if (_isBlendShaped && _blendedVertexBuffer) {
+        batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
+        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
+        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     } else {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-
-        if (_blendedVertexBuffer) {
-            batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
-            batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
-            batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
-        } else {
-            batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-            batch.setInputFormat((_drawMesh->getVertexFormat()));
-            batch.setInputStream(0, _drawMesh->getVertexStream());
-        }
-    }
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        batch.setInputStream(0, _drawMesh->getVertexStream());
     }
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     if (_clusterBuffer) {
         batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }

@@ -237,6 +237,7 @@ public:
             LIGHTING_MODEL,
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
+            HAZE_MODEL,
             FADE_PARAMETERS,
         };
 
@@ -270,6 +271,7 @@ public:
         int lightAmbientMapUnit;
         int fadeMaskTextureUnit;
         int fadeParameterBufferUnit;
+        int hazeParameterBufferUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 

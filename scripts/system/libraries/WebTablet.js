@@ -118,7 +118,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor;
+    var RAYPICK_OFFSET = 0.0001; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor + RAYPICK_OFFSET;
     var WEB_ENTITY_Y_OFFSET = 0.004;
     var screenWidth = 0.82 * tabletWidth;
     var screenHeight = 0.81 * tabletHeight;

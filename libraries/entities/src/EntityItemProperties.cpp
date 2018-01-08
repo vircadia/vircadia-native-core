@@ -365,6 +365,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
@@ -628,6 +629,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
@@ -805,6 +807,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -953,6 +956,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(localRotation);
     COPY_PROPERTY_IF_CHANGED(localVelocity);
     COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+    COPY_PROPERTY_IF_CHANGED(localDimensions);
 
     COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
     COPY_PROPERTY_IF_CHANGED(jointRotations);
@@ -1132,6 +1136,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
@@ -2470,9 +2475,25 @@ bool EntityItemProperties::transformChanged() const {
         localPositionChanged() || localRotationChanged();
 }
 
+bool EntityItemProperties::getScalesWithParent() const {
+    // keep this logic the same as in EntityItem::getScalesWithParent
+    bool scalesWithParent { false };
+    if (parentIDChanged()) {
+        bool success;
+        SpatiallyNestablePointer parent = SpatiallyNestable::findByID(getParentID(), success);
+        if (success && parent) {
+            bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
+                                   parent->hasAncestorOfType(NestableType::Avatar));
+            scalesWithParent = getClientOnly() && avatarAncestor;
+        }
+    }
+    return scalesWithParent;
+}
+
 bool EntityItemProperties::parentRelatedPropertyChanged() const {
     return positionChanged() || rotationChanged() ||
         localPositionChanged() || localRotationChanged() ||
+        localDimensionsChanged() ||
         parentIDChanged() || parentJointIndexChanged();
 }
 
@@ -2530,7 +2551,8 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
         return false;
     }
 
-    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    auto keyByteArray = publicKey.toUtf8();
+    auto key = keyByteArray.constData();
     int keyLength = publicKey.length();
 
     BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
@@ -2548,19 +2570,23 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             // ECSDA verification prototype: note that type is currently ignored
             // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
             // const unsigned char *sig, int siglen, EC_KEY *eckey);
-            bool answer = ECDSA_verify(0,
+            int answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
                 ec);
             long error = ERR_get_error();
-            if (error != 0) {
-                const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+            if (error != 0 || answer == -1) {
+                qCWarning(entities) << "ERROR while verifying signature!"
                     << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+                while (error != 0) {
+                    const char* error_str = ERR_error_string(error, NULL);
+                    qCWarning(entities) << "EC error:" << error_str;
+                    error = ERR_get_error();
+                }
             }
             EC_KEY_free(ec);
             if (bio) {
@@ -2569,7 +2595,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             if (evp_key) {
                 EVP_PKEY_free(evp_key);
             }
-            return answer;
+            return (answer == 1);
         } else {
             if (bio) {
                 BIO_free(bio);
