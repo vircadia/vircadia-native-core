@@ -5,7 +5,7 @@
 (function() { // BEGIN LOCAL_SCOPE
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
-        icon: Script.resolvePath("run.svg"),
+        icon: Script.resolvePath("assets/images/icon-particles.svg"),
         text: "Run",
         sortOrder: 15
     });
@@ -23,6 +23,5 @@
         tablet.removeButton(button);
     }
 
-
     button.clicked.connect(onClicked);
-})
+}());
