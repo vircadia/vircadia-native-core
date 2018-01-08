@@ -28,10 +28,6 @@ static const float TABLET_MAX_TOUCH_DISTANCE = 0.005f;
 static const float HOVER_HYSTERESIS = 0.01f;
 static const float TOUCH_HYSTERESIS = 0.001f;
 
-static const float STYLUS_MOVE_DELAY = 0.33f * USECS_PER_SECOND;
-static const float TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0481f;
-static const float TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED = TOUCH_PRESS_TO_MOVE_DEADSPOT * TOUCH_PRESS_TO_MOVE_DEADSPOT;
-
 StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createStylusPick(props), enabled, hover),
     _stylusOverlay(stylusOverlay)
@@ -112,37 +108,37 @@ bool StylusPointer::shouldHover(const PickResultPointer& pickResult) {
 
 bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
     auto stylusPickResult = std::static_pointer_cast<const StylusPickResult>(pickResult);
+    bool wasTriggering = false;
     if (_renderState == EVENTS_ON && stylusPickResult) {
         auto sensorScaleFactor = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
         float distance = stylusPickResult->distance;
 
         // If we're triggering on an object, recalculate the distance instead of using the pickResult
         glm::vec3 origin = vec3FromVariant(stylusPickResult->pickVariant["position"]);
-        glm::vec3 direction = -_state.surfaceNormal;
-        if (!_state.triggeredObject.objectID.isNull() && stylusPickResult->objectID != _state.triggeredObject.objectID) {
+        glm::vec3 direction = _state.triggering ? -_state.surfaceNormal : -stylusPickResult->surfaceNormal;
+        if ((_state.triggering || _state.wasTriggering) && stylusPickResult->objectID != _state.triggeredObject.objectID) {
             distance = glm::dot(findIntersection(_state.triggeredObject, origin, direction) - origin, direction);
         }
 
         float hysteresis = _state.triggering ? TOUCH_HYSTERESIS * sensorScaleFactor : 0.0f;
         if (isWithinBounds(distance, TABLET_MIN_TOUCH_DISTANCE * sensorScaleFactor,
-                           TABLET_MAX_TOUCH_DISTANCE * sensorScaleFactor, hysteresis)) {
-            if (_state.triggeredObject.objectID.isNull()) {
+            TABLET_MAX_TOUCH_DISTANCE * sensorScaleFactor, hysteresis)) {
+            _state.wasTriggering = _state.triggering;
+            if (!_state.triggering) {
                 _state.triggeredObject = PickedObject(stylusPickResult->objectID, stylusPickResult->type);
-                _state.intersection = findIntersection(_state.triggeredObject, origin, direction);
+                _state.intersection = stylusPickResult->intersection;
                 _state.triggerPos2D = findPos2D(_state.triggeredObject, origin);
                 _state.triggerStartTime = usecTimestampNow();
                 _state.surfaceNormal = stylusPickResult->surfaceNormal;
+                _state.deadspotExpired = false;
                 _state.triggering = true;
             }
             return true;
         }
+        wasTriggering = _state.triggering;
     }
 
-    _state.triggeredObject = PickedObject();
-    _state.intersection = glm::vec3(NAN);
-    _state.triggerPos2D = glm::vec2(NAN);
-    _state.triggerStartTime = 0;
-    _state.surfaceNormal = glm::vec3(NAN);
+    _state.wasTriggering = wasTriggering;
     _state.triggering = false;
     return false;
 }
@@ -155,13 +151,13 @@ Pointer::PickedObject StylusPointer::getHoveredObject(const PickResultPointer& p
     return PickedObject(stylusPickResult->objectID, stylusPickResult->type);
 }
 
-Pointer::Buttons StylusPointer::getPressedButtons() {
+Pointer::Buttons StylusPointer::getPressedButtons(const PickResultPointer& pickResult) {
     // TODO: custom buttons for styluses
     Pointer::Buttons toReturn({ "Primary", "Focus" });
     return toReturn;
 }
 
-PointerEvent StylusPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
+PointerEvent StylusPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button, bool hover) {
     QUuid pickedID;
     glm::vec2 pos2D;
     glm::vec3 intersection, surfaceNormal, direction, origin;
@@ -177,17 +173,21 @@ PointerEvent StylusPointer::buildPointerEvent(const PickedObject& target, const 
     }
 
     // If we just started triggering and we haven't moved too much, don't update intersection and pos2D
-    if (!_state.triggeredObject.objectID.isNull() && usecTimestampNow() - _state.triggerStartTime < STYLUS_MOVE_DELAY &&
-            glm::distance2(pos2D, _state.triggerPos2D) < TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED) {
+    float sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+    float deadspotSquared = TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED * sensorToWorldScale * sensorToWorldScale;
+    bool withinDeadspot = usecTimestampNow() - _state.triggerStartTime < POINTER_MOVE_DELAY && glm::distance2(pos2D, _state.triggerPos2D) < deadspotSquared;
+    if ((_state.triggering || _state.wasTriggering) && !_state.deadspotExpired && withinDeadspot) {
         pos2D = _state.triggerPos2D;
         intersection = _state.intersection;
     } else if (pickedID != target.objectID) {
         intersection = findIntersection(target, origin, direction);
     }
+    if (!withinDeadspot) {
+        _state.deadspotExpired = true;
+    }
 
     return PointerEvent(pos2D, intersection, surfaceNormal, direction);
 }
-
 
 bool StylusPointer::isWithinBounds(float distance, float min, float max, float hysteresis) {
     return (distance == glm::clamp(distance, min - hysteresis, max + hysteresis));
