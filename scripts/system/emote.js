@@ -22,7 +22,6 @@ var ANIMATIONS = Array();
 
 EMOTE_ANIMATIONS.forEach(function (name) {
     var animURL = Script.resolvePath("assets/animations/" + name + ".fbx");
-    print(animURL);
     var resource = AnimationCache.prefetch(animURL);
     var animation = AnimationCache.getAnimation(animURL);
     ANIMATIONS[name] = { url: animURL, animation: animation, resource: resource};
@@ -31,21 +30,23 @@ EMOTE_ANIMATIONS.forEach(function (name) {
 
 var EMOTE_APP_BASE = "html/EmoteApp.html";
 var EMOTE_APP_URL = Script.resolvePath(EMOTE_APP_BASE);
-
+var EMOTE_LABLE = "EMOTE";
+var EMOTE_APP_SORT_ORDER = 11;
+var FPS = 30;
+var MSEC_PER_SEC = 1000;
+var FINISHED = 3; // see ScriptableResource::State
 
 var onEmoteScreen = false;
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-
-var emoteLable = "EMOTE";
+var activeTimer = false; // used to cancel active timer if a user plays an amimation while another animation is playing
 
 button = tablet.addButton({
-    //icon: "icons/tablet-icons/emote.svg",
-    text: emoteLable,
-    sortOrder: 11
+    //icon: "icons/tablet-icons/emote.svg", // TODO - we need graphics for this
+    text: EMOTE_LABLE,
+    sortOrder: EMOTE_APP_SORT_ORDER
 });
 
-var enabled = false;
 function onClicked() {
     if (onEmoteScreen) {
         tablet.gotoHomeScreen();
@@ -56,14 +57,12 @@ function onClicked() {
 }
 
 function onScreenChanged(type, url) {
-    print("type:", type, "url:", url);
     onEmoteScreen = type === "Web" && (url.indexOf(EMOTE_APP_BASE) == url.length - EMOTE_APP_BASE.length);
     button.editProperties({ isActive: onEmoteScreen });
 }
 
 // Handle the events we're receiving from the web UI
 function onWebEventReceived(event) {
-   print("emote.js received a web event: " + event);
 
     // Converts the event to a JavasScript Object
     if (typeof event === "string") {
@@ -72,29 +71,20 @@ function onWebEventReceived(event) {
 
     if (event.type === "click") {
         var emoteName = event.data;
-        print("emote.js received a click event for " + emoteName);
 
-        print("ANIMATIONS[emoteName].resource.url:" + ANIMATIONS[emoteName].resource.url);
+        if (ANIMATIONS[emoteName].resource.state == FINISHED) {
+            if (activeTimer !== false) {
+                Script.clearTimeout(activeTimer);
+            }
 
-
-        // ANIMATIONS[emoteName].animation.isLoaded
-        if (ANIMATIONS[emoteName].resource.state == 3) {
             var frameCount = ANIMATIONS[emoteName].animation.frames.length;
-            print("the animation for " + emoteName + " is loaded, it has " + frameCount + " frames");
-            var frameCount = ANIMATIONS[emoteName].animation.frames.length;
-
-            var FPS = 30;
-            var MSEC_PER_SEC = 1000;
             MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
 
             var timeOut = MSEC_PER_SEC * frameCount / FPS;
-            Script.setTimeout(function () {
+            activeTimer = Script.setTimeout(function () {
                 MyAvatar.restoreAnimation();
+                activeTimer = false;
             }, timeOut);
-
-
-        } else {
-            print("the animation for " + emoteName + " is in state:" + ANIMATIONS[emoteName].resource.state);
         }
     }
 }
@@ -102,7 +92,6 @@ function onWebEventReceived(event) {
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
 tablet.webEventReceived.connect(onWebEventReceived);
-
 
 Script.scriptEnding.connect(function () {
     if (onEmoteScreen) {
@@ -112,6 +101,10 @@ Script.scriptEnding.connect(function () {
     tablet.screenChanged.disconnect(onScreenChanged);
     if (tablet) {
         tablet.removeButton(button);
+    }
+    if (activeTimer !== false) {
+        Script.clearTimeout(activeTimer);
+        MyAvatar.restoreAnimation();
     }
 });
 
