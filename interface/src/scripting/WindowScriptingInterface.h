@@ -358,7 +358,7 @@ public slots:
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
-     * indicates whether or a user connection was successfully made using the Web API.
+     * indicates whether or not a user connection was successfully made using the Web API.
      * @function Window.makeConnection
      * @param {boolean} success - If <code>true</code> then {@link Window.connectionAdded|connectionAdded} is emitted, otherwise
      *     {@link Window.connectionError|connectionError} is emitted.
