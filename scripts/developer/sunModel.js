@@ -19,14 +19,6 @@
         return angle_rads * (180.0 / Math.PI);
     }
 
-    // Parameters
-    var latitude_degs  =   47.751033;
-    var longitude_degs = -122.228176;
-    
-    // These are used a lot
-    var latitude  = toRadians(latitude_degs);
-    var longitude = toRadians(longitude_degs);
-
     // Code to check if Daylight Savings is active
     Date.prototype.stdTimezoneOffset = function() {
         var fy = this.getFullYear();
@@ -55,9 +47,10 @@
     };    
 
     // The Julian Date is the number of days (fractional) that have elapsed since Jan 1st, 4713 BC
-    function getJulianDate(dateTime) {
+    // See https://quasar.as.utexas.edu/BillInfo/JulianDatesG.html 
+    function getJulianDay(dateTime) {
         var month = dateTime.getMonth() + 1;
-        var day   = dateTime.getDate() + 1;
+        var day   = dateTime.getDate()  + 1;
         var year  = dateTime.getFullYear();
         
         if (month <=  2) {
@@ -150,6 +143,11 @@
     }
     
     function calcEquationOfTime(t) {
+        // Converts from "mean" solar day (i.e. days that are exactly 24 hours)
+        // to apparent solar day (as observed)
+        // This is essentially the east-west component of the analemma.
+        //
+        // This is caused by 2 effects:  the obliquity of the ecliptic, the eccentricity of earth's orbit
         var epsilon = calcObliquityCorrection(t);
         var l0 = calcGeomMeanLongSun(t);
         var e  = calcEccentricityEarthOrbit(t);
@@ -164,7 +162,9 @@
         var sin4l0 = Math.sin(4.0 * toRadians(l0));
         var sin2m  = Math.sin(2.0 * toRadians(m));
 
-        var Etime = y * sin2l0 - 2.0 * e * sinm + 4.0 * e * y * sinm * cos2l0 - 0.5 * y * y * sin4l0 - 1.25 * e * e * sin2m;
+        var Etime = y * sin2l0 - 2.0 * e * sinm + 4.0 * e * y * sinm * cos2l0 - 
+            0.5 * y * y * sin4l0 - 1.25 * e * e * sin2m;
+            
         return toDegrees(Etime) * 4.0;	// in minutes of time
     }
  
@@ -181,22 +181,53 @@
         var R = (1.000001018 * (1 - e * e)) / (1 + e * Math.cos(toRadians(v)));
         return R;		// in AUs
     }
-   
+
+    function parseJSON(json) {
+        try {
+            return JSON.parse(json);
+        } catch (e) {
+            return undefined;
+        }
+    }
+    
     var COMPUTATION_CYCLE = 5000;       // Run every 5 seconds
-    this.preload = function(entityID) { // You don't have the entityID before the preload
+    this.preload = function(entityID) { // We don't have the entityID before the preload
+        // Define user data
+        var userDataProperties = {
+            "userData": "{ \"latitude\": 47.0, \"longitude\": 122.0 }"
+        };
+        Entities.editEntity(entityID, userDataProperties);
+  
         Script.setInterval(
             function() {
+                // Read back user data
+                var userData = Entities.getEntityProperties(entityID, 'userData').userData;
+                var data = parseJSON(userData);
+
+                var latitude_degs  = data.latitude;
+                var longitude_degs = data.longitude;
+                
+                // These are used a lot
+                var latitude  = toRadians(latitude_degs);
+                var longitude = toRadians(longitude_degs);
+                
                 var dateTime = new Date();
                 
-                var julianDay         = getJulianDate(dateTime);
+                var julianDay         = getJulianDay(dateTime);
                 var localTimeMinutes  = getMinutes(dateTime);
                 var timeZone          = -dateTime.getTimezoneOffset() / 60;
                 var totalTime         = julianDay + localTimeMinutes/1440.0 - timeZone / 24.0;
-                var julianCentralTime = (julianDay - 2451545.0)/36525.0;
-                var eqTime            = calcEquationOfTime(julianCentralTime)
-                var theta_rads        = toRadians(calcSunDeclination(julianCentralTime));
+                
+                // J2000.0 is the epoch starting Jan 1st, 2000 (noon), expressed as a Julian day
+                var J2000             = 2451545.0
+                
+                // Number of years that have passed since J2000.0
+                var julianDayModified = (J2000 - 2451545.0)/36525.0;
+                
+                var eqTime            = calcEquationOfTime(julianDayModified)
+                var theta_rads        = toRadians(calcSunDeclination(julianDayModified));
                 var solarTimeFix      = eqTime + 4.0 * longitude_degs - 60.0 * timeZone;
-                var earthRadVec       = calcSunRadVector(julianCentralTime);
+                var earthRadVec       = calcSunRadVector(julianDayModified);
                 
                 var trueSolarTime = localTimeMinutes + solarTimeFix;
                 while (trueSolarTime > 1440) {
