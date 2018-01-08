@@ -30,16 +30,12 @@ Rectangle {
     property string activeView: "initialize";
     property string referrerURL: "";
     property bool securityImageResultReceived: false;
+    property bool purchasesReceived: false;
     property bool punctuationMode: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
+    property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
-    property bool initialPurchasesReceived: false;
-    property bool pendingPurchasesReply: true;
-    property bool noMorePurchasesData: false;
-    property var pagesAlreadyAdded: new Array();
-    property int currentPurchasesPage: 1;
-
     // Style
     color: hifi.colors.white;
     Connections {
@@ -65,9 +61,7 @@ Rectangle {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
-                    root.initialPurchasesReceived = false;
-                    root.pendingPurchasesReply = true;
-                    Commerce.inventory(1);
+                    Commerce.inventory();
                 }
             } else {
                 console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
@@ -83,87 +77,35 @@ Rectangle {
         }
 
         onInventoryResult: {
+            purchasesReceived = true;
+
+            if (root.pendingInventoryReply) {
+                inventoryTimer.start();
+            }
+
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
-                var currentPage = parseInt(result.current_page);
+                var inventoryResult = processInventoryResult(result.data.assets);
 
-                console.log("ZRF length: " + result.data.assets.length + " page: " + currentPage);
-                if (result.data.assets.length === 0) {
-                    root.noMorePurchasesData = true;
-                } else if (root.currentPurchasesPage === 1) {
-                    var purchasesResult = processPurchasesResult(result.data.assets);
+                purchasesModel.clear();
+                purchasesModel.append(inventoryResult);
 
-                    purchasesModel.clear();
-                    purchasesModel.append(purchasesResult);
-
-                    if (previousPurchasesModel.count !== 0) {
-                        checkIfAnyItemStatusChanged();
-                    } else {
-                        // Fill statusChanged default value
-                        // Not doing this results in the default being true...
-                        for (var i = 0; i < purchasesModel.count; i++) {
-                            purchasesModel.setProperty(i, "statusChanged", false);
-                        }
-                    }
-                    previousPurchasesModel.append(purchasesResult);
-
-                    buildFilteredPurchasesModel();
+                if (previousPurchasesModel.count !== 0) {
+                    checkIfAnyItemStatusChanged();
                 } else {
-                    // First, add the purchases result to a temporary model
-                    tempPurchasesModel.clear();
-                    tempPurchasesModel.append(processPurchasesResult(result.data.assets));
-
-                    // Make a note that we've already added this page to the model...
-                    root.pagesAlreadyAdded.push(currentPage);
-
-                    var insertionIndex = 0;
-                    // If there's nothing in the model right now, we don't need to modify insertionIndex.
-                    if (purchasesModel.count !== 0) {
-                        var currentIteratorPage;
-                        // Search through the whole purchasesModel and look for the insertion point.
-                        // The insertion point is found when the result page from the server is less than
-                        //     the page that the current item came from, OR when we've reached the end of the whole model.
-                        for (var i = 0; i < purchasesModel.count; i++) {
-                            currentIteratorPage = purchasesModel.get(i).resultIsFromPage;
-                        
-                            if (currentPage < currentIteratorPage) {
-                                insertionIndex = i;
-                                break;
-                            } else if (i === purchasesModel.count - 1) {
-                                insertionIndex = i + 1;
-                                break;
-                            }
-                        }
+                    // Fill statusChanged default value
+                    // Not doing this results in the default being true...
+                    for (var i = 0; i < purchasesModel.count; i++) {
+                        purchasesModel.setProperty(i, "statusChanged", false);
                     }
-                    
-                    // Go through the results we just got back from the server, setting the "resultIsFromPage"
-                    //     property of those results and adding them to the main model.
-                    for (var i = 0; i < tempPurchasesModel.count; i++) {
-                        tempPurchasesModel.setProperty(i, "resultIsFromPage", currentPage);
-                        purchasesModel.insert(i + insertionIndex, tempPurchasesModel.get(i))
-                    }
-
-                    buildFilteredPurchasesModel();
                 }
-            }
-            
-            root.pendingPurchasesReply = false;
+                previousPurchasesModel.append(inventoryResult);
 
-            if (filteredPurchasesModel.count === 0 && !root.noMorePurchasesData) {
-                root.initialPurchasesReceived = false;
-                root.pendingPurchasesReply = true;
-                Commerce.inventory(++root.currentPurchasesPage);
-                console.log("Fetching Page " + root.currentPurchasesPage + " of Purchases...");
-            // Only auto-refresh if the user hasn't scrolled
-            // and there is more data to grab
-            } else {
-                root.initialPurchasesReceived = true;
+                buildFilteredPurchasesModel();
             }
-            
-            if (purchasesContentsList.atYBeginning && !root.noMorePurchasesData) {
-                purchasesTimer.start();
-            }
+
+            root.pendingInventoryReply = false;
         }
     }
 
@@ -255,8 +197,7 @@ Rectangle {
 
         Component.onCompleted: {
             securityImageResultReceived = false;
-            root.initialPurchasesReceived = false;
-            root.pendingPurchasesReply = true;
+            purchasesReceived = false;
             Commerce.getWalletStatus();
         }
     }
@@ -314,9 +255,7 @@ Rectangle {
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
-                        root.initialPurchasesReceived = false;
-                        root.pendingPurchasesReply = true;
-                        Commerce.inventory(1);
+                        Commerce.inventory();
                     break;
                 }
             }
@@ -379,12 +318,6 @@ Rectangle {
 
                 onTextChanged: {
                     buildFilteredPurchasesModel();
-                    if (filteredPurchasesModel.count === 0 && !root.noMorePurchasesData) {
-                        root.initialPurchasesReceived = false;
-                        root.pendingPurchasesReply = true;
-                        Commerce.inventory(++root.currentPurchasesPage);
-                        console.log("Fetching Page " + root.currentPurchasesPage + " of Purchases...");
-                    }
                 }
 
                 onAccepted: {
@@ -539,23 +472,11 @@ Rectangle {
                     }
                 }
             }
-
-            onAtYEndChanged: {
-                if (purchasesContentsList.atYEnd) {
-                    console.log("User scrolled to the bottom of 'My Purchases'.");
-                    if (!root.pendingPurchasesReply && !root.noMorePurchasesData) {
-                        // Grab next page of results and append to model
-                        root.pendingPurchasesReply = true;
-                        Commerce.inventory(++root.currentPurchasesPage);
-                        console.log("Fetching Page " + root.currentPurchasesPage + " of Purchases...");
-                    }
-                }
-            }
         }
 
         Item {
             id: noItemsAlertContainer;
-            visible: !purchasesContentsList.visible && root.initialPurchasesReceived && root.isShowingMyItems && filterBar.text === "" && root.noMorePurchasesData;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && root.isShowingMyItems && filterBar.text === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -601,7 +522,7 @@ Rectangle {
 
         Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible && root.initialPurchasesReceived && !root.isShowingMyItems && filterBar.text === "" && root.noMorePurchasesData;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && !root.isShowingMyItems && filterBar.text === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -662,19 +583,19 @@ Rectangle {
 
     onVisibleChanged: {
         if (!visible) {
-            purchasesTimer.stop();
+            inventoryTimer.stop();
         }
     }
 
     Timer {
-        id: purchasesTimer;
+        id: inventoryTimer;
         interval: 4000; // Change this back to 90000 after demo
         //interval: 90000;
         onTriggered: {
-            if (root.activeView === "purchasesMain" && purchasesContentsList.atYBeginning && !root.pendingPurchasesReply && !root.noMorePurchasesData) {
-                console.log("Refreshing 1st Page of Purchases...");
-                root.pendingPurchasesReply = true;
-                Commerce.inventory(1);
+            if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                console.log("Refreshing Purchases...");
+                root.pendingInventoryReply = true;
+                Commerce.inventory();
             }
         }
     }
@@ -683,15 +604,15 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
 
-    function processPurchasesResult(purchases) {
-        for (var i = 0; i < purchases.length; i++) {
-            if (purchases[i].status.length > 1) {
-                console.log("WARNING: Purchases result index " + i + " has a status of length >1!")
+    function processInventoryResult(inventory) {
+        for (var i = 0; i < inventory.length; i++) {
+            if (inventory[i].status.length > 1) {
+                console.log("WARNING: Inventory result index " + i + " has a status of length >1!")
             }
-            purchases[i].status = purchases[i].status[0];
-            purchases[i].categories = purchases[i].categories.join(';');
+            inventory[i].status = inventory[i].status[0];
+            inventory[i].categories = inventory[i].categories.join(';');
         }
-        return purchases;
+        return inventory;
     }
 
     function populateDisplayedItemCounts() {
@@ -732,18 +653,17 @@ Rectangle {
             }
         }
         
-        if (tempPurchasesModel.count === 0 || filteredPurchasesModel.count === 0) {
-            sameItemCount = -1;
-        } else {
-            for (var i = 0; i < tempPurchasesModel.count; i++) {
-                if (tempPurchasesModel.get(i).itemId === filteredPurchasesModel.get(i).itemId &&
-                    tempPurchasesModel.get(i).edition_number === filteredPurchasesModel.get(i).edition_number &&
-                    tempPurchasesModel.get(i).status === filteredPurchasesModel.get(i).status) {
-                    sameItemCount++;
-                }
+        for (var i = 0; i < tempPurchasesModel.count; i++) {
+            if (!filteredPurchasesModel.get(i)) {
+                sameItemCount = -1;
+                break;
+            } else if (tempPurchasesModel.get(i).itemId === filteredPurchasesModel.get(i).itemId &&
+            tempPurchasesModel.get(i).edition_number === filteredPurchasesModel.get(i).edition_number &&
+            tempPurchasesModel.get(i).status === filteredPurchasesModel.get(i).status) {
+                sameItemCount++;
             }
         }
-        
+
         if (sameItemCount !== tempPurchasesModel.count) {
             filteredPurchasesModel.clear();
             for (var i = 0; i < tempPurchasesModel.count; i++) {

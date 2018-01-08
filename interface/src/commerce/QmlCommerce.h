@@ -59,7 +59,7 @@ protected:
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
-    Q_INVOKABLE void inventory(const QString& pageNumber);
+    Q_INVOKABLE void inventory();
     Q_INVOKABLE void history(const QString& pageNumber);
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
