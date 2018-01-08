@@ -26,7 +26,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     property var eventBridge;
-    property string title: "Audio Settings - " + Audio.context;
+    property string title: "Audio Settings - " + AudioScriptingInterface.context;
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;
@@ -37,7 +37,7 @@ Rectangle {
     }
 
 
-    property bool isVR: Audio.context === "VR"
+    property bool isVR: AudioScriptingInterface.context === "VR"
     property real rightMostInputLevelPos: 0
     //placeholder for control sizes and paddings
     //recalculates dynamically in case of UI size is changed
@@ -72,17 +72,17 @@ Rectangle {
     property bool showPeaks: true;
 
     function enablePeakValues() {
-        Audio.devices.input.peakValuesEnabled = true;
-        Audio.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
+        AudioScriptingInterface.devices.input.peakValuesEnabled = true;
+        AudioScriptingInterface.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
             if (!enabled && root.showPeaks) {
-                Audio.devices.input.peakValuesEnabled = true;
+                AudioScriptingInterface.devices.input.peakValuesEnabled = true;
             }
         });
     }
 
     function disablePeakValues() {
         root.showPeaks = false;
-        Audio.devices.input.peakValuesEnabled = false;
+        AudioScriptingInterface.devices.input.peakValuesEnabled = false;
     }
 
     Component.onCompleted: enablePeakValues();
@@ -117,10 +117,10 @@ Rectangle {
                     text: qsTr("Mute microphone");
                     spacing: margins.sizeCheckBox - boxSize
                     isRedCheck: true;
-                    checked: Audio.muted;
+                    checked: AudioScriptingInterface.muted;
                     onClicked: {
-                        Audio.muted = checked;
-                        checked = Qt.binding(function() { return Audio.muted; }); // restore binding
+                        AudioScriptingInterface.muted = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
                     }
                 }
             }
@@ -130,10 +130,10 @@ Rectangle {
                 AudioControls.CheckBox {
                     spacing: muteMic.spacing
                     text: qsTr("Enable noise reduction");
-                    checked: Audio.noiseReduction;
+                    checked: AudioScriptingInterface.noiseReduction;
                     onClicked: {
-                        Audio.noiseReduction = checked;
-                        checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
+                        AudioScriptingInterface.noiseReduction = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
                     }
                 }
                 AudioControls.CheckBox {
@@ -184,7 +184,7 @@ Rectangle {
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
-            model: Audio.devices.input;
+            model: AudioScriptingInterface.devices.input;
             delegate: Item {
                 width: rightMostInputLevelPos
                 height: margins.sizeCheckBox > checkBoxInput.implicitHeight ?
@@ -204,7 +204,7 @@ Rectangle {
                     text: devicename
                     onPressed: {
                         if (!checked) {
-                            Audio.setInputDevice(info, bar.currentIndex === 1);
+                            AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
                 }
@@ -215,7 +215,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: ((bar.currentIndex === 1 && isVR) ||
                              (bar.currentIndex === 0 && !isVR)) &&
-                             Audio.devices.input.peakValuesAvailable;
+                             AudioScriptingInterface.devices.input.peakValuesAvailable;
                 }
             }
         }
@@ -256,7 +256,7 @@ Rectangle {
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
-            model: Audio.devices.output;
+            model: AudioScriptingInterface.devices.output;
             delegate: Item {
                 width: rightMostInputLevelPos
                 height: margins.sizeCheckBox > checkBoxOutput.implicitHeight ?
@@ -273,7 +273,7 @@ Rectangle {
                     text: devicename
                     onPressed: {
                         if (!checked) {
-                            Audio.setOutputDevice(info, bar.currentIndex === 1);
+                            AudioScriptingInterface.setOutputDevice(info, bar.currentIndex === 1);
                         }
                     }
                 }

@@ -457,13 +457,33 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
                 QByteArray token = tokenizer.getDatum();
-                if (!isdigit(token[0])) { // Tokenizer treats line endings as whitespace. Non-digit indicates done;
+                auto firstChar = token[0];
+                // Tokenizer treats line endings as whitespace. Non-digit and non-negative sign indicates done;
+                if (!isdigit(firstChar) && firstChar != '-') {
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
                 QList<QByteArray> parts = token.split('/');
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
+                // If indices are negative relative indices then adjust them to absolute indices based on current vector sizes
+                // Also add 1 to each index as 1 will be subtracted later on from each index in OBJFace::add
+                for (int i = 0; i < parts.count(); ++i) {
+                    int part = parts[i].toInt();
+                    if (part < 0) {
+                        switch (i) {
+                            case 0:
+                                parts[i].setNum(vertices.size() + part + 1);
+                                break;
+                            case 1:
+                                parts[i].setNum(textureUVs.size() + part + 1);
+                                break;
+                            case 2:
+                                parts[i].setNum(normals.size() + part + 1);
+                                break;
+                        }
+                    }
+                }
                 const QByteArray noData {};
                 face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData,
                          vertices, vertexColors);

@@ -12,47 +12,25 @@
 #include "AccountManager.h"
 
 #include "AccountScriptingInterface.h"
+#include "GlobalServicesScriptingInterface.h"
 
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
     static AccountScriptingInterface sharedInstance;
-    auto accountManager = DependencyManager::get<AccountManager>();
-    QObject::connect(accountManager.data(), &AccountManager::profileChanged,
-                     &sharedInstance, &AccountScriptingInterface::usernameChanged);
-    QObject::connect(accountManager.data(), &AccountManager::usernameChanged,
-                     &sharedInstance, &AccountScriptingInterface::onUsernameChanged);
     return &sharedInstance;
 }
 
 bool AccountScriptingInterface::isLoggedIn() {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    return accountManager->isLoggedIn();
-}
-
-bool AccountScriptingInterface::checkAndSignalForAccessToken() {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    return accountManager->checkAndSignalForAccessToken();
+    return GlobalServicesScriptingInterface::getInstance()->isLoggedIn();
 }
 
 void AccountScriptingInterface::logOut() {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    return accountManager->logout();
+    GlobalServicesScriptingInterface::getInstance()->logOut();
 }
 
-AccountScriptingInterface::AccountScriptingInterface(QObject *parent): QObject(parent) {
-    m_loggedIn = isLoggedIn();
-    emit loggedInChanged(m_loggedIn);
-}
-
-void AccountScriptingInterface::onUsernameChanged(QString username) {
-    m_loggedIn = (username != QString());
-    emit loggedInChanged(m_loggedIn);
+bool AccountScriptingInterface::loggedIn() const {
+    return GlobalServicesScriptingInterface::getInstance()->loggedIn();
 }
 
 QString AccountScriptingInterface::getUsername() {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    if (accountManager->isLoggedIn()) {
-        return accountManager->getAccountInfo().getUsername();
-    } else {
-        return "Unknown user";
-    }
+    return GlobalServicesScriptingInterface::getInstance()->getUsername();
 }

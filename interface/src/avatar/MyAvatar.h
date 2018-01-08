@@ -448,9 +448,8 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-
-
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    bool isJointPinned(int index);
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
@@ -837,6 +836,7 @@ private:
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
 
+    std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
     // height of user in sensor space, when standing erect.
