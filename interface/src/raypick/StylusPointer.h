@@ -37,11 +37,11 @@ public:
 
 protected:
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
-    Buttons getPressedButtons() override;
+    Buttons getPressedButtons(const PickResultPointer& pickResult) override;
     bool shouldHover(const PickResultPointer& pickResult) override;
     bool shouldTrigger(const PickResultPointer& pickResult) override;
 
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
 
 private:
     void show(const StylusTip& tip);
@@ -53,7 +53,9 @@ private:
         glm::vec2 triggerPos2D { NAN };
         glm::vec3 surfaceNormal { NAN };
         quint64 triggerStartTime { 0 };
+        bool deadspotExpired { true };
         bool triggering { false };
+        bool wasTriggering { false };
 
         bool hovering { false };
     };

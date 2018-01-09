@@ -12,13 +12,13 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
-#include <QSet>
-#include <QStack>
+#include <QtCore/QSet>
+#include <QtCore/QStack>
+#include <QtGui/QMouseEvent>
 
 #include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
-#include <QMouseEvent>
 #include <PointerEvent.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>

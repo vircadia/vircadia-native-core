@@ -179,9 +179,11 @@ private:
     uint64_t _lastRenderTime { 0 };
     uvec2 _size;
 
+#if !defined(Q_OS_ANDROID)
     QTimer _audioOutputUpdateTimer;
     QString _currentAudioOutputDevice;
-
+#endif
+    
     // Texture management
     TextureAndFence _latestTextureAndFence { 0, 0 };
 

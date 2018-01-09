@@ -91,10 +91,18 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = []()->bool { return qApp->getPreferStylusOverLaser(); };
+        auto setter = [](bool value) { qApp->setPreferStylusOverLaser(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Stylus Over Laser", getter, setter));
+    }
+    // FIXME: Remove setting completely or make available through JavaScript API?
+    /*
+    {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
+    */
     {
         static const QString RETICLE_ICON_NAME = { Cursor::Manager::getIconName(Cursor::Icon::RETICLE) };
         auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };

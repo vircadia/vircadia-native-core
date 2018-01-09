@@ -424,6 +424,7 @@ void MyAvatar::update(float deltaTime) {
         emit positionGoneTo();
         // Run safety tests as soon as we can after goToLocation, or clear if we're not colliding.
         _physicsSafetyPending = getCollisionsEnabled();
+        _characterController.recomputeFlying(); // In case we've gone to into the sky.
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
         // When needed and ready, arrange to check and fix.
@@ -2316,6 +2317,19 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
 
+    // Most cases of going to a place or user go through this now. Some possible improvements to think about in the future:
+    // - It would be nice if this used the same teleport steps and smoothing as in the teleport.js script, as long as it
+    //   still worked if the target is in the air.
+    // - Sometimes (such as the response from /api/v1/users/:username/location), the location can be stale, but there is a
+    //   node_id supplied by which we could update the information after going to the stale location first and "looking around".
+    //   This could be passed through AddressManager::goToAddressFromObject => AddressManager::handleViewpoint => here.
+    //   The trick is that you have to yield enough time to resolve the node_id.
+    // - Instead of always doing the same thing for shouldFaceLocation -- which places users uncomfortabley on top of each other --
+    //   it would be nice to see how many users are already "at" a person or place, and place ourself in semicircle or other shape
+    //   around the target. Avatars and entities (specified by the node_id) could define an adjustable "face me" method that would
+    //   compute the position (e.g., so that if I'm on stage, going to me would compute an available seat in the audience rather than
+    //   being in my face on-stage). Note that this could work for going to an entity as well as to a person.
+
     qCDebug(interfaceapp).nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
 
@@ -3153,6 +3167,7 @@ glm::mat4 MyAvatar::getLeftHandCalibrationMat() const {
 }
 
 bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& orientation) {
+    std::lock_guard<std::mutex> guard(_pinnedJointsMutex);
     auto hipsIndex = getJointIndex("Hips");
     if (index != hipsIndex) {
         qWarning() << "Pinning is only supported for the hips joint at the moment.";
@@ -3172,7 +3187,14 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     return true;
 }
 
+bool MyAvatar::isJointPinned(int index) {
+    std::lock_guard<std::mutex> guard(_pinnedJointsMutex);
+    auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
+    return it != _pinnedJoints.end();
+}
+
 bool MyAvatar::clearPinOnJoint(int index) {
+    std::lock_guard<std::mutex> guard(_pinnedJointsMutex);
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it != _pinnedJoints.end()) {
         _pinnedJoints.erase(it);
