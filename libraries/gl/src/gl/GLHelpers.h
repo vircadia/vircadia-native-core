@@ -25,8 +25,9 @@ class QSurfaceFormat;
 class QGLFormat;
 
 template<class F>
-#if defined(QT_OPENGL_ES_3_1)
-void setGLFormatVersion(F& format, int major = 3, int minor = 1)
+// https://bugreports.qt.io/browse/QTBUG-64703 prevents us from using "defined(QT_OPENGL_ES_3_1)"
+#if defined(Q_OS_ANDROID)
+void setGLFormatVersion(F& format, int major = 3, int minor = 2)
 #else
 void setGLFormatVersion(F& format, int major = 4, int minor = 5) 
 #endif

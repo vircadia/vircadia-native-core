@@ -1080,6 +1080,10 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
+        if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+            return true;
+        }
+
         if (model->needsReload()) {
             return true;
         }
@@ -1216,6 +1220,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // From here on, we are guaranteed a populated model
     withWriteLock([&] {
         if (_parsedModelURL != model->getURL()) {
+            _texturesLoaded = false;
             model->setURL(_parsedModelURL);
         }
     });
@@ -1247,6 +1252,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (_lastTextures != entity->getTextures()) {
+        _texturesLoaded = false;
         _lastTextures = entity->getTextures();
         auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
         if (newTextures != _currentTextures) {
@@ -1301,12 +1307,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
+    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        model->updateRenderItems();
+    }
+
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-    
+
     // The code to deal with the change of properties is now in ModelEntityItem.cpp
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
