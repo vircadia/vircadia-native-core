@@ -39,9 +39,7 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
-    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+    connect(request, &SetMappingRequest::finished, this, [callback](SetMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString(), request->getPath() };
             callback.call(args);
@@ -49,17 +47,13 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
 
         request->deleteLater();
     });
-#endif
-
     request->start();
 }
 
 void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetMappingRequest(path);
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
-    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+    connect(request, &GetMappingRequest::finished, this, [callback](GetMappingRequest* request) mutable {
         auto hash = request->getHash();
 
         if (callback.isCallable()) {
@@ -69,7 +63,6 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 
         request->deleteLater();
     });
-#endif
 
     request->start();
 }

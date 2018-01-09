@@ -511,13 +511,21 @@ task copyInterfaceAssets() {
         def resourcesDir = new File("${appDir}/../../interface/resources")
         def scriptsDir = new File("${appDir}/../../scripts")
         def assetsDir = new File(appDir, 'src/main/assets')
-        copy {
-            from resourcesDir
-            into new File(assetsDir, "resources")
-        }
-        copy {
-            from scriptsDir
-            into new File(assetsDir, "scripts")
+
+        def assetsList = new File(assetsDir, 'cache_assets.txt');
+        TimeZone.setDefault(TimeZone.getTimeZone('UTC'))
+        assetsList.withWriter { out ->
+            out.println(Long.toString(new Date().getTime()))
+            copy {
+                from resourcesDir
+                into new File(assetsDir, "resources")
+                eachFile { details-> out.println("resources/" + details.path) }
+            }
+            copy {
+                from scriptsDir
+                into new File(assetsDir, "scripts")
+                eachFile { details-> out.println("scripts/" + details.path) }
+            }
         }
     }
 }

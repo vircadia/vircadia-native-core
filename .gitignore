@@ -78,3 +78,5 @@ TAGS
 node_modules
 npm-debug.log
 *___jb_old___
+android/app/src/main/assets
+

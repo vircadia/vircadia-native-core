@@ -47,13 +47,6 @@ MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
     }
 }
 
-#if defined(Q_OS_ANDROID)
-static AAssetManager* g_assetManager = nullptr;
-void FileStorage::setAssetManager(AAssetManager* assetManager) {
-    ::g_assetManager = assetManager;
-}
-#endif
-
 StoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
     QFile file(filename);
     if (!file.open(QFile::ReadWrite | QIODevice::Truncate)) {
@@ -76,27 +69,7 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
     return std::make_shared<FileStorage>(filename);
 }
 
-
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-#if defined(Q_OS_ANDROID)
-    static const QString ASSETS_PREFIX("assets:/");
-    bool isAsset = filename.startsWith(ASSETS_PREFIX);
-    if (isAsset) {
-        _hasWriteAccess = false;
-        std::string strFilename = filename.mid(ASSETS_PREFIX.size()).toStdString();
-        // Load shader from compressed asset
-        _asset = AAssetManager_open(g_assetManager, strFilename.c_str(), AASSET_MODE_BUFFER);
-        if (!_asset) {
-            return;
-        }
-        _size = AAsset_getLength64(_asset);
-        _mapped = (uint8_t*)AAsset_getBuffer(_asset);
-        if (_mapped) {
-            _valid = true;
-        }
-        return;
-    }
-#endif
     bool opened = _file.open(QFile::ReadWrite);
     if (opened) {
         _hasWriteAccess = true;
@@ -106,7 +79,6 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
     }
 
     if (opened) {
-        _size = _file.size();
         _mapped = _file.map(0, _file.size());
         if (_mapped) {
             _valid = true;
@@ -119,14 +91,6 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
 }
 
 FileStorage::~FileStorage() {
-#if defined(Q_OS_ANDROID)
-    if (_asset) {
-        _mapped = nullptr;
-        AAsset_close(_asset);
-        _asset = nullptr;
-        return;
-    }
-#endif
     if (_mapped) {
         _file.unmap(_mapped);
         _mapped = nullptr;

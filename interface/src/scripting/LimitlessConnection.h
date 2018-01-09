@@ -12,12 +12,12 @@
 #ifndef hifi_LimitlessConnection_h
 #define hifi_LimitlessConnection_h
 
+#include <QtCore/QObject>
+#include <QtCore/QFuture>
+#include <QtNetwork/QTcpSocket>
+
 #include <AudioClient.h>
-#include <QObject>
-#include <QFuture>
-#if defined(Q_OS_ANDROID)
-#include <QTcpSocket>
-#endif
+
 class LimitlessConnection : public QObject {
     Q_OBJECT
 public:

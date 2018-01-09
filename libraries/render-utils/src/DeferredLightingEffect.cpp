@@ -11,6 +11,8 @@
 
 #include "DeferredLightingEffect.h"
 
+#include <QtCore/QFileSelector>
+
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
@@ -228,6 +230,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 }
 
 #include <shared/Shapes.h>
+#include <QtCore/QFileSelector>
 
 model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
     if (!_pointLightMesh) {
@@ -731,7 +734,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
                 PROFILE_RANGE(render, "Process Default Skybox");
                 auto textureCache = DependencyManager::get<TextureCache>();
 
-                auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+                auto skyboxUrl = QFileSelector().select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx").toStdString();
 
                 _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
                 _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;

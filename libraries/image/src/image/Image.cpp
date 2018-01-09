@@ -21,7 +21,7 @@
 
 
 #if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
+#define CPU_MIPMAPS 1
 #else
 #define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>

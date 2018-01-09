@@ -11,9 +11,9 @@
 
 #include "FileResourceRequest.h"
 
-#include <cstdlib>
-
-#include <QFile>
+#include <QtCore/QFile>
+#include <QtCore/QFileSelector>
+#include <QtCore/QDebug>
 
 #include <StatTracker.h>
 
@@ -28,6 +28,9 @@ void FileResourceRequest::doSend() {
     if (filename.isEmpty()) {
         filename = _url.toString();
     }
+
+    // Allow platform specific versions of files loaded out of a resource cache via file://
+    filename = QFileSelector().select(filename);
 
     if (!_byteRange.isValid()) {
         _result = ResourceRequest::InvalidByteRange;

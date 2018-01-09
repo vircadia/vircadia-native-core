@@ -25,6 +25,7 @@
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QMimeData>
 #include <QtCore/QThreadPool>
+#include <QtCore/QFileSelector>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <QtGui/QScreen>
@@ -240,12 +241,11 @@ extern "C" {
 extern "C" {
  
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
-    storage::FileStorage::setAssetManager(AAssetManager_fromJava(env, asset_mgr));
     qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
-     qDebug() << "nativeOnPause";
+    qDebug() << "nativeOnPause";
 }
 
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResume(JNIEnv* env, jobject obj) {
@@ -1823,7 +1823,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         PROFILE_RANGE(render, "Process Default Skybox");
         auto textureCache = DependencyManager::get<TextureCache>();
 
-        auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+        auto skyboxUrl = QFileSelector().select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx").toStdString();
 
         _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
         _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
