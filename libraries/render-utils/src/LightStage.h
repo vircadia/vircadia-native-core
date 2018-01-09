@@ -118,7 +118,7 @@ public:
     using Shadows = render::indexed_container::IndexedPointerVector<Shadow>;
 
     Index findLight(const LightPointer& light) const;
-    Index addLight(const LightPointer& light);
+    Index addLight(const LightPointer& light, const bool shouldSetAsDefault = false);
 
     Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
@@ -185,10 +185,10 @@ public:
     
     Frame _currentFrame;
     
-    Index getAmbientOffLight() { return _ambientOffLight; }
-    Index getPointOffLight() { return _pointOffLight; }
-    Index getSpotOffLight() { return _spotOffLight; }
-    Index getSunOffLight() { return _sunOffLight; }
+    Index getAmbientOffLight() { return _ambientOffLightId; }
+    Index getPointOffLight() { return _pointOffLightId; }
+    Index getSpotOffLight() { return _spotOffLightId; }
+    Index getSunOffLight() { return _sunOffLightId; }
 
 protected:
 
@@ -205,17 +205,12 @@ protected:
     LightMap _lightMap;
 
     // define off lights
+    Index _ambientOffLightId;
+    Index _pointOffLightId;
+    Index _spotOffLightId;
+    Index _sunOffLightId;
 
-    const LightPointer ambientOffLight { std::make_shared<model::Light>() };
-    const LightPointer pointOffLight { std::make_shared<model::Light>() };
-    const LightPointer spotOffLight { std::make_shared<model::Light>() };
-    const LightPointer sunOffLight { std::make_shared<model::Light>() };
-
-    Index  _ambientOffLight;
-    Index  _pointOffLight;
-    Index  _spotOffLight;
-    Index  _sunOffLight;
-
+    Index _defaultLightId;
 };
 using LightStagePointer = std::shared_ptr<LightStage>;
 
