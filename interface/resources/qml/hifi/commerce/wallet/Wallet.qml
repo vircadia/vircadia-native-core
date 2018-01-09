@@ -329,6 +329,12 @@ Rectangle {
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
         parentAppNavBarHeight: tabButtonsContainer.height;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
     }
 
     Security {
@@ -725,6 +731,9 @@ Rectangle {
             break;
             case 'inspectionCertificate_resetCert':
                 // NOP
+            break;
+            case 'updateConnections':
+                sendMoney.updateConnections(message.connections);
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));

@@ -266,7 +266,7 @@ Item {
                 // Refresh connections model
                 connectionsLoading.visible = false;
                 connectionsLoading.visible = true;
-                pal.sendToScript({method: 'refreshConnections'});
+                sendSignalToWallet({method: 'refreshConnections'});
             }
         }
         
@@ -356,6 +356,52 @@ Item {
             //
             // FILTER BAR END
             //
+
+            Item {
+                id: connectionsContainer;
+                anchors.top: filterBarContainer.bottom;
+                anchors.topMargin: 16;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                anchors.bottom: parent.bottom;
+
+                Rectangle {
+                    id: connectionsLoading;
+                    anchors.fill: parent;
+                    color: "red";
+                }
+
+                ListView {
+                    id: connectionsList;
+                    visible: !connectionsLoading.visible;
+                    clip: true;
+                    model: filteredConnectionsModel;
+                    snapMode: ListView.SnapToItem;
+                    // Anchors
+                    anchors.fill: parent;
+                    delegate: ConnectionItem {
+                        isSelected: connectionsList.currentIndex === index;
+                        userName: userName;
+                        profilePicUrl: profileUrl;
+                        anchors.topMargin: 6;
+                        anchors.bottomMargin: 6;
+
+                        Connections {
+                            onSendToSendMoney: {
+                                // TODO
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent;
+                            propagateComposedEvents: false;
+                            onClicked: {
+                                connectionsList.currentIndex = index;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     // Choose Recipient Connection END
@@ -366,11 +412,18 @@ Item {
     // FUNCTION DEFINITIONS START
     //
 
+    function updateConnections(connections) {
+        connectionsModel.clear();
+        connectionsModel.append(connections);
+        buildFilteredConnectionsModel();
+        connectionsLoading.visible = false;
+    }
+
     function buildFilteredConnectionsModel() {
         filteredConnectionsModel.clear();
         for (var i = 0; i < connectionsModel.count; i++) {
-            if (connectionsModel.get(i).displayName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                filteredConnectionsModel.insert(0, connectionsModel.get(i));
+            if (connectionsModel.get(i).userName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
+                filteredConnectionsModel.append(connectionsModel.get(i));
             }
         }
     }
