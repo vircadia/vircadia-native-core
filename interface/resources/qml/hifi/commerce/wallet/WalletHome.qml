@@ -28,6 +28,16 @@ Item {
     property bool historyReceived: false;
     property int pendingCount: 0;
 
+    onVisibleChanged: {
+        if (visible) {
+            historyReceived = false;
+            Commerce.balance();
+            Commerce.history();
+        } else {
+            refreshTimer.stop();
+        }
+    }
+
     Connections {
         target: Commerce;
 
@@ -131,16 +141,6 @@ Item {
             color: hifi.colors.white;
             // Alignment
             verticalAlignment: Text.AlignVCenter;
-
-            onVisibleChanged: {
-                if (visible) {
-                    historyReceived = false;
-                    Commerce.balance();
-                    Commerce.history();
-                } else {
-                    refreshTimer.stop();
-                }
-            }
         }
 
         // "balance" text below field

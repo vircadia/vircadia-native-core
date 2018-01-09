@@ -565,6 +565,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
                     method: 'purchases_showMyItems'
                 });
                 break;
+            case 'refreshConnections':
+                // NOP
+                break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
         }

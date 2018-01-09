@@ -13,7 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick.Controls 2.2
 import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
@@ -29,12 +29,17 @@ Item {
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string activeView: "sendMoneyHome";
+    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup/section.
     MouseArea {
-        anchors.fill: parent;
+        anchors.top: parent.top;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        y: root.isCurrentlyFullScreen ? root.parentAppTitleBarHeight : 0;
+        height: root.isCurrentlyFullScreen ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
         propagateComposedEvents: false;
     }
 
@@ -59,8 +64,8 @@ Item {
         id: sendMoneyHome;
         visible: root.activeView === "sendMoneyHome";
         anchors.fill: parent;
-        anchors.topMargin: parentAppTitleBarHeight;
-        anchors.bottomMargin: parentAppNavBarHeight;
+        anchors.topMargin: root.parentAppTitleBarHeight;
+        anchors.bottomMargin: root.parentAppNavBarHeight;
 
         // Username Text
         RalewayRegular {
@@ -364,15 +369,27 @@ Item {
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 anchors.bottom: parent.bottom;
-
-                Rectangle {
+                
+                AnimatedImage {
                     id: connectionsLoading;
-                    anchors.fill: parent;
-                    color: "red";
+                    source: "../../../../../icons/profilePicLoading.gif"
+                    width: 120;
+                    height: width;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 185;
+                    anchors.horizontalCenter: parent.horizontalCenter;
                 }
 
                 ListView {
                     id: connectionsList;
+                    ScrollBar.vertical: ScrollBar {
+                        policy: connectionsList.contentHeight > parent.parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded;
+                        parent: connectionsList.parent;
+                        anchors.top: connectionsList.top;
+                        anchors.right: connectionsList.right;
+                        anchors.bottom: connectionsList.bottom;
+                        width: 20;
+                    }
                     visible: !connectionsLoading.visible;
                     clip: true;
                     model: filteredConnectionsModel;
@@ -381,8 +398,8 @@ Item {
                     anchors.fill: parent;
                     delegate: ConnectionItem {
                         isSelected: connectionsList.currentIndex === index;
-                        userName: userName;
-                        profilePicUrl: profileUrl;
+                        userName: model.userName;
+                        profilePicUrl: model.profileUrl;
                         anchors.topMargin: 6;
                         anchors.bottomMargin: 6;
 
@@ -393,6 +410,7 @@ Item {
                         }
 
                         MouseArea {
+                            enabled: connectionsList.currentIndex !== index;
                             anchors.fill: parent;
                             propagateComposedEvents: false;
                             onClicked: {

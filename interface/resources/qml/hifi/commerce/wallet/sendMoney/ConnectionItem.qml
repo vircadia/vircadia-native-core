@@ -85,12 +85,13 @@ Item {
         RalewaySemiBold {
             id: userName;
             anchors.left: avatarImage.right;
-            anchors.leftMargin: 14;
+            anchors.leftMargin: 16;
             anchors.top: parent.top;
             anchors.bottom: parent.bottom;
-            anchors.right: parent.right;
+            anchors.right: chooseButton.visible ? chooseButton.left : parent.right;
+            anchors.rightMargin: chooseButton.visible ? 10 : 0;
             // Text size
-            size: 24;
+            size: 20;
             // Style
             color: hifi.colors.baseGray;
             text: root.userName;
@@ -98,6 +99,23 @@ Item {
             // Alignment
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
+        }
+
+        // "Choose" button
+        HifiControlsUit.Button {
+            id: chooseButton;
+            visible: root.isSelected;
+            color: hifi.buttons.blue;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.verticalCenter: parent.verticalCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 24;
+            height: root.height - 20;
+            width: 110;
+            text: "CHOOSE";
+            onClicked: {
+                
+            }
         }
     }
 
