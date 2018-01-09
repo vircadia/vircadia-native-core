@@ -35,6 +35,11 @@ QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as uni
 
 const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default material name";
 
+const float ILLUMINATION_MODEL_MIN_OPACITY = 0.1f;
+const float ILLUMINATION_MODEL_APPLY_SHININESS = 0.25f;
+const float ILLUMINATION_MODEL_APPLY_ROUGHNESS = 1.0f;
+const float ILLUMINATION_MODEL_APPLY_NON_METALLIC = 0.0f;
+
 namespace {
 template<class T>
 T& checked_at(QVector<T>& vector, int i) {
@@ -380,7 +385,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
     // and https://wikivisually.com/wiki/Material_Template_Library
     QString parser = textureLine;
     while (parser.length() > 0) {
-        if (parser.startsWith("-blendu") || parser.startsWith("-blendv")) {
+        if (parser.startsWith("-blend")) { // -blendu/-blendv
             parser.remove(0, 11); // remove through "-blendu on " or "-blendu off"
             if (parser[0] == ' ') { // extra character for space after off
                 parser.remove(0, 1);
@@ -421,18 +426,18 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             #endif
         } else if (parser.startsWith("-mm")) {
             parser.remove(0, 4); // remove through "-mm "
-            float ignore;
+            float ignore, ignore2;
             parseTextureLineFloat(parser, ignore);
-            parseTextureLineFloat(parser, ignore);
+            parseTextureLineFloat(parser, ignore2);
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -mm";
             #endif
-        } else if (parser.startsWith("-o") || parser.startsWith("-s") || parser.startsWith("-t")) {
-            parser.remove(0, 3); // remove through "-o "
-            float ignore;
+        } else if (parser.startsWith("-o ") || parser.startsWith("-s ") || parser.startsWith("-t ")) {
+            parser.remove(0, 3); // remove through "-o/-s/-t "
+            float ignore, ignore2, ignore3;
             parseTextureLineFloat(parser, ignore);
-            parseTextureLineFloat(parser, ignore);
-            parseTextureLineFloat(parser, ignore);
+            bool hasValue2 = parseTextureLineFloat(parser, ignore2);
+            bool hasValue3 = parseTextureLineFloat(parser, ignore3);
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -o/-s/-t";
             #endif
@@ -944,7 +949,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 // We don't support ambient - do nothing?
                 break;
             case 2: // Highlight on
-                fbxMaterial.specularFactor = 1.0f;
+                // Change specular intensity?
                 break;
             case 3: // Reflection on and Ray trace on
                 applyShininess = true;
@@ -982,16 +987,16 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 break;
         }      
 
-        if (applyTransparency && fbxMaterial.opacity <= 0.1f) {
-            fbxMaterial.opacity = 0.1f;
+        if (applyTransparency && fbxMaterial.opacity <= ILLUMINATION_MODEL_MIN_OPACITY) {
+            fbxMaterial.opacity = ILLUMINATION_MODEL_MIN_OPACITY;
         }
         if (applyShininess) {
-            modelMaterial->setRoughness(0.25f);
+            modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_SHININESS);
         } else if (applyRoughness) {
-            modelMaterial->setRoughness(1.0f);
+            modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_ROUGHNESS);
         }
         if (applyNonMetallic) {
-            modelMaterial->setMetallic(0.0f);
+            modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
         }
         if (fresnelOn) {
             modelMaterial->setFresnel(glm::vec3(1.0f));
