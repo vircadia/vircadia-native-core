@@ -28,6 +28,8 @@ private:
 
     AnimPose _prevHips;  // sensor frame
     bool _prevHipsValid { false };
+
+    std::map<int, int> _jointRotationFrameOffsetMap;
 };
 
 #endif // hifi_MySkeletonModel_h

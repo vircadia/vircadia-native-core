@@ -207,7 +207,11 @@ public:
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
-    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
+    void setPreferStylusOverLaser(bool value);
+    // FIXME: Remove setting completely or make available through JavaScript API?
+    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
@@ -227,8 +231,6 @@ public:
     void setActiveDisplayPlugin(const QString& pluginName);
 
     FileLogger* getLogger() const { return _logger; }
-
-    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
 
@@ -450,7 +452,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -553,6 +555,7 @@ private:
     Setting::Handle<float> _desktopTabletScale;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
+    Setting::Handle<bool> _preferStylusOverLaserSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
@@ -571,7 +574,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;

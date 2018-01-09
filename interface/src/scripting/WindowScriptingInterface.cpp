@@ -192,8 +192,7 @@ void WindowScriptingInterface::ensureReticleVisible() const {
 /// Display a "browse to directory" dialog.  If `directory` is an invalid file or directory the browser will start at the current
 /// working directory.
 /// \param const QString& title title of the window
-/// \param const QString& directory directory to start the file browser at
-/// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
+/// \param const QString& directory directory to start the directory browser at
 /// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
 QScriptValue WindowScriptingInterface::browseDir(const QString& title, const QString& directory) {
     ensureReticleVisible();
@@ -214,8 +213,7 @@ QScriptValue WindowScriptingInterface::browseDir(const QString& title, const QSt
 /// Display a "browse to directory" dialog.  If `directory` is an invalid file or directory the browser will start at the current
 /// working directory.
 /// \param const QString& title title of the window
-/// \param const QString& directory directory to start the file browser at
-/// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
+/// \param const QString& directory directory to start the directory browser at
 void WindowScriptingInterface::browseDirAsync(const QString& title, const QString& directory) {
     ensureReticleVisible();
     QString path = directory;
@@ -459,6 +457,41 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
     return createMessageBox(title, text, buttons, defaultButton);
 }
 
+/**jsdoc
+ * <p>The buttons that may be included in a message box created by {@link Window.openMessageBox|openMessageBox} are defined by
+ * numeric values:
+ * <table>
+ *   <thead>
+ *     <tr>
+ *       <th>Button</th>
+ *       <th>Value</th>
+ *       <th>Description</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr> <td><strong>NoButton</strong></td> <td><code>0x0</code></td> <td>An invalid button.</td> </tr>
+ *     <tr> <td><strong>Ok</strong></td> <td><code>0x400</code></td> <td>"OK"</td> </tr>
+ *     <tr> <td><strong>Save</strong></td> <td><code>0x800</code></td> <td>"Save"</td> </tr>
+ *     <tr> <td><strong>SaveAll</strong></td> <td><code>0x1000</code></td> <td>"Save All"</td> </tr>
+ *     <tr> <td><strong>Open</strong></td> <td><code>0x2000</code></td> <td>"Open"</td> </tr>
+ *     <tr> <td><strong>Yes</strong></td> <td><code>0x4000</code></td> <td>"Yes"</td> </tr>
+ *     <tr> <td><strong>YesToAll</strong></td> <td><code>0x8000</code></td> <td>"Yes to All"</td> </tr>
+ *     <tr> <td><strong>No</strong></td> <td><code>0x10000</code></td> <td>"No"</td> </tr>
+ *     <tr> <td><strong>NoToAll</strong></td> <td><code>0x20000</code></td> <td>"No to All"</td> </tr>
+ *     <tr> <td><strong>Abort</strong></td> <td><code>0x40000</code></td> <td>"Abort"</td> </tr>
+ *     <tr> <td><strong>Retry</strong></td> <td><code>0x80000</code></td> <td>"Retry"</td> </tr>
+ *     <tr> <td><strong>Ignore</strong></td> <td><code>0x100000</code></td> <td>"Ignore"</td> </tr>
+ *     <tr> <td><strong>Close</strong></td> <td><code>0x200000</code></td> <td>"Close"</td> </tr>
+ *     <tr> <td><strong>Cancel</strong></td> <td><code>0x400000</code></td> <td>"Cancel"</td> </tr>
+ *     <tr> <td><strong>Discard</strong></td> <td><code>0x800000</code></td> <td>"Discard" or "Don't Save"</td> </tr>
+ *     <tr> <td><strong>Help</strong></td> <td><code>0x1000000</code></td> <td>"Help"</td> </tr>
+ *     <tr> <td><strong>Apply</strong></td> <td><code>0x2000000</code></td> <td>"Apply"</td> </tr>
+ *     <tr> <td><strong>Reset</strong></td> <td><code>0x4000000</code></td> <td>"Reset"</td> </tr>
+ *     <tr> <td><strong>RestoreDefaults</strong></td> <td><code>0x8000000</code></td> <td>"Restore Defaults"</td> </tr>
+ *   </tbody>
+ * </table>
+ * @typedef Window.MessageBoxButton
+ */
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
     auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,
         static_cast<QFlags<QMessageBox::StandardButton>>(buttons), static_cast<QMessageBox::StandardButton>(defaultButton));

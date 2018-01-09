@@ -45,6 +45,7 @@
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
+   makeLaserParams:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
@@ -131,6 +132,17 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
         isOverlay: isOverlay,
         hand: hand,
         offset: offset
+    };
+};
+
+makeLaserParams = function(hand, allwaysOn) {
+    if (allwaysOn === undefined) {
+        allwaysOn = false;
+    }
+
+    return {
+        hand: hand,
+        allwaysOn: allwaysOn
     };
 };
 
