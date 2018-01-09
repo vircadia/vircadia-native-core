@@ -96,7 +96,7 @@ void QmlCommerce::inventory() {
     }
 }
 
-void QmlCommerce::history(const QString& pageNumber) {
+void QmlCommerce::history(const int& pageNumber) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();

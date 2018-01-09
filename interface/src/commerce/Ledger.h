@@ -29,7 +29,7 @@ public:
     bool receiveAt(const QString& hfc_key, const QString& old_key);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
-    void history(const QStringList& keys, const QString& pageNumber);
+    void history(const QStringList& keys, const int& pageNumber);
     void account();
     void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
@@ -79,7 +79,7 @@ private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);
     void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
-    void keysQuery(const QString& endpoint, QJsonObject& extraRequestParams, const QString& success, const QString& fail);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams = QJsonObject());
     void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure = false);
 };
 
