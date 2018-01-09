@@ -83,6 +83,7 @@ public slots:
 
 private slots:
     void onMessageBoxSelected(int button);
+    void disconnectedFromDomain();
 
 signals:
     void domainChanged(const QString& domainHostname);
