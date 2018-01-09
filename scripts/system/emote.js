@@ -32,7 +32,7 @@ var EMOTE_APP_BASE = "html/EmoteApp.html";
 var EMOTE_APP_URL = Script.resolvePath(EMOTE_APP_BASE);
 var EMOTE_LABLE = "EMOTE";
 var EMOTE_APP_SORT_ORDER = 11;
-var FPS = 30;
+var FPS = 60;
 var MSEC_PER_SEC = 1000;
 var FINISHED = 3; // see ScriptableResource::State
 
