@@ -7357,11 +7357,13 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
-    qApp->setProperty(hifi::properties::HMD, isHMDMode());
-    if (isHMDMode()) {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
-    } else {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+    if (_settingsLoaded) {
+        qApp->setProperty(hifi::properties::HMD, isHMDMode());
+        if (isHMDMode()) {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
+        } else {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+        }
     }
 }
 
