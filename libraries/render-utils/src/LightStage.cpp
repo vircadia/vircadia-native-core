@@ -360,8 +360,7 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
 
 LightStage::LightPointer LightStage::getCurrentKeyLight() const {
     Index keyLightId{ _defaultLightId };
-    // There is always at least 1 light (the off light)
-    if (_currentFrame._sunLights.size() > 1) {
+    if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
     return _lights.get(keyLightId);
@@ -369,8 +368,7 @@ LightStage::LightPointer LightStage::getCurrentKeyLight() const {
 
 LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
     Index keyLightId { _defaultLightId };
-    // There is always at least 1 light (the off light)
-    if (_currentFrame._ambientLights.size() > 1) {
+    if (!_currentFrame._ambientLights.empty()) {
         keyLightId = _currentFrame._ambientLights.front();
     }
     return _lights.get(keyLightId);
@@ -378,8 +376,7 @@ LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
 
 LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
     Index keyLightId { _defaultLightId };
-    // There is always at least 1 light (the off light)
-    if (_currentFrame._sunLights.size() > 1) {
+    if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
@@ -389,8 +386,7 @@ LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
 
 LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
     Index keyLightId { _defaultLightId };
-    // There is always at least 1 light (the off light)
-    if (_currentFrame._sunLights.size() > 1) {
+    if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
     auto shadow = getShadow(keyLightId);
