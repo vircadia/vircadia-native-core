@@ -343,13 +343,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
                     Entities.editEntity(pastedEntityIDs[0], offsets);
                 }
 
-                var firstEntityProps = Entities.getEntityProperties(pastedEntityIDs[0], ["position"]);
-                var rezzedPos = firstEntityProps.position;
+                var rezPosition = Entities.getEntityProperties(pastedEntityIDs[0], "position").position;
 
                 Audio.playSound(REZZING_SOUND, {
                     volume: 1.0,
-                    position: rezzedPos
-                })
+                    position: rezPosition,
+                    localOnly: true
+                });
 
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
