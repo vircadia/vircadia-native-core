@@ -127,9 +127,15 @@ Item {
 
                     GridView {
                         id: gridView
+
                         keyNavigationEnabled: false
                         highlightFollowsCurrentItem: false
+
                         property int previousGridIndex: -1
+
+                        // true if any of the buttons contains mouse
+                        property bool containsMouse: false
+
                         anchors {
                             fill: parent
                             topMargin: 20
@@ -162,15 +168,29 @@ Item {
                         flow: GridView.LeftToRight
                         model: page.proxyModel
 
-                        delegate: Item {
+                        delegate: Control {
                             id: wrapper
                             width: gridView.cellWidth
                             height: gridView.cellHeight
+
+                            hoverEnabled: true
+
+                            property bool containsMouse: gridView.containsMouse
+                            onHoveredChanged: {
+                                if (hovered && !gridView.containsMouse) {
+                                    gridView.containsMouse = true
+                                } else {
+                                    gridView.containsMouse = false
+                                }
+                            }
 
                             property var proxy: modelData
 
                             TabletButton {
                                 id: tabletButton
+                                scale: wrapper.hovered ? 1.25 : wrapper.containsMouse ? 0.75 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.Linear } }
+
                                 anchors.centerIn: parent
                                 gridView: wrapper.GridView.view
                                 buttonIndex: page.proxyModel.buttonIndex(uuid);
