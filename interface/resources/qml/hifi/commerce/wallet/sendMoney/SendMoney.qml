@@ -29,6 +29,14 @@ Item {
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string activeView: "sendMoneyHome";
+        
+    // This object is always used in a popup or full-screen Wallet section.
+    // This MouseArea is used to prevent a user from being
+    //     able to click on a button/mouseArea underneath the popup/section.
+    MouseArea {
+        anchors.fill: parent;
+        propagateComposedEvents: false;
+    }
 
     Connections {
         target: Commerce;
@@ -145,7 +153,6 @@ Item {
             anchors.bottom: parent.bottom;
             height: 440;
 
-
             RalewaySemiBold {
                 id: sendMoneyText;
                 text: "Send Money To:";
@@ -159,7 +166,7 @@ Item {
                 // Text size
                 size: 22;
                 // Style
-                color: hifi.colors.baseGrayHighlight;
+                color: hifi.colors.baseGray;
             }
 
             Item {
@@ -191,7 +198,7 @@ Item {
                     // Text size
                     size: 18;
                     // Style
-                    color: hifi.colors.baseGrayHighlight;
+                    color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
                 }
 
@@ -232,7 +239,7 @@ Item {
                     // Text size
                     size: 18;
                     // Style
-                    color: hifi.colors.baseGrayHighlight;
+                    color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
                 }
 
@@ -248,10 +255,108 @@ Item {
     // Send Money Home END
     
     // Choose Recipient Connection BEGIN
-    Item {
+    Rectangle {
         id: chooseRecipientConnection;
         visible: root.activeView === "chooseRecipientConnection";
         anchors.fill: parent;
+        color: "#AAAAAA";
+
+        onVisibleChanged: {
+            if (visible) {
+                // Refresh connections model
+                connectionsLoading.visible = false;
+                connectionsLoading.visible = true;
+                pal.sendToScript({method: 'refreshConnections'});
+            }
+        }
+        
+        ListModel {
+            id: connectionsModel;
+        }
+        ListModel {
+            id: filteredConnectionsModel;
+        }
+
+        Rectangle {
+            anchors.centerIn: parent;
+            width: parent.width - 30;
+            height: parent.height - 30;
+
+            RalewaySemiBold {
+                id: chooseRecipientText;
+                text: "Choose Recipient:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: paintedWidth;
+                height: 30;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+            }
+            
+            HiFiGlyphs {
+                id: closeGlyphButton;
+                text: hifi.glyphs.close;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+                anchors.right: parent.right;
+                anchors.rightMargin: 10;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        root.activeView = "sendMoneyHome";
+                    }
+                }
+            }
+
+            //
+            // FILTER BAR START
+            //
+            Item {
+                id: filterBarContainer;
+                // Size
+                height: 40;
+                // Anchors
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                anchors.right: parent.right;
+                anchors.rightMargin: 16;
+                anchors.top: chooseRecipientText.bottom;
+                anchors.topMargin: 12;
+
+                HifiControlsUit.TextField {
+                    id: filterBar;
+                    colorScheme: hifi.colorSchemes.faintGray;
+                    hasClearButton: true;
+                    hasRoundedBorder: true;
+                    anchors.fill: parent;
+                    placeholderText: "filter recipients";
+
+                    onTextChanged: {
+                        buildFilteredConnectionsModel();
+                    }
+
+                    onAccepted: {
+                        focus = false;
+                    }
+                }
+            }
+            //
+            // FILTER BAR END
+            //
+        }
     }
     // Choose Recipient Connection END
 
@@ -260,6 +365,16 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function buildFilteredConnectionsModel() {
+        filteredConnectionsModel.clear();
+        for (var i = 0; i < connectionsModel.count; i++) {
+            if (connectionsModel.get(i).displayName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
+                filteredConnectionsModel.insert(0, connectionsModel.get(i));
+            }
+        }
+    }
+
     //
     // Function Name: fromScript()
     //

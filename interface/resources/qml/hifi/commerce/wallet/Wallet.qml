@@ -324,6 +324,7 @@ Rectangle {
 
     SendMoney {
         id: sendMoney;
+        z: 997;
         visible: root.activeView === "sendMoney";
         anchors.fill: parent;
         parentAppTitleBarHeight: titleBarContainer.height;
