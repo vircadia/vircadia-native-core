@@ -21,9 +21,10 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtCore/QDateTime>
+#include <QtCore/QList>
+#include <QtCore/QHash>
 #include <QtScript/QScriptable>
-#include <QList>
-#include <QHash>
 
 // Scriptable interface of "console" object. Used exclusively in the JavaScript API
 class ConsoleScriptingInterface : public QObject, protected QScriptable {

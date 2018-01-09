@@ -39,7 +39,6 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform
 }
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE && renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) && _enableCauterization;
     if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {
@@ -47,10 +46,7 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
         }
         batch.setModelTransform(_cauterizedTransform);
     } else {
-        if (_clusterBuffer) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
-        }
-        batch.setModelTransform(_transform);
+        ModelMeshPartPayload::bindTransform(batch, locations, renderMode);
     }
 }
 
