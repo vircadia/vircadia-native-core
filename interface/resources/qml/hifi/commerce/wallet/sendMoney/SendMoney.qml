@@ -1,0 +1,286 @@
+//
+//  SendMoney.qml
+//  qml/hifi/commerce/wallet/sendMoney
+//
+//  SendMoney
+//
+//  Created by Zach Fox on 2018-01-09
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+import Hifi 1.0 as Hifi
+import QtQuick 2.5
+import QtQuick.Controls 1.4
+import "../../../../styles-uit"
+import "../../../../controls-uit" as HifiControlsUit
+import "../../../../controls" as HifiControls
+import "../../common" as HifiCommerceCommon
+
+// references XXX from root context
+
+Item {
+    HifiConstants { id: hifi; }
+
+    id: root;
+
+    property int parentAppTitleBarHeight;
+    property int parentAppNavBarHeight;
+    property string activeView: "sendMoneyHome";
+
+    Connections {
+        target: Commerce;
+
+        onBalanceResult : {
+            balanceText.text = result.data.balance;
+        }
+    }
+
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            transactionHistoryModel.clear();
+            usernameText.text = Account.username;
+        }
+    }
+
+    // Send Money Home BEGIN
+    Item {
+        id: sendMoneyHome;
+        visible: root.activeView === "sendMoneyHome";
+        anchors.fill: parent;
+        anchors.topMargin: parentAppTitleBarHeight;
+        anchors.bottomMargin: parentAppNavBarHeight;
+
+        // Username Text
+        RalewayRegular {
+            id: usernameText;
+            text: Account.username;
+            // Text size
+            size: 24;
+            // Style
+            color: hifi.colors.white;
+            elide: Text.ElideRight;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            width: parent.width/2;
+            height: 80;
+        }
+
+        // HFC Balance Container
+        Item {
+            id: hfcBalanceContainer;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.right: parent.right;
+            anchors.leftMargin: 20;
+            width: parent.width/2;
+            height: 80;
+        
+            // "HFC" balance label
+            HiFiGlyphs {
+                id: balanceLabel;
+                text: hifi.glyphs.hfc;
+                // Size
+                size: 40;
+                // Anchors
+                anchors.left: parent.left;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                // Style
+                color: hifi.colors.white;
+            }
+
+            // Balance Text
+            FiraSansRegular {
+                id: balanceText;
+                text: "--";
+                // Text size
+                size: 28;
+                // Anchors
+                anchors.top: balanceLabel.top;
+                anchors.bottom: balanceLabel.bottom;
+                anchors.left: balanceLabel.right;
+                anchors.leftMargin: 10;
+                anchors.right: parent.right;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.white;
+                // Alignment
+                verticalAlignment: Text.AlignVCenter;
+
+                onVisibleChanged: {
+                    if (visible) {
+                        Commerce.balance();
+                    }
+                }
+            }
+
+            // "balance" text below field
+            RalewayRegular {
+                text: "BALANCE (HFC)";
+                // Text size
+                size: 14;
+                // Anchors
+                anchors.top: balanceLabel.top;
+                anchors.topMargin: balanceText.paintedHeight + 20;
+                anchors.bottom: balanceLabel.bottom;
+                anchors.left: balanceText.left;
+                anchors.right: balanceText.right;
+                height: paintedHeight;
+                // Style
+                color: hifi.colors.white;
+            }
+        }
+
+        // Send Money
+        Rectangle {
+            id: sendMoneyContainer;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            anchors.bottom: parent.bottom;
+            height: 440;
+
+
+            RalewaySemiBold {
+                id: sendMoneyText;
+                text: "Send Money To:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: paintedWidth;
+                height: 30;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGrayHighlight;
+            }
+
+            Item {
+                id: connectionButton;
+                // Anchors
+                anchors.top: sendMoneyText.bottom;
+                anchors.topMargin: 40;
+                anchors.left: parent.left;
+                anchors.leftMargin: 75;
+                height: 95;
+                width: 95;
+
+                Image {
+                    anchors.top: parent.top;
+                    source: "../images/wallet-bg.jpg";
+                    height: 60;
+                    width: parent.width;
+                    fillMode: Image.PreserveAspectFit;
+                    horizontalAlignment: Image.AlignHCenter;
+                    verticalAlignment: Image.AlignTop;
+                }
+
+                RalewaySemiBold {
+                    text: "Connection";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    height: 15;
+                    width: parent.width;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGrayHighlight;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        root.activeView = "chooseRecipientConnection";
+                    }
+                }
+            }
+
+            Item {
+                id: nearbyButton;
+                // Anchors
+                anchors.top: sendMoneyText.bottom;
+                anchors.topMargin: connectionButton.anchors.topMargin;
+                anchors.right: parent.right;
+                anchors.rightMargin: connectionButton.anchors.leftMargin;
+                height: connectionButton.height;
+                width: connectionButton.width;
+
+                Image {
+                    anchors.top: parent.top;
+                    source: "../images/wallet-bg.jpg";
+                    height: 60;
+                    width: parent.width;
+                    fillMode: Image.PreserveAspectFit;
+                    horizontalAlignment: Image.AlignHCenter;
+                    verticalAlignment: Image.AlignTop;
+                }
+
+                RalewaySemiBold {
+                    text: "Someone Nearby";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    height: 15;
+                    width: parent.width;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGrayHighlight;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        root.activeView = "chooseRecipientNearby";
+                    }
+                }
+            }
+        }
+    }
+    // Send Money Home END
+    
+    // Choose Recipient Connection BEGIN
+    Item {
+        id: chooseRecipientConnection;
+        visible: root.activeView === "chooseRecipientConnection";
+        anchors.fill: parent;
+    }
+    // Choose Recipient Connection END
+
+
+
+    //
+    // FUNCTION DEFINITIONS START
+    //
+    //
+    // Function Name: fromScript()
+    //
+    // Relevant Variables:
+    // None
+    //
+    // Arguments:
+    // message: The message sent from the JavaScript.
+    //     Messages are in format "{method, params}", like json-rpc.
+    //
+    // Description:
+    // Called when a message is received from a script.
+    //
+    function fromScript(message) {
+        switch (message.method) {
+            default:
+                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+        }
+    }
+    signal sendSignalToWallet(var msg);
+    //
+    // FUNCTION DEFINITIONS END
+    //
+}

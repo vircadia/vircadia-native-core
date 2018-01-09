@@ -19,6 +19,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
+import "./sendMoney"
 
 // references XXX from root context
 
@@ -324,10 +325,9 @@ Rectangle {
     SendMoney {
         id: sendMoney;
         visible: root.activeView === "sendMoney";
-        anchors.top: titleBarContainer.bottom;
-        anchors.bottom: tabButtonsContainer.top;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        anchors.fill: parent;
+        parentAppTitleBarHeight: titleBarContainer.height;
+        parentAppNavBarHeight: tabButtonsContainer.height;
     }
 
     Security {
@@ -497,7 +497,7 @@ Rectangle {
         Rectangle {
             id: sendMoneyButtonContainer;
             visible: !walletSetup.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: exchangeMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -513,7 +513,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
             }
 
             RalewaySemiBold {
@@ -528,11 +528,23 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
+            }
+
+            MouseArea {
+                id: sendMoneyTabMouseArea;
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    root.activeView = "sendMoney";
+                    tabButtonsContainer.resetTabButtonColors();
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
