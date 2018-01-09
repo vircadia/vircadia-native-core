@@ -50,7 +50,7 @@
 #include "ui/DomainConnectionModel.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
@@ -192,7 +192,7 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance());
 
         // in Qt 5.10.0 there is already an "Audio" object in the QML context
         // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
@@ -208,7 +208,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
