@@ -79,7 +79,8 @@ private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);
     void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
-    void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams = QJsonObject());
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
     void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure = false);
 };
 

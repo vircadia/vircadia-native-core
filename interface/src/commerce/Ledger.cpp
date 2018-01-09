@@ -79,6 +79,14 @@ void Ledger::keysQuery(const QString& endpoint, const QString& success, const QS
     send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
 }
 
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QJsonObject requestParams;
+    requestParams["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
+}
+
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure) {
     QJsonObject transaction;
     transaction["hfc_key"] = hfc_key;
