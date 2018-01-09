@@ -125,7 +125,6 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD
             if (thruModeEnabled) {
                 instance->sendNote(status, note, velocity);        // relay the message on to all other midi devices.
             }
-            instance->rawMidiReceived(device, raw);        // notify the javascript
             instance->midiReceived(device, raw, channel, status, type, note, velocity, bend, program);        // notify the javascript
             break;
         }
@@ -166,11 +165,11 @@ void Midi::sendMessage(int device, int channel, int type, int note, int velocity
     if (broadcastEnabled) {
         for (int i = 0; i < midihout.size(); i++) {
             if (midihout[i] != NULL) {
-                midiOutShortMsg(midihout[i], message + (note << MIDI_SHIFT_NOTE) + (velocity << MIDI_SHIFT_VELOCITY));
+                midiOutShortMsg(midihout[i], message | (note << MIDI_SHIFT_NOTE) | (velocity << MIDI_SHIFT_VELOCITY));
             }
         }
     } else {
-        midiOutShortMsg(midihout[device], message + (note << MIDI_SHIFT_NOTE) + (velocity << MIDI_SHIFT_VELOCITY));
+        midiOutShortMsg(midihout[device], message | (note << MIDI_SHIFT_NOTE) | (velocity << MIDI_SHIFT_VELOCITY));
     }
 }
 
@@ -261,13 +260,6 @@ void Midi::MidiCleanup() {
     allNotesOff();
 }
 #endif
-
-void Midi::rawMidiReceived(int device, int raw) {
-    QVariantMap eventData;
-    eventData["device"] = device;
-    eventData["raw"] = raw;
-    emit midiRaw(eventData);
-}
 
 void Midi::midiReceived(int device, int raw, int channel, int status, int type, int note, int velocity, int bend, int program) {
     QVariantMap eventData;

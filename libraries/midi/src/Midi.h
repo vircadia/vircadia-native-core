@@ -25,7 +25,6 @@ class Midi : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void rawMidiReceived(int device, int raw); //relay raw midi data to Javascript
     void midiReceived(int device, int raw, int channel, int status, int type, int note, int velocity, int bend, int program);  // relay a note to Javascript
     void midiHardwareChange();  // relay hardware change to Javascript
     void sendRawMessage(int device, int raw);  // relay midi message to MIDI outputs
@@ -44,7 +43,6 @@ private:
 signals:
     void midiNote(QVariantMap eventData);
     void midiMessage(QVariantMap eventData);
-    void midiRaw(QVariantMap eventData);
     void midiReset();
 
     public slots:
