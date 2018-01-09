@@ -31,11 +31,11 @@ static void quatComp(const glm::quat& q1, const glm::quat& q2) {
 
 void DualQuaternionTests::ctor() {
     glm::quat real = angleAxis(PI / 2.0f, Vectors::UNIT_Y);
-    glm::quat imag(0.0f, 1.0f, 2.0f, 3.0f);
+    glm::quat dual(0.0f, 1.0f, 2.0f, 3.0f);
 
-    DualQuaternion dq(real, imag);
+    DualQuaternion dq(real, dual);
     quatComp(real, dq.real());
-    quatComp(imag, dq.imag());
+    quatComp(dual, dq.dual());
 
     glm::quat rotation = angleAxis(PI / 3.0f, Vectors::UNIT_X);
     glm::vec3 translation(1.0, 2.0f, 3.0f);
@@ -112,36 +112,4 @@ void DualQuaternionTests::trans() {
     QCOMPARE_WITH_ABS_ERROR(t1, dq1.getTranslation(), 0.001f);
     QCOMPARE_WITH_ABS_ERROR(t2, dq2.getTranslation(), 0.001f);
     QCOMPARE_WITH_ABS_ERROR(t3, dq3.getTranslation(), 0.001f);
-}
-
-// Dual Quaternion Linear Blending test
-void DualQuaternionTests::dlb() {
-    DualQuaternion dq1(Quaternions::IDENTITY, glm::vec3());
-    DualQuaternion dq2(angleAxis(PI / 2.0f, Vectors::UNIT_X), glm::vec3(0.0f, 1.0f, 0.0f));
-    DualQuaternion dq2Alt(-angleAxis(PI / 2.0f, Vectors::UNIT_X), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    qDebug() << "dq1 =" << dq1;
-    qDebug() << "dq2 =" << dq2;
-
-    // linear blend between dq1 and dq2
-    DualQuaternion dq3 = dq1 * 0.5f + dq2 * 0.5f;
-
-    // alternate linear blend between dq1 and dq2
-    DualQuaternion dq4 = dq1 * 0.5 + dq2Alt * 0.5f;
-
-    qDebug() << "dq3 =" << dq3;
-    qDebug() << "dq4 =" << dq4;
-
-    glm::vec3 p1(0.0f, 0.5f, -0.5f);
-    glm::vec3 p2(0.0f, 0.5f, 0.5f);
-
-    glm::vec3 p3 = dq3.xformPoint(p1);
-    glm::vec3 p4 = dq3.xformPoint(p2);
-    glm::vec3 p5 = dq4.xformPoint(p1);
-    glm::vec3 p6 = dq4.xformPoint(p2);
-
-    qDebug() << "p3 =" << p3;
-    qDebug() << "p4 =" << p4;
-    qDebug() << "p5 =" << p5;
-    qDebug() << "p6 =" << p6;
 }

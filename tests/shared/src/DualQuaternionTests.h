@@ -20,7 +20,6 @@ private slots:
     void mult();
     void xform();
     void trans();
-    void dlb();
 };
 
 #endif // hifi_DualQuaternionTests_h

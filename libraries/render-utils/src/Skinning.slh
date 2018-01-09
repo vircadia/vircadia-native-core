@@ -24,7 +24,7 @@ layout(std140) uniform skinClusterBuffer {
 
 <@if SKIN_DQ@>
 
-mat4 dualQuatToMat4(vec4 real, vec4 imag) {
+mat4 dualQuatToMat4(vec4 real, vec4 dual) {
     float twoRealXSq = 2.0 * real.x * real.x;
     float twoRealYSq = 2.0 * real.y * real.y;
     float twoRealZSq = 2.0 * real.z * real.z;
@@ -46,9 +46,9 @@ mat4 dualQuatToMat4(vec4 real, vec4 imag) {
                      twoRealYZ - twoRealXW,
                      1 - twoRealXSq - twoRealYSq,
                      0.0);
-    vec4 col3 = vec4(2.0 * (-imag.w * real.x + imag.x * real.w - imag.y * real.z + imag.z * real.y),
-                     2.0 * (-imag.w * real.y + imag.x * real.z + imag.y * real.w - imag.z * real.x),
-                     2.0 * (-imag.w * real.z - imag.x * real.y + imag.y * real.x + imag.z * real.w),
+    vec4 col3 = vec4(2.0 * (-dual.w * real.x + dual.x * real.w - dual.y * real.z + dual.z * real.y),
+                     2.0 * (-dual.w * real.y + dual.x * real.z + dual.y * real.w - dual.z * real.x),
+                     2.0 * (-dual.w * real.z - dual.x * real.y + dual.y * real.x + dual.z * real.w),
                      1.0);
 
     return mat4(col0, col1, col2, col3);
@@ -60,7 +60,7 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
     // linearly blend scale and dual quaternion components
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
@@ -68,7 +68,7 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
 
         vec3 scale = vec3(clusterMatrix[0]);
         vec4 real = clusterMatrix[1];
-        vec4 imag = clusterMatrix[2];
+        vec4 dual = clusterMatrix[2];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -78,16 +78,16 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
 
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
-        iAccum += imag * dqClusterWeight;
+        dAccum += dual * dqClusterWeight;
     }
 
     // normalize dual quaternion
     float norm = length(rAccum);
     rAccum /= norm;
-    iAccum /= norm;
+    dAccum /= norm;
 
     // conversion from dual quaternion to 4x4 matrix.
-    mat4 m = dualQuatToMat4(rAccum, iAccum);
+    mat4 m = dualQuatToMat4(rAccum, dAccum);
     skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
 }
 
@@ -97,7 +97,7 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
     // linearly blend scale and dual quaternion components
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
@@ -106,7 +106,7 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
 
         vec3 scale = vec3(clusterMatrix[0]);
         vec4 real = clusterMatrix[1];
-        vec4 imag = clusterMatrix[2];
+        vec4 dual = clusterMatrix[2];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -116,16 +116,16 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
 
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
-        iAccum += imag * dqClusterWeight;
+        dAccum += dual * dqClusterWeight;
     }
 
     // normalize dual quaternion
     float norm = length(rAccum);
     rAccum /= norm;
-    iAccum /= norm;
+    dAccum /= norm;
 
     // conversion from dual quaternion to 4x4 matrix.
-    mat4 m = dualQuatToMat4(rAccum, iAccum);
+    mat4 m = dualQuatToMat4(rAccum, dAccum);
     skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
     skinnedNormal = vec3(m * vec4(inNormal, 0));
 }
@@ -136,7 +136,7 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     // linearly blend scale and dual quaternion components
     vec3 sAccum = vec3(0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 iAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
@@ -145,7 +145,7 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
 
         vec3 scale = vec3(clusterMatrix[0]);
         vec4 real = clusterMatrix[1];
-        vec4 imag = clusterMatrix[2];
+        vec4 dual = clusterMatrix[2];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -155,16 +155,16 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
 
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
-        iAccum += imag * dqClusterWeight;
+        dAccum += dual * dqClusterWeight;
     }
 
     // normalize dual quaternion
     float norm = length(rAccum);
     rAccum /= norm;
-    iAccum /= norm;
+    dAccum /= norm;
 
     // conversion from dual quaternion to 4x4 matrix.
-    mat4 m = dualQuatToMat4(rAccum, iAccum);
+    mat4 m = dualQuatToMat4(rAccum, dAccum);
     skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
     skinnedNormal = vec3(m * vec4(inNormal, 0));
     skinnedTangent = vec3(m * vec4(inTangent, 0));

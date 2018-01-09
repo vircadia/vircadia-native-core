@@ -31,8 +31,8 @@ public:
     const glm::quat& real() const { return _real; }
     glm::quat& real() { return _real; }
 
-    const glm::quat& imag() const { return _imag; }
-    glm::quat& imag() { return _imag; }
+    const glm::quat& dual() const { return _dual; }
+    glm::quat& dual() { return _dual; }
 
     glm::quat getRotation() const;
     glm::vec3 getTranslation() const;
@@ -50,12 +50,12 @@ public:
 protected:
     friend QDebug operator<<(QDebug debug, const DualQuaternion& pose);
     glm::quat _real;
-    glm::quat _imag;
+    glm::quat _dual;
 };
 
 
 inline QDebug operator<<(QDebug debug, const DualQuaternion& dq) {
-    debug << "AnimPose, real = (" << dq._real.x << dq._real.y << dq._real.z << dq._real.w << "), imag = (" << dq._imag.x << dq._imag.y << dq._imag.z << dq._imag.w << ")";
+    debug << "AnimPose, real = (" << dq._real.x << dq._real.y << dq._real.z << dq._real.w << "), dual = (" << dq._dual.x << dq._dual.y << dq._dual.z << dq._dual.w << ")";
     return debug;
 }
 
