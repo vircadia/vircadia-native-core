@@ -14,7 +14,7 @@
         if (MyAvatar.walkSpeed < 4) {
             MyAvatar.walkSpeed = 4.5;
         } else {
-            MyAvatar.walkSpeed = 3.0;
+            MyAvatar.walkSpeed = 2.6;
         }
     }
 
