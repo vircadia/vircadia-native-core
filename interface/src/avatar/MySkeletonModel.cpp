@@ -335,17 +335,25 @@ void MySkeletonModel::updateFingers() {
         for (auto& link : chain) {
             int index = _rig.indexOfJoint(link.second);
             if (index >= 0) {
+                auto rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                if (rotationFrameOffset == _jointRotationFrameOffsetMap.end()) {
+                    _jointRotationFrameOffsetMap.insert(std::pair<int, int>(index, 0));
+                    rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                }
                 auto pose = myAvatar->getControllerPoseInSensorFrame(link.first);
+                
                 if (pose.valid) {
                     glm::quat relRot = glm::inverse(prevAbsRot) * pose.getRotation();
                     // only set the rotation for the finger joints, not the hands.
                     if (link.first != controller::Action::LEFT_HAND && link.first != controller::Action::RIGHT_HAND) {
                         _rig.setJointRotation(index, true, relRot, CONTROLLER_PRIORITY);
+                        rotationFrameOffset->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else {
+                } else if (rotationFrameOffset->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
                     _rig.clearJointAnimationPriority(index);
                 }
+                rotationFrameOffset->second++;
             }
         }
     }
