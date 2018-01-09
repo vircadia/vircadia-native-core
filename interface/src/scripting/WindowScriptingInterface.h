@@ -39,14 +39,12 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
-    Q_PROPERTY(int menuHeight READ getMenuHeight)
 
 public:
     WindowScriptingInterface();
     ~WindowScriptingInterface();
     int getInnerWidth();
     int getInnerHeight();
-    int getMenuHeight();
     int getX();
     int getY();
 

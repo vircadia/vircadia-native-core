@@ -394,10 +394,6 @@ int WindowScriptingInterface::getInnerHeight() {
     return qApp->getDeviceSize().y;
 }
 
-int WindowScriptingInterface::getMenuHeight() {
-    return qApp->getPrimaryMenu()->geometry().height();
-}
-
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
