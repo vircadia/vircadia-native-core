@@ -498,13 +498,15 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
 
     GPUKTXPayload gpuktxKeyValue;
     if (!GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue)) {
-        qCWarning(gpulogging) << "Could not find GPUKTX key values.";
+#if defined(Q_OS_ANDROID)
         // FIXME use sensible defaults based on the texture type and format
         gpuktxKeyValue._usageType = TextureUsageType::RESOURCE;
         gpuktxKeyValue._usage = Texture::Usage::Builder().withColor().withAlpha().build();
+#else
+        qCWarning(gpulogging) << "Could not find GPUKTX key values.";
+        return TexturePointer();
+#endif
     }
-
-
 
     auto texture = create(gpuktxKeyValue._usageType,
         type,
