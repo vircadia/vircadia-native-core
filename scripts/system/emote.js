@@ -40,6 +40,7 @@ var onEmoteScreen = false;
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var activeTimer = false; // used to cancel active timer if a user plays an amimation while another animation is playing
+var activeEmote = false; // to keep track of the currently playing emote
 
 button = tablet.addButton({
     //icon: "icons/tablet-icons/emote.svg", // TODO - we need graphics for this
@@ -77,14 +78,23 @@ function onWebEventReceived(event) {
                 Script.clearTimeout(activeTimer);
             }
 
-            var frameCount = ANIMATIONS[emoteName].animation.frames.length;
-            MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
+            // if the activeEmote is different from the chosen emote, then play the new emote. Other wise, 
+            // this is a second click on the same emote as the activeEmote, and we will just stop it.
+            if (activeEmote !== emoteName) {
+                activeEmote = emoteName;
+                var frameCount = ANIMATIONS[emoteName].animation.frames.length;
+                MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
 
-            var timeOut = MSEC_PER_SEC * frameCount / FPS;
-            activeTimer = Script.setTimeout(function () {
+                var timeOut = MSEC_PER_SEC * frameCount / FPS;
+                activeTimer = Script.setTimeout(function () {
+                    MyAvatar.restoreAnimation();
+                    activeTimer = false;
+                    activeEmote = false;
+                }, timeOut);
+            } else {
+                activeEmote = false;
                 MyAvatar.restoreAnimation();
-                activeTimer = false;
-            }, timeOut);
+            }
         }
     }
 }
