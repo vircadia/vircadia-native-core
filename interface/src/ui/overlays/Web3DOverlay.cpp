@@ -36,7 +36,6 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <AddressManager.h>
-#include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -193,7 +192,7 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
 
         // in Qt 5.10.0 there is already an "Audio" object in the QML context
         // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
@@ -518,7 +517,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {string} url - The URL of the Web page to display.
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
- * @property {Vec2} resolution - <strong>Deprecated:</strong> This property has been removed. 
  * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
  * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
  *     <code>scale</code>, <code>size</code>.
