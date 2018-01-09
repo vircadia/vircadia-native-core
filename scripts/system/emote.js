@@ -21,16 +21,16 @@ var ANIMATIONS = Array();
 
 
 EMOTE_ANIMATIONS.forEach(function (name) {
-    var animURL = Script.resolvePath("assets/animations/" + name + ".fbx");
-    var resource = AnimationCache.prefetch(animURL);
-    var animation = AnimationCache.getAnimation(animURL);
-    ANIMATIONS[name] = { url: animURL, animation: animation, resource: resource};
+    var animationURL = Script.resolvePath("assets/animations/" + name + ".fbx");
+    var resource = AnimationCache.prefetch(animationURL);
+    var animation = AnimationCache.getAnimation(animationURL);
+    ANIMATIONS[name] = { url: animationURL, animation: animation, resource: resource};
 });
 
 
 var EMOTE_APP_BASE = "html/EmoteApp.html";
 var EMOTE_APP_URL = Script.resolvePath(EMOTE_APP_BASE);
-var EMOTE_LABLE = "EMOTE";
+var EMOTE_LABEL = "EMOTE";
 var EMOTE_APP_SORT_ORDER = 11;
 var FPS = 60;
 var MSEC_PER_SEC = 1000;
@@ -44,7 +44,7 @@ var activeEmote = false; // to keep track of the currently playing emote
 
 button = tablet.addButton({
     //icon: "icons/tablet-icons/emote.svg", // TODO - we need graphics for this
-    text: EMOTE_LABLE,
+    text: EMOTE_LABEL,
     sortOrder: EMOTE_APP_SORT_ORDER
 });
 
