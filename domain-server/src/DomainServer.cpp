@@ -24,6 +24,7 @@
 #include <QTimer>
 #include <QUrlQuery>
 #include <QCommandLineParser>
+#include <QUuid>
 
 #include <AccountManager.h>
 #include <AssetClient.h>
@@ -47,7 +48,14 @@
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
 
+#include <Gzip.h>
+
+#include <OctreeUtils.h>
+
+Q_LOGGING_CATEGORY(domain_server, "hifi.domain_server")
+
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
+const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -280,6 +288,30 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             qDebug() << "Ignoring subnet in whitelist, invalid ip portion: " << subnet;
         }
     }
+
+    qDebug() << "Starting persist thread";
+    if (QDir(getEntitiesDirPath()).mkpath(".")) {
+        qCDebug(domain_server) << "Created entities data directory";
+    }
+    maybeHandleReplacementEntityFile();
+    auto entitiesFilePath = getEntitiesFilePath();
+    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.responseObjectForType("6")["entity_server_settings"].toObject()));
+    _contentManager->addCreateBackupHandler([entitiesFilePath](QuaZip* zip) {
+        qDebug() << "Creating a backup from handler";
+
+        QFile entitiesFile { entitiesFilePath };
+
+        if (entitiesFile.open(QIODevice::ReadOnly)) {
+            QuaZipFile zipFile { zip };
+            zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo("models.json.gz", entitiesFilePath));
+            zipFile.write(entitiesFile.readAll());
+            zipFile.close();
+            if (zipFile.getZipError() != UNZ_OK) {
+                qDebug() << "Failed to write entities file to backup:" << zipFile.getZipError();
+            }
+        }
+    });
+    _contentManager->initialize(true);
 }
 
 void DomainServer::parseCommandLine() {
@@ -352,6 +384,11 @@ DomainServer::~DomainServer() {
 
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
+
+    if (_contentManager) {
+        _contentManager->aboutToFinish();
+        _contentManager->terminating();
+    }
 }
 
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
@@ -690,6 +727,12 @@ void DomainServer::setupNodeListAndAssignments() {
 
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
+
+    packetReceiver.registerListener(PacketType::OctreeDataFileRequest, this, "processOctreeDataRequestMessage");
+    packetReceiver.registerListener(PacketType::OctreeDataPersist, this, "processOctreeDataPersistMessage");
+
+    packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacementRequest");
+    packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURLRequest");
 
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
@@ -1605,6 +1648,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
             if (!limitedNodeList->getSessionUUID().isNull()) {
+                qDebug() << "generating keypair";
                 accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
                 qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
@@ -1695,8 +1739,86 @@ void DomainServer::sendHeartbeatToIceServer() {
     } else {
         qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
         qDebug() << "Waiting for" << _iceServerAddr << "host lookup response";
-
     }
+}
+
+void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message) {
+    qDebug() << "Received octree data persist message";
+    auto data = message->readAll();
+    auto filePath = getEntitiesFilePath();
+
+    QFile f(filePath);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(data);
+        OctreeUtils::RawOctreeData octreeData;
+        if (OctreeUtils::readOctreeDataInfoFromData(data, &octreeData)) {
+            qCDebug(domain_server) << "Wrote new entiteis file" << octreeData.id << octreeData.version;
+        } else {
+            qCDebug(domain_server) << "Failed to read new octree data info";
+        }
+    } else {
+        qCDebug(domain_server) << "Failed to write new entities file";
+    }
+}
+
+QString DomainServer::getContentBackupDir() {
+    return PathUtils::getAppDataFilePath("backup");
+}
+
+QString DomainServer::getEntitiesDirPath() {
+    return PathUtils::getAppDataFilePath("entities");
+}
+
+QString DomainServer::getEntitiesFilePath() {
+    return PathUtils::getAppDataFilePath("entities/models.json.gz");
+}
+
+QString DomainServer::getEntitiesReplacementFilePath() {
+    return getEntitiesFilePath().append(REPLACEMENT_FILE_EXTENSION);
+}
+
+void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message) {
+    qDebug() << "Got request for octree data from " << message->getSenderSockAddr();
+
+    bool remoteHasExistingData { false };
+    QUuid id;
+    int version;
+    message->readPrimitive(&remoteHasExistingData);
+    if (remoteHasExistingData) {
+        auto idData = message->read(16);
+        id = QUuid::fromRfc4122(idData);
+        message->readPrimitive(&version);
+        qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << version << ")";
+    } else {
+        qCDebug(domain_server) << "Entity server does not have existing data";
+    }
+    auto entityFilePath = getEntitiesFilePath();
+
+    //QFile file(entityFilePath);
+    auto reply = NLPacketList::create(PacketType::OctreeDataFileReply, QByteArray(), true, true);
+    OctreeUtils::RawOctreeData data;
+    if (OctreeUtils::readOctreeDataInfoFromFile(entityFilePath, &data)) {
+        if (data.id == id && data.version <= version) {
+            qCDebug(domain_server) << "ES has sufficient octree data, not sending data";
+            reply->writePrimitive(false);
+        } else {
+            qCDebug(domain_server) << "Sending newer octree data to ES";
+            QFile file(entityFilePath);
+            if (file.open(QIODevice::ReadOnly)) {
+                reply->writePrimitive(true);
+                reply->write(file.readAll());
+            } else {
+                qCDebug(domain_server) << "Unable to load entity file";
+                reply->writePrimitive(false);
+            }
+        }
+    } else {
+        qCDebug(domain_server) << "Domain server does not have valid octree data";
+        reply->writePrimitive(false);
+    }
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->sendPacketList(std::move(reply), message->getSenderSockAddr());
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
@@ -3105,9 +3227,64 @@ void DomainServer::setupGroupCacheRefresh() {
     }
 }
 
+void DomainServer::maybeHandleReplacementEntityFile() {
+    QFile replacementFile(getEntitiesReplacementFilePath());
+    if (replacementFile.exists()) {
+        qCDebug(domain_server) << "Replacing existing entity date with replacement file";
+        QFile currentFile(getEntitiesFilePath());
+        if (currentFile.exists()) {
+            if (currentFile.remove()) {
+                qCDebug(domain_server) << "Removed existing entity file";
+            } else {
+                qCWarning(domain_server) << "Failled to remove existing entity file";
+            }
+        }
+        if (replacementFile.rename(getEntitiesFilePath())) {
+            qCDebug(domain_server) << "Successfully updated entities data file with replacement file";
+        } else {
+            qCWarning(domain_server) << "Failed to update entities data file with replacement file";
+        }
+    }
+}
+
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
     // enumerate the nodes and find any octree type servers with active sockets
 
+    //Assume we have compressed data
+    auto compressedOctree = octreeFile;
+    QByteArray jsonOctree;
+
+    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
+    if (!wasCompressed) {
+        // the source was not compressed, assume we were sent regular JSON data
+        jsonOctree = compressedOctree;
+    }
+
+    OctreeUtils::RawOctreeData data;
+    if (OctreeUtils::readOctreeDataInfoFromData(jsonOctree, &data)) {
+        data.id = QUuid::createUuid();
+        data.version = 0;
+
+        gzip(data.toByteArray(), compressedOctree);
+
+        // write the compressed octree data to a special file
+        auto replacementFilePath = getEntitiesReplacementFilePath();
+        QFile replacementFile(replacementFilePath);
+        if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
+            // we've now written our replacement file, time to take the server down so it can
+            // process it when it comes back up
+            qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
+
+            QMetaObject::invokeMethod(this, "restart", Qt::QueuedConnection);
+        } else {
+            qWarning() << "Could not write replacement octree data to file - refusing to process";
+        }
+    } else {
+        qDebug() << "Received replacement octree file that is invalid - refusing to process";
+    }
+
+
+    return;
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
     limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
         return node->getType() == NodeType::EntityServer && node->getActiveSocket();
@@ -3120,4 +3297,38 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
 
         limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
     });
+}
+
+void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
+    qInfo() << "Received request to replace content from a url";
+    auto node = DependencyManager::get<LimitedNodeList>()->findNodeWithAddr(message->getSenderSockAddr());
+    if (node) {
+        qDebug() << "Found node: " << node->getCanReplaceContent();
+    }
+    if (node->getCanReplaceContent()) {
+        // Convert message data into our URL
+        QString url(message->getMessage());
+        QUrl modelsURL = QUrl(url, QUrl::StrictMode);
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest request(modelsURL);
+        QNetworkReply* reply = networkAccessManager.get(request);
+        connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
+            QNetworkReply::NetworkError networkError = reply->error();
+            if (networkError == QNetworkReply::NoError) {
+                handleOctreeFileReplacement(reply->readAll());
+            } else {
+                qDebug() << "Error downloading JSON from specified file: " << modelsURL;
+            }
+        });
+    }
+}
+
+
+
+
+void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
+    auto node = DependencyManager::get<NodeList>()->nodeWithUUID(message->getSourceID());
+    if (node->getCanReplaceContent()) {
+        handleOctreeFileReplacement(message->readAll());
+    }
 }

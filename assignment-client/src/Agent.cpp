@@ -340,7 +340,6 @@ void Agent::scriptRequestFinished() {
     request->deleteLater();
 }
 
-
 void Agent::executeScript() {
     _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
 

@@ -283,8 +283,10 @@ public:
     void loadOctreeFile(const char* fileName);
 
     // Octree exporters
-    bool writeToFile(const char* filename, const OctreeElementPointer& element = NULL, QString persistAsFileType = "json.gz");
-    bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = NULL, bool doGzip = false);
+    bool toJSON(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
+    bool toGzippedJSON(QByteArray* data, const OctreeElementPointer& element = nullptr);
+    bool writeToFile(const char* filename, const OctreeElementPointer& element = nullptr, QString persistAsFileType = "json.gz");
+    bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) = 0;
 
@@ -326,6 +328,11 @@ public:
     virtual void dumpTree() { }
     virtual void pruneTree() { }
 
+    void setEntityVersionInfo(QUuid id, int64_t dataVersion) {
+        _persistID = id;
+        _persistDataVersion = dataVersion;
+    }
+
     virtual void resetEditStats() { }
     virtual quint64 getAverageDecodeTime() const { return 0; }
     virtual quint64 getAverageLookupTime() const { return 0;  }
@@ -358,6 +365,9 @@ protected:
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
 
     OctreeElementPointer _rootElement = nullptr;
+
+    QUuid _persistID { QUuid::createUuid() };
+    int _persistDataVersion { 0 };
 
     bool _isDirty;
     bool _shouldReaverage;

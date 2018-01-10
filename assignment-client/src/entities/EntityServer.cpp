@@ -116,7 +116,6 @@ void EntityServer::beforeRun() {
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
 }
 
-
 // EntityServer will use the "special packets" to send list of recently deleted entities
 bool EntityServer::hasSpecialPacketsToSend(const SharedNodePointer& node) {
     bool shouldSendDeletedEntities = false;
@@ -276,7 +275,6 @@ int EntityServer::sendSpecialPackets(const SharedNodePointer& node, OctreeQueryN
     // TODO: caller is expecting a packetLength, what if we send more than one packet??
     return totalBytes;
 }
-
 
 void EntityServer::pruneDeletedEntities() {
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);

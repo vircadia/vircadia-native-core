@@ -30,7 +30,6 @@ struct ViewerSendingStats {
 class SimpleEntitySimulation;
 using SimpleEntitySimulationPointer = std::shared_ptr<SimpleEntitySimulation>;
 
-
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
@@ -38,7 +37,7 @@ public:
     ~EntityServer();
 
     // Subclasses must implement these methods
-    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() override ;
+    virtual std::unique_ptr<OctreeQueryNode> createOctreeQueryNode() override;
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
     virtual const char* getMyServerName() const override { return MODEL_SERVER_NAME; }
@@ -82,12 +81,12 @@ private:
     QReadWriteLock _viewerSendingStatsLock;
     QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
 
-    static const int DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 45 * 60 * 1000; // 45m
-    static const int DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 60 * 60 * 1000; // 1h
-    int _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS; // 45m
-    int _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS; // 1h
+    static const int DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 45 * 60 * 1000;                    // 45m
+    static const int DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 60 * 60 * 1000;                    // 1h
+    int _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;  // 45m
+    int _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;  // 1h
     QTimer _dynamicDomainVerificationTimer;
     void startDynamicDomainVerification();
 };
 
-#endif // hifi_EntityServer_h
+#endif  // hifi_EntityServer_h

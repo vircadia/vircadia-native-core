@@ -326,6 +326,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
 
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
+                        qCDebug(networking) << packetHeaderHash << expectedHash;
                         qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
 
                         hashDebugSuppressMap.insert(sourceID, headerType);

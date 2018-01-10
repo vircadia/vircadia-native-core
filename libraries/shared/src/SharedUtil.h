@@ -216,6 +216,7 @@ QString formatUsecTime(float usecs);
 QString formatUsecTime(double usecs);
 QString formatUsecTime(quint64 usecs);
 QString formatUsecTime(qint64 usecs);
+QString formatSecTime(qint64 secs);
 
 QString formatSecondsElapsed(float seconds);
 bool similarStrings(const QString& stringA, const QString& stringB);

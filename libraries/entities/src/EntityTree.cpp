@@ -2244,6 +2244,8 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
     }
+    entityDescription["DataVersion"] = ++_persistDataVersion;
+    entityDescription["Id"] = _persistID;
     QScriptEngine scriptEngine;
     RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,
                                             skipThoseWithBadParents, _myAvatar);
@@ -2255,6 +2257,14 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
     bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
+
+    if (map.contains("Id")) {
+        _persistID = map["Id"].toUuid();
+    }
+
+    if (map.contains("DataVersion")) {
+        _persistDataVersion = map["DataVersion"].toInt();
+    }
 
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then

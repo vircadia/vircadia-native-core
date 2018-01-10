@@ -31,18 +31,19 @@
 
 #include "OctreeLogging.h"
 #include "OctreePersistThread.h"
+#include "OctreeUtils.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
-const QString OctreePersistThread::REPLACEMENT_FILE_EXTENSION = ".replace";
 
 OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory, int persistInterval,
                                          bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
-                                         QString persistAsFileType) :
+                                         QString persistAsFileType, const QByteArray& replacementData) :
     _tree(tree),
     _filename(filename),
     _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
+    _replacementData(replacementData),
     _loadTimeUSecs(0),
     _lastCheck(0),
     _wantBackup(wantBackup),
@@ -51,6 +52,7 @@ OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& file
     _persistAsFileType(persistAsFileType)
 {
     parseSettings(settings);
+
 
     // in case the persist filename has an extension that doesn't match the file type
     QString sansExt = fileNameWithoutExtension(_filename, PERSIST_EXTENSIONS);
@@ -132,51 +134,56 @@ quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs(const QString& forma
     return mostRecentBackupInUsecs;
 }
 
-void OctreePersistThread::possiblyReplaceContent() {
-    // before we load the normal file, check if there's a pending replacement file
-    auto replacementFileName = _filename + REPLACEMENT_FILE_EXTENSION;
+void OctreePersistThread::replaceData(QByteArray data) {
+    backupCurrentFile();
 
-    QFile replacementFile { replacementFileName };
-    if (replacementFile.exists()) {
-        // we have a replacement file to process
-        qDebug() << "Replacing models file with" << replacementFileName;
-
-        // first take the current models file and move it to a different filename, appended with the timestamp
-        QFile currentFile { _filename };
-        if (currentFile.exists()) {
-            static const QString FILENAME_TIMESTAMP_FORMAT = "yyyyMMdd-hhmmss";
-            auto backupFileName = _filename + ".backup." + QDateTime::currentDateTime().toString(FILENAME_TIMESTAMP_FORMAT);
-
-            if (currentFile.rename(backupFileName)) {
-                qDebug() << "Moved previous models file to" << backupFileName;
-            } else {
-                qWarning() << "Could not backup previous models file to" << backupFileName << "- removing replacement models file";
-
-                if (!replacementFile.remove()) {
-                    qWarning() << "Could not remove replacement models file from" << replacementFileName
-                        << "- replacement will be re-attempted on next server restart";
-                    return;
-                }
-            }
-        }
-
-        // rename the replacement file to match what the persist thread is just about to read
-        if (!replacementFile.rename(_filename)) {
-            qWarning() << "Could not replace models file with" << replacementFileName << "- starting with empty models file";
-        }
+    QFile currentFile { _filename };
+    if (currentFile.open(QIODevice::WriteOnly)) {
+        currentFile.write(data);
+        qDebug() << "Wrote replacement data";
+    } else {
+        qWarning() << "Failed to write replacement data";
     }
 }
 
+// Return true if current file is backed up successfully or doesn't exist.
+bool OctreePersistThread::backupCurrentFile() {
+    // first take the current models file and move it to a different filename, appended with the timestamp
+    QFile currentFile { _filename };
+    if (currentFile.exists()) {
+        static const QString FILENAME_TIMESTAMP_FORMAT = "yyyyMMdd-hhmmss";
+        auto backupFileName = _filename + ".backup." + QDateTime::currentDateTime().toString(FILENAME_TIMESTAMP_FORMAT);
+
+        if (currentFile.rename(backupFileName)) {
+            qDebug() << "Moved previous models file to" << backupFileName;
+            return true;
+        } else {
+            qWarning() << "Could not backup previous models file to" << backupFileName << "- removing replacement models file";
+            return false;
+        }
+    }
+    return true;
+}
 
 bool OctreePersistThread::process() {
 
     if (!_initialLoadComplete) {
-        possiblyReplaceContent();
-
         quint64 loadStarted = usecTimestampNow();
         qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
-        bool persistantFileRead;
+        if (_replacementData.isNull()) {
+            sendLatestEntityDataToDS();
+        } else {
+            replaceData(_replacementData);
+            _replacementData.clear();
+        }
+
+        OctreeUtils::RawOctreeData data;
+        if (OctreeUtils::readOctreeDataInfoFromFile(_filename, &data)) {
+            _tree->setEntityVersionInfo(data.id, data.version);
+        }
+
+        bool persistentFileRead;
 
         _tree->withWriteLock([&] {
             PerformanceWarning warn(true, "Loading Octree File", true);
@@ -199,7 +206,7 @@ bool OctreePersistThread::process() {
                 qCDebug(octree) << "Loading Octree... lock file removed:" << lockFileName;
             }
 
-            persistantFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
+            persistentFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
             _tree->pruneTree();
         });
 
@@ -207,7 +214,7 @@ bool OctreePersistThread::process() {
         _loadTimeUSecs = loadDone - loadStarted;
 
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-        qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistantFileRead));
+        qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
 
         unsigned long nodeCount = OctreeElement::getNodeCount();
         unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
@@ -272,7 +279,6 @@ bool OctreePersistThread::process() {
     return isStillRunning();  // keep running till they terminate us
 }
 
-
 void OctreePersistThread::aboutToFinish() {
     qCDebug(octree) << "Persist thread about to finish...";
     persist();
@@ -319,6 +325,23 @@ void OctreePersistThread::persist() {
             remove(qPrintable(lockFileName));
             qCDebug(octree) << "saving Octree lock file removed:" << lockFileName;
         }
+
+        sendLatestEntityDataToDS();
+    }
+}
+
+void OctreePersistThread::sendLatestEntityDataToDS() {
+    qDebug() << "Sending latest entity data to DS";
+    auto nodeList = DependencyManager::get<NodeList>();
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
+
+    QByteArray data;
+    if (_tree->toGzippedJSON(&data)) {
+        auto message = NLPacketList::create(PacketType::OctreeDataPersist, QByteArray(), true, true);
+        message->write(data);
+        nodeList->sendPacketList(std::move(message), domainHandler.getSockAddr());
+    } else {
+        qCWarning(octree) << "Failed to persist octree to DS";
     }
 }
 
@@ -452,7 +475,6 @@ void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
         }
     }
 }
-
 
 void OctreePersistThread::backup() {
     qCDebug(octree) << "backup operation wantBackup:" << _wantBackup;

@@ -6,6 +6,7 @@ setup_hifi_project(Core Gui Network Script Quick WebSockets)
 if (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif ()
+set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "/testing/")
 
 setup_memory_debugger()
 

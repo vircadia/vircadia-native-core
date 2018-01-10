@@ -178,7 +178,7 @@ void EntityScriptServer::updateEntityPPS() {
     int numRunningScripts = _entitiesScriptEngine->getNumRunningEntityScripts();
     int pps;
     if (std::numeric_limits<int>::max() / _entityPPSPerScript < numRunningScripts) {
-        qWarning() << QString("Integer multiplaction would overflow, clamping to maxint: %1 * %2").arg(numRunningScripts).arg(_entityPPSPerScript);
+        qWarning() << QString("Integer multiplication would overflow, clamping to maxint: %1 * %2").arg(numRunningScripts).arg(_entityPPSPerScript);
         pps = std::numeric_limits<int>::max();
         pps = std::min(_maxEntityPPS, pps);
     } else {

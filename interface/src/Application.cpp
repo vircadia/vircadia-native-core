@@ -6240,13 +6240,15 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                     // Given confirmation, send request to domain server to replace content
                     qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
                     QByteArray urlData(url.toUtf8());
-                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+                    auto limitedNodeList = DependencyManager::get<NodeList>();
+                    const auto& domainHandler = limitedNodeList->getDomainHandler();
                     limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
                             return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+                        }, [&urlData, limitedNodeList, &domainHandler](const SharedNodePointer& octreeNode) {
                             auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
                             octreeFilePacket->write(urlData);
-                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+                            qDebug() << "WRiting url data: " << urlData;
+                            limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
                         });
                     auto addressManager = DependencyManager::get<AddressManager>();
                     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
