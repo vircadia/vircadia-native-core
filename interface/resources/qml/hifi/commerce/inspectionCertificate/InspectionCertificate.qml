@@ -144,7 +144,7 @@ Rectangle {
     // Title text
     RalewayRegular {
         id: popText;
-        text: "PROOF OF PURCHASE";
+        text: "Proof of Provenance";
         // Text size
         size: 16;
         // Anchors
@@ -154,7 +154,7 @@ Rectangle {
         anchors.right: titleBarText.right;
         height: paintedHeight;
         // Style
-        color: hifi.colors.baseGray;
+        color: hifi.colors.darkGray;
     }
 
     //
@@ -181,7 +181,7 @@ Rectangle {
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.darkGray;
         }
         RalewaySemiBold {
             id: itemName;
@@ -195,7 +195,7 @@ Rectangle {
             anchors.right: itemNameHeader.right;
             height: paintedHeight;
             // Style
-            color: hifi.colors.blueAccent;
+            color: hifi.colors.white;
             elide: Text.ElideRight;
             MouseArea {
                 anchors.fill: parent;
@@ -204,7 +204,7 @@ Rectangle {
                     sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
                 }
                 onEntered: itemName.color = hifi.colors.blueHighlight;
-                onExited: itemName.color = hifi.colors.blueAccent;
+                onExited: itemName.color = hifi.colors.white;
             }
         }
 
@@ -222,7 +222,7 @@ Rectangle {
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.lightGray;
+            color: hifi.colors.darkGray;
         }
         RalewayRegular {
             id: ownedBy;
@@ -235,7 +235,7 @@ Rectangle {
             anchors.left: ownedByHeader.left;
             height: paintedHeight;
             // Style
-            color: hifi.colors.darkGray;
+            color: hifi.colors.white;
             elide: Text.ElideRight;
         }
         AnonymousProRegular {
@@ -251,7 +251,7 @@ Rectangle {
             anchors.leftMargin: 6;
             anchors.right: ownedByHeader.right;
             // Style
-            color: hifi.colors.lightGray;
+            color: hifi.colors.white;
             elide: Text.ElideRight;
             verticalAlignment: Text.AlignVCenter;
         }
@@ -270,7 +270,7 @@ Rectangle {
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.lightGray;
+            color: hifi.colors.darkGray;
         }
         AnonymousProRegular {
             id: edition;
@@ -284,7 +284,7 @@ Rectangle {
             anchors.right: editionHeader.right;
             height: paintedHeight;
             // Style
-            color: hifi.colors.darkGray;
+            color: hifi.colors.white;
         }
 
         RalewayRegular {
@@ -301,7 +301,7 @@ Rectangle {
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.lightGray;
+            color: hifi.colors.darkGray;
         }
         AnonymousProRegular {
             id: dateOfPurchase;
@@ -315,7 +315,7 @@ Rectangle {
             anchors.right: dateOfPurchaseHeader.right;
             height: paintedHeight;
             // Style
-            color: hifi.colors.darkGray;
+            color: hifi.colors.white;
         }
 
         RalewayRegular {
@@ -348,7 +348,7 @@ Rectangle {
         
         // "Cancel" button
         HifiControlsUit.Button {
-            color: hifi.buttons.noneBorderless;
+            color: hifi.buttons.noneBorderlessWhite;
             colorScheme: hifi.colorSchemes.light;
             anchors.top: parent.top;
             anchors.left: parent.left;

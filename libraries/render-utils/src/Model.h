@@ -78,7 +78,7 @@ public:
 
     /// Sets the URL of the model to render.
     // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setURL(const QUrl& url);
+    Q_INVOKABLE virtual void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
@@ -114,7 +114,7 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -136,7 +136,7 @@ public:
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
-    Q_INVOKABLE void setTextures(const QVariantMap& textures);
+    Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
@@ -437,7 +437,7 @@ public:
 
 public slots:
     void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
 
 private:
     using Mutex = std::mutex;
