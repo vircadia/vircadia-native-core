@@ -30,7 +30,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ZoneLightInheritModes);
+            return static_cast<PacketVersion>(EntityVersion::StageRemoved);
 
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
