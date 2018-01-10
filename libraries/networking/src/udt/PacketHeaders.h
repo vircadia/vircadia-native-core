@@ -202,6 +202,7 @@ enum class EntityVersion : PacketVersion {
     HazeEffect,
     StaticCertJsonVersionOne,
     OwnershipChallengeFix,
+    ZoneLightInheritModes
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

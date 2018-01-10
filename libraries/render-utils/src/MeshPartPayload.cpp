@@ -484,7 +484,8 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputFormat((_drawMesh->getVertexFormat()));
     if (_isBlendShaped && _blendedVertexBuffer) {
         batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
-        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
+        // Stride is 2*sizeof(glm::vec3) because normal and tangents are interleaved
+        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), 2 * sizeof(NormalType));
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     } else {
         batch.setInputStream(0, _drawMesh->getVertexStream());

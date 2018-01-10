@@ -143,7 +143,7 @@ public slots:
 
     /**jsdoc
      * Prompt the user for input in a custom, modal dialog.
-     * @deprecated This funtion is deprecated and will be removed.
+     * @deprecated This function is deprecated and will soon be removed.
      * @function Window.customPrompt
      * @param {object} config - Configures the modal dialog.
      * @returns {object} The user's response.
@@ -515,6 +515,7 @@ public slots:
 
 private slots:
     void onMessageBoxSelected(int button);
+    void disconnectedFromDomain();
 
 signals:
 

@@ -220,6 +220,10 @@ enum EntityPropertyList {
     PROP_HAZE_KEYLIGHT_RANGE,
     PROP_HAZE_KEYLIGHT_ALTITUDE,
 
+    PROP_KEY_LIGHT_MODE,
+    PROP_AMBIENT_LIGHT_MODE,
+    PROP_SKYBOX_MODE,
+
     PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -243,7 +247,6 @@ enum EntityPropertyList {
     // the size of the properties bitflags mask
     PROP_KEYLIGHT_COLOR = PROP_COLOR,
     PROP_KEYLIGHT_INTENSITY = PROP_INTENSITY,
-    PROP_KEYLIGHT_AMBIENT_INTENSITY = PROP_CUTOFF,
     PROP_KEYLIGHT_DIRECTION = PROP_EXPONENT,
     PROP_STAGE_SUN_MODEL_ENABLED = PROP_IS_SPOTLIGHT,
     PROP_STAGE_LATITUDE = PROP_DIFFUSE_COLOR,
@@ -252,12 +255,13 @@ enum EntityPropertyList {
     PROP_STAGE_DAY = PROP_LINEAR_ATTENUATION_UNUSED,
     PROP_STAGE_HOUR = PROP_QUADRATIC_ATTENUATION_UNUSED,
     PROP_STAGE_AUTOMATIC_HOURDAY = PROP_ANIMATION_FRAME_INDEX,
-    PROP_BACKGROUND_MODE = PROP_MODEL_URL,
 
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
-    PROP_KEYLIGHT_AMBIENT_URL = PROP_ANIMATION_PLAYING,
-    
+
+    PROP_AMBIENT_LIGHT_INTENSITY = PROP_CUTOFF,
+    PROP_AMBIENT_LIGHT_URL = PROP_ANIMATION_PLAYING,
+
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. 
     PROP_SOURCE_URL = PROP_MODEL_URL,
