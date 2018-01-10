@@ -30,7 +30,8 @@ Item {
     property int parentAppNavBarHeight;
     property string currentActiveView: "sendMoneyHome";
     property string nextActiveView: "";
-    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible || chooseRecipientNearby.visible || sendMoneyStep.visible;
+    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible ||
+        chooseRecipientNearby.visible || sendMoneyStep.visible || paymentSuccess.visible;
     property bool isCurrentlySendingMoney: false;
         
     // This object is always used in a popup or full-screen Wallet section.
@@ -449,7 +450,6 @@ Item {
             height: parent.height - 30;
 
             RalewaySemiBold {
-                id: chooseRecipientText_nearby;
                 text: "Choose Recipient:";
                 // Anchors
                 anchors.top: parent.top;
@@ -483,7 +483,7 @@ Item {
                     }
                     onClicked: {
                         root.nextActiveView = "sendMoneyHome";
-                        chooseRecipientNearby.selectedRecipient = "";
+                        resetSendMoneyData();
                     }
                 }
             }
@@ -586,7 +586,7 @@ Item {
                 text: "Cancel";
                 onClicked: {
                     root.nextActiveView = "sendMoneyHome";
-                    chooseRecipientNearby.selectedRecipient = "";
+                    resetSendMoneyData();
                 }
             }
 
@@ -606,8 +606,8 @@ Item {
                 onClicked: {
                     sendMoneyStep.referrer = "nearby";
                     sendMoneyStep.selectedRecipientNodeID = chooseRecipientNearby.selectedRecipient;
-                    sendMoneyStep.selectedRecipientDisplayName = "";
-                    sendMoneyStep.selectedRecipientUserName = "";
+                    sendMoneyStep.selectedRecipientDisplayName = '"ZRF Changeme"';
+                    sendMoneyStep.selectedRecipientUserName = 'unknown username';
                     chooseRecipientNearby.selectedRecipient = "";
 
                     root.nextActiveView = "sendMoneyStep";
@@ -615,7 +615,7 @@ Item {
             }
         }
     }
-    // Choose Recipient Nearby 
+    // Choose Recipient Nearby END
     
     // Send Money Screen BEGIN
     Rectangle {
@@ -679,7 +679,7 @@ Item {
 
                 RalewaySemiBold {
                     id: recipientDisplayName;
-                    text: '"ZRF Changeme"';
+                    text: sendMoneyStep.selectedRecipientDisplayName;
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: sendToText_sendMoneyStep.right;
@@ -695,7 +695,7 @@ Item {
 
                 RalewaySemiBold {
                     id: recipientUsername;
-                    text: "unknown username";
+                    text: sendMoneyStep.selectedRecipientUserName;
                     // Anchors
                     anchors.bottom: parent.bottom;
                     anchors.left: recipientDisplayName.anchors.left;
@@ -852,9 +852,7 @@ Item {
                     width: 100;
                     text: "CANCEL";
                     onClicked: {
-                        sendMoneyStep.selectedRecipientNodeID = "";
-                        sendMoneyStep.selectedRecipientDisplayName = "";
-                        sendMoneyStep.selectedRecipientUserName = "";
+                        resetSendMoneyData();
                         root.nextActiveView = "sendMoneyHome";
                     }
                 }
@@ -871,6 +869,18 @@ Item {
                     text: "SEND";
                     onClicked: {
                         root.isCurrentlySendingMoney = true;
+                        amountTextField.focus = false;
+                        optionalMessage.focus = false;
+                        tempTimer.interval = 250;
+                        tempTimer.start();
+                    }
+                }
+
+                Timer {
+                    id: tempTimer;
+                    onTriggered: {
+                        root.isCurrentlySendingMoney = false;
+                        root.nextActiveView = "paymentSuccess";
                     }
                 }
             }
@@ -920,7 +930,209 @@ Item {
         }
     }
     // Sending Money Overlay END
+    
+    // Payment Success BEGIN
+    Rectangle {
+        id: paymentSuccess;
 
+        visible: root.currentActiveView === "paymentSuccess";
+        anchors.fill: parent;
+        color: "#AAAAAA";
+
+        Rectangle {
+            anchors.centerIn: parent;
+            width: parent.width - 30;
+            height: parent.height - 30;
+
+            RalewaySemiBold {
+                id: paymentSentText;
+                text: "Payment Sent";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: paintedWidth;
+                height: 30;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+            }
+            
+            HiFiGlyphs {
+                id: closeGlyphButton_paymentSuccess;
+                text: hifi.glyphs.close;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+                anchors.right: parent.right;
+                anchors.rightMargin: 10;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        root.nextActiveView = "sendMoneyHome";
+                        resetSendMoneyData();
+                    }
+                }
+            }
+
+            Item {
+                id: sendToContainer_paymentSuccess;
+                anchors.top: paymentSentText.bottom;
+                anchors.topMargin: 20;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 80;
+
+                RalewaySemiBold {
+                    id: sendToText_paymentSuccess;
+                    text: "Sent To:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.bottom: parent.bottom;
+                    width: 90;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+
+                RalewaySemiBold {
+                    id: recipientDisplayName_paymentSuccess;
+                    text: sendMoneyStep.selectedRecipientDisplayName;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: sendToText_paymentSuccess.right;
+                    anchors.right: parent.right;
+                    height: parent.height/2;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignBottom;
+                }
+
+                RalewaySemiBold {
+                    id: recipientUsername_paymentSuccess;
+                    text: sendMoneyStep.selectedRecipientUserName;
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    anchors.left: recipientDisplayName_paymentSuccess.anchors.left;
+                    anchors.leftMargin: recipientDisplayName_paymentSuccess.anchors.leftMargin;
+                    anchors.right: recipientDisplayName_paymentSuccess.anchors.right;
+                    anchors.rightMargin: recipientDisplayName_paymentSuccess.anchors.rightMargin;
+                    height: parent.height/2;
+                    // Text size
+                    size: 16;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignTop;
+                }
+            }
+
+            Item {
+                id: amountContainer_paymentSuccess;
+                anchors.top: sendToContainer_paymentSuccess.bottom;
+                anchors.topMargin: 16;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 80;
+
+                RalewaySemiBold {
+                    id: amountText_paymentSuccess;
+                    text: "Amount:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.bottom: parent.bottom;
+                    width: 90;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+                
+                // "HFC" balance label
+                HiFiGlyphs {
+                    id: amountSentLabel;
+                    text: hifi.glyphs.hfc;
+                    // Size
+                    size: 32;
+                    // Anchors
+                    anchors.left: amountText_paymentSuccess.right;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    height: 50;
+                    // Style
+                    color: hifi.colors.baseGray;
+                }
+
+                RalewaySemiBold {
+                    id: amountSentText;
+                    text: amountTextField.text;
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: amountSentLabel.right;
+                    anchors.leftMargin: 20;
+                    anchors.right: parent.right;
+                    height: 50;
+                    // Style
+                    size: 22;
+                    color: hifi.colors.baseGray;
+                }
+            }
+
+            RalewaySemiBold {
+                id: optionalMessage_paymentSuccess;
+                text: optionalMessage.text;
+                // Anchors
+                anchors.top: amountContainer_paymentSuccess.bottom;
+                anchors.left: parent.left;
+                anchors.leftMargin: 110;
+                anchors.right: parent.right;
+                anchors.bottom: closeButton.top;
+                anchors.bottomMargin: 40;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                verticalAlignment: Text.AlignTop;
+            }
+
+            // "Close" button
+            HifiControlsUit.Button {
+                id: closeButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 80;
+                height: 50;
+                width: 120;
+                text: "Close";
+                onClicked: {
+                    root.nextActiveView = "sendMoneyHome";
+                    resetSendMoneyData();
+                }
+            }
+        }
+    }
+    // Payment Success END
 
 
     //
@@ -941,6 +1153,13 @@ Item {
                 filteredConnectionsModel.append(connectionsModel.get(i));
             }
         }
+    }
+
+    function resetSendMoneyData() {
+        chooseRecipientNearby.selectedRecipient = "";
+        sendMoneyStep.selectedRecipientNodeID = "";
+        sendMoneyStep.selectedRecipientDisplayName = "";
+        sendMoneyStep.selectedRecipientUserName = "";
     }
 
     //
