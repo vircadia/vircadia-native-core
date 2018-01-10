@@ -2281,6 +2281,31 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setOwningAvatarID(myNodeID);
         }
 
+        // TEMPORARY fix for older content not containing these fields in the zones
+        if (properties.getType() == EntityTypes::EntityType::Zone) {
+            if (!entityMap.contains("keyLightMode")) {
+                properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            }
+
+            if (!entityMap.contains("skyboxMode")) {
+                if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "nothing")) {
+                    properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+                } else {
+                    // Either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
+                    properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+
+                    // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+                    if (properties.getAmbientLight().getAmbientURL() == "") {
+                        properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                    }
+                }
+            }
+
+            if (!entityMap.contains("ambientLightMode")) {
+                properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
