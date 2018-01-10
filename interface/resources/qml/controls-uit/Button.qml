@@ -57,7 +57,7 @@ Original.Button {
                             hifi.buttons.disabledColorStart[control.colorScheme]
                         } else if (control.pressed) {
                             hifi.buttons.pressedColor[control.color]
-                        } else if (control.hovered) {
+                        } else if (control.hovered || control.focus) {
                             hifi.buttons.hoveredColor[control.color]
                         } else {
                             hifi.buttons.colorStart[control.color]
@@ -71,7 +71,7 @@ Original.Button {
                             hifi.buttons.disabledColorFinish[control.colorScheme]
                         } else if (control.pressed) {
                             hifi.buttons.pressedColor[control.color]
-                        } else if (control.hovered) {
+                        } else if (control.hovered || control.focus) {
                             hifi.buttons.hoveredColor[control.color]
                         } else {
                             hifi.buttons.colorFinish[control.color]

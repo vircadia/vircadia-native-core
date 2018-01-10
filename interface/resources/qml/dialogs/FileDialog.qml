@@ -704,7 +704,7 @@ ModalWindow {
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: openButton
                 KeyNavigation.right: fileTableView.contentItem
-                Keys.onReturnPressed: { canceled(); root.enabled = false }
+                Keys.onReturnPressed: { cancelAction.trigger() }
             }
         }
 
