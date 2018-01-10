@@ -49,6 +49,8 @@ void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptR
 WindowScriptingInterface::WindowScriptingInterface() {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
+
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
@@ -132,6 +134,10 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
         disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         emit promptTextChanged(result.toString());
     });
+}
+
+void WindowScriptingInterface::disconnectedFromDomain() {
+    emit domainChanged("");
 }
 
 CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {
