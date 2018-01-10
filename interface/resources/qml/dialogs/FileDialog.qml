@@ -636,7 +636,7 @@ ModalWindow {
                 case Qt.Key_Backtab:
                     event.accepted = false;
                     break;
-                    case Qt.Key_Escape:
+                case Qt.Key_Escape:
                     event.accepted = true;
                     root.click(OriginalDialogs.StandardButton.Cancel);
                     break;
