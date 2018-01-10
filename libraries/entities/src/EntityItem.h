@@ -469,6 +469,9 @@ public:
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
 
+signals:
+    void requestRenderUpdate();
+
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
 
