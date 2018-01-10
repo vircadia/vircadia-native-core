@@ -203,7 +203,7 @@ enum class EntityVersion : PacketVersion {
     StaticCertJsonVersionOne,
     OwnershipChallengeFix,
     ZoneLightInheritModes,
-    StageRemoved
+    ZoneStageRemoved
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
