@@ -225,7 +225,7 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
-var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
+var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -239,6 +239,7 @@ var toolBar = (function () {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
+
         if (position !== null && position !== undefined) {
             var direction;
             if (Camera.mode === "entity" || Camera.mode === "independent") {
@@ -278,9 +279,13 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM) &&
+                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            } else {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
+
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {

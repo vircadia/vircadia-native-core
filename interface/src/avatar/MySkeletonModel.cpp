@@ -34,12 +34,25 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 }
 
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
+
+    glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
+
+    // check for pinned hips.
+    auto hipsIndex = myAvatar->getJointIndex("Hips");
+    if (myAvatar->isJointPinned(hipsIndex)) {
+        Transform avatarTransform = myAvatar->getTransform();
+        AnimPose result = AnimPose(worldToSensorMat * avatarTransform.getMatrix() * Matrices::Y_180);
+        result.scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+        return result;
+    } else {
+        DebugDraw::getInstance().removeMarker("pinnedHips");
+    }
+
     glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
 
     glm::mat4 avatarToWorldMat = myAvatar->getTransform().getMatrix();
-    glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
@@ -323,17 +336,25 @@ void MySkeletonModel::updateFingers() {
         for (auto& link : chain) {
             int index = _rig.indexOfJoint(link.second);
             if (index >= 0) {
+                auto rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                if (rotationFrameOffset == _jointRotationFrameOffsetMap.end()) {
+                    _jointRotationFrameOffsetMap.insert(std::pair<int, int>(index, 0));
+                    rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                }
                 auto pose = myAvatar->getControllerPoseInSensorFrame(link.first);
+                
                 if (pose.valid) {
                     glm::quat relRot = glm::inverse(prevAbsRot) * pose.getRotation();
                     // only set the rotation for the finger joints, not the hands.
                     if (link.first != controller::Action::LEFT_HAND && link.first != controller::Action::RIGHT_HAND) {
                         _rig.setJointRotation(index, true, relRot, CONTROLLER_PRIORITY);
+                        rotationFrameOffset->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else {
+                } else if (rotationFrameOffset->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
                     _rig.clearJointAnimationPriority(index);
                 }
+                rotationFrameOffset->second++;
             }
         }
     }

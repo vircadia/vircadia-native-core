@@ -447,7 +447,9 @@ Script.include("/~/system/libraries/Xform.js");
                         this.targetObject = new TargetObject(entityID, targetProps);
                         this.targetObject.parentProps = getEntityParents(targetProps);
 
-                        Script.clearTimeout(this.contextOverlayTimer);
+                        if (this.contextOverlayTimer) {
+                            Script.clearTimeout(this.contextOverlayTimer);
+                        }
                         this.contextOverlayTimer = false;
                         if (entityID !== this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
