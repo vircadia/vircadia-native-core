@@ -79,12 +79,14 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
     }
 
     if (opened) {
-        _mapped = _file.map(0, _file.size());
-        if (_mapped) {
-            _valid = true;
-        } else {
-            qCWarning(storagelogging) << "Failed to map file " << filename;
-        }
+        _size = _file.size();
+        _mapped = _file.map(0, _size);
+        if (!_mapped) {
+            qCDebug(storagelogging) << "Failed to map file, falling back to memory storage " << filename;
+            _fallback = _file.readAll();
+            _mapped = (uint8_t*)_fallback.data();
+        } 
+        _valid = true;
     } else {
         qCWarning(storagelogging) << "Failed to open file " << filename;
     }
@@ -92,7 +94,9 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
 
 FileStorage::~FileStorage() {
     if (_mapped) {
-        _file.unmap(_mapped);
+        if (_fallback.isEmpty()) {
+            _file.unmap(_mapped);
+        }
         _mapped = nullptr;
     }
     if (_file.isOpen()) {

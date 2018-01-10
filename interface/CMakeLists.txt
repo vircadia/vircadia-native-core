@@ -11,8 +11,21 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
-set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
-generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
+set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_BINARY_DIR}/resources.rcc)
+generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *)
+
+add_custom_command(
+    OUTPUT ${RESOURCES_RCC}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+    MAIN_DEPENDENCY ${RESOURCES_QRC}
+    DEPENDS ${GENERATE_QRC_DEPENDS}
+)
+
+list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
+add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
+
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -70,16 +83,6 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
-
-list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
-
-if (UNIX)
-  install(
-  DIRECTORY "${CMAKE_SOURCE_DIR}/interface/resources/qml"
-  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources
-  COMPONENT ${CLIENT_COMPONENT}
-  )
-endif()
 
 # translation disabled until we strip out the line numbers
 # set(QM ${TARGET_NAME}_en.qm)
@@ -160,6 +163,8 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+add_dependencies(${TARGET_NAME} resources)
+
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
   # binary directories get added to the fixup path
@@ -235,7 +240,7 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
     if (NOT APPLE OR NOT ${${EXTERNAL}_UPPERCASE} MATCHES "SIXENSE")
       target_link_libraries(${TARGET_NAME} ${${${EXTERNAL}_UPPERCASE}_LIBRARIES})
     elseif (APPLE AND NOT INSTALLER_BUILD)
-      add_definitions(-DSIXENSE_LIB_FILENAME=\"${${${EXTERNAL}_UPPERCASE}_LIBRARY_RELEASE}\")
+      #add_definitions(-DSIXENSE_LIB_FILENAME=\"${${${EXTERNAL}_UPPERCASE}_LIBRARY_RELEASE}\")
     endif ()
   endif ()
 endforeach()
@@ -294,12 +299,12 @@ if (APPLE)
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
-else (APPLE)
+else()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${PROJECT_SOURCE_DIR}/resources"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different 
+    "${RESOURCES_RCC}" 
+    "$<TARGET_FILE_DIR:interface>"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
@@ -325,7 +330,7 @@ else (APPLE)
 
     optional_win_executable_signing()
   endif()
-endif (APPLE)
+endif()
 
 if (SCRIPTS_INSTALL_DIR)
 

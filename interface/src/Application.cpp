@@ -21,6 +21,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <QtCore/QResource>
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QMimeData>
@@ -804,6 +805,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _sampleSound(nullptr)
 
 {
+
+    {
+#if defined(Q_OS_ANDROID)
+        const QString resourcesBinaryFile = "assets:resources.rcc";
+#else
+        const QString resourcesBinaryFile = QFileInfo(argv[0]).absolutePath() + "/resources.rcc";
+#endif
+        if (!QResource::registerResource(resourcesBinaryFile)) {
+            throw std::runtime_error("Unable to load primary resources");
+        }
+    }
+    
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
