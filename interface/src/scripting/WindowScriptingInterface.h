@@ -1,5 +1,5 @@
 //
-//  WindowScriptingInterface.cpp
+//  WindowScriptingInterface.h
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 4/29/14.
