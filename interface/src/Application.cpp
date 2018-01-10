@@ -6788,7 +6788,8 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot() {
     postLambdaEvent([this] {
-        Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
 
