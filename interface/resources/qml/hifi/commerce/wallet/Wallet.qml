@@ -735,6 +735,9 @@ Rectangle {
             case 'updateConnections':
                 sendMoney.updateConnections(message.connections);
             break;
+            case 'selectRecipient':
+                sendMoney.fromScript(message);
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }

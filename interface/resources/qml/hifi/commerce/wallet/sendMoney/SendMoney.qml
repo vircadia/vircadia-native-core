@@ -28,16 +28,15 @@ Item {
 
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
-    property string activeView: "sendMoneyHome";
+    property string currentActiveView: "sendMoneyHome";
+    property string nextActiveView: "";
     property bool isCurrentlyFullScreen: chooseRecipientConnection.visible || chooseRecipientNearby.visible;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup/section.
     MouseArea {
-        anchors.top: parent.top;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        x: 0;
         y: root.isCurrentlyFullScreen ? root.parentAppTitleBarHeight : 0;
         height: root.isCurrentlyFullScreen ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
         propagateComposedEvents: false;
@@ -59,10 +58,34 @@ Item {
         }
     }
 
+    Component.onCompleted: {
+        Commerce.balance();
+    }
+
+    onNextActiveViewChanged: {
+        root.currentActiveView = root.nextActiveView;
+        if (root.currentActiveView === 'chooseRecipientConnection') {
+            // Refresh connections model
+            connectionsLoading.visible = false;
+            connectionsLoading.visible = true;
+            sendSignalToWallet({method: 'refreshConnections'});
+        }
+        
+        if (root.currentActiveView === 'chooseRecipientNearby') {
+            sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
+        } else {
+            sendSignalToWallet({method: 'disable_ChooseRecipientNearbyMode'});
+        }
+
+        if (root.currentActiveView === 'sendMoneyHome') {
+            Commerce.balance();
+        }
+    }
+
     // Send Money Home BEGIN
     Item {
         id: sendMoneyHome;
-        visible: root.activeView === "sendMoneyHome";
+        visible: root.currentActiveView === "sendMoneyHome";
         anchors.fill: parent;
         anchors.topMargin: root.parentAppTitleBarHeight;
         anchors.bottomMargin: root.parentAppNavBarHeight;
@@ -125,12 +148,6 @@ Item {
                 color: hifi.colors.white;
                 // Alignment
                 verticalAlignment: Text.AlignVCenter;
-
-                onVisibleChanged: {
-                    if (visible) {
-                        Commerce.balance();
-                    }
-                }
             }
 
             // "balance" text below field
@@ -210,7 +227,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        root.activeView = "chooseRecipientConnection";
+                        root.nextActiveView = "chooseRecipientConnection";
                     }
                 }
             }
@@ -251,7 +268,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        root.activeView = "chooseRecipientNearby";
+                        root.nextActiveView = "chooseRecipientNearby";
                     }
                 }
             }
@@ -262,18 +279,9 @@ Item {
     // Choose Recipient Connection BEGIN
     Rectangle {
         id: chooseRecipientConnection;
-        visible: root.activeView === "chooseRecipientConnection";
+        visible: root.currentActiveView === "chooseRecipientConnection";
         anchors.fill: parent;
         color: "#AAAAAA";
-
-        onVisibleChanged: {
-            if (visible) {
-                // Refresh connections model
-                connectionsLoading.visible = false;
-                connectionsLoading.visible = true;
-                sendSignalToWallet({method: 'refreshConnections'});
-            }
-        }
         
         ListModel {
             id: connectionsModel;
@@ -321,7 +329,7 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        root.activeView = "sendMoneyHome";
+                        root.nextActiveView = "sendMoneyHome";
                     }
                 }
             }
@@ -430,18 +438,9 @@ Item {
 
         property string selectedRecipient;
 
-        visible: root.activeView === "chooseRecipientNearby";
+        visible: root.currentActiveView === "chooseRecipientNearby";
         anchors.fill: parent;
         color: "#AAAAAA";
-
-        onVisibleChanged: {
-            if (visible) {
-                sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
-            } else {
-                selectedRecipient = "";
-                sendSignalToWallet({method: 'disable_ChooseRecipientNearbyMode'});
-            }
-        }
 
         Rectangle {
             anchors.centerIn: parent;
@@ -482,7 +481,8 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        root.activeView = "sendMoneyHome";
+                        root.nextActiveView = "sendMoneyHome";
+                        chooseRecipientNearby.selectedRecipient = "";
                     }
                 }
             }
@@ -493,13 +493,13 @@ Item {
                 anchors.fill: parent;
 
                 RalewaySemiBold {
-                    id: selectionInstructions;
+                    id: selectionInstructions_deselected;
                     text: "Click/trigger on an avatar nearby to select them...";
                     // Anchors
                     anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: 100;
+                    anchors.bottomMargin: 200;
                     anchors.left: parent.left;
-                    anchors.leftMargin: 50;
+                    anchors.leftMargin: 58;
                     anchors.right: parent.right;
                     anchors.rightMargin: anchors.leftMargin;
                     height: paintedHeight;
@@ -508,6 +508,7 @@ Item {
                     // Style
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
+                    wrapMode: Text.WordWrap;
                 }
             }
 
@@ -517,13 +518,47 @@ Item {
                 anchors.fill: parent;
 
                 RalewaySemiBold {
-                    id: selectionInstructions;
+                    id: sendToText;
+                    text: "Send To:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.topMargin: 120;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 12;
+                    width: paintedWidth;
+                    height: paintedHeight;
+                    // Text size
+                    size: 20;
+                    // Style
+                    color: hifi.colors.baseGray;
+                }
+
+                RalewaySemiBold {
+                    id: avatarNodeID;
+                    text: chooseRecipientNearby.selectedRecipient;
+                    // Anchors
+                    anchors.top: sendToText.bottom;
+                    anchors.topMargin: 60;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 30;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 30;
+                    height: paintedHeight;
+                    // Text size
+                    size: 18;
+                    // Style
+                    horizontalAlignment: Text.AlignHCenter;
+                    color: hifi.colors.baseGray;
+                }
+
+                RalewaySemiBold {
+                    id: selectionInstructions_selected;
                     text: "Click/trigger on another avatar nearby to select them...\n\nor press 'Next' to continue.";
                     // Anchors
                     anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: 100;
+                    anchors.bottomMargin: 200;
                     anchors.left: parent.left;
-                    anchors.leftMargin: 50;
+                    anchors.leftMargin: 58;
                     anchors.right: parent.right;
                     anchors.rightMargin: anchors.leftMargin;
                     height: paintedHeight;
@@ -532,6 +567,43 @@ Item {
                     // Style
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
+                    wrapMode: Text.WordWrap;
+                }
+            }
+
+            // "Cancel" button
+            HifiControlsUit.Button {
+                id: cancelButton;
+                color: hifi.buttons.noneBorderless;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.left: parent.left;
+                anchors.leftMargin: 60;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 80;
+                height: 50;
+                width: 120;
+                text: "Cancel";
+                onClicked: {
+                    root.nextActiveView = "sendMoneyHome";
+                    chooseRecipientNearby.selectedRecipient = "";
+                }
+            }
+
+            // "Next" button
+            HifiControlsUit.Button {
+                id: nextButton;
+                enabled: chooseRecipientNearby.selectedRecipient !== "";
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.right: parent.right;
+                anchors.rightMargin: 60;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 80;
+                height: 50;
+                width: 120;
+                text: "Next";
+                onClicked: {
+                        
                 }
             }
         }
@@ -577,13 +649,13 @@ Item {
         switch (message.method) {
             case 'selectRecipient':
                 if (message.isSelected) {
-                    chooseRecipientNearby.selectedRecipient = message.id;
+                    chooseRecipientNearby.selectedRecipient = message.id[0];
                 } else {
                     chooseRecipientNearby.selectedRecipient = "";
                 }
             break;
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('SendMoney: Unrecognized message from wallet.js:', JSON.stringify(message));
         }
     }
     signal sendSignalToWallet(var msg);

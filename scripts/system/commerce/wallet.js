@@ -392,8 +392,35 @@
     //
     function handleClick(pickRay) {
         ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
-            var message = { method: 'selectRecipient', id: [overlay.key], isSelected: !overlay.selected };
+            var nextSelectedStatus = !overlay.selected;
+            var message = { method: 'selectRecipient', id: [overlay.key], isSelected: nextSelectedStatus };
             sendToQml(message);
+
+            selectedIds = nextSelectedStatus ? [overlay.key] : [];
+            ExtendedOverlay.some(function (overlay) {
+                var id = overlay.key;
+                var selected = ExtendedOverlay.isSelected(id);
+                overlay.select(selected);
+            });
+
+            HighlightedEntity.clearOverlays();
+            if (selectedIds.length) {
+                Entities.findEntitiesInFrustum(Camera.frustum).forEach(function (id) {
+                    // Because lastEditedBy is per session, the vast majority of entities won't match,
+                    // so it would probably be worth reducing marshalling costs by asking for just we need.
+                    // However, providing property name(s) is advisory and some additional properties are
+                    // included anyway. As it turns out, asking for 'lastEditedBy' gives 'position', 'rotation',
+                    // and 'dimensions', too, so we might as well make use of them instead of making a second
+                    // getEntityProperties call.
+                    // It would be nice if we could harden this against future changes by specifying all
+                    // and only these four in an array, but see
+                    // https://highfidelity.fogbugz.com/f/cases/2728/Entities-getEntityProperties-id-lastEditedBy-name-lastEditedBy-doesn-t-work
+                    var properties = Entities.getEntityProperties(id, 'lastEditedBy');
+                    if (ExtendedOverlay.isSelected(properties.lastEditedBy)) {
+                        new HighlightedEntity(id, properties);
+                    }
+                });
+            }
             return true;
         });
     }
@@ -595,6 +622,12 @@
         if (button) {
             button.editProperties({ isActive: onWalletScreen });
         }
+
+        if (onWalletScreen) {
+            isWired = true;
+        } else {
+            off();
+        }
     }
 
     //
@@ -621,6 +654,18 @@
             triggerPressMapping.enable();
         }
     }
+    var isWired = false;
+    function off() {
+        if (isWired) { // It is not ok to disconnect these twice, hence guard.
+            Script.update.disconnect(updateOverlays);
+            Controller.mousePressEvent.disconnect(handleMouseEvent);
+            Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+            isWired = false;
+        }
+        triggerMapping.disable(); // It's ok if we disable twice.
+        triggerPressMapping.disable(); // see above
+        removeOverlays();
+    }
     function shutdown() {
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
@@ -630,12 +675,7 @@
                 tablet.gotoHomeScreen();
             }
         }
-        Script.update.disconnect(updateOverlays);
-        Controller.mousePressEvent.disconnect(handleMouseEvent);
-        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        triggerMapping.disable(); // It's ok if we disable twice.
-        triggerPressMapping.disable(); // see above
-        removeOverlays();
+        off();
     }
 
     //

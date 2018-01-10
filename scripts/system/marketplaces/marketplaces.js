@@ -576,6 +576,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 });
                 break;
             case 'refreshConnections':
+            case 'enable_ChooseRecipientNearbyMode':
+            case 'disable_ChooseRecipientNearbyMode':
                 // NOP
                 break;
             default:
