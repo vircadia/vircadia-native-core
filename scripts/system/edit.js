@@ -251,7 +251,8 @@ var toolBar = (function () {
             // Align entity with Avatar orientation.
             properties.rotation = MyAvatar.orientation;
             
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+            // added image here
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     
                 // Adjust position of entity per bounding box prior to creating it.
@@ -286,6 +287,7 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
+            print("properties.type: " + properties.type);
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {
@@ -535,6 +537,16 @@ var toolBar = (function () {
                 },
                 text: "some text",
                 lineHeight: 0.06
+            });
+        });
+
+        // for image button
+        addButton("newImageButton", "web-01.svg", function () {
+            print("new image message is received");
+            createNewEntity({
+                type: "Image",
+                dimensions: DEFAULT_DIMENSIONS,
+                sourceUrl: "https://highfidelity.com/"
             });
         });
 

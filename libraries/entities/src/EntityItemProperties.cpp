@@ -1369,6 +1369,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
+            if (properties.getType() == EntityTypes::Image) {
+                APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
+            }
+
             if (properties.getType() == EntityTypes::Text) {
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());

@@ -26,6 +26,8 @@ public:
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
+    EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
+
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
         EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
         EntityPropertyFlags& requestedProperties,
@@ -34,7 +36,17 @@ public:
         int& propertyCount,
         OctreeElement::AppendState& appendState) const override;
 
+    int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+        ReadBitstreamToTreeParams& args,
+        EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+        bool& somethingChanged) override;
+
+
     static const QString DEFAULT_IMAGE_URL;
+    QString getImageURL() const;
+
+protected:
+    QString _imageURL;
 
 };
 

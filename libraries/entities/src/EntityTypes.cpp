@@ -89,6 +89,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
     EntityItemPointer newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
+        qCDebug(entities) << "type: " << entityType;
         factory = _factories[entityType];
     }
     if (factory) {

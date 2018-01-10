@@ -101,6 +101,18 @@ TabView {
                     }
                 }
 
+                // for image
+                NewEntityButton {
+                    icon: "icons/create-icons/25-web-1-01.svg"
+                    text: "IMAGE"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newImageButton" }
+                        });
+                        editTabView.currentIndex = 2
+                    }
+                }
+
                 NewEntityButton {
                     icon: "icons/create-icons/25-web-1-01.svg"
                     text: "WEB"
