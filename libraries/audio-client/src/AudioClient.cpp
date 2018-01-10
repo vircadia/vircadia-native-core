@@ -782,7 +782,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 
     _selectedCodecName = selectedCodecName;
 
-    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName;
+    qCDebug(audioclient) << "Selected Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
 
     // release any old codec encoder/decoder first...
     if (_codec && _encoder) {
@@ -797,7 +797,7 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
         if (_selectedCodecName == plugin->getName()) {
             _codec = plugin;
             _receivedAudioStream.setupCodec(plugin, _selectedCodecName, AudioConstants::STEREO);
-            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, AudioConstants::MONO);
+            _encoder = plugin->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
             qCDebug(audioclient) << "Selected Codec Plugin:" << _codec.get();
             break;
         }
