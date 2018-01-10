@@ -52,6 +52,11 @@
         tablet.sendToQml(message);
     }
 
+    //***********************************************
+    //
+    // BEGIN Connection logic
+    //
+    //***********************************************
     // Function Names:
     //   - requestJSON
     //   - getAvailableConnections
@@ -129,6 +134,352 @@
             });
         }
     }
+    //***********************************************
+    //
+    // END Connection logic
+    //
+    //***********************************************
+
+    //***********************************************
+    //
+    // BEGIN Avatar Selector logic
+    //
+    //***********************************************
+    var UNSELECTED_TEXTURES = {
+        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
+        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
+    };
+    var SELECTED_TEXTURES = {
+        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
+        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
+    };
+    var HOVER_TEXTURES = {
+        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
+        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
+    };
+
+    var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
+    var SELECTED_COLOR = { red: 0xF3, green: 0x91, blue: 0x29 };
+    var HOVER_COLOR = { red: 0xD0, green: 0xD0, blue: 0xD0 };
+    var conserveResources = true;
+
+    var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
+
+    function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapper around overlays to store the key it is associated with.
+        overlays[key] = this;
+        if (hasModel) {
+            var modelKey = key + "-m";
+            this.model = new ExtendedOverlay(modelKey, "model", {
+                url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
+                textures: textures(selected),
+                ignoreRayIntersection: true
+            }, false, false);
+        } else {
+            this.model = undefined;
+        }
+        this.key = key;
+        this.selected = selected || false; // not undefined
+        this.hovering = false;
+        this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
+    }
+    // Instance methods:
+    ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and data of this overlay
+        Overlays.deleteOverlay(this.activeOverlay);
+        delete overlays[this.key];
+    };
+
+    ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
+        Overlays.editOverlay(this.activeOverlay, properties);
+    };
+
+    function color(selected, hovering) {
+        var base = hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+        function scale(component) {
+            var delta = 0xFF - component;
+            return component;
+        }
+        return { red: scale(base.red), green: scale(base.green), blue: scale(base.blue) };
+    }
+
+    function textures(selected, hovering) {
+        return hovering ? HOVER_TEXTURES : selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
+    }
+    // so we don't have to traverse the overlays to get the last one
+    var lastHoveringId = 0;
+    ExtendedOverlay.prototype.hover = function (hovering) {
+        this.hovering = hovering;
+        if (this.key === lastHoveringId) {
+            if (hovering) {
+                return;
+            }
+            lastHoveringId = 0;
+        }
+        this.editOverlay({ color: color(this.selected, hovering) });
+        if (this.model) {
+            this.model.editOverlay({ textures: textures(this.selected, hovering) });
+        }
+        if (hovering) {
+            // un-hover the last hovering overlay
+            if (lastHoveringId && lastHoveringId !== this.key) {
+                ExtendedOverlay.get(lastHoveringId).hover(false);
+            }
+            lastHoveringId = this.key;
+        }
+    };
+    ExtendedOverlay.prototype.select = function (selected) {
+        if (this.selected === selected) {
+            return;
+        }
+
+        this.editOverlay({ color: color(selected, this.hovering) });
+        if (this.model) {
+            this.model.editOverlay({ textures: textures(selected) });
+        }
+        this.selected = selected;
+    };
+    // Class methods:
+    var selectedIds = [];
+    ExtendedOverlay.isSelected = function (id) {
+        return -1 !== selectedIds.indexOf(id);
+    };
+    ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
+        return overlays[key];
+    };
+    ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator returns truthy.
+        var key;
+        for (key in overlays) {
+            if (iterator(ExtendedOverlay.get(key))) {
+                return;
+            }
+        }
+    };
+    ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId (if any)
+        if (lastHoveringId) {
+            ExtendedOverlay.get(lastHoveringId).hover(false);
+        }
+    };
+
+    // hit(overlay) on the one overlay intersected by pickRay, if any.
+    // noHit() if no ExtendedOverlay was intersected (helps with hover)
+    ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
+        var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+        if (!pickedOverlay.intersects) {
+            if (noHit) {
+                return noHit();
+            }
+            return;
+        }
+        ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
+            if ((overlay.activeOverlay) === pickedOverlay.overlayID) {
+                hit(overlay);
+                return true;
+            }
+        });
+    };
+
+    function HighlightedEntity(id, entityProperties) {
+        this.id = id;
+        this.overlay = Overlays.addOverlay('cube', {
+            position: entityProperties.position,
+            rotation: entityProperties.rotation,
+            dimensions: entityProperties.dimensions,
+            solid: false,
+            color: {
+                red: 0xF3,
+                green: 0x91,
+                blue: 0x29
+            },
+            ignoreRayIntersection: true,
+            drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
+        });
+        HighlightedEntity.overlays.push(this);
+    }
+    HighlightedEntity.overlays = [];
+    HighlightedEntity.clearOverlays = function clearHighlightedEntities() {
+        HighlightedEntity.overlays.forEach(function (highlighted) {
+            Overlays.deleteOverlay(highlighted.overlay);
+        });
+        HighlightedEntity.overlays = [];
+    };
+    HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
+        HighlightedEntity.overlays.forEach(function (highlighted) {
+            var properties = Entities.getEntityProperties(highlighted.id, ['position', 'rotation', 'dimensions']);
+            Overlays.editOverlay(highlighted.overlay, {
+                position: properties.position,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions
+            });
+        });
+    };
+
+
+    function addAvatarNode(id) {
+        var selected = ExtendedOverlay.isSelected(id);
+        return new ExtendedOverlay(id, "sphere", {
+            drawInFront: true,
+            solid: true,
+            alpha: 0.8,
+            color: color(selected, false),
+            ignoreRayIntersection: false
+        }, selected, !conserveResources);
+    }
+
+    var pingPong = true;
+    function updateOverlays() {
+        var eye = Camera.position;
+        AvatarList.getAvatarIdentifiers().forEach(function (id) {
+            if (!id) {
+                return; // don't update ourself, or avatars we're not interested in
+            }
+            var avatar = AvatarList.getAvatar(id);
+            if (!avatar) {
+                return; // will be deleted below if there had been an overlay.
+            }
+            var overlay = ExtendedOverlay.get(id);
+            if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
+                overlay = addAvatarNode(id);
+            }
+            var target = avatar.position;
+            var distance = Vec3.distance(target, eye);
+            var offset = 0.2;
+            var diff = Vec3.subtract(target, eye); // get diff between target and eye (a vector pointing to the eye from avatar position)
+            var headIndex = avatar.getJointIndex("Head"); // base offset on 1/2 distance from hips to head if we can
+            if (headIndex > 0) {
+                offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
+            }
+
+            // move a bit in front, towards the camera
+            target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
+
+            // now bump it up a bit
+            target.y = target.y + offset;
+
+            overlay.ping = pingPong;
+            overlay.editOverlay({
+                color: color(ExtendedOverlay.isSelected(id), overlay.hovering),
+                position: target,
+                dimensions: 0.032 * distance
+            });
+            if (overlay.model) {
+                overlay.model.ping = pingPong;
+                overlay.model.editOverlay({
+                    position: target,
+                    scale: 0.2 * distance, // constant apparent size
+                    rotation: Camera.orientation
+                });
+            }
+        });
+        pingPong = !pingPong;
+        ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
+            if (overlay.ping === pingPong) {
+                overlay.deleteOverlay();
+            }
+        });
+        // We could re-populateNearbyUserList if anything added or removed, but not for now.
+        HighlightedEntity.updateOverlays();
+    }
+    function removeOverlays() {
+        selectedIds = [];
+        lastHoveringId = 0;
+        HighlightedEntity.clearOverlays();
+        ExtendedOverlay.some(function (overlay) {
+            overlay.deleteOverlay();
+        });
+    }
+
+    //
+    // Clicks.
+    //
+    function handleClick(pickRay) {
+        ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+            var message = { method: 'selectRecipient', id: [overlay.key], isSelected: !overlay.selected };
+            sendToQml(message);
+            return true;
+        });
+    }
+    function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
+        if (!mousePressEvent.isLeftButton) {
+            return;
+        }
+        handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
+    }
+    function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
+        ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+            overlay.hover(true);
+        }, function () {
+            ExtendedOverlay.unHover();
+        });
+    }
+
+    // handy global to keep track of which hand is the mouse (if any)
+    var currentHandPressed = 0;
+    var TRIGGER_CLICK_THRESHOLD = 0.85;
+    var TRIGGER_PRESS_THRESHOLD = 0.05;
+
+    function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
+        var pickRay;
+        if (HMD.active) {
+            if (currentHandPressed !== 0) {
+                pickRay = controllerComputePickRay(currentHandPressed);
+            } else {
+                // nothing should hover, so
+                ExtendedOverlay.unHover();
+                return;
+            }
+        } else {
+            pickRay = Camera.computePickRay(event.x, event.y);
+        }
+        handleMouseMove(pickRay);
+    }
+    function handleTriggerPressed(hand, value) {
+        // The idea is if you press one trigger, it is the one
+        // we will consider the mouse.  Even if the other is pressed,
+        // we ignore it until this one is no longer pressed.
+        var isPressed = value > TRIGGER_PRESS_THRESHOLD;
+        if (currentHandPressed === 0) {
+            currentHandPressed = isPressed ? hand : 0;
+            return;
+        }
+        if (currentHandPressed === hand) {
+            currentHandPressed = isPressed ? hand : 0;
+            return;
+        }
+        // otherwise, the other hand is still triggered
+        // so do nothing.
+    }
+
+    // We get mouseMoveEvents from the handControllers, via handControllerPointer.
+    // But we don't get mousePressEvents.
+    var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+    var triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
+    function controllerComputePickRay(hand) {
+        var controllerPose = getControllerWorldLocation(hand, true);
+        if (controllerPose.valid) {
+            return { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
+        }
+    }
+    function makeClickHandler(hand) {
+        return function (clicked) {
+            if (clicked > TRIGGER_CLICK_THRESHOLD) {
+                var pickRay = controllerComputePickRay(hand);
+                handleClick(pickRay);
+            }
+        };
+    }
+    function makePressHandler(hand) {
+        return function (value) {
+            handleTriggerPressed(hand, value);
+        };
+    }
+    triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
+    triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+    triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
+    //***********************************************
+    //
+    // END Avatar Selector logic
+    //
+    //***********************************************
 
     // Function Name: fromQml()
     //
@@ -192,6 +543,13 @@
             case 'refreshConnections':
                 print('Refreshing Connections...');
                 getConnectionData(false);
+                break;
+            case 'enable_ChooseRecipientNearbyMode':
+                Script.update.connect(updateOverlays);
+                break;
+            case 'disable_ChooseRecipientNearbyMode':
+                Script.update.disconnect(updateOverlays);
+                removeOverlays();
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
@@ -257,6 +615,10 @@
             });
             button.clicked.connect(onButtonClicked);
             tablet.screenChanged.connect(onTabletScreenChanged);
+            Controller.mousePressEvent.connect(handleMouseEvent);
+            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+            triggerMapping.enable();
+            triggerPressMapping.enable();
         }
     }
     function shutdown() {
@@ -268,6 +630,12 @@
                 tablet.gotoHomeScreen();
             }
         }
+        Script.update.disconnect(updateOverlays);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        triggerMapping.disable(); // It's ok if we disable twice.
+        triggerPressMapping.disable(); // see above
+        removeOverlays();
     }
 
     //

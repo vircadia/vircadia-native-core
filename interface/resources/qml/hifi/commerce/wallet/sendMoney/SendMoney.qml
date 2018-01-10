@@ -29,7 +29,7 @@ Item {
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string activeView: "sendMoneyHome";
-    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible;
+    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible || chooseRecipientNearby.visible;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -288,7 +288,7 @@ Item {
             height: parent.height - 30;
 
             RalewaySemiBold {
-                id: chooseRecipientText;
+                id: chooseRecipientText_connections;
                 text: "Choose Recipient:";
                 // Anchors
                 anchors.top: parent.top;
@@ -304,7 +304,7 @@ Item {
             }
             
             HiFiGlyphs {
-                id: closeGlyphButton;
+                id: closeGlyphButton_connections;
                 text: hifi.glyphs.close;
                 size: 26;
                 anchors.top: parent.top;
@@ -338,7 +338,7 @@ Item {
                 anchors.leftMargin: 16;
                 anchors.right: parent.right;
                 anchors.rightMargin: 16;
-                anchors.top: chooseRecipientText.bottom;
+                anchors.top: chooseRecipientText_connections.bottom;
                 anchors.topMargin: 12;
 
                 HifiControlsUit.TextField {
@@ -423,6 +423,120 @@ Item {
         }
     }
     // Choose Recipient Connection END
+    
+    // Choose Recipient Nearby BEGIN
+    Rectangle {
+        id: chooseRecipientNearby;
+
+        property string selectedRecipient;
+
+        visible: root.activeView === "chooseRecipientNearby";
+        anchors.fill: parent;
+        color: "#AAAAAA";
+
+        onVisibleChanged: {
+            if (visible) {
+                sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
+            } else {
+                selectedRecipient = "";
+                sendSignalToWallet({method: 'disable_ChooseRecipientNearbyMode'});
+            }
+        }
+
+        Rectangle {
+            anchors.centerIn: parent;
+            width: parent.width - 30;
+            height: parent.height - 30;
+
+            RalewaySemiBold {
+                id: chooseRecipientText_nearby;
+                text: "Choose Recipient:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: paintedWidth;
+                height: 30;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+            }
+            
+            HiFiGlyphs {
+                id: closeGlyphButton_nearby;
+                text: hifi.glyphs.close;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+                anchors.right: parent.right;
+                anchors.rightMargin: 10;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        root.activeView = "sendMoneyHome";
+                    }
+                }
+            }
+
+            Item {
+                id: selectionInstructionsContainer;
+                visible: chooseRecipientNearby.selectedRecipient === "";
+                anchors.fill: parent;
+
+                RalewaySemiBold {
+                    id: selectionInstructions;
+                    text: "Click/trigger on an avatar nearby to select them...";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: 100;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 50;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: anchors.leftMargin;
+                    height: paintedHeight;
+                    // Text size
+                    size: 20;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+            }
+
+            Item {
+                id: selectionMadeContainer;
+                visible: !selectionInstructionsContainer.visible;
+                anchors.fill: parent;
+
+                RalewaySemiBold {
+                    id: selectionInstructions;
+                    text: "Click/trigger on another avatar nearby to select them...\n\nor press 'Next' to continue.";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: 100;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 50;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: anchors.leftMargin;
+                    height: paintedHeight;
+                    // Text size
+                    size: 20;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+            }
+        }
+    }
+    // Choose Recipient Nearby END
 
 
 
@@ -461,6 +575,13 @@ Item {
     //
     function fromScript(message) {
         switch (message.method) {
+            case 'selectRecipient':
+                if (message.isSelected) {
+                    chooseRecipientNearby.selectedRecipient = message.id;
+                } else {
+                    chooseRecipientNearby.selectedRecipient = "";
+                }
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }
