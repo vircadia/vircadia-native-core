@@ -118,12 +118,10 @@ private:
     QString _ambientTextureURL;
     NetworkTexturePointer _ambientTexture;
     bool _pendingAmbientTexture{ false };
-    bool _validAmbientTexture{ false };
 
     QString _skyboxTextureURL;
     NetworkTexturePointer _skyboxTexture;
     bool _pendingSkyboxTexture{ false };
-    bool _validSkyboxTexture{ false };
 
     QString _proceduralUserData;
     Transform _renderTransform;

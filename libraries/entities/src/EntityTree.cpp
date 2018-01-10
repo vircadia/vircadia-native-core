@@ -2291,8 +2291,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "nothing")) {
                     properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
                 } else {
-				    // either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
+                    // Either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
                     properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+
+                    // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+                    if (properties.getAmbientLight().getAmbientURL() == "") {
+                        properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                    }
                 }
             }
 
