@@ -210,14 +210,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
-#if defined(Q_OS_ANDROID)
-#include <QtAndroidExtras/QAndroidJniObject>
-#include <android/log.h>
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
-#endif
-// On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
-// FIXME seems to be broken.
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -232,35 +225,17 @@
 #undef QT_BOOTSTRAPPED
 #endif
 
+// On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
+// FIXME seems to be broken.
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
 
 #if defined(Q_OS_ANDROID)
-extern "C" {
- 
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
-    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
-}
-
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnPause";
-}
-
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnResume(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnResume";
-}
-
-
-
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnExitVr(JNIEnv* env, jobject obj) {
-    qDebug() << "nativeOnCreate On thread " << QThread::currentThreadId();
-}
-
-
-}
+#include <android/log.h>
 #endif
+
 enum ApplicationEvent {
     // Execute a lambda function
     Lambda = QEvent::User + 1,
@@ -269,7 +244,6 @@ enum ApplicationEvent {
     // Trigger the next idle
     Idle,
 };
-
 
 class RenderEventHandler : public QObject {
     using Parent = QObject;
@@ -2232,7 +2206,9 @@ void Application::initializeGL() {
     _chromiumShareContext->setObjectName("ChromiumShareContext");
     _chromiumShareContext->create(_glWidget->qglContext());
     _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    if (nsightActive()) {
+        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    }
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();

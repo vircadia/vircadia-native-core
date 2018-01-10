@@ -23,12 +23,7 @@ android {
                     '-DBUILD_BRANCH=' + BUILD_BRANCH
             }
         }
-        compileOptions {
-            sourceCompatibility JavaVersion.VERSION_1_8
-            targetCompatibility JavaVersion.VERSION_1_8
-        }
     }
-
     buildTypes {
         applicationVariants.all { variant ->
             variant.outputs.all {
@@ -43,17 +38,23 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
     externalNativeBuild {
         cmake {
             path '../../CMakeLists.txt'
         }
+    }
+    buildToolsVersion '27.0.3'
+    dexOptions {
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
 dependencies {
     implementation 'com.google.vr:sdk-audio:1.80.0'
     implementation 'com.google.vr:sdk-base:1.80.0'
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
 

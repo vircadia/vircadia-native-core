@@ -548,15 +548,12 @@ void OffscreenQmlSurface::render() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__)
     _canvas->makeCurrent();
-
     _renderControl->sync();
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
     GLuint texture = offscreenTextures.getNextTexture(_size);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-#if !defined(Q_OS_ANDROID)
-	glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-#endif
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     _renderControl->render();
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -843,7 +840,7 @@ QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickIte
 
     QQmlContext* targetContext = parent ? QQmlEngine::contextForObject(parent) : _qmlContext;
     if (!targetContext) {
-    	targetContext = _qmlContext;
+        targetContext = _qmlContext;
     }
     if (_rootItem && forceNewContext) {
         targetContext = new QQmlContext(targetContext);

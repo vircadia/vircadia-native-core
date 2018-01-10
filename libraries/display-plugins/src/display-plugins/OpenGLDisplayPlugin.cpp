@@ -884,6 +884,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
 }
 
 void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
+#if !defined(Q_OS_ANDROID)
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     withMainThreadContext([&] {
         GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
@@ -891,14 +892,10 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         GLuint fbo[2] {0, 0};
 
         // need mipmaps for blitting texture
-#if !defined(Q_OS_ANDROID)
-		glGenerateTextureMipmap(sourceTexture);
-#endif
+        glGenerateTextureMipmap(sourceTexture);
 
         // create 2 fbos (one for initial texture, second for scaled one)
-#if !defined(Q_OS_ANDROID)
-	glCreateFramebuffers(2, fbo);
-#endif
+        glCreateFramebuffers(2, fbo);
 
         // setup source fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
@@ -928,13 +925,13 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         } else {
             newY = (target->height() - newHeight) / 2;
         }
-#if !defined(Q_OS_ANDROID)
+
         glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
-#endif
 
         // don't delete the textures!
         glDeleteFramebuffers(2, fbo);
         *fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     });
+#endif
 }
 
