@@ -1079,7 +1079,7 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         encodedBuffer = audioBuffer;
     }
 
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber,
+    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
             audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
             packetType, _selectedCodecName);
     _stats.sentPacket();
