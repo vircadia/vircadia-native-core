@@ -50,7 +50,7 @@ float LODManager::getLODIncreaseFPS() {
 const float LOD_ADJUST_RUNNING_AVG_TIMESCALE = 0.1f; // sec
 //
 // Assuming the measured value is affected by logic invoked by the runningAverage bumping up against its
-// thresholds, we expect the adjustment to introduce a step-function.  We want the runningAverage settle
+// thresholds, we expect the adjustment to introduce a step-function.  We want the runningAverage to settle
 // to the new value BEFORE we test it aginst its thresholds again.  Hence we test on a period that is a few
 // multiples of the running average timescale:
 const uint64_t LOD_AUTO_ADJUST_PERIOD = 5 * (uint64_t)(LOD_ADJUST_RUNNING_AVG_TIMESCALE * (float)USECS_PER_MSEC); // usec
