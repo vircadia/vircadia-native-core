@@ -548,6 +548,7 @@ void OffscreenQmlSurface::render() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__)
     _canvas->makeCurrent();
+
     _renderControl->sync();
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
 
@@ -840,7 +841,7 @@ QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickIte
 
     QQmlContext* targetContext = parent ? QQmlEngine::contextForObject(parent) : _qmlContext;
     if (!targetContext) {
-        targetContext = _qmlContext;
+    	targetContext = _qmlContext;
     }
     if (_rootItem && forceNewContext) {
         targetContext = new QQmlContext(targetContext);

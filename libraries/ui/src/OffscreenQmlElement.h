@@ -13,6 +13,8 @@
 #define hifi_OffscreenQmlElement_h
 
 #include <QQuickItem>
+
+#include <PathUtils.h>
 class QQmlContext;
 
 #define HIFI_QML_DECL \
@@ -40,7 +42,7 @@ public: \
 private:
 
 #define HIFI_QML_DEF(x) \
-    const QUrl x::QML = QUrl("qrc:///qml/" #x ".qml"); \
+    const QUrl x::QML = QUrl(PathUtils::qmlBasePath() + #x ".qml"); \
     const QString x::NAME = #x; \
     \
     void x::registerType() { \

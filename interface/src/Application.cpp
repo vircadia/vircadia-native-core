@@ -2206,9 +2206,7 @@ void Application::initializeGL() {
     _chromiumShareContext->setObjectName("ChromiumShareContext");
     _chromiumShareContext->create(_glWidget->qglContext());
     _chromiumShareContext->makeCurrent();
-    if (nsightActive()) {
-        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-    }
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2342,11 +2340,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-#ifdef Q_OS_ANDROID
     offscreenUi->createDesktop(PathUtils::qmlBasePath() + "hifi/Desktop.qml");
-#else
-    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-#endif
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
