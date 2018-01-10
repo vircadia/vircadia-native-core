@@ -222,10 +222,6 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
-        // mark the TabletProxy object as cpp ownership.
-        QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-        _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
     }
