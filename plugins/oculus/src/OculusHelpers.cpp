@@ -262,7 +262,7 @@ controller::Pose ovrControllerPoseToHandPose(
     pose.translation = toGlm(handPose.ThePose.Position);
     pose.translation += rotation * translationOffset;
     pose.rotation = rotation * rotationOffset;
-    pose.angularVelocity = toGlm(handPose.AngularVelocity);
+    pose.angularVelocity = rotation * toGlm(handPose.AngularVelocity);
     pose.velocity = toGlm(handPose.LinearVelocity);
     pose.valid = true;
     return pose;
