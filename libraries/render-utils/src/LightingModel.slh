@@ -133,16 +133,19 @@ SurfaceData initSurfaceData(float roughness, vec3 normal, vec3 eyeDir) {
     SurfaceData surface;
     surface.eyeDir = eyeDir;
     surface.normal = normal;
-    surface.lightDir = vec3(0,0,0);
-    surface.halfDir = vec3(0,0,0);
     surface.roughness = mix(0.001, 1.0, roughness);
     surface.roughness2 = surface.roughness * surface.roughness;
     surface.roughness4 = surface.roughness2 * surface.roughness2;
     surface.ndotv = clamp(dot(normal, eyeDir), 0.0, 1.0);
+    surface.smithInvG1NdotV = evalSmithInvG1(surface.roughness4, surface.ndotv);
+
+    // These values will be set when we know the light direction, in updateSurfaceDataWithLight
     surface.ndoth = 0.0;
     surface.ndotl = 0.0;
     surface.ldoth = 0.0;
-    surface.smithInvG1NdotV = evalSmithInvG1(surface.roughness4, surface.ndotv);
+    surface.lightDir = vec3(0,0,1);
+    surface.halfDir = vec3(0,0,1);
+
     return surface;
 }
 
