@@ -31,7 +31,7 @@ Item {
     property string currentActiveView: "sendMoneyHome";
     property string nextActiveView: "";
     property bool isCurrentlyFullScreen: chooseRecipientConnection.visible ||
-        chooseRecipientNearby.visible || sendMoneyStep.visible || paymentSuccess.visible;
+        chooseRecipientNearby.visible || sendMoneyStep.visible || paymentSuccess.visible || paymentFailure.visible;
     property bool isCurrentlySendingMoney: false;
         
     // This object is always used in a popup or full-screen Wallet section.
@@ -509,7 +509,7 @@ Item {
                     // Style
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
-                    wrapMode: Text.WordWrap;
+                    wrapMode: Text.Wrap;
                 }
             }
 
@@ -568,7 +568,7 @@ Item {
                     // Style
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
-                    wrapMode: Text.WordWrap;
+                    wrapMode: Text.Wrap;
                 }
             }
 
@@ -880,7 +880,7 @@ Item {
                     id: tempTimer;
                     onTriggered: {
                         root.isCurrentlySendingMoney = false;
-                        root.nextActiveView = "paymentSuccess";
+                        root.nextActiveView = "paymentFailure";
                     }
                 }
             }
@@ -1104,13 +1104,14 @@ Item {
                 anchors.left: parent.left;
                 anchors.leftMargin: 110;
                 anchors.right: parent.right;
+                anchors.rightMargin: 16;
                 anchors.bottom: closeButton.top;
                 anchors.bottomMargin: 40;
                 // Text size
                 size: 22;
                 // Style
                 color: hifi.colors.baseGray;
-                wrapMode: Text.WordWrap;
+                wrapMode: Text.Wrap;
                 verticalAlignment: Text.AlignTop;
             }
 
@@ -1133,6 +1134,243 @@ Item {
         }
     }
     // Payment Success END
+    
+    // Payment Failure BEGIN
+    Rectangle {
+        id: paymentFailure;
+
+        visible: root.currentActiveView === "paymentFailure";
+        anchors.fill: parent;
+        color: "#AAAAAA";
+
+        Rectangle {
+            anchors.centerIn: parent;
+            width: parent.width - 30;
+            height: parent.height - 30;
+
+            RalewaySemiBold {
+                id: paymentFailureText;
+                text: "Payment Failed";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: paintedWidth;
+                height: 30;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+            }
+            
+            HiFiGlyphs {
+                id: closeGlyphButton_paymentFailure;
+                text: hifi.glyphs.close;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+                anchors.right: parent.right;
+                anchors.rightMargin: 10;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        root.nextActiveView = "sendMoneyHome";
+                        resetSendMoneyData();
+                    }
+                }
+            }
+
+            RalewaySemiBold {
+                id: paymentFailureDetailText;
+                text: "The recipient you specified was unable to receive your payment.";
+                anchors.top: paymentFailureText.bottom;
+                anchors.topMargin: 20;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 80;
+                // Text size
+                size: 18;
+                // Style
+                color: hifi.colors.baseGray;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            Item {
+                id: sendToContainer_paymentFailure;
+                anchors.top: paymentFailureDetailText.bottom;
+                anchors.topMargin: 20;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 80;
+
+                RalewaySemiBold {
+                    id: paymentFailureText_paymentFailure;
+                    text: "Sent To:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.bottom: parent.bottom;
+                    width: 90;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+
+                RalewaySemiBold {
+                    id: recipientDisplayName_paymentFailure;
+                    text: sendMoneyStep.selectedRecipientDisplayName;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: sendToText_paymentFailure.right;
+                    anchors.right: parent.right;
+                    height: parent.height/2;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignBottom;
+                }
+
+                RalewaySemiBold {
+                    id: recipientUsername_paymentFailure;
+                    text: sendMoneyStep.selectedRecipientUserName;
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    anchors.left: recipientDisplayName_paymentFailure.anchors.left;
+                    anchors.leftMargin: recipientDisplayName_paymentFailure.anchors.leftMargin;
+                    anchors.right: recipientDisplayName_paymentFailure.anchors.right;
+                    anchors.rightMargin: recipientDisplayName_paymentFailure.anchors.rightMargin;
+                    height: parent.height/2;
+                    // Text size
+                    size: 16;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignTop;
+                }
+            }
+
+            Item {
+                id: amountContainer_paymentFailure;
+                anchors.top: sendToContainer_paymentFailure.bottom;
+                anchors.topMargin: 16;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 80;
+
+                RalewaySemiBold {
+                    id: amountText_paymentFailure;
+                    text: "Amount:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.bottom: parent.bottom;
+                    width: 90;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+                
+                // "HFC" balance label
+                HiFiGlyphs {
+                    id: amountSentLabel_paymentFailure;
+                    text: hifi.glyphs.hfc;
+                    // Size
+                    size: 32;
+                    // Anchors
+                    anchors.left: amountText_paymentFailure.right;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    height: 50;
+                    // Style
+                    color: hifi.colors.baseGray;
+                }
+
+                RalewaySemiBold {
+                    id: amountSentText_paymentFailure;
+                    text: amountTextField.text;
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: amountSentLabel_paymentFailure.right;
+                    anchors.leftMargin: 20;
+                    anchors.right: parent.right;
+                    height: 50;
+                    // Style
+                    size: 22;
+                    color: hifi.colors.baseGray;
+                }
+            }
+
+            RalewaySemiBold {
+                id: optionalMessage_paymentFailuire;
+                text: optionalMessage.text;
+                // Anchors
+                anchors.top: amountContainer_paymentFailure.bottom;
+                anchors.left: parent.left;
+                anchors.leftMargin: 110;
+                anchors.right: parent.right;
+                anchors.rightMargin: 16;
+                anchors.bottom: closeButton.top;
+                anchors.bottomMargin: 40;
+                // Text size
+                size: 22;
+                // Style
+                color: hifi.colors.baseGray;
+                wrapMode: Text.Wrap;
+                verticalAlignment: Text.AlignTop;
+            }
+
+            // "Close" button
+            HifiControlsUit.Button {
+                id: closeButton_paymentFailure;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 80;
+                height: 50;
+                width: 120;
+                text: "Cancel";
+                onClicked: {
+                    root.nextActiveView = "sendMoneyHome";
+                    resetSendMoneyData();
+                }
+            }
+
+            // "Retry" button
+            HifiControlsUit.Button {
+                id: retryButton_paymentFailure;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.right: parent.right;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 80;
+                height: 50;
+                width: 120;
+                text: "Retry";
+                onClicked: {
+                    
+                }
+            }
+        }
+    }
+    // Payment Failure END
 
 
     //
@@ -1160,6 +1398,8 @@ Item {
         sendMoneyStep.selectedRecipientNodeID = "";
         sendMoneyStep.selectedRecipientDisplayName = "";
         sendMoneyStep.selectedRecipientUserName = "";
+        amountTextField.text = "";
+        optionalMessage.text = "";
     }
 
     //
