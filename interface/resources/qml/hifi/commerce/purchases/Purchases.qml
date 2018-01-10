@@ -36,6 +36,7 @@ Rectangle {
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
+    property int pendingItemCount: 0;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -79,17 +80,21 @@ Rectangle {
         onInventoryResult: {
             purchasesReceived = true;
 
-            if (root.pendingInventoryReply) {
-                inventoryTimer.start();
-            }
-
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
-            } else {
+            } else if (!purchasesContentsList.dragging) { // Don't modify the view if the user's scrolling
                 var inventoryResult = processInventoryResult(result.data.assets);
 
+                var currentIndex = purchasesContentsList.currentIndex === -1 ? 0 : purchasesContentsList.currentIndex;
                 purchasesModel.clear();
                 purchasesModel.append(inventoryResult);
+
+                root.pendingItemCount = 0;
+                for (var i = 0; i < purchasesModel.count; i++) {
+                    if (purchasesModel.get(i).status === "pending") {
+                        root.pendingItemCount++;
+                    }
+                }
 
                 if (previousPurchasesModel.count !== 0) {
                     checkIfAnyItemStatusChanged();
@@ -103,6 +108,12 @@ Rectangle {
                 previousPurchasesModel.append(inventoryResult);
 
                 buildFilteredPurchasesModel();
+
+                purchasesContentsList.positionViewAtIndex(currentIndex, ListView.Beginning);
+            }
+
+            if (root.pendingInventoryReply && root.pendingItemCount > 0) {
+                inventoryTimer.start();
             }
 
             root.pendingInventoryReply = false;
@@ -419,6 +430,8 @@ Rectangle {
             visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
             clip: true;
             model: filteredPurchasesModel;
+            snapMode: ListView.SnapToItem;
+            highlightRangeMode: ListView.StrictlyEnforceRange;
             // Anchors
             anchors.top: root.canRezCertifiedItems ? separator.bottom : cantRezCertified.bottom;
             anchors.topMargin: 12;

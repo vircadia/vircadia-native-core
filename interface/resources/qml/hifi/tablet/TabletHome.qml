@@ -244,6 +244,7 @@ Item {
         PageIndicator {
             id: pageIndicator
             currentIndex: swipeView.currentIndex
+            visible: swipeView.count > 1
 
             delegate: Item {
                 width: 15
