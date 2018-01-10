@@ -71,14 +71,13 @@ ModalWindow {
     signal selectedFile(var file);
     signal canceled();
     signal selected(int button);
-	
-	function click(button) {
-		clickedButton = button;
-		selected(button);
-		destroy();
+    function click(button) {
+        clickedButton = button;
+        selected(button);
+        destroy();
     }
 	
-	property int clickedButton: OriginalDialogs.StandardButton.NoButton;
+    property int clickedButton: OriginalDialogs.StandardButton.NoButton;
 	
     Component.onCompleted: {
         console.log("Helper " + helper + " drives " + drives);
@@ -637,10 +636,10 @@ ModalWindow {
                 case Qt.Key_Backtab:
                     event.accepted = false;
                     break;
-				case Qt.Key_Escape:
-					event.accepted = true;
-					root.click(OriginalDialogs.StandardButton.Cancel);
-					break;
+                    case Qt.Key_Escape:
+                    event.accepted = true;
+                    root.click(OriginalDialogs.StandardButton.Cancel);
+                    break;
                 default:
                     if (addToPrefix(event)) {
                         event.accepted = true
@@ -806,10 +805,10 @@ ModalWindow {
             event.accepted = d.navigateHome();
             break;
 		
-		case Qt.Key_Escape:
-			event.accepted = true;
-			root.click(OriginalDialogs.StandardButton.Cancel);
-			break;
+        case Qt.Key_Escape:
+            event.accepted = true;
+            root.click(OriginalDialogs.StandardButton.Cancel);
+            break;
 		}
     }
 }
