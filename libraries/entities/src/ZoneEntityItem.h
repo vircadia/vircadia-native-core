@@ -18,7 +18,6 @@
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
-#include "StagePropertyGroup.h"
 #include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
@@ -85,8 +84,6 @@ public:
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
 
-    const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
-
     bool getFlyingAllowed() const { return _flyingAllowed; }
     void setFlyingAllowed(bool value) { _flyingAllowed = value; }
     bool getGhostingAllowed() const { return _ghostingAllowed; }
@@ -136,7 +133,6 @@ protected:
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
-    StagePropertyGroup _stageProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
