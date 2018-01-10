@@ -275,9 +275,13 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             if (micStreamIt == _audioStreams.end()) {
                 // we don't have a mic stream yet, so add it
 
-                // read the channel flag to see if our stream is stereo or not
+                // hop past the sequence number that leads the packet
                 message.seek(sizeof(quint16));
 
+                // pull the codec string from the packet
+                auto codecString = message.readString();
+
+                // read the channel flag to see if our stream is stereo or not
                 quint8 channelFlag;
                 message.readPrimitive(&channelFlag);
 
@@ -285,7 +289,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
-                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
+                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName << "channels:" << (channelFlag + 1);
 
                 connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
                         this, &AudioMixerClientData::handleMismatchAudioFormat);
