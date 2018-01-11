@@ -520,7 +520,7 @@ Item {
     Slider {
         id: gainSlider
         // Size
-        width: thisNameCard.width - 20;
+        width: isMyCard ? thisNameCard.width - 20 : thisNameCard.width;
         height: 14
         // Anchors
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
