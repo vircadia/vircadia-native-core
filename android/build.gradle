@@ -431,8 +431,54 @@ task extractGvrBinaries(dependsOn: extractDependencies) {
             }
         }
     }
-
 }
+
+def generateAssetsFileList = {
+    def assetsPath = "${appDir}/src/main/assets/"
+    def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
+
+    def addedByAndroidDeployQtPath = assetsPath + addedByAndroidDeployQtName
+
+    def addedByAndroidDeployQt = new File(addedByAndroidDeployQtPath)
+    if (!addedByAndroidDeployQt.exists() && !addedByAndroidDeployQt.mkdirs()) {
+        throw new GradleScriptException("Failed to create directory " + addedByAndroidDeployQtPath, null);
+    }
+    def outputFilename = "/qt_cache_pregenerated_file_list"
+    def outputFile = new File(addedByAndroidDeployQtPath + outputFilename);
+    Map<String, List<String>> directoryContents = new TreeMap<>();
+
+    def dir = new File(assetsPath)
+    dir.eachFileRecurse (FileType.ANY) { file ->
+
+        def name = file.path.substring(assetsPath.length())
+        int slashIndex = name.lastIndexOf('/')
+        def pathName = slashIndex >= 0 ? name.substring(0, slashIndex) : "/"
+        def fileName = slashIndex >= 0 ? name.substring(pathName.length() + 1) : name
+        if (!fileName.isEmpty() && file.isDirectory() && !fileName.endsWith("/")) {
+            fileName += "/"
+        }
+
+        if (!directoryContents.containsKey(pathName)) {
+            directoryContents[pathName] = new ArrayList<String>()
+        }
+        if (!fileName.isEmpty()) {
+            directoryContents[pathName].add(fileName);
+        }
+    }
+    DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
+    for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
+        def entryList = e.getValue()
+        fos.writeInt(e.key.length()*2); // 2 bytes per char
+        fos.writeChars(e.key);
+        fos.writeInt(entryList.size());
+        for (String entry: entryList) {
+            fos.writeInt(entry.length()*2);
+            fos.writeChars(entry);
+        }
+    }
+    fos.close();
+}
+
 
 // Copy required Qt main libraries and required plugins based on the predefined list here
 // FIXME eventually we would like to use the readelf functionality to automatically detect dependencies
@@ -446,6 +492,7 @@ task qtBundle {
         //def qmlImportFolder = new File("${projectDir}/app/src/main/cpp")
         scanQmlImports(qmlImportFolder)
         generateLibsXml()
+        generateAssetsFileList()
    }
 }
 
@@ -458,77 +505,7 @@ task cleanDependencies(type: Delete) {
     delete 'app/src/main/res/values/libs.xml'
 }
 
-task generateAssetsFileList() {
-    doLast {
-        def assetsPath = "${appDir}/src/main/assets/"
-        def addedByAndroidDeployQtName = "--Added-by-androiddeployqt--/"
 
-        def addedByAndroidDeployQtPath = assetsPath + addedByAndroidDeployQtName
-
-        def addedByAndroidDeployQt = new File(addedByAndroidDeployQtPath)
-        if (!addedByAndroidDeployQt.exists() && !addedByAndroidDeployQt.mkdirs()) {
-            throw new GradleScriptException("Failed to create directory " + addedByAndroidDeployQtPath, null);
-        }
-        def outputFilename = "/qt_cache_pregenerated_file_list"
-        def outputFile = new File(addedByAndroidDeployQtPath + outputFilename);
-        Map<String, List<String>> directoryContents = new TreeMap<>();
-
-        def dir = new File(assetsPath)
-        dir.eachFileRecurse (FileType.ANY) { file ->
-
-            def name = file.path.substring(assetsPath.length())
-            int slashIndex = name.lastIndexOf('/')
-            def pathName = slashIndex >= 0 ? name.substring(0, slashIndex) : "/"
-            def fileName = slashIndex >= 0 ? name.substring(pathName.length() + 1) : name
-            if (!fileName.isEmpty() && file.isDirectory() && !fileName.endsWith("/")) {
-                fileName += "/"
-            }
-
-            if (!directoryContents.containsKey(pathName)) {
-                directoryContents[pathName] = new ArrayList<String>()
-            }
-            if (!fileName.isEmpty()) {
-                directoryContents[pathName].add(fileName);
-            }
-        }
-        DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
-        for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
-            def entryList = e.getValue()
-            fos.writeInt(e.key.length()*2); // 2 bytes per char
-            fos.writeChars(e.key);
-            fos.writeInt(entryList.size());
-            for (String entry: entryList) {
-                fos.writeInt(entry.length()*2);
-                fos.writeChars(entry);
-            }
-        }
-        fos.close();
-    }
-}
-
-task copyInterfaceAssets() {
-    doLast {
-        def resourcesDir = new File("${appDir}/../../interface/resources")
-        def scriptsDir = new File("${appDir}/../../scripts")
-        def assetsDir = new File(appDir, 'src/main/assets')
-
-        def assetsList = new File(assetsDir, 'cache_assets.txt');
-        TimeZone.setDefault(TimeZone.getTimeZone('UTC'))
-        assetsList.withWriter { out ->
-            out.println(Long.toString(new Date().getTime()))
-            copy {
-                from resourcesDir
-                into new File(assetsDir, "resources")
-                eachFile { details-> out.println("resources/" + details.path) }
-            }
-            copy {
-                from scriptsDir
-                into new File(assetsDir, "scripts")
-                eachFile { details-> out.println("scripts/" + details.path) }
-            }
-        }
-    }
-}
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.  
 // See the comment on the qtBundle task above
