@@ -708,6 +708,21 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
     }
 }
 
+void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
+    _jointMap = jointMap;
+    _jointMapCompleted = true;
+};
+
+int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
+    int result = -1;
+    int mapSize = _jointMap.size();
+    if (modelJointIndex >=0 && modelJointIndex < mapSize) {
+        result = _jointMap[modelJointIndex];
+    }
+
+    return result;
+}
+
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
     if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
@@ -811,6 +826,10 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
 
     AnimPose jointRelativePose = jointParentInversePose * jointAbsolutePose;
     return setLocalJointTranslation(index, jointRelativePose.trans());
+}
+
+bool RenderableModelEntityItem::getJointMapCompleted() {
+    return _jointMapCompleted;
 }
 
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {

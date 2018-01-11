@@ -355,24 +355,52 @@ void Avatar::relayJointDataToChildren() {
             auto modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
             if (modelEntity) {
                 if (modelEntity->getRelayParentJoints()) {
-                    QStringList modelJointNames = modelEntity->getJointNames();
-                    QStringList avatarJointNames = getJointNames();
-                    foreach (const QString& jointName, modelJointNames) {
-                        bool containsJoint = avatarJointNames.contains(jointName);
-                        glm::quat jointRotation;
-                        glm::vec3 jointTranslation;
-                        if (!containsJoint) {
-                            int jointIndex = modelEntity->getJointIndex(jointName);
-                            jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
-                            jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
-                        } else {
-                            int jointIndex = getJointIndex(jointName);
-                            jointRotation = getJointRotation(jointIndex);
-                            jointTranslation = getJointTranslation(jointIndex);
+                    qDebug() << modelEntity->getJointMapCompleted();
+                    if (!(modelEntity->getJointMapCompleted())) {
+                        qDebug() << "constructing map";
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        std::vector<int> map;
+                        map.reserve(numJoints);
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++)  {
+                            QString jointName = modelJointNames.at(jointIndex);
+                            int avatarJointIndex = getJointIndex(jointName);
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            qDebug() << avatarJointIndex;
+                            if (avatarJointIndex < 0) {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                map.push_back(-1);
+                            } else {
+                                int jointIndex = getJointIndex(jointName);
+                                jointRotation = getJointRotation(jointIndex);
+                                jointTranslation = getJointTranslation(jointIndex);
+                                map.push_back(avatarJointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
                         }
-                        int modelJointIndex = modelEntity->getJointIndex(jointName);
-                        modelEntity->setLocalJointRotation(modelJointIndex, jointRotation);
-                        modelEntity->setLocalJointTranslation(modelJointIndex, jointTranslation);
+                        modelEntity->setJointMap(map);
+                    } else {
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++) {
+                            int avatarJointIndex = modelEntity->avatarJointIndex(jointIndex);
+                            int index = modelEntity->getJointIndex(modelJointNames.at(jointIndex));
+                            //qDebug() << jointIndex << "------" << index;
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            if (avatarJointIndex >=0) {
+                                jointRotation = getJointRotation(avatarJointIndex);
+                                jointTranslation = getJointTranslation(avatarJointIndex);
+                            } else {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
+                        }
                     }
                     modelEntity->simulateRelayedJoints();
                 }

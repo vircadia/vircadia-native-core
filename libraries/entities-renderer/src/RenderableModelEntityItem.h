@@ -84,6 +84,9 @@ public:
 
     virtual bool shouldBePhysical() const override;
     void simulateRelayedJoints();
+    bool getJointMapCompleted();
+    void setJointMap(std::vector<int> jointMap);
+    int avatarJointIndex(int modelJointIndex);
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
@@ -119,7 +122,9 @@ private:
 
     void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
+    bool _jointMapCompleted { false };
     bool _originalTexturesRead { false };
+    std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
