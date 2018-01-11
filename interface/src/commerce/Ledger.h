@@ -65,8 +65,6 @@ public slots:
     void inventoryFailure(QNetworkReply& reply);
     void historySuccess(QNetworkReply& reply);
     void historyFailure(QNetworkReply& reply);
-    void resetSuccess(QNetworkReply& reply);
-    void resetFailure(QNetworkReply& reply);
     void accountSuccess(QNetworkReply& reply);
     void accountFailure(QNetworkReply& reply);
     void updateLocationSuccess(QNetworkReply& reply);
