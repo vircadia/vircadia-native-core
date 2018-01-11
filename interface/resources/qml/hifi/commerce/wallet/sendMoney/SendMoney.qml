@@ -942,9 +942,9 @@ Item {
                             root.isCurrentlySendingMoney = true;
                             amountTextField.focus = false;
                             optionalMessage.focus = false;
-                            if (sendMoneyStep.referrer = "connections") {
+                            if (sendMoneyStep.referrer === "connections") {
                                 Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
-                            } else if (sendMoneyStep.referrer = "nearby") {
+                            } else if (sendMoneyStep.referrer === "nearby") {
                                 Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
                             }
                         }
