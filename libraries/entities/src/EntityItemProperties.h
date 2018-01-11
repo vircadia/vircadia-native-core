@@ -188,8 +188,6 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
     DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
     DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
-
-    // This is the default mode for zone creation
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
