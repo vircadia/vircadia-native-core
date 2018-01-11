@@ -287,7 +287,7 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
-            print("properties.type: " + properties.type);
+            print("check 1 type: " + properties.type);
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {

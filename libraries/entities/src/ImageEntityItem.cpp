@@ -1,5 +1,5 @@
 //
-//  FlatImageEntity.cpp
+//  ImageEntityItem.cpp
 //  libraries/entities/src
 //
 //  Created by Elisa Lupin-Jimenez on 1/3/18.
@@ -22,27 +22,27 @@
 #include "EntityTreeElement.h"
 #include "ResourceCache.h"
 #include "ShapeEntityItem.h"
-#include "FlatImageEntity.h"
+#include "ImageEntityItem.h"
 
-const QString FlatImageEntity::DEFAULT_IMAGE_URL = QString("");
+const QString ImageEntityItem::DEFAULT_IMAGE_URL = QString("");
 
-EntityItemPointer FlatImageEntity::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity(new FlatImageEntity(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
+EntityItemPointer ImageEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItemPointer entity(new ImageEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
 
-FlatImageEntity::FlatImageEntity(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
+ImageEntityItem::ImageEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Image;
 }
 
-EntityItemProperties FlatImageEntity::getProperties(EntityPropertyFlags desiredProperties) const {
+EntityItemProperties ImageEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     properties.setShape("Quad");
     return properties;
 }
 
-bool FlatImageEntity::setProperties(const EntityItemProperties& properties) {
+bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     //SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
@@ -52,7 +52,7 @@ bool FlatImageEntity::setProperties(const EntityItemProperties& properties) {
         if (wantDebug) {
             uint64_t now = usecTimestampNow();
             int elapsed = now - getLastEdited();
-            qCDebug(entities) << "FlatImageEntity::setProperties() AFTER update... edited AGO=" << elapsed <<
+            qCDebug(entities) << "ImageEntityItem::setProperties() AFTER update... edited AGO=" << elapsed <<
                 "now=" << now << " getLastEdited()=" << getLastEdited();
         }
         setLastEdited(properties.getLastEdited());
@@ -61,13 +61,13 @@ bool FlatImageEntity::setProperties(const EntityItemProperties& properties) {
 }
 
 // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
-EntityPropertyFlags FlatImageEntity::getEntityProperties(EncodeBitstreamParams& params) const {
+EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     return requestedProperties;
 }
 
-void FlatImageEntity::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
+void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
     EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
     EntityPropertyFlags& requestedProperties,
     EntityPropertyFlags& propertyFlags,
@@ -80,7 +80,7 @@ void FlatImageEntity::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_SHAPE, "Quad");
 }
 
-int FlatImageEntity::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
+int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
     ReadBitstreamToTreeParams& args,
     EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
     bool& somethingChanged) {
@@ -91,7 +91,7 @@ int FlatImageEntity::readEntitySubclassDataFromBuffer(const unsigned char* data,
     return bytesRead;
 }
 
-void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
+/*void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
     if (value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
@@ -101,9 +101,23 @@ void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     } else {
         EntityItem::setUnscaledDimensions(value);
     }
+}*/
+
+void ImageEntityItem::setImageURL(const QString& value) {
+    withWriteLock([&] {
+        if (_imageURL != value) {
+            auto newURL = QUrl::fromUserInput(value);
+
+            if (newURL.isValid()) {
+                _imageURL = newURL.toDisplayString();
+            } else {
+                qCDebug(entities) << "Clearing image entity source URL since" << value << "cannot be parsed to a valid URL.";
+            }
+        }
+    });
 }
 
-QString FlatImageEntity::getImageURL() const {
+QString ImageEntityItem::getImageURL() const {
     return resultWithReadLock<QString>([&] {
         return _imageURL;
     });

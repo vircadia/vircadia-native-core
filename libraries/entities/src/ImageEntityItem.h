@@ -1,5 +1,5 @@
 //
-//  FlatImageEntity.h
+//  ImageEntityItem.h
 //  libraries/entities/src
 //
 //  Created by Elisa Lupin-Jimenez on 1/3/18.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_FlatImageEntity_h
-#define hifi_FlatImageEntity_h
+#ifndef hifi_ImageEntityItem_h
+#define hifi_ImageEntityItem_h
 
 #include "EntityItem.h"
 
-class FlatImageEntity : public EntityItem {
+class ImageEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    FlatImageEntity(const EntityItemID& entityItemID);
+    ImageEntityItem(const EntityItemID& entityItemID);
 
     ALLOW_INSTANTIATION // This class can be instantiated
 
@@ -43,6 +43,7 @@ public:
 
 
     static const QString DEFAULT_IMAGE_URL;
+    virtual void setImageURL(const QString& value);
     QString getImageURL() const;
 
 protected:
@@ -50,4 +51,4 @@ protected:
 
 };
 
-#endif // hifi_FlatImageEntity_h
+#endif // hifi_ImageEntityItem_h
