@@ -39,10 +39,8 @@
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"
 
-
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
-
 
 // combines the ray cast arguments into a single object
 class RayArgs {
@@ -2281,28 +2279,25 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setOwningAvatarID(myNodeID);
         }
 
-        // TEMPORARY fix for older content not containing these fields in the zones
-        if (properties.getType() == EntityTypes::EntityType::Zone) {
-            if (!entityMap.contains("keyLightMode")) {
-                properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+        // Fix for older content not containing these fields in the zones
+        int contentVersion = map["Version"].toInt();
+        bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
+        if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+            // The background should be enabled if the mode is skybox
+            // Note that if the values are default then they are not stored in the JSON file
+            if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "skybox")) {
+                properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+            } else {
+                properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
             }
 
-            if (!entityMap.contains("skyboxMode")) {
-                if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "nothing")) {
-                    properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
-                } else {
-                    // Either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
-                    properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+            // The legacy version had no keylight/ambient modes - these are always on
+            properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
 
-                    // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
-                    if (properties.getAmbientLight().getAmbientURL() == "") {
-                        properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
-                    }
-                }
-            }
-
-            if (!entityMap.contains("ambientLightMode")) {
-                properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+            if (properties.getAmbientLight().getAmbientURL() == "") {
+                properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
             }
         }
 
@@ -2312,6 +2307,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             success = false;
         }
     }
+
     return success;
 }
 
