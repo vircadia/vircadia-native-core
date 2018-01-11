@@ -87,22 +87,21 @@ Item {
     }
 
     onNextActiveViewChanged: {
+        if (root.currentActiveView === 'chooseRecipientNearby') {
+            sendSignalToWallet({method: 'disable_ChooseRecipientNearbyMode'});
+        }
+
         root.currentActiveView = root.nextActiveView;
-        if (root.currentActiveView === 'chooseRecipientConnection') {
+
+        if (root.nextActiveView === 'chooseRecipientConnection') {
             // Refresh connections model
             connectionsLoading.visible = false;
             connectionsLoading.visible = true;
             sendSignalToWallet({method: 'refreshConnections'});
-        }
-        
-        if (root.currentActiveView === 'chooseRecipientNearby') {
-            sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
-        } else {
-            sendSignalToWallet({method: 'disable_ChooseRecipientNearbyMode'});
-        }
-
-        if (root.currentActiveView === 'sendMoneyHome') {
+        } else if (root.nextActiveView === 'sendMoneyHome') {
             Commerce.balance();
+        } else if (root.nextActiveView === 'chooseRecipientNearby') {
+            sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
         }
     }
 
@@ -439,8 +438,8 @@ Item {
                             onSendToSendMoney: {
                                 sendMoneyStep.referrer = "connections";
                                 sendMoneyStep.selectedRecipientNodeID = '';
-                                sendMoneyStep.selectedRecipientDisplayName = msg.userName;
-                                sendMoneyStep.selectedRecipientUserName = 'connection';
+                                sendMoneyStep.selectedRecipientDisplayName = 'connection';
+                                sendMoneyStep.selectedRecipientUserName = msg.userName;
                                 sendMoneyStep.selectedRecipientProfilePic = msg.profilePicUrl;
 
                                 root.nextActiveView = "sendMoneyStep";
@@ -740,94 +739,18 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
                 }
 
-                Item {
-                    id: recipientIsNearby;
-                    visible: sendMoneyStep.referrer === "nearby";
+                RecipientDisplay {
                     anchors.top: parent.top;
                     anchors.left: sendToText_sendMoneyStep.right;
                     anchors.right: changeButton.left;
                     anchors.rightMargin: 12;
                     height: parent.height;
 
-                    RalewaySemiBold {
-                        id: recipientDisplayName;
-                        text: sendMoneyStep.selectedRecipientDisplayName;
-                        // Anchors
-                        anchors.top: parent.top;
-                        anchors.left: parent.left;
-                        anchors.right: parent.right;
-                        anchors.rightMargin: 12;
-                        height: parent.height/2;
-                        // Text size
-                        size: 18;
-                        // Style
-                        color: hifi.colors.baseGray;
-                        verticalAlignment: Text.AlignBottom;
-                    }
-
-                    RalewaySemiBold {
-                        text: sendMoneyStep.selectedRecipientUserName;
-                        // Anchors
-                        anchors.bottom: parent.bottom;
-                        anchors.left: recipientDisplayName.anchors.left;
-                        anchors.leftMargin: recipientDisplayName.anchors.leftMargin;
-                        anchors.right: recipientDisplayName.anchors.right;
-                        anchors.rightMargin: recipientDisplayName.anchors.rightMargin;
-                        height: parent.height/2;
-                        // Text size
-                        size: 16;
-                        // Style
-                        color: hifi.colors.baseGray;
-                        verticalAlignment: Text.AlignTop;
-                    }
-                }
-
-                Item {
-                    id: recipientIsConnection;
-                    visible: sendMoneyStep.referrer === "connections";
-                    anchors.top: parent.top;
-                    anchors.left: sendToText_sendMoneyStep.right;
-                    anchors.right: changeButton.left;
-                    anchors.rightMargin: 12;
-                    height: parent.height;
-
-                    Image {
-                        id: userImage;
-                        source: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
-                            sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
-                        mipmap: true;
-                        // Anchors
-                        anchors.left: parent.left;
-                        anchors.verticalCenter: parent.verticalCenter;
-                        height: parent.height - 4;
-                        layer.enabled: true;
-                        layer.effect: OpacityMask {
-                            maskSource: Item {
-                                width: userImage.width;
-                                height: userImage.height;
-                                Rectangle {
-                                    anchors.centerIn: parent;
-                                    width: userImage.width; // This works because userImage is square
-                                    height: width;
-                                    radius: width;
-                                }
-                            }
-                        }
-                    }
-
-                    RalewaySemiBold {
-                        text: sendMoneyStep.selectedRecipientUserName;
-                        // Anchors
-                        anchors.left: userImage.right;
-                        anchors.leftMargin: 8;
-                        anchors.verticalCenter: parent.verticalCenter;
-                        height: parent.height - 4;
-                        // Text size
-                        size: 16;
-                        // Style
-                        color: hifi.colors.baseGray;
-                        verticalAlignment: Text.AlignVCenter;
-                    }
+                    displayName: sendMoneyStep.selectedRecipientDisplayName;
+                    userName: sendMoneyStep.selectedRecipientUserName;
+                    profilePic: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
+                        sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
+                    isDisplayingNearby: sendMoneyStep.referrer === "nearby";
                 }
 
                 // "CHANGE" button
@@ -1031,6 +954,10 @@ Item {
                             amountTextField.focus = true;
                             amountTextField.error = true;
                             amountTextFieldError.text = "<i>amount exceeds available funds</i>";
+                        } else if (amountTextField.text === "" || parseInt(amountTextField.text) < 1) {
+                            amountTextField.focus = true;
+                            amountTextField.error = true;
+                            amountTextFieldError.text = "<i>invalid amount</i>";
                         } else {
                             amountTextFieldError.text = "";
                             amountTextField.error = false;
@@ -1171,36 +1098,17 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
                 }
 
-                RalewaySemiBold {
-                    id: recipientDisplayName_paymentSuccess;
-                    text: sendMoneyStep.selectedRecipientDisplayName;
-                    // Anchors
+                RecipientDisplay {
                     anchors.top: parent.top;
                     anchors.left: sendToText_paymentSuccess.right;
                     anchors.right: parent.right;
-                    height: parent.height/2;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignBottom;
-                }
+                    height: parent.height;
 
-                RalewaySemiBold {
-                    id: recipientUsername_paymentSuccess;
-                    text: sendMoneyStep.selectedRecipientUserName;
-                    // Anchors
-                    anchors.bottom: parent.bottom;
-                    anchors.left: recipientDisplayName_paymentSuccess.anchors.left;
-                    anchors.leftMargin: recipientDisplayName_paymentSuccess.anchors.leftMargin;
-                    anchors.right: recipientDisplayName_paymentSuccess.anchors.right;
-                    anchors.rightMargin: recipientDisplayName_paymentSuccess.anchors.rightMargin;
-                    height: parent.height/2;
-                    // Text size
-                    size: 16;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignTop;
+                    displayName: sendMoneyStep.selectedRecipientDisplayName;
+                    userName: sendMoneyStep.selectedRecipientUserName;
+                    profilePic: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
+                        sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
+                    isDisplayingNearby: sendMoneyStep.referrer === "nearby";
                 }
             }
 
@@ -1393,36 +1301,17 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
                 }
 
-                RalewaySemiBold {
-                    id: recipientDisplayName_paymentFailure;
-                    text: sendMoneyStep.selectedRecipientDisplayName;
-                    // Anchors
+                RecipientDisplay {
                     anchors.top: parent.top;
                     anchors.left: sentToText_paymentFailure.right;
                     anchors.right: parent.right;
-                    height: parent.height/2;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignBottom;
-                }
+                    height: parent.height;
 
-                RalewaySemiBold {
-                    id: recipientUsername_paymentFailure;
-                    text: sendMoneyStep.selectedRecipientUserName;
-                    // Anchors
-                    anchors.bottom: parent.bottom;
-                    anchors.left: recipientDisplayName_paymentFailure.anchors.left;
-                    anchors.leftMargin: recipientDisplayName_paymentFailure.anchors.leftMargin;
-                    anchors.right: recipientDisplayName_paymentFailure.anchors.right;
-                    anchors.rightMargin: recipientDisplayName_paymentFailure.anchors.rightMargin;
-                    height: parent.height/2;
-                    // Text size
-                    size: 16;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignTop;
+                    displayName: sendMoneyStep.selectedRecipientDisplayName;
+                    userName: sendMoneyStep.selectedRecipientUserName;
+                    profilePic: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
+                        sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
+                    isDisplayingNearby: sendMoneyStep.referrer === "nearby";
                 }
             }
 
@@ -1489,7 +1378,7 @@ Item {
                 anchors.leftMargin: 110;
                 anchors.right: parent.right;
                 anchors.rightMargin: 16;
-                anchors.bottom: closeButton.top;
+                anchors.bottom: closeButton_paymentFailure.top;
                 anchors.bottomMargin: 40;
                 // Text size
                 size: 22;
@@ -1530,6 +1419,11 @@ Item {
                 text: "Retry";
                 onClicked: {
                     root.isCurrentlySendingMoney = true;
+                    if (sendMoneyStep.referrer === "connections") {
+                        Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
+                    } else if (sendMoneyStep.referrer === "nearby") {
+                        Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
+                    }
                 }
             }
         }
