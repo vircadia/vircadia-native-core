@@ -52,8 +52,8 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     _eyeProjections[1][3] = vec4{ 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
     _eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     _eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
-    _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, -0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, -0.0149999997, 1.0 };
     _renderTargetSize = { 3024, 1680 };
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated
@@ -63,10 +63,13 @@ bool DebugHmdDisplayPlugin::internalActivate() {
 }
 
 void DebugHmdDisplayPlugin::updatePresentPose() {
+    Parent::updatePresentPose();
+/*
     float yaw = sinf(secTimestampNow()) * 0.25f;
     float pitch = cosf(secTimestampNow()) * 0.25f;
     // Simulates head pose latency correction
     _currentPresentFrameInfo.presentPose = 
         glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) * 
         glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+*/
 }

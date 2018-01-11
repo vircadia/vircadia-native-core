@@ -216,7 +216,7 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
     // Make sure the WorldBox is in the scene
     // For the record, this one RenderItem is the first one we created and added to the scene.
-    // We could meoee that code elsewhere but you know...
+    // We could move that code elsewhere but you know...
     if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
         auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
         auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
