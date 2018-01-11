@@ -114,7 +114,7 @@ Item {
             width: 110;
             text: "CHOOSE";
             onClicked: {
-                var msg = { method: 'chooseConnection', userName: root.userName };
+                var msg = { method: 'chooseConnection', userName: root.userName, profilePicUrl: root.profilePicUrl };
                 sendToSendMoney(msg);
             }
         }

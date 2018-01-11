@@ -14,6 +14,7 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.6
 import QtQuick.Controls 2.2
+import QtGraphicalEffects 1.0
 import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
@@ -440,6 +441,7 @@ Item {
                                 sendMoneyStep.selectedRecipientNodeID = '';
                                 sendMoneyStep.selectedRecipientDisplayName = msg.userName;
                                 sendMoneyStep.selectedRecipientUserName = 'connection';
+                                sendMoneyStep.selectedRecipientProfilePic = msg.profilePicUrl;
 
                                 root.nextActiveView = "sendMoneyStep";
                             }
@@ -561,8 +563,8 @@ Item {
                 }
 
                 RalewaySemiBold {
-                    id: avatarNodeID;
-                    text: chooseRecipientNearby.selectedRecipient;
+                    id: avatarDisplayName;
+                    text: '"' + AvatarList.getAvatar(chooseRecipientNearby.selectedRecipient).sessionDisplayName + '"';
                     // Anchors
                     anchors.top: sendToText.bottom;
                     anchors.topMargin: 60;
@@ -572,7 +574,43 @@ Item {
                     anchors.rightMargin: 30;
                     height: paintedHeight;
                     // Text size
-                    size: 18;
+                    size: 22;
+                    // Style
+                    horizontalAlignment: Text.AlignHCenter;
+                    color: hifi.colors.baseGray;
+                }
+
+                RalewaySemiBold {
+                    id: avatarNodeID;
+                    text: chooseRecipientNearby.selectedRecipient;
+                    // Anchors
+                    anchors.top: avatarDisplayName.bottom;
+                    anchors.topMargin: 6;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 30;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 30;
+                    height: paintedHeight;
+                    // Text size
+                    size: 14;
+                    // Style
+                    horizontalAlignment: Text.AlignHCenter;
+                    color: hifi.colors.lightGrayText;
+                }
+
+                RalewaySemiBold {
+                    id: avatarUserName;
+                    text: sendMoneyStep.selectedRecipientUserName;
+                    // Anchors
+                    anchors.top: avatarNodeID.bottom;
+                    anchors.topMargin: 12;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 30;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 30;
+                    height: paintedHeight;
+                    // Text size
+                    size: 22;
                     // Style
                     horizontalAlignment: Text.AlignHCenter;
                     color: hifi.colors.baseGray;
@@ -632,8 +670,6 @@ Item {
                 onClicked: {
                     sendMoneyStep.referrer = "nearby";
                     sendMoneyStep.selectedRecipientNodeID = chooseRecipientNearby.selectedRecipient;
-                    sendMoneyStep.selectedRecipientDisplayName = '"ZRF Changeme"';
-                    sendMoneyStep.selectedRecipientUserName = 'unknown username';
                     chooseRecipientNearby.selectedRecipient = "";
 
                     root.nextActiveView = "sendMoneyStep";
@@ -652,6 +688,7 @@ Item {
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
+        property string selectedRecipientProfilePic;
 
         visible: root.currentActiveView === "sendMoneyStep";
         anchors.fill: parent;
@@ -703,37 +740,94 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
                 }
 
-                RalewaySemiBold {
-                    id: recipientDisplayName;
-                    text: sendMoneyStep.selectedRecipientDisplayName;
-                    // Anchors
+                Item {
+                    id: recipientIsNearby;
+                    visible: sendMoneyStep.referrer === "nearby";
                     anchors.top: parent.top;
                     anchors.left: sendToText_sendMoneyStep.right;
                     anchors.right: changeButton.left;
                     anchors.rightMargin: 12;
-                    height: parent.height/2;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignBottom;
+                    height: parent.height;
+
+                    RalewaySemiBold {
+                        id: recipientDisplayName;
+                        text: sendMoneyStep.selectedRecipientDisplayName;
+                        // Anchors
+                        anchors.top: parent.top;
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        anchors.rightMargin: 12;
+                        height: parent.height/2;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignBottom;
+                    }
+
+                    RalewaySemiBold {
+                        text: sendMoneyStep.selectedRecipientUserName;
+                        // Anchors
+                        anchors.bottom: parent.bottom;
+                        anchors.left: recipientDisplayName.anchors.left;
+                        anchors.leftMargin: recipientDisplayName.anchors.leftMargin;
+                        anchors.right: recipientDisplayName.anchors.right;
+                        anchors.rightMargin: recipientDisplayName.anchors.rightMargin;
+                        height: parent.height/2;
+                        // Text size
+                        size: 16;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignTop;
+                    }
                 }
 
-                RalewaySemiBold {
-                    id: recipientUsername;
-                    text: sendMoneyStep.selectedRecipientUserName;
-                    // Anchors
-                    anchors.bottom: parent.bottom;
-                    anchors.left: recipientDisplayName.anchors.left;
-                    anchors.leftMargin: recipientDisplayName.anchors.leftMargin;
-                    anchors.right: recipientDisplayName.anchors.right;
-                    anchors.rightMargin: recipientDisplayName.anchors.rightMargin;
-                    height: parent.height/2;
-                    // Text size
-                    size: 16;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignTop;
+                Item {
+                    id: recipientIsConnection;
+                    visible: sendMoneyStep.referrer === "connections";
+                    anchors.top: parent.top;
+                    anchors.left: sendToText_sendMoneyStep.right;
+                    anchors.right: changeButton.left;
+                    anchors.rightMargin: 12;
+                    height: parent.height;
+
+                    Image {
+                        id: userImage;
+                        source: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
+                            sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
+                        mipmap: true;
+                        // Anchors
+                        anchors.left: parent.left;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        height: parent.height - 4;
+                        layer.enabled: true;
+                        layer.effect: OpacityMask {
+                            maskSource: Item {
+                                width: userImage.width;
+                                height: userImage.height;
+                                Rectangle {
+                                    anchors.centerIn: parent;
+                                    width: userImage.width; // This works because userImage is square
+                                    height: width;
+                                    radius: width;
+                                }
+                            }
+                        }
+                    }
+
+                    RalewaySemiBold {
+                        text: sendMoneyStep.selectedRecipientUserName;
+                        // Anchors
+                        anchors.left: userImage.right;
+                        anchors.leftMargin: 8;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        height: parent.height - 4;
+                        // Text size
+                        size: 16;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
                 }
 
                 // "CHANGE" button
@@ -1472,6 +1566,7 @@ Item {
         sendMoneyStep.selectedRecipientNodeID = "";
         sendMoneyStep.selectedRecipientDisplayName = "";
         sendMoneyStep.selectedRecipientUserName = "";
+        sendMoneyStep.selectedRecipientProfilePic = "";
         amountTextField.text = "";
         optionalMessage.text = "";
     }
@@ -1494,9 +1589,16 @@ Item {
             case 'selectRecipient':
                 if (message.isSelected) {
                     chooseRecipientNearby.selectedRecipient = message.id[0];
+                    sendMoneyStep.selectedRecipientDisplayName = message.displayName;
+                    sendMoneyStep.selectedRecipientUserName = message.userName;
                 } else {
                     chooseRecipientNearby.selectedRecipient = "";
+                    sendMoneyStep.selectedRecipientDisplayName = '';
+                    sendMoneyStep.selectedRecipientUserName = '';
                 }
+            break;
+            case 'updateSelectedRecipientUsername':
+                sendMoneyStep.selectedRecipientUserName = message.userName;
             break;
             default:
                 console.log('SendMoney: Unrecognized message from wallet.js:', JSON.stringify(message));

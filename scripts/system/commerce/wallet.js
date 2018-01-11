@@ -390,13 +390,32 @@
     //
     // Clicks.
     //
+    function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
+        if (selectedIds[0] === id) {
+            var message = {
+                method: 'updateSelectedRecipientUsername',
+                userName: username === "" ? "unknown username" : username
+            };
+            sendToQml(message);
+        }
+    }
     function handleClick(pickRay) {
         ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
             var nextSelectedStatus = !overlay.selected;
-            var message = { method: 'selectRecipient', id: [overlay.key], isSelected: nextSelectedStatus };
+            var avatarId = overlay.key;
+            selectedIds = nextSelectedStatus ? [avatarId] : [];
+            if (nextSelectedStatus) {
+                Users.requestUsernameFromID(avatarId);
+            }
+            var message = {
+                method: 'selectRecipient',
+                id: [avatarId],
+                isSelected: nextSelectedStatus,
+                displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
+                userName: ''
+            };
             sendToQml(message);
-
-            selectedIds = nextSelectedStatus ? [overlay.key] : [];
+            
             ExtendedOverlay.some(function (overlay) {
                 var id = overlay.key;
                 var selected = ExtendedOverlay.isSelected(id);
@@ -625,6 +644,11 @@
 
         if (onWalletScreen) {
             isWired = true;
+            Users.usernameFromIDReply.connect(usernameFromIDReply);
+            Controller.mousePressEvent.connect(handleMouseEvent);
+            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+            triggerMapping.enable();
+            triggerPressMapping.enable();
         } else {
             off();
         }
@@ -648,15 +672,12 @@
             });
             button.clicked.connect(onButtonClicked);
             tablet.screenChanged.connect(onTabletScreenChanged);
-            Controller.mousePressEvent.connect(handleMouseEvent);
-            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-            triggerMapping.enable();
-            triggerPressMapping.enable();
         }
     }
     var isWired = false;
     function off() {
         if (isWired) { // It is not ok to disconnect these twice, hence guard.
+            Users.usernameFromIDReply.disconnect(usernameFromIDReply);
             Script.update.disconnect(updateOverlays);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);

@@ -736,6 +736,7 @@ Rectangle {
                 sendMoney.updateConnections(message.connections);
             break;
             case 'selectRecipient':
+            case 'updateSelectedRecipientUsername':
                 sendMoney.fromScript(message);
             break;
             default:
