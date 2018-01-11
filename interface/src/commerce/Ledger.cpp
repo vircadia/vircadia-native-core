@@ -273,7 +273,7 @@ void Ledger::certificateInfo(const QString& certificateId) {
 
 void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage) {
     QJsonObject transaction;
-    transaction["hfc_key"] = hfc_key;
+    transaction["public_key"] = hfc_key;
     transaction["node_id"] = nodeID;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
@@ -284,7 +284,7 @@ void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, co
 
 void Ledger::transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage) {
     QJsonObject transaction;
-    transaction["hfc_key"] = hfc_key;
+    transaction["public_key"] = hfc_key;
     transaction["username"] = username;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
