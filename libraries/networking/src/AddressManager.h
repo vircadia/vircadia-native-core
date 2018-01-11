@@ -39,17 +39,18 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     connected to the domain.
  *     <em>Read-only.</em>
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
- *     <code>localhost</code>, or an IP address.
+ *     <code>localhost</code>, or an IP address).
  *     <em>Read-only.</em>
  * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
  *     regardless of whether or not you're connected to the domain.
  *     <em>Read-only.</em>
- * @property {boolean} isConnected - <code>true</code> if you're connected to a domain, otherwise <code>false</code>.
+ * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
+ *     metaverse address, otherwise <code>false</code>.
  *     <em>Read-only.</em>
  * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address 
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
  *     <em>Read-only.</em>
- * @property {string} placename - The name of the place in your current <code>href</code> metaverse address
+ * @property {string} placename - The place name in your current <code>href</code> metaverse address
  *     (e.g., <code>"AvatarIsland"</code>). Is blank if your <code>hostname</code> is an IP address.
  *     <em>Read-only.</em>
  * @property {string} protocol - The protocol of your current <code>href</code> metaverse address (e.g., <code>"hifi"</code>).
@@ -230,7 +231,7 @@ public slots:
     /**jsdoc
      * Go to the specified user's location.
      * @function location.goToUser
-     * @param {string} username - The user's user name.
+     * @param {string} username - The user's username.
      * @param {boolean} matchOrientation=true - If <code>true</code> then go to a location just in front of the user and turn to face
      *     them, otherwise go to the user's exact location and orientation.
      */
@@ -293,7 +294,7 @@ signals:
 
     /**jsdoc
      * Triggered when looking up the details of a metaverse user or location to go to has completed and the domain or user could
-     * not be found (i.e., is unknown).
+     * not be found.
      * @function location.lookupResultIsNotFound
      * @returns {Signal}
      */
@@ -311,7 +312,7 @@ signals:
     void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
 
     /**jsdoc
-     * Triggered when a request is made to go to a domain.
+     * Triggered when a request is made to go to a named domain or user.
      * @function location.possibleDomainChangeRequiredViaICEForID
      * @param {string} iceServerHostName - IP address of the ICE server.
      * @param {Uuid} domainID - The UUID of the domain to go to.
@@ -322,7 +323,7 @@ signals:
 
     /**jsdoc
      * Triggered when an attempt is made to send your avatar to a specified position on the current domain. For example, when
-     * you enter a position to go to in the "Goto" dialog or change domains.
+     * you change domains or enter a position to go to in the "Goto" dialog.
      * @function location.locationChangeRequired
      * @param {Vec3} position - The position to go to.
      * @param {boolean} hasOrientationChange - If <code>true</code> then a new <code>orientation</code> has been requested.
@@ -347,7 +348,7 @@ signals:
                                 bool shouldFaceLocation);
 
     /**jsdoc
-     * Triggered when an attempt is made to send your avatar goes to a new named path on the domain (set in the domain server's
+     * Triggered when an attempt is made to send your avatar to a new named path on the domain (set in the domain server's
      * settings). For example, when you enter a "/" followed by the path's name in the "GOTO" dialog.
      * @function location.pathChangeRequired
      * @param {string} path - The name of the path to go to.
@@ -362,7 +363,7 @@ signals:
     void pathChangeRequired(const QString& newPath);
     
     /**jsdoc
-     * Triggered when you navigated to a new domain.
+     * Triggered when you navigate to a new domain.
      * @function location.hostChanged
      * @param {string} hostname - The new domain's host name.
      * @returns {Signal}
@@ -376,8 +377,8 @@ signals:
     void hostChanged(const QString& newHost);
 
     /**jsdoc
-     * Triggered when whether or not there's a previous location to navigate to changes. (Reflects changes in the state of the
-     * "Goto" dialog's back arrow.)
+     * Triggered when there's a change in whether or not there's a previous location that can be navigated to using
+     * {@link location.goBack|goBack}. (Reflects changes in the state of the "Goto" dialog's back arrow.)
      * @function location.goBackPossible
      * @param {boolean} isPossible - <code>true</code> if there's a previous location to navigate to, otherwise 
      *     <code>false</code>.
@@ -392,8 +393,8 @@ signals:
     void goBackPossible(bool isPossible);
 
     /**jsdoc
-     * Triggered when whether or not there's a forward location to navigate to changes. (Reflects changes in the state of the
-     * "Goto" dialog's forward arrow.)
+     * Triggered when there's a change in whether or not there's a forward location that can be navigated to using 
+     * {@link location.goForward|goForward}. (Reflects changes in the state of the "Goto" dialog's forward arrow.)
      * @function location.goForwardPossible
      * @param {boolean} isPossible - <code>true</code> if there's a forward location to navigate to, otherwise
      *     <code>false</code>.
