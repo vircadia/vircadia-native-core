@@ -42,7 +42,7 @@ void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptR
  * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other 
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
- *     chrome) plus the height of the menu bar, in pixels. <em>Read-only.</em>
+ *     chrome), in pixels. <em>Read-only.</em>
  * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
  * @property {number} x - The x coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
  * @property {number} y - The y coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
@@ -555,7 +555,7 @@ signals:
 
     /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
-     *     <code>includeAnimated = false</code>.
+     *     <code>includeAnimated = false</code> or {@link Window.takeSecondaryCameraSnapshot|takeSecondaryCameraSnapshot}.
      * @function Window.stillSnapshotTaken
      * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
      * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSnapshot|takeSnapshot}
