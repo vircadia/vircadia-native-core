@@ -33,7 +33,6 @@
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
-StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
@@ -401,7 +400,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
-    changedProperties += _stage.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
 
     return changedProperties;
@@ -576,7 +574,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
-        _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
@@ -810,7 +807,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _keyLight.copyFromScriptValue(object, _defaultSettings);
     _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _stage.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
@@ -961,7 +957,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _keyLight.merge(other._keyLight);
     _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
-    _stage.merge(other._stage);
     _haze.merge(other._haze);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
@@ -1183,14 +1178,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
 
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
@@ -1446,9 +1433,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
 
                 _staticAmbientLight.setProperties(properties);
                 _staticAmbientLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-                _staticStage.setProperties(properties);
-                _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
@@ -1805,7 +1789,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Zone) {
         properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
         properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
@@ -2056,7 +2039,6 @@ void EntityItemProperties::markAllChanged() {
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
-    _stage.markAllChanged();
     _haze.markAllChanged();
 
     _sourceUrlChanged = true;
@@ -2513,7 +2495,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getKeyLight().listChangedProperties(out);
     getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
-    getStage().listChangedProperties(out);
     getHaze().listChangedProperties(out);
 
     return out;
