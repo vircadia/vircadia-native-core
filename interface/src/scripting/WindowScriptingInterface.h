@@ -301,7 +301,7 @@ public slots:
     /**jsdoc
      * Get Interface's build number.
      * @function Window.checkVersion
-     * @returns {string} - Interface's build number.
+     * @returns {string} Interface's build number.
      */
     QString checkVersion();
 
@@ -327,7 +327,7 @@ public slots:
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
      * @example <caption>Using the snapshot function and signals.</caption>
-     * function onStillSnapshottaken(path, notify) {
+     * function onStillSnapshotTaken(path, notify) {
      *     print("Still snapshot taken: " + path);
      *     print("Notify: " + notify);
      * }
@@ -340,7 +340,7 @@ public slots:
      *     print("Animated snapshot taken: " + animatedPath);
      * }
      *
-     * Window.stillSnapshotTaken.connect(onStillSnapshottaken);
+     * Window.stillSnapshotTaken.connect(onStillSnapshotTaken);
      * Window.processingGifStarted.connect(onProcessingGifStarted);
      * Window.processingGifCompleted.connect(onProcessingGifCompleted);
      *
