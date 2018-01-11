@@ -24,7 +24,7 @@
 #include "ShapeEntityItem.h"
 #include "ImageEntityItem.h"
 
-const QString ImageEntityItem::DEFAULT_IMAGE_URL = QString("");
+const QString ImageEntityItem::DEFAULT_IMAGE_URL("");
 
 EntityItemPointer ImageEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new ImageEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
