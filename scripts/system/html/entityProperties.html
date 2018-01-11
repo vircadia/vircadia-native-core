@@ -491,10 +491,6 @@
             </legend>
             <fieldset class="minor">
                 <div class="zone-group zone-section property checkbox">
-                    <input type="checkbox" id="property-zone-stage-sun-model-enabled">
-                    <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
-                </div>
-                <div class="zone-group zone-section property checkbox">
                     <input type="checkbox" id="property-zone-flying-allowed">
                     <label for="property-zone-flying-allowed">Flying allowed</label>
                 </div>
@@ -681,29 +677,6 @@
                     </div>
                 </fieldset-->
            </fieldset>
-            <fieldset class="minor">
-                <legend class="sub-section-header zone-group zone-section stage-section">
-                    Stage
-                </legend>
-                <fieldset class="zone-group zone-section stage-section property gen fstuple">
-                    <div class="tuple">
-                        <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
-                        <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
-                        <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
-                    </div>
-                </fieldset>
-                <div class="zone-group zone-section stage-section property checkbox">
-                    <input type="checkbox" id="property-zone-stage-automatic-hour-day">
-                    <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
-                </div>
-                <fieldset class="zone-group zone-section stage-section property gen fstuple">
-                    <div class="tuple">
-                        <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
-                        <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
-                        <div></div>
-                    </div>
-                </fieldset>
-            </fieldset>
         </fieldset>
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
