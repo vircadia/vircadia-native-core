@@ -31,7 +31,6 @@ public:
     void inventory(const QStringList& keys);
     void history(const QStringList& keys, const int& pageNumber);
     void account();
-    void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
 
