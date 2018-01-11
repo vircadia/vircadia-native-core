@@ -9,7 +9,7 @@
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, MyAvatar, getGrabPointSphereOffset,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData
+   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -34,7 +34,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
-            this.hand);
+            makeLaserParams(this.hand, false));
 
         this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by length from controller

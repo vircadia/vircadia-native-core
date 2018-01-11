@@ -145,7 +145,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return deltaTime;
         };
 
-        this.setIgnoreTablet = function() {
+        this.setIgnorePointerItems = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
                 Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat([HMD.tabletID]));
@@ -168,7 +168,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             var deltaTime = _this.updateTimings();
-            _this.setIgnoreTablet();
+            _this.setIgnorePointerItems();
 
             if (controllerDispatcherPluginsNeedSort) {
                 _this.orderedPluginNames = [];
@@ -181,16 +181,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     return controllerDispatcherPlugins[a].parameters.priority -
                         controllerDispatcherPlugins[b].parameters.priority;
                 });
-
-                var output = "controllerDispatcher -- new plugin order: ";
-                for (var k = 0; k < _this.orderedPluginNames.length; k++) {
-                    var dbgPluginName = _this.orderedPluginNames[k];
-                    var priority = controllerDispatcherPlugins[dbgPluginName].parameters.priority;
-                    output += dbgPluginName + ":" + priority;
-                    if (k + 1 < _this.orderedPluginNames.length) {
-                        output += ", ";
-                    }
-                }
 
                 controllerDispatcherPluginsNeedSort = false;
             }
@@ -388,8 +378,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat(HMD.tabletID));
-            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat(HMD.tabletID));
+            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat([HMD.tabletID]));
+            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat([HMD.tabletID]));
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";

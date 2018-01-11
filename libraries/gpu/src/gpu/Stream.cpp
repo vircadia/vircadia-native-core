@@ -92,6 +92,15 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Frequency frequency) 
     return true;
 }
 
+Stream::Attribute Stream::Format::getAttribute(Slot slot) const {
+    auto attribIt = _attributes.find(slot);
+    if (attribIt != _attributes.end()) {
+        return attribIt->second;
+    } else {
+        return Attribute();
+    }
+}
+
 void BufferStream::addBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {
     _buffers.push_back(buffer);
     _offsets.push_back(offset);

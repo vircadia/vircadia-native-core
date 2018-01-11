@@ -355,11 +355,11 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
-                        // the sender it taking ownership
+                        // the sender is taking ownership
                         properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
-                        // the sender is asserting ownership
+                        // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
@@ -2279,6 +2279,31 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             auto nodeList = DependencyManager::get<NodeList>();
             const QUuid myNodeID = nodeList->getSessionUUID();
             properties.setOwningAvatarID(myNodeID);
+        }
+
+        // TEMPORARY fix for older content not containing these fields in the zones
+        if (properties.getType() == EntityTypes::EntityType::Zone) {
+            if (!entityMap.contains("keyLightMode")) {
+                properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            }
+
+            if (!entityMap.contains("skyboxMode")) {
+                if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "nothing")) {
+                    properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+                } else {
+                    // Either the background mode field is missing (shouldn't happen) or the background mode is "skybox"
+                    properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+
+                    // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+                    if (properties.getAmbientLight().getAmbientURL() == "") {
+                        properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                    }
+                }
+            }
+
+            if (!entityMap.contains("ambientLightMode")) {
+                properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            }
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);

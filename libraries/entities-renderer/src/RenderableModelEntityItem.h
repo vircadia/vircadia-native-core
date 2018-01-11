@@ -133,12 +133,13 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
     friend class EntityRenderer;
 
 public:
-    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
+    ModelEntityRenderer(const EntityItemPointer& entity);
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
+    void setKey(bool didVisualGeometryRequestSucceed);
     virtual ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
 
@@ -158,20 +159,20 @@ private:
     virtual bool isTransparent() const override { return false; }
 
     bool _hasModel { false };
-    ::ModelPointer _model;
+    ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
     QVariantMap _currentTextures;
+    bool _texturesLoaded { false };
     AnimationPropertyGroup _renderAnimationProperties;
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
 #endif
 
-    bool _needsJointSimulation{ false };
-    bool _showCollisionGeometry{ false };
-    bool _needsCollisionGeometryUpdate{ false };
-    const void* _collisionMeshKey{ nullptr };
+    bool _needsJointSimulation { false };
+    bool _needsCollisionGeometryUpdate { false };
+    const void* _collisionMeshKey { nullptr };
 
     // used on client side
     bool _jointMappingCompleted{ false };
@@ -184,6 +185,8 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
+
+    render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
 };
 
 } } // namespace 

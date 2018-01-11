@@ -965,7 +965,10 @@ void EntityItem::setMass(float mass) {
 
 void EntityItem::setHref(QString value) {
     auto href = value.toLower();
-    if (! (value.toLower().startsWith("hifi://")) ) {
+
+    // If the string has something and doesn't start with with "hifi://" it shouldn't be set
+    // We allow the string to be empty, because that's the initial state of this property
+    if ( !(value.toLower().startsWith("hifi://")) && !value.isEmpty()) {
         return;
     }
     withWriteLock([&] {
@@ -2712,9 +2715,17 @@ bool EntityItem::getVisible() const {
 }
 
 void EntityItem::setVisible(bool value) {
+    bool changed = false;
     withWriteLock([&] {
-        _visible = value;
+        if (_visible != value) {
+            changed = true;
+            _visible = value;
+        }
     });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
 }
 
 bool EntityItem::isChildOfMyAvatar() const {

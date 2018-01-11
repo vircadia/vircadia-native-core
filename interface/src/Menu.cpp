@@ -166,7 +166,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
-            QString("../../hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
+            QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
     });
 
     // Avatar > Size
@@ -309,13 +309,13 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+            QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
     });
 
     action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
     connect(action, &QAction::triggered, [] {
         static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
-        static const QUrl tabletUrl("../../hifi/audio/Audio.qml");
+        static const QUrl tabletUrl("hifi/audio/Audio.qml");
         static const QString name("AudioDialog");
         qApp->showDialog(widgetUrl, tabletUrl, name);
     });
@@ -324,14 +324,14 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
+            QString("hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
     // Settings > LOD...
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/LodPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
+            QString("hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
 
     action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings...");
@@ -364,7 +364,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
+            QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
     // Developer > UI >>>
@@ -589,8 +589,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderDetailedCollision, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDetailedCollision(bool)));
 
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl, 0, true,
+        avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ScriptedMotorControl, 0, true,
@@ -615,7 +615,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(networkMenu, MenuOption::Networking);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/NetworkingPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletNetworkingPreferences.qml"), "NetworkingPreferencesDialog");
+            QString("hifi/tablet/TabletNetworkingPreferences.qml"), "NetworkingPreferencesDialog");
     });
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCache, 0,
@@ -676,7 +676,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AudioBuffers.qml"),
-            QString("../../hifi/tablet/TabletAudioBuffers.qml"), "AudioBuffersDialog");
+            QString("hifi/tablet/TabletAudioBuffers.qml"), "AudioBuffersDialog");
     });
 
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -698,7 +698,7 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     // Developer > Ask to Reset Settings
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);

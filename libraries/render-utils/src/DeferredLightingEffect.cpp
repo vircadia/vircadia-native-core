@@ -71,12 +71,12 @@ enum DeferredShader_BufferSlot {
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
-    LIGHT_AMBIENT_SLOT,
+    LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
+    HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
     LIGHT_INDEX_GPU_SLOT,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-    HAZE_MODEL_BUFFER_SLOT
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -763,7 +763,8 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             _defaultLight = lp;
 
             // Add the global light to the light stage (for later shadow rendering)
-            _defaultLightID = lightStage->addLight(lp);
+            // Set this light to be the default
+            _defaultLightID = lightStage->addLight(lp, true);
             lightStage->addShadow(_defaultLightID);
         }
 

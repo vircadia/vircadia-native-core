@@ -954,8 +954,23 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
 using namespace render;
 using namespace render::entities;
 
+ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    connect(DependencyManager::get<EntityTreeRenderer>().data(), &EntityTreeRenderer::setRenderDebugHulls, this, [&] {
+        _needsCollisionGeometryUpdate = true;
+        emit requestRenderUpdate();
+    });
+}
+
+void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
+    if (didVisualGeometryRequestSucceed) {
+        _itemKey = ItemKey::Builder().withTypeMeta();
+    } else {
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape();
+    }
+}
+
 ItemKey ModelEntityRenderer::getKey() {
-    return ItemKey::Builder().withTypeMeta().withTypeShape();
+    return _itemKey;
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -1077,6 +1092,10 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
         // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
         // we will watch for that and ask the model to update it's render items
         if (_parsedModelURL != model->getURL()) {
+            return true;
+        }
+
+        if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
             return true;
         }
 
@@ -1205,7 +1224,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
-        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::requestRenderUpdate);
+        connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
+            setKey(didVisualGeometryRequestSucceed);
+            emit requestRenderUpdate();
+        });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
@@ -1216,6 +1238,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // From here on, we are guaranteed a populated model
     withWriteLock([&] {
         if (_parsedModelURL != model->getURL()) {
+            _texturesLoaded = false;
             model->setURL(_parsedModelURL);
         }
     });
@@ -1247,6 +1270,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (_lastTextures != entity->getTextures()) {
+        _texturesLoaded = false;
         _lastTextures = entity->getTextures();
         auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
         if (newTextures != _currentTextures) {
@@ -1269,7 +1293,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         setCollisionMeshKey(entity->getCollisionMeshKey());
         _needsCollisionGeometryUpdate = false;
         ShapeType type = entity->getShapeType();
-        if (_showCollisionGeometry && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
+        if (DependencyManager::get<EntityTreeRenderer>()->shouldRenderDebugHulls() && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
             // NOTE: it is OK if _collisionMeshKey is nullptr
             model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
             // NOTE: the model will render the collisionGeometry if it has one
@@ -1301,12 +1325,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
+    if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        _texturesLoaded = true;
+        model->updateRenderItems();
+    }
+
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
     if (model->getRenderItemsNeedUpdate()) {
         model->updateRenderItems();
     }
-    
+
     // The code to deal with the change of properties is now in ModelEntityItem.cpp
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
@@ -1331,20 +1360,11 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     DETAILED_PROFILE_RANGE(render_detail, "MetaModelRender");
     DETAILED_PERFORMANCE_TIMER("RMEIrender");
 
-    ModelPointer model;
-    withReadLock([&]{
-        model = _model;
-    });
-
-    // If we don't have a model, or the model doesn't have visual geometry, render our bounding box as green wireframe
-    if (!model || (model && model->didVisualGeometryRequestFail())) {
-        static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
-        gpu::Batch& batch = *args->_batch;
-        batch.setModelTransform(getModelTransform()); // we want to include the scale as well
-        DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
-        return;
-    }
-
+    // If the model doesn't have visual geometry, render our bounding box as green wireframe
+    static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
+    gpu::Batch& batch = *args->_batch;
+    batch.setModelTransform(getModelTransform()); // we want to include the scale as well
+    DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
 
     // Enqueue updates for the next frame
 #if WANT_EXTRA_DEBUGGING
@@ -1355,12 +1375,6 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
 
     // Remap textures for the next frame to avoid flicker
     // remapTextures();
-
-    bool showCollisionGeometry = (bool)(args->_debugFlags & (int)RenderArgs::RENDER_DEBUG_HULLS);
-    if (showCollisionGeometry != _showCollisionGeometry) {
-        _showCollisionGeometry = showCollisionGeometry;
-        flagForCollisionGeometryUpdate();
-    }
 }
 
 void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames) {
