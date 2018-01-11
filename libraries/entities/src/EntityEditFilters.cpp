@@ -61,6 +61,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             if (filterData.rejectAll) {
                 return false;
             }
+
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
@@ -69,38 +70,44 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
 
             auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
 
-            // get the current properties for then entity and include them for the filter call
-            auto currentProperties = existingEntity ? existingEntity->getProperties() : EntityItemProperties();
-            QScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
-
-            // get the zone properties
-            auto zoneEntity = _tree->findEntityByEntityItemID(id);
-            auto zoneProperties = zoneEntity ? zoneEntity->getProperties() : EntityItemProperties();
-            QScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
-
-            if (zoneEntity) {
-                bool success = true;
-                AABox aaBox = zoneEntity->getAABox(success);
-
-                if (success) {
-                    QScriptValue boundingBox = filterData.engine->newObject();
-                    QScriptValue bottomRightNear = vec3toScriptValue(filterData.engine, aaBox.getCorner());
-                    QScriptValue topFarLeft = vec3toScriptValue(filterData.engine, aaBox.calcTopFarLeft());
-                    QScriptValue center = vec3toScriptValue(filterData.engine, aaBox.calcCenter());
-                    QScriptValue boundingBoxDimensions = vec3toScriptValue(filterData.engine, aaBox.getDimensions());
-                    boundingBox.setProperty("brn", bottomRightNear);
-                    boundingBox.setProperty("tfl", topFarLeft);
-                    boundingBox.setProperty("center", center);
-                    boundingBox.setProperty("dimensions", boundingBoxDimensions);
-                    zoneValues.setProperty("boundingBox", boundingBox);
-                }
-            }
-
             QScriptValueList args;
             args << inputValues;
             args << filterType;
-            args << currentValues;
-            args << zoneValues;
+
+            // get the current properties for then entity and include them for the filter call
+            if (existingEntity && filterData.wantsOriginalProperties) {
+                auto currentProperties = existingEntity->getProperties(filterData.includedOriginalProperties);
+                QScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
+                args << currentValues;
+            }
+
+
+            // get the zone properties
+            if (filterData.wantsZoneProperties) {
+                auto zoneEntity = _tree->findEntityByEntityItemID(id);
+                if (zoneEntity) {
+                    auto zoneProperties = zoneEntity->getProperties(filterData.includedZoneProperties);
+                    QScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
+
+                    if (filterData.wantsZoneBoundingBox) {
+                        bool success = true;
+                        AABox aaBox = zoneEntity->getAABox(success);
+                        if (success) {
+                            QScriptValue boundingBox = filterData.engine->newObject();
+                            QScriptValue bottomRightNear = vec3toScriptValue(filterData.engine, aaBox.getCorner());
+                            QScriptValue topFarLeft = vec3toScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                            QScriptValue center = vec3toScriptValue(filterData.engine, aaBox.calcCenter());
+                            QScriptValue boundingBoxDimensions = vec3toScriptValue(filterData.engine, aaBox.getDimensions());
+                            boundingBox.setProperty("brn", bottomRightNear);
+                            boundingBox.setProperty("tfl", topFarLeft);
+                            boundingBox.setProperty("center", center);
+                            boundingBox.setProperty("dimensions", boundingBoxDimensions);
+                            zoneValues.setProperty("boundingBox", boundingBox);
+                        }
+                    }
+                    args << zoneValues;
+                }
+            }
 
             QScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
 
@@ -245,8 +252,75 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     delete engine;
                     filterData.rejectAll=true;
                 }
-               
-                
+
+                // check to see if the filterFn has properties asking for Original props
+                QScriptValue wantsOriginalPropertiesValue = filterData.filterFn.property("wantsOriginalProperties");
+                // if the wantsOriginalProperties is a boolean, or a string, or list of strings, then evaluate as follows:
+                //   - boolean - true  - include all original properties
+                //               false - no properties at all
+                //   - string  - empty - no properties at all
+                //               any valid property - include just that property in the Original properties
+                //   - list of strings - include only those properties in the Original properties
+                if (wantsOriginalPropertiesValue.isBool()) {
+                    filterData.wantsOriginalProperties = wantsOriginalPropertiesValue.toBool();
+                } else if (wantsOriginalPropertiesValue.isString()) {
+                    auto stringValue = wantsOriginalPropertiesValue.toString();
+                    filterData.wantsOriginalProperties = !stringValue.isEmpty();
+                    if (filterData.wantsOriginalProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
+                    }
+                } else if (wantsOriginalPropertiesValue.isArray()) {
+                    auto length = wantsOriginalPropertiesValue.property("length").toInteger();
+                    for (int i; i < length; i++) {
+                        auto stringValue = wantsOriginalPropertiesValue.property(i).toString();
+                        if (!stringValue.isEmpty()) {
+                            filterData.wantsOriginalProperties = true;
+                            break;
+                        }
+                    }
+                    if (filterData.wantsOriginalProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
+                    }
+                }
+
+                // check to see if the filterFn has properties asking for Zone props
+                QScriptValue wantsZonePropertiesValue = filterData.filterFn.property("wantsZoneProperties");
+                // if the wantsZoneProperties is a boolean, or a string, or list of strings, then evaluate as follows:
+                //   - boolean - true  - include all Zone properties
+                //               false - no properties at all
+                //   - string  - empty - no properties at all
+                //               any valid property - include just that property in the Zone properties
+                //   - list of strings - include only those properties in the Zone properties
+                if (wantsZonePropertiesValue.isBool()) {
+                    filterData.wantsZoneProperties = wantsZonePropertiesValue.toBool();
+                    filterData.wantsZoneBoundingBox = filterData.wantsZoneProperties; // include this too
+                } else if (wantsZonePropertiesValue.isString()) {
+                    auto stringValue = wantsZonePropertiesValue.toString();
+                    filterData.wantsZoneProperties = !stringValue.isEmpty();
+                    if (filterData.wantsZoneProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
+                    }
+                } else if (wantsZonePropertiesValue.isArray()) {
+                    auto length = wantsZonePropertiesValue.property("length").toInteger();
+                    for (int i; i < length; i++) {
+                        auto stringValue = wantsZonePropertiesValue.property(i).toString();
+                        if (!stringValue.isEmpty()) {
+                            filterData.wantsZoneProperties = true;
+
+                            // boundingBox is a special case since it's not a true EntityPropertyFlag, so we
+                            // need to detect it here.
+                            if (stringValue == "boundingBox") {
+                                filterData.wantsZoneBoundingBox = true;
+                                break; // we can break here, since there are no other special cases
+                            }
+
+                        }
+                    }
+                    if (filterData.wantsZoneProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
+                    }
+                }
+
                 _lock.lockForWrite();
                 _filterDataMap.insert(entityID, filterData);
                 _lock.unlock();

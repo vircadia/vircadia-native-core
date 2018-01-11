@@ -35,3 +35,7 @@ function filter(properties, type, originalProperties, zoneProperties) {
 
     return properties;
 }
+
+filter.wantsOriginalProperties = true;
+filter.wantsZoneProperties = true;
+filter;

@@ -28,6 +28,12 @@ class EntityEditFilters : public QObject, public Dependency {
 public:
     struct FilterData {
         QScriptValue filterFn;
+        bool wantsOriginalProperties { false };
+        bool wantsZoneProperties { false };
+        EntityPropertyFlags includedOriginalProperties;
+        EntityPropertyFlags includedZoneProperties;
+        bool wantsZoneBoundingBox { false };
+
         std::function<bool()> uncaughtExceptions;
         QScriptEngine* engine;
         bool rejectAll;
