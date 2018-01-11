@@ -833,6 +833,7 @@ Item {
                     activeFocusOnTab: true;
                     // Workaround for no max length on TextAreas
                     onTextChanged: {
+                        optionalMessageCharacterCount.text = optionalMessage.text.length + "/" + optionalMessage.maximumLength;
                         if (text.length > maximumLength) {
                             var cursor = cursorPosition;
                             text = previousText;
@@ -844,6 +845,20 @@ Item {
                         }
                         previousText = text;
                     }
+                }
+                RalewaySemiBold {
+                    id: optionalMessageCharacterCount;
+                    // Anchors
+                    anchors.top: optionalMessage.bottom;
+                    anchors.topMargin: 2;
+                    anchors.right: optionalMessage.right;
+                    height: paintedHeight;
+                    // Text size
+                    size: 16;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignTop;
+                    horizontalAlignment: Text.AlignRight;
                 }
             }
 
