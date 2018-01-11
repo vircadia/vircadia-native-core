@@ -1,21 +1,25 @@
 //
-//  StagePropertyGroup.h
+//  AmbientLightPropertyGroup.h
 //  libraries/entities/src
 //
-//  Created by Brad Hefta-Gaub on 12/4/13.
+//  Created by Nissim Hadar on 2017/12/24.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_StagePropertyGroup_h
-#define hifi_StagePropertyGroup_h
+
+#ifndef hifi_AmbientLightPropertyGroup_h
+#define hifi_AmbientLightPropertyGroup_h
+
+#include <stdint.h>
+
+#include <glm/glm.hpp>
 
 #include <QtScript/QScriptEngine>
-
-#include "PropertyGroup.h"
 #include "EntityItemPropertiesMacros.h"
+#include "PropertyGroup.h"
 
 class EntityItemProperties;
 class EncodeBitstreamParams;
@@ -23,11 +27,7 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
-#include <stdint.h>
-#include <glm/glm.hpp>
-
-
-class StagePropertyGroup : public PropertyGroup {
+class AmbientLightPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties,
@@ -35,7 +35,7 @@ public:
                                    EntityItemProperties& defaultEntityProperties) const override;
     virtual void copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) override;
 
-    void merge(const StagePropertyGroup& other);
+    void merge(const AmbientLightPropertyGroup& other);
 
     virtual void debugDump() const override;
     virtual void listChangedProperties(QList<QString>& out) override;
@@ -74,23 +74,10 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const bool DEFAULT_STAGE_SUN_MODEL_ENABLED;
-    static const float DEFAULT_STAGE_LATITUDE;
-    static const float DEFAULT_STAGE_LONGITUDE;
-    static const float DEFAULT_STAGE_ALTITUDE;
-    static const quint16 DEFAULT_STAGE_DAY;
-    static const float DEFAULT_STAGE_HOUR;
+    static const float DEFAULT_AMBIENT_LIGHT_INTENSITY;
 
-    float calculateHour() const;
-    uint16_t calculateDay() const;
-
-    DEFINE_PROPERTY(PROP_STAGE_SUN_MODEL_ENABLED, SunModelEnabled, sunModelEnabled, bool, DEFAULT_STAGE_SUN_MODEL_ENABLED);
-    DEFINE_PROPERTY(PROP_STAGE_LATITUDE, Latitude, latitude, float, DEFAULT_STAGE_LATITUDE);
-    DEFINE_PROPERTY(PROP_STAGE_LONGITUDE, Longitude, longitude, float, DEFAULT_STAGE_LONGITUDE);
-    DEFINE_PROPERTY(PROP_STAGE_ALTITUDE, Altitude, altitude, float, DEFAULT_STAGE_ALTITUDE);
-    DEFINE_PROPERTY(PROP_STAGE_DAY, Day, day, uint16_t, DEFAULT_STAGE_DAY);
-    DEFINE_PROPERTY(PROP_STAGE_HOUR, Hour, hour, float, DEFAULT_STAGE_HOUR);
-    DEFINE_PROPERTY(PROP_STAGE_AUTOMATIC_HOURDAY, AutomaticHourDay, automaticHourDay, bool, false);
+    DEFINE_PROPERTY(PROP_AMBIENT_LIGHT_INTENSITY, AmbientIntensity, ambientIntensity, float, DEFAULT_AMBIENT_LIGHT_INTENSITY);
+    DEFINE_PROPERTY_REF(PROP_AMBIENT_LIGHT_URL, AmbientURL, ambientURL, QString, "");
 };
 
-#endif // hifi_StagePropertyGroup_h
+#endif // hifi_AmbientLightPropertyGroup_h

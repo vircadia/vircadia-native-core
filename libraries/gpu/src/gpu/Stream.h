@@ -112,6 +112,7 @@ public:
         bool setAttribute(Slot slot, Slot channel, Frequency frequency = PER_VERTEX);
 
         bool hasAttribute(Slot slot) const { return (_attributes.find(slot) != _attributes.end()); }
+        Attribute getAttribute(Slot slot) const;
 
         const std::string& getKey() const { return _key; }
 
