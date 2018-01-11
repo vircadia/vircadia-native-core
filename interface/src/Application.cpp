@@ -808,10 +808,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     {
 #if defined(Q_OS_ANDROID)
-        const QString resourcesBinaryFile = "assets:resources.rcc";
+        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
 #else
-        const QString resourcesBinaryFile = QFileInfo(argv[0]).absolutePath() + "/resources.rcc";
+        const QString resourcesBinaryFile = applicationDirPath() + "/resources.rcc";
 #endif
+        if (!QFile::exists(resourcesBinaryFile)) {
+            throw std::runtime_error("Unable to find primary resources");
+        }
         if (!QResource::registerResource(resourcesBinaryFile)) {
             throw std::runtime_error("Unable to load primary resources");
         }
@@ -1037,8 +1040,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // Inititalize sample before registering
-    QFileInfo infSample = QFileInfo(PathUtils::resourcesPath() + "sounds/sample.wav");
-    _sampleSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(infSample.absoluteFilePath()));
+    _sampleSound = DependencyManager::get<SoundCache>()->getSound(QUrl(PathUtils::resourcesUrl() + "sounds/sample.wav"));
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
     scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
@@ -1823,8 +1825,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    QFileInfo infSnap = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(infSnap.absoluteFilePath()));
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl(PathUtils::resourcesUrl() + "sounds/snap.wav"));
     
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -2356,7 +2357,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(PathUtils::qmlBasePath() + "hifi/Desktop.qml");
+    offscreenUi->createDesktop(PathUtils::qmlBaseUrl("hifi/Desktop.qml"));
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);

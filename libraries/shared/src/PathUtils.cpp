@@ -61,17 +61,25 @@ const QString& PathUtils::resourcesPath() {
     return staticResourcePath;
 }
 
-// FIXME rename to qmlBaseUrl
-const QString& PathUtils::qmlBasePath() {
+const QString& PathUtils::resourcesUrl() {
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
     // For dev builds, load 
     if (USE_SOURCE_TREE_RESOURCES) {
-        static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml").toString();
+        static const QString staticResourcePath = "file:///" + projectRootPath() + "/interface/resources/";
         return staticResourcePath;
     }
 #endif
-    static const QString staticResourcePath = "qrc:///qml/";
+    static const QString staticResourcePath = "qrc:///";
     return staticResourcePath;
+}
+
+const QString& PathUtils::qmlBaseUrl() {
+    static const QString staticResourcePath = resourcesUrl() + "qml/";
+    return staticResourcePath;
+}
+
+QUrl PathUtils::qmlBaseUrl(const QString& relativeUrl) {
+    return QUrl(qmlBaseUrl() + relativeUrl);
 }
 
 QString PathUtils::getAppDataPath() {

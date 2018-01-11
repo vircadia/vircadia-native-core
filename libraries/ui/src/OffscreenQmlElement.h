@@ -42,7 +42,7 @@ public: \
 private:
 
 #define HIFI_QML_DEF(x) \
-    const QUrl x::QML = QUrl(PathUtils::qmlBasePath() + #x ".qml"); \
+    const QUrl x::QML = PathUtils::qmlBaseUrl(#x ".qml"); \
     const QString x::NAME = #x; \
     \
     void x::registerType() { \

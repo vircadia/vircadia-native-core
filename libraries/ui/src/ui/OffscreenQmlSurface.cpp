@@ -70,7 +70,7 @@ public:
         withWriteLock([&] {
             for (auto url : urls) {
                 if (url.isRelative()) {
-                    url = QUrl(PathUtils::qmlBasePath() + url.toString());
+                    url = PathUtils::qmlBaseUrl(url.toString());
                 }
                 _callbacks[url].push_back(callback);
             }
@@ -443,7 +443,7 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     auto rootContext = engine->rootContext();
     rootContext->setContextProperty("GL", ::getGLContextData());
     rootContext->setContextProperty("urlHandler", new UrlHandler());
-    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl(PathUtils::resourcesUrl()));
     rootContext->setContextProperty("pathToFonts", "../../");
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
@@ -682,7 +682,7 @@ void OffscreenQmlSurface::create() {
     auto qmlEngine = acquireEngine(_quickWindow);
 
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
-    _qmlContext->setBaseUrl(QUrl{ PathUtils::qmlBasePath() });
+    _qmlContext->setBaseUrl(QUrl{ PathUtils::qmlBaseUrl() });
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlContext->setContextProperty("eventBridge", this);
     _qmlContext->setContextProperty("webEntity", this);

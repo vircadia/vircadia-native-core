@@ -17,17 +17,24 @@
 
 #include <StatTracker.h>
 
+#include "ResourceManager.h"
+
 void FileResourceRequest::doSend() {
     auto statTracker = DependencyManager::get<StatTracker>();
     statTracker->incrementStat(STAT_FILE_REQUEST_STARTED);
     int fileSize = 0;
-    QString filename = _url.toLocalFile();
-    
-    // sometimes on windows, we see the toLocalFile() return null,
-    // in this case we will attempt to simply use the url as a string
-    if (filename.isEmpty()) {
-        filename = _url.toString();
+    QString filename;
+    if (_url.scheme() == URL_SCHEME_QRC) {
+        filename = ":/" + _url.path();
+    } else {
+        filename = _url.toLocalFile();
+        // sometimes on windows, we see the toLocalFile() return null,
+        // in this case we will attempt to simply use the url as a string
+        if (filename.isEmpty()) {
+            filename = _url.toString();
+        }
     }
+
 
     // Allow platform specific versions of files loaded out of a resource cache via file://
     filename = QFileSelector().select(filename);
