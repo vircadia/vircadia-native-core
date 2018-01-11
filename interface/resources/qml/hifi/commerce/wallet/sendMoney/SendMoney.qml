@@ -739,7 +739,7 @@ Item {
             Item {
                 id: amountContainer;
                 anchors.top: sendToContainer.bottom;
-                anchors.topMargin: 16;
+                anchors.topMargin: 2;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
@@ -807,7 +807,7 @@ Item {
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                height: 180;
+                height: 140;
                 
                 FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
                 TextArea {
@@ -833,7 +833,6 @@ Item {
                     activeFocusOnTab: true;
                     // Workaround for no max length on TextAreas
                     onTextChanged: {
-                        optionalMessageCharacterCount.text = optionalMessage.text.length + "/" + optionalMessage.maximumLength;
                         if (text.length > maximumLength) {
                             var cursor = cursorPosition;
                             text = previousText;
@@ -848,6 +847,7 @@ Item {
                 }
                 RalewaySemiBold {
                     id: optionalMessageCharacterCount;
+                    text: optionalMessage.text.length + "/" + optionalMessage.maximumLength;
                     // Anchors
                     anchors.top: optionalMessage.bottom;
                     anchors.topMargin: 2;
