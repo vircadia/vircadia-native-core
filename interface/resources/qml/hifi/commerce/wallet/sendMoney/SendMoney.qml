@@ -39,7 +39,8 @@ Item {
     //     able to click on a button/mouseArea underneath the popup/section.
     MouseArea {
         x: 0;
-        y: root.isCurrentlyFullScreen ? root.parentAppTitleBarHeight : 0;
+        y: root.isCurrentlyFullScreen ? 0 : root.parentAppTitleBarHeight;
+        width: parent.width;
         height: root.isCurrentlyFullScreen ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
         propagateComposedEvents: false;
     }
