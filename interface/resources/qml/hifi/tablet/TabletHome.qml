@@ -188,8 +188,10 @@ Item {
 
                             TabletButton {
                                 id: tabletButton
-                                scale: wrapper.hovered ? 1.25 : wrapper.containsMouse ? 0.75 : 1.0
-                                Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.Linear } }
+
+                                // Temporarily disable magnification
+                                // scale: wrapper.hovered ? 1.25 : wrapper.containsMouse ? 0.75 : 1.0
+                                // Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.Linear } }
 
                                 anchors.centerIn: parent
                                 gridView: wrapper.GridView.view
