@@ -24,7 +24,7 @@ TabButton {
     contentItem: Text {
         id: text
         text: control.text
-        font.pixelSize: 16
+        font.pixelSize: 14
         font.bold: true
         color: control.checked ? "white" : "white"
         horizontalAlignment: Text.AlignHCenter
