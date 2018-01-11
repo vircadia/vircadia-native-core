@@ -31,8 +31,8 @@
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber,
-                                 const render::ShapePipeline::BatchSetter& batchSetter,
-                                 const render::ShapePipeline::ItemSetter& itemSetter);
+    const render::ShapePipeline::BatchSetter& batchSetter,
+    const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -54,29 +54,37 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     fadeEffect->build(task, opaques);
 
-    const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
-
-    task.addJob<Draw>("DrawOpaques", opaques, shapePlumber);
-    task.addJob<Stencil>("Stencil");
-
+    // Prepare objects shared by several jobs
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
     // Filter zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
-    //    task.addJob<DrawBackground>("DrawBackground", background);
+    // GPU jobs: Start preparing the main framebuffer
+    const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
+
+    // draw a stencil mask in hidden regions of the framebuffer.
+    task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
+
+    // Draw opaques forward
+    task.addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+
+    // Draw transparent objects forward
+    task.addJob<Draw>("DrawTransparents", transparents, shapePlumber);
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawBounds", opaques);
+        task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
         task.addJob<DrawBounds>("DrawZones", zones);
     }
 
-    task.addJob<Draw>("DrawTransparents", transparents, shapePlumber);
+    // Layered Overlays
 
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
@@ -86,9 +94,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 }
 
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto framebufferSize = framebufferCache->getFrameBufferSize();
-    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
     if (_framebuffer && _framebuffer->getSize() != frameSize) {
@@ -118,8 +124,8 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
 
         batch.setFramebuffer(_framebuffer);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
-                                   gpu::Framebuffer::BUFFER_STENCIL,
-                               vec4(vec3(0), 1), 1.0, 0, true);
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 1), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
