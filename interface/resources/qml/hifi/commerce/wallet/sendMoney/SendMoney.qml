@@ -415,7 +415,12 @@ Item {
 
                         Connections {
                             onSendToSendMoney: {
-                                // TODO
+                                sendMoneyStep.referrer = "connections";
+                                sendMoneyStep.selectedRecipientNodeID = '';
+                                sendMoneyStep.selectedRecipientDisplayName = msg.userName;
+                                sendMoneyStep.selectedRecipientUserName = 'connection';
+
+                                root.nextActiveView = "sendMoneyStep";
                             }
                         }
 
@@ -721,7 +726,12 @@ Item {
                     width: 120;
                     text: "CHANGE";
                     onClicked: {
-                        root.nextActiveView = "chooseRecipientNearby";
+                        if (sendMoneyStep.referrer === "connections") {
+                            root.nextActiveView = "chooseRecipientConnection";
+                        } else if (sendMoneyStep.referrer === "nearby") {
+                            root.nextActiveView = "chooseRecipientNearby";
+                        }
+                        resetSendMoneyData();
                     }
                 }
             }
@@ -765,9 +775,27 @@ Item {
                     activeFocusOnPress: true;
                     activeFocusOnTab: true;
 
+                    validator: IntValidator { bottom: 0; }
+
                     onAccepted: {
                         optionalMessage.focus = true;
                     }
+                }
+
+                RalewaySemiBold {
+                    id: amountTextFieldError;
+                    // Anchors
+                    anchors.top: amountTextField.bottom;
+                    anchors.topMargin: 2;
+                    anchors.left: amountTextField.left;
+                    anchors.right: amountTextField.right;
+                    height: 40;
+                    // Text size
+                    size: 16;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignTop;
+                    horizontalAlignment: Text.AlignRight;
                 }
             }
 
@@ -868,11 +896,19 @@ Item {
                     width: 100;
                     text: "SEND";
                     onClicked: {
-                        root.isCurrentlySendingMoney = true;
-                        amountTextField.focus = false;
-                        optionalMessage.focus = false;
-                        tempTimer.interval = 250;
-                        tempTimer.start();
+                        if (parseInt(amountTextField.text) > parseInt(balanceText.text)) {
+                            amountTextField.focus = true;
+                            amountTextField.error = true;
+                            amountTextFieldError.text = "<i>amount exceeds available funds</i>";
+                        } else {
+                            amountTextFieldError.text = "";
+                            amountTextField.error = false;
+                            root.isCurrentlySendingMoney = true;
+                            amountTextField.focus = false;
+                            optionalMessage.focus = false;
+                            tempTimer.interval = 250;
+                            tempTimer.start();
+                        }
                     }
                 }
 
@@ -1203,12 +1239,13 @@ Item {
                 // Style
                 color: hifi.colors.baseGray;
                 verticalAlignment: Text.AlignVCenter;
+                wrapMode: Text.Wrap;
             }
 
             Item {
                 id: sendToContainer_paymentFailure;
                 anchors.top: paymentFailureDetailText.bottom;
-                anchors.topMargin: 20;
+                anchors.topMargin: 8;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
@@ -1216,7 +1253,7 @@ Item {
                 height: 80;
 
                 RalewaySemiBold {
-                    id: paymentFailureText_paymentFailure;
+                    id: sentToText_paymentFailure;
                     text: "Sent To:";
                     // Anchors
                     anchors.top: parent.top;
@@ -1235,7 +1272,7 @@ Item {
                     text: sendMoneyStep.selectedRecipientDisplayName;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.left: sendToText_paymentFailure.right;
+                    anchors.left: sentToText_paymentFailure.right;
                     anchors.right: parent.right;
                     height: parent.height/2;
                     // Text size
@@ -1339,7 +1376,7 @@ Item {
             // "Close" button
             HifiControlsUit.Button {
                 id: closeButton_paymentFailure;
-                color: hifi.buttons.blue;
+                color: hifi.buttons.noneBorderless;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.bottom: parent.bottom;
@@ -1359,13 +1396,16 @@ Item {
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
+                anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 80;
                 height: 50;
                 width: 120;
                 text: "Retry";
                 onClicked: {
-                    
+                    root.isCurrentlySendingMoney = true;
+                    tempTimer.interval = 250;
+                    tempTimer.start();
                 }
             }
         }
@@ -1394,6 +1434,10 @@ Item {
     }
 
     function resetSendMoneyData() {
+        amountTextField.focus = false;
+        optionalMessage.focus = false;
+        amountTextFieldError.text = "";
+        amountTextField.error = false;
         chooseRecipientNearby.selectedRecipient = "";
         sendMoneyStep.selectedRecipientNodeID = "";
         sendMoneyStep.selectedRecipientDisplayName = "";
