@@ -55,7 +55,7 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
     if (!file.resize(size)) {
         throw std::runtime_error("Unable to resize file");
     }
-    {
+    if (data) {
         auto mapped = file.map(0, size);
         if (!mapped) {
             throw std::runtime_error("Unable to map file");
