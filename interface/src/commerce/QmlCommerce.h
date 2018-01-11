@@ -45,6 +45,9 @@ signals:
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
+    void transferHfcToNodeResult(QJsonObject result);
+    void transferHfcToUsernameResult(QJsonObject result);
+
 protected:
     Q_INVOKABLE void getWalletStatus();
 
@@ -67,6 +70,9 @@ protected:
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
+
+    Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
 };
 
 #endif // hifi_QmlCommerce_h

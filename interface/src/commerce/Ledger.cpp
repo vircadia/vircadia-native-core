@@ -46,6 +46,8 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
+Handler(transferHfcToNode)
+Handler(transferHfcToUsername)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -267,4 +269,26 @@ void Ledger::certificateInfo(const QString& certificateId) {
     QJsonObject request;
     request["certificate_id"] = certificateId;
     send(endpoint, "certificateInfoSuccess", "certificateInfoFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::None, request);
+}
+
+void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["hfc_key"] = hfc_key;
+    transaction["node_id"] = nodeID;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_node", "transferHfcToNodeSuccess", "transferHfcToNodeFailure");
+}
+
+void Ledger::transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["hfc_key"] = hfc_key;
+    transaction["username"] = username;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_user", "transferHfcToUsernameSuccess", "transferHfcToUsernameFailure");
 }

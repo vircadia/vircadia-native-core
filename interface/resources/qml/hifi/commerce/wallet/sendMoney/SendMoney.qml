@@ -50,6 +50,26 @@ Item {
         onBalanceResult : {
             balanceText.text = result.data.balance;
         }
+
+        onTransferHfcToNodeResult: {
+            root.isCurrentlySendingMoney = false;
+
+            if (result.status === 'success') {
+                root.nextActiveView = 'paymentSuccess';
+            } else {
+                root.nextActiveView = 'paymentFailure';
+            }
+        }
+
+        onTransferHfcToUsernameResult: {
+            root.isCurrentlySendingMoney = false;
+
+            if (result.status === 'success') {
+                root.nextActiveView = 'paymentSuccess';
+            } else {
+                root.nextActiveView = 'paymentFailure';
+            }
+        }
     }
 
     Connections {
@@ -874,6 +894,7 @@ Item {
 
                 HifiControlsUit.CheckBox {
                     id: sendPubliclyCheckbox;
+                    visible: false; // FIXME ONCE PARTICLE EFFECTS ARE IN
                     text: "Send Publicly"
                     // Anchors
                     anchors.verticalCenter: parent.verticalCenter;
@@ -921,17 +942,12 @@ Item {
                             root.isCurrentlySendingMoney = true;
                             amountTextField.focus = false;
                             optionalMessage.focus = false;
-                            tempTimer.interval = 250;
-                            tempTimer.start();
+                            if (sendMoneyStep.referrer = "connections") {
+                                
+                            } else if (sendMoneyStep.referrer = "nearby") {
+                                
+                            }
                         }
-                    }
-                }
-
-                Timer {
-                    id: tempTimer;
-                    onTriggered: {
-                        root.isCurrentlySendingMoney = false;
-                        root.nextActiveView = "paymentFailure";
                     }
                 }
             }
@@ -1419,8 +1435,6 @@ Item {
                 text: "Retry";
                 onClicked: {
                     root.isCurrentlySendingMoney = true;
-                    tempTimer.interval = 250;
-                    tempTimer.start();
                 }
             }
         }
