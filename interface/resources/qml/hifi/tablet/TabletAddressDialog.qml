@@ -62,7 +62,8 @@ StackView {
 
         var callback = rpcCalls[message.id];
         if (!callback) {
-            console.log('No callback for message fromScript', JSON.stringify(message));
+            // FIXME: We often recieve very long messages here, the logging of which is drastically slowing down the main thread
+            //console.log('No callback for message fromScript', JSON.stringify(message));
             return;
         }
         delete rpcCalls[message.id];

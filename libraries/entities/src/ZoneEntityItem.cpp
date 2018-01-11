@@ -56,8 +56,6 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
         _ambientLightProperties.getProperties(properties);
     });
 
-    _stageProperties.getProperties(properties);
-
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
 
@@ -108,8 +106,6 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     withWriteLock([&] {
         _ambientLightPropertiesChanged = _ambientLightProperties.setProperties(properties);
     });
-
-    _stagePropertiesChanged = _stageProperties.setProperties(properties);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
@@ -163,12 +159,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromAmbientlight;
     dataAt += bytesFromAmbientlight;
 
-    int bytesFromStage = _stageProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData, _stagePropertiesChanged);
-    somethingChanged = somethingChanged || _stagePropertiesChanged;
-    bytesRead += bytesFromStage;
-    dataAt += bytesFromStage;
-
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
 
@@ -214,8 +204,6 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
         requestedProperties += _ambientLightProperties.getEntityProperties(params);
     });
 
-    requestedProperties += _stageProperties.getEntityProperties(params);
-
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
 
@@ -253,10 +241,6 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     _ambientLightProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
-    _stageProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-        propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
 
@@ -291,7 +275,6 @@ void ZoneEntityItem::debugDump() const {
     _ambientLightProperties.debugDump();
     _skyboxProperties.debugDump();
     _hazeProperties.debugDump();
-    _stageProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {

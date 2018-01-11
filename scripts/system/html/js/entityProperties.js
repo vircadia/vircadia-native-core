@@ -639,8 +639,6 @@ function loaded() {
         var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
         var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
 
-        var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
-
         // Key light
         var elZoneKeyLightModeInherit = document.getElementById("property-zone-key-light-mode-inherit");
         var elZoneKeyLightModeDisabled = document.getElementById("property-zone-key-light-mode-disabled");
@@ -691,13 +689,6 @@ function loaded() {
         var elZoneHazeCeiling = document.getElementById("property-zone-haze-ceiling");
 
         var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
-
-        var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
-        var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
-        var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
-        var elZoneStageAutomaticHourDay = document.getElementById("property-zone-stage-automatic-hour-day");
-        var elZoneStageDay = document.getElementById("property-zone-stage-day");
-        var elZoneStageHour = document.getElementById("property-zone-stage-hour");
 
         var elZoneSkyboxColor = document.getElementById("property-zone-skybox-color");
         var elZoneSkyboxColorRed = document.getElementById("property-zone-skybox-color-red");
@@ -1026,7 +1017,6 @@ function loaded() {
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
                             elZoneKeyLightModeEnabled.checked  = (properties.keyLightMode === 'enabled');
 
-                            elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
                                                    properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
@@ -1082,13 +1072,6 @@ function loaded() {
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
-
-                            elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
-                            elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
-                            elZoneStageAltitude.value = properties.stage.altitude.toFixed(2);
-                            elZoneStageAutomaticHourDay.checked = properties.stage.automaticHourDay;
-                            elZoneStageDay.value = properties.stage.day;
-                            elZoneStageHour.value = properties.stage.hour;
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -1449,8 +1432,6 @@ function loaded() {
         elZoneKeyLightModeDisabled.addEventListener('change', keyLightModeChanged);
         elZoneKeyLightModeEnabled.addEventListener('change', keyLightModeChanged);
 
-        elZoneStageSunModelEnabled.addEventListener('change', 
-            createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
         colorPickers.push($('#property-zone-key-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
@@ -1581,14 +1562,6 @@ function loaded() {
 
         elZoneHazeBackgroundBlend.addEventListener('change', 
             createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
-
-        elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
-        elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
-        elZoneStageAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'altitude'));
-        elZoneStageAutomaticHourDay.addEventListener('change', 
-            createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
-        elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'day'));
-        elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'hour'));
 
         var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox', 'color',
             elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);

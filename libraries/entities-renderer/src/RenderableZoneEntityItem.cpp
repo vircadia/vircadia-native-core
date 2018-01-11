@@ -218,7 +218,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _ambientLightProperties = entity->getAmbientLightProperties();
     _skyboxProperties = entity->getSkyboxProperties();
     _hazeProperties = entity->getHazeProperties();
-    _stageProperties = entity->getStageProperties();
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
