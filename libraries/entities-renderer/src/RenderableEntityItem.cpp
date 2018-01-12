@@ -185,7 +185,7 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    if (_visible) {
+    if (_visible && !_cauterized) {
         doRender(args);
     }
 }
