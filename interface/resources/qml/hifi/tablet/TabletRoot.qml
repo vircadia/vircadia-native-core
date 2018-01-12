@@ -106,7 +106,7 @@ Item {
         if (isWebPage) {
             var webUrl = tabletApps.get(currentApp).appWebUrl;
             var scriptUrl = tabletApps.get(currentApp).scriptUrl;
-            loadSource("TabletWebView.qml");
+            loadSource("hifi/tablet/TabletWebView.qml");
             loadWebUrl(webUrl, scriptUrl);
         } else {
         	loader.load(tabletApps.get(currentApp).appUrl);
