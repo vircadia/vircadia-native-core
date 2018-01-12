@@ -19,8 +19,6 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 

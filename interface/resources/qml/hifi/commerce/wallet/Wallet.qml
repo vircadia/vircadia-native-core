@@ -21,8 +21,6 @@ import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
 import "./sendMoney"
 
-// references XXX from root context
-
 Rectangle {
     HifiConstants { id: hifi; }
 

@@ -21,8 +21,6 @@ import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../../wallet" as HifiWallet
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 

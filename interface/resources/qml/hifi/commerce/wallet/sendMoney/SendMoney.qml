@@ -20,8 +20,6 @@ import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../../common" as HifiCommerceCommon
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 
