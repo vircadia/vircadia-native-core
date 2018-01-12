@@ -2285,22 +2285,25 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
         // Fix for older content not containing these fields in the zones
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+            // The ambient URL has been moved from "keyLight" to "ambientLight"
+            properties.getAmbientLight().setAmbientURL(entityMap["ambientURL"].toString());
+
             // The background should be enabled if the mode is skybox
             // Note that if the values are default then they are not stored in the JSON file
             if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "skybox")) {
                 properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
-            } else {
+ 
+                // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+                if (properties.getAmbientLight().getAmbientURL() == "") {
+                    properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                }
+           } else {
                 properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
             }
 
             // The legacy version had no keylight/ambient modes - these are always on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
             properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
-
-            // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
-            if (properties.getAmbientLight().getAmbientURL() == "") {
-                properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
-            }
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
