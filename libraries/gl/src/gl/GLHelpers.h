@@ -26,7 +26,7 @@ class QGLFormat;
 
 template<class F>
 // https://bugreports.qt.io/browse/QTBUG-64703 prevents us from using "defined(QT_OPENGL_ES_3_1)"
-#if defined(Q_OS_ANDROID)
+#if defined(USE_GLES)
 void setGLFormatVersion(F& format, int major = 3, int minor = 2)
 #else
 void setGLFormatVersion(F& format, int major = 4, int minor = 5) 

@@ -69,7 +69,7 @@ Context::Context(QWindow* window) {
     setWindow(window);
 }
 
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
 void Context::destroyWin32Context(HGLRC hglrc) {
     wglDeleteContext(hglrc);
 }
@@ -77,7 +77,7 @@ void Context::destroyWin32Context(HGLRC hglrc) {
 
 void Context::release() {
     doneCurrent();
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
     if (_wrappedContext) {
         destroyContext(_wrappedContext);
         _wrappedContext = nullptr;
@@ -123,14 +123,37 @@ void Context::setWindow(QWindow* window) {
     release();
     _window = window;
 
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
     _hwnd = (HWND)window->winId();
 #endif
 
     updateSwapchainMemoryCounter();
 }
 
-#ifdef Q_OS_WIN
+
+#ifndef GLAPIENTRY 
+#define GLAPIENTRY GL_APIENTRY
+#endif
+
+void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+    //if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
+    //    return;
+    //}
+    qCDebug(glLogging) << "OpenGL: " << message;
+
+    // For high severity errors, force a sync to the log, since we might crash 
+    // before the log file was flushed otherwise.  Performance hit here
+    //if (GL_DEBUG_SEVERITY_HIGH == severity) {
+    //    AbstractLoggerInterface* logger = AbstractLoggerInterface::get();
+    //    if (logger) {
+    //        // FIXME find a way to force the log file to sync that doesn't lead to a deadlock
+    //        // logger->sync();
+    //    }
+    //}
+}
+
+
+#if defined(GL_CUSTOM_CONTEXT)
 
 bool Context::makeCurrent() {
     BOOL result = wglMakeCurrent(_hdc, _hglrc);
@@ -148,47 +171,30 @@ void Context::doneCurrent() {
     wglMakeCurrent(0, 0);
 }
 
-void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-    if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
-        return;
-    }
-    qCDebug(glLogging) << "OpenGL: " << message;
-    
-    // For high severity errors, force a sync to the log, since we might crash 
-    // before the log file was flushed otherwise.  Performance hit here
-    if (GL_DEBUG_SEVERITY_HIGH == severity) {
-        AbstractLoggerInterface* logger = AbstractLoggerInterface::get();
-        if (logger) {
-            // FIXME find a way to force the log file to sync that doesn't lead to a deadlock
-            // logger->sync();
-        }
-    }
-}
-
-// FIXME build the PFD based on the 
-static const PIXELFORMATDESCRIPTOR pfd =    // pfd Tells Windows How We Want Things To Be
-{
-    sizeof(PIXELFORMATDESCRIPTOR),         // Size Of This Pixel Format Descriptor
-    1,                                      // Version Number
-    PFD_DRAW_TO_WINDOW |                    // Format Must Support Window
-    PFD_SUPPORT_OPENGL |                    // Format Must Support OpenGL
-    PFD_DOUBLEBUFFER,                       // Must Support Double Buffering
-    PFD_TYPE_RGBA,                          // Request An RGBA Format
-    24,                                     // Select Our Color Depth
-    0, 0, 0, 0, 0, 0,                       // Color Bits Ignored
-    1,                                      // Alpha Buffer
-    0,                                      // Shift Bit Ignored
-    0,                                      // No Accumulation Buffer
-    0, 0, 0, 0,                             // Accumulation Bits Ignored
-    24,                                     // 24 Bit Z-Buffer (Depth Buffer)  
-    8,                                      // 8 Bit Stencil Buffer
-    0,                                      // No Auxiliary Buffer
-    PFD_MAIN_PLANE,                         // Main Drawing Layer
-    0,                                      // Reserved
-    0, 0, 0                                 // Layer Masks Ignored
-};
 
 void setupPixelFormatSimple(HDC hdc) {
+    // FIXME build the PFD based on the 
+    static const PIXELFORMATDESCRIPTOR pfd =    // pfd Tells Windows How We Want Things To Be
+    {
+        sizeof(PIXELFORMATDESCRIPTOR),         // Size Of This Pixel Format Descriptor
+        1,                                      // Version Number
+        PFD_DRAW_TO_WINDOW |                    // Format Must Support Window
+        PFD_SUPPORT_OPENGL |                    // Format Must Support OpenGL
+        PFD_DOUBLEBUFFER,                       // Must Support Double Buffering
+        PFD_TYPE_RGBA,                          // Request An RGBA Format
+        24,                                     // Select Our Color Depth
+        0, 0, 0, 0, 0, 0,                       // Color Bits Ignored
+        1,                                      // Alpha Buffer
+        0,                                      // Shift Bit Ignored
+        0,                                      // No Accumulation Buffer
+        0, 0, 0, 0,                             // Accumulation Bits Ignored
+        24,                                     // 24 Bit Z-Buffer (Depth Buffer)  
+        8,                                      // 8 Bit Stencil Buffer
+        0,                                      // No Auxiliary Buffer
+        PFD_MAIN_PLANE,                         // Main Drawing Layer
+        0,                                      // Reserved
+        0, 0, 0                                 // Layer Masks Ignored
+    };
     auto pixelFormat = ChoosePixelFormat(hdc, &pfd);
     if (pixelFormat == 0) {
         throw std::runtime_error("Unable to create initial context");
@@ -314,6 +320,7 @@ void Context::create() {
         doneCurrent();
     }
 }
+
 #endif
 
 void Context::clear() {
