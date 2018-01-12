@@ -649,7 +649,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
 
-
                     // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
                     // however if mid joint angle is in between the two blend between both solutions.
                     vec3 u = normalize(basePose.trans() - midPose.trans());
@@ -670,9 +669,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                         e = lerp(e, normalize(midPose.trans() - midPoint), alpha);
                         eColor = YELLOW;
                     }
-
-                    glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
-                    float eProjLen = glm::length(eProj);
 
                     glm::vec3 p = target.getPoleVector();
                     const float PROJ_VECTOR_LEN = 10.0f;
