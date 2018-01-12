@@ -16,7 +16,6 @@
 
 #if defined(USE_GLES)
 #define HIFI_GLES
-#define HIFI_EGL
 #endif
 
 #if defined(HIFI_GLES)
@@ -37,10 +36,8 @@
 
 #if defined(HIFI_GLES)
 #define GL_GLEXT_PROTOTYPES
+#include <GLES3/gl32.h>
 #include <EGL/egl.h>
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
-#include <GLES3/gl3platform.h>
 
 #define GL_DEPTH_COMPONENT32_OES          0x81A7
 #define GL_TIME_ELAPSED_EXT               0x88BF

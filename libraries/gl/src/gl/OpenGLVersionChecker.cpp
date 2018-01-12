@@ -10,6 +10,9 @@
 //
 
 #include "OpenGLVersionChecker.h"
+
+#if !defined(Q_OS_ANDROID)
+
 #include "Config.h"
 
 #include <mutex>
@@ -110,3 +113,5 @@ QJsonObject OpenGLVersionChecker::checkVersion(bool& valid, bool& override) {
 
     return glData;
 }
+
+#endif
