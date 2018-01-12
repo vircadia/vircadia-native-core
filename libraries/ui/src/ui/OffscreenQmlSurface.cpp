@@ -1097,6 +1097,27 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
             }
             break;
         }
+#if defined(Q_OS_ANDROID)
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        case QEvent::TouchEnd: {
+            QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
+            QTouchEvent *fakeEvent = new QTouchEvent(*originalEvent);
+            auto newTouchPoints = fakeEvent->touchPoints();
+            for (size_t i = 0; i < newTouchPoints.size(); ++i) {
+                const auto &originalPoint = originalEvent->touchPoints()[i];
+                auto &newPoint = newTouchPoints[i];
+                newPoint.setPos(originalPoint.pos());
+            }
+            fakeEvent->setTouchPoints(newTouchPoints);
+            if (QCoreApplication::sendEvent(_quickWindow, fakeEvent)) {
+                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent->type()
+                        << "_quickWindow handled it... accepted:" << fakeEvent->isAccepted();
+                return false; //event->isAccepted();
+            }
+            break;
+        }
+#endif
         default:
             break;
     }
