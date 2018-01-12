@@ -698,7 +698,7 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
+    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     // Developer > Ask to Reset Settings
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AskToResetSettings, 0, false);
@@ -758,6 +758,14 @@ Menu::Menu() {
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
 
+    // Developer > API Debugger
+    action = addActionToQMenuAndActionHash(developerMenu, "API Debugger");
+    connect(action, &QAction::triggered, [] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
+        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
+        scriptEngines->loadScript(defaultScriptsLoc.toString());
+    });
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");

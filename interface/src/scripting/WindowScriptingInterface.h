@@ -1,5 +1,5 @@
 //
-//  WindowScriptingInterface.cpp
+//  WindowScriptingInterface.h
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 4/29/14.
@@ -54,6 +54,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+
 public:
     WindowScriptingInterface();
     ~WindowScriptingInterface();
@@ -143,7 +144,7 @@ public slots:
 
     /**jsdoc
      * Prompt the user for input in a custom, modal dialog.
-     * @deprecated This funtion is deprecated and will be removed.
+     * @deprecated This function is deprecated and will soon be removed.
      * @function Window.customPrompt
      * @param {object} config - Configures the modal dialog.
      * @returns {object} The user's response.
@@ -515,6 +516,7 @@ public slots:
 
 private slots:
     void onMessageBoxSelected(int button);
+    void disconnectedFromDomain();
 
 signals:
 
