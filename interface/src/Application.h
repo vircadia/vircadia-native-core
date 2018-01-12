@@ -146,7 +146,7 @@ public:
     void initializeGL();
     void initializeUi();
 
-    void updateCamera(RenderArgs& renderArgs);
+    void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
 
@@ -697,6 +697,9 @@ private:
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
     void endHMDSession();
+
+    glm::vec3 _thirdPersonHMDCameraBoom { 0.0f, 0.0f, -1.0f };
+    bool _thirdPersonHMDCameraBoomValid { true };
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
