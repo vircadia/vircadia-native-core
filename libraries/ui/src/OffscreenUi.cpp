@@ -666,7 +666,6 @@ void OffscreenUi::createDesktop(const QUrl& url) {
         Q_UNUSED(context)
         _desktop = static_cast<QQuickItem*>(newObject);
         getSurfaceContext()->setContextProperty("desktop", _desktop);
-        _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
         _vrMenu = new VrMenu(this);
         for (const auto& menuInitializer : _queuedMenuInitializers) {
@@ -684,10 +683,6 @@ QQuickItem* OffscreenUi::getDesktop() {
 
 QObject* OffscreenUi::getRootMenu() {
     return getRootItem()->findChild<QObject*>("rootMenu");
-}
-
-QQuickItem* OffscreenUi::getToolWindow() {
-    return _toolWindow;
 }
 
 void OffscreenUi::unfocusWindows() {
