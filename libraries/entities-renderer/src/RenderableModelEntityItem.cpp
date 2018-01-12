@@ -862,10 +862,10 @@ glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
     return glm::vec3();
 }
 
-void RenderableModelEntityItem::setOverrideTransform(const Transform& transform) {
+void RenderableModelEntityItem::setOverrideTransform(const Transform& transform, const glm::vec3& offset) {
     auto model = getModel();
     if (model) {
-        model->overrideModelTransform(transform);
+        model->overrideModelTransform(transform, offset);
     }
 }
 

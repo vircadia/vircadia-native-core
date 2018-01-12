@@ -1369,10 +1369,11 @@ void Model::deleteGeometry() {
     _collisionGeometry.reset();
 }
 
-void Model::overrideModelTransform(const Transform& transform) {
+void Model::overrideModelTransform(const Transform& transform, const glm::vec3& offset) {
     _overrideTranslation = transform.getTranslation();
     _overrideRotation = transform.getRotation();
     _overrideModelTransform = true;
+    setOffset(offset);
 }
 
 AABox Model::getRenderableMeshBound() const {

@@ -400,7 +400,7 @@ void Avatar::relayJointDataToChildren() {
                         }
                     }
 
-                    modelEntity->setOverrideTransform(_skeletonModel->getTransform());
+                    modelEntity->setOverrideTransform(_skeletonModel->getTransform(), _skeletonModel->getOffset());
                     modelEntity->simulateRelayedJoints();
                 }
             }
