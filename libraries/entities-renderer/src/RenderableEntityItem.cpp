@@ -185,8 +185,7 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    bool defaultMode = args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
-    if (_visible && (defaultMode || !_cauterized)) {
+    if (_visible) {
         doRender(args);
     }
 }
