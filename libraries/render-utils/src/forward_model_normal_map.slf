@@ -71,6 +71,8 @@ void main(void) {
 
     vec3 fragPosition = _position.xyz;
 
+    TransformCamera cam = getTransformCamera();
+   
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
