@@ -2242,7 +2242,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then
     // to a QScriptValue, and then to EntityItemProperties.  These properties are used
-    // to add the new entity to the EnitytTree.
+    // to add the new entity to the EntityTree.
     QVariantList entitiesQList = map["Entities"].toList();
     QScriptEngine scriptEngine;
 
@@ -2286,7 +2286,10 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         // Fix for older content not containing these fields in the zones
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The ambient URL has been moved from "keyLight" to "ambientLight"
-            properties.getAmbientLight().setAmbientURL(entityMap["ambientURL"].toString());
+            if (entityMap.contains("keyLight")) {
+                QVariantMap keyLightObject = entityMap["keyLight"].toMap();
+                properties.getAmbientLight().setAmbientURL(keyLightObject["ambientURL"].toString());
+            }
 
             // The background should be enabled if the mode is skybox
             // Note that if the values are default then they are not stored in the JSON file
