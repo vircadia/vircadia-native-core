@@ -1281,12 +1281,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     entity->updateModelBounds();
 
-    bool shouldBeVisible = _visible && !entity->getCauterized();
-    if (model->isVisible() != shouldBeVisible) {
+    if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(shouldBeVisible, scene);
+        model->setVisibleInScene(_visible, scene);
     }
     // TODO? early exit here when not visible?
 
