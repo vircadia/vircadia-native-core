@@ -67,7 +67,6 @@ public:
     NetworkTexturePointer _ambientTexture;
     QString _ambientTextureURL;
     bool _pendingAmbientTexture { false };
-    bool _validAmbientTextureURL { false };
 
 protected:
     model::LightPointer _light;

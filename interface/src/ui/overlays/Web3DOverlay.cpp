@@ -222,10 +222,6 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
-        // mark the TabletProxy object as cpp ownership.
-        QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-        _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
     }
@@ -497,10 +493,8 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
- *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
- *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
- *     be removed.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 

@@ -69,11 +69,16 @@ public:
         NumSecondaryControllerTypes
     };
 
+    enum class ControllerFlags : uint8_t {
+        Enabled = 0x01,
+        Estimated = 0x02
+    };
+
     struct ControllerParameters {
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
-        bool primaryControllerActiveFlags[NumPrimaryControllerTypes];
+        uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
-        bool secondaryControllerActiveFlags[NumSecondaryControllerTypes];
+        uint8_t secondaryControllerFlags[NumSecondaryControllerTypes];
         bool isTalking;
         FBXJointShapeInfo hipsShapeInfo;
         FBXJointShapeInfo spineShapeInfo;
@@ -251,7 +256,8 @@ protected:
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
-    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
+                     bool leftArmEnabled, bool rightArmEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo);
