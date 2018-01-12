@@ -60,6 +60,7 @@ public:
     QVector<int> indices;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
+    QVector<glm::vec3> tangents;
 };
 
 struct FBXJointShapeInfo {

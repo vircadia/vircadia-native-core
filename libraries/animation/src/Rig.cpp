@@ -1265,7 +1265,8 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
     return position;
 }
 
-void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
+                      bool leftArmEnabled, bool rightArmEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                       const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                       const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
@@ -1279,7 +1280,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::vec3 handPosition = leftHandPose.trans();
         glm::quat handRotation = leftHandPose.rot();
 
-        if (!hipsEnabled) {
+        if (!hipsEnabled || hipsEstimated) {
             // prevent the hand IK targets from intersecting the torso
             handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
@@ -1326,7 +1327,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::vec3 handPosition = rightHandPose.trans();
         glm::quat handRotation = rightHandPose.rot();
 
-        if (!hipsEnabled) {
+        if (!hipsEnabled || hipsEstimated) {
             // prevent the hand IK targets from intersecting the torso
             handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
@@ -1550,20 +1551,20 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
 
-    bool headEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Head];
-    bool leftHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftHand];
-    bool rightHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightHand];
-    bool hipsEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Hips];
-    bool leftFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftFoot];
-    bool rightFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightFoot];
-    bool spine2Enabled = params.primaryControllerActiveFlags[PrimaryControllerType_Spine2];
-
-    bool leftArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_LeftArm];
-    bool rightArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_RightArm];
+    bool headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
+    bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
+    bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
+    bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
+    bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
+    bool leftFootEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftFoot] & (uint8_t)ControllerFlags::Enabled;
+    bool rightFootEnabled = params.primaryControllerFlags[PrimaryControllerType_RightFoot] & (uint8_t)ControllerFlags::Enabled;
+    bool spine2Enabled = params.primaryControllerFlags[PrimaryControllerType_Spine2] & (uint8_t)ControllerFlags::Enabled;
+    bool leftArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_LeftArm] & (uint8_t)ControllerFlags::Enabled;
+    bool rightArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_RightArm] & (uint8_t)ControllerFlags::Enabled;
 
     updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, leftArmEnabled, rightArmEnabled, dt,
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
                 params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo);
 
@@ -1623,7 +1624,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     for (int i = 0; i < (int)NumSecondaryControllerTypes; i++) {
         int index = indexOfJoint(secondaryControllerJointNames[i]);
         if (index >= 0) {
-            if (params.secondaryControllerActiveFlags[i]) {
+            if (params.secondaryControllerFlags[i] & (uint8_t)ControllerFlags::Enabled) {
                 ikNode->setSecondaryTargetInRigFrame(index, params.secondaryControllerPoses[i]);
             } else {
                 ikNode->clearSecondaryTarget(index);

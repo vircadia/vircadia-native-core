@@ -23,6 +23,8 @@ using namespace render::entities;
 static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
+static int32_t PARTICLE_UNIFORM_SLOT { 11 };
 
 static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
     auto texturedPipeline = _texturedPipeline.lock();
@@ -38,6 +40,9 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
         auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
 
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("particleBuffer"), PARTICLE_UNIFORM_SLOT));
+        gpu::Shader::makeProgram(*program, slotBindings);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -320,7 +325,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         transform.setScale(vec3(1));
     }
     batch.setModelTransform(transform);
-    batch.setUniformBuffer(0, _uniformBuffer);
+    batch.setUniformBuffer(PARTICLE_UNIFORM_SLOT, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
 

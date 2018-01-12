@@ -33,6 +33,15 @@
 class QIODevice;
 class FBXNode;
 
+#define FBX_PACK_NORMALS 1
+
+#if FBX_PACK_NORMALS
+using NormalType = glm::uint32;
+#define FBX_NORMAL_ELEMENT gpu::Element::VEC4F_NORMALIZED_XYZ10W2
+#else
+using NormalType = glm::vec3;
+#define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
+#endif
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
@@ -113,6 +122,8 @@ public:
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
     static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
+
+    static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
     FBXTexture getTexture(const QString& textureID);
 

@@ -34,7 +34,6 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
 }
 
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
-
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
 
     // check for pinned hips.
@@ -106,7 +105,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     if (avatarHeadPose.isValid()) {
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
         params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = avatarToRigPose * pose;
-        params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Head] = true;
+        params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = (uint8_t)Rig::ControllerFlags::Enabled;
     } else {
         // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
         // down in desktop mode.
@@ -114,7 +113,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // postMult 180 is necessary to convert head from -z forward to z forward.
         glm::quat headRot = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
         params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = AnimPose(glm::vec3(1.0f), headRot, glm::vec3(0.0f));
-        params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Head] = false;
+        params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = 0;
     }
 
     //
@@ -135,10 +134,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         if (controllerPose.isValid()) {
             AnimPose pose(controllerPose.getRotation(), controllerPose.getTranslation());
             params.primaryControllerPoses[pair.second] = avatarToRigPose * pose;
-            params.primaryControllerActiveFlags[pair.second] = true;
+            params.primaryControllerFlags[pair.second] = (uint8_t)Rig::ControllerFlags::Enabled;
         } else {
             params.primaryControllerPoses[pair.second] = AnimPose::identity;
-            params.primaryControllerActiveFlags[pair.second] = false;
+            params.primaryControllerFlags[pair.second] = 0;
         }
     }
 
@@ -166,15 +165,15 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         if (controllerPose.isValid()) {
             AnimPose pose(controllerPose.getRotation(), controllerPose.getTranslation());
             params.secondaryControllerPoses[pair.second] = avatarToRigPose * pose;
-            params.secondaryControllerActiveFlags[pair.second] = true;
+            params.secondaryControllerFlags[pair.second] = (uint8_t)Rig::ControllerFlags::Enabled;
         } else {
             params.secondaryControllerPoses[pair.second] = AnimPose::identity;
-            params.secondaryControllerActiveFlags[pair.second] = false;
+            params.secondaryControllerFlags[pair.second] = 0;
         }
     }
 
     // if hips are not under direct control, estimate the hips position.
-    if (avatarHeadPose.isValid() && !params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Hips]) {
+    if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
         bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
 
         if (!_prevHipsValid) {
@@ -200,7 +199,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         AnimPose sensorToRigPose(invRigMat * myAvatar->getSensorToWorldMatrix());
 
         params.primaryControllerPoses[Rig::PrimaryControllerType_Hips] = sensorToRigPose * hips;
-        params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Hips] = true;
+        params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
     } else {
         _prevHipsValid = false;
@@ -336,17 +335,25 @@ void MySkeletonModel::updateFingers() {
         for (auto& link : chain) {
             int index = _rig.indexOfJoint(link.second);
             if (index >= 0) {
+                auto rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                if (rotationFrameOffset == _jointRotationFrameOffsetMap.end()) {
+                    _jointRotationFrameOffsetMap.insert(std::pair<int, int>(index, 0));
+                    rotationFrameOffset = _jointRotationFrameOffsetMap.find(index);
+                }
                 auto pose = myAvatar->getControllerPoseInSensorFrame(link.first);
+                
                 if (pose.valid) {
                     glm::quat relRot = glm::inverse(prevAbsRot) * pose.getRotation();
                     // only set the rotation for the finger joints, not the hands.
                     if (link.first != controller::Action::LEFT_HAND && link.first != controller::Action::RIGHT_HAND) {
                         _rig.setJointRotation(index, true, relRot, CONTROLLER_PRIORITY);
+                        rotationFrameOffset->second = 0;
                     }
                     prevAbsRot = pose.getRotation();
-                } else {
+                } else if (rotationFrameOffset->second == 1) { // if the pose is invalid and was set on previous frame we do clear ( current frame offset = 1 )
                     _rig.clearJointAnimationPriority(index);
                 }
+                rotationFrameOffset->second++;
             }
         }
     }
