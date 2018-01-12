@@ -291,9 +291,10 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "Ni") {
-            float ignore = tokenizer.getFloat();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << ignore;
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            #else
+            tokenizer.getFloat();
             #endif
         } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
@@ -302,14 +303,16 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "illum") {
             currentMaterial.illuminationModel = tokenizer.getFloat();
         } else if (token == "Tf") {
-            glm::vec3 ignore = tokenizer.getVec3();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << ignore;
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << tokenizer.getVec3();
+            #else
+            tokenizer.getVec3();
             #endif
         } else if (token == "Ka") {
-            glm::vec3 ignore = tokenizer.getVec3();
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << ignore;
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();;
+            #else
+            tokenizer.getVec3();
             #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
@@ -436,8 +439,8 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             parser.remove(0, 3); // remove through "-o/-s/-t "
             float ignore, ignore2, ignore3;
             parseTextureLineFloat(parser, ignore);
-            bool hasValue2 = parseTextureLineFloat(parser, ignore2);
-            bool hasValue3 = parseTextureLineFloat(parser, ignore3);
+            parseTextureLineFloat(parser, ignore2);
+            parseTextureLineFloat(parser, ignore3);
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -o/-s/-t";
             #endif
