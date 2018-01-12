@@ -118,7 +118,7 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
-QString amountString(const QString& label, const QString&color, const QJsonValue& moneyValue, const QJsonValue& certsValue) {
+QString amountString(const QString& label, const QString&color, const QJsonValue& moneyValue, const QJsonValue& certsValue, const QJsonValue& usernameValue) {
     int money = moneyValue.toInt();
     int certs = certsValue.toInt();
     if (money <= 0 && certs <= 0) {
@@ -134,7 +134,15 @@ QString amountString(const QString& label, const QString&color, const QJsonValue
         }
         result += QString((certs == 1) ? " %1 certificate" : " %1 certificates").arg(certs);
     }
-    return result + QString("</font>");
+    result += QString("</font>");
+
+    // the only time we put the username in is when the money value is > 0
+    // and the certificate value == 0, as we only want this for hfc transfers
+    // Also - we don't bother if the username is 'highfidelity' or 'marketplace'
+    if (money > 0 && certs == 0) {
+        result += QString(" %1 %2").arg(label == "sent" ? "to" : "from", usernameValue.toString());
+    }
+    return result;
 }
 
 static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
@@ -158,8 +166,8 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     // TODO: do this with 0 copies if possible
     for (auto it = historyArray.begin(); it != historyArray.end(); it++) {
         auto valueObject = (*it).toObject();
-        QString sent = amountString("sent", "EA4C5F", valueObject["sent_money"], valueObject["sent_certs"]);
-        QString received = amountString("received", "1FC6A6", valueObject["received_money"], valueObject["received_certs"]);
+        QString sent = amountString("sent", "EA4C5F", valueObject["sent_money"], valueObject["sent_certs"], valueObject["recipient_name"]);
+        QString received = amountString("received", "1FC6A6", valueObject["received_money"], valueObject["received_certs"], valueObject["sender_name"]);
 
         // turns out on my machine, toLocalTime convert to some weird timezone, yet the
         // systemTimeZone is correct.  To avoid a strange bug with other's systems too, lets
