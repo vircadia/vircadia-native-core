@@ -646,7 +646,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
                     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
-                    glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
 
                     // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
