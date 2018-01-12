@@ -127,7 +127,7 @@ int main (int argc, char** argv) {
         return 0;
     }
 
-    // Define targetName: if none, get destFilenmae, if none get srcFilename
+    // Define targetName: if none, get destFilename, if none get srcFilename
     if (targetName.empty()) {
         if (destFilename.empty()) {
             targetName = srcFilename;
@@ -216,6 +216,8 @@ int main (int argc, char** argv) {
             targetStringStream << "R\"SCRIBE(\n" << page->str() << "\n)SCRIBE\"\n";
         }
         targetStringStream << ";\n" << std::endl << std::endl;
+        targetStringStream << "// Hack to fix Android link error by forcing a reference to global variable\n";
+        targetStringStream << "class " << targetName << "_used {\npublic:\nstatic const char* get() { return " << targetName << "; }\n};\n" << std::endl;
     } else {
         targetStringStream << destStringStream.str();
     }
