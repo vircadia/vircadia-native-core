@@ -84,7 +84,7 @@ public:
     void resetLODAdjust();
 
     float getAverageRenderTime() const { return _avgRenderTime; };
-    float getMaxTheoreticalFPS() const { return (float)MSEC_PER_SECOND / _avgRenderTime; };
+    float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
     float getLODLevel() const;
 
 signals:
