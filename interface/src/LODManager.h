@@ -60,13 +60,12 @@ public:
 
     Q_INVOKABLE float getLODDecreaseFPS() const;
     Q_INVOKABLE float getLODIncreaseFPS() const;
-    Q_INVOKABLE float getFoo() const { return getMeasuredFPS(); }
 
     Q_PROPERTY(float presentTime READ getPresentTime)
     Q_PROPERTY(float engineRunTime READ getEngineRunTime)
     Q_PROPERTY(float gpuTime READ getGPUTime)
     Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
-    Q_PROPERTY(float fps READ getMeasuredFPS)
+    Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
     Q_PROPERTY(float lodLevel READ getLODLevel)
 
     Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
@@ -85,7 +84,7 @@ public:
     void resetLODAdjust();
 
     float getAverageRenderTime() const { return _avgRenderTime; };
-    float getMeasuredFPS() const { return (float)MSEC_PER_SECOND / _avgRenderTime; };
+    float getMaxTheoreticalFPS() const { return (float)MSEC_PER_SECOND / _avgRenderTime; };
     float getLODLevel() const;
 
 signals:
