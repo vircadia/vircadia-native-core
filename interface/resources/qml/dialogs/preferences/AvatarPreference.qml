@@ -99,24 +99,8 @@ Preference {
                 leftMargin: dataTextField.acceptableInput ? hifi.dimensions.contentSpacing.x : 0
             }
             onClicked: {
-                if (typeof desktop !== "undefined") {
-                    // Load dialog via OffscreenUi so that JavaScript EventBridge is available.
-                    root.browser = OffscreenUi.load("dialogs/preferences/AvatarBrowser.qml");
-                    root.browser.windowDestroyed.connect(function(){
-                        root.browser = null;
-                    });
-                } else {
-                    root.browser = tabletAvatarBrowserBuilder.createObject(tabletRoot);
-
-                    // Make dialog modal.
-                    tabletRoot.openModal = root.browser;
-                }
+                ApplicationInterface.loadAvatarBrowser();
             }
-        }
-
-        Component {
-            id: tabletAvatarBrowserBuilder;
-            TabletAvatarBrowser { }
         }
 
     }
