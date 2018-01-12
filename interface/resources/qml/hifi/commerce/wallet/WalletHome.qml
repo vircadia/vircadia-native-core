@@ -19,8 +19,6 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 
@@ -31,6 +29,20 @@ Item {
     property int pendingCount: 0;
     property int currentHistoryPage: 1;
     property var pagesAlreadyAdded: new Array();
+
+    onVisibleChanged: {
+        if (visible) {
+            transactionHistoryModel.clear();
+            Commerce.balance();
+            initialHistoryReceived = false;
+            root.currentHistoryPage = 1;
+            root.noMoreHistoryData = false;
+            root.historyRequestPending = true;
+            Commerce.history(root.currentHistoryPage);
+        } else {
+            refreshTimer.stop();
+        }
+    }
 
     Connections {
         target: Commerce;
@@ -189,20 +201,6 @@ Item {
             color: hifi.colors.white;
             // Alignment
             verticalAlignment: Text.AlignVCenter;
-
-            onVisibleChanged: {
-                if (visible) {
-                    transactionHistoryModel.clear();
-                    Commerce.balance();
-                    initialHistoryReceived = false;
-                    root.currentHistoryPage = 1;
-                    root.noMoreHistoryData = false;
-                    root.historyRequestPending = true;
-                    Commerce.history(root.currentHistoryPage);
-                } else {
-                    refreshTimer.stop();
-                }
-            }
         }
 
         // "balance" text below field
