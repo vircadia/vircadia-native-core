@@ -185,7 +185,8 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    if (_visible) {
+    bool defaultMode = args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
+    if (_visible && (defaultMode || !_cauterized)) {
         doRender(args);
     }
 }
@@ -365,7 +366,8 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         }
 
         _moving = entity->isMovingRelativeToParent();
-        _visible = entity->getVisible() && !entity->getCauterized();
+        _visible = entity->getVisible();
+        _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;
     });
 }
