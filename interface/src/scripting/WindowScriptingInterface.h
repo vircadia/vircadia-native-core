@@ -1,5 +1,5 @@
 //
-//  WindowScriptingInterface.cpp
+//  WindowScriptingInterface.h
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 4/29/14.
@@ -54,6 +54,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+
 public:
     WindowScriptingInterface();
     ~WindowScriptingInterface();
