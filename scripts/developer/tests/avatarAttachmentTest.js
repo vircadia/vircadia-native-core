@@ -165,7 +165,7 @@ function wearAttachment(attachment) {
             position: attachment.position,
             rotation: attachment.rotation,
             parentJointIndex: -1
-        });
+        }, true);
     }
 }
 

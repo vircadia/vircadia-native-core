@@ -208,8 +208,9 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
-    void overrideModelTransform(const Transform& transform, const glm::vec3& offset);
-    void setOverrideTransform(bool override) { _overrideModelTransform = override; };
+    void overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset);
+    bool isOverridingModelTransformAndOffset() { return _overrideModelTransform; };
+    void stopTransformAndOffsetOverride() { _overrideModelTransform = false; };
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }

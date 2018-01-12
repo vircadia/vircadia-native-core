@@ -209,12 +209,6 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
-    if (getRelayParentJoints()) {
-        model->setOverrideTransform(true);
-    } else {
-        model->setOverrideTransform(false);
-    }
-
     if (model->getScaleToFitDimensions() != getScaledDimensions() ||
             model->getRegistrationPoint() != getRegistrationPoint()) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
@@ -718,7 +712,10 @@ void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
     if (jointMap.size() > 0) {
         _jointMap = jointMap;
         _jointMapCompleted = true;
+        return;
     }
+
+    _jointMapCompleted = false;
 };
 
 int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
@@ -865,7 +862,7 @@ glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
 void RenderableModelEntityItem::setOverrideTransform(const Transform& transform, const glm::vec3& offset) {
     auto model = getModel();
     if (model) {
-        model->overrideModelTransform(transform, offset);
+        model->overrideModelTransformAndOffset(transform, offset);
     }
 }
 
@@ -969,6 +966,17 @@ void RenderableModelEntityItem::simulateRelayedJoints() {
         copyAnimationJointDataToModel();
         model->simulate(0.0f);
         model->updateRenderItems();
+    }
+}
+
+void RenderableModelEntityItem::stopModelOverrideIfNoParent() {
+    auto model = getModel();
+    if (model) {
+        bool overriding = model->isOverridingModelTransformAndOffset();
+        QUuid parentID = getParentID();
+        if (overriding && (!_relayParentJoints || parentID.isNull())) {
+            model->stopTransformAndOffsetOverride();
+        }
     }
 }
 
@@ -1323,6 +1331,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     entity->updateModelBounds();
+    entity->stopModelOverrideIfNoParent();
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in

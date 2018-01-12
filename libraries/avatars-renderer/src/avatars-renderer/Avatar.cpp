@@ -352,10 +352,10 @@ void Avatar::updateAvatarEntities() {
 void Avatar::relayJointDataToChildren() {
     forEachChild([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Entity) {
-            auto modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
+            auto  modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
             if (modelEntity) {
                 if (modelEntity->getRelayParentJoints()) {
-                    if (!(modelEntity->getJointMapCompleted())) {
+                    if (!modelEntity->getJointMapCompleted() || _reconstructSoftEntitiesJointMap) {
                         QStringList modelJointNames = modelEntity->getJointNames();
                         int numJoints = modelJointNames.count();
                         std::vector<int> map;
@@ -365,7 +365,6 @@ void Avatar::relayJointDataToChildren() {
                             int avatarJointIndex = getJointIndex(jointName);
                             glm::quat jointRotation;
                             glm::vec3 jointTranslation;
-                            qDebug() << avatarJointIndex;
                             if (avatarJointIndex < 0) {
                                 jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
                                 jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
@@ -385,7 +384,6 @@ void Avatar::relayJointDataToChildren() {
                         int numJoints = modelJointNames.count();
                         for (int jointIndex = 0; jointIndex < numJoints; jointIndex++) {
                             int avatarJointIndex = modelEntity->avatarJointIndex(jointIndex);
-                            int index = modelEntity->getJointIndex(modelJointNames.at(jointIndex));
                             glm::quat jointRotation;
                             glm::vec3 jointTranslation;
                             if (avatarJointIndex >=0) {
@@ -406,6 +404,7 @@ void Avatar::relayJointDataToChildren() {
             }
         }
     });
+    _reconstructSoftEntitiesJointMap = false;
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
@@ -1259,6 +1258,7 @@ void Avatar::setModelURLFinished(bool success) {
     invalidateJointIndicesCache();
 
     _isAnimatingScale = true;
+    _reconstructSoftEntitiesJointMap = true;
 
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts

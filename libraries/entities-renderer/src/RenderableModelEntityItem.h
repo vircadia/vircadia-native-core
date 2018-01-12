@@ -81,6 +81,7 @@ public:
     void setCollisionShape(const btCollisionShape* shape) override;
 
     virtual bool contains(const glm::vec3& point) const override;
+    void stopModelOverrideIfNoParent();
 
     virtual bool shouldBePhysical() const override;
     void simulateRelayedJoints();
