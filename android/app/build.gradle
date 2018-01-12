@@ -60,6 +60,7 @@ android {
             copy {
                 from new File(projectDir, "../../interface/compiledResources")
                 into outputDir
+                duplicatesStrategy DuplicatesStrategy.INCLUDE
                 eachFile { details ->
                     youngestLastModified = Math.max(youngestLastModified, details.lastModified)
                     assetList.add(details.path)
@@ -70,6 +71,7 @@ android {
             copy {
                 from new File(projectDir, "../../scripts")
                 into new File(outputDir, "scripts")
+                duplicatesStrategy DuplicatesStrategy.INCLUDE
                 eachFile { details->
                     youngestLastModified = Math.max(youngestLastModified, details.lastModified)
                     assetList.add("scripts/" + details.path)
