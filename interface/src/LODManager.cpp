@@ -26,21 +26,21 @@ Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DO
 LODManager::LODManager() {
 }
 
-float LODManager::getLODDecreaseFPS() {
+float LODManager::getLODDecreaseFPS() const {
     if (qApp->isHMDMode()) {
         return getHMDLODDecreaseFPS();
     }
     return getDesktopLODDecreaseFPS();
 }
 
-float LODManager::getLODIncreaseFPS() {
+float LODManager::getLODIncreaseFPS() const {
     if (qApp->isHMDMode()) {
         return getHMDLODIncreaseFPS();
     }
     return getDesktopLODIncreaseFPS();
 }
 
-// We use a "time-weighted running average" of the renderTime and compare it against min/max thresholds
+// We use a "time-weighted running average" of the maxRenderTime and compare it against min/max thresholds
 // to determine if we should adjust the level of detail (LOD).
 //
 // A time-weighted running average has a timescale which determines how fast the average tracks the measured
@@ -58,11 +58,18 @@ const uint64_t LOD_AUTO_ADJUST_PERIOD = 5 * (uint64_t)(LOD_ADJUST_RUNNING_AVG_TI
 const float LOD_AUTO_ADJUST_DECREMENT_FACTOR = 0.8f;
 const float LOD_AUTO_ADJUST_INCREMENT_FACTOR = 1.2f;
 
-void LODManager::autoAdjustLOD(float renderTime, float realTimeDelta) {
-    // compute time-weighted running average renderTime
+void LODManager::setRenderTimes(float presentTime, float engineRunTime, float gpuTime) {
+    _presentTime = presentTime;
+    _engineRunTime = engineRunTime;
+    _gpuTime = gpuTime;
+}
+
+void LODManager::autoAdjustLOD(float realTimeDelta) {
+    float maxRenderTime = glm::max(glm::max(_presentTime, _engineRunTime), _gpuTime);
+    // compute time-weighted running average maxRenderTime
     // Note: we MUST clamp the blend to 1.0 for stability
     float blend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
-    _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * renderTime; // msec
+    _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * maxRenderTime; // msec
     if (!_automaticLODAdjust) {
         // early exit
         return;
@@ -84,6 +91,10 @@ void LODManager::autoAdjustLOD(float renderTime, float realTimeDelta) {
                     << "targetFPS =" << getLODDecreaseFPS()
                     << "octreeSizeScale =" << _octreeSizeScale;
                 emit LODDecreased();
+                // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
+                // to provide an FPS just above the decrease threshold.  It will drift close to its
+                // true value after a few LOD_ADJUST_TIMESCALEs and we'll adjust again as necessary.
+                _avgRenderTime = (float)MSECS_PER_SECOND / (getLODDecreaseFPS() + 1.0f);
             }
             _decreaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
@@ -105,6 +116,10 @@ void LODManager::autoAdjustLOD(float renderTime, float realTimeDelta) {
                     << "targetFPS =" << getLODDecreaseFPS()
                     << "octreeSizeScale =" << _octreeSizeScale;
                 emit LODIncreased();
+                // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
+                // to provide an FPS just below the increase threshold.  It will drift close to its
+                // true value after a few LOD_ADJUST_TIMESCALEs and we'll adjust again as necessary.
+                _avgRenderTime = (float)MSECS_PER_SECOND / (getLODIncreaseFPS() - 1.0f);
             }
             _increaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         }
@@ -119,16 +134,23 @@ void LODManager::autoAdjustLOD(float renderTime, float realTimeDelta) {
         if (lodToolsDialog) {
             lodToolsDialog->reloadSliders();
         }
-        // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
-        // to be at middle of target zone.  It will drift close to its true value within
-        // about three few LOD_ADJUST_TIMESCALEs and we'll adjust again as necessary.
-        float expectedFPS = 0.5f * (getLODIncreaseFPS() + getLODDecreaseFPS());
-        _avgRenderTime = MSECS_PER_SECOND / expectedFPS;
     }
 }
 
 void LODManager::resetLODAdjust() {
     _decreaseFPSExpiry = _increaseFPSExpiry = usecTimestampNow() + LOD_AUTO_ADJUST_PERIOD;
+}
+
+float LODManager::getLODLevel() const {
+    // simpleLOD is a linearized and normalized number that represents how much LOD is being applied.
+    // It ranges from:
+    //    1.0 = normal (max) level of detail
+    //    0.0 = min level of detail
+    // In other words: as LOD "drops" the value of simpleLOD will also "drop", and it cannot go lower than 0.0.
+    const float LOG_MIN_LOD_RATIO = logf(ADJUST_LOD_MIN_SIZE_SCALE / ADJUST_LOD_MAX_SIZE_SCALE);
+    float power = logf(_octreeSizeScale / ADJUST_LOD_MAX_SIZE_SCALE);
+    float simpleLOD = (LOG_MIN_LOD_RATIO - power) / LOG_MIN_LOD_RATIO;
+    return simpleLOD;
 }
 
 const float MIN_DECREASE_FPS = 0.5f;

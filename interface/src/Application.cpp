@@ -4351,8 +4351,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
-        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
-        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
+        auto lodManager = DependencyManager::get<LODManager>();
+        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
