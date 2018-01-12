@@ -2235,6 +2235,10 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
 }
 
 bool EntityTree::readFromMap(QVariantMap& map) {
+    // These are needed to deal with older content (before adding inheritance modes)
+    int contentVersion = map["Version"].toInt();
+    bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
+
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then
     // to a QScriptValue, and then to EntityItemProperties.  These properties are used
@@ -2280,8 +2284,6 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         // Fix for older content not containing these fields in the zones
-        int contentVersion = map["Version"].toInt();
-        bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The background should be enabled if the mode is skybox
             // Note that if the values are default then they are not stored in the JSON file
