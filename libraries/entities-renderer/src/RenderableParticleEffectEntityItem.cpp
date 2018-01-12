@@ -14,8 +14,8 @@
 
 #include <GeometryCache.h>
 
-#include "textured_particle_vert.h"
-#include "textured_particle_frag.h"
+INCLUDE_SHADER(textured_particle_vert)
+INCLUDE_SHADER(textured_particle_frag)
 
 using namespace render;
 using namespace render::entities;

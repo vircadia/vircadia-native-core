@@ -39,11 +39,11 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
   get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
   get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
   if(SHADER_EXT STREQUAL .slv)
-    set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
+    set(SHADER_TARGET ${SHADER_TARGET}_vert.cpp)
   elseif(${SHADER_EXT} STREQUAL .slf)
-    set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+    set(SHADER_TARGET ${SHADER_TARGET}_frag.cpp)
   elseif(${SHADER_EXT} STREQUAL .slg)
-    set(SHADER_TARGET ${SHADER_TARGET}_geom.h)
+    set(SHADER_TARGET ${SHADER_TARGET}_geom.cpp)
   endif()
 
   set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
@@ -134,6 +134,6 @@ macro(AUTOSCRIBE_SHADER_LIB)
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
 
   # Link library shaders, if they exist
-  include_directories("${SHADERS_DIR}")
+  #include_directories("${SHADERS_DIR}")
 
 endmacro()

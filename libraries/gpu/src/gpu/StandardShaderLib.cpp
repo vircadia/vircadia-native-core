@@ -12,21 +12,21 @@
 //
 #include "StandardShaderLib.h"
 
-#include "DrawUnitQuadTexcoord_vert.h"
-#include "DrawTransformUnitQuad_vert.h"
-#include "DrawTexcoordRectTransformUnitQuad_vert.h"
-#include "DrawViewportQuadTransformTexcoord_vert.h"
-#include "DrawVertexPosition_vert.h"
-#include "DrawTransformVertexPosition_vert.h"
+INCLUDE_SHADER(DrawUnitQuadTexcoord_vert)
+INCLUDE_SHADER(DrawTransformUnitQuad_vert)
+INCLUDE_SHADER(DrawTexcoordRectTransformUnitQuad_vert)
+INCLUDE_SHADER(DrawViewportQuadTransformTexcoord_vert)
+INCLUDE_SHADER(DrawVertexPosition_vert)
+INCLUDE_SHADER(DrawTransformVertexPosition_vert)
 
 const char DrawNada_frag[] = "void main(void) {}"; // DrawNada is really simple...
 
-#include "DrawWhite_frag.h"
-#include "DrawColor_frag.h"
-#include "DrawTexture_frag.h"
-#include "DrawTextureMirroredX_frag.h"
-#include "DrawTextureOpaque_frag.h"
-#include "DrawColoredTexture_frag.h"
+INCLUDE_SHADER(DrawWhite_frag)
+INCLUDE_SHADER(DrawColor_frag)
+INCLUDE_SHADER(DrawTexture_frag)
+INCLUDE_SHADER(DrawTextureMirroredX_frag)
+INCLUDE_SHADER(DrawTextureOpaque_frag)
+INCLUDE_SHADER(DrawColoredTexture_frag)
 
 using namespace gpu;
 

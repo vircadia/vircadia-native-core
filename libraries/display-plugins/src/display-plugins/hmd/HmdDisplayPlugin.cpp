@@ -33,8 +33,8 @@
 #include "../Logging.h"
 #include "../CompositorHelper.h"
 
-#include "render-utils/hmd_ui_vert.h"
-#include "render-utils/hmd_ui_frag.h"
+INCLUDE_SHADER(hmd_ui_vert)
+INCLUDE_SHADER(hmd_ui_frag)
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";

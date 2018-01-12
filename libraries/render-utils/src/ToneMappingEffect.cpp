@@ -17,7 +17,7 @@
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
-#include "toneMapping_frag.h"
+INCLUDE_SHADER(toneMapping_frag)
 
 const int ToneMappingEffect_ParamsSlot = 0;
 const int ToneMappingEffect_LightingMapSlot = 0;

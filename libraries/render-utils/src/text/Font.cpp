@@ -7,9 +7,9 @@
 
 #include <StreamHelpers.h>
 
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
-#include "sdf_text3D_transparent_frag.h"
+INCLUDE_SHADER(sdf_text3D_vert)
+INCLUDE_SHADER(sdf_text3D_frag)
+INCLUDE_SHADER(sdf_text3D_transparent_frag)
 
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"

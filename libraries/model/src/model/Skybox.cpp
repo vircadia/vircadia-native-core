@@ -15,8 +15,8 @@
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
 
-#include "skybox_vert.h"
-#include "skybox_frag.h"
+INCLUDE_SHADER(skybox_vert)
+INCLUDE_SHADER(skybox_frag)
 
 using namespace model;
 

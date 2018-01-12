@@ -23,65 +23,65 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
-#include <render-utils/simple_vert.h>
-#include <render-utils/simple_frag.h>
-#include <render-utils/simple_textured_frag.h>
-#include <render-utils/simple_textured_unlit_frag.h>
+INCLUDE_SHADER(simple_vert)
+INCLUDE_SHADER(simple_frag)
+INCLUDE_SHADER(simple_textured_frag)
+INCLUDE_SHADER(simple_textured_unlit_frag)
 
-#include <render-utils/deferred_light_vert.h>
-#include <render-utils/deferred_light_point_vert.h>
-#include <render-utils/deferred_light_spot_vert.h>
+INCLUDE_SHADER(deferred_light_vert)
+INCLUDE_SHADER(deferred_light_point_vert)
+INCLUDE_SHADER(deferred_light_spot_vert)
 
-#include <render-utils/directional_ambient_light_frag.h>
-#include <render-utils/directional_skybox_light_frag.h>
+INCLUDE_SHADER(directional_ambient_light_frag)
+INCLUDE_SHADER(directional_skybox_light_frag)
 
-#include <render-utils/standardTransformPNTC_vert.h>
-#include <render-utils/standardDrawTexture_frag.h>
+INCLUDE_SHADER(standardTransformPNTC_vert)
+INCLUDE_SHADER(standardDrawTexture_frag)
 
-#include <render-utils/model_vert.h>
-#include <render-utils/model_shadow_vert.h>
-#include <render-utils/model_normal_map_vert.h>
-#include <render-utils/model_lightmap_vert.h>
-#include <render-utils/model_lightmap_normal_map_vert.h>
-#include <render-utils/skin_model_vert.h>
-#include <render-utils/skin_model_shadow_vert.h>
-#include <render-utils/skin_model_normal_map_vert.h>
+INCLUDE_SHADER(model_vert)
+INCLUDE_SHADER(model_shadow_vert)
+INCLUDE_SHADER(model_normal_map_vert)
+INCLUDE_SHADER(model_lightmap_vert)
+INCLUDE_SHADER(model_lightmap_normal_map_vert)
+INCLUDE_SHADER(skin_model_vert)
+INCLUDE_SHADER(skin_model_shadow_vert)
+INCLUDE_SHADER(skin_model_normal_map_vert)
 
-#include <render-utils/model_frag.h>
-#include <render-utils/model_shadow_frag.h>
-#include <render-utils/model_normal_map_frag.h>
-#include <render-utils/model_normal_specular_map_frag.h>
-#include <render-utils/model_specular_map_frag.h>
-#include <render-utils/model_lightmap_frag.h>
-#include <render-utils/model_lightmap_normal_map_frag.h>
-#include <render-utils/model_lightmap_normal_specular_map_frag.h>
-#include <render-utils/model_lightmap_specular_map_frag.h>
-#include <render-utils/model_translucent_frag.h>
+INCLUDE_SHADER(model_frag)
+INCLUDE_SHADER(model_shadow_frag)
+INCLUDE_SHADER(model_normal_map_frag)
+INCLUDE_SHADER(model_normal_specular_map_frag)
+INCLUDE_SHADER(model_specular_map_frag)
+INCLUDE_SHADER(model_lightmap_frag)
+INCLUDE_SHADER(model_lightmap_normal_map_frag)
+INCLUDE_SHADER(model_lightmap_normal_specular_map_frag)
+INCLUDE_SHADER(model_lightmap_specular_map_frag)
+INCLUDE_SHADER(model_translucent_frag)
 
-#include <entities-renderer/textured_particle_frag.h>
-#include <entities-renderer/textured_particle_vert.h>
+INCLUDE_SHADER(textured_particle_frag)
+INCLUDE_SHADER(textured_particle_vert)
 
-#include <render-utils/overlay3D_vert.h>
-#include <render-utils/overlay3D_frag.h>
+INCLUDE_SHADER(overlay3D_vert)
+INCLUDE_SHADER(overlay3D_frag)
 
-#include <model/skybox_vert.h>
-#include <model/skybox_frag.h>
+INCLUDE_SHADER(skybox_vert)
+INCLUDE_SHADER(skybox_frag)
 
-#include <gpu/DrawTransformUnitQuad_vert.h>
-#include <gpu/DrawTexcoordRectTransformUnitQuad_vert.h>
-#include <gpu/DrawViewportQuadTransformTexcoord_vert.h>
-#include <gpu/DrawTexture_frag.h>
-#include <gpu/DrawTextureOpaque_frag.h>
-#include <gpu/DrawColoredTexture_frag.h>
+INCLUDE_SHADER(DrawTransformUnitQuad_vert)
+INCLUDE_SHADER(DrawTexcoordRectTransformUnitQuad_vert)
+INCLUDE_SHADER(DrawViewportQuadTransformTexcoord_vert)
+INCLUDE_SHADER(DrawTexture_frag)
+INCLUDE_SHADER(DrawTextureOpaque_frag)
+INCLUDE_SHADER(DrawColoredTexture_frag)
 
-#include <render-utils/sdf_text3D_vert.h>
-#include <render-utils/sdf_text3D_frag.h>
+INCLUDE_SHADER(sdf_text3D_vert)
+INCLUDE_SHADER(sdf_text3D_frag)
 
-#include <entities-renderer/paintStroke_vert.h>
-#include <entities-renderer/paintStroke_frag.h>
+INCLUDE_SHADER(paintStroke_vert)
+INCLUDE_SHADER(paintStroke_frag)
 
-#include <entities-renderer/polyvox_vert.h>
-#include <entities-renderer/polyvox_frag.h>
+INCLUDE_SHADER(polyvox_vert)
+INCLUDE_SHADER(polyvox_frag)
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {

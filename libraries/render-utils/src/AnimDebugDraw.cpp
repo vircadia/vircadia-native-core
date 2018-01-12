@@ -9,8 +9,6 @@
 
 #include <qmath.h>
 
-#include "animdebugdraw_vert.h"
-#include "animdebugdraw_frag.h"
 #include <gpu/Batch.h>
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
@@ -18,6 +16,9 @@
 #include "DebugDraw.h"
 
 #include "AnimDebugDraw.h"
+
+INCLUDE_SHADER(animdebugdraw_vert)
+INCLUDE_SHADER(animdebugdraw_frag)
 
 class AnimDebugDrawData {
 public:

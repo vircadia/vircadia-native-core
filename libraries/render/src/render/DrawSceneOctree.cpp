@@ -22,12 +22,12 @@
 
 #include "Args.h"
 
-#include "drawCellBounds_vert.h"
-#include "drawCellBounds_frag.h"
-#include "drawLODReticle_frag.h"
+INCLUDE_SHADER(drawCellBounds_vert)
+INCLUDE_SHADER(drawCellBounds_frag)
+INCLUDE_SHADER(drawLODReticle_frag)
 
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
+INCLUDE_SHADER(drawItemBounds_vert)
+INCLUDE_SHADER(drawItemBounds_frag)
 
 using namespace render;
 

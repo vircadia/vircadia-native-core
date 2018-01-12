@@ -15,8 +15,8 @@
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
 
-#include <model/skybox_vert.h>
-#include <model/skybox_frag.h>
+INCLUDE_SHADER(skybox_vert)
+INCLUDE_SHADER(skybox_frag)
 
 ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._vertexSource = skybox_vert;

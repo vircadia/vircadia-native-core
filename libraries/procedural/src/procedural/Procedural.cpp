@@ -20,7 +20,7 @@
 #include <NumericalConstants.h>
 #include <GLMHelpers.h>
 
-#include "ProceduralCommon_frag.h"
+INCLUDE_SHADER(ProceduralCommon_frag)
 
 #include "Logging.h"
 

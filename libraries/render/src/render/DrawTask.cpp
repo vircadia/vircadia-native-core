@@ -22,8 +22,8 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include <drawItemBounds_vert.h>
-#include <drawItemBounds_frag.h>
+INCLUDE_SHADER(drawItemBounds_vert)
+INCLUDE_SHADER(drawItemBounds_frag)
 
 using namespace render;
 

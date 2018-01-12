@@ -24,7 +24,7 @@
 
 #include <gpu/StandardShaderLib.h>
 
-#include "nop_frag.h"
+INCLUDE_SHADER(nop_frag)
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);

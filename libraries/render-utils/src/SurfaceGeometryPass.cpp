@@ -25,10 +25,10 @@ const int SurfaceGeometryPass_ParamsSlot = 1;
 const int SurfaceGeometryPass_DepthMapSlot = 0;
 const int SurfaceGeometryPass_NormalMapSlot = 1;
 
-#include "surfaceGeometry_makeLinearDepth_frag.h"
-#include "surfaceGeometry_downsampleDepthNormal_frag.h"
+INCLUDE_SHADER(surfaceGeometry_makeLinearDepth_frag)
+INCLUDE_SHADER(surfaceGeometry_downsampleDepthNormal_frag)
 
-#include "surfaceGeometry_makeCurvature_frag.h"
+INCLUDE_SHADER(surfaceGeometry_makeCurvature_frag)
 
 
 

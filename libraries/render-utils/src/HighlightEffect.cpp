@@ -22,13 +22,13 @@
 
 #include <sstream>
 
-#include "surfaceGeometry_copyDepth_frag.h"
-#include "debug_deferred_buffer_vert.h"
-#include "debug_deferred_buffer_frag.h"
-#include "Highlight_frag.h"
-#include "Highlight_filled_frag.h"
-#include "Highlight_aabox_vert.h"
-#include "nop_frag.h"
+INCLUDE_SHADER(surfaceGeometry_copyDepth_frag)
+INCLUDE_SHADER(debug_deferred_buffer_vert)
+INCLUDE_SHADER(debug_deferred_buffer_frag)
+INCLUDE_SHADER(Highlight_frag)
+INCLUDE_SHADER(Highlight_filled_frag)
+INCLUDE_SHADER(Highlight_aabox_vert)
+INCLUDE_SHADER(nop_frag)
 
 using namespace render;
 
@@ -547,10 +547,10 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
 }
 
-#include "model_shadow_vert.h"
-#include "skin_model_shadow_vert.h"
+INCLUDE_SHADER(model_shadow_vert)
+INCLUDE_SHADER(skin_model_shadow_vert)
 
-#include "model_shadow_frag.h"
+INCLUDE_SHADER(model_shadow_frag)
 
 void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
     auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));

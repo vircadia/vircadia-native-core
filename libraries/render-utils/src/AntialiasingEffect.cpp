@@ -23,9 +23,9 @@
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
 
-#include "fxaa_vert.h"
-#include "fxaa_frag.h"
-#include "fxaa_blend_frag.h"
+INCLUDE_SHADER(fxaa_vert)
+INCLUDE_SHADER(fxaa_frag)
+INCLUDE_SHADER(fxaa_blend_frag)
 
 
 Antialiasing::Antialiasing() {

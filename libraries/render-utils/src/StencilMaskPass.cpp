@@ -17,7 +17,7 @@
 
 #include <gpu/StandardShaderLib.h>
 
-#include "stencil_drawMask_frag.h"
+INCLUDE_SHADER(stencil_drawMask_frag)
 
 using namespace render;
 

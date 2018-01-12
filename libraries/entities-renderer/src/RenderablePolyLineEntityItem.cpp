@@ -23,11 +23,11 @@
 #   include <FadeEffect.h>
 #endif
 
-#include "paintStroke_vert.h"
-#include "paintStroke_frag.h"
+INCLUDE_SHADER(paintStroke_vert)
+INCLUDE_SHADER(paintStroke_frag)
 
-#include "paintStroke_fade_vert.h"
-#include "paintStroke_fade_frag.h"
+INCLUDE_SHADER(paintStroke_fade_vert)
+INCLUDE_SHADER(paintStroke_fade_frag)
 
 using namespace render;
 using namespace render::entities;
