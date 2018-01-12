@@ -144,15 +144,13 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
     if ((fp = fopen(filename, "wt"))) {
         if (!PEM_write_EC_PUBKEY(fp, keys)) {
             fclose(fp);
-            qCDebug(commerce) << "failed to write public key";
-            QFile(QString(filename)).remove();
+            qCCritical(commerce) << "failed to write public key";
             return retval;
         }
 
         if (!PEM_write_ECPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
             fclose(fp);
-            qCDebug(commerce) << "failed to write private key";
-            QFile(QString(filename)).remove();
+            qCCritical(commerce) << "failed to write private key";
             return retval;
         }
 
@@ -168,7 +166,8 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
 
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
-    QPair<QByteArray*, QByteArray*> retval;
+    QPair<QByteArray*, QByteArray*> retval{};
+
     EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
     if (!EC_KEY_generate_key(keyPair)) {
         qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
@@ -517,6 +516,9 @@ bool Wallet::generateKeyPair() {
 
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateECKeypair();
+    if (!keyPair.first) {
+        return false;
+    }
 
     writeBackupInstructions();
 
@@ -653,20 +655,6 @@ QString Wallet::getKeyFilePath() {
     }
 }
 
-void Wallet::reset() {
-    _publicKeys.clear();
-
-    delete _securityImage;
-    _securityImage = nullptr;
-
-    // tell the provider we got nothing
-    updateImageProvider();
-    _passphrase->clear();
-
-
-    QFile keyFile(keyFilePath());
-    keyFile.remove();
-}
 bool Wallet::writeWallet(const QString& newPassphrase) {
     EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
     if (keys) {
