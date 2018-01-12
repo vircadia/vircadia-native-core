@@ -87,6 +87,7 @@ public:
     bool getJointMapCompleted();
     void setJointMap(std::vector<int> jointMap);
     int avatarJointIndex(int modelJointIndex);
+    void setOverrideTransform(const Transform& transform);
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;

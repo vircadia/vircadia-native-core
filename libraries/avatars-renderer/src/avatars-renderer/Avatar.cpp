@@ -355,9 +355,7 @@ void Avatar::relayJointDataToChildren() {
             auto modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
             if (modelEntity) {
                 if (modelEntity->getRelayParentJoints()) {
-                    qDebug() << modelEntity->getJointMapCompleted();
                     if (!(modelEntity->getJointMapCompleted())) {
-                        qDebug() << "constructing map";
                         QStringList modelJointNames = modelEntity->getJointNames();
                         int numJoints = modelJointNames.count();
                         std::vector<int> map;
@@ -388,7 +386,6 @@ void Avatar::relayJointDataToChildren() {
                         for (int jointIndex = 0; jointIndex < numJoints; jointIndex++) {
                             int avatarJointIndex = modelEntity->avatarJointIndex(jointIndex);
                             int index = modelEntity->getJointIndex(modelJointNames.at(jointIndex));
-                            //qDebug() << jointIndex << "------" << index;
                             glm::quat jointRotation;
                             glm::vec3 jointTranslation;
                             if (avatarJointIndex >=0) {
@@ -402,6 +399,8 @@ void Avatar::relayJointDataToChildren() {
                             modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
                         }
                     }
+
+                    modelEntity->setOverrideTransform(_skeletonModel->getTransform());
                     modelEntity->simulateRelayedJoints();
                 }
             }

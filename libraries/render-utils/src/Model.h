@@ -208,10 +208,14 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void overrideModelTransform(const Transform& transform);
+    void setOverrideTransform(bool override) { _overrideModelTransform = override; };
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+    const glm::vec3& getOverrideTranslation() const { return _overrideTranslation; }
+    const glm::quat& getOverrideRotation() const { return _overrideRotation; }
 
     glm::vec3 getNaturalDimensions() const;
 
@@ -302,6 +306,9 @@ protected:
     glm::quat _rotation;
     glm::vec3 _scale;
 
+    glm::vec3 _overrideTranslation;
+    glm::quat _overrideRotation;
+
     // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
     // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
     // by the default pose, to the origin.
@@ -362,6 +369,7 @@ protected:
 
     QMutex _mutex;
 
+    bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets();
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes

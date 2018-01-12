@@ -209,6 +209,12 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
+    if (getRelayParentJoints()) {
+        model->setOverrideTransform(true);
+    } else {
+        model->setOverrideTransform(false);
+    }
+
     if (model->getScaleToFitDimensions() != getScaledDimensions() ||
             model->getRegistrationPoint() != getRegistrationPoint()) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
@@ -709,13 +715,15 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
 }
 
 void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
-    _jointMap = jointMap;
-    _jointMapCompleted = true;
+    if (jointMap.size() > 0) {
+        _jointMap = jointMap;
+        _jointMapCompleted = true;
+    }
 };
 
 int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
     int result = -1;
-    int mapSize = _jointMap.size();
+    int mapSize = (int) _jointMap.size();
     if (modelJointIndex >=0 && modelJointIndex < mapSize) {
         result = _jointMap[modelJointIndex];
     }
@@ -852,6 +860,13 @@ glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
         }
     }
     return glm::vec3();
+}
+
+void RenderableModelEntityItem::setOverrideTransform(const Transform& transform) {
+    auto model = getModel();
+    if (model) {
+        model->overrideModelTransform(transform);
+    }
 }
 
 bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
