@@ -12,6 +12,8 @@
 #ifndef hifi_OpenGLVersionChecker_h
 #define hifi_OpenGLVersionChecker_h
 
+#include <QtGlobal>
+#if !defined(Q_OS_ANDROID)
 #include <QApplication>
 
 class OpenGLVersionChecker : public QApplication {
@@ -21,5 +23,6 @@ public:
 
     static QJsonObject checkVersion(bool& valid, bool& override);
 };
+#endif
 
 #endif // hifi_OpenGLVersionChecker_h

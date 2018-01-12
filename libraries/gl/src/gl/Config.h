@@ -14,9 +14,8 @@
 
 #include <QtCore/QtGlobal>
 
-#if defined(Q_OS_ANDROID)
+#if defined(USE_GLES)
 #define HIFI_GLES
-#define HIFI_EGL
 #endif
 
 #if defined(HIFI_GLES)
@@ -36,11 +35,9 @@
 #define MINIMUM_GL_VERSION ((GL_MIN_VERSION_MAJOR << 8) | GL_MIN_VERSION_MINOR)
 
 #if defined(HIFI_GLES)
-#include <EGL/egl.h>
-#endif
-
-#if defined(HIFI_GLES)
+#define GL_GLEXT_PROTOTYPES
 #include <GLES3/gl32.h>
+#include <EGL/egl.h>
 
 #define GL_DEPTH_COMPONENT32_OES          0x81A7
 #define GL_TIME_ELAPSED_EXT               0x88BF

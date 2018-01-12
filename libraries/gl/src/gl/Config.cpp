@@ -13,7 +13,7 @@
 
 #include <mutex>
 
-#if defined(Q_OS_ANDROID)
+#if defined(HIFI_GLES)
 PFNGLQUERYCOUNTEREXTPROC __glQueryCounterEXT = NULL;
 PFNGLGETQUERYOBJECTUI64VEXTPROC __glGetQueryObjectui64vEXT = NULL;
 PFNGLFRAMEBUFFERTEXTUREEXTPROC __glFramebufferTextureEXT = NULL;
@@ -22,7 +22,7 @@ PFNGLFRAMEBUFFERTEXTUREEXTPROC __glFramebufferTextureEXT = NULL;
 void gl::initModuleGl() {
     static std::once_flag once;
     std::call_once(once, [] {
-#if defined(Q_OS_ANDROID)
+#if defined(HIFI_GLES)
         glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC)eglGetProcAddress("glQueryCounterEXT");
         glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)eglGetProcAddress("glGetQueryObjectui64vEXT");
         glFramebufferTextureEXT = (PFNGLFRAMEBUFFERTEXTUREEXTPROC)eglGetProcAddress("glFramebufferTextureEXT");

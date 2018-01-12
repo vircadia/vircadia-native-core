@@ -6,7 +6,7 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-if (WIN32)
+if (WIN32 AND (NOT USE_GLES))
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     set(TARGET_NAME openvr)

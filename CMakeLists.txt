@@ -39,13 +39,25 @@ else()
     option(BUILD_TESTS "Build tests" ON)
 endif()
 
+
+
 if (ANDROID)
+  option(USE_GLES "Use OpenGL ES" ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
-  set(PLATFORM_GL_BACKEND gpu-gles)
 else ()
+  option(USE_GLES "Use OpenGL ES" OFF)
   set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-  set(PLATFORM_GL_BACKEND gpu-gl)
 endif ()
+
+set(PLATFORM_QT_GL OpenGL)
+
+if (USE_GLES)
+  add_definitions(-DUSE_GLES)
+  set(PLATFORM_GL_BACKEND gpu-gles)
+else()
+  set(PLATFORM_GL_BACKEND gpu-gl)
+endif()
+
 
 foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
   list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
@@ -59,6 +71,7 @@ MESSAGE(STATUS "Build client:    " ${BUILD_CLIENT})
 MESSAGE(STATUS "Build tests:     " ${BUILD_TESTS})
 MESSAGE(STATUS "Build tools:     " ${BUILD_TOOLS})
 MESSAGE(STATUS "Build installer: " ${BUILD_INSTALLER})
+MESSAGE(STATUS "GL ES:           " ${USE_GLES})
 
 if (UNIX AND DEFINED ENV{HIFI_MEMORY_DEBUGGING})
     MESSAGE(STATUS "Memory debugging is enabled")

@@ -28,7 +28,7 @@ void Context::makeCurrent(QOpenGLContext* context, QSurface* surface) {
 }
 
 QOpenGLContext* Context::qglContext() {
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
     if (!_wrappedContext) {
         _wrappedContext = new QOpenGLContext();
         _wrappedContext->setNativeHandle(QVariant::fromValue(QWGLNativeContext(_hglrc, _hwnd)));
@@ -45,7 +45,7 @@ void Context::moveToThread(QThread* thread) {
     qglContext()->moveToThread(thread);
 }
 
-#ifndef Q_OS_WIN
+#ifndef GL_CUSTOM_CONTEXT
 bool Context::makeCurrent() {
     updateSwapchainMemoryCounter();
     return _context->makeCurrent(_window);
