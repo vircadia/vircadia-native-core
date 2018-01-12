@@ -579,6 +579,7 @@ void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& c
     auto avatarAudioStream = getAvatarAudioStream();
     if (avatarAudioStream) {
         avatarAudioStream->setupCodec(codec, codecName, avatarAudioStream->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
+        qCDebug(audio) << "setting AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << avatarAudioStream->isStereo();
     }
 
 #if INJECTORS_SUPPORT_CODECS

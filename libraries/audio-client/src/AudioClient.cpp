@@ -1382,7 +1382,16 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
             _desiredInputFormat.setChannelCount(1);
         }
 
-        // change in channel count for desired input format, restart the input device
+        // restart the codec
+        if (_codec) {
+            if (_encoder) {
+                _codec->releaseEncoder(_encoder);
+            }
+            _encoder = _codec->createEncoder(AudioConstants::SAMPLE_RATE, _isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
+        }
+        qCDebug(audioclient) << "Reset Codec:" << _selectedCodecName << "isStereoInput:" << _isStereoInput;
+
+        // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
     }
 }
