@@ -185,7 +185,12 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    if (_visible && !_cauterized) {
+    auto& renderMode = args->_renderMode;
+    bool cauterized = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE &&
+                       renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) &&
+        _cauterized;
+
+    if (_visible && !cauterized) {
         doRender(args);
     }
 }
