@@ -439,7 +439,7 @@ void Agent::executeScript() {
             encodedBuffer = audio;
         }
 
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false, 
             audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
             packetType, _selectedCodecName);
     });
