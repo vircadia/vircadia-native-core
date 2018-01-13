@@ -14,9 +14,13 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-#include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
+
+#if !defined(USE_GLES)
+#include <QtOpenGL/QGLWidget>
 #include <QOpenGLFramebufferObject>
+#endif
+
 #if defined(Q_OS_MAC)
 #include <OpenGL/CGLCurrent.h>
 #endif
@@ -130,6 +134,8 @@ public:
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         _context->makeCurrent();
+        CHECK_GL_ERROR();
+        _context->doneCurrent();
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 PROFILE_RANGE(render, "MainThreadOp")
@@ -171,6 +177,7 @@ public:
                             QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
+                            CHECK_GL_ERROR();
 #if defined(Q_OS_WIN)
                             wglSwapIntervalEXT(wantVsync ? 1 : 0);
                             hasVsync = wglGetSwapIntervalEXT() != 0;
@@ -185,6 +192,7 @@ public:
                             // TODO: Fill in for linux
                             Q_UNUSED(wantVsync);
 #endif
+                            CHECK_GL_ERROR();
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
                             CHECK_GL_ERROR();
@@ -284,6 +292,12 @@ bool OpenGLDisplayPlugin::activate() {
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
         presentThread->setObjectName("Presentation Thread");
+        if (!widget->context()->makeCurrent()) {
+            throw std::runtime_error("Failed to make context current");
+        }
+        CHECK_GL_ERROR();
+        widget->context()->doneCurrent();
+
         presentThread->setContext(widget->context());
         // Start execution
         presentThread->start();
@@ -884,7 +898,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
 }
 
 void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
-#if !defined(Q_OS_ANDROID)
+#if !defined(USE_GLES)
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     withMainThreadContext([&] {
         GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());

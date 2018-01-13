@@ -748,6 +748,9 @@ void NetworkTexture::handleFinishedInitialLoad() {
                 texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                    if (texture->source().empty()) {
+                        texture->setSource(url.toString().toStdString());
+                    }
                 }
             }
         }
@@ -928,7 +931,7 @@ void ImageReader::read() {
         if (!texture) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile);
+                texture = gpu::Texture::unserialize(ktxFile, _url.toString().toStdString());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 } else {

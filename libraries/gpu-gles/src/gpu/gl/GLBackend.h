@@ -276,6 +276,7 @@ protected:
         Offset _indirectBufferStride{ 0 };
 
         GLuint _defaultVAO { 0 };
+        bool _hadColorAttribute{ false };
 
         InputStageState() :
             _invalidFormat(true),

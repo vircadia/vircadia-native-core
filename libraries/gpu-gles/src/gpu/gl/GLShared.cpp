@@ -50,12 +50,8 @@ bool checkGLError(const char* name) {
 }
 
 bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
+    // FIXME, disable in debug mode when near release
     return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
 }
 
 gpu::Size getFreeDedicatedMemory() {

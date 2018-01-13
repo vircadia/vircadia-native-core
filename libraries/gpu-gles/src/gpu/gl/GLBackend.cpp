@@ -262,7 +262,7 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateTransform(batch);
                 updatePipeline();
                 {
-		ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
+        ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 }
@@ -616,6 +616,7 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
+    CHECK_GL_ERROR();
     {
         std::list<std::function<void()>> lamdbasTrash;
         {
@@ -624,6 +625,7 @@ void GLBackend::recycle() const {
         }
         for (auto lambda : lamdbasTrash) {
             lambda();
+            CHECK_GL_ERROR();
         }
     }
 
@@ -640,6 +642,7 @@ void GLBackend::recycle() const {
         }
         if (!ids.empty()) {
             glDeleteBuffers((GLsizei)ids.size(), ids.data());
+            CHECK_GL_ERROR();
         }
     }
 
@@ -656,6 +659,7 @@ void GLBackend::recycle() const {
         }
         if (!ids.empty()) {
             glDeleteFramebuffers((GLsizei)ids.size(), ids.data());
+            CHECK_GL_ERROR();
         }
     }
 
@@ -672,6 +676,7 @@ void GLBackend::recycle() const {
         }
         if (!ids.empty()) {
             glDeleteTextures((GLsizei)ids.size(), ids.data());
+            CHECK_GL_ERROR();
         }
     }
 
@@ -686,6 +691,7 @@ void GLBackend::recycle() const {
             fences.resize(externalTexturesTrash.size());
             for (size_t i = 0; i < externalTexturesTrash.size(); ++i) {
                 fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+                CHECK_GL_ERROR();
             }
             // External texture fences will be read in another thread/context, so we need a flush
             glFlush();
@@ -716,6 +722,7 @@ void GLBackend::recycle() const {
         }
         for (auto id : shadersTrash) {
             glDeleteShader(id);
+            CHECK_GL_ERROR();
         }
     }
 
@@ -732,6 +739,7 @@ void GLBackend::recycle() const {
         }
         if (!ids.empty()) {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
+            CHECK_GL_ERROR();
         }
     }
 

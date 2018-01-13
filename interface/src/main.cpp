@@ -20,7 +20,6 @@
 #include <QTranslator>
 
 #include <BuildInfo.h>
-#include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
