@@ -15,7 +15,13 @@ class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices);
+#if defined(SKIN_DQ)
+    using TransformType = Model::TransformDualQuaternion;
+#else
+    using TransformType = glm::mat4;
+#endif
+
+    void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms, const std::vector<TransformType>& cauterizedClusterTransforms);
 
     void updateTransformForCauterizedMesh(const Transform& renderTransform);
 

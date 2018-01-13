@@ -68,11 +68,10 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
-    
         cacheStencilMask = _pipeline._stateCache.stencilActivation.getWriteMaskFront();
         if (cacheStencilMask != 0xFF) {
             restoreStencilMask = true;
-            glStencilMask( 0xFF);
+            glStencilMask(0xFF);
         }
     }
 
