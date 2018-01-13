@@ -15,11 +15,6 @@
 #include <QtCore/QtGlobal>
 
 #if defined(USE_GLES)
-#define HIFI_GLES
-#define HIFI_EGL
-#endif
-
-#if defined(HIFI_GLES)
 // Minimum GL ES version required is 3.2
 #define GL_MIN_VERSION_MAJOR 0x03
 #define GL_MIN_VERSION_MINOR 0x02
@@ -35,12 +30,21 @@
 
 #define MINIMUM_GL_VERSION ((GL_MIN_VERSION_MAJOR << 8) | GL_MIN_VERSION_MINOR)
 
-#if defined(HIFI_EGL)
+#if defined(USE_GLES)
+
+#if defined(Q_OS_ANDROID)
+
+#include <GLES3/gl32.h>
 #include <EGL/egl.h>
+
+#else
+
+#include <glad/glad.h>
+#if defined(Q_OS_WIN)
+#include <glad/glad_wgl.h>
 #endif
 
-#if defined(HIFI_GLES)
-#include <GLES3/gl32.h>
+#endif
 
 #define GL_DEPTH_COMPONENT32_OES          0x81A7
 #define GL_TIME_ELAPSED_EXT               0x88BF
@@ -52,23 +56,7 @@
 #define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
 
 
-// Add some additional extensions missing from GLES 3.1
-extern "C" {
-    typedef void (GL_APIENTRYP PFNGLQUERYCOUNTEREXTPROC) (GLuint id, GLenum target);
-    typedef void (GL_APIENTRYP PFNGLGETQUERYOBJECTUI64VEXTPROC) (GLuint id, GLenum pname, GLuint64 *params);
-    typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERTEXTUREEXTPROC) (GLenum target, GLenum attachment, GLuint texture, GLint level);
-
-
-    #define glQueryCounterEXT __glQueryCounterEXT
-    #define glGetQueryObjectui64vEXT __glGetQueryObjectui64vEXT
-    #define glFramebufferTextureEXT __glFramebufferTextureEXT
-
-    extern PFNGLQUERYCOUNTEREXTPROC __glQueryCounterEXT;
-    extern PFNGLGETQUERYOBJECTUI64VEXTPROC __glGetQueryObjectui64vEXT;
-    extern PFNGLFRAMEBUFFERTEXTUREEXTPROC __glFramebufferTextureEXT;
-}
-
-#else // !defined(HIFI_GLES)
+#else // !defined(USE_GLES)
 
 #define GL_GLEXT_PROTOTYPES 1
 #include <GL/glew.h>

@@ -126,11 +126,11 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     }
 
     // Grab the HUD texture
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
-        if (renderContext->args->_hudOperator) {
-            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
-        }
-    });
+//    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+//        if (renderContext->args->_hudOperator) {
+//            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
+//        }
+//    });
 }
 
 void Blit::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {

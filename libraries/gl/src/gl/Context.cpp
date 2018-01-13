@@ -26,7 +26,7 @@
 
 #ifdef Q_OS_WIN
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(USE_GLES)
 static bool enableDebugLogger = true;
 #else
 static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
@@ -130,15 +130,16 @@ void Context::setWindow(QWindow* window) {
     updateSwapchainMemoryCounter();
 }
 
-
+static HMODULE glModule = nullptr;
 #ifndef GLAPIENTRY 
-#define GLAPIENTRY GL_APIENTRY
+#define GLAPIENTRY APIENTRYP
 #endif
 
-void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-    //if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
-    //    return;
-    //}
+
+void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+    if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
+        return;
+    }
     qCDebug(glLogging) << "OpenGL: " << message;
 
     // For high severity errors, force a sync to the log, since we might crash 
@@ -151,7 +152,6 @@ void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLen
     //    }
     //}
 }
-
 
 #if defined(GL_CUSTOM_CONTEXT)
 
@@ -205,6 +205,22 @@ void setupPixelFormatSimple(HDC hdc) {
     }
 }
 
+static void* get_proc(const char *namez) {
+    auto result = wglGetProcAddress(namez);
+    if (!result) {
+        static HMODULE glModule = nullptr;
+        if (!glModule) {
+            glModule = LoadLibraryW(L"opengl32.dll");
+        }
+        result = GetProcAddress(glModule, namez);
+    }
+    if (!result) {
+        OutputDebugStringA(namez);
+        OutputDebugStringA("\n");
+    }
+    return (void*)result;
+}
+
 void Context::create() {
     if (!PRIMARY) {
         PRIMARY = static_cast<Context*>(qApp->property(hifi::properties::gl::PRIMARY_CONTEXT).value<void*>());
@@ -233,6 +249,10 @@ void Context::create() {
         if (!makeCurrentResult) {
             throw std::runtime_error("Unable to create initial context");
         }
+#if defined(USE_GLES)
+        gladLoadWGLLoader(get_proc, hdc);
+        _version = 0x0302;
+#else
         glewExperimental = true;
         glewInit();
         if (glewIsSupported("GL_VERSION_4_5")) {
@@ -241,6 +261,7 @@ void Context::create() {
             _version = 0x0403;
         }
         glGetError();
+#endif
         wglMakeCurrent(0, 0);
         wglDeleteContext(glrc);
         ReleaseDC(hwnd, hdc);
@@ -288,11 +309,15 @@ void Context::create() {
         uint32_t majorVersion = _version >> 8;
         uint32_t minorVersion = _version & 0xFF;
         contextAttribs.push_back(WGL_CONTEXT_MAJOR_VERSION_ARB);
-        contextAttribs.push_back(majorVersion);
+        contextAttribs.push_back(2);
         contextAttribs.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
-        contextAttribs.push_back(minorVersion);
+        contextAttribs.push_back(0);
         contextAttribs.push_back(WGL_CONTEXT_PROFILE_MASK_ARB);
+#if defined(USE_GLES)
+        contextAttribs.push_back(WGL_CONTEXT_ES2_PROFILE_BIT_EXT);
+#else
         contextAttribs.push_back(WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
+#endif
         contextAttribs.push_back(WGL_CONTEXT_FLAGS_ARB);
         if (enableDebugLogger) {
             contextAttribs.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);
@@ -313,12 +338,24 @@ void Context::create() {
         qApp->setProperty(hifi::properties::gl::PRIMARY_CONTEXT, QVariant::fromValue((void*)PRIMARY));
     }
 
+#if defined(USE_GLES)
+#define GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB 0x8242
+    if (!makeCurrent()) {
+        throw std::runtime_error("Could not make context current");
+    }
+    auto currentContext = wglGetCurrentContext();
+    gladLoadGLES2Loader(get_proc);
+    glDebugMessageCallback(debugMessageCallback, NULL);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+    doneCurrent();
+#else
     if (enableDebugLogger) {
         makeCurrent();
         glDebugMessageCallback(debugMessageCallback, NULL);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         doneCurrent();
     }
+#endif
 }
 
 #endif

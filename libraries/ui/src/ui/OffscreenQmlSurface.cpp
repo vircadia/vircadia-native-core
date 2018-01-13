@@ -8,8 +8,7 @@
 #include "OffscreenQmlSurface.h"
 #include "ImageProvider.h"
 
-// Has to come before Qt GL includes
-#include <gl/Config.h>
+#include <AudioClient.h>
 
 #include <unordered_set>
 #include <unordered_map>
@@ -29,7 +28,6 @@
 #include <QtMultimedia/QAudioOutputSelectorControl>
 #include <QtMultimedia/QMediaPlayer>
 
-#include <AudioClient.h>
 #include <shared/NsightHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <shared/QtHelpers.h>
@@ -46,6 +44,7 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
 #include <gl/Context.h>
+#include <gl/Config.h>
 #include <shared/ReadWriteLockable.h>
 
 #include "types/FileTypeProfile.h"
@@ -282,7 +281,7 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
-#if !defined(Q_OS_ANDROID)
+#if !defined(USE_GLES)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
 #endif
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);

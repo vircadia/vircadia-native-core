@@ -14,7 +14,6 @@
 #include <chrono>
 #include <thread>
 
-#include <gl/Config.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -50,6 +49,7 @@
 #include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/Config.h>
 
 #include <shared/QtHelpers.h>
 #include <shared/GlobalAppProperties.h>
@@ -309,13 +309,19 @@ static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
-static const QString DISABLE_WATCHDOG_FLAG("HIFI_DISABLE_WATCHDOG");
 #if defined(Q_OS_ANDROID)
 static bool DISABLE_WATCHDOG = true;
 #else
+static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
 
+#if defined(USE_GLES)
+static bool DISABLE_DEFERRED = true;
+#else
+static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
+static bool DISABLE_DEFERRED = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+#endif
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
@@ -2240,16 +2246,11 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-#ifdef Q_OS_ANDROID
-    bool isDeferred = false;
-#else
-    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, isDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -4326,9 +4327,9 @@ void Application::init() {
     
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-#ifndef Q_OS_ANDROID
-    DependencyManager::get<DeferredLightingEffect>()->init();
-#endif
+    if (!DISABLE_DEFERRED) {
+        DependencyManager::get<DeferredLightingEffect>()->init();
+    }
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();
