@@ -518,6 +518,7 @@ QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
 
 void OffscreenQmlSurface::cleanup() {
     _isCleaned = true;
+#if ENABLE_QML_RENDERING
     _canvas->makeCurrent();
 
     _renderControl->invalidate();
@@ -535,9 +536,11 @@ void OffscreenQmlSurface::cleanup() {
     offscreenTextures.releaseSize(_size);
 
     _canvas->doneCurrent();
+#endif
 }
 
 void OffscreenQmlSurface::render() {
+#if ENABLE_QML_RENDERING
     if (nsightActive()) {
         return;
     }
@@ -577,6 +580,7 @@ void OffscreenQmlSurface::render() {
     _quickWindow->resetOpenGLState();
     _lastRenderTime = usecTimestampNow();
     _canvas->doneCurrent();
+#endif
 }
 
 bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
@@ -621,7 +625,9 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 
     cleanup();
     auto engine = _qmlContext->engine();
+#if ENABLE_QML_RENDERING
     _canvas->deleteLater();
+#endif
     _rootItem->deleteLater();
     _quickWindow->deleteLater();
     releaseEngine(engine);
@@ -646,6 +652,7 @@ void OffscreenQmlSurface::disconnectAudioOutputTimer() {
 void OffscreenQmlSurface::create() {
     qCDebug(uiLogging) << "Building QML surface";
 
+#if ENABLE_QML_RENDERING
     _renderControl = new QMyQuickRenderControl();
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
     connect(_renderControl, &QQuickRenderControl::sceneChanged, this, [this] { _render = _polish = true; });
@@ -662,20 +669,24 @@ void OffscreenQmlSurface::create() {
     _quickWindow->setClearBeforeRendering(false);
 
     _renderControl->_renderWindow = _proxyWindow;
-
     _canvas = new OffscreenGLCanvas();
     if (!_canvas->create(getSharedContext())) {
         qFatal("Failed to create OffscreenGLCanvas");
         return;
     };
 
-    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
-
     // acquireEngine interrogates the GL context, so we need to have the context current here
     if (!_canvas->makeCurrent()) {
         qFatal("Failed to make context current for QML Renderer");
         return;
     }
+#else
+    _quickWindow = new QQuickWindow();
+#endif
+
+
+    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
@@ -690,7 +701,10 @@ void OffscreenQmlSurface::create() {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
+
+#if ENABLE_QML_RENDERING
     _renderControl->initialize(_canvas->getContext());
+#endif
 
 #if !defined(Q_OS_ANDROID)
     // Connect with the audio client and listen for audio device changes
@@ -790,6 +804,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
         return;
     }
 
+#if ENABLE_QML_RENDERING
     qCDebug(uiLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
     gl::withSavedContext([&] {
         _canvas->makeCurrent();
@@ -826,6 +841,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
         _canvas->doneCurrent();
     });
+#endif
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {
@@ -1008,7 +1024,9 @@ void OffscreenQmlSurface::updateQuick() {
 
     if (_polish) {
         PROFILE_RANGE(render_qml, "OffscreenQML polish")
+#if ENABLE_QML_RENDERING
         _renderControl->polishItems();
+#endif
         _polish = false;
     }
 
@@ -1299,9 +1317,11 @@ bool OffscreenQmlSurface::isPaused() const {
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _proxyWindow = window;
+#if ENABLE_QML_RENDERING
     if (_renderControl) {
         _renderControl->_renderWindow = window;
     }
+#endif
 }
 
 QObject* OffscreenQmlSurface::getEventHandler() {
