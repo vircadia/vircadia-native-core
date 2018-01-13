@@ -34,8 +34,8 @@
 
 #if defined(Q_OS_ANDROID)
 
-#include <GLES3/gl32.h>
 #include <EGL/egl.h>
+#include <GLES3/gl32.h>
 
 #else
 
