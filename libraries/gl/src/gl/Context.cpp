@@ -23,6 +23,7 @@
 #include <shared/GlobalAppProperties.h>
 #include <GLMHelpers.h>
 #include "GLLogging.h"
+#include "Config.h"
 
 #ifdef Q_OS_WIN
 
@@ -129,11 +130,6 @@ void Context::setWindow(QWindow* window) {
 
     updateSwapchainMemoryCounter();
 }
-
-static HMODULE glModule = nullptr;
-#ifndef GLAPIENTRY 
-#define GLAPIENTRY APIENTRYP
-#endif
 
 
 void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
