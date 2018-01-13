@@ -27,6 +27,8 @@
 
 #include "KTXCache.h"
 
+#define ENABLE_KTX_CACHE 0
+
 namespace gpu {
 class Batch;
 }
@@ -194,10 +196,12 @@ private:
     TextureCache();
     virtual ~TextureCache();
 
+#if ENABLE_KTX_CACHE
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
 
     std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
+#endif
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;
