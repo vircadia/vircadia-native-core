@@ -2225,11 +2225,13 @@ void Application::initializeGL() {
 
     gl::initModuleGl();
     _glWidget->makeCurrent();
-    _chromiumShareContext = new OffscreenGLCanvas();
-    _chromiumShareContext->setObjectName("ChromiumShareContext");
-    _chromiumShareContext->create(_glWidget->qglContext());
-    _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    if (!nsightActive()) {
+        _chromiumShareContext = new OffscreenGLCanvas();
+        _chromiumShareContext->setObjectName("ChromiumShareContext");
+        _chromiumShareContext->create(_glWidget->qglContext());
+        _chromiumShareContext->makeCurrent();
+        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    }
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
