@@ -73,13 +73,11 @@ void GLBackend::initInput() {
     if(!_input._defaultVAO) {
         glGenVertexArrays(1, &_input._defaultVAO);
     }
-    qDebug() << "glBindVertexArray(" << _input._defaultVAO << ")";
     glBindVertexArray(_input._defaultVAO);
     (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::killInput() {
-    qDebug() << "glBindVertexArray(0)";
     glBindVertexArray(0);    
     if(_input._defaultVAO) {
         glDeleteVertexArrays(1, &_input._defaultVAO);
@@ -94,7 +92,6 @@ void GLBackend::syncInputStateCache() {
         _input._attributeActivation[i] = active;
     }
     //_input._defaultVAO
-    qDebug() << "glBindVertexArray("<<_input._defaultVAO<< ")";
     glBindVertexArray(_input._defaultVAO);
 }
 
@@ -103,7 +100,6 @@ void GLBackend::resetInputStage() {
     _input._indexBufferType = UINT32;
     _input._indexBufferOffset = 0;
     _input._indexBuffer.reset();
-    //qDebug() << "GLBackend::resetInputStage glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);";
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 

@@ -29,8 +29,15 @@
 
 // Different versions for the stereo drawcall
 // Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
+#define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 //#define GPU_STEREO_TECHNIQUE_INSTANCED
+
+
+// Let these be configured by the one define picked above
+#ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
+#define GPU_STEREO_DRAWCALL_DOUBLED
+#endif
 
 #ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 #define GPU_STEREO_DRAWCALL_DOUBLED
@@ -42,15 +49,6 @@
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
 
-//#define ANDROID_INTENSIVE_INSTRUMENTATION 1
-
-#ifdef ANDROID_INTENSIVE_INSTRUMENTATION
-#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...) PROFILE_RANGE_EX(category, commandNames[commandIndex], argbColor, payload, ##__VA_ARGS__);
-#define ANDROID_PROFILE(category, name, argbColor, payload, ...) PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__);
-#else
-#define ANDROID_PROFILE_COMMAND(category, commandIndex, argbColor, payload, ...)
-#define ANDROID_PROFILE(category, name, argbColor, payload, ...)
-#endif
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
@@ -239,7 +237,10 @@ protected:
 
     void renderPassTransfer(const Batch& batch);
     void renderPassDraw(const Batch& batch);
+
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
     void setupStereoSide(int side);
+#endif
 
     virtual void initInput() final;
     virtual void killInput() final;
@@ -249,6 +250,7 @@ protected:
 
     struct InputStageState {
         bool _invalidFormat { true };
+        bool _hadColorAttribute{ true };
         Stream::FormatPointer _format;
         std::string _formatKey;
 
@@ -276,7 +278,6 @@ protected:
         Offset _indirectBufferStride{ 0 };
 
         GLuint _defaultVAO { 0 };
-        bool _hadColorAttribute{ false };
 
         InputStageState() :
             _invalidFormat(true),

@@ -11,6 +11,8 @@
 #include "GLBackend.h"
 #include "GLState.h"
 
+#include <gpu/GPULogging.h>
+
 using namespace gpu;
 using namespace gpu::gl;
 
@@ -96,13 +98,11 @@ void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
 
 void GLBackend::do_setStateDepthClampEnable(bool enable) {
     if (_pipeline._stateCache.depthClampEnable != enable) {
-        if (enable) {
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthClampEnable GL_DEPTH_CLAMP";
-            //glEnable(GL_DEPTH_CLAMP);
-        } else {
-            //glDisable(GL_DEPTH_CLAMP);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthClampEnable GL_DEPTH_CLAMP";
-        }
+        //if (enable) {
+        //    glEnable(GL_DEPTH_CLAMP);
+        //} else {
+        //    glDisable(GL_DEPTH_CLAMP);
+        //}
         (void)CHECK_GL_ERROR();
 
         _pipeline._stateCache.depthClampEnable = enable;
@@ -124,13 +124,11 @@ void GLBackend::do_setStateScissorEnable(bool enable) {
 
 void GLBackend::do_setStateMultisampleEnable(bool enable) {
     if (_pipeline._stateCache.multisampleEnable != enable) {
-        if (enable) {
-            //glEnable(GL_MULTISAMPLE);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateMultisampleEnable GL_MULTISAMPLE";
-        } else {
-            //glDisable(GL_MULTISAMPLE);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateMultisampleEnable GL_MULTISAMPLE";
-        }
+        //if (enable) {
+        //    glEnable(GL_MULTISAMPLE);
+        //} else {
+        //    glDisable(GL_MULTISAMPLE);
+        //}
         (void)CHECK_GL_ERROR();
 
         _pipeline._stateCache.multisampleEnable = enable;
@@ -139,13 +137,11 @@ void GLBackend::do_setStateMultisampleEnable(bool enable) {
 
 void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
     if (_pipeline._stateCache.antialisedLineEnable != enable) {
-        if (enable) {
-            //glEnable(GL_LINE_SMOOTH);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateAntialiasedLineEnable GL_LINE_SMOOTH";
-        } else {
-            //glDisable(GL_LINE_SMOOTH);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateAntialiasedLineEnable GL_LINE_SMOOTH";
-        }
+        //if (enable) {
+        //    glEnable(GL_LINE_SMOOTH);
+        //} else {
+        //    glDisable(GL_LINE_SMOOTH);
+        //}
         (void)CHECK_GL_ERROR();
 
         _pipeline._stateCache.antialisedLineEnable = enable;
@@ -157,16 +153,12 @@ void GLBackend::do_setStateDepthBias(Vec2 bias) {
         if ((bias.x != 0.0f) || (bias.y != 0.0f)) {
             glEnable(GL_POLYGON_OFFSET_FILL);
             //glEnable(GL_POLYGON_OFFSET_LINE);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthBias GL_POLYGON_OFFSET_LINE";
             //glEnable(GL_POLYGON_OFFSET_POINT);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthBias GL_POLYGON_OFFSET_POINT";
             glPolygonOffset(bias.x, bias.y);
         } else {
             glDisable(GL_POLYGON_OFFSET_FILL);
             //glDisable(GL_POLYGON_OFFSET_LINE);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthBias GL_POLYGON_OFFSET_LINE";
             //glDisable(GL_POLYGON_OFFSET_POINT);
-            qDebug() << "TODO: GLBackendState.cpp:do_setStateDepthBias GL_POLYGON_OFFSET_POINT";
         }
         (void)CHECK_GL_ERROR();
 
@@ -190,7 +182,7 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
             glDepthFunc(COMPARISON_TO_GL[test.getFunction()]);
         }
         if (CHECK_GL_ERROR()) {
-            qDebug() << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
+            qCDebug(gpulogging) << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
                 << "Mask=" << (test.getWriteMask() ? "Write" : "no Write")
                 << "Func=" << test.getFunction()
                 << "Raw=" << test.getRaw();
