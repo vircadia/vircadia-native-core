@@ -1132,7 +1132,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+  //  DependencyManager::get<GeometryCache>()->initializeShapePipelines();
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -2253,6 +2253,9 @@ void Application::initializeGL() {
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
+
+    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");

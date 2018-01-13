@@ -715,6 +715,10 @@ void GeometryCache::initializeShapePipelines() {
         _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
         _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
+
+        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
+        auto ps = gpu::Shader::createPixel(std::string(standardDrawTexture_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
     }
 }
 
@@ -2001,11 +2005,11 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 }
 
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
-    if (!_standardDrawPipeline) {
+    static std::once_flag once;
+    std::call_once(once, [&]() {
         auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
         auto ps = gpu::Shader::createPixel(std::string(standardDrawTexture_frag));
         auto program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
 
@@ -2021,9 +2025,15 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
         auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
-        gpu::Shader::makeProgram((*programNoBlend));
+
         _standardDrawPipelineNoBlend = gpu::Pipeline::create(programNoBlend, stateNoBlend);
-    }
+
+        batch.runLambda([program, programNoBlend] {
+            gpu::Shader::makeProgram((*program));
+            gpu::Shader::makeProgram((*programNoBlend));
+        });
+    });
+
     if (noBlend) {
         batch.setPipeline(_standardDrawPipelineNoBlend);
     } else {

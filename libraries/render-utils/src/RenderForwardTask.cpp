@@ -130,7 +130,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
         batch.setFramebuffer(_framebuffer);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0, true);
+            vec4(vec3(0, 1.0, 0.0), 0), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
