@@ -31,7 +31,6 @@ public:
     void inventory(const QStringList& keys);
     void history(const QStringList& keys, const int& pageNumber);
     void account();
-    void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
 
@@ -66,8 +65,6 @@ public slots:
     void inventoryFailure(QNetworkReply& reply);
     void historySuccess(QNetworkReply& reply);
     void historyFailure(QNetworkReply& reply);
-    void resetSuccess(QNetworkReply& reply);
-    void resetFailure(QNetworkReply& reply);
     void accountSuccess(QNetworkReply& reply);
     void accountFailure(QNetworkReply& reply);
     void updateLocationSuccess(QNetworkReply& reply);
