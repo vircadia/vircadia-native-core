@@ -35,8 +35,6 @@ class QQuickWindow;
 class QQuickItem;
 class QJSValue;
 
-#define ENABLE_QML_RENDERING 0
-
 // GPU resources are typically buffered for one copy being used by the renderer, 
 // one copy in flight, and one copy being used by the receiver
 #define GPU_RESOURCE_BUFFER_SIZE 3
@@ -173,7 +171,7 @@ private:
     QQmlContext* _qmlContext { nullptr };
     QQuickItem* _rootItem { nullptr };
 
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     QMyQuickRenderControl* _renderControl{ nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
 #endif

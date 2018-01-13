@@ -50,7 +50,7 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_raw, "trace.resource.parse.image.raw")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.ktx")
 
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 #endif
@@ -63,7 +63,7 @@ static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads fir
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
 TextureCache::TextureCache() {
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
     _ktxCache->initialize();
 #endif
     setUnusedResourceCacheSize(0);
@@ -746,7 +746,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
         gpu::TexturePointer texture = textureCache->getTextureByHash(hash);
 
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
         if (!texture) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
@@ -933,7 +933,7 @@ void ImageReader::read() {
         // If we already have a live texture with the same hash, use it
         auto texture = textureCache->getTextureByHash(hash);
 
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
         // If there is no live texture, check if there's an existing KTX file
         if (!texture) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
@@ -982,7 +982,7 @@ void ImageReader::read() {
 
     // Save the image into a KTXFile
     if (texture && textureCache) {
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
         auto memKtx = gpu::Texture::serialize(*texture);
 
         // Move the texture into a memory mapped file

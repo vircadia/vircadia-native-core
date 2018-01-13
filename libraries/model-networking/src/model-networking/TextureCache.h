@@ -27,8 +27,6 @@
 
 #include "KTXCache.h"
 
-#define ENABLE_KTX_CACHE 0
-
 namespace gpu {
 class Batch;
 }
@@ -196,7 +194,7 @@ private:
     TextureCache();
     virtual ~TextureCache();
 
-#if ENABLE_KTX_CACHE
+#if !defined(DISABLE_KTX_CACHE)
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
 

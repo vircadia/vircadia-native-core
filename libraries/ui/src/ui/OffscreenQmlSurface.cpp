@@ -518,7 +518,7 @@ QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
 
 void OffscreenQmlSurface::cleanup() {
     _isCleaned = true;
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     _canvas->makeCurrent();
 
     _renderControl->invalidate();
@@ -540,7 +540,7 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     if (nsightActive()) {
         return;
     }
@@ -625,7 +625,7 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 
     cleanup();
     auto engine = _qmlContext->engine();
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     _canvas->deleteLater();
 #endif
     _rootItem->deleteLater();
@@ -652,7 +652,7 @@ void OffscreenQmlSurface::disconnectAudioOutputTimer() {
 void OffscreenQmlSurface::create() {
     qCDebug(uiLogging) << "Building QML surface";
 
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     _renderControl = new QMyQuickRenderControl();
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
     connect(_renderControl, &QQuickRenderControl::sceneChanged, this, [this] { _render = _polish = true; });
@@ -702,7 +702,7 @@ void OffscreenQmlSurface::create() {
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
 
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     _renderControl->initialize(_canvas->getContext());
 #endif
 
@@ -804,7 +804,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
         return;
     }
 
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     qCDebug(uiLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
     gl::withSavedContext([&] {
         _canvas->makeCurrent();
@@ -1024,7 +1024,7 @@ void OffscreenQmlSurface::updateQuick() {
 
     if (_polish) {
         PROFILE_RANGE(render_qml, "OffscreenQML polish")
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
         _renderControl->polishItems();
 #endif
         _polish = false;
@@ -1317,7 +1317,7 @@ bool OffscreenQmlSurface::isPaused() const {
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _proxyWindow = window;
-#if ENABLE_QML_RENDERING
+#if !defined(DISABLE_QML)
     if (_renderControl) {
         _renderControl->_renderWindow = window;
     }
