@@ -639,7 +639,7 @@ render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
 uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
 
-render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
     initializeShapePipelines();
 
     if (key.isWireframe()) {
@@ -715,10 +715,6 @@ void GeometryCache::initializeShapePipelines() {
         _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
         _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
-
-        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
-        auto ps = gpu::Shader::createPixel(std::string(standardDrawTexture_frag));
-        auto program = gpu::Shader::createProgram(vs, ps);
     }
 }
 
