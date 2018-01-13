@@ -17,12 +17,12 @@
 
 using namespace render;
 
-void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor) {
+void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor, uint8_t visibilityMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // CPU jobs:
     // Fetch and cull the items from the scene
-    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems(visibilityMask).withoutLayered();
     const auto spatialFilter = render::Varying(filter);
     const auto spatialSelection = task.addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
     const auto cullInputs = CullSpatialSelection::Inputs(spatialSelection, spatialFilter).asVarying();

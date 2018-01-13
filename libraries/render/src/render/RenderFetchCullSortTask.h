@@ -36,7 +36,7 @@ public:
 
     RenderFetchCullSortTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, uint8_t visibilityMask = 0xFF);
 };
 
 #endif // hifi_RenderFetchCullSortTask_h

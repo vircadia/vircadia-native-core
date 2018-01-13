@@ -46,7 +46,10 @@ public:
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
         DEFORMED,         // Deformed within bound, not solid
-        INVISIBLE,        // Visible or not? could be just here to cast shadow
+        INVISIBLE0,       // Visible or not in this mask index?
+        INVISIBLE1,       // Visible or not in this mask index?
+        INVISIBLE2,       // Visible or not in this mask index?
+        INVISIBLE3,       // Visible or not in this mask index?
         SHADOW_CASTER,    // Item cast shadows
         PICKABLE,         // Item can be picked/selected
         LAYERED,          // Item belongs to one of the layers different from the default layer
@@ -56,6 +59,12 @@ public:
         NUM_FLAGS,      // Not a valid flag
     };
     typedef std::bitset<NUM_FLAGS> Flags;
+
+    // VISIBLE MASK is defined from several bits in the Key.
+    // An Item can be visible in some mask bits and not other allowing for per view rendering
+    // Beware that the visibility mask is the oposite of what stored in the key vals.
+    const static uint8_t NUM_VISIBLE_MASK_INDICES{ 4 };
+    const static uint8_t VISIBLE_MASK_ALL{ 0x0F };
 
     // The key is the Flags
     Flags _flags;
@@ -82,7 +91,7 @@ public:
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
-        Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
+        Builder& withInvisible(uint8_t maskIndex = 0) { _flags.set(INVISIBLE0 + maskIndex); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
@@ -111,8 +120,10 @@ public:
     bool isRigid() const { return !_flags[DEFORMED]; }
     bool isDeformed() const { return _flags[DEFORMED]; }
 
-    bool isVisible() const { return !_flags[INVISIBLE]; }
-    bool isInvisible() const { return _flags[INVISIBLE]; }
+    bool isVisible(uint8_t maskIndex) const { return !_flags[INVISIBLE0 + maskIndex]; }
+    bool isInvisible(uint8_t maskIndex) const { return _flags[INVISIBLE0 + maskIndex]; }
+    uint8_t getVisibleMask() const { return (~(_flags.to_ulong() >> INVISIBLE0) & VISIBLE_MASK_ALL);}
+    bool isVisibleMask(uint8_t mask) const { return getVisibleMask() & mask; }
 
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
 
@@ -171,8 +182,18 @@ public:
         Builder& withRigid()            { _value.reset(ItemKey::DEFORMED); _mask.set(ItemKey::DEFORMED); return (*this); }
         Builder& withDeformed()         { _value.set(ItemKey::DEFORMED);  _mask.set(ItemKey::DEFORMED); return (*this); }
 
-        Builder& withVisible()          { _value.reset(ItemKey::INVISIBLE); _mask.set(ItemKey::INVISIBLE); return (*this); }
-        Builder& withInvisible()        { _value.set(ItemKey::INVISIBLE);  _mask.set(ItemKey::INVISIBLE); return (*this); }
+        Builder& withVisible(uint8_t maskIndex)          { _value.reset(ItemKey::INVISIBLE0 + maskIndex); _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
+        Builder& withInvisible(uint8_t maskIndex)        { _value.set(ItemKey::INVISIBLE0 + maskIndex);  _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
+        Builder& withVisibilityMask(uint8_t mask) {
+            for (int i = 0; i < ItemKey::NUM_VISIBLE_MASK_INDICES; i++) {
+                if ((1 << i) && mask) {
+                    withVisible(i);
+                } else {
+                    withInvisible(i);
+                }
+            }
+            return (*this);
+        }
 
         Builder& withNoShadowCaster()   { _value.reset(ItemKey::SHADOW_CASTER); _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
         Builder& withShadowCaster()     { _value.set(ItemKey::SHADOW_CASTER);  _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
@@ -185,7 +206,7 @@ public:
         Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static Builder visibleWorldItems() { return Builder().withVisible().withWorldSpace(); }
+        static Builder visibleWorldItems(uint8_t visibilityMask) { return Builder().withVisibilityMask(visibilityMask).withWorldSpace(); }
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
         static Builder light() { return Builder().withTypeLight(); }
