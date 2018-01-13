@@ -6776,6 +6776,15 @@ void Application::loadAddAvatarBookmarkDialog() const {
     avatarBookmarks->addBookmark();
 }
 
+void Application::loadAvatarBrowser() const {
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    // construct the url to the marketplace item
+    QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+    QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
+    tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+}
+
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
