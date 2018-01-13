@@ -12,6 +12,7 @@
 #include "MeshPartPayload.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "DeferredLightingEffect.h"
 
@@ -325,12 +326,20 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
-    computeAdjustedLocalBound(state.clusterMatrices);
+    computeAdjustedLocalBound(state.clusterTransforms);
 
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
-    if (state.clusterMatrices.size() == 1) {
-        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    if (state.clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+        Transform transform(state.clusterTransforms[0].getRotation(),
+                            state.clusterTransforms[0].getScale(),
+                            state.clusterTransforms[0].getTranslation());
+        renderTransform = transform.worldTransform(Transform(transform));
+#else
+        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
+#endif
+
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
@@ -360,17 +369,16 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>& clusterTransforms) {
     // Once computed the cluster matrices, update the buffer(s)
-    if (clusterMatrices.size() > 1) {
+    if (clusterTransforms.size() > 1) {
         if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
         else {
-            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
     }
 }
@@ -530,13 +538,29 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms) {
     _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+    if (clusterTransforms.size() > 0) {
+#if defined(SKIN_DQ)
+        Transform rootTransform(clusterTransforms[0].getRotation(),
+                                clusterTransforms[0].getScale(),
+                                clusterTransforms[0].getTranslation());
+        _adjustedLocalBound.transform(rootTransform);
+#else
+        _adjustedLocalBound.transform(clusterTransforms[0]);
+#endif
+
+        for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
             AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
+#if defined(SKIN_DQ)
+            Transform transform(clusterTransforms[i].getRotation(),
+                                clusterTransforms[i].getScale(),
+                                clusterTransforms[i].getTranslation());
+            clusterBound.transform(transform);
+#else
+            clusterBound.transform(clusterTransforms[i]);
+#endif
             _adjustedLocalBound += clusterBound;
         }
     }
