@@ -6,12 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
-#include "ImageProvider.h"
 
 #include <AudioClient.h>
 
 #include <unordered_set>
 #include <unordered_map>
+
+#include <gl/Config.h>
 
 #include <QtWidgets/QWidget>
 #include <QtQml/QtQml>
@@ -47,6 +48,7 @@
 #include <gl/Config.h>
 #include <shared/ReadWriteLockable.h>
 
+#include "ImageProvider.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"

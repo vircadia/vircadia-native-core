@@ -20,6 +20,8 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <gl/Config.h>
+
 #include <QtCore/QResource>
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCommandLineParser>
@@ -49,7 +51,6 @@
 #include <QTemporaryDir>
 
 #include <gl/QOpenGLContextWrapper.h>
-#include <gl/Config.h>
 
 #include <shared/QtHelpers.h>
 #include <shared/GlobalAppProperties.h>

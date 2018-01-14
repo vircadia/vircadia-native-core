@@ -30,50 +30,30 @@
 
 #define MINIMUM_GL_VERSION ((GL_MIN_VERSION_MAJOR << 8) | GL_MIN_VERSION_MINOR)
 
-#if defined(USE_GLES)
-
 #if defined(Q_OS_ANDROID)
-
 #include <EGL/egl.h>
 #include <GLES3/gl32.h>
-
+#define GL_DEPTH_COMPONENT32_OES 0x81A7
+#define GL_FRAMEBUFFER_SRGB_EXT 0x8DB9
+#define GL_R16_EXT 0x822A
+#define GL_R16_SNORM_EXT 0x8F98
+#define GL_SLUMINANCE8_EXT 0x8C47
 #else
-
 #include <glad/glad.h>
-#if defined(Q_OS_WIN)
-#include <glad/glad_wgl.h>
+#ifndef GL_SLUMINANCE8_EXT
+#define GL_SLUMINANCE8_EXT 0x8C47
 #endif
-
+// Prevent inclusion of System GL headers
+#ifndef __gl_h_
+#define __gl_h_
 #endif
-
-#define GL_DEPTH_COMPONENT32_OES          0x81A7
-#define GL_TIME_ELAPSED_EXT               0x88BF
-#define GL_TIMESTAMP_EXT                  0x8E28
-#define GL_FRAMEBUFFER_SRGB_EXT           0x8DB9
-#define GL_TEXTURE_BORDER_COLOR_EXT       0x1004
-#define GL_CLAMP_TO_BORDER_EXT            0x812D
-#define GL_TEXTURE_MAX_ANISOTROPY_EXT     0x84FE
-#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
-
-
-#else // !defined(USE_GLES)
-
-#define GL_GLEXT_PROTOTYPES 1
-#include <GL/glew.h>
-
-#if defined(Q_OS_DARWIN)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#include <OpenGL/OpenGL.h>
-#elif defined(Q_OS_WIN64)
-#include <GL/wglew.h>
 #endif
-
-#endif // !defined(Q_OS_ANDROID)
 
 // Platform specific code to load the GL functions
 namespace gl {
     void initModuleGl();
+    int getSwapInterval();
+    void setSwapInterval(int swapInterval);
 }
 
 #endif // hifi_gpu_GPUConfig_h

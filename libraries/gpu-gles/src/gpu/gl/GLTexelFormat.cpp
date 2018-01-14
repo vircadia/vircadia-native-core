@@ -106,7 +106,7 @@ GLenum GLTexelFormat::evalGLTexelFormatInternal(const gpu::Element& dstFormat) {
                             break;
                         case gpu::NUINT8:
                             if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
-                                //result = GL_SLUMINANCE8_NV;
+                                result = GL_SLUMINANCE8_EXT;
                             } else {
                                 result = GL_R8;
                             }
@@ -424,11 +424,11 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::NUINT16: {
-                    //texel.internalFormat = GL_R16_EXT;
+                    texel.internalFormat = GL_R16_EXT;
                     break;
                 }
                 case gpu::NINT16: {
-                    //texel.internalFormat = GL_R16_SNORM_EXT;
+                    texel.internalFormat = GL_R16_SNORM_EXT;
                     break;
                 }
                 case gpu::HALF: {
@@ -445,7 +445,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                 }
                 case gpu::NUINT8: {
                     if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
-                        //texel.internalFormat = GL_SLUMINANCE8_NV;
+                        texel.internalFormat = GL_SLUMINANCE8_EXT;
                     } else {
                         texel.internalFormat = GL_R8;
                     }

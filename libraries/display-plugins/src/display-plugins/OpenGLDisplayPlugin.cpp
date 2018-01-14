@@ -10,20 +10,14 @@
 #include <condition_variable>
 #include <queue>
 
+#include <gl/Config.h>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
 #include <QtGui/QImage>
-
-#if !defined(USE_GLES)
-#include <QtOpenGL/QGLWidget>
-#include <QOpenGLFramebufferObject>
-#endif
-
-#if defined(Q_OS_MAC)
-#include <OpenGL/CGLCurrent.h>
-#endif
+#include <QtGui/QOpenGLFramebufferObject>
 
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -31,7 +25,6 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWidget.h>
-#include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <gl/Context.h>
 
@@ -178,21 +171,14 @@ public:
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
                             CHECK_GL_ERROR();
-#if defined(Q_OS_WIN)
-                            wglSwapIntervalEXT(wantVsync ? 1 : 0);
-                            hasVsync = wglGetSwapIntervalEXT() != 0;
-#elif defined(Q_OS_MAC)
-                            GLint interval = wantVsync ? 1 : 0;
-                            newPlugin->swapBuffers();
-                            CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
-                            newPlugin->swapBuffers();
-                            CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
-                            hasVsync = interval != 0;
-#else
-                            // TODO: Fill in for linux
-                            Q_UNUSED(wantVsync);
+#if defined(Q_OS_MAC)
+                            newPlugin->swapBuffers()
 #endif
-                            CHECK_GL_ERROR();
+                            gl::setSwapInterval(wantVsync ? 1 : 0);
+#if defined(Q_OS_MAC)
+                            newPlugin->swapBuffers();
+#endif
+                            hasVsync = gl::getSwapInterval() != 0;
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
                             CHECK_GL_ERROR();

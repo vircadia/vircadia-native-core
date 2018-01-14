@@ -759,7 +759,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
                 }
             }
         }
-
+#endif
         if (!texture) {
 
             auto memKtx = ktx::KTX::createBare(*header, keyValues);
@@ -774,6 +774,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
             // Move ktx to file
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+#if !defined(DISABLE_KTX_CACHE)
             size_t length = memKtx->_storage->size();
             cache::FilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
@@ -785,11 +786,14 @@ void NetworkTexture::handleFinishedInitialLoad() {
                     Q_ARG(int, 0));
                 return;
             }
+#endif
 
             auto newKtxDescriptor = memKtx->toDescriptor();
 
             texture = gpu::Texture::build(newKtxDescriptor);
+#if !defined(DISABLE_KTX_CACHE)
             texture->setKtxBacking(file);
+#endif
             texture->setSource(filename);
 
             auto& images = originalKtxDescriptor->images;
@@ -813,7 +817,6 @@ void NetworkTexture::handleFinishedInitialLoad() {
             // be the winner
             texture = textureCache->cacheTextureByHash(filename, texture);
         }
-#endif
 
         QMetaObject::invokeMethod(resource.data(), "setImage",
             Q_ARG(gpu::TexturePointer, texture),
