@@ -17,10 +17,9 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources 
 
 add_custom_command(
     OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
     COMMAND "${QT_DIR}/bin/rcc"
     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
-    MAIN_DEPENDENCY ${RESOURCES_QRC}
-    DEPENDS ${GENERATE_QRC_DEPENDS}
 )
 
 list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
@@ -52,6 +51,7 @@ endif()
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
+list(APPEND INTERFACE_SRCS ${RESOURCES_RCC})
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
