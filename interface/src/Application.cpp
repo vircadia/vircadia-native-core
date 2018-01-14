@@ -52,6 +52,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
@@ -321,7 +322,7 @@ static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains
 static bool DISABLE_DEFERRED = true;
 #else
 static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
@@ -1047,7 +1048,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // Inititalize sample before registering
-    _sampleSound = DependencyManager::get<SoundCache>()->getSound(QUrl(PathUtils::resourcesUrl() + "sounds/sample.wav"));
+    _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
     scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
@@ -1131,9 +1132,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeGL();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
-    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-  //  DependencyManager::get<GeometryCache>()->initializeShapePipelines();
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -1819,9 +1817,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         PROFILE_RANGE(render, "Process Default Skybox");
         auto textureCache = DependencyManager::get<TextureCache>();
 
-        auto skyboxUrl = QFileSelector().select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx").toStdString();
+        QFileSelector fileSelector;
+        fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+        auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
 
-        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
         _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
 
         _defaultSkybox->setCubemap(_defaultSkyboxTexture);
@@ -1832,7 +1832,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl(PathUtils::resourcesUrl() + "sounds/snap.wav"));
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/snap.wav"));
     
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -2224,7 +2224,6 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    gl::initModuleGl();
     _glWidget->makeCurrent();
     if (!nsightActive()) {
         _chromiumShareContext = new OffscreenGLCanvas();
@@ -2364,7 +2363,7 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(PathUtils::qmlBaseUrl("hifi/Desktop.qml"));
+    offscreenUi->createDesktop(PathUtils::qmlUrl("hifi/Desktop.qml"));
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -5867,9 +5866,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("App", this);
-    scriptEngine->registerFunction("App", "isAndroid", Application::isAndroid, 0);
-
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
@@ -7461,18 +7457,6 @@ void Application::updateThreadPoolCount() const {
     qCDebug(interfaceapp) << "Reserved threads " << reservedThreads;
     qCDebug(interfaceapp) << "Setting thread pool size to " << threadPoolSize;
     QThreadPool::globalInstance()->setMaxThreadCount(threadPoolSize);
-}
-
-QScriptValue Application::isAndroid(QScriptContext* context, QScriptEngine* engine) {
-    return QScriptValue(engine, isAndroid());
-}
-
-bool Application::isAndroid() {
-#ifdef Q_OS_ANDROID
-    return true;
-#else
-    return false;
-#endif
 }
 
 void Application::updateSystemTabletMode() {

@@ -96,7 +96,7 @@ protected:
 
         float enableObscurance{ 1.0f };
 
-        float enableMaterialTexturing { 0.0f };
+        float enableMaterialTexturing { 1.0f };
         float enableWireframe { 0.0f }; // false by default
 
         Parameters() {}
@@ -148,7 +148,7 @@ public:
     bool enableSpecular{ true };
 
     bool enableAlbedo{ true };
-    bool enableMaterialTexturing { false };
+    bool enableMaterialTexturing { true };
 
     bool enableAmbientLight{ true };
     bool enableDirectionalLight{ true };

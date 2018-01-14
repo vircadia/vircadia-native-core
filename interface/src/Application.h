@@ -284,9 +284,6 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
-    static Q_INVOKABLE QScriptValue isAndroid(QScriptContext* context, QScriptEngine* engine);
-    static bool isAndroid();
-
 signals:
     void svoImportRequested(const QString& url);
 

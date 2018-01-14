@@ -34,9 +34,10 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
     static const QString& resourcesUrl();
+    static QUrl resourcesUrl(const QString& relative);
     static const QString& resourcesPath();
     static const QString& qmlBaseUrl();
-    static QUrl qmlBaseUrl(const QString& relative);
+    static QUrl qmlUrl(const QString& relative);
 #ifdef DEV_BUILD
     static const QString& projectRootPath();
 #endif

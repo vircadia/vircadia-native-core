@@ -135,8 +135,6 @@ void Context::clear() {
 
 #if defined(GL_CUSTOM_CONTEXT)
 
-#pragma optimize( "", off)  
-
 static void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
     if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
         return;
@@ -366,8 +364,6 @@ void Context::create() {
     }
     doneCurrent();
 }
-
-#pragma optimize( "", on)  
 
 #endif
 

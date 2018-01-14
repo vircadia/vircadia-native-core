@@ -71,7 +71,7 @@ public:
         withWriteLock([&] {
             for (auto url : urls) {
                 if (url.isRelative()) {
-                    url = PathUtils::qmlBaseUrl(url.toString());
+                    url = PathUtils::qmlUrl(url.toString());
                 }
                 _callbacks[url].push_back(callback);
             }

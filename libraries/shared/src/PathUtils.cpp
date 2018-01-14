@@ -73,12 +73,16 @@ const QString& PathUtils::resourcesUrl() {
     return staticResourcePath;
 }
 
+QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
+    return QUrl(resourcesUrl() + relativeUrl);
+}
+
 const QString& PathUtils::qmlBaseUrl() {
     static const QString staticResourcePath = resourcesUrl() + "qml/";
     return staticResourcePath;
 }
 
-QUrl PathUtils::qmlBaseUrl(const QString& relativeUrl) {
+QUrl PathUtils::qmlUrl(const QString& relativeUrl) {
     return QUrl(qmlBaseUrl() + relativeUrl);
 }
 

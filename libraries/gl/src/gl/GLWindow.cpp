@@ -41,8 +41,6 @@ bool GLWindow::makeCurrent() {
         qCDebug(glLogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
     
-    //Q_ASSERT(_context->qglContext() == QOpenGLContext::currentContext());
-    
     return makeCurrentResult;
 }
 

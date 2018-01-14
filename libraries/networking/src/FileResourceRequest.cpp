@@ -16,6 +16,7 @@
 #include <QtCore/QDebug>
 
 #include <StatTracker.h>
+#include <shared/FileUtils.h>
 
 #include "ResourceManager.h"
 
@@ -37,7 +38,9 @@ void FileResourceRequest::doSend() {
 
 
     // Allow platform specific versions of files loaded out of a resource cache via file://
-    filename = QFileSelector().select(filename);
+    QFileSelector fileSelector;
+    fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+    filename = fileSelector.select(filename);
 
     if (!_byteRange.isValid()) {
         _result = ResourceRequest::InvalidByteRange;

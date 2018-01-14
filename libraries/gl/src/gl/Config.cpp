@@ -13,9 +13,16 @@
 
 #include <mutex>
 
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_WIN)
+#elif defined(Q_OS_ANDROID)
+#elif defined(Q_OS_MAC)
 #include <OpenGL/CGLCurrent.h>
+#else
+#include <GL/glx.h>
+#include <dlfcn.h>
 #endif
+
+
 
 #if defined(Q_OS_WIN)
 
@@ -50,6 +57,13 @@ PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 static void* getGlProcessAddress(const char *namez) {
     auto result = eglGetProcAddress(namez);
     return (void*)result;
+}
+
+#elif defined(Q_OS_MAC)
+#else
+
+static void* getGlProcessAddress(const char *namez) {
+	return (void*)glXGetProcAddressARB((const GLubyte*)namez);
 }
 
 #endif
