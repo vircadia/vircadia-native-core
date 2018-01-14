@@ -147,7 +147,6 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-#pragma optimize( "", on )  
 void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) {
     auto readFBO = getFramebufferID(srcFramebuffer);
     if (srcFramebuffer && readFBO) {

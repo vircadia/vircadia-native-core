@@ -8,6 +8,8 @@
 
 #include "Context.h"
 
+#include "Config.h"
+
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QWindow>
 
@@ -48,7 +50,9 @@ void Context::moveToThread(QThread* thread) {
 #ifndef GL_CUSTOM_CONTEXT
 bool Context::makeCurrent() {
     updateSwapchainMemoryCounter();
-    return _context->makeCurrent(_window);
+    bool result = _context->makeCurrent(_window);
+    gl::initModuleGl();
+    return result;
 }
 
 void Context::swapBuffers() {

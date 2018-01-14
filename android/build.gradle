@@ -97,6 +97,11 @@ def packages = [
         versionId: 'cA3tVJSmkvb1naA3l6D_Jv2Noh.4yc4m',
         checksum: '617a80d213a5ec69fbfa21a1f2f738cd',
     ],
+    glad: [
+        file: 'glad_armv8-libcpp.zip',
+        versionId: 'Q9szthzeye8fFyAA.cY26Lgn2B8kezEE',
+        checksum: 'a8ee8584cf1ccd34766c7ddd9d5e5449',
+    ],
     glm: [
         file: 'glm-0.9.8.tgz',
         versionId: 'BlkJNwaYV2Gfy5XwMeU7K0uzPDRKFMt2',

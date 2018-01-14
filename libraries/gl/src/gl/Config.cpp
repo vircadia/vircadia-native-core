@@ -44,7 +44,17 @@ PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT;
 PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
 PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+
+#elif defined(Q_OS_ANDROID)
+
+static void* getGlProcessAddress(const char *namez) {
+    auto result = eglGetProcAddress(namez);
+    return (void*)result;
+}
+
 #endif
+
+
 
 void gl::initModuleGl() {
     static std::once_flag once;
@@ -54,11 +64,12 @@ void gl::initModuleGl() {
         wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)getGlProcessAddress("wglGetSwapIntervalEXT");
         wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)getGlProcessAddress("wglChoosePixelFormatARB");
         wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)getGlProcessAddress("wglCreateContextAttribsARB");
+#endif
+
 #if defined(USE_GLES)
         gladLoadGLES2Loader(getGlProcessAddress);
 #else
         gladLoadGLLoader(getGlProcessAddress);
-#endif
 #endif
     });
 }

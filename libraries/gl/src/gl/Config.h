@@ -32,12 +32,7 @@
 
 #if defined(Q_OS_ANDROID)
 #include <EGL/egl.h>
-#include <GLES3/gl32.h>
-#define GL_DEPTH_COMPONENT32_OES 0x81A7
-#define GL_FRAMEBUFFER_SRGB_EXT 0x8DB9
-#define GL_R16_EXT 0x822A
-#define GL_R16_SNORM_EXT 0x8F98
-#define GL_SLUMINANCE8_EXT 0x8C47
+#include <glad/glad.h>
 #else
 #include <glad/glad.h>
 #ifndef GL_SLUMINANCE8_EXT

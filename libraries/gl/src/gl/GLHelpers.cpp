@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include "Config.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QRegularExpression>
@@ -10,8 +12,6 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
-
-#include <QtOpenGL/QGL>
 
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
