@@ -74,7 +74,6 @@ void GLBackend::do_generateTextureMips(const Batch& batch, size_t paramOffset) {
 
     // DO not transfer the texture, this call is expected for rendering texture
     GLTexture* object = syncGPUObject(resourceTexture);
-    qDebug() << "GLBackendTexture do_generateTextureMips syncGPUObject";
     if (!object) {
         return;
     }

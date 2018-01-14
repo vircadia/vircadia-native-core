@@ -13,23 +13,86 @@
 
 #include <mutex>
 
-#if defined(HIFI_GLES)
-PFNGLQUERYCOUNTEREXTPROC __glQueryCounterEXT = NULL;
-PFNGLGETQUERYOBJECTUI64VEXTPROC __glGetQueryObjectui64vEXT = NULL;
-PFNGLFRAMEBUFFERTEXTUREEXTPROC __glFramebufferTextureEXT = NULL;
+#if defined(Q_OS_MAC)
+#include <OpenGL/CGLCurrent.h>
 #endif
+
+#if defined(Q_OS_WIN)
+
+static void* getGlProcessAddress(const char *namez) {
+    auto result = wglGetProcAddress(namez);
+    if (!result) {
+        static HMODULE glModule = nullptr;
+        if (!glModule) {
+            glModule = LoadLibraryW(L"opengl32.dll");
+        }
+        result = GetProcAddress(glModule, namez);
+    }
+    if (!result) {
+        OutputDebugStringA(namez);
+        OutputDebugStringA("\n");
+    }
+    return (void*)result;
+}
+
+typedef BOOL(APIENTRYP PFNWGLSWAPINTERVALEXTPROC)(int interval);
+typedef int (APIENTRYP PFNWGLGETSWAPINTERVALEXTPROC) (void);
+typedef BOOL(APIENTRYP PFNWGLCHOOSEPIXELFORMATARBPROC)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC, HGLRC hShareContext, const int *attribList);
+
+PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
+PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT;
+PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+
+#elif defined(Q_OS_ANDROID)
+
+static void* getGlProcessAddress(const char *namez) {
+    auto result = eglGetProcAddress(namez);
+    return (void*)result;
+}
+
+#endif
+
+
 
 void gl::initModuleGl() {
     static std::once_flag once;
     std::call_once(once, [] {
-#if defined(HIFI_GLES)
-        glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC)eglGetProcAddress("glQueryCounterEXT");
-        glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)eglGetProcAddress("glGetQueryObjectui64vEXT");
-        glFramebufferTextureEXT = (PFNGLFRAMEBUFFERTEXTUREEXTPROC)eglGetProcAddress("glFramebufferTextureEXT");
+#if defined(Q_OS_WIN)
+        wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)getGlProcessAddress("wglSwapIntervalEXT");
+        wglGetSwapIntervalEXT = (PFNWGLGETSWAPINTERVALEXTPROC)getGlProcessAddress("wglGetSwapIntervalEXT");
+        wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)getGlProcessAddress("wglChoosePixelFormatARB");
+        wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)getGlProcessAddress("wglCreateContextAttribsARB");
+#endif
+
+#if defined(USE_GLES)
+        gladLoadGLES2Loader(getGlProcessAddress);
 #else
-        glewExperimental = true;
-        glewInit();
+        gladLoadGLLoader(getGlProcessAddress);
 #endif
     });
 }
 
+int gl::getSwapInterval() {
+#if defined(Q_OS_WIN)
+    return wglGetSwapIntervalEXT();
+#elif defined(Q_OS_MAC)
+    GLint interval;
+    CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+    return interval;
+#else 
+    // TODO: Fill in for linux
+    return 1;
+#endif
+}
+
+void gl::setSwapInterval(int interval) {
+#if defined(Q_OS_WIN)
+    wglSwapIntervalEXT(interval);
+#elif defined(Q_OS_MAC)
+    CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+#else
+    Q_UNUSED(interval);
+#endif
+}

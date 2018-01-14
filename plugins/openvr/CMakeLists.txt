@@ -13,7 +13,7 @@ if (WIN32 AND (NOT USE_GLES))
     setup_hifi_plugin(OpenGL Script Qml Widgets Multimedia)
     link_hifi_libraries(shared gl networking controllers ui 
         plugins display-plugins ui-plugins input-plugins script-engine
-        audio-client render-utils model gpu gpu-gl render model-networking fbx ktx image procedural)
+        audio-client render-utils model gpu render model-networking fbx ktx image procedural ${PLATFORM_GL_BACKEND})
 
     include_hifi_library_headers(octree)
 

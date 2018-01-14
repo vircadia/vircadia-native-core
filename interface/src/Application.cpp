@@ -14,12 +14,13 @@
 #include <chrono>
 #include <thread>
 
-#include <gl/Config.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <gl/Config.h>
 
 #include <QtCore/QResource>
 #include <QtCore/QAbstractNativeEventFilter>
@@ -309,13 +310,19 @@ static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
-static const QString DISABLE_WATCHDOG_FLAG("HIFI_DISABLE_WATCHDOG");
 #if defined(Q_OS_ANDROID)
 static bool DISABLE_WATCHDOG = true;
 #else
+static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
 
+#if defined(USE_GLES)
+static bool DISABLE_DEFERRED = true;
+#else
+static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
+static bool DISABLE_DEFERRED = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+#endif
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
@@ -1126,7 +1133,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+  //  DependencyManager::get<GeometryCache>()->initializeShapePipelines();
 
     // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
     // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -2219,11 +2226,13 @@ void Application::initializeGL() {
 
     gl::initModuleGl();
     _glWidget->makeCurrent();
-    _chromiumShareContext = new OffscreenGLCanvas();
-    _chromiumShareContext->setObjectName("ChromiumShareContext");
-    _chromiumShareContext->create(_glWidget->qglContext());
-    _chromiumShareContext->makeCurrent();
-    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    if (!nsightActive()) {
+        _chromiumShareContext = new OffscreenGLCanvas();
+        _chromiumShareContext->setObjectName("ChromiumShareContext");
+        _chromiumShareContext->create(_glWidget->qglContext());
+        _chromiumShareContext->makeCurrent();
+        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    }
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2240,18 +2249,16 @@ void Application::initializeGL() {
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-#ifdef Q_OS_ANDROID
-    bool isDeferred = false;
-#else
-    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, isDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
+
+    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
@@ -4326,9 +4333,9 @@ void Application::init() {
     
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-#ifndef Q_OS_ANDROID
-    DependencyManager::get<DeferredLightingEffect>()->init();
-#endif
+    if (!DISABLE_DEFERRED) {
+        DependencyManager::get<DeferredLightingEffect>()->init();
+    }
     DependencyManager::get<AvatarManager>()->init();
 
     _timerStart.start();

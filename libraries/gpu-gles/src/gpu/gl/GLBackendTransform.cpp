@@ -15,7 +15,6 @@ using namespace gpu::gl;
 
 // Transform Stage
 void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
-    qDebug() << "do_setModelTransform";
 }
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {

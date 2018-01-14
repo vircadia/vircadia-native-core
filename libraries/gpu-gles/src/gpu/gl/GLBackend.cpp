@@ -174,7 +174,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
     _inRenderTransferPass = true;
     { // Sync all the buffers
-        ANDROID_PROFILE(render, "syncGPUBuffer", 0xffaaffaa, 1)
+        PROFILE_RANGE(render_gpu_gl_detail, "syncGPUBuffer");
 
         for (auto& cached : batch._buffers._items) {
             if (cached._data) {
@@ -184,7 +184,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync all the transform states
-        ANDROID_PROFILE(render, "syncCPUTransform", 0xffaaaaff, 1)
+        PROFILE_RANGE(render_gpu_gl_detail, "syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
 
@@ -210,7 +210,6 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
-                    ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffeeaaff, 1)
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -225,8 +224,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        //PROFILE_RANGE(render_gpu_gl, "transferTransformState");
-        ANDROID_PROFILE(render, "transferTransformState", 0xff0000ff, 1)
+        PROFILE_RANGE(render_gpu_gl_detail, "syncGPUTransform");
         transferTransformState(batch);
     }
 
@@ -261,15 +259,12 @@ void GLBackend::renderPassDraw(const Batch& batch) {
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                {
-		ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xff0000ff, 1)
+
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
-                }
                 break;
             }
             default: {
-                ANDROID_PROFILE_COMMAND(render, (int)(*command), 0xffff00ff, 1)
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
                 break;
@@ -282,7 +277,6 @@ void GLBackend::renderPassDraw(const Batch& batch) {
 }
 
 void GLBackend::render(const Batch& batch) {
-    ANDROID_PROFILE(render, "GLBackendRender", 0xffff00ff, 1)
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
@@ -292,21 +286,24 @@ void GLBackend::render(const Batch& batch) {
     }
     
     {
-        //PROFILE_RANGE(render_gpu_gl, "Transfer");
-        ANDROID_PROFILE(render, "Transfer", 0xff0000ff, 1)
+        PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
         renderPassTransfer(batch);
     }
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     if (_stereo.isStereo()) {
-        glEnable(GL_CLIP_DISTANCE0);
+        glEnable(GL_CLIP_DISTANCE0_EXT);
     }
 #endif
     {
-        //PROFILE_RANGE(render_gpu_gl, _stereo._enable ? "Render Stereo" : "Render");
-        ANDROID_PROFILE(render, "RenderPassDraw", 0xff00ddff, 1)
+        PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    if (_stereo.isStereo()) {
+        glDisable(GL_CLIP_DISTANCE0_EXT);
+    }
+#endif
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
@@ -314,15 +311,15 @@ void GLBackend::render(const Batch& batch) {
 
 
 void GLBackend::syncCache() {
+    PROFILE_RANGE(render_gpu_gl_detail, __FUNCTION__);
+
     syncTransformStateCache();
     syncPipelineStateCache();
     syncInputStateCache();
     syncOutputStateCache();
-
-    //glEnable(GL_LINE_SMOOTH);
-    qDebug() << "TODO: GLBackend.cpp:syncCache GL_LINE_SMOOTH";
 }
 
+#ifdef GPU_STEREO_DRAWCALL_DOUBLED
 void GLBackend::setupStereoSide(int side) {
     ivec4 vp = _transform._viewport;
     vp.z /= 2;
@@ -330,14 +327,14 @@ void GLBackend::setupStereoSide(int side) {
 
 #ifdef GPU_STEREO_CAMERA_BUFFER
 #ifdef GPU_STEREO_DRAWCALL_DOUBLED
-    //glVertexAttribI1i(14, side);
-    glVertexAttribI4i(14, side, 0, 0, 0);
-
+    glVertexAttribI1i(14, side);
 #endif
 #else
     _transform.bindCurrentCamera(side);
 #endif
 }
+#else
+#endif
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
@@ -387,18 +384,22 @@ void GLBackend::resetStages() {
 
 
 void GLBackend::do_pushProfileRange(const Batch& batch, size_t paramOffset) {
+    if (trace_render_gpu_gl_detail().isDebugEnabled()) {
     auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
     profileRanges.push_back(name);
 #if defined(NSIGHT_FOUND)
     nvtxRangePush(name.c_str());
 #endif
 }
+}
 
 void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
+    if (trace_render_gpu_gl_detail().isDebugEnabled()) {
     profileRanges.pop_back();
 #if defined(NSIGHT_FOUND)
     nvtxRangePop();
 #endif
+}
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
@@ -406,8 +407,11 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
 // As long as we don;t use several versions of shaders we can avoid this more complex code path
-// #define GET_UNIFORM_LOCATION(shaderUniformLoc) _pipeline._programShader->getUniformLocation(shaderUniformLoc, isStereo());
+#ifdef GPU_STEREO_CAMERA_BUFFER
+#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
+#else
 #define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
+#endif
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
@@ -571,6 +575,10 @@ void GLBackend::do_glColor4f(const Batch& batch, size_t paramOffset) {
     if (_input._colorAttribute != newColor) {
         _input._colorAttribute = newColor;
         glVertexAttrib4fv(gpu::Stream::COLOR, &_input._colorAttribute.r);
+        // Color has been changed and is not white. To prevent colors from bleeding
+        // between different objects, we need to set the _hadColorAttribute flag
+        // as if a previous render call had potential colors
+        _input._hadColorAttribute = (newColor != glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
     (void)CHECK_GL_ERROR();
 }
@@ -616,6 +624,7 @@ void GLBackend::queueLambda(const std::function<void()> lambda) const {
 }
 
 void GLBackend::recycle() const {
+    PROFILE_RANGE(render_gpu_gl, __FUNCTION__)
     {
         std::list<std::function<void()>> lamdbasTrash;
         {
@@ -737,7 +746,7 @@ void GLBackend::recycle() const {
 
     GLVariableAllocationSupport::manageMemory();
     GLVariableAllocationSupport::_frameTexturesCreated = 0;
-
+    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction) {
