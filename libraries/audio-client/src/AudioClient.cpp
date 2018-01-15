@@ -52,11 +52,7 @@
 
 #include "AudioClient.h"
 
-#if defined(Q_OS_ANDROID)
-const int AudioClient::MIN_BUFFER_FRAMES = 20;
-#else
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
-#endif
 
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
 
