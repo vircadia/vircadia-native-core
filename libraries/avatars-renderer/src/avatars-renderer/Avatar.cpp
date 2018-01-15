@@ -397,8 +397,9 @@ void Avatar::relayJointDataToChildren() {
                             modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
                         }
                     }
-
-                    modelEntity->setOverrideTransform(_skeletonModel->getTransform(), _skeletonModel->getOffset());
+                    Transform avatarTransform = _skeletonModel->getTransform();
+                    avatarTransform.setScale(_skeletonModel->getScale());
+                    modelEntity->setOverrideTransform(avatarTransform, _skeletonModel->getOffset());
                     modelEntity->simulateRelayedJoints();
                 }
             }

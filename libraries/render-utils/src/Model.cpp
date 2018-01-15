@@ -1373,6 +1373,7 @@ void Model::overrideModelTransformAndOffset(const Transform& transform, const gl
     _overrideTranslation = transform.getTranslation();
     _overrideRotation = transform.getRotation();
     _overrideModelTransform = true;
+    setScale(transform.getScale());
     setOffset(offset);
 }
 
