@@ -184,6 +184,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     }
 
 typedef glm::vec3 glmVec3;
+typedef glm::vec4 glmVec4;
 typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;
 typedef QVector<glm::quat> qVectorQuat;

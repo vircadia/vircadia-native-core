@@ -330,6 +330,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
 
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_TYPE, materialMode);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_SHAPE_ID, shapeID);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BOUNDS, materialBounds);
+
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
     CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
@@ -623,6 +630,16 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     }
 
+    // Materials
+    if (_type == EntityTypes::Material) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_URL, materialURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_TYPE, materialMode);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_SHAPE_ID, shapeID);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BOUNDS, materialBounds);
+    }
+
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
@@ -755,6 +772,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMode, MaterialMode, setMaterialMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(blendFactor, float, setBlendFactor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, int, setPriority);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(shapeID, int, setShapeID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialBounds, glmVec4, setMaterialBounds);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1490,6 +1513,16 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
+            // Materials
+            if (properties.getType() == EntityTypes::Material) {
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_URL, properties.getMaterialURL());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_TYPE, (uint32_t)properties.getMaterialMode());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BLEND_FACTOR, properties.getBlendFactor());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, properties.getPriority());
+                APPEND_ENTITY_PROPERTY(PROP_PARENT_SHAPE_ID, properties.getShapeID());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BOUNDS, properties.getMaterialBounds());
+            }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1843,6 +1876,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
+    }
+
+    // Materials
+    if (properties.getType() == EntityTypes::Material) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_URL, QString, setMaterialURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_TYPE, MaterialMode, setMaterialMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_BLEND_FACTOR, float, setBlendFactor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, uint32_t, setPriority);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_SHAPE_ID, uint32_t, setShapeID);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_BOUNDS, glmVec4, setMaterialBounds);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
