@@ -79,11 +79,13 @@ void copyAsset(const char* sourceAsset, const QString& destFilename) {
         if (!file.resize(size)) {
             throw std::runtime_error("Unable to resize output file");
         }
-        auto mapped = file.map(0, size);
-        if (!mapped) {
-            throw std::runtime_error("Unable to map output file");
+        if (size != 0) {
+            auto mapped = file.map(0, size);
+            if (!mapped) {
+                throw std::runtime_error("Unable to map output file");
+            }
+            memcpy(mapped, data, size);
         }
-        memcpy(mapped, data, size);
         file.close();
     });
 }
