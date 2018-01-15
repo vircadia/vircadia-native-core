@@ -191,13 +191,6 @@ void Ledger::history(const QStringList& keys, const int& pageNumber) {
     keysQuery("history", "historySuccess", "historyFailure", params);
 }
 
-// The api/failResponse is called just for the side effect of logging.
-void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
-void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
-void Ledger::reset() {
-    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, QJsonObject());
-}
-
 void Ledger::accountSuccess(QNetworkReply& reply) {
     // lets set the appropriate stuff in the wallet now
     auto wallet = DependencyManager::get<Wallet>();

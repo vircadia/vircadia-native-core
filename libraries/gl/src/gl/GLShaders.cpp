@@ -63,12 +63,17 @@ namespace gl {
         }
         */
 
-        qCWarning(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        int lineNumber = 0;
         for (auto s : srcstr) {
-            qCWarning(glLogging) << s;
+            QString str(s);
+            QStringList lines = str.split("\n");
+            for (auto& line : lines) {
+                qCCritical(glLogging).noquote() << QString("%1: %2").arg(lineNumber++, 5, 10, QChar('0')).arg(line);
+            }
         }
-        qCWarning(glLogging) << "GLShader::compileShader - errors:";
-        qCWarning(glLogging) << temp;
+        qCCritical(glLogging) << "GLShader::compileShader - errors:";
+        qCCritical(glLogging) << temp;
 
         error = std::string(temp);
         delete[] temp;
