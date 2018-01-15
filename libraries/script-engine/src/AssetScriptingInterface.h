@@ -85,9 +85,10 @@ public:
      */
 
     /**jsdoc
-     * Called when getMapping is complete
+     * Called when getMapping is complete.
      * @callback Assets~getMappingCallback
-     * @param {string} assetID
+     * @param assetID {string} hash value if found, else an empty string
+     * @param success {boolean} false for errors other than "not found", else true
      */
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
 

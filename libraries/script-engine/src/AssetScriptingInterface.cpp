@@ -61,13 +61,15 @@ void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
         auto result = request->getError();
         if (callback.isFunction()) {
             if (result == GetMappingRequest::NotFound) {
-                QScriptValueList args { "" };
+                QScriptValueList args { "", true };
                 callback.call(_engine->currentContext()->thisObject(), args);
             } else if (result == GetMappingRequest::NoError) {
-                QScriptValueList args { request->getHash() };
+                QScriptValueList args { request->getHash(), true };
                 callback.call(_engine->currentContext()->thisObject(), args);
             } else {
                 qCDebug(scriptengine) << "error -- " << request->getError() << " -- " << request->getErrorString();
+                QScriptValueList args { "", false };
+                callback.call(_engine->currentContext()->thisObject(), args);
             }
             request->deleteLater();
         }
