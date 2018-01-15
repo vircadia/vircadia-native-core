@@ -166,7 +166,6 @@ enum ForwardShader_BufferSlot {
 
 void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
-    const auto& lightingModel = inputs;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 

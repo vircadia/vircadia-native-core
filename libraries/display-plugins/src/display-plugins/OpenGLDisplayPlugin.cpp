@@ -172,7 +172,7 @@ public:
                             _context->makeCurrent();
                             CHECK_GL_ERROR();
 #if defined(Q_OS_MAC)
-                            newPlugin->swapBuffers()
+                            newPlugin->swapBuffers();
 #endif
                             gl::setSwapInterval(wantVsync ? 1 : 0);
 #if defined(Q_OS_MAC)

@@ -30,8 +30,6 @@ int main(int argc, char** argv) {
         }
         glClearColor(1.0, 0.0, 1.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
-        auto err = glGetError();
-
         window->swapBuffers();
         window->doneCurrent();
     });
