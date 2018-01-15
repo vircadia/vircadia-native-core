@@ -16,7 +16,10 @@
 #if defined(Q_OS_WIN)
 #elif defined(Q_OS_ANDROID)
 #elif defined(Q_OS_MAC)
+#include <OpenGL/OpenGL.h>
+#include <OpenGL/CGLTypes.h>
 #include <OpenGL/CGLCurrent.h>
+#include <dlfcn.h>
 #else
 #include <GL/glx.h>
 #include <dlfcn.h>
@@ -60,10 +63,19 @@ static void* getGlProcessAddress(const char *namez) {
 }
 
 #elif defined(Q_OS_MAC)
+
+static void* getGlProcessAddress(const char *namez) {
+    static void* GL_LIB = nullptr;
+    if (nullptr == GL_LIB) {
+        GL_LIB = dlopen("/System/Library/Frameworks/OpenGL.framework/Versions/Current/OpenGL", RTLD_NOW | RTLD_GLOBAL);
+    }
+    return dlsym(GL_LIB, namez);
+}
+
 #else
 
 static void* getGlProcessAddress(const char *namez) {
-	return (void*)glXGetProcAddressARB((const GLubyte*)namez);
+    return (void*)glXGetProcAddressARB((const GLubyte*)namez);
 }
 
 #endif

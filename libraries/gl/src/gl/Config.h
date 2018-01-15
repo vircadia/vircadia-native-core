@@ -30,18 +30,21 @@
 
 #define MINIMUM_GL_VERSION ((GL_MIN_VERSION_MAJOR << 8) | GL_MIN_VERSION_MINOR)
 
+#include <glad/glad.h>
+
 #if defined(Q_OS_ANDROID)
 #include <EGL/egl.h>
-#include <glad/glad.h>
 #else
-#include <glad/glad.h>
+
 #ifndef GL_SLUMINANCE8_EXT
 #define GL_SLUMINANCE8_EXT 0x8C47
 #endif
+
 // Prevent inclusion of System GL headers
-#ifndef __gl_h_
+#define __glext_h_
 #define __gl_h_
-#endif
+#define __gl3_h_
+
 #endif
 
 // Platform specific code to load the GL functions
