@@ -1,0 +1,48 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Olivier Prat on 15/01/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+// Everything about light
+<@include model/Light.slh@>
+<$declareLightBuffer(256)$>
+<@include LightingModel.slh@>
+
+
+<@include LightPoint.slh@>
+<$declareLightingPoint(supportScattering)$>
+<@include LightSpot.slh@>
+<$declareLightingSpot(supportScattering)$>
+
+<@include LightClusterGrid.slh@>
+
+<@func fetchClusterInfo(fragPos)@>
+
+    // From frag world pos find the cluster
+    vec4 clusterEyePos = frustumGrid_worldToEye(<$fragPos$>);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+
+    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x + cluster.y;
+    if (numLights <= 0) {
+        discard;
+    }
+    int lightClusterOffset = cluster.z;
+
+    ivec3 dims = frustumGrid.dims.xyz;
+    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
+        discard;
+    }
+
+    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
+        discard;
+    }
+    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
+        discard;
+    }
+
+<@endfunc@>
