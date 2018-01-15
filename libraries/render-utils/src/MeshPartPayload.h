@@ -87,7 +87,14 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
+
+#if defined(SKIN_DQ)
+    using TransformType = Model::TransformDualQuaternion;
+#else
+    using TransformType = glm::mat4;
+#endif
+
+    void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
@@ -104,7 +111,7 @@ public:
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
-    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
+    void computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms);
 
     gpu::BufferPointer _clusterBuffer;
 
