@@ -41,17 +41,22 @@ else()
     option(BUILD_TESTS "Build tests" ON)
 endif()
 
-option(DISABLE_QML "Disable QML" OFF)
+if (ANDROID)
+    option(USE_GLES "Use OpenGL ES" ON)
+    set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
+else ()
+    option(USE_GLES "Use OpenGL ES" OFF)
+    set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
+endif ()
+
+if (USE_GLES AND (NOT ANDROID))
+    option(DISABLE_QML "Disable QML" ON)
+else()
+    option(DISABLE_QML "Disable QML" OFF)
+endif()
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
 
 
-if (ANDROID)
-  option(USE_GLES "Use OpenGL ES" ON)
-  set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
-else ()
-  option(USE_GLES "Use OpenGL ES" OFF)
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-endif ()
 
 set(PLATFORM_QT_GL OpenGL)
 

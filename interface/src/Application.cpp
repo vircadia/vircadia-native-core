@@ -766,8 +766,10 @@ OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 //
 // So instead we create a new offscreen context to share with the QGLWidget,
 // and manually set THAT to be the shared context for the Chromium helper
+#if !defined(DISABLE_QML)
 OffscreenGLCanvas* _chromiumShareContext { nullptr };
 Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+#endif
 
 Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
@@ -2225,6 +2227,8 @@ void Application::initializeGL() {
     }
 
     _glWidget->makeCurrent();
+
+#if !defined(DISABLE_QML)
     if (!nsightActive()) {
         _chromiumShareContext = new OffscreenGLCanvas();
         _chromiumShareContext->setObjectName("ChromiumShareContext");
@@ -2232,6 +2236,7 @@ void Application::initializeGL() {
         _chromiumShareContext->makeCurrent();
         qt_gl_set_global_share_context(_chromiumShareContext->getContext());
     }
+#endif
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
