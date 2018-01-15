@@ -15,6 +15,7 @@
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
+#include "LightClusters.h"
 
 class BeginGPURangeTimer {
 public:
@@ -65,7 +66,7 @@ protected:
 
 class DrawDeferred {
 public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet3 <render::ItemBounds, LightingModelPointer, LightClustersPointer>;
     using Config = DrawConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 

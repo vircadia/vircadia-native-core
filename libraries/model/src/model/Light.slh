@@ -56,10 +56,10 @@ Light getLight(int index) {
 }
 
 <@else@>
-uniform lightBuffer {
+uniform keyLightBuffer {
     Light light;
 };
-Light getLight() {
+Light getKeyLight() {
     return light;
 }
 

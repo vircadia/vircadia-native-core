@@ -83,7 +83,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ZONE_KEYLIGHT_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ZONE_KEYLIGHT_BUFFER));
 
         gpu::Shader::makeProgram(*program, slotBindings);
 
