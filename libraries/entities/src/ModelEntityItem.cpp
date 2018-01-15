@@ -267,9 +267,9 @@ void ModelEntityItem::updateFrameCount() {
     if (!getAnimationHold() && getAnimationIsPlaying()) {
         float deltaTime = (float)interval / (float)USECS_PER_SECOND;
         _currentFrame += (deltaTime * getAnimationFPS());
-        if (_currentFrame > getAnimationLastFrame()) {
-            if (getAnimationLoop()) {
-                _currentFrame = getAnimationFirstFrame() + (int)(glm::floor(_currentFrame - getAnimationFirstFrame())) % (updatedFrameCount - 1);
+        if (_currentFrame > getAnimationLastFrame() + 1) {
+            if (getAnimationLoop() && getAnimationFirstFrame() != getAnimationLastFrame()) {
+                _currentFrame = getAnimationFirstFrame() + (int)(_currentFrame - getAnimationFirstFrame()) % updatedFrameCount;
             } else {
                 _currentFrame = getAnimationLastFrame();
             }
