@@ -64,6 +64,7 @@
 #include "forward_model_normal_map_frag.h"
 #include "forward_model_normal_specular_map_frag.h"
 #include "forward_model_specular_map_frag.h"
+#include "forward_model_translucent_frag.h"
 
 #include "model_lightmap_frag.h"
 #include "model_lightmap_normal_map_frag.h"
@@ -451,6 +452,7 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_specular_map_frag));
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_specular_map_frag));
     auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
+    auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(forward_model_translucent_frag));
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
@@ -486,7 +488,25 @@ void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::Ba
     addPipeline(
             Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
             skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
-
+    // Translucents
+    addPipeline(
+            Key::Builder().withMaterial().withTranslucent(),
+            modelVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withTranslucent().withTangents(),
+            modelNormalMapVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withTranslucent().withSpecular(),
+            modelVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withTranslucent().withTangents().withSpecular(),
+            modelNormalMapVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
+            skinModelNormalMapVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withSkinned().withTranslucent(),
+            skinModelVertex, modelTranslucentPixel, batchSetter, itemSetter, nullptr, nullptr);
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
