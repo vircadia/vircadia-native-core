@@ -18,11 +18,10 @@ class DesktopPreviewProvider : public QObject, public Dependency {
 public:
     enum PreviewDisabledReasons {
         USER = 0,
-        SECURE_SCREEN
+        SECURE_SCREEN,
+        VSYNC // Not settable via this interface, as VSYNC is controlled by HMD plugin..
     };
     Q_ENUM(PreviewDisabledReasons)
-
-    int VSYNC { 2 };
 
     static QSharedPointer<DesktopPreviewProvider> DesktopPreviewProvider::getInstance();
 

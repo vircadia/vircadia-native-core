@@ -27,6 +27,10 @@ QImage DesktopPreviewProvider::getPreviewDisabledImage(bool vsyncEnabled) const 
 }
 
 void DesktopPreviewProvider::setPreviewDisabledReason(PreviewDisabledReasons reason) {
+    if (reason == VSYNC) {
+        return; // Not settable via this interface, as VSYNC is controlled by HMD plugin..
+    }
+
     m_previewDisabledReason = reason;
 }
 
