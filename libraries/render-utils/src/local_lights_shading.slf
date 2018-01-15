@@ -38,9 +38,9 @@ void main(void) {
 
     // Frag pos in world
     mat4 invViewMat = getViewInverse();
-    vec4 fragPos = invViewMat * fragPosition;
+    vec4 fragWorldPos = invViewMat * fragPosition;
 
-    <$fetchClusterInfo(fragPos)$>;
+    <$fetchClusterInfo(fragWorldPos)$>;
 
     vec4 midNormalCurvature;
     vec4 lowNormalCurvature;
@@ -53,113 +53,9 @@ void main(void) {
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
-    // Compute the rougness into gloss2 once:
-    float fragGloss2 = pow(frag.roughness + 0.001, 4.0);
-    bool withScattering = (frag.scattering * isScatteringEnabled() > 0.0);
-
-    int numLightTouching = 0;
-    for (int i = 0; i < cluster.x; i++) {
-        // Need the light now
-        int theLightIndex = clusterGrid_getClusterLightId(i, lightClusterOffset);
-        Light light = getLight(theLightIndex);
-
-        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
-        vec4 fragLightVecLen2;
-        vec4 fragLightDirLen;
-
-        if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
-            continue;
-        }
-
-        // Allright we re in the light sphere volume
-        fragLightDirLen.w = length(fragLightVecLen2.xyz);
-        fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
-        if (dot(frag.normal, fragLightDirLen.xyz) < 0.0) {
-            continue;
-        }
-
-        numLightTouching++;
-
-        vec3 diffuse = vec3(1.0);
-        vec3 specular = vec3(0.1);
-
-        // Allright we re valid in the volume
-        float fragLightDistance = fragLightDirLen.w;
-        vec3 fragLightDir = fragLightDirLen.xyz;
-
-        // Eval attenuation
-        float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
-        vec3 lightEnergy = radialAttenuation * getLightIrradiance(light);
-
-        // Eval shading
-        if (withScattering) {
-            evalFragShadingScattering(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
-                ,frag.scattering, midNormalCurvature, lowNormalCurvature );
-        } else {
-           evalFragShadingGloss(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, fragGloss2, frag.albedo);
-        }
-
-        diffuse *= lightEnergy * isDiffuseEnabled();
-        specular *= lightEnergy * isSpecularEnabled();
-
-        _fragColor.rgb += diffuse;
-        _fragColor.rgb += specular;
-    }
-
-    for (int i = cluster.x; i < numLights; i++) {
-        // Need the light now
-        int theLightIndex = clusterGrid_getClusterLightId(i, lightClusterOffset);
-        Light light = getLight(theLightIndex);
-
-        // Clip againgst the light volume and Make the Light vector going from fragment to light center in world space
-        vec4 fragLightVecLen2;
-        vec4 fragLightDirLen;
-        float cosSpotAngle;
-
-        if (!lightVolume_clipFragToLightVolumePoint(light.volume, fragPos.xyz, fragLightVecLen2)) {
-            continue;
-        }
-
-        // Allright we re in the light sphere volume
-        fragLightDirLen.w = length(fragLightVecLen2.xyz);
-        fragLightDirLen.xyz = fragLightVecLen2.xyz / fragLightDirLen.w;
-        if (dot(frag.normal, fragLightDirLen.xyz) < 0.0) {
-            continue;
-        }
-
-        // Check spot
-        if (!lightVolume_clipFragToLightVolumeSpotSide(light.volume, fragLightDirLen, cosSpotAngle)) {
-            continue;
-        }
-
-        numLightTouching++;
-
-        vec3 diffuse = vec3(1.0);
-        vec3 specular = vec3(0.1);
-
-        // Allright we re valid in the volume
-        float fragLightDistance = fragLightDirLen.w;
-        vec3 fragLightDir = fragLightDirLen.xyz;
-
-        // Eval attenuation
-        float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
-        float angularAttenuation = lightIrradiance_evalLightSpotAttenuation(light.irradiance, cosSpotAngle);
-        vec3 lightEnergy = radialAttenuation * angularAttenuation * getLightIrradiance(light);
-
-        // Eval shading
-        if (withScattering) {
-            evalFragShadingScattering(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
-                ,frag.scattering, midNormalCurvature, lowNormalCurvature );
-        } else {
-           evalFragShadingGloss(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, fragGloss2, frag.albedo);
-        }
-
-        diffuse *= lightEnergy * isDiffuseEnabled();
-        specular *= lightEnergy * isSpecularEnabled();
-
-        _fragColor.rgb += diffuse;
-        _fragColor.rgb += specular;
-    }
+    _fragColor = evalLocalLighting(cluster, numLights, fragWorldPos.xyz, frag.normal, fragEyeDir, 
+                                   midNormalCurvature, lowNormalCurvature, frag.roughness, frag.scattering,
+                                   frag.metallic, frag.fresnel, frag.albedo);
 
 }
 
