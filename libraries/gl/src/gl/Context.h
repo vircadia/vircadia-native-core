@@ -22,7 +22,7 @@ class QWindow;
 class QOpenGLContext;
 class QThread;
 
-#if defined(Q_OS_WIN) && !defined(USE_GLES)
+#if defined(Q_OS_WIN) 
 #define GL_CUSTOM_CONTEXT
 #endif
 namespace gl {

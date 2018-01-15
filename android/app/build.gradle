@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    buildToolsVersion '27.0.3'
+    //buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "io.highfidelity.hifiinterface"
@@ -22,7 +22,9 @@ android {
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
-                    '-DBUILD_BRANCH=' + BUILD_BRANCH
+                    '-DBUILD_BRANCH=' + BUILD_BRANCH,
+                    '-DDISABLE_QML=ON',
+                    '-DDISABLE_KTX_CACHE=ON'
             }
         }
     }

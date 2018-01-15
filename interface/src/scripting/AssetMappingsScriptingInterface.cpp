@@ -139,8 +139,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
 void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createDeleteMappingsRequest(paths);
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
+
     connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString() };
@@ -149,7 +148,6 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
 
         request->deleteLater();
     });
-#endif
 
     request->start();
 }
@@ -157,8 +155,7 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
+
     connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
         auto mappings = request->getMappings();
         auto map = callback.engine()->newObject();
@@ -174,7 +171,6 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
 
         request->deleteLater();
     });
-#endif
 
     request->start();
 }
@@ -182,8 +178,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
 void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString newPath, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
+
     connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
@@ -192,15 +187,14 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 
         request->deleteLater();
     });
-#endif
+
     request->start();
 }
 
 void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool enabled, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetBakingEnabledRequest(paths, enabled);
-#if !defined(Q_OS_ANDROID)
-// TODO: just to make android compile
+
     connect(request, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args{ request->getErrorString() };
@@ -209,7 +203,7 @@ void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool e
 
         request->deleteLater();
     });
-#endif
+
     request->start();
 }
 

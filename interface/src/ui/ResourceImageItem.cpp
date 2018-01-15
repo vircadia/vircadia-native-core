@@ -10,15 +10,12 @@
 
 #include "ResourceImageItem.h"
 
+#include <gl/Config.h>
+
 #include <QOpenGLFramebufferObjectFormat>
-#include <QOpenGLFunctions>
-#include <QOpenGLExtraFunctions>
-#include <QOpenGLContext>
 
 #include <plugins/DisplayPlugin.h>
-#ifdef Q_OS_ANDROID
-#include <gl/Config.h>
-#endif
+
 ResourceImageItem::ResourceImageItem() : QQuickFramebufferObject() {
     auto textureCache = DependencyManager::get<TextureCache>();
     connect(textureCache.data(), SIGNAL(spectatorCameraFramebufferReset()), this, SLOT(update()));
@@ -91,11 +88,9 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
 }
 
 void ResourceImageItemRenderer::render() {
-    auto f = QOpenGLContext::currentContext()->extraFunctions();
-
     if (_fenceSync) {
-        f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
-        f->glDeleteSync(_fenceSync);
+        glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        glDeleteSync(_fenceSync);
         _fenceSync = 0;
     }
     if (_ready) {

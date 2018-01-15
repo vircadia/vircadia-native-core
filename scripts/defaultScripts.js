@@ -12,68 +12,30 @@
 //
 
 var DEFAULT_SCRIPTS_COMBINED = [
+    "system/progress.js",
+    "system/away.js",
+    "system/audio.js",
+    "system/hmd.js",
+    "system/menu.js",
+    "system/bubble.js",
+    "system/snapshot.js",
+    "system/help.js",
+    "system/pal.js", // "system/mod.js", // older UX, if you prefer
+    "system/makeUserConnection.js",
+    "system/tablet-goto.js",
+    "system/marketplaces/marketplaces.js",
+    "system/commerce/wallet.js",
+    "system/edit.js",
+    "system/notifications.js",
+    "system/dialTone.js",
+    "system/firstPersonHMD.js",
+    "system/tablet-ui/tabletUI.js",
+    "system/emote.js"
 ];
-
-function pushAll(dest, orig) {
-    for (var k in orig) {
-        dest.push(orig[k]);
-    }
-}
-
-if (!App.isAndroid()) {
-    pushAll(DEFAULT_SCRIPTS_COMBINED, [
-        "system/progress.js",
-        "system/away.js",
-        "system/audio.js",
-        "system/hmd.js",
-        "system/menu.js",
-        "system/bubble.js",
-        "system/snapshot.js",
-        "system/help.js",
-        "system/pal.js", // "system/mod.js", // older UX, if you prefer
-        "system/makeUserConnection.js",
-        "system/tablet-goto.js",
-        "system/marketplaces/marketplaces.js",
-        "system/commerce/wallet.js",
-        "system/edit.js",
-        "system/notifications.js",
-        "system/dialTone.js",
-        "system/firstPersonHMD.js",
-        "system/tablet-ui/tabletUI.js",
-        "system/emote.js"
-    ]);
-} else {
-    pushAll(DEFAULT_SCRIPTS_COMBINED, [
-        "system/progress.js"/*,
-        "system/away.js",
-        "system/controllers/controllerDisplayManager.js",
-        "system/controllers/handControllerGrabAndroid.js",
-        "system/controllers/handControllerPointerAndroid.js",
-        "system/controllers/squeezeHands.js",
-        "system/controllers/grab.js",
-        "system/controllers/teleport.js",
-        "system/controllers/toggleAdvancedMovementForHandControllers.js",
-        "system/dialTone.js",
-        "system/firstPersonHMD.js",
-        "system/bubble.js",
-        "system/android.js",
-        "developer/debugging/debugAndroidMouse.js"*/
-    ]);
-}
-
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js"
     //"system/chat.js"
 ];
-
-
-if (!App.isAndroid()) {
-    pushAll(DEFAULT_SCRIPTS_SEPARATE, [
-    "system/controllers/controllerScripts.js"
-    ]);
-} else {
-    pushAll(DEFAULT_SCRIPTS_SEPARATE, []);
-}
 
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";

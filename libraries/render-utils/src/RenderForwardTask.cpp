@@ -26,6 +26,7 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
+#include "LightStage.h"
 
 #include "nop_frag.h"
 
@@ -63,17 +64,21 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
+    task.addJob<PrepareForward>("PrepareForward", lightingModel);
+
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
 
     // Draw opaques forward
-    task.addJob<Draw>("DrawOpaques", opaques, shapePlumber);
+    const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
+    task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
 
     // Draw transparent objects forward
-    task.addJob<Draw>("DrawTransparents", transparents, shapePlumber);
+    const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
+    task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
@@ -125,17 +130,83 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
         batch.setFramebuffer(_framebuffer);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0, true);
+            vec4(vec3(0, 1.0, 0.0), 0), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
 }
 
-void Draw::run(const RenderContextPointer& renderContext, const Inputs& items) {
+enum ForwardShader_MapSlot {
+    DEFERRED_BUFFER_COLOR_UNIT = 0,
+    DEFERRED_BUFFER_NORMAL_UNIT = 1,
+    DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
+    DEFERRED_BUFFER_DEPTH_UNIT = 3,
+    DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
+    SHADOW_MAP_UNIT = 5,
+    SKYBOX_MAP_UNIT = SHADOW_MAP_UNIT + 4,
+    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT,
+    DEFERRED_BUFFER_CURVATURE_UNIT,
+    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT,
+    SCATTERING_LUT_UNIT,
+    SCATTERING_SPECULAR_UNIT,
+};
+enum ForwardShader_BufferSlot {
+    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    CAMERA_CORRECTION_BUFFER_SLOT,
+    SCATTERING_PARAMETERS_BUFFER_SLOT,
+    LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
+    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
+    HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
+    LIGHT_INDEX_GPU_SLOT,
+    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+};
+
+void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        model::LightPointer keySunLight;
+        auto lightStage = args->_scene->getStage<LightStage>();
+        if (lightStage) {
+            keySunLight = lightStage->getCurrentKeyLight();
+        }
+
+        model::LightPointer keyAmbiLight;
+        if (lightStage) {
+            keyAmbiLight = lightStage->getCurrentAmbientLight();
+        }
+
+        if (keySunLight) {
+            if (LIGHT_GPU_SLOT >= 0) {
+                batch.setUniformBuffer(LIGHT_GPU_SLOT, keySunLight->getLightSchemaBuffer());
+            }
+        }
+
+        if (keyAmbiLight) {
+            if (LIGHT_AMBIENT_SLOT >= 0) {
+                batch.setUniformBuffer(LIGHT_AMBIENT_SLOT, keyAmbiLight->getAmbientSchemaBuffer());
+            }
+
+            if (keyAmbiLight->getAmbientMap() && (SKYBOX_MAP_UNIT >= 0)) {
+                batch.setResourceTexture(SKYBOX_MAP_UNIT, keyAmbiLight->getAmbientMap());
+            }
+        }
+    });
+}
+
+void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
+    RenderArgs* args = renderContext->args;
+
+    const auto& inItems = inputs.get0();
+    const auto& lightingModel = inputs.get1();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+
 
         // Setup projection
         glm::mat4 projMat;
@@ -146,63 +217,23 @@ void Draw::run(const RenderContextPointer& renderContext, const Inputs& items) {
         batch.setViewTransform(viewMat);
         batch.setModelTransform(Transform());
 
+        // Setup lighting model for all items;
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+
+        // From the lighting model define a global shapeKey ORED with individiual keys
+        ShapeKey::Builder keyBuilder;
+        if (lightingModel->isWireframeEnabled()) {
+            keyBuilder.withWireframe();
+        }
+        ShapeKey globalKey = keyBuilder.build();
+        args->_globalShapeKey = globalKey._flags.to_ulong();
+
         // Render items
-        renderStateSortShapes(renderContext, _shapePlumber, items, -1);
+        renderStateSortShapes(renderContext, _shapePlumber, inItems, -1, globalKey);
+
+        args->_batch = nullptr;
+        args->_globalShapeKey = 0;
     });
-    args->_batch = nullptr;
 }
 
-const gpu::PipelinePointer Stencil::getPipeline() {
-    if (!_stencilPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram(*program);
 
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        PrepareStencil::drawBackground(*state);
-
-        _stencilPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _stencilPipeline;
-}
-
-void Stencil::run(const RenderContextPointer& renderContext) {
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setPipeline(getPipeline());
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-    args->_batch = nullptr;
-}
-
-void DrawBackground::run(const RenderContextPointer& renderContext, const Inputs& background) {
-    RenderArgs* args = renderContext->args;
-
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        // Setup projection
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(renderContext, background);
-    });
-    args->_batch = nullptr;
-}

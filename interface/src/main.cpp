@@ -20,7 +20,6 @@
 #include <QTranslator>
 
 #include <BuildInfo.h>
-#include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
@@ -47,11 +46,6 @@ int main(int argc, const char* argv[]) {
     static QString BUG_SPLAT_DATABASE = "interface_alpha";
     static QString BUG_SPLAT_APPLICATION_NAME = "Interface";
     CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
-#endif
-
-#if USE_GLES
-    qputenv("QT_ANGLE_PLATFORM", "d3d11");
-    QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
 #endif
 
 #ifdef Q_OS_LINUX

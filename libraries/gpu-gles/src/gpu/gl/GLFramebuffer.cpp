@@ -22,27 +22,26 @@ GLFramebuffer::~GLFramebuffer() {
 }
 
 bool GLFramebuffer::checkStatus() const {
-    bool result = false;
     switch (_status) {
     case GL_FRAMEBUFFER_COMPLETE:
         // Success !
-        result = true;
-        break;
+        return true;
+
     case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-        qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
+        qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT.";
         break;
     case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-        qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
+        qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT.";
         break;
-/* TODO:     case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-        qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
-        break;
-    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-        qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
-        break; */
+    //case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+    //    qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER.";
+    //    break;
+    //case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+    //    qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER.";
+    //    break;
     case GL_FRAMEBUFFER_UNSUPPORTED:
-        qCDebug(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
+        qCWarning(gpugllogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
         break;
     }
-    return result;
+    return false;
 }

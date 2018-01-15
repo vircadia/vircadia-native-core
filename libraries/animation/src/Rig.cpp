@@ -1732,6 +1732,14 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     }
 }
 
+AnimPose Rig::getJointPose(int jointIndex) const {
+    if (isIndexValid(jointIndex)) {
+        return _internalPoseSet._absolutePoses[jointIndex];
+    } else {
+        return AnimPose::identity;
+    }
+}
+
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
     const AnimPose geometryToRigPose(_geometryToRigTransform);

@@ -12,6 +12,8 @@
 
 #include "FileUtils.h"
 
+#include <mutex>
+
 #include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
@@ -21,7 +23,20 @@
 #include <QtCore/QRegularExpression>
 #include <QtGui/QDesktopServices>
 
+
 #include "../SharedLogging.h"
+
+const QStringList& FileUtils::getFileSelectors() {
+    static std::once_flag once;
+    static QStringList extraSelectors;
+    std::call_once(once, [] {
+#if defined(USE_GLES)
+        extraSelectors << "gles";
+#endif
+    });
+    return extraSelectors;
+
+}
 
 
 QString FileUtils::readFile(const QString& filename) {
