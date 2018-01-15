@@ -20,32 +20,6 @@
 
 <@include LightClusterGrid.slh@>
 
-<@func fetchClusterInfo(fragWorldPos)@>
-
-    // From frag world pos find the cluster
-    vec4 clusterEyePos = frustumGrid_worldToEye(<$fragWorldPos$>);
-    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
-
-    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
-    int numLights = cluster.x + cluster.y;
-    if (numLights <= 0) {
-        discard;
-    }
-
-    ivec3 dims = frustumGrid.dims.xyz;
-    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
-        discard;
-    }
-
-    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
-        discard;
-    }
-    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
-        discard;
-    }
-
-<@endfunc@>
-
 vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, vec3 fragNormal, vec3 fragEyeDir, 
                        vec4 midNormalCurvature, vec4 lowNormalCurvature,
                        float fragRoughness, float fragScattering, float fragMetallic, vec3 fragFresnel, vec3 fragAlbedo) {
