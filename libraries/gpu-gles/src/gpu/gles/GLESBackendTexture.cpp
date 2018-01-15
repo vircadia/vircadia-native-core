@@ -19,6 +19,12 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gles;
 
+bool GLESBackend::supportedTextureFormat(const gpu::Element& format) {
+    // FIXME distinguish between GLES and GL compressed formats after support 
+    // for the former is added to gpu::Element
+    return !format.isCompressed();
+}
+
 GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
     if (!texturePointer) {
         return nullptr;
@@ -31,6 +37,12 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
 
     if (!texture.isDefined()) {
         // NO texture definition yet so let's avoid thinking
+        return nullptr;
+    }
+
+    // Check whether the texture is in a format we can deal with 
+    auto format = texture.getTexelFormat();
+    if (!supportedTextureFormat(format)) {
         return nullptr;
     }
 
