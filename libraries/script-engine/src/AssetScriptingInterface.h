@@ -75,7 +75,23 @@ public:
      * @param {string} error
      */
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
-    
+
+    /**jsdoc
+     * Look up a path to hash mapping within the connected domain's asset server
+     * @function Assets.getMapping
+     * @static
+     * @param path {string}
+     * @param callback {Assets~getMappingCallback}
+     */
+
+    /**jsdoc
+     * Called when getMapping is complete
+     * @callback Assets~getMappingCallback
+     * @param {string} assetID
+     */
+    Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
+
+
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
