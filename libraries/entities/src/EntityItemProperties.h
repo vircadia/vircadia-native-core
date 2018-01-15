@@ -185,11 +185,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
 
-    DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-    DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-    DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-
-    // This is the default mode for zone creation
+    DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);

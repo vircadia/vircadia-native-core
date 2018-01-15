@@ -27,6 +27,7 @@
 #include <TBBHelpers.h>
 
 #include <model-networking/SimpleMeshProxy.h>
+#include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
 
@@ -275,16 +276,24 @@ void Model::updateRenderItems() {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+            auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices, invalidatePayloadShapeKey,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms, invalidatePayloadShapeKey,
                     isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateClusterBuffer(clusterMatrices);
+                data.updateClusterBuffer(clusterTransforms);
+
                 Transform renderTransform = modelTransform;
-                if (clusterMatrices.size() == 1) {
-                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                if (clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+                    Transform transform(clusterTransforms[0].getRotation(),
+                                        clusterTransforms[0].getScale(),
+                                        clusterTransforms[0].getTranslation());
+                    renderTransform = modelTransform.worldTransform(Transform(transform));
+#else
+                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
+#endif
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
@@ -365,7 +374,7 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
+            state.clusterTransforms.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -1217,7 +1226,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        part->computeAdjustedLocalBound(state.clusterMatrices);
+        part->computeAdjustedLocalBound(state.clusterTransforms);
     }
 }
 
@@ -1228,6 +1237,7 @@ void Model::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
+
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
@@ -1235,8 +1245,16 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
+#if defined(SKIN_DQ)
+            auto jointPose = _rig.getJointPose(cluster.jointIndex);
+            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+            Transform clusterTransform;
+            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+#else
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
+#endif
         }
     }
 
