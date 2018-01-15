@@ -30,6 +30,7 @@
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
+#include "model_translucent_fade_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
 
@@ -190,6 +191,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelLightmapVertex = gpu::Shader::createVertex(std::string(model_lightmap_vert));
     auto modelLightmapNormalMapVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert));
     auto modelTranslucentVertex = gpu::Shader::createVertex(std::string(model_translucent_vert));
+    auto modelTranslucentFadeVertex = gpu::Shader::createVertex(std::string(model_translucent_fade_vert));
     auto modelShadowVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
     auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
     auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
@@ -202,9 +204,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto skinModelNormalMapTranslucentVertex = skinModelNormalMapFadeVertex;  // We use the same because it ouputs world position per vertex
 
     auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
-    auto modelTranslucentFadeVertex = modelTranslucentVertex; // We use the same because it ouputs world position per vertex
     auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
-    auto modelNormalMapTranslucentVertex = modelNormalMapFadeVertex;  // We use the same because it ouputs world position per vertex
     auto simpleFadeVertex = gpu::Shader::createVertex(std::string(simple_fade_vert));
     auto modelShadowFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
     auto skinModelShadowFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
@@ -307,13 +307,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleVertex, simpleTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        modelNormalMapTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withSpecular(),
         modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withSpecular(),
-        modelNormalMapTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
