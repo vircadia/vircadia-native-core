@@ -15,6 +15,13 @@ class DesktopPreviewProvider : public QObject, public Dependency {
 
     DesktopPreviewProvider();
     DesktopPreviewProvider(const DesktopPreviewProvider& other) = delete;
+
+    constexpr static char* imagePaths[] = {
+        "images/preview-disabled.png", // USER
+        "images/preview-privacy.png",  // SECURE_SCREEN
+        "images/preview.png",          // VSYNC
+    };
+
 public:
     enum PreviewDisabledReasons {
         USER = 0,

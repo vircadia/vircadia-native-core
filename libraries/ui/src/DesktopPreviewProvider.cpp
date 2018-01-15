@@ -17,12 +17,6 @@ QImage DesktopPreviewProvider::getPreviewDisabledImage(bool vsyncEnabled) const 
     auto imageIndex = vsyncEnabled ? VSYNC : m_previewDisabledReason;
     assert(imageIndex >= 0 && imageIndex <= VSYNC);
 
-    static const QString imagePaths[] = {
-        "images/preview-disabled.png", // USER
-        "images/preview-privacy.png",  // WALLET
-        "images/preview.png",          // VSYNC
-    };
-
     return !m_previewDisabled[imageIndex].isNull() ? m_previewDisabled[imageIndex] : loadPreviewImage(m_previewDisabled[imageIndex], PathUtils::resourcesPath() + imagePaths[imageIndex]);
 }
 
