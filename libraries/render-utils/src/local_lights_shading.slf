@@ -55,10 +55,11 @@ void main(void) {
     // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+    SurfaceData surface = initSurfaceData(frag.roughness, frag.normal, fragEyeDir);
 
-    _fragColor = evalLocalLighting(cluster, numLights, fragWorldPos.xyz, frag.normal, fragEyeDir, 
-                                   midNormalCurvature, lowNormalCurvature, frag.roughness, frag.scattering,
-                                   frag.metallic, frag.fresnel, frag.albedo, 1.0);
+    _fragColor = evalLocalLighting(cluster, numLights, fragWorldPos.xyz, surface, 
+                                   frag.metallic, frag.fresnel, frag.albedo, frag.scattering, 
+                                   midNormalCurvature, lowNormalCurvature, 1.0);
 
 }
 

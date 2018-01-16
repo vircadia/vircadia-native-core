@@ -62,13 +62,7 @@ void main(void) {
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
-    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
-    if (metallic <= 0.5) {
-        metallic = 0.0;
-    } else {
-        fresnel = albedo;
-        metallic = 1.0;
-    }
+    vec3 fresnel = getFresnelF0(metallic, albedo);
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
@@ -77,16 +71,17 @@ void main(void) {
     vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
+    vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
+    vec3 fragEyeDir = normalize(fragEyeVector);
+    SurfaceData surface = initSurfaceData(roughness, fragNormal, fragEyeDir);
+
     vec4 localLighting = vec4(0.0);
 
     <$fetchClusterInfo(_worldPosition)$>;
     if (hasLocalLights(numLights, clusterPos, dims)) {
-        vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
-        vec3 fragEyeDir = normalize(fragEyeVector);
-
-        localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, fragNormal, fragEyeDir, 
-                                          vec4(0), vec4(0), roughness, 0.0,
-                                          metallic, fresnel, albedo, opacity);
+        localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, surface,
+                                          metallic, fresnel, albedo, 0.0,
+                                          vec4(0), vec4(0), opacity);
     }
 
     _fragColor =  vec4(evalGlobalLightingAlphaBlendedWithHaze(
