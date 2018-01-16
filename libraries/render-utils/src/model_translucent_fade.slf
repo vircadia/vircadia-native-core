@@ -68,6 +68,7 @@ void main(void) {
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 fragPosition = _position.xyz;
+    // Lighting is done in world space
     vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
@@ -89,11 +90,10 @@ void main(void) {
         1.0,
         occlusionTex,
         fragPosition,
-        fragNormal,
         albedo,
         fresnel,
         metallic,
         emissive+fadeEmissive,
-        roughness, opacity, localLighting.rgb),
+        surface, opacity, localLighting.rgb),
         opacity);
 }
