@@ -158,7 +158,7 @@ def captureOutput = { String command ->
     def proc = command.execute()
     def sout = new StringBuilder(), serr = new StringBuilder()
     proc.consumeProcessOutput(sout, serr)
-    proc.waitForOrKill(10000)
+    proc.waitForOrKill(30000)
     def errorOutput = serr.toString()
     if (!errorOutput.isEmpty()) {
         throw new GradleException("Command '${command}' failed with error ${errorOutput}")
@@ -181,6 +181,7 @@ def scanQmlImports = { File qmlRootPath ->
         " -rootPath ${qmlRootPath.absolutePath}" +
         " -importPath ${qmlRoot.absolutePath}/qml"
 
+    println command
     def commandResult = captureOutput(command)
     new JsonSlurper().parseText(commandResult).each {
         if (!it.containsKey('path')) {
