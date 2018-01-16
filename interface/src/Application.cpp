@@ -816,6 +816,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 {
 
+    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
+    // this conditional exclusion
+#if !defined(Q_OS_OSX)
     {
 #if defined(Q_OS_ANDROID)
         const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
@@ -829,6 +832,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             throw std::runtime_error("Unable to load primary resources");
         }
     }
+#endif
     
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));

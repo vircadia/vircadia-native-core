@@ -50,26 +50,49 @@ const QString& PathUtils::projectRootPath() {
 #endif
 
 const QString& PathUtils::resourcesPath() {
-#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
-    // For dev builds, load 
-    if (USE_SOURCE_TREE_RESOURCES) {
-        static const QString staticResourcePath = projectRootPath() + "/interface/resources/";
-        return staticResourcePath;
-    }
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        // FIXME fix the OSX installer to install the resources.rcc instead of the
+        // individual resource files
+        staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#else
+        staticResourcePath = ":/";
 #endif
-    static const QString staticResourcePath = ":/";
+        
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = projectRootPath() + "/interface/resources/";
+        }
+#endif
+        qDebug() << "Resource path resolved to " << staticResourcePath;
+    });
+
     return staticResourcePath;
 }
 
 const QString& PathUtils::resourcesUrl() {
-#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
-    // For dev builds, load 
-    if (USE_SOURCE_TREE_RESOURCES) {
-        static const QString staticResourcePath = "file:///" + projectRootPath() + "/interface/resources/";
-        return staticResourcePath;
-    }
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        QUrl::fromLocalFile(resourcesPath()).toString();
+#else
+        staticResourcePath = "qrc:///";
 #endif
-    static const QString staticResourcePath = "qrc:///";
+
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/").toString();
+        }
+#endif
+        qDebug() << "Resource url resolved to " << staticResourcePath;
+    });
     return staticResourcePath;
 }
 
