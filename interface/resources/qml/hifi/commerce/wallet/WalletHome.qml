@@ -383,7 +383,7 @@ Item {
 
                         AnonymousProRegular {
                             id: hfcText;
-                            text: model.hfc_text;
+                            text: model.hfc_text || '';
                             // Style
                             size: 18;
                             anchors.left: parent.left;
