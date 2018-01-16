@@ -46,9 +46,11 @@ namespace MenuOption {
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
+    const QString AvatarEntitiesBookmarks = "Avatar Entities  Bookmarks";
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkAvatar = "Bookmark Avatar";
+    const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
     const QString CameraEntityMode = "Entity Mode";
