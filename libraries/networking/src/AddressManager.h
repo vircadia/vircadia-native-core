@@ -183,6 +183,7 @@ public slots:
      * <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
      * <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
      * @param {boolean} fromSuggestions=false - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
+     *    Helps ensure that user's location history is correctly maintained.
      */
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
     
@@ -217,14 +218,16 @@ public slots:
      * Go to the local Sandbox server that's running on the same PC as Interface.
      * @function location.goToLocalSandbox
      * @param {string} path="" - The position and orientation to go to (e.g., <code>"/0,0,0"</code>).
-     * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call.
+     * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
+     *     location history is correctly maintained.
      */
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
     
     /**jsdoc
-     * Go to the default metaverse address.
+     * Go to the default "welcome" metaverse address.
      * @function location.goToEntry
-     * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call.
+     * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
+     *     location history is correctly maintained.
      */
     void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
@@ -238,7 +241,7 @@ public slots:
     void goToUser(const QString& username, bool shouldMatchOrientation = true);
 
     /**jsdoc
-     * Refresh the current address, e.g., after connecting to a domain ion order to position the user to the desired location.
+     * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
      * @function location.refreshPreviousLookup
      * @deprecated This function is deprecated and will be removed.
      */
@@ -247,7 +250,8 @@ public slots:
     void refreshPreviousLookup();
 
     /**jsdoc
-     * Save your current metaverse location in Interface's settings file.
+     * Update your current metaverse location in Interface's {@link Settings} file as your last-know address. This can be used
+     * to ensure that you start up at that address if you exit Interface without a later address automatically being saved.
      * @function location.storeCurrentAddress
      */
     void storeCurrentAddress();
