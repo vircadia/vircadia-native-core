@@ -88,6 +88,7 @@ public:
     EntityPropertyFlags getChangedProperties() const;
 
     bool transformChanged() const;
+    bool getScalesWithParent() const;
     bool parentRelatedPropertyChanged() const;
     bool queryAACubeRelatedPropertyChanged() const;
 
@@ -220,12 +221,14 @@ public:
     DEFINE_PROPERTY_REF(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32, ENTITY_ITEM_DEFAULT_EDITION_NUMBER);
     DEFINE_PROPERTY_REF(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32, ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER);
     DEFINE_PROPERTY_REF(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString, ENTITY_ITEM_DEFAULT_CERTIFICATE_ID);
+    DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
 
     // these are used when bouncing location data into and out of scripts
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
     DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glmVec3, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
@@ -473,6 +476,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EditionNumber, editionNumber, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, EntityInstanceNumber, entityInstanceNumber, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, StaticCertificateVersion, staticCertificateVersion, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");

@@ -28,8 +28,8 @@ Item {
     property bool historyReceived: false;
     property int pendingCount: 0;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onBalanceResult : {
             balanceText.text = result.data.balance;
@@ -135,8 +135,8 @@ Item {
             onVisibleChanged: {
                 if (visible) {
                     historyReceived = false;
-                    commerce.balance();
-                    commerce.history();
+                    Commerce.balance();
+                    Commerce.history();
                 } else {
                     refreshTimer.stop();
                 }
@@ -165,8 +165,8 @@ Item {
         interval: 4000;
         onTriggered: {
             console.log("Refreshing Wallet Home...");
-            commerce.balance();
-            commerce.history();
+            Commerce.balance();
+            Commerce.history();
         }
     }
 
@@ -197,14 +197,36 @@ Item {
             anchors.topMargin: 26;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
-            anchors.right: parent.right;
-            anchors.rightMargin: 30;
+            width: paintedWidth;
             height: 30;
             // Text size
             size: 22;
             // Style
             color: hifi.colors.baseGrayHighlight;
         }
+
+        RalewaySemiBold {
+            id: myPurchasesLink;
+            text: '<font color="#0093C5"><a href="#myPurchases">My Purchases</a></font>';
+            // Anchors
+            anchors.top: parent.top;
+            anchors.topMargin: 26;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            width: paintedWidth;
+            height: 30;
+            y: 4;
+            // Text size
+            size: 18;
+            // Style
+            color: hifi.colors.baseGrayHighlight;
+            horizontalAlignment: Text.AlignRight;
+
+            onLinkActivated: {
+                sendSignalToWallet({method: 'goToPurchases_fromWalletHome'});
+            }
+        }
+
         ListModel {
             id: tempTransactionHistoryModel;
         }

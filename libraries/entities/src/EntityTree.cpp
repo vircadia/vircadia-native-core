@@ -355,11 +355,11 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
-                        // the sender it taking ownership
+                        // the sender is taking ownership
                         properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
-                        // the sender is asserting ownership
+                        // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
@@ -1310,7 +1310,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;
@@ -1772,24 +1772,26 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 }
 
 void EntityTree::update(bool simulate) {
-    PROFILE_RANGE(simulation_physics, "ET::update");
+    PROFILE_RANGE(simulation_physics, "UpdateTree");
     fixupNeedsParentFixups();
     if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
-            VectorOfEntities pendingDeletes;
-            _simulation->takeEntitiesToDelete(pendingDeletes);
+            {
+                PROFILE_RANGE(simulation_physics, "Deletes");
+                VectorOfEntities pendingDeletes;
+                _simulation->takeEntitiesToDelete(pendingDeletes);
+                if (pendingDeletes.size() > 0) {
+                    // translate into list of ID's
+                    QSet<EntityItemID> idsToDelete;
 
-            if (pendingDeletes.size() > 0) {
-                // translate into list of ID's
-                QSet<EntityItemID> idsToDelete;
+                    for (auto entity : pendingDeletes) {
+                        idsToDelete.insert(entity->getEntityItemID());
+                    }
 
-                for (auto entity : pendingDeletes) {
-                    idsToDelete.insert(entity->getEntityItemID());
+                    // delete these things the roundabout way
+                    deleteEntities(idsToDelete, true);
                 }
-
-                // delete these things the roundabout way
-                deleteEntities(idsToDelete, true);
             }
         });
     }

@@ -19,9 +19,13 @@
 #include "DependencyManager.h"
 
 /**jsdoc
+ * The Paths API provides absolute paths to the scripts and resources directories.
+ *
  * @namespace Paths
+ * @deprecated The Paths API is deprecated. Use {@link Script.resolvePath} and {@link Script.resourcesPath} instead.
  * @readonly
- * @property {string} resources The path to the resources directory.
+ * @property {string} defaultScripts - The path to the scripts directory. <em>Read-only.</em>
+ * @property {string} resources - The path to the resources directory. <em>Read-only.</em>
  */
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
@@ -30,6 +34,10 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
     static const QString& resourcesPath();
+    static const QString& qmlBasePath();
+#ifdef DEV_BUILD
+    static const QString& projectRootPath();
+#endif
 
     static QString getAppDataPath();
     static QString getAppLocalDataPath();

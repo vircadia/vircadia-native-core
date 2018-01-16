@@ -97,9 +97,6 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSe
     _lastACKSequenceNumber = uint32_t(_currentSequenceNumber);
 
     _hasReceivedHandshakeACK = hasReceivedHandshakeACK;
-
-    // default the last receiver response to the current time
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
 }
 
 SendQueue::~SendQueue() {
@@ -141,9 +138,6 @@ int SendQueue::sendPacket(const Packet& packet) {
 }
     
 void SendQueue::ack(SequenceNumber ack) {
-    // this is a response from the client, re-set our timeout expiry and our last response time
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-    
     if (_lastACKSequenceNumber == (uint32_t) ack) {
         return;
     }
@@ -170,10 +164,7 @@ void SendQueue::ack(SequenceNumber ack) {
     _emptyCondition.notify_one();
 }
 
-void SendQueue::nak(SequenceNumber start, SequenceNumber end) {
-    // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch(); 
-    
+void SendQueue::nak(SequenceNumber start, SequenceNumber end) {    
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.insert(start, end);
@@ -194,9 +185,6 @@ void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
 }
 
 void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
-    // this is a response from the client, re-set our timeout expiry
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
-
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.clear();
@@ -240,8 +228,6 @@ void SendQueue::handshakeACK() {
         std::lock_guard<std::mutex> locker { _handshakeMutex };
         _hasReceivedHandshakeACK = true;
     }
-
-    _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
 
     // Notify on the handshake ACK condition
     _handshakeACKCondition.notify_one();

@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Tablet, Script, HMD, UserActivityLogger, Entities */
+/* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 var selectionDisplay = null; // for gridTool.js to ignore
@@ -23,10 +24,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH_BASE = "qml/hifi/commerce/checkout/Checkout.qml";
-    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + MARKETPLACE_CHECKOUT_QML_PATH_BASE;
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
-    var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+    var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -114,7 +114,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
@@ -220,6 +220,41 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     function rezEntity(itemHref, isWearable) {
         var success = Clipboard.importEntities(itemHref);
+        var wearableLocalPosition = null;
+        var wearableLocalRotation = null;
+        var wearableLocalDimensions = null;
+        var wearableDimensions = null;
+
+        if (isWearable) {
+            var wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.transforms");
+            if (!wearableTransforms) {
+                // TODO delete this clause
+                wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.tranforms");
+            }
+            var certPos = itemHref.search("certificate_id="); // TODO how do I parse a URL from here?
+            if (certPos >= 0) {
+                certPos += 15; // length of "certificate_id="
+                var certURLEncoded = itemHref.substring(certPos);
+                var certB64Encoded = decodeURIComponent(certURLEncoded);
+                for (var key in wearableTransforms) {
+                    if (wearableTransforms.hasOwnProperty(key)) {
+                        var certificateTransforms = wearableTransforms[key].certificateTransforms;
+                        if (certificateTransforms) {
+                            for (var certID in certificateTransforms) {
+                                if (certificateTransforms.hasOwnProperty(certID) &&
+                                    certID == certB64Encoded) {
+                                    var certificateTransform = certificateTransforms[certID];
+                                    wearableLocalPosition = certificateTransform.localPosition;
+                                    wearableLocalRotation = certificateTransform.localRotation;
+                                    wearableLocalDimensions = certificateTransform.localDimensions;
+                                    wearableDimensions = certificateTransform.dimensions;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (success) {
             var VERY_LARGE = 10000;
@@ -287,6 +322,24 @@ var selectionDisplay = null; // for gridTool.js to ignore
                             }
                         }
                     }
+                }
+
+                if (isWearable) {
+                    // apply the relative offsets saved during checkout
+                    var offsets = {};
+                    if (wearableLocalPosition) {
+                        offsets.localPosition = wearableLocalPosition;
+                    }
+                    if (wearableLocalRotation) {
+                        offsets.localRotation = wearableLocalRotation;
+                    }
+                    if (wearableLocalDimensions) {
+                        offsets.localDimensions = wearableLocalDimensions;
+                    } else if (wearableDimensions) {
+                        offsets.dimensions = wearableDimensions;
+                    }
+                    // we currently assume a wearable is a single entity
+                    Entities.editEntity(pastedEntityIDs[0], offsets);
                 }
             } else {
                 Window.notifyEditError("Can't import entities: entities would be out of bounds.");
@@ -437,7 +490,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 wireEventBridge(true);
                 tablet.sendToQml({
                     method: 'updateWalletReferrer',
-                    referrer: message.itemId
+                    referrer: message.referrer === "itemPage" ? message.itemId : message.referrer
                 });
                 openWallet();
                 break;
@@ -492,7 +545,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             case 'purchases_openGoTo':
-                tablet.loadQMLSource("TabletAddressDialog.qml");
+                tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
                 setCertificateInfo("", message.itemCertificateId);

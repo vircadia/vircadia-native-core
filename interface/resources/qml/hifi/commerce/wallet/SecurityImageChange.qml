@@ -26,12 +26,8 @@ Item {
     id: root;
     property bool justSubmitted: false;
 
-    SecurityImageModel {
-        id: securityImageModel;
-    }
-
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
         
         onSecurityImageResult: {
             securityImageChangePageSecurityImage.source = "";
@@ -70,7 +66,7 @@ Item {
             source: "image://security/securityImage";
             cache: false;
             onVisibleChanged: {
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             }
         }
         Item {
@@ -198,7 +194,7 @@ Item {
                     securityImageSubmitButton.text = "Submitting...";
                     securityImageSubmitButton.enabled = false;
                     var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
-                    commerce.chooseSecurityImage(securityImagePath);
+                    Commerce.chooseSecurityImage(securityImagePath);
                 }
             }
         }
@@ -212,5 +208,9 @@ Item {
     function resetSubmitButton() {
         securityImageSubmitButton.enabled = true;
         securityImageSubmitButton.text = "Submit";
+    }
+
+    function initModel() {
+        securityImageSelection.initModel();
     }
 }

@@ -17,7 +17,6 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -325,6 +324,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
     CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
+    CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
@@ -365,6 +365,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
@@ -460,6 +461,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EDITION_NUMBER, editionNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
@@ -627,6 +629,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
@@ -743,6 +746,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(staticCertificateVersion, quint32, setStaticCertificateVersion);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
@@ -803,6 +807,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -900,6 +905,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(editionNumber);
     COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
     COPY_PROPERTY_IF_CHANGED(certificateID);
+    COPY_PROPERTY_IF_CHANGED(staticCertificateVersion);
 
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
@@ -950,6 +956,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(localRotation);
     COPY_PROPERTY_IF_CHANGED(localVelocity);
     COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+    COPY_PROPERTY_IF_CHANGED(localDimensions);
 
     COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
     COPY_PROPERTY_IF_CHANGED(jointRotations);
@@ -1090,6 +1097,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
@@ -1128,6 +1136,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
@@ -1478,6 +1487,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
+            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
         }
 
         if (propertyCount > 0) {
@@ -1829,6 +1839,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     return valid;
 }
@@ -1996,6 +2007,7 @@ void EntityItemProperties::markAllChanged() {
     _editionNumberChanged = true;
     _entityInstanceNumberChanged = true;
     _certificateIDChanged = true;
+    _staticCertificateVersionChanged = true;
 
     _keyLight.markAllChanged();
 
@@ -2338,6 +2350,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (certificateIDChanged()) {
         out += "certificateID";
     }
+    if (staticCertificateVersionChanged()) {
+        out += "staticCertificateVersion";
+    }
 
     if (backgroundModeChanged()) {
         out += "backgroundMode";
@@ -2460,9 +2475,25 @@ bool EntityItemProperties::transformChanged() const {
         localPositionChanged() || localRotationChanged();
 }
 
+bool EntityItemProperties::getScalesWithParent() const {
+    // keep this logic the same as in EntityItem::getScalesWithParent
+    bool scalesWithParent { false };
+    if (parentIDChanged()) {
+        bool success;
+        SpatiallyNestablePointer parent = SpatiallyNestable::findByID(getParentID(), success);
+        if (success && parent) {
+            bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
+                                   parent->hasAncestorOfType(NestableType::Avatar));
+            scalesWithParent = getClientOnly() && avatarAncestor;
+        }
+    }
+    return scalesWithParent;
+}
+
 bool EntityItemProperties::parentRelatedPropertyChanged() const {
     return positionChanged() || rotationChanged() ||
         localPositionChanged() || localRotationChanged() ||
+        localDimensionsChanged() ||
         parentIDChanged() || parentJointIndexChanged();
 }
 
@@ -2480,6 +2511,9 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     // of the entity as reviewed during the certification submission.
 
     QJsonObject json;
+
+    quint32 staticCertificateVersion = getStaticCertificateVersion();
+
     if (!getAnimation().getURL().isEmpty()) {
         json["animationURL"] = getAnimation().getURL();
     }
@@ -2496,7 +2530,11 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
     ADD_STRING_PROPERTY(modelURL, ModelURL);
     ADD_STRING_PROPERTY(script, Script);
+    if (staticCertificateVersion >= 1) {
+        ADD_STRING_PROPERTY(serverScripts, ServerScripts);
+    }
     ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    ADD_INT_PROPERTY(staticCertificateVersion, StaticCertificateVersion);
     json["type"] = EntityTypes::getEntityTypeName(getType());
 
     return QJsonDocument(json).toJson(QJsonDocument::Compact);

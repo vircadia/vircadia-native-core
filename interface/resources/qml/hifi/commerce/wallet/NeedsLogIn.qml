@@ -30,8 +30,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
     
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
     }
 
     //
@@ -53,7 +53,7 @@ Item {
 
             // Title Bar text
             RalewaySemiBold {
-                text: "HIFI COMMERCE - LOGIN";
+                text: "Log in to continue";
                 // Text size
                 size: hifi.fontSizes.overlayTitle;
                 // Anchors

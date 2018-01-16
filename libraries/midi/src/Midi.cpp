@@ -177,9 +177,10 @@ void Midi::MidiCleanup() {
 #endif
 
 void Midi::noteReceived(int status, int note, int velocity) {
-    if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
-        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) {
-        return;            // NOTE: only sending note-on and note-off to Javascript
+   if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
+        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON) &&
+        ((status & MIDI_STATUS_MASK) != MIDI_CONTROL_CHANGE)) {
+        return;            // NOTE: only sending note-on, note-off, and control-change to Javascript
     }
 
     QVariantMap eventData;

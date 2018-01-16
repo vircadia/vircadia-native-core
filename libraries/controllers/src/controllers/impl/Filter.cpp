@@ -30,6 +30,7 @@
 #include "filters/PostTransformFilter.h"
 #include "filters/RotateFilter.h"
 #include "filters/LowVelocityFilter.h"
+#include "filters/ExponentialSmoothingFilter.h"
 
 using namespace controller;
 
@@ -49,6 +50,7 @@ REGISTER_FILTER_CLASS_INSTANCE(TransformFilter, "transform")
 REGISTER_FILTER_CLASS_INSTANCE(PostTransformFilter, "postTransform")
 REGISTER_FILTER_CLASS_INSTANCE(RotateFilter, "rotate")
 REGISTER_FILTER_CLASS_INSTANCE(LowVelocityFilter, "lowVelocity")
+REGISTER_FILTER_CLASS_INSTANCE(ExponentialSmoothingFilter, "exponentialSmoothing")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");
@@ -93,7 +95,7 @@ bool Filter::parseSingleFloatParameter(const QJsonValue& parameters, const QStri
             output = objectParameters[name].toDouble();
             return true;
         }
-    } 
+    }
     return false;
 }
 
@@ -117,7 +119,7 @@ bool Filter::parseVec3Parameter(const QJsonValue& parameters, glm::vec3& output)
                                objectParameters["z"].toDouble());
             return true;
         }
-    } 
+    }
     return false;
 }
 
@@ -126,7 +128,7 @@ bool Filter::parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output)
         auto objectParameters = parameters.toObject();
 
 
-        if (objectParameters.contains("r0c0") && 
+        if (objectParameters.contains("r0c0") &&
             objectParameters.contains("r1c0") &&
             objectParameters.contains("r2c0") &&
             objectParameters.contains("r3c0") &&
@@ -169,9 +171,9 @@ bool Filter::parseMat4Parameter(const QJsonValue& parameters, glm::mat4& output)
 bool Filter::parseQuatParameter(const QJsonValue& parameters, glm::quat& output) {
     if (parameters.isObject()) {
         auto objectParameters = parameters.toObject();
-        if (objectParameters.contains("w") && 
-            objectParameters.contains("x") && 
-            objectParameters.contains("y") && 
+        if (objectParameters.contains("w") &&
+            objectParameters.contains("x") &&
+            objectParameters.contains("y") &&
             objectParameters.contains("z")) {
 
             output = glm::quat(objectParameters["w"].toDouble(),

@@ -33,7 +33,7 @@ namespace render { namespace entities {
 class ModelEntityRenderer;
 } }
 
-//#define MODEL_ENTITY_USE_FADE_EFFECT
+// #define MODEL_ENTITY_USE_FADE_EFFECT
 class ModelEntityWrapper : public ModelEntityItem {
     using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
@@ -60,7 +60,7 @@ public:
     RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
     virtual ~RenderableModelEntityItem();
 
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
     void doInitialModelSimulation();
@@ -133,7 +133,7 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
     friend class EntityRenderer;
 
 public:
-    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
+    ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
@@ -158,10 +158,11 @@ private:
     virtual bool isTransparent() const override { return false; }
 
     bool _hasModel { false };
-    ::ModelPointer _model;
+    ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
     QVariantMap _currentTextures;
+    bool _texturesLoaded { false };
     AnimationPropertyGroup _renderAnimationProperties;
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
@@ -184,8 +185,6 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
-    float _currentFrame { 0 };
-
 };
 
 } } // namespace 
