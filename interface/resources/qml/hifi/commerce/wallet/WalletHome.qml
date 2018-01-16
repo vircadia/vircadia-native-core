@@ -382,8 +382,8 @@ Item {
                         height: visible ? parent.height : 0;
 
                         AnonymousProRegular {
-                            id: dateText;
-                            text: model.created_at ? getFormattedDate(model.created_at * 1000) : "";
+                            id: hfcText;
+                            text: model.hfc_text;
                             // Style
                             size: 18;
                             anchors.left: parent.left;
@@ -391,23 +391,24 @@ Item {
                             anchors.topMargin: 15;
                             width: 118;
                             height: paintedHeight;
-                            color: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
+                            font.bold: true;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
                         }
 
                         AnonymousProRegular {
                             id: transactionText;
-                            text: model.text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.text) : model.text) : "";
+                            text: model.transaction_text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.transaction_text) : model.transaction_text) : "";
                             size: 18;
                             anchors.top: parent.top;
                             anchors.topMargin: 15;
-                            anchors.left: dateText.right;
+                            anchors.left: hfcText.right;
                             anchors.leftMargin: 20;
                             anchors.right: parent.right;
                             height: paintedHeight;
                             color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
+                            linkColor: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
                             font.strikeout: model.status === "invalidated";
 
