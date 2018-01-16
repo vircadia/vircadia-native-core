@@ -154,16 +154,18 @@ def options = [
 
 def qmlRoot = new File(HIFI_ANDROID_PRECOMPILED, 'qt')
 
-def captureOutput = { String command ->
-    def proc = command.execute()
-    def sout = new StringBuilder(), serr = new StringBuilder()
-    proc.consumeProcessOutput(sout, serr)
-    proc.waitForOrKill(30000)
-    def errorOutput = serr.toString()
-    if (!errorOutput.isEmpty()) {
-        throw new GradleException("Command '${command}' failed with error ${errorOutput}")
+def captureOutput = { String command, List<String> commandArgs ->
+    def result
+    new ByteArrayOutputStream().withStream { os ->
+        def execResult = exec {
+            executable = command
+            args = commandArgs
+            standardOutput = os
+            errorOutput = new ByteArrayOutputStream()
+        }
+        result = os.toString()
     }
-    return sout.toString()
+    return result;
 }
 
 def relativize = { File root, File absolute ->
@@ -177,12 +179,13 @@ def scanQmlImports = { File qmlRootPath ->
         throw new GradleException('Unable to find required qmlimportscanner executable at ' + qmlImportCommandFile.parent.toString())
     }
 
-    def command = qmlImportCommandFile.absolutePath +
-        " -rootPath ${qmlRootPath.absolutePath}" +
-        " -importPath ${qmlRoot.absolutePath}/qml"
+    def command = qmlImportCommandFile.absolutePath
+    def args = [
+        '-rootPath', qmlRootPath.absolutePath,
+        '-importPath', "${qmlRoot.absolutePath}/qml"
+    ]
 
-    println command
-    def commandResult = captureOutput(command)
+    def commandResult = captureOutput(command, args)
     new JsonSlurper().parseText(commandResult).each {
         if (!it.containsKey('path')) {
             println "Warning: QML import could not be resolved in any of the import paths: ${it.name}"
