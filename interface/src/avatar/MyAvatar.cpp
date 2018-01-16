@@ -35,6 +35,8 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
+#include <ModelEntityItem.h>
+#include <GLMHelpers.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -1417,6 +1419,29 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
     emit skeletonChanged();
 
+}
+
+QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    QVariantList avatarEntitiesData;
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
+            if (modelEntity) {
+                QVariantList avatarEntityProperties;
+                EntityItemProperties entityProperties = modelEntity->getProperties();
+                avatarEntityProperties.append(QVariant(EntityTypes::getEntityTypeName(entityProperties.getType())));
+                avatarEntityProperties.append(QVariant(entityProperties.getMarketplaceID()));
+                avatarEntityProperties.append(QVariant(entityProperties.getEditionNumber()));
+                avatarEntityProperties.append(QVariant(entityProperties.getModelURL()));
+                avatarEntityProperties.append(QVariant(entityProperties.getParentJointIndex()));
+                avatarEntityProperties.append(QVariant(toJsonValue(entityProperties.getLocalPosition())));
+                avatarEntityProperties.append(QVariant(toJsonValue(entityProperties.getLocalRotation())));
+                avatarEntityProperties.append(QVariant(entityProperties.getUserData()));
+                avatarEntitiesData.append(QVariant(avatarEntityProperties));
+            }
+        }
+    });
+    return avatarEntitiesData;
 }
 
 

@@ -31,12 +31,13 @@ protected:
     void readFromFile() override;
 
 private:
-    const QString AVATAR_ENTITIES_BOOKMARKS_FILENAME = "AvatarEntitiesbookmarks.json";
-    const QString AVATAR_ENTITIES_ATTACHMENTS = "AvatarEntitiesName";
-    const QString ENTITY_PROPERTIES = "AvatarEntitiesData";
+    const QString AVATAR_ENTITIES_BOOKMARKS_FILENAME = "AvatarEntitiesBookmarks.json";
+    const QString ENTRY_AVATAR_URL = "AvatarUrl";
+    const QString ENTRY_AVATAR_SCALE = "AvatarScale";
+    const QString ENTRY_AVATAR_ENTITIES = "AvatarEntities";
     const QString ENTRY_VERSION = "version";
 
-    const int ATTACHMENT_BOOKMARK_VERSION = 1;
+    const int AVATAR_ENTITIES_BOOKMARK_VERSION = 1;
 
 private slots:
   void applyBookmarkedAvatarEntities();

@@ -208,7 +208,7 @@ Menu::Menu() {
     avatarBookmarks->setupMenus(this, avatarMenu);
 
     auto avatarEntitiesBookmarks = DependencyManager::get<AvatarEntitiesBookmarks>();
-    avatarBookmarks->setupMenus(this, avatarMenu);
+    avatarEntitiesBookmarks->setupMenus(this, avatarMenu);
 
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
