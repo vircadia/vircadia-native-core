@@ -19,7 +19,7 @@
 #include "HazeStage.h"
 #include "LightStage.h"
 
-INCLUDE_SHADER(Haze_frag)
+#include "Haze_frag.h"
 
 void HazeConfig::setHazeColor(const glm::vec3 value) { 
     hazeColor = value; 

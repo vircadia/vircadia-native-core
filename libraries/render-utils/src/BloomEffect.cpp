@@ -16,8 +16,8 @@
 #include <render/BlurTask.h>
 #include <render/ResampleTask.h>
 
-INCLUDE_SHADER(BloomThreshold_frag)
-INCLUDE_SHADER(BloomApply_frag)
+#include "BloomThreshold_frag.h"
+#include "BloomApply_frag.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 

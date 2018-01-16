@@ -28,11 +28,11 @@
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 
-INCLUDE_SHADER(ssao_makePyramid_frag)
-INCLUDE_SHADER(ssao_makeOcclusion_frag)
-INCLUDE_SHADER(ssao_debugOcclusion_frag)
-INCLUDE_SHADER(ssao_makeHorizontalBlur_frag)
-INCLUDE_SHADER(ssao_makeVerticalBlur_frag)
+#include "ssao_makePyramid_frag.h"
+#include "ssao_makeOcclusion_frag.h"
+#include "ssao_debugOcclusion_frag.h"
+#include "ssao_makeHorizontalBlur_frag.h"
+#include "ssao_makeVerticalBlur_frag.h"
 
 
 AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {

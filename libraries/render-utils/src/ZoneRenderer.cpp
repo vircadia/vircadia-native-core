@@ -20,9 +20,9 @@
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 
-INCLUDE_SHADER(zone_drawKeyLight_frag)
-INCLUDE_SHADER(zone_drawAmbient_frag)
-INCLUDE_SHADER(zone_drawSkybox_frag)
+#include "zone_drawKeyLight_frag.h"
+#include "zone_drawAmbient_frag.h"
+#include "zone_drawSkybox_frag.h"
 
 
 using namespace render;

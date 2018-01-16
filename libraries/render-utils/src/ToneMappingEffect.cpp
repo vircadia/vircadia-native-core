@@ -17,7 +17,7 @@
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
-INCLUDE_SHADER(toneMapping_frag)
+#include "toneMapping_frag.h"
 
 const int ToneMappingEffect_ParamsSlot = 0;
 const int ToneMappingEffect_LightingMapSlot = 0;
@@ -28,7 +28,7 @@ ToneMappingEffect::ToneMappingEffect() {
 }
 
 void ToneMappingEffect::init() {
-    auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(toneMapping_frag)));
+    auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(toneMapping_frag));
 
     auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));

@@ -17,7 +17,7 @@
 
 #include <gpu/StandardShaderLib.h>
 
-INCLUDE_SHADER(stencil_drawMask_frag)
+#include "stencil_drawMask_frag.h"
 
 using namespace render;
 
@@ -60,7 +60,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
 gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
     if (!_paintStencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(stencil_drawMask_frag));
+        auto ps = gpu::Shader::createPixel(std::string(stencil_drawMask_frag);
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 

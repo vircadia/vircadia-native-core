@@ -23,8 +23,8 @@
 #include "TextureCache.h"
 #include "DeferredLightingEffect.h"
 
-INCLUDE_SHADER(debug_deferred_buffer_vert)
-INCLUDE_SHADER(debug_deferred_buffer_frag)
+#include "debug_deferred_buffer_vert.h"
+#include "debug_deferred_buffer_frag.h"
 
 using namespace render;
 

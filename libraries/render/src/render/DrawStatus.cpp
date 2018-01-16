@@ -21,10 +21,10 @@
 
 #include "Args.h"
 
-INCLUDE_SHADER(drawItemBounds_vert)
-INCLUDE_SHADER(drawItemBounds_frag)
-INCLUDE_SHADER(drawItemStatus_vert)
-INCLUDE_SHADER(drawItemStatus_frag)
+#include "drawItemBounds_vert.h"
+#include "drawItemBounds_frag.h"
+#include "drawItemStatus_vert.h"
+#include "drawItemStatus_frag.h"
 
 using namespace render;
 

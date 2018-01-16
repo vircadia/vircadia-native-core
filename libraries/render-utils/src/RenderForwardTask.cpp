@@ -24,7 +24,7 @@
 
 #include <gpu/StandardShaderLib.h>
 
-INCLUDE_SHADER(nop_frag)
+#include "nop_frag.h"
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
@@ -125,7 +125,7 @@ void Draw::run(const RenderContextPointer& renderContext,
 const gpu::PipelinePointer Stencil::getPipeline() {
     if (!_stencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        auto ps = gpu::Shader::createPixel(std::string(nop_frag);
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program);
 

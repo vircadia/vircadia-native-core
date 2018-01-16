@@ -17,8 +17,6 @@
 #include <set>
 
 #include <QUrl>
-
-#define INCLUDE_SHADER(source) extern const char source[];
  
 namespace gpu {
 

@@ -24,18 +24,18 @@
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
-INCLUDE_SHADER(deferred_light_vert)
-INCLUDE_SHADER(deferred_light_point_vert)
-INCLUDE_SHADER(deferred_light_spot_vert)
+#include "deferred_light_vert.h"
+#include "deferred_light_point_vert.h"
+#include "deferred_light_spot_vert.h"
 
-INCLUDE_SHADER(directional_ambient_light_frag)
-INCLUDE_SHADER(directional_skybox_light_frag)
+#include "directional_ambient_light_frag.h"
+#include "directional_skybox_light_frag.h"
 
-INCLUDE_SHADER(directional_ambient_light_shadow_frag)
-INCLUDE_SHADER(directional_skybox_light_shadow_frag)
+#include "directional_ambient_light_shadow_frag.h"
+#include "directional_skybox_light_shadow_frag.h"
 
-INCLUDE_SHADER(local_lights_shading_frag)
-INCLUDE_SHADER(local_lights_drawOutline_frag)
+#include "local_lights_shading_frag.h"
+#include "local_lights_drawOutline_frag.h"
 
 
 using namespace render;

@@ -34,21 +34,21 @@
 #include "model/TextureMap.h"
 #include "render/Args.h"
 
-INCLUDE_SHADER(standardTransformPNTC_vert)
-INCLUDE_SHADER(standardDrawTexture_frag)
+#include "standardTransformPNTC_vert.h"
+#include "standardDrawTexture_frag.h"
 
-INCLUDE_SHADER(simple_vert)
-INCLUDE_SHADER(simple_textured_frag)
-INCLUDE_SHADER(simple_textured_unlit_frag)
-INCLUDE_SHADER(simple_fade_vert)
-INCLUDE_SHADER(simple_textured_fade_frag)
-INCLUDE_SHADER(simple_textured_unlit_fade_frag)
-INCLUDE_SHADER(simple_opaque_web_browser_frag)
-INCLUDE_SHADER(simple_transparent_web_browser_frag)
-INCLUDE_SHADER(glowLine_vert)
-INCLUDE_SHADER(glowLine_frag)
+#include "simple_vert.h"
+#include "simple_textured_frag.h"
+#include "simple_textured_unlit_frag.h"
+#include "simple_fade_vert.h"
+#include "simple_textured_fade_frag.h"
+#include "simple_textured_unlit_fade_frag.h"
+#include "simple_opaque_web_browser_frag.h"
+#include "simple_transparent_web_browser_frag.h"
+#include "glowLine_vert.h"
+#include "glowLine_frag.h"
 
-INCLUDE_SHADER(grid_frag)
+#include "grid_frag.h"
 
 //#define WANT_DEBUG
 

@@ -18,15 +18,15 @@
 
 #include "StencilMaskPass.h"
 
-INCLUDE_SHADER(lightClusters_drawGrid_vert)
-INCLUDE_SHADER(lightClusters_drawGrid_frag)
+#include "lightClusters_drawGrid_vert.h"
+#include "lightClusters_drawGrid_frag.h"
 
-//INCLUDE_SHADER(lightClusters_drawClusterFromDepth_vert)
-INCLUDE_SHADER(lightClusters_drawClusterFromDepth_frag)
+//#include "lightClusters_drawClusterFromDepth_vert.h"
+#include "lightClusters_drawClusterFromDepth_frag.h"
 
 
-INCLUDE_SHADER(lightClusters_drawClusterContent_vert)
-INCLUDE_SHADER(lightClusters_drawClusterContent_frag)
+#include "lightClusters_drawClusterContent_vert.h"
+#include "lightClusters_drawClusterContent_frag.h"
 
 enum LightClusterGridShader_MapSlot {
     DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 0,

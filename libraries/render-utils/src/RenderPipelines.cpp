@@ -20,86 +20,86 @@
 #include "TextureCache.h"
 #include "render/DrawTask.h"
 
-INCLUDE_SHADER(model_vert)
-INCLUDE_SHADER(model_normal_map_vert)
-INCLUDE_SHADER(model_lightmap_vert)
-INCLUDE_SHADER(model_lightmap_normal_map_vert)
-INCLUDE_SHADER(skin_model_vert)
-INCLUDE_SHADER(skin_model_normal_map_vert)
+#include "model_vert.h"
+#include "model_normal_map_vert.h"
+#include "model_lightmap_vert.h"
+#include "model_lightmap_normal_map_vert.h"
+#include "skin_model_vert.h"
+#include "skin_model_normal_map_vert.h"
 
-INCLUDE_SHADER(model_lightmap_fade_vert)
-INCLUDE_SHADER(model_lightmap_normal_map_fade_vert)
-INCLUDE_SHADER(skin_model_fade_vert)
-INCLUDE_SHADER(skin_model_normal_map_fade_vert)
+#include "model_lightmap_fade_vert.h"
+#include "model_lightmap_normal_map_fade_vert.h"
+#include "skin_model_fade_vert.h"
+#include "skin_model_normal_map_fade_vert.h"
 
-INCLUDE_SHADER(simple_vert)
-INCLUDE_SHADER(simple_textured_frag)
-INCLUDE_SHADER(simple_textured_unlit_frag)
-INCLUDE_SHADER(simple_transparent_textured_frag)
-INCLUDE_SHADER(simple_transparent_textured_unlit_frag)
+#include "simple_vert.h"
+#include "simple_textured_frag.h"
+#include "simple_textured_unlit_frag.h"
+#include "simple_transparent_textured_frag.h"
+#include "simple_transparent_textured_unlit_frag.h"
 
-INCLUDE_SHADER(simple_fade_vert)
-INCLUDE_SHADER(simple_textured_fade_frag)
-INCLUDE_SHADER(simple_textured_unlit_fade_frag)
-INCLUDE_SHADER(simple_transparent_textured_fade_frag)
-INCLUDE_SHADER(simple_transparent_textured_unlit_fade_frag)
+#include "simple_fade_vert.h"
+#include "simple_textured_fade_frag.h"
+#include "simple_textured_unlit_fade_frag.h"
+#include "simple_transparent_textured_fade_frag.h"
+#include "simple_transparent_textured_unlit_fade_frag.h"
 
-INCLUDE_SHADER(model_frag)
-INCLUDE_SHADER(model_unlit_frag)
-INCLUDE_SHADER(model_normal_map_frag)
-INCLUDE_SHADER(model_normal_specular_map_frag)
-INCLUDE_SHADER(model_specular_map_frag)
+#include "model_frag.h"
+#include "model_unlit_frag.h"
+#include "model_normal_map_frag.h"
+#include "model_normal_specular_map_frag.h"
+#include "model_specular_map_frag.h"
 
-INCLUDE_SHADER(model_fade_vert)
-INCLUDE_SHADER(model_normal_map_fade_vert)
+#include "model_fade_vert.h"
+#include "model_normal_map_fade_vert.h"
 
-INCLUDE_SHADER(model_fade_frag)
-INCLUDE_SHADER(model_unlit_fade_frag)
-INCLUDE_SHADER(model_normal_map_fade_frag)
-INCLUDE_SHADER(model_normal_specular_map_fade_frag)
-INCLUDE_SHADER(model_specular_map_fade_frag)
+#include "model_fade_frag.h"
+#include "model_unlit_fade_frag.h"
+#include "model_normal_map_fade_frag.h"
+#include "model_normal_specular_map_fade_frag.h"
+#include "model_specular_map_fade_frag.h"
 
-INCLUDE_SHADER(forward_model_frag)
-INCLUDE_SHADER(forward_model_unlit_frag)
-INCLUDE_SHADER(forward_model_normal_map_frag)
-INCLUDE_SHADER(forward_model_normal_specular_map_frag)
-INCLUDE_SHADER(forward_model_specular_map_frag)
+#include "forward_model_frag.h"
+#include "forward_model_unlit_frag.h"
+#include "forward_model_normal_map_frag.h"
+#include "forward_model_normal_specular_map_frag.h"
+#include "forward_model_specular_map_frag.h"
 
-INCLUDE_SHADER(model_lightmap_frag)
-INCLUDE_SHADER(model_lightmap_normal_map_frag)
-INCLUDE_SHADER(model_lightmap_normal_specular_map_frag)
-INCLUDE_SHADER(model_lightmap_specular_map_frag)
-INCLUDE_SHADER(model_translucent_frag)
-INCLUDE_SHADER(model_translucent_unlit_frag)
+#include "model_lightmap_frag.h"
+#include "model_lightmap_normal_map_frag.h"
+#include "model_lightmap_normal_specular_map_frag.h"
+#include "model_lightmap_specular_map_frag.h"
+#include "model_translucent_frag.h"
+#include "model_translucent_unlit_frag.h"
 
-INCLUDE_SHADER(model_lightmap_fade_frag)
-INCLUDE_SHADER(model_lightmap_normal_map_fade_frag)
-INCLUDE_SHADER(model_lightmap_normal_specular_map_fade_frag)
-INCLUDE_SHADER(model_lightmap_specular_map_fade_frag)
-INCLUDE_SHADER(model_translucent_fade_frag)
-INCLUDE_SHADER(model_translucent_unlit_fade_frag)
+#include "model_lightmap_fade_frag.h"
+#include "model_lightmap_normal_map_fade_frag.h"
+#include "model_lightmap_normal_specular_map_fade_frag.h"
+#include "model_lightmap_specular_map_fade_frag.h"
+#include "model_translucent_fade_frag.h"
+#include "model_translucent_unlit_fade_frag.h"
 
-INCLUDE_SHADER(overlay3D_vert)
-INCLUDE_SHADER(overlay3D_frag)
-INCLUDE_SHADER(overlay3D_model_frag)
-INCLUDE_SHADER(overlay3D_model_translucent_frag)
-INCLUDE_SHADER(overlay3D_translucent_frag)
-INCLUDE_SHADER(overlay3D_unlit_frag)
-INCLUDE_SHADER(overlay3D_translucent_unlit_frag)
-INCLUDE_SHADER(overlay3D_model_unlit_frag)
-INCLUDE_SHADER(overlay3D_model_translucent_unlit_frag)
+#include "overlay3D_vert.h"
+#include "overlay3D_frag.h"
+#include "overlay3D_model_frag.h"
+#include "overlay3D_model_translucent_frag.h"
+#include "overlay3D_translucent_frag.h"
+#include "overlay3D_unlit_frag.h"
+#include "overlay3D_translucent_unlit_frag.h"
+#include "overlay3D_model_unlit_frag.h"
+#include "overlay3D_model_translucent_unlit_frag.h"
 
-INCLUDE_SHADER(model_shadow_vert)
-INCLUDE_SHADER(skin_model_shadow_vert)
+#include "model_shadow_vert.h"
+#include "skin_model_shadow_vert.h"
 
-INCLUDE_SHADER(model_shadow_frag)
-INCLUDE_SHADER(skin_model_shadow_frag)
+#include "model_shadow_frag.h"
+#include "skin_model_shadow_frag.h"
 
-INCLUDE_SHADER(model_shadow_fade_vert)
-INCLUDE_SHADER(skin_model_shadow_fade_vert)
+#include "model_shadow_fade_vert.h"
+#include "skin_model_shadow_fade_vert.h"
 
-INCLUDE_SHADER(model_shadow_fade_frag)
-INCLUDE_SHADER(skin_model_shadow_fade_frag)
+#include "model_shadow_fade_frag.h"
+#include "skin_model_shadow_fade_frag.h"
 
 using namespace render;
 using namespace std::placeholders;

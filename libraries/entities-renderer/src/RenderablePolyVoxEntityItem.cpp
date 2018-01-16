@@ -28,10 +28,10 @@
 
 #include "EntityTreeRenderer.h"
 
-INCLUDE_SHADER(polyvox_vert)
-INCLUDE_SHADER(polyvox_frag)
-INCLUDE_SHADER(polyvox_fade_vert)
-INCLUDE_SHADER(polyvox_fade_frag)
+#include "polyvox_vert.h"
+#include "polyvox_frag.h"
+#include "polyvox_fade_vert.h"
+#include "polyvox_fade_frag.h"
 
 #ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
@@ -72,10 +72,10 @@ INCLUDE_SHADER(polyvox_fade_frag)
 
 #include "EntityTreeRenderer.h"
 
-INCLUDE_SHADER(polyvox_vert)
-INCLUDE_SHADER(polyvox_frag)
-INCLUDE_SHADER(polyvox_fade_vert)
-INCLUDE_SHADER(polyvox_fade_frag)
+#include "polyvox_vert.h"
+#include "polyvox_frag.h"
+#include "polyvox_fade_vert.h"
+#include "polyvox_fade_frag.h"
 
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntityEditPacketSender.h"

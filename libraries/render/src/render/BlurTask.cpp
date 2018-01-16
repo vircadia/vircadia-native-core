@@ -13,11 +13,11 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-INCLUDE_SHADER(blurGaussianV_frag)
-INCLUDE_SHADER(blurGaussianH_frag)
+#include "blurGaussianV_frag.h"
+#include "blurGaussianH_frag.h"
 
-INCLUDE_SHADER(blurGaussianDepthAwareV_frag)
-INCLUDE_SHADER(blurGaussianDepthAwareH_frag)
+#include "blurGaussianDepthAwareV_frag.h"
+#include "blurGaussianDepthAwareH_frag.h"
 
 using namespace render;
 

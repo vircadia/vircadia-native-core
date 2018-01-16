@@ -17,11 +17,11 @@
 
 #include "DeferredLightingEffect.h"
 
-INCLUDE_SHADER(subsurfaceScattering_makeProfile_frag)
-INCLUDE_SHADER(subsurfaceScattering_makeLUT_frag)
-INCLUDE_SHADER(subsurfaceScattering_makeSpecularBeckmann_frag)
+#include "subsurfaceScattering_makeProfile_frag.h"
+#include "subsurfaceScattering_makeLUT_frag.h"
+#include "subsurfaceScattering_makeSpecularBeckmann_frag.h"
 
-INCLUDE_SHADER(subsurfaceScattering_drawScattering_frag)
+#include "subsurfaceScattering_drawScattering_frag.h"
 
 enum ScatteringShaderBufferSlots {
     ScatteringTask_FrameTransformSlot = 0,

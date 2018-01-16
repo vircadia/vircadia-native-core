@@ -25,8 +25,8 @@
 #include "MatrixStack.h"
 #include "RenderUtilsLogging.h"
 
-INCLUDE_SHADER(sdf_text3D_vert)
-INCLUDE_SHADER(sdf_text3D_frag)
+#include "sdf_text3D_vert.h"
+#include "sdf_text3D_frag.h"
 
 #include "GeometryCache.h"
 

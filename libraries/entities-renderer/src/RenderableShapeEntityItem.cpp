@@ -16,8 +16,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-INCLUDE_SHADER(simple_vert)
-INCLUDE_SHADER(simple_frag)
+#include "simple_vert.h"
+#include "simple_frag.h"
 
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT

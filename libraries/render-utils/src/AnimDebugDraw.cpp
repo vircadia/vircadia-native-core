@@ -17,8 +17,8 @@
 
 #include "AnimDebugDraw.h"
 
-INCLUDE_SHADER(animdebugdraw_vert)
-INCLUDE_SHADER(animdebugdraw_frag)
+#include "animdebugdraw_vert.h"
+#include "animdebugdraw_frag.h"
 
 class AnimDebugDrawData {
 public:
