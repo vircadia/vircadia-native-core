@@ -413,7 +413,11 @@ Item {
                             font.strikeout: model.status === "invalidated";
 
                             onLinkActivated: {
-                                sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                if (link.indexOf("users/") !== -1) {
+                                    sendSignalToWallet({method: 'transactionHistory_usernameLinkClicked', usernameLink: link});
+                                } else {
+                                    sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                }
                             }
                         }
 

@@ -315,7 +315,12 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                sendToScript(msg);
+                if (msg.method === 'transactionHistory_usernameLinkClicked') {
+                    userInfoViewer.url = msg.usernameLink;
+                    userInfoViewer.visible = true;
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }
@@ -682,9 +687,16 @@ Rectangle {
     // TAB BUTTONS END
     //
 
+    HifiControls.TabletWebView {
+        id: userInfoViewer;
+        z: 998;
+        anchors.fill: parent;
+        visible: false;
+    }
+
     Item {
         id: keyboardContainer;
-        z: 998;
+        z: 999;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
