@@ -162,28 +162,31 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 
     if (_visible) {
-        // Finally, push the light visible in the frame
+        // Finally, push the lights visible in the frame
+        //
+        // If component is disabled then push component off state
+        // else if component is enabled then push current state
+        // (else mode is inherit, the value from the parent zone will be used
+        //
         if (_keyLightMode == COMPONENT_MODE_DISABLED) {
             _stage->_currentFrame.pushSunLight(_stage->getSunOffLight());
         } else if (_keyLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
-        // The background only if the mode is not inherit
         if (_skyboxMode == COMPONENT_MODE_DISABLED) {
             _backgroundStage->_currentFrame.pushBackground(INVALID_INDEX);
         } else if (_skyboxMode == COMPONENT_MODE_ENABLED) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
-        // The ambient light only if it has a valid texture to render with
         if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
             _stage->_currentFrame.pushAmbientLight(_stage->getAmbientOffLight());
         } else if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
-        // Haze only if the mode is not inherit
+        // Haze only if the mode is not inherit, as the model deals with on/off
         if (_hazeMode != COMPONENT_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
