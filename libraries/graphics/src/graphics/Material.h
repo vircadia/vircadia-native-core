@@ -20,7 +20,7 @@
 
 #include <gpu/Resource.h>
 
-namespace model {
+namespace graphics {
 
 class TextureMap;
 typedef std::shared_ptr< TextureMap > TextureMapPointer;

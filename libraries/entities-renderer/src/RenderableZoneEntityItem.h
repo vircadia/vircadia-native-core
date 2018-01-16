@@ -63,11 +63,11 @@ private:
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
-    model::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
-    model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
-    model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
-    model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
-    model::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
+    graphics::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
+    graphics::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
+    graphics::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
+    graphics::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
+    graphics::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
 
     bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;
@@ -83,10 +83,10 @@ private:
 #endif
 
     LightStagePointer _stage;
-    const model::LightPointer _sunLight{ std::make_shared<model::Light>() };
-    const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
-    const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
-    const model::HazePointer _haze{ std::make_shared<model::Haze>() };
+    const graphics::LightPointer _sunLight{ std::make_shared<graphics::Light>() };
+    const graphics::LightPointer _ambientLight{ std::make_shared<graphics::Light>() };
+    const graphics::SunSkyStagePointer _background{ std::make_shared<graphics::SunSkyStage>() };
+    const graphics::HazePointer _haze{ std::make_shared<graphics::Haze>() };
 
     ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };

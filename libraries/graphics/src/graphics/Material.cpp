@@ -12,7 +12,7 @@
 
 #include "TextureMap.h"
 
-using namespace model;
+using namespace graphics;
 using namespace gpu;
 
 Material::Material() :

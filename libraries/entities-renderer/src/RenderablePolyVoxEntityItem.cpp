@@ -1060,7 +1060,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
-        model::MeshPointer mesh(new model::Mesh());
+        graphics::MeshPointer mesh(new graphics::Mesh());
 
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
@@ -1122,18 +1122,18 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
 
-        std::vector<model::Mesh::Part> parts;
-        parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                             (model::Index)vecIndices.size(), // numIndices
-                                             (model::Index)0, // baseVertex
-                                             model::Mesh::TRIANGLES)); // topology
-        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+        std::vector<graphics::Mesh::Part> parts;
+        parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                             (graphics::Index)vecIndices.size(), // numIndices
+                                             (graphics::Index)0, // baseVertex
+                                             graphics::Mesh::TRIANGLES)); // topology
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                             (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
         entity->setMesh(mesh);
     });
 }
 
-void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
+void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     // this catches the payload from recomputeMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
@@ -1164,7 +1164,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     glm::vec3 voxelVolumeSize;
-    model::MeshPointer mesh;
+    graphics::MeshPointer mesh;
 
     withReadLock([&] {
         voxelSurfaceStyle = _voxelSurfaceStyle;
@@ -1582,7 +1582,7 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
-    model::MeshPointer newMesh;
+    graphics::MeshPointer newMesh;
     entity->withReadLock([&] {
         newMesh = entity->_mesh;
     });

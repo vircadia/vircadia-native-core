@@ -15,7 +15,7 @@
 
 #include "Transform.h"
 
-namespace model {
+namespace graphics {
 
 class TextureMap {
 public:

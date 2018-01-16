@@ -13,7 +13,7 @@
 
 #include <glm/gtc/packing.hpp>
 
-using namespace model;
+using namespace graphics;
 
 Mesh::Mesh() :
     _vertexBuffer(gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)),
@@ -137,7 +137,7 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
 }
 
 
-model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
+graphics::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
                              std::function<glm::vec3(glm::vec3)> colorFunc,
                              std::function<glm::vec3(glm::vec3)> normalFunc,
                              std::function<uint32_t(uint32_t)> indexFunc) const {
@@ -223,7 +223,7 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
         indexDataCursor += sizeof(index);
     }
 
-    model::MeshPointer result(new model::Mesh());
+    graphics::MeshPointer result(new graphics::Mesh());
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
     gpu::Buffer* resultVertexBuffer = new gpu::Buffer(vertexSize, resultVertexData.get());
@@ -252,12 +252,12 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
 
     // TODO -- shouldn't assume just one part
 
-    std::vector<model::Mesh::Part> parts;
-    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                         (model::Index)result->getNumIndices(), // numIndices
-                                         (model::Index)0, // baseVertex
-                                         model::Mesh::TRIANGLES)); // topology
-    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+    std::vector<graphics::Mesh::Part> parts;
+    parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                         (graphics::Index)result->getNumIndices(), // numIndices
+                                         (graphics::Index)0, // baseVertex
+                                         graphics::Mesh::TRIANGLES)); // topology
+    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                           (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
     return result;
@@ -350,9 +350,9 @@ MeshPointer Mesh::createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numI
     }
 
     
-    std::vector<model::Mesh::Part> parts;
-    parts.push_back(model::Mesh::Part(0, numIndices, 0, model::Mesh::TRIANGLES));
-    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+    std::vector<graphics::Mesh::Part> parts;
+    parts.push_back(graphics::Mesh::Part(0, numIndices, 0, graphics::Mesh::TRIANGLES));
+    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
     return mesh;
 }

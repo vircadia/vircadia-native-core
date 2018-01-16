@@ -17,7 +17,7 @@
 #include "Transform.h"
 #include "NumericalConstants.h"
 
-namespace model {
+namespace graphics {
     // Haze range is defined here as the range the visibility is reduced by 95%
     // Haze altitude is defined here as the altitude (above 0) that the haze is reduced by 95%
 

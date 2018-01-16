@@ -17,7 +17,7 @@
 #include "Material.h"
 #include "Geometry.h"
 
-namespace model {
+namespace graphics {
 
 template <class T>
 class Table {

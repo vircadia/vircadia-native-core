@@ -19,7 +19,7 @@ class ViewFrustum;
 
 namespace gpu { class Batch; }
 
-namespace model {
+namespace graphics {
 
 typedef glm::vec3 Color;
 

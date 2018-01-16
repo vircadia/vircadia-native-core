@@ -17,7 +17,7 @@
 
 #include "Procedural.h"
 
-class ProceduralSkybox: public model::Skybox {
+class ProceduralSkybox: public graphics::Skybox {
 public:
     ProceduralSkybox();
     

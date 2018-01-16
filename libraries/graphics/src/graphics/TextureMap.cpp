@@ -10,7 +10,7 @@
 //
 #include "TextureMap.h"
 
-using namespace model;
+using namespace graphics;
 using namespace gpu;
 
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {

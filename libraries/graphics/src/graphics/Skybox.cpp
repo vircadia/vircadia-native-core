@@ -18,7 +18,7 @@
 #include "skybox_vert.h"
 #include "skybox_frag.h"
 
-using namespace model;
+using namespace graphics;
 
 Skybox::Skybox() {
     Schema schema;

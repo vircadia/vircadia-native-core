@@ -183,7 +183,7 @@ public:
     QString materialID;
     QString name;
     QString shadingModel;
-    model::MaterialPointer _material;
+    graphics::MaterialPointer _material;
 
     FBXTexture normalTexture;
     FBXTexture albedoTexture;
@@ -238,7 +238,7 @@ public:
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
     bool wasCompressed { false };
 };
 

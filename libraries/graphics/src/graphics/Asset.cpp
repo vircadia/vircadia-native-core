@@ -10,7 +10,7 @@
 //
 #include "Asset.h"
 
-using namespace model;
+using namespace graphics;
 
 Asset::Asset() {
 }

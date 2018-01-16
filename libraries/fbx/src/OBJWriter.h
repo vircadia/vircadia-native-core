@@ -17,7 +17,7 @@
 #include <QList>
 #include <graphics/Geometry.h>
 
-using MeshPointer = std::shared_ptr<model::Mesh>;
+using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
 bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes);
 bool writeOBJToFile(QString path, QList<MeshPointer> meshes);

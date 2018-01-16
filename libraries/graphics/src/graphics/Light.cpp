@@ -10,7 +10,7 @@
 //
 #include "Light.h"
 
-using namespace model;
+using namespace graphics;
 
 Light::Light() {
     updateLightRadius();

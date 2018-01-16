@@ -63,8 +63,8 @@ private:
     gpu::PipelinePointer _paintStencilPipeline;
     gpu::PipelinePointer getPaintStencilPipeline();
 
-    model::MeshPointer _mesh;
-    model::MeshPointer getMesh();
+    graphics::MeshPointer _mesh;
+    graphics::MeshPointer getMesh();
 
     int _maskMode { 0 };
     bool _forceDraw { false };

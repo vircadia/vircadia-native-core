@@ -105,13 +105,13 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& partBuffer = mesh->getPartBuffer();
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
 
-        model::Index partCount = (model::Index)mesh->getNumParts();
+        graphics::Index partCount = (graphics::Index)mesh->getNumParts();
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
-            const model::Mesh::Part& part = partBuffer.get<model::Mesh::Part>(partIndex);
+            const graphics::Mesh::Part& part = partBuffer.get<graphics::Mesh::Part>(partIndex);
 
             out << "g part-" << nth++ << "\n";
 
-            // model::Mesh::TRIANGLES
+            // graphics::Mesh::TRIANGLES
             // TODO -- handle other formats
             gpu::BufferView::Iterator<const uint32_t> indexItr = indexBuffer.cbegin<uint32_t>();
             indexItr += part._startIndex;

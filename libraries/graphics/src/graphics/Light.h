@@ -19,7 +19,7 @@
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
-namespace model {
+namespace graphics {
 typedef gpu::BufferView UniformBufferView;
 typedef gpu::TextureView TextureView;
 typedef glm::vec3 Vec3;

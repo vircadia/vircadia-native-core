@@ -16,7 +16,7 @@
 #include "Light.h"
 #include "Skybox.h"
 
-namespace model {
+namespace graphics {
 
 typedef glm::dvec3 Vec3d;
 typedef glm::dvec4 Vec4d;

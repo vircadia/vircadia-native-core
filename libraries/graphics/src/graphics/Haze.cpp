@@ -12,7 +12,7 @@
 #include <memory>
 #include "Haze.h"
 
-using namespace model;
+using namespace graphics;
 
 const float Haze::INITIAL_HAZE_RANGE{ 1000.0f };
 const float Haze::INITIAL_HAZE_HEIGHT{ 200.0f };

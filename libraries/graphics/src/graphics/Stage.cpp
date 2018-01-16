@@ -15,7 +15,7 @@
 #include <qcompilerdetection.h>
 #include <ComponentMode.h>
 
-using namespace model;
+using namespace graphics;
 
 
 void EarthSunModel::updateAll() const {
