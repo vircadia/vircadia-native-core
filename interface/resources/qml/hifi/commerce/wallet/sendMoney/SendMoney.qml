@@ -75,7 +75,6 @@ Item {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            transactionHistoryModel.clear();
             usernameText.text = Account.username;
         }
     }
@@ -91,14 +90,14 @@ Item {
 
         root.currentActiveView = root.nextActiveView;
 
-        if (root.nextActiveView === 'chooseRecipientConnection') {
+        if (root.currentActiveView === 'chooseRecipientConnection') {
             // Refresh connections model
             connectionsLoading.visible = false;
             connectionsLoading.visible = true;
             sendSignalToWallet({method: 'refreshConnections'});
-        } else if (root.nextActiveView === 'sendMoneyHome') {
+        } else if (root.currentActiveView === 'sendMoneyHome') {
             Commerce.balance();
-        } else if (root.nextActiveView === 'chooseRecipientNearby') {
+        } else if (root.currentActiveView === 'chooseRecipientNearby') {
             sendSignalToWallet({method: 'enable_ChooseRecipientNearbyMode'});
         }
     }
@@ -848,7 +847,7 @@ Item {
                 FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
                 TextArea {
                     id: optionalMessage;
-                    property int maximumLength: 255;
+                    property int maximumLength: 70;
                     property string previousText: text;
                     placeholderText: "Optional Message";
                     font.family: firaSansSemiBold.name;
