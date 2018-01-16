@@ -1610,6 +1610,37 @@ void EntityItem::setPosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::setWorldTransformAndVelocitiesUnlessDirtyFlags(
+        const glm::vec3& position,
+        const glm::quat& orientation,
+        const glm::vec3& linearVelocity,
+        const glm::vec3& angularVelocity) {
+    // only ever call this for harvesting results of physics simulation
+    // if a dirty bit is set then an update arrived (via script or network) overriding the physics simulation
+    uint32_t flags = _dirtyFlags & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES);
+    if (!flags) {
+        // flags are clear
+        setWorldTransform(position, orientation);
+        setWorldVelocity(linearVelocity);
+        setWorldAngularVelocity(angularVelocity);
+        setLastSimulated(usecTimestampNow());
+    } else {
+        // only set properties NOT flagged
+        if (!(flags & Simulation::DIRTY_TRANSFORM)) {
+            setWorldTransform(position, orientation);
+        }
+        if (!(flags & Simulation::DIRTY_LINEAR_VELOCITY)) {
+            setWorldVelocity(linearVelocity);
+        }
+        if (!(flags & Simulation::DIRTY_ANGULAR_VELOCITY)) {
+            setWorldAngularVelocity(angularVelocity);
+        }
+        if (flags != (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
+            setLastSimulated(usecTimestampNow());
+        }
+    }
+}
+
 void EntityItem::setParentID(const QUuid& value) {
     QUuid oldParentID = getParentID();
     if (oldParentID != value) {
@@ -1737,6 +1768,22 @@ void EntityItem::setVelocity(const glm::vec3& value) {
             }
         }
     }
+}
+
+void EntityItem::zeroAllVelocitiesUnlessDirtyFlags() {
+    uint32_t flags = _dirtyFlags & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES);
+    if (!flags) {
+        setWorldVelocity(glm::vec3(0.0f));
+        setWorldAngularVelocity(glm::vec3(0.0f));
+    } else {
+        if (!(flags & Simulation::DIRTY_LINEAR_VELOCITY)) {
+            setWorldVelocity(glm::vec3(0.0f));
+        }
+        if (!(flags & Simulation::DIRTY_ANGULAR_VELOCITY)) {
+            setWorldAngularVelocity(glm::vec3(0.0f));
+        }
+    }
+    _acceleration = glm::vec3(0.0f);
 }
 
 void EntityItem::setDamping(float value) {

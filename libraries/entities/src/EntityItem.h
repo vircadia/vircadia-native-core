@@ -355,6 +355,7 @@ public:
 
     void setRotation(glm::quat orientation);
     void setVelocity(const glm::vec3& velocity);
+    void zeroAllVelocitiesUnlessDirtyFlags();
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);
@@ -368,6 +369,13 @@ public:
     void* getPhysicsInfo() const { return _physicsInfo; }
 
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
+
+    void setWorldTransformAndVelocitiesUnlessDirtyFlags(
+        const glm::vec3& position,
+        const glm::quat& orientation,
+        const glm::vec3& linearVelocity,
+        const glm::vec3& angularVelocity);
+
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
     virtual SpatialParentTree* getParentTree() const override;

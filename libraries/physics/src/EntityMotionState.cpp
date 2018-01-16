@@ -256,25 +256,12 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(_entity);
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
-    bool positionSuccess;
-    _entity->setWorldPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
-    if (!positionSuccess) {
-        static QString repeatedMessage =
-            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
-                                                              "setPosition failed.*");
-        qCDebug(physics) << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
-    }
-    bool orientationSuccess;
-    _entity->setWorldOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
-    if (!orientationSuccess) {
-        static QString repeatedMessage =
-            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
-                                                              "setOrientation failed.*");
-        qCDebug(physics) << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
-    }
-    _entity->setVelocity(getBodyLinearVelocity());
-    _entity->setAngularVelocity(getBodyAngularVelocity());
-    _entity->setLastSimulated(usecTimestampNow());
+
+    _entity->setWorldTransformAndVelocitiesUnlessDirtyFlags(
+            bulletToGLM(worldTrans.getOrigin()),
+            bulletToGLM(worldTrans.getRotation()),
+            getBodyLinearVelocity(),
+            getBodyAngularVelocity());
 
     if (_entity->getSimulatorID().isNull()) {
         _loopsWithoutOwner++;
@@ -530,9 +517,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
-        _entity->setVelocity(Vectors::ZERO);
-        _entity->setAngularVelocity(Vectors::ZERO);
-        _entity->setAcceleration(Vectors::ZERO);
+        _entity->zeroAllVelocitiesUnlessDirtyFlags();
         _numInactiveUpdates++;
     } else {
         glm::vec3 gravity = _entity->getGravity();
@@ -559,9 +544,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             if (movingSlowly) {
                 // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
                 // other simulating observers to deactivate their own copies
-                glm::vec3 zero(0.0f);
-                _entity->setVelocity(zero);
-                _entity->setAngularVelocity(zero);
+                _entity->zeroAllVelocitiesUnlessDirtyFlags();
             }
         }
         _numInactiveUpdates = 0;
