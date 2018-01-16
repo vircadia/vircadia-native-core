@@ -148,7 +148,6 @@ QString transactionString(const QJsonObject& valueObject) {
     int sentCerts = valueObject["sent_certs"].toInt();
     int receivedCerts = valueObject["received_certs"].toInt();
     int sent = valueObject["sent_money"].toInt();
-    int received = valueObject["received_money"].toInt();
     int dateInteger = valueObject["created_at"].toInt();
     QString message = valueObject["message"].toString();
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
