@@ -164,6 +164,7 @@ public:
 
     // rig space
     glm::mat4 getJointTransform(int jointIndex) const;
+    AnimPose getJointPose(int jointIndex) const;
 
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);

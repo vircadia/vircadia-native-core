@@ -33,8 +33,9 @@ using namespace render;
 using namespace render::entities;
 
 static uint8_t CUSTOM_PIPELINE_NUMBER { 0 };
-static const int32_t PAINTSTROKE_TEXTURE_SLOT{ 0 };
-static const int32_t PAINTSTROKE_UNIFORM_SLOT{ 0 };
+static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
+static const int32_t PAINTSTROKE_UNIFORM_SLOT { 11 };
 static gpu::Stream::FormatPointer polylineFormat;
 static gpu::PipelinePointer polylinePipeline;
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT

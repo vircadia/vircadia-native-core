@@ -116,6 +116,7 @@ public:
 
     int jointIndex;
     glm::mat4 inverseBindMatrix;
+    Transform inverseBindTransform;
 };
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
@@ -225,7 +226,7 @@ public:
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;
     QVector<uint16_t> clusterIndices;
-    QVector<uint8_t> clusterWeights;
+    QVector<uint16_t> clusterWeights;
     QVector<int32_t> originalIndices;
 
     QVector<FBXCluster> clusters;

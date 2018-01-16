@@ -1095,7 +1095,7 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
-        if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+        if (!_texturesLoaded) {
             return true;
         }
 
@@ -1328,6 +1328,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
         model->updateRenderItems();
+    } else if (!_texturesLoaded) {
+        emit requestRenderUpdate();
     }
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
