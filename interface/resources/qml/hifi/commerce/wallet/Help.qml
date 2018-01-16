@@ -25,7 +25,6 @@ Item {
 
     id: root;
     property string keyFilePath;
-    property bool showDebugButtons: true;
 
     Connections {
         target: Commerce;
@@ -54,37 +53,6 @@ Item {
         size: 18;
         // Style
         color: hifi.colors.blueHighlight;
-    }
-    HifiControlsUit.Button {
-        id: clearCachedPassphraseButton;
-        visible: root.showDebugButtons;
-        color: hifi.buttons.black;
-        colorScheme: hifi.colorSchemes.dark;
-        anchors.top: parent.top;
-        anchors.left: helpTitleText.right;
-        anchors.leftMargin: 20;
-        height: 40;
-        width: 150;
-        text: "DBG: Clear Pass";
-        onClicked: {
-            Commerce.setPassphrase("");
-            sendSignalToWallet({method: 'passphraseReset'});
-        }
-    }
-    HifiControlsUit.Button {
-        id: resetButton;
-        visible: root.showDebugButtons;
-        color: hifi.buttons.red;
-        colorScheme: hifi.colorSchemes.dark;
-        anchors.top: clearCachedPassphraseButton.top;
-        anchors.left: clearCachedPassphraseButton.right;
-        height: 40;
-        width: 150;
-        text: "DBG: RST Wallet";
-        onClicked: {
-            Commerce.reset();
-            sendSignalToWallet({method: 'walletReset'});
-        }
     }
 
     ListModel {

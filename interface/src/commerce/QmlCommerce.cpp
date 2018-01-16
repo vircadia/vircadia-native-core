@@ -128,18 +128,6 @@ void QmlCommerce::generateKeyPair() {
     getWalletAuthenticatedStatus();
 }
 
-void QmlCommerce::reset() {
-    auto ledger = DependencyManager::get<Ledger>();
-    auto wallet = DependencyManager::get<Wallet>();
-    ledger->reset();
-    wallet->reset();
-}
-
-void QmlCommerce::resetLocalWalletOnly() {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->reset();
-}
-
 void QmlCommerce::account() {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->account();

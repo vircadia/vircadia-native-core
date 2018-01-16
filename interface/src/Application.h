@@ -146,7 +146,7 @@ public:
     void initializeGL();
     void initializeUi();
 
-    void updateCamera(RenderArgs& renderArgs);
+    void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
 
@@ -309,6 +309,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE void loadAvatarBrowser() const;
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
@@ -694,6 +695,9 @@ private:
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
     void endHMDSession();
+
+    glm::vec3 _thirdPersonHMDCameraBoom { 0.0f, 0.0f, -1.0f };
+    bool _thirdPersonHMDCameraBoomValid { true };
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
