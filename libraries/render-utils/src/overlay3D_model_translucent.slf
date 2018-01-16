@@ -75,7 +75,7 @@ void main(void) {
         fresnel,
         metallic,
         emissive,
-        roughness, opacity),
+        roughness, opacity, vec3(0)),
         opacity);
 
     // Apply standard tone mapping

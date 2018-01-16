@@ -41,6 +41,9 @@ void main(void) {
     vec4 fragWorldPos = invViewMat * fragPosition;
 
     <$fetchClusterInfo(fragWorldPos)$>;
+    if (!hasLocalLights(numLights, clusterPos, dims)) {
+        discard;
+    }
 
     vec4 midNormalCurvature;
     vec4 lowNormalCurvature;
@@ -55,7 +58,7 @@ void main(void) {
 
     _fragColor = evalLocalLighting(cluster, numLights, fragWorldPos.xyz, frag.normal, fragEyeDir, 
                                    midNormalCurvature, lowNormalCurvature, frag.roughness, frag.scattering,
-                                   frag.metallic, frag.fresnel, frag.albedo);
+                                   frag.metallic, frag.fresnel, frag.albedo, 1.0);
 
 }
 

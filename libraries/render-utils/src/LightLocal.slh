@@ -22,8 +22,11 @@
 
 vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, vec3 fragNormal, vec3 fragEyeDir, 
                        vec4 midNormalCurvature, vec4 lowNormalCurvature,
-                       float fragRoughness, float fragScattering, float fragMetallic, vec3 fragFresnel, vec3 fragAlbedo) {
-    vec4 _fragColor = vec4(0.0);
+                       float fragRoughness, float fragScattering, float fragMetallic, vec3 fragFresnel, vec3 fragAlbedo,
+                       float opacity) {
+    vec4 fragColor = vec4(0.0);
+    vec3 fragSpecular = vec3(0.0);
+    vec3 fragDiffuse = vec3(0.0);
     int lightClusterOffset = cluster.z;
 
     // Compute the rougness into gloss2 once:
@@ -72,11 +75,11 @@ vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, vec3 fra
            evalFragShadingGloss(diffuse, specular, fragNormal, fragLightDir, fragEyeDir, fragMetallic, fragFresnel, fragGloss2, fragAlbedo);
         }
 
-        diffuse *= lightEnergy * isDiffuseEnabled();
-        specular *= lightEnergy * isSpecularEnabled();
+        diffuse *= lightEnergy;
+        specular *= lightEnergy;
 
-        _fragColor.rgb += diffuse;
-        _fragColor.rgb += specular;
+        fragDiffuse.rgb += diffuse;
+        fragSpecular.rgb += specular;
     }
 
     for (int i = cluster.x; i < numLights; i++) {
@@ -127,11 +130,17 @@ vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, vec3 fra
            evalFragShadingGloss(diffuse, specular, fragNormal, fragLightDir, fragEyeDir, fragMetallic, fragFresnel, fragGloss2, fragAlbedo);
         }
 
-        diffuse *= lightEnergy * isDiffuseEnabled();
-        specular *= lightEnergy * isSpecularEnabled();
+        diffuse *= lightEnergy;
+        specular *= lightEnergy;
 
-        _fragColor.rgb += diffuse;
-        _fragColor.rgb += specular;
+        fragDiffuse.rgb += diffuse;
+        fragSpecular.rgb += specular;
     }
-    return _fragColor;
+
+    fragDiffuse *= isDiffuseEnabled();
+    fragSpecular *= isSpecularEnabled();
+
+    fragColor.rgb += fragDiffuse;
+    fragColor.rgb += fragSpecular / opacity;
+    return fragColor;
 }

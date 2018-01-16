@@ -77,16 +77,17 @@ void main(void) {
     vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
+    vec4 localLighting = vec4(0.0);
 
     <$fetchClusterInfo(_worldPosition)$>;
+    if (hasLocalLights(numLights, clusterPos, dims)) {
+        vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
+        vec3 fragEyeDir = normalize(fragEyeVector);
 
-    vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
-    vec3 fragEyeDir = normalize(fragEyeVector);
-
-    vec4 localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, fragNormal, fragEyeDir, 
-                                   vec4(0), vec4(0), roughness, 0.0,
-                                   metallic, fresnel, albedo);
-    emissive += localLighting.rgb;
+        localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, fragNormal, fragEyeDir, 
+                                          vec4(0), vec4(0), roughness, 0.0,
+                                          metallic, fresnel, albedo, opacity);
+    }
 
     _fragColor =  vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
@@ -98,6 +99,6 @@ void main(void) {
         fresnel,
         metallic,
         emissive+fadeEmissive,
-        roughness, opacity),
+        roughness, opacity, localLighting.rgb),
         opacity);
 }

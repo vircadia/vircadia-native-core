@@ -55,6 +55,9 @@ void main(void) {
     vec4 fragPos = invViewMat * fragPosition;
     
     <$fetchClusterInfo(fragPos)$>;
+    if (!hasLocalLights(numLights, clusterPos, dims)) {
+        discard;
+    }
 
     // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);

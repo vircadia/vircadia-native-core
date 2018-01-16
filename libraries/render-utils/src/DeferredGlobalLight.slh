@@ -171,9 +171,11 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareLightingAmbient(1, 1, 1)$>
 <$declareLightingDirectional()$>
 
-vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) {
+vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity, vec3 prevLighting) {
     <$prepareGlobalLight()$>
     
+    color = prevLighting;
+
     color += emissive * isEmissiveEnabled();
 
     // Ambient
@@ -195,25 +197,26 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
 
 vec3 evalGlobalLightingAlphaBlendedWithHaze(
     mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, 
-    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) 
+    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity, vec3 prevLighting) 
 {
     <$prepareGlobalLight()$>
     
+    color = prevLighting;
+
     color += emissive * isEmissiveEnabled();
 
     // Ambient
     vec3 ambientDiffuse;
     vec3 ambientSpecular;
     evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, obscurance);
-    color += ambientDiffuse;
-    color += ambientSpecular / opacity;
 
     // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, fragEyeDir, fragNormal, roughness, metallic, fresnel, albedo, shadowAttenuation);
-    color += directionalDiffuse;
-    color += directionalSpecular / opacity;
+
+    color += ambientDiffuse + directionalDiffuse;
+    color += (ambientSpecular + directionalSpecular) / opacity;
 
     // Haze
     if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
