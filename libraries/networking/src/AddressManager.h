@@ -250,7 +250,7 @@ public slots:
     void refreshPreviousLookup();
 
     /**jsdoc
-     * Update your current metaverse location in Interface's {@link Settings} file as your last-know address. This can be used
+     * Update your current metaverse location in Interface's {@link Settings} file as your last-known address. This can be used
      * to ensure that you start up at that address if you exit Interface without a later address automatically being saved.
      * @function location.storeCurrentAddress
      */
