@@ -171,7 +171,7 @@ QString transactionString(const QJsonObject& valueObject) {
     }
     // no matter what we append a smaller date to the bottom of this...
 
-    result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString());
+    result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
     return result;
 }
 
