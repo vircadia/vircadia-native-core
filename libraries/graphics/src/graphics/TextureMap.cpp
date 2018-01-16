@@ -1,6 +1,6 @@
 //
 //  TextureMap.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 5/6/2015.
 //  Copyright 2014 High Fidelity, Inc.

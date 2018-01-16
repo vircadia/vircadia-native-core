@@ -14,7 +14,7 @@
 
 #include <render/Engine.h>
 #include <gpu/Pipeline.h>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 class PrepareStencilConfig : public render::Job::Config {
     Q_OBJECT

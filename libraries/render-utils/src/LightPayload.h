@@ -12,7 +12,7 @@
 #define hifi_LightPayload_h
 
 
-#include <model/Light.h>
+#include <graphics/Light.h>
 #include <render/Item.h>
 #include "LightStage.h"
 #include "TextureCache.h"

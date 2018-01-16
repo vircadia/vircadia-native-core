@@ -11,7 +11,7 @@
 #ifndef hifi_render_utils_BackgroundStage_h
 #define hifi_render_utils_BackgroundStage_h
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <set>
 #include <unordered_map>
 #include <render/IndexedContainer.h>

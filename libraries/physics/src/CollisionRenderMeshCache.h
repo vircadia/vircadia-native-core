@@ -16,7 +16,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 
 class CollisionRenderMeshCache {

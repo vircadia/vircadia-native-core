@@ -11,7 +11,7 @@
 
 #include <QFile>
 #include <QFileInfo>
-#include "model/Geometry.h"
+#include "graphics/Geometry.h"
 #include "OBJWriter.h"
 #include "ModelFormatLogging.h"
 

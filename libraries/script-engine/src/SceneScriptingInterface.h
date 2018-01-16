@@ -15,7 +15,7 @@
 #include <qscriptengine.h> // QObject
 #include <DependencyManager.h> // Dependency
 
-#include "model/Stage.h"
+#include "graphics/Stage.h"
 
 // TODO: if QT moc ever supports nested classes, subclass these to the interface instead of namespacing
 namespace SceneScripting {

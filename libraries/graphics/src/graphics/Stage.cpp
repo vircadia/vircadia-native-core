@@ -1,6 +1,6 @@
 //
 //  Stage.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 2/24/2015.
 //  Copyright 2014 High Fidelity, Inc.

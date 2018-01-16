@@ -21,8 +21,8 @@
 
 #include <gpu/Forward.h>
 #include <gpu/Context.h>
-#include <model/Forward.h>
-#include <model/Geometry.h>
+#include <graphics/Forward.h>
+#include <graphics/Geometry.h>
 #include <TextureCache.h>
 #include <PolyVoxEntityItem.h>
 

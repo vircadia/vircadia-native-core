@@ -1,6 +1,6 @@
 //
 //  Haze.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Nissim Hadar on 9/13/2017.
 //  Copyright 2014 High Fidelity, Inc.

@@ -15,8 +15,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 #include "FBXReader.h"
 #include "TextureCache.h"

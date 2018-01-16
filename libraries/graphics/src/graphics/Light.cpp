@@ -1,6 +1,6 @@
 //
 //  Light.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 1/26/2014.
 //  Copyright 2014 High Fidelity, Inc.

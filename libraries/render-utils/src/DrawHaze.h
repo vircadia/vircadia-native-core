@@ -19,7 +19,7 @@
 #include <gpu/Pipeline.h>
 #include <render/Forward.h>
 #include <render/DrawTask.h>
-#include <model/Haze.h>
+#include <graphics/Haze.h>
 
 #include "SurfaceGeometryPass.h"
 

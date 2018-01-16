@@ -1,6 +1,6 @@
 //
 //  Asset.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 08/21/2015.
 //  Copyright 2015 High Fidelity, Inc.

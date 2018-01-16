@@ -71,7 +71,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 

@@ -59,7 +59,7 @@
 #include <OctreeUtils.h>
 #include <render/Engine.h>
 #include <Model.h>
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <TextureCache.h>
 #include <FramebufferCache.h>
 #include <model-networking/ModelCache.h>

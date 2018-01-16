@@ -3,7 +3,7 @@
 #define LightVolume_Shared_slh
 
 //  Light.shared.slh
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 14/9/2016.
 //  Copyright 2014 High Fidelity, Inc.

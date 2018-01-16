@@ -19,7 +19,7 @@
 #include <render/Scene.h>
 #include <render/ShapePipeline.h>
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 #include "Model.h"
 

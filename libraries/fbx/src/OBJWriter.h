@@ -15,7 +15,7 @@
 
 #include <QString>
 #include <QList>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 using MeshPointer = std::shared_ptr<model::Mesh>;
 

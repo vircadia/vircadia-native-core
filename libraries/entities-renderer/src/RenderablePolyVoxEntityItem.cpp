@@ -65,7 +65,7 @@
 #pragma warning(pop)
 #endif
 
-#include "model/Geometry.h"
+#include "graphics/Geometry.h"
 
 #include "StencilMaskPass.h"
 

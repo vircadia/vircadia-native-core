@@ -13,7 +13,7 @@
 #ifndef hifi_ProceduralSkybox_h
 #define hifi_ProceduralSkybox_h
 
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 
 #include "Procedural.h"
 

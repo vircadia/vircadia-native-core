@@ -19,7 +19,7 @@
 #include <utility>
 
 #include <GLMHelpers.h>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>

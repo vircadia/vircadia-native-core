@@ -13,7 +13,7 @@
 
 #include <gpu/Batch.h>
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>

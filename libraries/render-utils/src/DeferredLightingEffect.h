@@ -17,8 +17,8 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 
-#include "model/Light.h"
-#include "model/Geometry.h"
+#include "graphics/Light.h"
+#include "graphics/Geometry.h"
 
 #include <procedural/ProceduralSkybox.h>
 

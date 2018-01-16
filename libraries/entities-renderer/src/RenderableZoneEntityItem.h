@@ -13,9 +13,9 @@
 #define hifi_RenderableZoneEntityItem_h
 
 #include <ZoneEntityItem.h>
-#include <model/Skybox.h>
-#include <model/Haze.h>
-#include <model/Stage.h>
+#include <graphics/Skybox.h>
+#include <graphics/Haze.h>
+#include <graphics/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
 #include <HazeStage.h>

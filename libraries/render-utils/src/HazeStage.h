@@ -11,7 +11,7 @@
 #ifndef hifi_render_utils_HazeStage_h
 #define hifi_render_utils_HazeStage_h
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <set>
 #include <unordered_map>
 #include <render/IndexedContainer.h>
@@ -19,7 +19,7 @@
 
 #include <render/Forward.h>
 #include <render/DrawTask.h>
-#include <model/Haze.h>
+#include <graphics/Haze.h>
 
 // Haze stage to set up haze-related rendering tasks
 class HazeStage : public render::Stage {

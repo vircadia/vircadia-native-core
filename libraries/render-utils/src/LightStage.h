@@ -17,7 +17,7 @@
 
 #include <gpu/Framebuffer.h>
 
-#include <model/Light.h>
+#include <graphics/Light.h>
 
 #include <render/IndexedContainer.h>
 #include <render/Stage.h>
