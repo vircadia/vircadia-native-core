@@ -13,6 +13,7 @@
 #define hifi_ImageEntityItem_h
 
 #include "EntityItem.h"
+#include "ShapeEntityItem.h"
 
 class ImageEntityItem : public EntityItem {
 public:
@@ -48,6 +49,9 @@ public:
 
 protected:
     QString _imageURL;
+
+    entity::Shape _shape{ entity::Shape::Quad };
+    ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_BOX };
 
 };
 

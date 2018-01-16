@@ -38,6 +38,8 @@ ImageEntityItem::ImageEntityItem(const EntityItemID& entityItemID) : EntityItem(
 
 EntityItemProperties ImageEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(imageURL, getImageURL);
+    // Using "Quad" shape as defined in ShapeEntityItem.cpp
     properties.setShape("Quad");
     return properties;
 }
@@ -45,7 +47,7 @@ EntityItemProperties ImageEntityItem::getProperties(EntityPropertyFlags desiredP
 bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(imageURL, setImageURL);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -63,7 +65,7 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
 // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-
+    requestedProperties += PROP_IMAGE_URL;
     return requestedProperties;
 }
 
@@ -78,6 +80,7 @@ void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     bool successPropertyFits = true;
     // Using "Quad" shape as defined in ShapeEntityItem.cpp
     APPEND_ENTITY_PROPERTY(PROP_SHAPE, "Quad");
+    APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, _imageURL);
 }
 
 int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -87,6 +90,8 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
+
+    READ_ENTITY_PROPERTY(PROP_IMAGE_URL, QString, setImageURL);
 
     return bytesRead;
 }
