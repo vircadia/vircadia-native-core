@@ -133,7 +133,7 @@ var DEBUG_INFO = {
     Reticle: {
         supportsScale: 'scale' in Reticle,
     },
-    protocolVersion: location.protocolVersion,
+    protocolVersion: Window.protocolVersion(),
 };
 
 var globalState = {

@@ -390,6 +390,10 @@ QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
 }
 
+QString WindowScriptingInterface::protocolVersion() {
+    return protocolVersionsSignatureBase64();
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getDeviceSize().x;
 }
