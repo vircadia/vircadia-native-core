@@ -52,9 +52,9 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     float exponent = entity->getExponent();
     float cutoff = glm::radians(entity->getCutoff());
     if (!entity->getIsSpotlight()) {
-        light->setType(model::Light::POINT);
+        light->setType(graphics::Light::POINT);
     } else {
-        light->setType(model::Light::SPOT);
+        light->setType(graphics::Light::SPOT);
 
         light->setSpotAngle(cutoff);
         light->setSpotExponent(exponent);

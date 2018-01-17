@@ -5465,7 +5465,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+    skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
