@@ -99,6 +99,9 @@ public:
     void setAnimationHold(bool hold);
     bool getAnimationHold() const;
 
+    void setRelayParentJoints(bool relayJoints);
+    bool getRelayParentJoints() const;
+
     void setAnimationFirstFrame(float firstFrame);
     float getAnimationFirstFrame() const;
 
@@ -157,6 +160,7 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
+    bool _relayParentJoints;
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 

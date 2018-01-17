@@ -145,7 +145,13 @@ void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
 }
 
 Transform Model::getTransform() const {
-    if (_spatiallyNestableOverride) {
+    if (_overrideModelTransform) {
+        Transform transform;
+        transform.setTranslation(getOverrideTranslation());
+        transform.setRotation(getOverrideRotation());
+        transform.setScale(getScale());
+        return transform;
+    } else if (_spatiallyNestableOverride) {
         bool success;
         Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
@@ -1379,6 +1385,14 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
     _collisionGeometry.reset();
+}
+
+void Model::overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset) {
+    _overrideTranslation = transform.getTranslation();
+    _overrideRotation = transform.getRotation();
+    _overrideModelTransform = true;
+    setScale(transform.getScale());
+    setOffset(offset);
 }
 
 AABox Model::getRenderableMeshBound() const {
