@@ -30,11 +30,15 @@
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
+#include <DualQuaternion.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
 
+// Use dual quaternion skinning!
+// Must match define in Skinning.slh
+#define SKIN_DQ
 
 class AbstractViewStateInterface;
 class QScriptEngine;
@@ -208,10 +212,15 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset);
+    bool isOverridingModelTransformAndOffset() { return _overrideModelTransform; };
+    void stopTransformAndOffsetOverride() { _overrideModelTransform = false; };
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+    const glm::vec3& getOverrideTranslation() const { return _overrideTranslation; }
+    const glm::quat& getOverrideRotation() const { return _overrideRotation; }
 
     glm::vec3 getNaturalDimensions() const;
 
@@ -236,7 +245,7 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     virtual bool updateGeometry();
-    void setCollisionMesh(model::MeshPointer mesh);
+    void setCollisionMesh(graphics::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -246,9 +255,46 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+
+#if defined(SKIN_DQ)
+    class TransformDualQuaternion {
+    public:
+        TransformDualQuaternion() {}
+        TransformDualQuaternion(const glm::mat4& m) {
+            AnimPose p(m);
+            _scale.x = p.scale().x;
+            _scale.y = p.scale().y;
+            _scale.z = p.scale().z;
+            _dq = DualQuaternion(p.rot(), p.trans());
+        }
+        TransformDualQuaternion(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+            _scale.x = scale.x;
+            _scale.y = scale.y;
+            _scale.z = scale.z;
+            _dq = DualQuaternion(rot, trans);
+        }
+        TransformDualQuaternion(const Transform& transform) {
+            _scale = glm::vec4(transform.getScale(), 0.0f);
+            _dq = DualQuaternion(transform.getRotation(), transform.getTranslation());
+        }
+        glm::vec3 getScale() const { return glm::vec3(_scale); }
+        glm::quat getRotation() const { return _dq.getRotation(); }
+        glm::vec3 getTranslation() const { return _dq.getTranslation(); }
+        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRotation(), getTranslation()); };
+    protected:
+        glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
+        DualQuaternion _dq;
+        glm::vec4 _padding;
+    };
+#endif
+
     class MeshState {
     public:
-        std::vector<glm::mat4> clusterMatrices;
+#if defined(SKIN_DQ)
+        std::vector<TransformDualQuaternion> clusterTransforms;
+#else
+        std::vector<glm::mat4> clusterTransforms;
+#endif
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -301,6 +347,9 @@ protected:
     glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
     glm::vec3 _scale;
+
+    glm::vec3 _overrideTranslation;
+    glm::quat _overrideRotation;
 
     // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
     // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
@@ -362,6 +411,7 @@ protected:
 
     QMutex _mutex;
 
+    bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets();
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes

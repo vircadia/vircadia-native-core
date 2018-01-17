@@ -40,6 +40,7 @@ enum EntityPropertyList {
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
     PROP_ANIMATION_ALLOW_TRANSLATION,
+    PROP_RELAY_PARENT_JOINTS,
 
     // these properties are supported by the EntityItem base class
     PROP_REGISTRATION_POINT,

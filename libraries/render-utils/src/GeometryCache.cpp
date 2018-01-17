@@ -31,7 +31,7 @@
 
 #include "gpu/StandardShaderLib.h"
 
-#include "model/TextureMap.h"
+#include "graphics/TextureMap.h"
 #include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
