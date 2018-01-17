@@ -25,6 +25,11 @@
 #include <QtCore/QUrl>
 #include <QtCore/QVector>
 
+#if defined(Q_OS_OSX)
+#include <mach-o/dyld.h>
+#endif
+
+
 #include "shared/GlobalAppProperties.h"
 #include "SharedUtil.h"
 
@@ -33,8 +38,12 @@
 QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+#if defined(Q_OS_OSX)
+static bool USE_SOURCE_TREE_RESOURCES = true;
+#else
 static const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
 static bool USE_SOURCE_TREE_RESOURCES = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
+#endif
 #endif
 
 #ifdef DEV_BUILD
@@ -57,7 +66,12 @@ const QString& PathUtils::resourcesPath() {
 #if defined(Q_OS_OSX)
         // FIXME fix the OSX installer to install the resources.rcc instead of the
         // individual resource files
-        staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+        // FIXME the first call to fetch the resources location seems to return
+        // nothing for QCoreApplication::applicationDirPath()
+        char buffer[8192];
+        uint32_t bufferSize = sizeof(buffer);
+        _NSGetExecutablePath(buffer, &bufferSize);
+        staticResourcePath = QFileInfo(buffer).dir().absoluteFilePath("../Resources") + "/";
 #else
         staticResourcePath = ":/";
 #endif
