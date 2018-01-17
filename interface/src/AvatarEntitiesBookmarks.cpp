@@ -59,12 +59,18 @@ void addAvatarEntities(const QVariantList& avatarEntities, std::shared_ptr<MyAva
         entityProperties.setModelURL(modelURL);
         int parentJointIndex = avatarEntityProperties.value(4).toInt();
         entityProperties.setParentJointIndex(parentJointIndex);
-        glm::vec3 localPosition = vec3FromJsonValue(avatarEntityProperties.value(5).toJsonValue());
-        entityProperties.setLocalPosition(localPosition);
-        glm::quat localRotation = quatFromJsonValue(avatarEntityProperties.value(6).toJsonValue());
-        entityProperties.setLocalRotation(localRotation);
+        glm::vec3 jointPosition = myAvatar->getJointPosition(parentJointIndex);
+        glm::vec3 positionOffset = vec3FromJsonValue(avatarEntityProperties.value(5).toJsonValue());
+        glm::vec3 finalPosition = jointPosition + positionOffset;
+        entityProperties.setLocalPosition(finalPosition);
+        glm::quat jointRotation = myAvatar->getJointRotation(parentJointIndex);
+        glm::quat rotationOffset = quatFromJsonValue(avatarEntityProperties.value(6).toJsonValue());
+        glm::quat finalRotation = jointRotation * rotationOffset;
+        entityProperties.setRotation(finalRotation);
         QString userData = avatarEntityProperties.value(7).toString();
         entityProperties.setUserData(userData);
+        glm::vec3 dimensions = vec3FromJsonValue(avatarEntityProperties.value(8).toJsonValue());
+        entityProperties.setDimensions(dimensions);
 
         EntityItemID id = EntityItemID(QUuid::createUuid());
         bool success = true;
