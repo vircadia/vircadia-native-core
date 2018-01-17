@@ -46,25 +46,34 @@ public:
 
     void debugDump() const override;
 
-    const QString& getMaterialURL() { return _materialURL; }
-    void setMaterialURL(const QString& materialURL) { _materialURL = materialURL; }
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    MaterialMode getMaterialType() { return _materialMode; }
-    void setMaterialMode(MaterialMode mode);
+    QString getMaterialURL() const { return _materialURL; }
+    void setMaterialURL(const QString& materialURLString);
 
-    float getBlendFactor() { return _blendFactor; }
+    QString getCurrentMaterialName() const { return _currentMaterialName; }
+    void setCurrentMaterialName(const QString& currentMaterialName);
+
+    MaterialMode getMaterialMode() const { return _materialMode; }
+    void setMaterialMode(MaterialMode mode) { _materialMode = mode; }
+
+    float getBlendFactor() const { return _blendFactor; }
     void setBlendFactor(float blendFactor) { _blendFactor = blendFactor; }
 
-    int getPriority() { return _priority; }
+    int getPriority() const { return _priority; }
     void setPriority(int priority) { _priority = priority; }
 
-    int getShapeID() { return _shapeID; }
+    int getShapeID() const { return _shapeID; }
     void setShapeID(int shapeID) { _shapeID = shapeID; }
 
-    const glm::vec4& getMaterialBounds() { return _materialBounds; }
+    glm::vec4 getMaterialBounds() const { return _materialBounds; }
     void setMaterialBounds(const glm::vec4& materialBounds) { _materialBounds = materialBounds; }
 
-protected:
+    std::shared_ptr<NetworkMaterial> getMaterial() const;
+
+    void setUserData(const QString& userData) override;
+
+private:
     QString _materialURL;
     MaterialMode _materialMode { UV };
     float _blendFactor { 1.0f };
@@ -72,7 +81,12 @@ protected:
     int _shapeID { 0 };
     glm::vec4 _materialBounds { 0, 0, 1, 1 };
     
-    //NetworkMaterial _material;
+    QHash<QString, std::shared_ptr<NetworkMaterial>> _materials;
+    std::vector<QString> _materialNames;
+    QString _currentMaterialName;
+
+    void parseJSONMaterial(const QJsonObject& materialJSON);
+    static bool parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB);
 
 };
 

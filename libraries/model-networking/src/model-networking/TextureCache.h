@@ -163,7 +163,6 @@ public:
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
         const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
-
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 

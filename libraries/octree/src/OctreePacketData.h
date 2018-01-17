@@ -33,6 +33,8 @@
 #include <NLPacket.h>
 #include <udt/PacketHeaders.h>
 
+#include "MaterialMode.h"
+
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
 
@@ -249,6 +251,7 @@ public:
     
     static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec4& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
@@ -257,6 +260,7 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);

@@ -761,6 +761,51 @@
             </div>
         </fieldset>
 
+        <fieldset id="material" class="major">
+            <legend class="section-header material-group material-section">
+                Material<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <div class="material-group material-section property url">
+                    <label for="property-material-url">Material URL</label>
+                    <input type="text" id="property-material-url">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="material-group material-section property dropdown">
+                    <label>Material mode </label>
+                    <select name="SelectMaterialMode" id="property-material-mode">
+                        <option value="uv">UV space material</option>
+                        <option value="projected">3D projected material</option>
+                    </select>
+                </div>
+
+                <div class="material-group material-section property number">
+                    <label>Blend Factor </label>
+                    <input type="number" id="property-blend-factor" min="0" max="1" step="0.1">
+                </div>
+
+                <div class="material-group material-section property number">
+                    <label>Priority </label>
+                    <input type="number" id="property-priority">
+                </div>
+
+                <div class="material-group material-section property number">
+                    <label>Shape ID </label>
+                    <input type="number" id="property-shape-id" min="0">
+                </div>
+
+                <div class="material-group material-section property tuple">
+                    <label>Material Bounds </label>
+                    <div><input type="number" class="x" id="property-material-bounds-x" min="0" max="1" step="0.1"><label for="property-material-bounds-x">Left:</label></div>
+                    <div><input type="number" class="y" id="property-material-bounds-y" min="0" max="1" step="0.1"><label for="property-material-bounds-y">Top:</label></div>
+                    <div><input type="number" class="z" id="property-material-bounds-z" min="0" max="1" step="0.1"><label for="property-material-bounds-z">Right:</label></div>
+                    <div><input type="number" class="w" id="property-material-bounds-w" min="0" max="1" step="0.1"><label for="property-material-bounds-w">Bottom:</label></div>
+                </div>
+
+            </fieldset>
+        </fieldset>
+
     </div>
 </body>
 

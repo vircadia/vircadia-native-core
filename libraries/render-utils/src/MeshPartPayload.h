@@ -17,7 +17,6 @@
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
-#include <render/ShapePipeline.h>
 
 #include <graphics/Geometry.h>
 
@@ -49,8 +48,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch);
-    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
-    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
+    virtual void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
     Transform _drawTransform;
@@ -63,7 +61,7 @@ public:
     mutable graphics::Box _worldBound;
     std::shared_ptr<const graphics::Mesh> _drawMesh;
 
-    std::shared_ptr<const graphics::Material> _drawMaterial;
+    std::shared_ptr<graphics::Material> _drawMaterial;
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
@@ -109,7 +107,7 @@ public:
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+    void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
 
     void computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms);
 

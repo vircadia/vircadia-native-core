@@ -115,6 +115,17 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 
+QHash<QString, MaterialMode> stringToMaterialModeLookup;
+
+void addMaterialMode(MaterialMode mode) {
+    stringToMaterialModeLookup[MaterialModeHelpers::getNameForMaterialMode(mode)] = mode;
+}
+
+void buildStringToMaterialModeLookup() {
+    addMaterialMode(UV);
+    addMaterialMode(PROJECTED);
+}
+
 QString getCollisionGroupAsString(uint8_t group) {
     switch (group) {
         case USER_COLLISION_GROUP_DYNAMIC:
@@ -259,6 +270,21 @@ void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
     }
 }
 
+QString EntityItemProperties::getMaterialModeAsString() const {
+    return MaterialModeHelpers::getNameForMaterialMode(_materialMode);
+}
+
+void EntityItemProperties::setMaterialModeFromString(const QString& materialMode) {
+    if (stringToMaterialModeLookup.empty()) {
+        buildStringToMaterialModeLookup();
+    }
+    auto materialModeItr = stringToMaterialModeLookup.find(materialMode.toLower());
+    if (materialModeItr != stringToMaterialModeLookup.end()) {
+        _materialMode = materialModeItr.value();
+        _materialModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -329,7 +355,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
-
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_TYPE, materialMode);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
@@ -635,7 +660,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Materials
     if (_type == EntityTypes::Material) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_URL, materialURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_TYPE, materialMode);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_MATERIAL_TYPE, materialMode, getMaterialModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_SHAPE_ID, shapeID);
@@ -776,7 +801,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMode, MaterialMode, setMaterialMode);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(materialMode, MaterialMode, setMaterialMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(blendFactor, float, setBlendFactor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, int, setPriority);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(shapeID, int, setShapeID);
@@ -1134,6 +1159,13 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
+
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_BLEND_FACTOR, BlendFactor, blendFactor, float);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_BOUNDS, MaterialBounds, materialBounds, glmVec4);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2067,6 +2099,13 @@ void EntityItemProperties::markAllChanged() {
     //_alphaStartChanged = true;
     //_alphaFinishChanged = true;
 
+    _materialURLChanged = true;
+    _materialModeChanged = true;
+    _blendFactorChanged = true;
+    _priorityChanged = true;
+    _shapeIDChanged = true;
+    _materialBoundsChanged = true;
+
     // Certifiable Properties
     _itemNameChanged = true;
     _itemDescriptionChanged = true;
@@ -2389,6 +2428,24 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (radiusFinishChanged()) {
         out += "radiusFinish";
+    }
+    if (materialURLChanged()) {
+        out += "materialURL";
+    }
+    if (materialModeChanged()) {
+        out += "materialMode";
+    }
+    if (blendFactorChanged()) {
+        out += "blendFactor";
+    }
+    if (priorityChanged()) {
+        out += "priority";
+    }
+    if (shapeIDChanged()) {
+        out += "shapeID";
+    }
+    if (materialBoundsChanged()) {
+        out += "materialBounds";
     }
 
     // Certifiable Properties

@@ -59,7 +59,6 @@ protected:
     virtual void onAddToScene(const EntityItemPointer& entity);
     virtual void onRemoveFromScene(const EntityItemPointer& entity);
 
-protected:
     EntityRenderer(const EntityItemPointer& entity);
     ~EntityRenderer();
 

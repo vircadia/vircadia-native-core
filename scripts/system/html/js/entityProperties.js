@@ -24,7 +24,8 @@ var ICON_FOR_TYPE = {
     Zone: "o",
     PolyVox: "&#xe005;",
     Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;"
+    PolyLine: "&#xe01b;",
+    Material: "&#xe008;"
 };
 
 var EDITOR_TIMEOUT_DURATION = 1500;
@@ -77,7 +78,6 @@ function disableProperties() {
     if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
         showStaticUserData();
     }
-
 }
 
 function showElements(els, show) {
@@ -187,6 +187,19 @@ function createEmitGroupVec3PropertyUpdateFunction(group, property, elX, elY, el
             x: elX.value,
             y: elY.value,
             z: elZ ? elZ.value : 0
+        };
+        updateProperties(properties);
+    };
+}
+
+function createEmitVec4PropertyUpdateFunction(property, elX, elY, elZ, elW) {
+    return function () {
+        var properties = {};
+        properties[property] = {
+            x: elX.value,
+            y: elY.value,
+            z: elZ.value,
+            w: elW.value
         };
         updateProperties(properties);
     };
@@ -473,7 +486,6 @@ function bindAllNonJSONEditorElements() {
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
-
                 }
             }
         });
@@ -620,6 +632,16 @@ function loaded() {
         var elModelAnimationAllowTranslation = document.getElementById("property-model-animation-allow-translation");
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
+
+        var elMaterialURL = document.getElementById("property-material-url");
+        var elMaterialMode = document.getElementById("property-material-mode");
+        var elBlendFactor = document.getElementById("property-blend-factor");
+        var elPriority = document.getElementById("property-priority");
+        var elShapeID = document.getElementById("property-shape-id");
+        var elMaterialBoundsX = document.getElementById("property-material-bounds-x");
+        var elMaterialBoundsY = document.getElementById("property-material-bounds-y");
+        var elMaterialBoundsZ = document.getElementById("property-material-bounds-z");
+        var elMaterialBoundsW = document.getElementById("property-material-bounds-w");
 
         var elWebSourceURL = document.getElementById("property-web-source-url");
         var elWebDPI = document.getElementById("property-web-dpi");
@@ -1105,6 +1127,17 @@ function loaded() {
                             elXTextureURL.value = properties.xTextureURL;
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
+                        } else if (properties.type === "Material") {
+                            elMaterialURL.value = properties.materialURL;
+                            elMaterialMode.value = properties.materialMode;
+                            setDropdownText(elMaterialMode);
+                            elBlendFactor.value = properties.blendFactor.toFixed(2);
+                            elPriority.value = properties.priority;
+                            elShapeID.value = properties.shapeID;
+                            elMaterialBoundsX.value = properties.materialBounds.x.toFixed(2);
+                            elMaterialBoundsY.value = properties.materialBounds.y.toFixed(2);
+                            elMaterialBoundsZ.value = properties.materialBounds.z.toFixed(2);
+                            //elMaterialBoundsW.value = properties.materialBounds.w.toFixed(2);
                         }
 
                         if (properties.locked) {
@@ -1374,6 +1407,19 @@ function loaded() {
             createEmitGroupCheckedPropertyUpdateFunction('animation', 'allowTranslation'));
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
+
+        elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
+        elMaterialMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMode'));
+        elBlendFactor.addEventListener('change', createEmitNumberPropertyUpdateFunction('blendFactor', 2));
+        elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority'));
+        elShapeID.addEventListener('change', createEmitNumberPropertyUpdateFunction('shapeID'));
+
+        var materialBoundsChangeFunction = createEmitVec4PropertyUpdateFunction('materialBounds',
+            elMaterialBoundsX, elMaterialBoundsY, elMaterialBoundsZ, elMaterialBoundsW);
+        elMaterialBoundsX.addEventListener('change', materialBoundsChangeFunction);
+        elMaterialBoundsY.addEventListener('change', materialBoundsChangeFunction);
+        elMaterialBoundsZ.addEventListener('change', materialBoundsChangeFunction);
+        elMaterialBoundsW.addEventListener('change', materialBoundsChangeFunction);
 
         elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
         elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));

@@ -25,6 +25,7 @@
 #include "RenderableTextEntityItem.h"
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
+#include "RenderableMaterialEntityItem.h"
 
 
 using namespace render;
@@ -245,6 +246,10 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
 
         case Type::Zone:
             result = make_renderer<ZoneEntityRenderer>(entity);
+            break;
+
+        case Type::Material:
+            result = make_renderer<MaterialEntityRenderer>(entity);
             break;
 
         default:

@@ -9,9 +9,16 @@
 #ifndef hifi_MaterialMode_h
 #define hifi_MaterialMode_h
 
+#include "QString"
+
 enum MaterialMode {
     UV = 0,
     PROJECTED
+};
+
+class MaterialModeHelpers {
+public:
+    static QString getNameForMaterialMode(MaterialMode mode);
 };
 
 #endif // hifi_MaterialMode_h

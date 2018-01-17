@@ -251,7 +251,7 @@ var toolBar = (function () {
             // Align entity with Avatar orientation.
             properties.rotation = MyAvatar.orientation;
             
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     
                 // Adjust position of entity per bounding box prior to creating it.
@@ -354,6 +354,9 @@ var toolBar = (function () {
     var SHAPE_TYPE_SPHERE = 5;
     var DYNAMIC_DEFAULT = false;
 
+    var MATERIAL_MODE_UV = 0;
+    var MATERIAL_MODE_PROJECTED = 1;
+
     function handleNewModelDialogResult(result) {
         if (result) {
             var url = result.textInput;
@@ -394,6 +397,28 @@ var toolBar = (function () {
         }
     }
 
+    function handleNewMaterialDialogResult(result) {
+        if (result) {
+            var json = result.textInput;
+            var materialMode;
+            switch (result.comboBox) {
+                case MATERIAL_MODE_PROJECTED:
+                    materialMode = "projected";
+                    break;
+                default:
+                    shapeType = "uv";
+            }
+
+            if (json) {
+                createNewEntity({
+                    type: "Material",
+                    materialURL: json,
+                    materialMode: materialMode
+                });
+            }
+        }
+    }
+
     function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         tablet.popFromStack();
@@ -403,6 +428,9 @@ var toolBar = (function () {
             break;
         case "newEntityButtonClicked":
             buttonHandlers[message.params.buttonName]();
+            break;
+        case "newMaterialDialogAdd":
+            handleNewMaterialDialogResult(message.params);
             break;
         }
     }
@@ -612,6 +640,17 @@ var toolBar = (function () {
                 polarFinish: 0,
                 textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
+        });
+
+        addButton("newMaterialButton", "model-01.svg", function () {
+            var MATERIAL_MODES = [];
+            MATERIAL_MODES[MATERIAL_MODE_UV] = "UV space material";
+            MATERIAL_MODES[MATERIAL_MODE_PROJECTED] = "3D projected material";
+            var MATERIAL_MODE_DEFAULT = MATERIAL_MODE_UV;
+
+            // tablet version of new material dialog
+            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet.pushOntoStack("NewMaterialDialog.qml");
         });
 
         that.setActive(false);
@@ -1983,7 +2022,7 @@ var PropertiesTool = function (opts) {
                     );
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name !== undefined || data.properties.modelURL !== undefined ||
+                if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.materialURL !== undefined ||
                         data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
@@ -1994,7 +2033,7 @@ var PropertiesTool = function (opts) {
             parentSelectedEntities();
         } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if (data.type === 'saveUserData'){
+        } else if (data.type === 'saveUserData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);

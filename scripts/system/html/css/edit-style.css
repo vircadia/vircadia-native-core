@@ -448,7 +448,7 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
-.shape-section, .light-section, .model-section, .web-section, .hyperlink-section, .text-section, .zone-section {
+.shape-section, .light-section, .model-section, .web-section, .hyperlink-section, .text-section, .zone-section, .material-section {
     display: table;
 }
 
@@ -570,6 +570,7 @@ hr {
 .physical-group[collapsed="true"] ~ .physical-group,
 .behavior-group[collapsed="true"] ~ .behavior-group,
 .model-group[collapsed="true"] ~ .model-group,
+.material-group[collapsed="true"] ~ .material-group,
 .light-group[collapsed="true"] ~ .light-group {
     display: none !important;
 }
@@ -1386,7 +1387,7 @@ input#reset-to-natural-dimensions {
 }
 
 
-#static-userdata{
+#static-userdata {
     display: none;
     z-index: 99;
     position: absolute;
@@ -1397,7 +1398,7 @@ input#reset-to-natural-dimensions {
     background-color: #2e2e2e;
 }
 
-#userdata-saved{
+#userdata-saved {
     margin-top:5px;
     font-size:16px;
     display:none;
@@ -1454,6 +1455,9 @@ input#reset-to-natural-dimensions {
     order: 6;
 }
 
+#properties-list.ShapeMenu #material,
+#properties-list.BoxMenu #material,
+#properties-list.SphereMenu #material,
 #properties-list.ShapeMenu #light,
 #properties-list.BoxMenu #light,
 #properties-list.SphereMenu #light,
@@ -1490,6 +1494,7 @@ input#reset-to-natural-dimensions {
 }
 
 /* items to hide    */
+#properties-list.ParticleEffectMenu #material,
 #properties-list.ParticleEffectMenu #base-color-section,
 #properties-list.ParticleEffectMenu #hyperlink,
 #properties-list.ParticleEffectMenu #light,
@@ -1524,6 +1529,7 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.LightMenu #material,
 #properties-list.LightMenu #model,
 #properties-list.LightMenu #zone,
 #properties-list.LightMenu #text,
@@ -1560,6 +1566,7 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.ModelMenu #material,
 #properties-list.ModelMenu #light,
 #properties-list.ModelMenu #zone,
 #properties-list.ModelMenu #text,
@@ -1596,6 +1603,7 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.ZoneMenu #material,
 #properties-list.ZoneMenu #light,
 #properties-list.ZoneMenu #model,
 #properties-list.ZoneMenu #text,
@@ -1632,6 +1640,7 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.WebMenu #material,
 #properties-list.WebMenu #light,
 #properties-list.WebMenu #model,
 #properties-list.WebMenu #zone,
@@ -1669,6 +1678,7 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.TextMenu #material,
 #properties-list.TextMenu #light,
 #properties-list.TextMenu #model,
 #properties-list.TextMenu #zone,
@@ -1678,6 +1688,39 @@ input#reset-to-natural-dimensions {
 /* items to hide */
 #properties-list.TextMenu #shape-list,
 #properties-list.TextMenu #base-color-section {
+    display: none
+}
+
+/* -----   Order of Menu items for Material   ----- */
+#properties-list.MaterialMenu #general {
+    order: 1;
+}
+#properties-list.MaterialMenu #material {
+    order: 2;
+}
+#properties-list.MaterialMenu #spatial {
+    order: 3;
+}
+#properties-list.MaterialMenu #hyperlink {
+    order: 4;
+}
+#properties-list.MaterialMenu #behavior {
+    order: 5;
+}
+
+/* sections to hide    */
+#properties-list.MaterialMenu #physical,
+#properties-list.MaterialMenu #collision-info,
+#properties-list.MaterialMenu #model,
+#properties-list.MaterialMenu #light,
+#properties-list.MaterialMenu #zone,
+#properties-list.MaterialMenu #text,
+#properties-list.MaterialMenu #web {
+    display: none;
+}
+/* items to hide */
+#properties-list.MaterialMenu #shape-list,
+#properties-list.MaterialMenu #base-color-section {
     display: none
 }
 

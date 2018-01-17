@@ -242,6 +242,29 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
     return glm::vec3(0);
 }
 
+inline glmVec4 glmVec4_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = false; /// assume it can't be converted
+    QScriptValue x = v.property("x");
+    QScriptValue y = v.property("y");
+    QScriptValue z = v.property("z");
+    QScriptValue w = v.property("w");
+    if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+        glm::vec4 newValue(0);
+        newValue.x = x.toVariant().toFloat();
+        newValue.y = y.toVariant().toFloat();
+        newValue.z = z.toVariant().toFloat();
+        newValue.w = w.toVariant().toFloat();
+        isValid = !glm::isnan(newValue.x) &&
+            !glm::isnan(newValue.y) &&
+            !glm::isnan(newValue.z) &&
+            !glm::isnan(newValue.w);
+        if (isValid) {
+            return newValue;
+        }
+    }
+    return glm::vec4(0);
+}
+
 inline AACube AACube_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     AACube result;

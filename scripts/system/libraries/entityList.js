@@ -77,18 +77,24 @@ EntityListTool = function(opts) {
             var properties = Entities.getEntityProperties(id);
 
             if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                var url = "";
+                if (properties.type == "Model") {
+                    url = properties.modelURL;
+                } else if (properties.type == "Material") {
+                    url = properties.materialURL;
+                }
                 entities.push({
                     id: id,
                     name: properties.name,
                     type: properties.type,
-                    url: properties.type == "Model" ? properties.modelURL : "",
+                    url: url,
                     locked: properties.locked,
                     visible: properties.visible,
                     verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
                     texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
                     texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
                     hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
-                    isBaked: properties.type == "Model" ? properties.modelURL.toLowerCase().endsWith(".baked.fbx") : false, 
+                    isBaked: properties.type == "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
                     drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
                     hasScript: properties.script !== ""
                 });
