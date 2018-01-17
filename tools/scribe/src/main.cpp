@@ -56,6 +56,7 @@ int main (int argc, char** argv) {
     static const char* shaderCreateString[] = {
         "Vertex", "Pixel", "Geometry"
     };
+    std::string shaderStage{ "vert" };
 
     for (int ii = 1; (mode != EXIT) && (ii < argc); ii++) {
         inputs.push_back(argv[ii]);
@@ -124,10 +125,13 @@ int main (int argc, char** argv) {
             case GRAB_SHADER_TYPE:
             {
                 if (inputs.back() == "frag") {
+                    shaderStage = inputs.back();
                     type = FRAGMENT;
                 } else if (inputs.back() == "geom") {
+                    shaderStage = inputs.back();
                     type = GEOMETRY;
                 } else if (inputs.back() == "vert") {
+                    shaderStage = inputs.back();
                     type = VERTEX;
                 } else {
                     cerr << "Unrecognized shader type. Supported is vert, frag or geom" << endl;
@@ -217,6 +221,36 @@ int main (int argc, char** argv) {
         cerr << srcFilename << " tree:" << std::endl;
         scribe->displayTree(cerr, level);
     }
+
+    // This would be nice to implement but not sure how to handle GLSL version
+#if 0
+    // Check if we need to validate the code
+    auto validatorPath = getenv("SCRIBE_VALIDATOR");
+    if (validatorPath) {
+        // Create temporary file with shader code
+        char tempFileNameStub[L_tmpnam];
+        tmpnam(tempFileNameStub);
+        std::string tempFileName{ tempFileNameStub };
+        tempFileName += ".";
+        tempFileName += shaderStage;
+        std::ofstream tempStream(tempFileName);
+        if (tempStream.is_open()) {
+            tempStream << destStringStream.str();
+            tempStream.close();
+            std::string validationCommand{ validatorPath };
+            validationCommand += " ";
+            validationCommand += tempFileName;
+            cout << validationCommand << endl;
+            auto returnCode = system(validationCommand.c_str());
+            if (returnCode != 0) {
+                cerr << "Scribe shader " << targetName << " validation error." << endl;
+            }
+            //remove(tempFileName.c_str());
+        } else {
+            cerr << "Scribe is unable to write shader " << targetName << " to temporary file for validation." << endl;
+        }
+    }
+#endif
 
     if (makeCPlusPlus) {
         // Because there is a maximum size for literal strings declared in source we need to partition the 
