@@ -19,7 +19,7 @@
 #include <render/Scene.h>
 #include <render/ShapePipeline.h>
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 #include "Model.h"
 
@@ -28,17 +28,17 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() {}
-    MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material);
+    MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex);
+    virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
     void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
-    virtual void updateMaterial(model::MaterialPointer drawMaterial);
+    virtual void updateMaterial(graphics::MaterialPointer drawMaterial);
 
     // Render Item interface
     virtual render::ItemKey getKey() const;
@@ -58,13 +58,13 @@ public:
     int _partIndex = 0;
     bool _hasColorAttrib { false };
 
-    model::Box _localBound;
-    model::Box _adjustedLocalBound;
-    mutable model::Box _worldBound;
-    std::shared_ptr<const model::Mesh> _drawMesh;
+    graphics::Box _localBound;
+    graphics::Box _adjustedLocalBound;
+    mutable graphics::Box _worldBound;
+    std::shared_ptr<const graphics::Mesh> _drawMesh;
 
-    std::shared_ptr<const model::Material> _drawMaterial;
-    model::Mesh::Part _drawPart;
+    std::shared_ptr<const graphics::Material> _drawMaterial;
+    graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }

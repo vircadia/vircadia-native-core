@@ -1,6 +1,6 @@
 //
 //  Geometry.h
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 12/5/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -18,7 +18,7 @@
 #include <gpu/Resource.h>
 #include <gpu/Stream.h>
 
-namespace model {
+namespace graphics {
 typedef gpu::BufferView::Index Index;
 typedef gpu::BufferView BufferView;
 typedef AABox Box;
@@ -40,7 +40,7 @@ public:
     typedef gpu::Stream::Format VertexFormat;
     typedef std::map< Slot, BufferView > BufferViewMap;
 
-    typedef model::Vec3 Vec3;
+    typedef graphics::Vec3 Vec3;
 
     Mesh();
     Mesh(const Mesh& mesh);

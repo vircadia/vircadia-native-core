@@ -27,8 +27,8 @@
 #include <Extents.h>
 #include <Transform.h>
 
-#include <model/Geometry.h>
-#include <model/Material.h>
+#include <graphics/Geometry.h>
+#include <graphics/Material.h>
 
 class QIODevice;
 class FBXNode;

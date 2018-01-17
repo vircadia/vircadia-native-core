@@ -16,7 +16,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 
 class CollisionRenderMeshCache {
@@ -27,7 +27,7 @@ public:
     ~CollisionRenderMeshCache();
 
     /// \return pointer to geometry
-    model::MeshPointer getMesh(Key key);
+    graphics::MeshPointer getMesh(Key key);
 
     /// \return true if geometry was found and released
     bool releaseMesh(Key key);
@@ -40,7 +40,7 @@ public:
     bool hasMesh(Key key) const { return _meshMap.find(key) == _meshMap.end(); }
 
 private:
-    using CollisionMeshMap = std::unordered_map<Key, model::MeshPointer>;
+    using CollisionMeshMap = std::unordered_map<Key, graphics::MeshPointer>;
     CollisionMeshMap _meshMap;
     std::vector<Key> _pendingGarbage;
 };

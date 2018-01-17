@@ -11,7 +11,7 @@ link_hifi_libraries(
     physics
     audio audio-client
     ui midi controllers pointers
-    model model-networking fbx animation
+    graphics model-networking fbx animation
     entities entities-renderer
     avatars avatars-renderer
     ui-plugins input-plugins

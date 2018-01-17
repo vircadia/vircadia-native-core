@@ -1,6 +1,6 @@
 //
 //  MakeHaze.h
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Nissim Hadar on 9/13/2017.
 //  Copyright 2014 High Fidelity, Inc.
@@ -17,7 +17,7 @@
 #include "Transform.h"
 #include "NumericalConstants.h"
 
-namespace model {
+namespace graphics {
     // Haze range is defined here as the range the visibility is reduced by 95%
     // Haze altitude is defined here as the altitude (above 0) that the haze is reduced by 95%
 

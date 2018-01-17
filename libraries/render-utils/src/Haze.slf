@@ -12,7 +12,7 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>

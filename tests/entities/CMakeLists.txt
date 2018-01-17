@@ -7,7 +7,7 @@ setup_memory_debugger()
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries
-link_hifi_libraries(entities avatars shared octree gpu model fbx networking animation audio gl)
+link_hifi_libraries(entities avatars shared octree gpu graphics fbx networking animation audio gl)
 
 if (WIN32)
   add_dependency_external_projects(wasapi)

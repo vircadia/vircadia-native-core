@@ -46,7 +46,7 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
 const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<model::MaterialPointer> _collisionMaterials;
+std::vector<graphics::MaterialPointer> _collisionMaterials;
 
 void initCollisionMaterials() {
     // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
@@ -72,8 +72,8 @@ void initCollisionMaterials() {
     // so they don't tend to group together for large models
     for (int i = 0; i < sectionWidth; ++i) {
         for (int j = 0; j < numComponents; ++j) {
-            model::MaterialPointer material;
-            material = std::make_shared<model::Material>();
+            graphics::MaterialPointer material;
+            material = std::make_shared<graphics::Material>();
             int index = j * sectionWidth + i;
             float red = component[index];
             float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
@@ -559,7 +559,7 @@ MeshProxyList Model::getMeshes() const {
     offset.postTranslate(_offset);
     glm::mat4 offsetMat = offset.getMatrix();
 
-    for (std::shared_ptr<const model::Mesh> mesh : meshes) {
+    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
         if (!mesh) {
             continue;
         }
@@ -1481,7 +1481,7 @@ void Model::createCollisionRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
+            graphics::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
             auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
             payload->updateTransform(identity, offset);
             _collisionRenderItems << payload;
@@ -1495,7 +1495,7 @@ bool Model::isRenderable() const {
 
 class CollisionRenderGeometry : public Geometry {
 public:
-    CollisionRenderGeometry(model::MeshPointer mesh) {
+    CollisionRenderGeometry(graphics::MeshPointer mesh) {
         _fbxGeometry = std::make_shared<FBXGeometry>();
         std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
         meshes->push_back(mesh);
@@ -1504,7 +1504,7 @@ public:
     }
 };
 
-void Model::setCollisionMesh(model::MeshPointer mesh) {
+void Model::setCollisionMesh(graphics::MeshPointer mesh) {
     if (mesh) {
         _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
     } else {

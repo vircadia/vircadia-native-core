@@ -11,8 +11,8 @@
 <@if not MODEL_LIGHT_SLH@>
 <@def MODEL_LIGHT_SLH@>
 
-<@include model/LightVolume.shared.slh@>
-<@include model/LightIrradiance.shared.slh@>
+<@include graphics/LightVolume.shared.slh@>
+<@include graphics/LightIrradiance.shared.slh@>
 
 // NOw lets define Light
 struct Light {
@@ -30,7 +30,7 @@ float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradia
 vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
 
 // AMbient lighting needs extra info provided from a different Buffer
-<@include model/SphericalHarmonics.shared.slh@>
+<@include graphics/SphericalHarmonics.shared.slh@>
 // Light Ambient
 struct LightAmbient {
     vec4 _ambient;
