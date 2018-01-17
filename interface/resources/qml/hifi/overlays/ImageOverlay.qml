@@ -7,7 +7,7 @@ import "."
 Overlay {
     id: root
 
-    Image {
+    AnimatedImage {
         id: image
         property bool scaleFix: true
         property real xStart: 0
