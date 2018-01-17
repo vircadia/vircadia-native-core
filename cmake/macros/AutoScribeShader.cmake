@@ -132,7 +132,7 @@ macro(AUTOSCRIBE_SHADER_LIB)
   if (WIN32)
     source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})
     source_group("Shaders" FILES ${SHADER_SOURCE_FILES})
-    source_group("Shaders" FILES ${AUTOSCRIBE_SHADER_SRC})
+    source_group("Shaders\\generated" FILES ${AUTOSCRIBE_SHADER_SRC})
   endif()
 
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
