@@ -1050,16 +1050,6 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     }
 }
 
-void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                            const QVector<int>& freeLineage, glm::mat4 rootTransform) {
-    ASSERT(false);
-}
-
-bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
-    ASSERT(false);
-    return false;
-}
-
 float Rig::getLimbLength(int jointIndex, const QVector<int>& freeLineage,
                          const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const {
     ASSERT(false);

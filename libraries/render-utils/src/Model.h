@@ -199,8 +199,6 @@ public:
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
 
-    void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
-
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
 
@@ -367,12 +365,6 @@ protected:
 
     void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
-
-    /// Restores the indexed joint to its default position.
-    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
-    /// the original position
-    /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
 
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.

@@ -173,10 +173,6 @@ public:
     void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
 
     // legacy
-    void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 rootTransform);
-
-    // legacy
     bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
 
     // legacy

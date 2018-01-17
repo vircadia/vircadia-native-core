@@ -57,22 +57,12 @@ public:
     /// \return true whether or not the position was found
     bool getRightHandPosition(glm::vec3& position) const;
 
-    /// Restores some fraction of the default position of the left hand.
-    /// \param fraction the fraction of the default position to restore
-    /// \return whether or not the left hand joint was found
-    bool restoreLeftHandPosition(float fraction = 1.0f, float priority = 1.0f);
-
     /// Gets the position of the left shoulder.
     /// \return whether or not the left shoulder joint was found
     bool getLeftShoulderPosition(glm::vec3& position) const;
 
     /// Returns the extended length from the left hand to its last free ancestor.
     float getLeftArmLength() const;
-
-    /// Restores some fraction of the default position of the right hand.
-    /// \param fraction the fraction of the default position to restore
-    /// \return whether or not the right hand joint was found
-    bool restoreRightHandPosition(float fraction = 1.0f, float priority = 1.0f);
 
     /// Gets the position of the right shoulder.
     /// \return whether or not the right shoulder joint was found
