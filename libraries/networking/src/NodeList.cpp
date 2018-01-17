@@ -44,7 +44,6 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(),
     _domainHandler(this),
-    _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
     _keepAlivePingTimer(this)
 {
@@ -239,8 +238,6 @@ void NodeList::reset() {
 
     LimitedNodeList::reset();
 
-    _numNoReplyDomainCheckIns = 0;
-
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
@@ -410,15 +407,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
 
-        if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-            // so emit our signal that says that
-            qCDebug(networking) << "Limit of silent domain checkins reached";
-            emit limitOfSilentDomainCheckInsReached();
-        }
-
-        // increment the count of un-replied check-ins
-        _numNoReplyDomainCheckIns++;
+        // let the domain handler know we sent another check in or connect packet
+        _domainHandler.sentCheckInPacket();
     }
 }
 
@@ -585,7 +575,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     }
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
-    _numNoReplyDomainCheckIns = 0;
+    _domainHandler.domainListReceived();
 
     // emit our signal so listeners know we just heard from the DS
     emit receivedDomainServerList();
