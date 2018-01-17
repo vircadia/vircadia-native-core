@@ -71,7 +71,7 @@ const QString& PathUtils::resourcesPath() {
         char buffer[8192];
         uint32_t bufferSize = sizeof(buffer);
         _NSGetExecutablePath(buffer, &bufferSize);
-        staticResourcePath = QFileInfo(buffer).dir().absoluteFilePath("../Resources") + "/";
+        staticResourcePath = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
 #else
         staticResourcePath = ":/";
 #endif
@@ -94,7 +94,7 @@ const QString& PathUtils::resourcesUrl() {
     std::call_once(once, [&]{
 
 #if defined(Q_OS_OSX)
-        QUrl::fromLocalFile(resourcesPath()).toString();
+        staticResourcePath = QUrl::fromLocalFile(resourcesPath()).toString();
 #else
         staticResourcePath = "qrc:///";
 #endif
