@@ -161,7 +161,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -187,7 +187,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
