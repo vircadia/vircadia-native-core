@@ -42,10 +42,14 @@ public:
         EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
         bool& somethingChanged) override;
 
+    void setUnscaledDimensions(const glm::vec3& value) override;
 
     static const QString DEFAULT_IMAGE_URL;
     virtual void setImageURL(const QString& value);
     QString getImageURL() const;
+
+    //virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual ShapeType getShapeType() const override;
 
 protected:
     QString _imageURL;

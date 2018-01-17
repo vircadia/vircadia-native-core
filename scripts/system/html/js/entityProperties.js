@@ -133,6 +133,11 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
     };
 }
 
+function createImageURLUpdateFunction(propertyName) {
+    return function() {
+        updateProperty(propertyName, this.value);
+    }
+}
 
 function createEmitTextPropertyUpdateFunction(propertyName) {
     return function() {
@@ -621,6 +626,8 @@ function loaded() {
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
+        var elImageURL = document.getElementById("property-image-url");
+
         var elWebSourceURL = document.getElementById("property-web-source-url");
         var elWebDPI = document.getElementById("property-web-dpi");
 
@@ -985,6 +992,8 @@ function loaded() {
                         } else if (properties.type === "Web") {
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
+                        } else if (properties.type === "Image") {
+                            elImageURL.value = properties.imageURL;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
@@ -1351,6 +1360,8 @@ function loaded() {
         elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
+        elImageURL.addEventListener('change', createImageURLUpdateFunction('imageURL'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
         elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));

@@ -79,7 +79,6 @@ void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
     // Using "Quad" shape as defined in ShapeEntityItem.cpp
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE, "Quad");
     APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, _imageURL);
 }
 
@@ -96,7 +95,7 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     return bytesRead;
 }
 
-/*void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
+void ImageEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
     if (value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
@@ -106,7 +105,7 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     } else {
         EntityItem::setUnscaledDimensions(value);
     }
-}*/
+}
 
 void ImageEntityItem::setImageURL(const QString& value) {
     withWriteLock([&] {
@@ -128,3 +127,14 @@ QString ImageEntityItem::getImageURL() const {
     });
 }
 
+/*void ImageEntityItem::computeShapeInfo(ShapeInfo& info) {
+    // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
+    // is set.
+
+    EntityItem::computeShapeInfo(info);
+}*/
+
+// This value specifies how the shape should be treated by physics calculations.
+ShapeType ImageEntityItem::getShapeType() const {
+    return _collisionShapeType;
+}
