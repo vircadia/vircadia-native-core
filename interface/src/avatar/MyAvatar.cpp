@@ -1062,11 +1062,6 @@ void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
 }
 
-void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
-    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
-    reset(true);
-}
-
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }

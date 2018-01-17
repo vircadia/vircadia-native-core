@@ -594,7 +594,6 @@ public slots:
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe

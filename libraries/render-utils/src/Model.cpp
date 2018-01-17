@@ -1265,25 +1265,6 @@ void Model::updateClusterMatrices() {
     }
 }
 
-void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
-    _rig.inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
-}
-
-bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.restoreJointPosition(jointIndex, fraction, priority, freeLineage);
-}
-
-float Model::getLimbLength(int jointIndex) const {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
-}
-
 bool Model::maybeStartBlender() {
     if (isLoaded()) {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
