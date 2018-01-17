@@ -241,16 +241,8 @@ bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
 }
 
-float SkeletonModel::getLeftArmLength() const {
-    return getLimbLength(getLeftHandJointIndex());
-}
-
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
-float SkeletonModel::getRightArmLength() const {
-    return getLimbLength(getRightHandJointIndex());
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {

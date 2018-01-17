@@ -366,10 +366,6 @@ protected:
     void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
-    /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
-    /// first free ancestor.
-    float getLimbLength(int jointIndex) const;
-
     /// Allow sub classes to force invalidating the bboxes
     void invalidCalculatedMeshBoxes() {
         _triangleSetsValid = false;

@@ -1259,12 +1259,6 @@ void Model::updateClusterMatrices() {
     }
 }
 
-float Model::getLimbLength(int jointIndex) const {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
-}
-
 bool Model::maybeStartBlender() {
     if (isLoaded()) {
         const FBXGeometry& fbxGeometry = getFBXGeometry();

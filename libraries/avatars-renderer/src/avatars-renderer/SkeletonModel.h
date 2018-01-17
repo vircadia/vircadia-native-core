@@ -68,9 +68,6 @@ public:
     /// \return whether or not the right shoulder joint was found
     bool getRightShoulderPosition(glm::vec3& position) const;
 
-    /// Returns the extended length from the right hand to its first free ancestor.
-    float getRightArmLength() const;
-
     /// Returns the position of the head joint.
     /// \return whether or not the head was found
     bool getHeadPosition(glm::vec3& headPosition) const;
