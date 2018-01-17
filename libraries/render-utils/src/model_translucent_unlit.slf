@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>

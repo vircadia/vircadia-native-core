@@ -18,7 +18,7 @@
 
 <$declareStandardTransform()$>
 
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 <$declareLightBuffer(256)$>
 
 uniform lightIndexBuffer {

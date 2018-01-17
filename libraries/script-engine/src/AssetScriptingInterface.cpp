@@ -16,8 +16,10 @@
 #include <AssetRequest.h>
 #include <AssetUpload.h>
 #include <MappingRequest.h>
-#include <NetworkLogging.h>
 #include <NodeList.h>
+
+#include "ScriptEngineLogging.h"
+
 
 AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
     _engine(engine)
@@ -53,10 +55,32 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
     setMappingRequest->start();
 }
 
+void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
+    auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(path);
+    QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
+        auto result = request->getError();
+        if (callback.isFunction()) {
+            if (result == GetMappingRequest::NotFound) {
+                QScriptValueList args { "", true };
+                callback.call(_engine->currentContext()->thisObject(), args);
+            } else if (result == GetMappingRequest::NoError) {
+                QScriptValueList args { request->getHash(), true };
+                callback.call(_engine->currentContext()->thisObject(), args);
+            } else {
+                qCDebug(scriptengine) << "error -- " << request->getError() << " -- " << request->getErrorString();
+                QScriptValueList args { "", false };
+                callback.call(_engine->currentContext()->thisObject(), args);
+            }
+            request->deleteLater();
+        }
+    });
+    request->start();
+}
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
 
     if (!urlString.startsWith(ATP_SCHEME)) {
+        qCDebug(scriptengine) << "AssetScriptingInterface::downloadData url must be of form atp:<hash-value>";
         return;
     }
 

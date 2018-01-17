@@ -6,6 +6,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelLogging.h"
+#include "GraphicsLogging.h"
 
-Q_LOGGING_CATEGORY(modelLog, "hifi.model")
+Q_LOGGING_CATEGORY(graphicsLog, "hifi.graphics")

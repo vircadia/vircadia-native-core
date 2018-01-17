@@ -1,6 +1,6 @@
 //
 //  Light.h
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 12/10/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -19,7 +19,7 @@
 #include "gpu/Resource.h"
 #include "gpu/Texture.h"
 
-namespace model {
+namespace graphics {
 typedef gpu::BufferView UniformBufferView;
 typedef gpu::TextureView TextureView;
 typedef glm::vec3 Vec3;

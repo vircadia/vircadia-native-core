@@ -11,7 +11,7 @@
 #ifndef hifi_render_utils_HazeStage_h
 #define hifi_render_utils_HazeStage_h
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <set>
 #include <unordered_map>
 #include <render/IndexedContainer.h>
@@ -19,7 +19,7 @@
 
 #include <render/Forward.h>
 #include <render/DrawTask.h>
-#include <model/Haze.h>
+#include <graphics/Haze.h>
 
 // Haze stage to set up haze-related rendering tasks
 class HazeStage : public render::Stage {
@@ -31,8 +31,8 @@ public:
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
-    using HazePointer = model::HazePointer;
-    using Hazes = render::indexed_container::IndexedPointerVector<model::Haze>;
+    using HazePointer = graphics::HazePointer;
+    using Hazes = render::indexed_container::IndexedPointerVector<graphics::Haze>;
     using HazeMap = std::unordered_map<HazePointer, Index>;
 
     using HazeIndices = std::vector<Index>;
@@ -106,11 +106,11 @@ class FetchHazeConfig : public render::Job::Config {
 public:
     FetchHazeConfig() : render::Job::Config() {}
 
-    glm::vec3 hazeColor{ model::Haze::INITIAL_HAZE_COLOR };
-    float hazeGlareAngle{ model::Haze::INITIAL_HAZE_GLARE_ANGLE };
+    glm::vec3 hazeColor{ graphics::Haze::INITIAL_HAZE_COLOR };
+    float hazeGlareAngle{ graphics::Haze::INITIAL_HAZE_GLARE_ANGLE };
 
-    glm::vec3 hazeGlareColor{ model::Haze::INITIAL_HAZE_GLARE_COLOR };
-    float hazeBaseReference{ model::Haze::INITIAL_HAZE_BASE_REFERENCE };
+    glm::vec3 hazeGlareColor{ graphics::Haze::INITIAL_HAZE_GLARE_COLOR };
+    float hazeBaseReference{ graphics::Haze::INITIAL_HAZE_BASE_REFERENCE };
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
@@ -118,13 +118,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange{ model::Haze::INITIAL_HAZE_RANGE };
-    float hazeHeight{ model::Haze::INITIAL_HAZE_HEIGHT };
+    float hazeRange{ graphics::Haze::INITIAL_HAZE_RANGE };
+    float hazeHeight{ graphics::Haze::INITIAL_HAZE_HEIGHT };
 
-    float hazeKeyLightRange{ model::Haze::INITIAL_KEY_LIGHT_RANGE };
-    float hazeKeyLightAltitude{ model::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
+    float hazeKeyLightRange{ graphics::Haze::INITIAL_KEY_LIGHT_RANGE };
+    float hazeKeyLightAltitude{ graphics::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
 
-    float hazeBackgroundBlend{ model::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
+    float hazeBackgroundBlend{ graphics::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
 
 public slots:
     void setHazeColor(const glm::vec3 value) { hazeColor = value; emit dirty(); }
@@ -154,15 +154,15 @@ signals:
 class FetchHazeStage {
 public:
     using Config = FetchHazeConfig;
-    using JobModel = render::Job::ModelO<FetchHazeStage, model::HazePointer, Config>;
+    using JobModel = render::Job::ModelO<FetchHazeStage, graphics::HazePointer, Config>;
 
     FetchHazeStage();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, model::HazePointer& haze);
+    void run(const render::RenderContextPointer& renderContext, graphics::HazePointer& haze);
 
 private:
-    model::HazePointer _haze;
+    graphics::HazePointer _haze;
     gpu::PipelinePointer _hazePipeline;
 };
 #endif

@@ -5465,7 +5465,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+    skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
@@ -6178,7 +6178,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
+            static const QUrl url("../dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
@@ -7398,11 +7398,13 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
-    qApp->setProperty(hifi::properties::HMD, isHMDMode());
-    if (isHMDMode()) {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
-    } else {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+    if (_settingsLoaded) {
+        qApp->setProperty(hifi::properties::HMD, isHMDMode());
+        if (isHMDMode()) {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
+        } else {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+        }
     }
 }
 
