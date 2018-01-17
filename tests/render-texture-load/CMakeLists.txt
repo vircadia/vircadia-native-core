@@ -15,7 +15,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 link_hifi_libraries(
     shared networking octree 
     gl gpu render ktx image animation 
-    model fbx model-networking 
+    graphics fbx model-networking 
     render-utils 
     entities entities-renderer audio avatars 
     script-engine physics 

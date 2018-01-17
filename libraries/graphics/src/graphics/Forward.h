@@ -1,6 +1,6 @@
 //
 //  Forward.h
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Bradley Austin Davis on 2017/06/21
 //  Copyright 2013-2017 High Fidelity, Inc.
@@ -11,7 +11,7 @@
 #ifndef hifi_model_Forward_h
 #define hifi_model_Forward_h
 
-namespace model {
+namespace graphics {
     class Mesh;
     using MeshPointer = std::shared_ptr<Mesh>;
 }

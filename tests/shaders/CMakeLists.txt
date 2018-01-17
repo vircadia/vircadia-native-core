@@ -9,7 +9,7 @@ setup_memory_debugger()
 
 # link in the shared libraries
 link_hifi_libraries(
-    shared octree gl gpu model render fbx networking entities 
+    shared octree gl gpu graphics render fbx networking entities 
     script-engine physics 
     render-utils entities-renderer
     ${PLATFORM_GL_BACKEND}
@@ -18,7 +18,7 @@ link_hifi_libraries(
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/gpu/")
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/render-utils/")
 include_directories("${PROJECT_BINARY_DIR}/../../libraries/entities-renderer/")
-include_directories("${PROJECT_BINARY_DIR}/../../libraries/model/")
+include_directories("${PROJECT_BINARY_DIR}/../../libraries/graphics/")
 
 if (WIN32)
   add_dependency_external_projects(wasapi)

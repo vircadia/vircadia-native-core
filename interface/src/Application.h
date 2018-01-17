@@ -71,7 +71,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 
@@ -270,7 +270,7 @@ public:
     void takeSecondaryCameraSnapshot();
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
@@ -667,7 +667,7 @@ private:
 
     ConnectionMonitor _connectionMonitor;
 
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 

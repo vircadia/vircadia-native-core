@@ -1,6 +1,6 @@
 //
 //  Skybox.h
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 5/4/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -19,7 +19,7 @@ class ViewFrustum;
 
 namespace gpu { class Batch; }
 
-namespace model {
+namespace graphics {
 
 typedef glm::vec3 Color;
 

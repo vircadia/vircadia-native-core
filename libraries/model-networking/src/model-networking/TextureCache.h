@@ -21,7 +21,7 @@
 
 #include <DependencyManager.h>
 #include <ResourceCache.h>
-#include <model/TextureMap.h>
+#include <graphics/TextureMap.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
 

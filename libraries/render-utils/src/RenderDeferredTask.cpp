@@ -322,7 +322,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         // Setup haze iff curretn zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
-            model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
+            graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
         }
 
