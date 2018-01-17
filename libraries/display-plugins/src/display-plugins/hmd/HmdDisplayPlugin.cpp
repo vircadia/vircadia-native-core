@@ -33,8 +33,8 @@
 #include "../Logging.h"
 #include "../CompositorHelper.h"
 
-#include "hmd_ui_vert.h"
-#include "hmd_ui_frag.h"
+#include "render-utils/hmd_ui_vert.h"
+#include "render-utils/hmd_ui_frag.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";
@@ -403,8 +403,8 @@ void HmdDisplayPlugin::HUDRenderer::build() {
 
 void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(hmd_ui_vert));
-        auto ps = gpu::Shader::createPixel(std::string(hmd_ui_frag));
+        auto vs = hmd_ui_vert::getShader();
+        auto ps = hmd_ui_frag::getShader();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::gl::GLBackend::makeProgram(*program, gpu::Shader::BindingSet());
         uniformsLocation = program->getUniformBuffers().findLocation("hudBuffer");

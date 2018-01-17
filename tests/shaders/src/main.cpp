@@ -23,65 +23,65 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
-#include "simple_vert.h"
-#include "simple_frag.h"
-#include "simple_textured_frag.h"
-#include "simple_textured_unlit_frag.h"
+#include "render-utils/simple_vert.h"
+#include "render-utils/simple_frag.h"
+#include "render-utils/simple_textured_frag.h"
+#include "render-utils/simple_textured_unlit_frag.h"
 
-#include "deferred_light_vert.h"
-#include "deferred_light_point_vert.h"
-#include "deferred_light_spot_vert.h"
+#include "render-utils/deferred_light_vert.h"
+#include "render-utils/deferred_light_point_vert.h"
+#include "render-utils/deferred_light_spot_vert.h"
 
-#include "directional_ambient_light_frag.h"
-#include "directional_skybox_light_frag.h"
+#include "render-utils/directional_ambient_light_frag.h"
+#include "render-utils/directional_skybox_light_frag.h"
 
-#include "standardTransformPNTC_vert.h"
-#include "standardDrawTexture_frag.h"
+#include "render-utils/standardTransformPNTC_vert.h"
+#include "render-utils/standardDrawTexture_frag.h"
 
-#include "model_vert.h"
-#include "model_shadow_vert.h"
-#include "model_normal_map_vert.h"
-#include "model_lightmap_vert.h"
-#include "model_lightmap_normal_map_vert.h"
-#include "skin_model_vert.h"
-#include "skin_model_shadow_vert.h"
-#include "skin_model_normal_map_vert.h"
+#include "render-utils/model_vert.h"
+#include "render-utils/model_shadow_vert.h"
+#include "render-utils/model_normal_map_vert.h"
+#include "render-utils/model_lightmap_vert.h"
+#include "render-utils/model_lightmap_normal_map_vert.h"
+#include "render-utils/skin_model_vert.h"
+#include "render-utils/skin_model_shadow_vert.h"
+#include "render-utils/skin_model_normal_map_vert.h"
 
-#include "model_frag.h"
-#include "model_shadow_frag.h"
-#include "model_normal_map_frag.h"
-#include "model_normal_specular_map_frag.h"
-#include "model_specular_map_frag.h"
-#include "model_lightmap_frag.h"
-#include "model_lightmap_normal_map_frag.h"
-#include "model_lightmap_normal_specular_map_frag.h"
-#include "model_lightmap_specular_map_frag.h"
-#include "model_translucent_frag.h"
+#include "render-utils/model_frag.h"
+#include "render-utils/model_shadow_frag.h"
+#include "render-utils/model_normal_map_frag.h"
+#include "render-utils/model_normal_specular_map_frag.h"
+#include "render-utils/model_specular_map_frag.h"
+#include "render-utils/model_lightmap_frag.h"
+#include "render-utils/model_lightmap_normal_map_frag.h"
+#include "render-utils/model_lightmap_normal_specular_map_frag.h"
+#include "render-utils/model_lightmap_specular_map_frag.h"
+#include "render-utils/model_translucent_frag.h"
 
-#include "textured_particle_frag.h"
-#include "textured_particle_vert.h"
+#include "entities-renderer/textured_particle_frag.h"
+#include "entities-renderer/textured_particle_vert.h"
 
-#include "overlay3D_vert.h"
-#include "overlay3D_frag.h"
+#include "render-utils/overlay3D_vert.h"
+#include "render-utils/overlay3D_frag.h"
 
-#include "skybox_vert.h"
-#include "skybox_frag.h"
+#include "model/skybox_vert.h"
+#include "model/skybox_frag.h"
 
-#include "DrawTransformUnitQuad_vert.h"
-#include "DrawTexcoordRectTransformUnitQuad_vert.h"
-#include "DrawViewportQuadTransformTexcoord_vert.h"
-#include "DrawTexture_frag.h"
-#include "DrawTextureOpaque_frag.h"
-#include "DrawColoredTexture_frag.h"
+#include "gpu/DrawTransformUnitQuad_vert.h"
+#include "gpu/DrawTexcoordRectTransformUnitQuad_vert.h"
+#include "gpu/DrawViewportQuadTransformTexcoord_vert.h"
+#include "gpu/DrawTexture_frag.h"
+#include "gpu/DrawTextureOpaque_frag.h"
+#include "gpu/DrawColoredTexture_frag.h"
 
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
+#include "render-utils/sdf_text3D_vert.h"
+#include "render-utils/sdf_text3D_frag.h"
 
-#include "paintStroke_vert.h"
-#include "paintStroke_frag.h"
+#include "entities-renderer/paintStroke_vert.h"
+#include "entities-renderer/paintStroke_frag.h"
 
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
+#include "entities-renderer/polyvox_vert.h"
+#include "entities-renderer/polyvox_frag.h"
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
@@ -159,54 +159,54 @@ void QTestWindow::draw() {
 
     static std::once_flag once;
     std::call_once(once, [&]{
-        testShaderBuild(sdf_text3D_vert, sdf_text3D_frag.h";
+        testShaderBuild(sdf_text3D_vert::getSource(), sdf_text3D_frag::getSource());
 
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawTexture_frag.h";
-        testShaderBuild(DrawTexcoordRectTransformUnitQuad_vert, DrawTexture_frag.h";
-        testShaderBuild(DrawViewportQuadTransformTexcoord_vert, DrawTexture_frag.h";
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawTextureOpaque_frag.h";
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawColoredTexture_frag.h";
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawTexcoordRectTransformUnitQuad_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawViewportQuadTransformTexcoord_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawTextureOpaque_frag::getSource());
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawColoredTexture_frag::getSource());
 
-        testShaderBuild(skybox_vert, skybox_frag.h";
-        testShaderBuild(simple_vert, simple_frag.h";
-        testShaderBuild(simple_vert, simple_textured_frag.h";
-        testShaderBuild(simple_vert, simple_textured_unlit_frag.h";
-        testShaderBuild(deferred_light_vert, directional_ambient_light_frag.h";
-        testShaderBuild(deferred_light_vert, directional_skybox_light_frag.h";
-        testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag.h";
-        testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag.h";
+        testShaderBuild(skybox_vert::getSource(), skybox_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_textured_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_textured_unlit_frag::getSource());
+        testShaderBuild(deferred_light_vert::getSource(), directional_ambient_light_frag::getSource());
+        testShaderBuild(deferred_light_vert::getSource(), directional_skybox_light_frag::getSource());
+        testShaderBuild(standardTransformPNTC_vert::getSource(), standardDrawTexture_frag::getSource());
+        testShaderBuild(standardTransformPNTC_vert::getSource(), DrawTextureOpaque_frag::getSource());
 
-        testShaderBuild(model_vert, model_frag.h";
-        testShaderBuild(model_normal_map_vert, model_normal_map_frag.h";
-        testShaderBuild(model_vert, model_specular_map_frag.h";
-        testShaderBuild(model_normal_map_vert, model_normal_specular_map_frag.h";
-        testShaderBuild(model_vert, model_translucent_frag.h";
-        testShaderBuild(model_normal_map_vert, model_translucent_frag.h";
-        testShaderBuild(model_lightmap_vert, model_lightmap_frag.h";
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_map_frag.h";
-        testShaderBuild(model_lightmap_vert, model_lightmap_specular_map_frag.h";
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_specular_map_frag.h";
+        testShaderBuild(model_vert::getSource(), model_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
+        testShaderBuild(model_vert::getSource(), model_specular_map_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
+        testShaderBuild(model_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_frag::getSource());
+        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_map_frag::getSource());
+        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_specular_map_frag::getSource());
+        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_specular_map_frag::getSource());
 
-        testShaderBuild(skin_model_vert, model_frag.h";
-        testShaderBuild(skin_model_normal_map_vert, model_normal_map_frag.h";
-        testShaderBuild(skin_model_vert, model_specular_map_frag.h";
-        testShaderBuild(skin_model_normal_map_vert, model_normal_specular_map_frag.h";
-        testShaderBuild(skin_model_vert, model_translucent_frag.h";
-        testShaderBuild(skin_model_normal_map_vert, model_translucent_frag.h";
+        testShaderBuild(skin_model_vert::getSource(), model_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
+        testShaderBuild(skin_model_vert::getSource(), model_specular_map_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
+        testShaderBuild(skin_model_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_translucent_frag::getSource());
 
-        testShaderBuild(model_shadow_vert, model_shadow_frag.h";
-        testShaderBuild(textured_particle_vert, textured_particle_frag.h";
+        testShaderBuild(model_shadow_vert::getSource(), model_shadow_frag::getSource());
+        testShaderBuild(textured_particle_vert::getSource(), textured_particle_frag::getSource());
 /* FIXME: Bring back the ssao shader tests
-        testShaderBuild(gaussian_blur_vertical_vert, gaussian_blur_frag.h";
-        testShaderBuild(gaussian_blur_horizontal_vert, gaussian_blur_frag.h";
-        testShaderBuild(ambient_occlusion_vert, ambient_occlusion_frag.h";
-        testShaderBuild(ambient_occlusion_vert, occlusion_blend_frag.h";
+        testShaderBuild(gaussian_blur_vert::getSource()ical_vert::getSource(), gaussian_blur_frag::getSource());
+        testShaderBuild(gaussian_blur_horizontal_vert::getSource(), gaussian_blur_frag::getSource());
+        testShaderBuild(ambient_occlusion_vert::getSource(), ambient_occlusion_frag::getSource());
+        testShaderBuild(ambient_occlusion_vert::getSource(), occlusion_blend_frag::getSource());
 */
 
-        testShaderBuild(overlay3D_vert, overlay3D_frag.h";
+        testShaderBuild(overlay3D_vert::getSource(), overlay3D_frag::getSource());
 
-        testShaderBuild(paintStroke_vert,paintStroke_frag.h";
-        testShaderBuild(polyvox_vert, polyvox_frag.h";
+        testShaderBuild(paintStroke_vert::getSource(),paintStroke_frag::getSource());
+        testShaderBuild(polyvox_vert::getSource(), polyvox_frag::getSource());
 
     });
     _context.swapBuffers(this);

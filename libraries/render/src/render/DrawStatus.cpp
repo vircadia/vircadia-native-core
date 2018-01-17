@@ -35,8 +35,8 @@ void DrawStatusConfig::dirtyHelper() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        auto vs = drawItemBounds_vert::getShader();
+        auto ps = drawItemBounds_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -63,8 +63,8 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemStatus_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemStatus_frag));
+        auto vs = drawItemStatus_vert::getShader();
+        auto ps = drawItemStatus_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

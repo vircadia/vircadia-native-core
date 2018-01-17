@@ -15,12 +15,12 @@
 #include <gpu/Context.h>
 #include <ViewFrustum.h>
 
-#include "skybox_vert.h"
-#include "skybox_frag.h"
+#include "model/skybox_vert.h"
+#include "model/skybox_frag.h"
 
 ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
-    _procedural._vertexSource = skybox_vert;
-    _procedural._fragmentSource = skybox_frag;
+    _procedural._vertexSource = skybox_vert::getSource();
+    _procedural._fragmentSource = skybox_frag::getSource();
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND

@@ -184,7 +184,7 @@ int main (int argc, char** argv) {
     srcStream.open(srcFilename, std::fstream::in);
     if (!srcStream.is_open()) {
         cerr << "Failed to open source file <" << srcFilename << ">" << endl;
-        return 0;
+        return 1;
     }
 
     auto scribe = std::make_shared<TextTemplate>(srcFilename, config);
@@ -194,7 +194,7 @@ int main (int argc, char** argv) {
     int numErrors = scribe->scribe(destStringStream, srcStream, vars);
     if (numErrors) {
         cerr << "Scribe " << srcFilename << "> failed: " << numErrors << " errors." << endl;
-        return 0;
+        return 1;
     };
 
 
@@ -279,7 +279,7 @@ int main (int argc, char** argv) {
                     headerFile << headerStringStream.str();
                 } else {
                     cerr << "Scribe output file <" << headerFileName << "> failed to open." << endl;
-                    return 0;
+                    return 1;
                 }
             } else {
                 cerr << sourceStringStream.str();
@@ -310,7 +310,7 @@ int main (int argc, char** argv) {
             sourceFile.open(sourceFileName, std::fstream::out);
             if (!sourceFile.is_open()) {
                 cerr << "Scribe output file <" << sourceFileName << "> failed to open." << endl;
-                return 0;
+                return 1;
             }
             sourceFile << sourceStringStream.str();
         } else {
@@ -323,7 +323,7 @@ int main (int argc, char** argv) {
             destFileStream.open(destFilename, std::fstream::out);
             if (!destFileStream.is_open()) {
                 cerr << "Scribe output file <" << destFilename << "> failed to open." << endl;
-                return 0;
+                return 1;
             }
 
             destFileStream << destStringStream.str();

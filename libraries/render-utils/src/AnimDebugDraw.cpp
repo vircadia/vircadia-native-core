@@ -102,8 +102,8 @@ AnimDebugDraw::AnimDebugDraw() :
     state->setBlendFunction(false, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                             gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
                             gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    auto vertShader = gpu::Shader::createVertex(std::string(animdebugdraw_vert));
-    auto fragShader = gpu::Shader::createPixel(std::string(animdebugdraw_frag));
+    auto vertShader = animdebugdraw_vert::getShader();
+    auto fragShader = animdebugdraw_frag::getShader();
     auto program = gpu::Shader::createProgram(vertShader, fragShader);
     _pipeline = gpu::Pipeline::create(program, state);
 

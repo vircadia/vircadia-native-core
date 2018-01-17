@@ -125,7 +125,7 @@ void Draw::run(const RenderContextPointer& renderContext,
 const gpu::PipelinePointer Stencil::getPipeline() {
     if (!_stencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(nop_frag);
+        auto ps = nop_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program);
 
