@@ -35,7 +35,9 @@
 
 #include <QtQuick/QQuickWindow>
 
-void addAvatarEntities(const QVariantList& avatarEntities, const QUuid& avatarSessionID) {
+void addAvatarEntities(const QVariantList& avatarEntities, std::shared_ptr<MyAvatar> myAvatar) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myNodeID = nodeList->getSessionUUID();
     EntityTreePointer entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
     if (!entityTree) {
         return;
@@ -44,24 +46,25 @@ void addAvatarEntities(const QVariantList& avatarEntities, const QUuid& avatarSe
     PhysicalEntitySimulationPointer physicalEntitySimulation = std::static_pointer_cast<PhysicalEntitySimulation>(entitySimulation);
     EntityEditPacketSender* entityPacketSender = physicalEntitySimulation->getPacketSender();
     for (int index = 0; index < avatarEntities.count(); index++) {
-        qDebug() << "-----------> " << index;
         const QVariantList& avatarEntityProperties = avatarEntities.at(index).toList();
         EntityItemProperties entityProperties;
-        entityProperties.setParentID(avatarSessionID);
-        entityProperties.setClientOnly(true);
+        entityProperties.setParentID(myNodeID);
         QString typeName = avatarEntityProperties.value(0).toString();
         entityProperties.setType(EntityTypes::getEntityTypeFromName(typeName));
         QString marketplaceID = avatarEntityProperties.value(1).toString();
         entityProperties.setMarketplaceID(marketplaceID);
-        quint32 editionNumber = (quint32) avatarEntityProperties.value(2).toUInt();
+        int editionNumber = avatarEntityProperties.value(2).toInt();
         entityProperties.setEditionNumber(editionNumber);
         QString modelURL = avatarEntityProperties.value(3).toString();
         entityProperties.setModelURL(modelURL);
-        quint16 parentJointIndex = (quint16) avatarEntityProperties.value(4).toUInt();
+        int parentJointIndex = avatarEntityProperties.value(4).toInt();
+        entityProperties.setParentJointIndex(parentJointIndex);
         glm::vec3 localPosition = vec3FromJsonValue(avatarEntityProperties.value(5).toJsonValue());
         entityProperties.setLocalPosition(localPosition);
         glm::quat localRotation = quatFromJsonValue(avatarEntityProperties.value(6).toJsonValue());
         entityProperties.setLocalRotation(localRotation);
+        QString userData = avatarEntityProperties.value(7).toString();
+        entityProperties.setUserData(userData);
 
         EntityItemID id = EntityItemID(QUuid::createUuid());
         bool success = true;
@@ -140,7 +143,7 @@ void AvatarEntitiesBookmarks::applyBookmarkedAvatarEntities() {
         const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
         myAvatar->useFullAvatarURL(avatarUrl);
         const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
-        addAvatarEntities(avatarEntities, myAvatar->getSelfID());
+        addAvatarEntities(avatarEntities, myAvatar);
         const float& avatarScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
         myAvatar->setAvatarScale(avatarScale);
     } else {
