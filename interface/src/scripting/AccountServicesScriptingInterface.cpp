@@ -1,5 +1,5 @@
 //
-//  GlobalServicesScriptingInterface.cpp
+//  AccountServicesScriptingInterface.cpp
 //  interface/src/scripting
 //
 //  Created by Thijs Wenker on 9/10/14.
@@ -14,41 +14,41 @@
 #include "DiscoverabilityManager.h"
 #include "ResourceCache.h"
 
-#include "GlobalServicesScriptingInterface.h"
+#include "AccountServicesScriptingInterface.h"
 
-GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
+AccountServicesScriptingInterface::AccountServicesScriptingInterface() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    connect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::onUsernameChanged);
-    connect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
-    connect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, &AccountServicesScriptingInterface::onUsernameChanged);
+    connect(accountManager.data(), &AccountManager::logoutComplete, this, &AccountServicesScriptingInterface::loggedOut);
+    connect(accountManager.data(), &AccountManager::loginComplete, this, &AccountServicesScriptingInterface::connected);
 
     _downloading = false;
     QTimer* checkDownloadTimer = new QTimer(this);
-    connect(checkDownloadTimer, &QTimer::timeout, this, &GlobalServicesScriptingInterface::checkDownloadInfo);
+    connect(checkDownloadTimer, &QTimer::timeout, this, &AccountServicesScriptingInterface::checkDownloadInfo);
     const int CHECK_DOWNLOAD_INTERVAL = MSECS_PER_SECOND / 2;
     checkDownloadTimer->start(CHECK_DOWNLOAD_INTERVAL);
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
-            this, &GlobalServicesScriptingInterface::discoverabilityModeChanged);
+            this, &AccountServicesScriptingInterface::discoverabilityModeChanged);
 
     _loggedIn = isLoggedIn();
     emit loggedInChanged(_loggedIn);
 }
 
-GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
+AccountServicesScriptingInterface::~AccountServicesScriptingInterface() {
     auto accountManager = DependencyManager::get<AccountManager>();
-    disconnect(accountManager.data(), &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::onUsernameChanged);
-    disconnect(accountManager.data(), &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
-    disconnect(accountManager.data(), &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
+    disconnect(accountManager.data(), &AccountManager::usernameChanged, this, &AccountServicesScriptingInterface::onUsernameChanged);
+    disconnect(accountManager.data(), &AccountManager::logoutComplete, this, &AccountServicesScriptingInterface::loggedOut);
+    disconnect(accountManager.data(), &AccountManager::loginComplete, this, &AccountServicesScriptingInterface::connected);
 }
 
-GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance() {
-    static GlobalServicesScriptingInterface sharedInstance;
+AccountServicesScriptingInterface* AccountServicesScriptingInterface::getInstance() {
+    static AccountServicesScriptingInterface sharedInstance;
     return &sharedInstance;
 }
 
-const QString GlobalServicesScriptingInterface::getUsername() const {
+const QString AccountServicesScriptingInterface::getUsername() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (accountManager->isLoggedIn()) {
         return accountManager->getAccountInfo().getUsername();
@@ -57,31 +57,31 @@ const QString GlobalServicesScriptingInterface::getUsername() const {
     }
 }
 
-bool GlobalServicesScriptingInterface::isLoggedIn() {
+bool AccountServicesScriptingInterface::isLoggedIn() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return accountManager->isLoggedIn();
 }
 
-bool GlobalServicesScriptingInterface::checkAndSignalForAccessToken() {
+bool AccountServicesScriptingInterface::checkAndSignalForAccessToken() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return accountManager->checkAndSignalForAccessToken();
 }
 
-void GlobalServicesScriptingInterface::logOut() {
+void AccountServicesScriptingInterface::logOut() {
     auto accountManager = DependencyManager::get<AccountManager>();
     return accountManager->logout();
 }
 
-void GlobalServicesScriptingInterface::loggedOut() {
-    emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
+void AccountServicesScriptingInterface::loggedOut() {
+    emit AccountServicesScriptingInterface::disconnected(QString("logout"));
 }
 
-QString GlobalServicesScriptingInterface::getFindableBy() const {
+QString AccountServicesScriptingInterface::getFindableBy() const {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     return DiscoverabilityManager::findableByString(discoverabilityManager->getDiscoverabilityMode());
 }
 
-void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabilityMode) {
+void AccountServicesScriptingInterface::setFindableBy(const QString& discoverabilityMode) {
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     if (discoverabilityMode.toLower() == "none") {
         discoverabilityManager->setDiscoverabilityMode(Discoverability::None);
@@ -96,11 +96,11 @@ void GlobalServicesScriptingInterface::setFindableBy(const QString& discoverabil
     }
 }
 
-void GlobalServicesScriptingInterface::discoverabilityModeChanged(Discoverability::Mode discoverabilityMode) {
+void AccountServicesScriptingInterface::discoverabilityModeChanged(Discoverability::Mode discoverabilityMode) {
     emit findableByChanged(DiscoverabilityManager::findableByString(discoverabilityMode));
 }
 
-void GlobalServicesScriptingInterface::onUsernameChanged(const QString& username) {
+void AccountServicesScriptingInterface::onUsernameChanged(const QString& username) {
     _loggedIn = (username != QString());
     emit myUsernameChanged(username);
     emit loggedInChanged(_loggedIn);
@@ -135,7 +135,7 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
     result.pending = object.property("pending").toVariant().toFloat();
 }
 
-DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
+DownloadInfoResult AccountServicesScriptingInterface::getDownloadInfo() {
     DownloadInfoResult result;
     foreach(const auto& resource, ResourceCache::getLoadingRequests()) {
         result.downloading.append(resource->getProgress() * 100.0f);
@@ -144,7 +144,7 @@ DownloadInfoResult GlobalServicesScriptingInterface::getDownloadInfo() {
     return result;
 }
 
-void GlobalServicesScriptingInterface::checkDownloadInfo() {
+void AccountServicesScriptingInterface::checkDownloadInfo() {
     DownloadInfoResult downloadInfo = getDownloadInfo();
     bool downloading = downloadInfo.downloading.count() > 0 || downloadInfo.pending > 0;
 
@@ -155,7 +155,7 @@ void GlobalServicesScriptingInterface::checkDownloadInfo() {
     }
 }
 
-void GlobalServicesScriptingInterface::updateDownloadInfo() {
+void AccountServicesScriptingInterface::updateDownloadInfo() {
     emit downloadInfoChanged(getDownloadInfo());
 }
 

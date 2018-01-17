@@ -50,7 +50,7 @@ Item {
         id: avatarImage
         visible: profileUrl !== "" && userName !== "";
         // Size
-        height: isMyCard ? 70 : 42;
+        height: isMyCard ? 84 : 42;
         width: visible ? height : 0;
         anchors.top: parent.top;
         anchors.topMargin: isMyCard ? 0 : 8;
@@ -520,7 +520,7 @@ Item {
     Slider {
         id: gainSlider
         // Size
-        width: thisNameCard.width;
+        width: isMyCard ? thisNameCard.width - 20 : thisNameCard.width;
         height: 14
         // Anchors
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;

@@ -1,5 +1,5 @@
 //
-//  ModelLogging.h
+//  GraphicsLogging.h
 //  hifi
 //
 //  Created by Sam Gateau on 9/20/15.
@@ -11,4 +11,4 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(modelLog)
+Q_DECLARE_LOGGING_CATEGORY(graphicsLog)
