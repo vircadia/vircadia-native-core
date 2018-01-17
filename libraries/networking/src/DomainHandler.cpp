@@ -383,6 +383,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     // we're hearing from this domain-server, don't need to refresh API info
     _apiRefreshTimer.stop();
 
+    // this counts as a reply from the DS after a check in or connect packet, so reset that counter now
+    _checkInPacketsSinceLastReply = 0;
+
     // Read deny reason from packet
     uint8_t reasonCodeWire;
 

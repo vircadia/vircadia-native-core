@@ -93,7 +93,9 @@ public:
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
 public slots:
-    void reset();
+    void reset(bool skipDomainHandlerReset = false);
+    void resetFromDomainHandler() { reset(true); }
+    
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 

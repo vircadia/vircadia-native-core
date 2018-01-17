@@ -74,7 +74,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(this, &LimitedNodeList::publicSockAddrChanged, this, &NodeList::sendDomainServerCheckIn);
 
     // clear our NodeList when the domain changes
-    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
+    connect(&_domainHandler, SIGNAL(disconnectedFromDomain()), this, SLOT(resetFromDomainHandler()));
 
     // send an ICE heartbeat as soon as we get ice server information
     connect(&_domainHandler, &DomainHandler::iceSocketAndIDReceived, this, &NodeList::handleICEConnectionToDomainServer);
@@ -91,10 +91,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished
-    connect(accountManager.data(), &AccountManager::loginComplete , this, &NodeList::reset);
+    connect(accountManager.data(), SIGNAL(loginComplete()) , this, SLOT(reset()));
 
     // clear our NodeList when logout is requested
-    connect(accountManager.data(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -230,9 +230,9 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     sendPacket(std::move(replyPacket), message->getSenderSockAddr());
 }
 
-void NodeList::reset() {
+void NodeList::reset(bool skipDomainHandlerReset) {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset");
+        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
 
@@ -252,7 +252,7 @@ void NodeList::reset() {
     _avatarGainMap.clear();
     _avatarGainMapLock.unlock();
 
-    if (sender() != &_domainHandler) {
+    if (!skipDomainHandlerReset) {
         // clear the domain connection information, unless they're the ones that asked us to reset
         _domainHandler.softReset();
     }
