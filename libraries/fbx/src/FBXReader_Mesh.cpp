@@ -611,7 +611,11 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     const int normalsSize = fbxMesh.normals.size() * sizeof(NormalType);
     const int tangentsSize = fbxMesh.tangents.size() * sizeof(NormalType);
     // If there are normals then there should be tangents
-    assert(normalsSize == tangentsSize);
+    
+    assert(normalsSize <= tangentsSize);
+    if (tangentsSize > normalsSize) {
+        qWarning() << "Unexpected tangents in " << url;
+    }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
     const int normalsAndTangentsStride = 2 * sizeof(NormalType);
     const int colorsSize = fbxMesh.colors.size() * sizeof(ColorType);

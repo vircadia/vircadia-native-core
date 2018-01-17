@@ -102,7 +102,7 @@ void GL41Backend::do_drawInstanced(const Batch& batch, size_t paramOffset) {
         _stats._DSNumTriangles += (trueNumInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += trueNumInstances;
     } else {
-        glDrawArraysInstancedARB(mode, startVertex, numVertices, numInstances);
+        glDrawArraysInstanced(mode, startVertex, numVertices, numInstances);
         _stats._DSNumTriangles += (numInstances * numVertices) / 3;
         _stats._DSNumDrawcalls += numInstances;
     }

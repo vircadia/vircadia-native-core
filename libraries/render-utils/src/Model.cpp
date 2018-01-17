@@ -1098,7 +1098,9 @@ void Blender::run() {
                     int index = blendshape.indices.at(j);
                     meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
                     meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
-                    meshTangents[index] += blendshape.tangents.at(j) * normalCoefficient;
+                    if (blendshape.tangents.size() > j) {
+                        meshTangents[index] += blendshape.tangents.at(j) * normalCoefficient;
+                    }
                 }
             }
         }
@@ -1319,7 +1321,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 
         normalsAndTangents.clear();
         normalsAndTangents.resize(normals.size()+tangents.size());
-        assert(normalsAndTangents.size() == 2 * vertexCount);
+//        assert(normalsAndTangents.size() == 2 * vertexCount);
 
         // Interleave normals and tangents
 #if 0
