@@ -33,7 +33,7 @@ AnimManipulator::~AnimManipulator() {
 }
 
 const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    return overlay(animVars, context, dt, triggersOut, _skeleton->getRelativeBindPoses());
+    return overlay(animVars, context, dt, triggersOut, _skeleton->getRelativeDefaultPoses());
 }
 
 const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
