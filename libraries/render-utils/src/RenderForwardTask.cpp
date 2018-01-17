@@ -169,13 +169,13 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        model::LightPointer keySunLight;
+        graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
             keySunLight = lightStage->getCurrentKeyLight();
         }
 
-        model::LightPointer keyAmbiLight;
+        graphics::LightPointer keyAmbiLight;
         if (lightStage) {
             keyAmbiLight = lightStage->getCurrentAmbientLight();
         }
