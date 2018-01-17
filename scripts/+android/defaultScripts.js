@@ -12,7 +12,8 @@
 //
 
 var DEFAULT_SCRIPTS_COMBINED = [
-    "system/progress.js"/*,
+    "system/progress.js",
+    "system/touchscreenvirtualpad.js"/*,
     "system/away.js",
     "system/controllers/controllerDisplayManager.js",
     "system/controllers/handControllerGrabAndroid.js",
