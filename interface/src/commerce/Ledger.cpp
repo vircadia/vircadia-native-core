@@ -61,7 +61,7 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
 
 void Ledger::signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure) {
     auto wallet = DependencyManager::get<Wallet>();
-    QString signature = key.isEmpty() ? "" : wallet->signWithKey(text, key);
+    QString signature = wallet->signWithKey(text, key);
     QJsonObject request;
     request[propertyName] = QString(text);
     if (!controlled_failure) {
@@ -72,11 +72,16 @@ void Ledger::signedSend(const QString& propertyName, const QByteArray& text, con
     send(endpoint, success, fail, QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
-void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& requestParams) {
     auto wallet = DependencyManager::get<Wallet>();
-    QJsonObject request;
-    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, request);
+    requestParams["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
+}
+
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+    QJsonObject requestParams;
+    keysQuery(endpoint, success, fail, requestParams);
 }
 
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure) {
@@ -169,6 +174,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     QJsonObject newDataData;
     newDataData["history"] = newHistoryArray;
     newData["data"] = newDataData;
+    newData["current_page"] = data["current_page"].toInt();
     emit historyResult(newData);
 }
 
@@ -176,15 +182,11 @@ void Ledger::historyFailure(QNetworkReply& reply) {
     failResponse("history", reply);
 }
 
-void Ledger::history(const QStringList& keys) {
-    keysQuery("history", "historySuccess", "historyFailure");
-}
-
-// The api/failResponse is called just for the side effect of logging.
-void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
-void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
-void Ledger::reset() {
-    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, QJsonObject());
+void Ledger::history(const QStringList& keys, const int& pageNumber) {
+    QJsonObject params;
+    params["per_page"] = 100;
+    params["page"] = pageNumber;
+    keysQuery("history", "historySuccess", "historyFailure", params);
 }
 
 void Ledger::accountSuccess(QNetworkReply& reply) {

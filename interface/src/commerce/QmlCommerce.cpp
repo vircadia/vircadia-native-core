@@ -96,12 +96,12 @@ void QmlCommerce::inventory() {
     }
 }
 
-void QmlCommerce::history() {
+void QmlCommerce::history(const int& pageNumber) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->history(cachedPublicKeys);
+        ledger->history(cachedPublicKeys, pageNumber);
     }
 }
 
@@ -126,18 +126,6 @@ void QmlCommerce::generateKeyPair() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->generateKeyPair();
     getWalletAuthenticatedStatus();
-}
-
-void QmlCommerce::reset() {
-    auto ledger = DependencyManager::get<Ledger>();
-    auto wallet = DependencyManager::get<Wallet>();
-    ledger->reset();
-    wallet->reset();
-}
-
-void QmlCommerce::resetLocalWalletOnly() {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->reset();
 }
 
 void QmlCommerce::account() {

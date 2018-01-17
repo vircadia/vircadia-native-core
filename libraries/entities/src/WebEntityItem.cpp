@@ -36,9 +36,9 @@ WebEntityItem::WebEntityItem(const EntityItemID& entityItemID) : EntityItem(enti
 
 const float WEB_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
 
-void WebEntityItem::setDimensions(const glm::vec3& value) {
+void WebEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     // NOTE: Web Entities always have a "depth" of 1cm.
-    EntityItem::setDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
+    EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, WEB_ENTITY_ITEM_FIXED_DEPTH));
 }
 
 EntityItemProperties WebEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -109,7 +109,7 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
                                                 bool& keepSearching, OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
                                                 void** intersectedObject, bool precisionPicking) const {
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));

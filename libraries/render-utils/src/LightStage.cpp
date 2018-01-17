@@ -28,6 +28,37 @@ static const auto MAX_BIAS = 0.006f;
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
+    // Add off lights
+    const LightPointer ambientOffLight { std::make_shared<graphics::Light>() };
+    ambientOffLight->setAmbientIntensity(0.0f);
+    ambientOffLight->setColor(graphics::Vec3(0.0));
+    ambientOffLight->setIntensity(0.0f);
+    ambientOffLight->setType(graphics::Light::Type::AMBIENT);
+    _ambientOffLightId = addLight(ambientOffLight);
+
+    const LightPointer pointOffLight { std::make_shared<graphics::Light>() };
+    pointOffLight->setAmbientIntensity(0.0f);
+    pointOffLight->setColor(graphics::Vec3(0.0));
+    pointOffLight->setIntensity(0.0f);
+    pointOffLight->setType(graphics::Light::Type::POINT);
+    _pointOffLightId = addLight(pointOffLight);
+
+    const LightPointer spotOffLight { std::make_shared<graphics::Light>() };
+    spotOffLight->setAmbientIntensity(0.0f);
+    spotOffLight->setColor(graphics::Vec3(0.0));
+    spotOffLight->setIntensity(0.0f);
+    spotOffLight->setType(graphics::Light::Type::SPOT);
+    _spotOffLightId = addLight(spotOffLight);
+
+    const LightPointer sunOffLight { std::make_shared<graphics::Light>() };
+    sunOffLight->setAmbientIntensity(0.0f);
+    sunOffLight->setColor(graphics::Vec3(0.0));
+    sunOffLight->setIntensity(0.0f);
+    sunOffLight->setType(graphics::Light::Type::SUN);
+    _sunOffLightId = addLight(sunOffLight);
+
+    // Set default light to the off ambient light (until changed)
+    _defaultLightId = _ambientOffLightId;
 }
 
 LightStage::Shadow::Schema::Schema() {
@@ -92,7 +123,7 @@ float LightStage::Shadow::Cascade::computeFarDistance(const ViewFrustum& viewFru
     return far;
 }
 
-LightStage::Shadow::Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
+LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
     _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
     Schema schema;
@@ -266,10 +297,12 @@ LightStage::Index LightStage::findLight(const LightPointer& light) const {
     }
 }
 
-LightStage::Index LightStage::addLight(const LightPointer& light) {
+LightStage::Index LightStage::addLight(const LightPointer& light, const bool shouldSetAsDefault) {
+    Index lightId;
+
     auto found = _lightMap.find(light);
     if (found == _lightMap.end()) {
-        auto lightId = _lights.newElement(light);
+        lightId = _lights.newElement(light);
         // Avoid failing to allocate a light, just pass
         if (lightId != INVALID_INDEX) {
 
@@ -286,10 +319,15 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
 
             updateLightArrayBuffer(lightId);
         }
-        return lightId;
     } else {
-        return (*found).second;
+        lightId = (*found).second;
     }
+
+    if (shouldSetAsDefault) {
+        _defaultLightId = lightId;
+    }
+
+    return lightId;
 }
 
 LightStage::Index LightStage::addShadow(Index lightIndex, float maxDistance, unsigned int cascadeCount) {
@@ -321,7 +359,7 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
 }
 
 LightStage::LightPointer LightStage::getCurrentKeyLight() const {
-    Index keyLightId{ 0 };
+    Index keyLightId{ _defaultLightId };
     if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
@@ -329,7 +367,7 @@ LightStage::LightPointer LightStage::getCurrentKeyLight() const {
 }
 
 LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
-    Index keyLightId{ 0 };
+    Index keyLightId { _defaultLightId };
     if (!_currentFrame._ambientLights.empty()) {
         keyLightId = _currentFrame._ambientLights.front();
     }
@@ -337,7 +375,7 @@ LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
 }
 
 LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
-    Index keyLightId{ 0 };
+    Index keyLightId { _defaultLightId };
     if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
@@ -347,7 +385,7 @@ LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
 }
 
 LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
-    Index keyLightId{ 0 };
+    Index keyLightId { _defaultLightId };
     if (!_currentFrame._sunLights.empty()) {
         keyLightId = _currentFrame._sunLights.front();
     }
@@ -366,14 +404,14 @@ LightStage::Index LightStage::getShadowId(Index lightId) const {
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {
-    auto lightSize = sizeof(model::Light::LightSchema);
+    auto lightSize = sizeof(graphics::Light::LightSchema);
     if (!_lightArrayBuffer) {
         _lightArrayBuffer = std::make_shared<gpu::Buffer>(lightSize);
     }
 
     assert(checkLightId(lightId));
 
-    if (lightId > (Index)_lightArrayBuffer->getNumTypedElements<model::Light::LightSchema>()) {
+    if (lightId > (Index)_lightArrayBuffer->getNumTypedElements<graphics::Light::LightSchema>()) {
         _lightArrayBuffer->resize(lightSize * (lightId + 10));
     }
 
@@ -381,7 +419,7 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
     auto light = _lights._elements[lightId];
     if (light) {
         const auto& lightSchema = light->getLightSchemaBuffer().get();
-        _lightArrayBuffer->setSubData<model::Light::LightSchema>(lightId, lightSchema);
+        _lightArrayBuffer->setSubData<graphics::Light::LightSchema>(lightId, lightSchema);
     } else {
         // this should not happen ?
     }

@@ -317,6 +317,7 @@ void PhysicsEngine::stepSimulation() {
 
     auto onSubStep = [this]() {
         this->updateContactMap();
+        this->doOwnershipInfectionForConstraints();
     };
 
     int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
@@ -451,7 +452,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != Physics::getSessionUUID()) {
-            quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            uint8_t priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
@@ -460,7 +461,7 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != Physics::getSessionUUID()) {
-            quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            uint8_t priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
             motionStateA->bump(priorityB);
         }
     }
@@ -496,6 +497,54 @@ void PhysicsEngine::updateContactMap() {
 
             if (!Physics::getSessionUUID().isNull()) {
                 doOwnershipInfection(objectA, objectB);
+            }
+        }
+    }
+}
+
+void PhysicsEngine::doOwnershipInfectionForConstraints() {
+    BT_PROFILE("ownershipInfectionForConstraints");
+    const btCollisionObject* characterObject = _myAvatarController ? _myAvatarController->getCollisionObject() : nullptr;
+    foreach(const auto& dynamic, _objectDynamics) {
+        if (!dynamic) {
+            continue;
+        }
+        QList<btRigidBody*> bodies = std::static_pointer_cast<ObjectDynamic>(dynamic)->getRigidBodies();
+        if (bodies.size() > 1) {
+            int32_t numOwned = 0;
+            int32_t numStatic = 0;
+            uint8_t priority = VOLUNTEER_SIMULATION_PRIORITY;
+            foreach(btRigidBody* body, bodies) {
+                ObjectMotionState* motionState = static_cast<ObjectMotionState*>(body->getUserPointer());
+                if (body->isStaticObject()) {
+                    ++numStatic;
+                } else if (motionState->getType() == MOTIONSTATE_TYPE_AVATAR) {
+                    // we can never take ownership of this constraint
+                    numOwned = 0;
+                    break;
+                } else {
+                    if (motionState && motionState->getSimulatorID() == Physics::getSessionUUID()) {
+                        priority = glm::max(priority, motionState->getSimulationPriority());
+                    } else if (body == characterObject) {
+                        priority = glm::max(priority, PERSONAL_SIMULATION_PRIORITY);
+                    }
+                    numOwned++;
+                }
+            }
+
+            if (numOwned > 0) {
+                if (numOwned + numStatic != bodies.size()) {
+                    // we have partial ownership but it isn't complete so we walk each object
+                    // and bump the simulation priority to the highest priority we encountered earlier
+                    foreach(btRigidBody* body, bodies) {
+                        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(body->getUserPointer());
+                        if (motionState) {
+                            // NOTE: we submit priority+1 because the default behavior of bump() is to actually use priority - 1
+                            // and we want all priorities of the objects to be at the SAME level
+                            motionState->bump(priority + 1);
+                        }
+                    }
+                }
             }
         }
     }

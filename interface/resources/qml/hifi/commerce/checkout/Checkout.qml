@@ -33,6 +33,7 @@ Rectangle {
     property string itemName;
     property string itemId;
     property string itemHref;
+    property string itemAuthor;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
     property int itemPrice: -1;
@@ -81,12 +82,12 @@ Rectangle {
             if (result.status !== 'success') {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
-                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemPrice, !root.alreadyOwned, result.message);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
                 root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
-                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemPrice, !root.alreadyOwned);
+                UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
         }
 
@@ -410,7 +411,8 @@ Rectangle {
             Rectangle {
                 id: buyTextContainer;
                 visible: buyText.text !== "";
-                anchors.top: parent.top;
+                anchors.top: cancelPurchaseButton.bottom;
+                anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 height: buyText.height + 30;
@@ -465,8 +467,8 @@ Rectangle {
                 enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || !itemIsJson;
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
-                anchors.topMargin: buyTextContainer.visible ? 12 : 16;
+                anchors.top: checkoutActionButtonsContainer.top;
+                anchors.topMargin: 16;
                 height: 40;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
@@ -879,6 +881,7 @@ Rectangle {
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
                 referrer = message.params.referrer;
+                itemAuthor = message.params.itemAuthor;
                 setBuyText();
             break;
             default:
@@ -926,11 +929,11 @@ Rectangle {
                 buyText.text = "";
             }
         } else {
-            buyText.text = "This free item <b>will not</b> be added to your <b>Purchases</b>. Non-entities can't yet be purchased for HFC.";
-            buyTextContainer.color = "#FFD6AD";
-            buyTextContainer.border.color = "#FAC07D";
-            buyGlyph.text = hifi.glyphs.alert;
-            buyGlyph.size = 46;
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
+            buyTextContainer.color = hifi.colors.white;
+            buyTextContainer.border.color = hifi.colors.white;
+            buyGlyph.text = "";
+            buyGlyph.size = 0;
         }
     }
 

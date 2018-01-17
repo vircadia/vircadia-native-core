@@ -15,15 +15,24 @@ class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices);
+#if defined(SKIN_DQ)
+    using TransformType = Model::TransformDualQuaternion;
+#else
+    using TransformType = glm::mat4;
+#endif
+
+    void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms, const std::vector<TransformType>& cauterizedClusterTransforms);
 
     void updateTransformForCauterizedMesh(const Transform& renderTransform);
 
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
+    void setEnableCauterization(bool enableCauterization) { _enableCauterization = enableCauterization; }
+
 private:
     gpu::BufferPointer _cauterizedClusterBuffer;
     Transform _cauterizedTransform;
+    bool _enableCauterization { false };
 };
 
 #endif // hifi_CauterizedMeshPartPayload_h

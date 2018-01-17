@@ -29,9 +29,8 @@ public:
     bool receiveAt(const QString& hfc_key, const QString& old_key);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
-    void history(const QStringList& keys);
+    void history(const QStringList& keys, const int& pageNumber);
     void account();
-    void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
 
@@ -66,8 +65,6 @@ public slots:
     void inventoryFailure(QNetworkReply& reply);
     void historySuccess(QNetworkReply& reply);
     void historyFailure(QNetworkReply& reply);
-    void resetSuccess(QNetworkReply& reply);
-    void resetFailure(QNetworkReply& reply);
     void accountSuccess(QNetworkReply& reply);
     void accountFailure(QNetworkReply& reply);
     void updateLocationSuccess(QNetworkReply& reply);
@@ -79,6 +76,7 @@ private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);
     void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams);
     void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
     void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure = false);
 };

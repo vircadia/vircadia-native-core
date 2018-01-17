@@ -13,9 +13,9 @@
 #define hifi_RenderableZoneEntityItem_h
 
 #include <ZoneEntityItem.h>
-#include <model/Skybox.h>
-#include <model/Haze.h>
-#include <model/Stage.h>
+#include <graphics/Skybox.h>
+#include <graphics/Haze.h>
+#include <graphics/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
 #include <HazeStage.h>
@@ -46,24 +46,28 @@ protected:
 
 private:
     void updateKeyZoneItemFromEntity();
-    void updateKeySunFromEntity();
-    void updateKeyAmbientFromEntity();
+    void updateKeySunFromEntity(const TypedEntityPointer& entity);
+    void updateAmbientLightFromEntity(const TypedEntityPointer& entity);
     void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
-    void setBackgroundMode(BackgroundMode mode);
+
     void setHazeMode(ComponentMode mode);
+    void setKeyLightMode(ComponentMode mode);
+    void setAmbientLightMode(ComponentMode mode);
+    void setSkyboxMode(ComponentMode mode);
+
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
-    model::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
-    model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
-    model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
-    model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
-    model::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
+    graphics::LightPointer editSunLight() { _needSunUpdate = true; return _sunLight; }
+    graphics::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
+    graphics::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
+    graphics::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
+    graphics::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
 
     bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;
@@ -79,13 +83,15 @@ private:
 #endif
 
     LightStagePointer _stage;
-    const model::LightPointer _sunLight{ std::make_shared<model::Light>() };
-    const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
-    const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
-    const model::HazePointer _haze{ std::make_shared<model::Haze>() };
+    const graphics::LightPointer _sunLight{ std::make_shared<graphics::Light>() };
+    const graphics::LightPointer _ambientLight{ std::make_shared<graphics::Light>() };
+    const graphics::SunSkyStagePointer _background{ std::make_shared<graphics::SunSkyStage>() };
+    const graphics::HazePointer _haze{ std::make_shared<graphics::Haze>() };
 
-    BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
-    ComponentMode _hazeMode{ COMPONENT_MODE_INHERIT };
+    ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _skyboxMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _hazeMode { COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
@@ -104,20 +110,18 @@ private:
     bool _needHazeUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
+    AmbientLightPropertyGroup _ambientLightProperties;
     HazePropertyGroup _hazeProperties;
-    StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;
     NetworkTexturePointer _ambientTexture;
     bool _pendingAmbientTexture{ false };
-    bool _validAmbientTexture{ false };
 
     QString _skyboxTextureURL;
     NetworkTexturePointer _skyboxTexture;
     bool _pendingSkyboxTexture{ false };
-    bool _validSkyboxTexture{ false };
 
     QString _proceduralUserData;
     Transform _renderTransform;

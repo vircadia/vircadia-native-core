@@ -71,12 +71,12 @@ enum DeferredShader_BufferSlot {
     SCATTERING_PARAMETERS_BUFFER_SLOT,
     LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
-    LIGHT_AMBIENT_SLOT,
+    LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
+    HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
     LIGHT_INDEX_GPU_SLOT,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-    HAZE_MODEL_BUFFER_SLOT
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -103,13 +103,13 @@ void DeferredLightingEffect::init() {
 
 void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    model::LightPointer keySunLight;
+    graphics::LightPointer keySunLight;
     auto lightStage = args->_scene->getStage<LightStage>();
     if (lightStage) {
         keySunLight = lightStage->getCurrentKeyLight();
     }
 
-    model::LightPointer keyAmbiLight;
+    graphics::LightPointer keyAmbiLight;
     if (lightStage) {
         keyAmbiLight = lightStage->getCurrentAmbientLight();
     }
@@ -229,9 +229,9 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 #include <shared/Shapes.h>
 
-model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
+graphics::MeshPointer DeferredLightingEffect::getPointLightMesh() {
     if (!_pointLightMesh) {
-        _pointLightMesh = std::make_shared<model::Mesh>();
+        _pointLightMesh = std::make_shared<graphics::Mesh>();
 
         // let's use a icosahedron
         auto solid = geometry::icosahedron();
@@ -256,19 +256,19 @@ model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
         delete[] indexData;
 
 
-        std::vector<model::Mesh::Part> parts;
-        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::TRIANGLES));
-        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::LINE_STRIP)); // outline version
+        std::vector<graphics::Mesh::Part> parts;
+        parts.push_back(graphics::Mesh::Part(0, nbIndices, 0, graphics::Mesh::TRIANGLES));
+        parts.push_back(graphics::Mesh::Part(0, nbIndices, 0, graphics::Mesh::LINE_STRIP)); // outline version
 
 
-        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
     }
     return _pointLightMesh;
 }
 
-model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
+graphics::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh = std::make_shared<model::Mesh>();
+        _spotLightMesh = std::make_shared<graphics::Mesh>();
 
         int slices = 16;
         int rings = 3;
@@ -353,12 +353,12 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         
-        std::vector<model::Mesh::Part> parts;
-        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::TRIANGLES));
-        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::LINE_STRIP)); // outline version
+        std::vector<graphics::Mesh::Part> parts;
+        parts.push_back(graphics::Mesh::Part(0, indices, 0, graphics::Mesh::TRIANGLES));
+        parts.push_back(graphics::Mesh::Part(0, indices, 0, graphics::Mesh::LINE_STRIP)); // outline version
 
         
-        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
     }
     return _spotLightMesh;
 }
@@ -439,7 +439,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const model::HazePointer& haze,
+    const graphics::HazePointer& haze,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
@@ -513,7 +513,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         auto keyLight = lightAndShadow.first;
 
-        model::LightPointer keyAmbientLight;
+        graphics::LightPointer keyAmbientLight;
         if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
             keyAmbientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
         }
@@ -744,12 +744,12 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         if (lightStage) { 
 
             // Allocate a default global light directional and ambient
-            auto lp = std::make_shared<model::Light>();
-            lp->setType(model::Light::SUN);
+            auto lp = std::make_shared<graphics::Light>();
+            lp->setType(graphics::Light::SUN);
             lp->setDirection(glm::vec3(-1.0f));
             lp->setColor(glm::vec3(1.0f));
             lp->setIntensity(1.0f);
-            lp->setType(model::Light::SUN);
+            lp->setType(graphics::Light::SUN);
             lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 
             lp->setAmbientIntensity(0.5f);
@@ -763,14 +763,15 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             _defaultLight = lp;
 
             // Add the global light to the light stage (for later shadow rendering)
-            _defaultLightID = lightStage->addLight(lp);
+            // Set this light to be the default
+            _defaultLightID = lightStage->addLight(lp, true);
             lightStage->addShadow(_defaultLightID);
         }
 
         auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
         if (backgroundStage) {
 
-            auto background = std::make_shared<model::SunSkyStage>();
+            auto background = std::make_shared<graphics::SunSkyStage>();
             background->setSkybox(_defaultSkybox);
 
             // capture deault background
@@ -785,7 +786,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         auto hazeStage = renderContext->_scene->getStage<HazeStage>();
         if (hazeStage) {
 
-            auto haze = std::make_shared<model::Haze>();
+            auto haze = std::make_shared<graphics::Haze>();
 
             _defaultHaze = haze;
             _defaultHazeID = hazeStage->addHaze(_defaultHaze);

@@ -1,7 +1,7 @@
 set(TARGET_NAME entities-renderer)
-AUTOSCRIBE_SHADER_LIB(gpu model procedural render render-utils)
+AUTOSCRIBE_SHADER_LIB(gpu graphics procedural render render-utils)
 setup_hifi_library(Widgets Network Script)
-link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils image ui pointers)
+link_hifi_libraries(shared gpu procedural graphics model-networking script-engine render render-utils image ui pointers)
 include_hifi_library_headers(networking)
 include_hifi_library_headers(gl)
 include_hifi_library_headers(ktx)
@@ -15,9 +15,4 @@ include_hifi_library_headers(avatars)
 include_hifi_library_headers(controllers)
 
 target_bullet()
-
-add_dependency_external_projects(polyvox)
-find_package(PolyVox REQUIRED)
-target_include_directories(${TARGET_NAME} SYSTEM PUBLIC ${POLYVOX_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${POLYVOX_LIBRARIES})
-
+target_polyvox()

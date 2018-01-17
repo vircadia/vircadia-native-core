@@ -400,7 +400,8 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride;
+    var RAYPICK_OFFSET = 0.0007; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride + RAYPICK_OFFSET;
     var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleFactor * sensorScaleOffsetOverride;
     var screenWidth = 0.82 * tabletWidth;
     var screenHeight = 0.81 * tabletHeight;
@@ -417,11 +418,13 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Overlays.editOverlay(HMD.homeButtonHighlightID, {
         localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localRotation: Quat.angleAxis(180, Vec3.UNIT_Y),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };

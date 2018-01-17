@@ -28,8 +28,8 @@
 
 #include <render/ShapePipeline.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 class SimpleProgramKey;
 
@@ -251,14 +251,20 @@ public:
     // Dynamic geometry
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
+    void renderShape(gpu::Batch& batch, Shape shape, const glm::vec4& color);
+    void renderWireShape(gpu::Batch& batch, Shape shape, const glm::vec4& color);
     size_t getShapeTriangleCount(Shape shape);
 
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
+    void renderCube(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireCube(gpu::Batch& batch, const glm::vec4& color);
     size_t getCubeTriangleCount();
 
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
+    void renderSphere(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireSphere(gpu::Batch& batch, const glm::vec4& color);
     size_t getSphereTriangleCount();
 
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
