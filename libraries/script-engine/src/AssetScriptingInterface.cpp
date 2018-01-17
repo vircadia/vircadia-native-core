@@ -27,8 +27,7 @@
 #include <shared/QtHelpers.h>
 #include "Gzip.h"
 #include "ScriptEngine.h"
-
-//using Promise = MiniPromise::Promise;
+#include "ScriptEngineLogging.h"
 
 AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {
     if (auto engine = qobject_cast<QScriptEngine*>(parent)) {
@@ -88,7 +87,7 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     if (!urlString.startsWith(ATP_SCHEME)) {
         // ... for now at least log a message so user can check logs
-        qDebug() << "AssetScriptingInterface::downloadData ERROR: url does not start with " << ATP_SCHEME;
+        qCDebug(scriptengine) << "AssetScriptingInterface::downloadData url must be of form atp:<hash-value>";
         return;
     }
     QString hash = AssetUtils::extractAssetHash(urlString);
