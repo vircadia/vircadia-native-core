@@ -19,6 +19,7 @@ var ICON_FOR_TYPE = {
     ParticleEffect: "&#xe004;",
     Model: "&#xe008;",
     Web: "q",
+    Image: "q", // what do? 
     Text: "l",
     Light: "p",
     Zone: "o",
@@ -134,9 +135,9 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
 }
 
 function createImageURLUpdateFunction(propertyName) {
-    return function() {
+    return function () {
         updateProperty(propertyName, this.value);
-    }
+    };
 }
 
 function createEmitTextPropertyUpdateFunction(propertyName) {
@@ -1735,7 +1736,7 @@ function loaded() {
     }
 
     // Dropdowns
-    // For each dropdown the following replacement is created in place of the oriringal dropdown...
+    // For each dropdown the following replacement is created in place of the original dropdown...
     // Structure created:
     //  <dl dropped="true/false">
     //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>
