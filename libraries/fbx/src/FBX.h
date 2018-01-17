@@ -25,8 +25,8 @@
 #include <Extents.h>
 #include <Transform.h>
 
-#include <model/Geometry.h>
-#include <model/Material.h>
+#include <graphics/Geometry.h>
+#include <graphics/Material.h>
 
 static const QByteArray FBX_BINARY_PROLOG = "Kaydara FBX Binary  ";
 static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
@@ -183,7 +183,7 @@ public:
     QString materialID;
     QString name;
     QString shadingModel;
-    model::MaterialPointer _material;
+    graphics::MaterialPointer _material;
 
     FBXTexture normalTexture;
     FBXTexture albedoTexture;
@@ -238,7 +238,7 @@ public:
 
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
     bool wasCompressed { false };
 };
 

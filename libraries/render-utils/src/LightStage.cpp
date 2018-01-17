@@ -29,32 +29,32 @@ const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::I
 
 LightStage::LightStage() {
     // Add off lights
-    const LightPointer ambientOffLight { std::make_shared<model::Light>() };
+    const LightPointer ambientOffLight { std::make_shared<graphics::Light>() };
     ambientOffLight->setAmbientIntensity(0.0f);
-    ambientOffLight->setColor(model::Vec3(0.0));
+    ambientOffLight->setColor(graphics::Vec3(0.0));
     ambientOffLight->setIntensity(0.0f);
-    ambientOffLight->setType(model::Light::Type::AMBIENT);
+    ambientOffLight->setType(graphics::Light::Type::AMBIENT);
     _ambientOffLightId = addLight(ambientOffLight);
 
-    const LightPointer pointOffLight { std::make_shared<model::Light>() };
+    const LightPointer pointOffLight { std::make_shared<graphics::Light>() };
     pointOffLight->setAmbientIntensity(0.0f);
-    pointOffLight->setColor(model::Vec3(0.0));
+    pointOffLight->setColor(graphics::Vec3(0.0));
     pointOffLight->setIntensity(0.0f);
-    pointOffLight->setType(model::Light::Type::POINT);
+    pointOffLight->setType(graphics::Light::Type::POINT);
     _pointOffLightId = addLight(pointOffLight);
 
-    const LightPointer spotOffLight { std::make_shared<model::Light>() };
+    const LightPointer spotOffLight { std::make_shared<graphics::Light>() };
     spotOffLight->setAmbientIntensity(0.0f);
-    spotOffLight->setColor(model::Vec3(0.0));
+    spotOffLight->setColor(graphics::Vec3(0.0));
     spotOffLight->setIntensity(0.0f);
-    spotOffLight->setType(model::Light::Type::SPOT);
+    spotOffLight->setType(graphics::Light::Type::SPOT);
     _spotOffLightId = addLight(spotOffLight);
 
-    const LightPointer sunOffLight { std::make_shared<model::Light>() };
+    const LightPointer sunOffLight { std::make_shared<graphics::Light>() };
     sunOffLight->setAmbientIntensity(0.0f);
-    sunOffLight->setColor(model::Vec3(0.0));
+    sunOffLight->setColor(graphics::Vec3(0.0));
     sunOffLight->setIntensity(0.0f);
-    sunOffLight->setType(model::Light::Type::SUN);
+    sunOffLight->setType(graphics::Light::Type::SUN);
     _sunOffLightId = addLight(sunOffLight);
 
     // Set default light to the off ambient light (until changed)
@@ -123,7 +123,7 @@ float LightStage::Shadow::Cascade::computeFarDistance(const ViewFrustum& viewFru
     return far;
 }
 
-LightStage::Shadow::Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
+LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
     _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
     Schema schema;
@@ -404,14 +404,14 @@ LightStage::Index LightStage::getShadowId(Index lightId) const {
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {
-    auto lightSize = sizeof(model::Light::LightSchema);
+    auto lightSize = sizeof(graphics::Light::LightSchema);
     if (!_lightArrayBuffer) {
         _lightArrayBuffer = std::make_shared<gpu::Buffer>(lightSize);
     }
 
     assert(checkLightId(lightId));
 
-    if (lightId > (Index)_lightArrayBuffer->getNumTypedElements<model::Light::LightSchema>()) {
+    if (lightId > (Index)_lightArrayBuffer->getNumTypedElements<graphics::Light::LightSchema>()) {
         _lightArrayBuffer->resize(lightSize * (lightId + 10));
     }
 
@@ -419,7 +419,7 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
     auto light = _lights._elements[lightId];
     if (light) {
         const auto& lightSchema = light->getLightSchemaBuffer().get();
-        _lightArrayBuffer->setSubData<model::Light::LightSchema>(lightId, lightSchema);
+        _lightArrayBuffer->setSubData<graphics::Light::LightSchema>(lightId, lightSchema);
     } else {
         // this should not happen ?
     }

@@ -1,6 +1,6 @@
 //
 //  TextureMap.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 5/6/2015.
 //  Copyright 2014 High Fidelity, Inc.
@@ -10,7 +10,7 @@
 //
 #include "TextureMap.h"
 
-using namespace model;
+using namespace graphics;
 using namespace gpu;
 
 void TextureMap::setTextureSource(TextureSourcePointer& textureSource) {
