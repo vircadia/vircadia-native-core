@@ -19,7 +19,7 @@
 #include <gpu/Pipeline.h>
 #include <render/Forward.h>
 #include <render/DrawTask.h>
-#include <model/Haze.h>
+#include <graphics/Haze.h>
 
 #include "SurfaceGeometryPass.h"
 
@@ -51,11 +51,11 @@ class MakeHazeConfig : public render::Job::Config {
 public:
     MakeHazeConfig() : render::Job::Config() {}
 
-    glm::vec3 hazeColor{ model::Haze::INITIAL_HAZE_COLOR };
-    float hazeGlareAngle{ model::Haze::INITIAL_HAZE_GLARE_ANGLE };
+    glm::vec3 hazeColor{ graphics::Haze::INITIAL_HAZE_COLOR };
+    float hazeGlareAngle{ graphics::Haze::INITIAL_HAZE_GLARE_ANGLE };
 
-    glm::vec3 hazeGlareColor{ model::Haze::INITIAL_HAZE_GLARE_COLOR };
-    float hazeBaseReference{ model::Haze::INITIAL_HAZE_BASE_REFERENCE };
+    glm::vec3 hazeGlareColor{ graphics::Haze::INITIAL_HAZE_GLARE_COLOR };
+    float hazeBaseReference{ graphics::Haze::INITIAL_HAZE_BASE_REFERENCE };
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
@@ -63,13 +63,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange{ model::Haze::INITIAL_HAZE_RANGE };
-    float hazeHeight{ model::Haze::INITIAL_HAZE_HEIGHT };
+    float hazeRange{ graphics::Haze::INITIAL_HAZE_RANGE };
+    float hazeHeight{ graphics::Haze::INITIAL_HAZE_HEIGHT };
 
-    float hazeKeyLightRange{ model::Haze::INITIAL_KEY_LIGHT_RANGE };
-    float hazeKeyLightAltitude{ model::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
+    float hazeKeyLightRange{ graphics::Haze::INITIAL_KEY_LIGHT_RANGE };
+    float hazeKeyLightAltitude{ graphics::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
 
-    float hazeBackgroundBlend{ model::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
+    float hazeBackgroundBlend{ graphics::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
 
 public slots:
     void setHazeColor(const glm::vec3 value) { hazeColor = value; emit dirty(); }
@@ -99,15 +99,15 @@ signals:
 class MakeHaze {
 public:
     using Config = MakeHazeConfig;
-    using JobModel = render::Job::ModelO<MakeHaze, model::HazePointer, Config>;
+    using JobModel = render::Job::ModelO<MakeHaze, graphics::HazePointer, Config>;
 
     MakeHaze();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, model::HazePointer& haze);
+    void run(const render::RenderContextPointer& renderContext, graphics::HazePointer& haze);
 
 private:
-    model::HazePointer _haze;
+    graphics::HazePointer _haze;
 };
 
 class HazeConfig : public render::Job::Config {
@@ -115,11 +115,11 @@ public:
     HazeConfig() : render::Job::Config(true) {}
 
     // attributes
-    glm::vec3 hazeColor{ model::Haze::INITIAL_HAZE_COLOR };
-    float hazeGlareAngle{ model::Haze::INITIAL_HAZE_GLARE_ANGLE };
+    glm::vec3 hazeColor{ graphics::Haze::INITIAL_HAZE_COLOR };
+    float hazeGlareAngle{ graphics::Haze::INITIAL_HAZE_GLARE_ANGLE };
 
-    glm::vec3 hazeGlareColor{ model::Haze::INITIAL_HAZE_GLARE_COLOR };
-    float hazeBaseReference{ model::Haze::INITIAL_HAZE_BASE_REFERENCE };
+    glm::vec3 hazeGlareColor{ graphics::Haze::INITIAL_HAZE_GLARE_COLOR };
+    float hazeBaseReference{ graphics::Haze::INITIAL_HAZE_BASE_REFERENCE };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
     bool isAltitudeBased{ false };
@@ -127,13 +127,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange{ model::Haze::INITIAL_HAZE_RANGE };
-    float hazeHeight{ model::Haze::INITIAL_HAZE_HEIGHT };
+    float hazeRange{ graphics::Haze::INITIAL_HAZE_RANGE };
+    float hazeHeight{ graphics::Haze::INITIAL_HAZE_HEIGHT };
 
-    float hazeKeyLightRange{ model::Haze::INITIAL_KEY_LIGHT_RANGE };
-    float hazeKeyLightAltitude{ model::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
+    float hazeKeyLightRange{ graphics::Haze::INITIAL_KEY_LIGHT_RANGE };
+    float hazeKeyLightAltitude{ graphics::Haze::INITIAL_KEY_LIGHT_ALTITUDE };
 
-    float hazeBackgroundBlend{ model::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
+    float hazeBackgroundBlend{ graphics::Haze::INITIAL_HAZE_BACKGROUND_BLEND };
 
     // methods
     void setHazeColor(const glm::vec3 value);
@@ -159,7 +159,7 @@ public:
 
 class DrawHaze {
 public:
-    using Inputs = render::VaryingSet5<model::HazePointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, DeferredFrameTransformPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet5<graphics::HazePointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, DeferredFrameTransformPointer, gpu::FramebufferPointer>;
     using Config = HazeConfig;
     using JobModel = render::Job::ModelI<DrawHaze, Inputs, Config>;
 

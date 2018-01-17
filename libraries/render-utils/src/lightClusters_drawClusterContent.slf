@@ -15,7 +15,7 @@
 <@include DeferredBufferRead.slh@>
 
 
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 <$declareLightBuffer(256)$>
 
 <@include LightClusterGrid.slh@>

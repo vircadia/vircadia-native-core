@@ -584,7 +584,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
 
     FBXMesh& fbxMesh = extractedMesh;
-    model::MeshPointer mesh(new model::Mesh());
+    graphics::MeshPointer mesh(new graphics::Mesh());
 
     // Grab the vertices in a buffer
     auto vb = std::make_shared<gpu::Buffer>();
@@ -721,45 +721,45 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     if (normalsSize) {
         mesh->addAttribute(gpu::Stream::NORMAL,
-                           model::BufferView(attribBuffer, normalsOffset, normalsAndTangentsSize,
+                           graphics::BufferView(attribBuffer, normalsOffset, normalsAndTangentsSize,
                            normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
         mesh->addAttribute(gpu::Stream::TANGENT,
-                           model::BufferView(attribBuffer, tangentsOffset, normalsAndTangentsSize,
+                           graphics::BufferView(attribBuffer, tangentsOffset, normalsAndTangentsSize,
                            normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
     }
     if (colorsSize) {
         mesh->addAttribute(gpu::Stream::COLOR,
-                           model::BufferView(attribBuffer, colorsOffset, colorsSize, FBX_COLOR_ELEMENT));
+                           graphics::BufferView(attribBuffer, colorsOffset, colorsSize, FBX_COLOR_ELEMENT));
     }
     if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD,
-                           model::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
+                           graphics::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
     if (texCoords1Size) {
         mesh->addAttribute( gpu::Stream::TEXCOORD1,
-                            model::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
+                            graphics::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
                             gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     } else if (texCoordsSize) {
         mesh->addAttribute(gpu::Stream::TEXCOORD1,
-                           model::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
+                           graphics::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
     }
 
     if (clusterIndicesSize) {
         if (fbxMesh.clusters.size() < UINT8_MAX) {
             mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
-                               model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
+                               graphics::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
                                                  gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW)));
         } else {
             mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
-                               model::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
+                               graphics::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
                                                  gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW)));
         }
     }
     if (clusterWeightsSize) {
         mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
-                          model::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
+                          graphics::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
                                             gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW)));
     }
 
@@ -780,12 +780,12 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     int indexNum = 0;
     int offset = 0;
 
-    std::vector< model::Mesh::Part > parts;
+    std::vector< graphics::Mesh::Part > parts;
     if (extractedMesh.parts.size() > 1) {
         indexNum = 0;
     }
     foreach(const FBXMeshPart& part, extractedMesh.parts) {
-        model::Mesh::Part modelPart(indexNum, 0, 0, model::Mesh::TRIANGLES);
+        graphics::Mesh::Part modelPart(indexNum, 0, 0, graphics::Mesh::TRIANGLES);
         
         if (part.quadTrianglesIndices.size()) {
             indexBuffer->setSubData(offset,
@@ -813,7 +813,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     if (parts.size()) {
         auto pb = std::make_shared<gpu::Buffer>();
-        pb->setData(parts.size() * sizeof(model::Mesh::Part), (const gpu::Byte*) parts.data());
+        pb->setData(parts.size() * sizeof(graphics::Mesh::Part), (const gpu::Byte*) parts.data());
         gpu::BufferView pbv(pb, gpu::Element(gpu::VEC4, gpu::UINT32, gpu::XYZW));
         mesh->setPartBuffer(pbv);
     } else {
@@ -821,7 +821,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         return;
     }
 
-    // model::Box box =
+    // graphics::Box box =
     mesh->evalPartBound(0);
 
     extractedMesh._mesh = mesh;

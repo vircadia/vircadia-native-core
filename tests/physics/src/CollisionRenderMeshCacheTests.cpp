@@ -140,12 +140,12 @@ void CollisionRenderMeshCacheTests::testCompoundShape() {
     QVERIFY(cache.getNumMeshes() == 0);
 
     // get the mesh once
-    model::MeshPointer mesh = cache.getMesh(compoundShape);
+    graphics::MeshPointer mesh = cache.getMesh(compoundShape);
     QVERIFY((bool)mesh);
     QVERIFY(cache.getNumMeshes() == 1);
 
     // get the mesh again
-    model::MeshPointer mesh2 = cache.getMesh(compoundShape);
+    graphics::MeshPointer mesh2 = cache.getMesh(compoundShape);
     QVERIFY(mesh2 == mesh);
     QVERIFY(cache.getNumMeshes() == 1);
 
@@ -214,18 +214,18 @@ void CollisionRenderMeshCacheTests::testMultipleShapes() {
     QVERIFY(cache.getNumMeshes() == 0);
 
     // get the meshes
-    model::MeshPointer meshA = cache.getMesh(shapeA);
-    model::MeshPointer meshB = cache.getMesh(shapeB);
-    model::MeshPointer meshC = cache.getMesh(shapeC);
+    graphics::MeshPointer meshA = cache.getMesh(shapeA);
+    graphics::MeshPointer meshB = cache.getMesh(shapeB);
+    graphics::MeshPointer meshC = cache.getMesh(shapeC);
     QVERIFY((bool)meshA);
     QVERIFY((bool)meshB);
     QVERIFY((bool)meshC);
     QVERIFY(cache.getNumMeshes() == 3);
 
     // get the meshes again
-    model::MeshPointer meshA2 = cache.getMesh(shapeA);
-    model::MeshPointer meshB2 = cache.getMesh(shapeB);
-    model::MeshPointer meshC2 = cache.getMesh(shapeC);
+    graphics::MeshPointer meshA2 = cache.getMesh(shapeA);
+    graphics::MeshPointer meshB2 = cache.getMesh(shapeB);
+    graphics::MeshPointer meshC2 = cache.getMesh(shapeC);
     QVERIFY(meshA == meshA2);
     QVERIFY(meshB == meshB2);
     QVERIFY(meshC == meshC2);

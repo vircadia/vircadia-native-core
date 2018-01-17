@@ -102,7 +102,7 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
         indexStartOffset += numVertices;
     }
 
-    model::MeshPointer result(new model::Mesh());
+    graphics::MeshPointer result(new graphics::Mesh());
 
     gpu::Element vertexElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
     gpu::Buffer* combinedVertexBuffer = new gpu::Buffer(combinedVertexSize, combinedVertexData.get());
@@ -130,12 +130,12 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     gpu::BufferView combinedIndexesBufferView(combinedIndexesBufferPointer, indexElement);
     result->setIndexBuffer(combinedIndexesBufferView);
 
-    std::vector<model::Mesh::Part> parts;
-    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                         (model::Index)result->getNumIndices(), // numIndices
-                                         (model::Index)0, // baseVertex
-                                         model::Mesh::TRIANGLES)); // topology
-    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+    std::vector<graphics::Mesh::Part> parts;
+    parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                         (graphics::Index)result->getNumIndices(), // numIndices
+                                         (graphics::Index)0, // baseVertex
+                                         graphics::Mesh::TRIANGLES)); // topology
+    result->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                           (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 
@@ -153,7 +153,7 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
     }
 
     const auto inverseTransposeTransform = glm::inverse(glm::transpose(transform));
-    model::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+    graphics::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                                           [&](glm::vec3 color){ return color; },
                                           [&](glm::vec3 normal){ return glm::vec3(inverseTransposeTransform * glm::vec4(normal, 0.0f)); },
                                           [&](uint32_t index){ return index; });
@@ -199,7 +199,7 @@ QScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertex
 QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
                                               const QVector<MeshFace>& faces) {
-    model::MeshPointer mesh(new model::Mesh());
+    graphics::MeshPointer mesh(new graphics::Mesh());
 
     // vertices
     auto vertexBuffer = std::make_shared<gpu::Buffer>(vertices.size() * sizeof(glm::vec3), (gpu::Byte*)vertices.data());
@@ -236,12 +236,12 @@ QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices
     mesh->setIndexBuffer(indexBufferView);
 
     // parts
-    std::vector<model::Mesh::Part> parts;
-    parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                         (model::Index)faces.size() * 3, // numIndices
-                                         (model::Index)0, // baseVertex
-                                         model::Mesh::TRIANGLES)); // topology
-    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+    std::vector<graphics::Mesh::Part> parts;
+    parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                         (graphics::Index)faces.size() * 3, // numIndices
+                                         (graphics::Index)0, // baseVertex
+                                         graphics::Mesh::TRIANGLES)); // topology
+    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                         (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 
