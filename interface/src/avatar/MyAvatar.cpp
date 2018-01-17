@@ -1422,34 +1422,31 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 }
 
+void MyAvatar::removeAvatarEntities() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+}
+
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
+    QScriptEngine scriptEngine;
     forEachChild([&](SpatiallyNestablePointer child) {
         if (child->getNestableType() == NestableType::Entity) {
             auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
             if (modelEntity) {
-                QVariantList avatarEntityProperties;
+                QVariantMap avatarEntityData;
                 EntityItemProperties entityProperties = modelEntity->getProperties();
-
-                // calculate the entity offset from the parentJointIndex
-                int jointIndex = entityProperties.getParentJointIndex();
-                glm::quat jointRotation = getJointRotation(jointIndex);
-                glm::quat entityRotation = modelEntity->getWorldOrientation();
-                glm::vec3 jointPosition = getJointPosition(jointIndex);
-                glm::vec3 entityPosition = modelEntity->getWorldPosition();
-                glm::quat rotationOffset = glm::inverse(jointRotation) * entityRotation;
-                glm::vec3 positionOffset = entityPosition - jointPosition;
-
-                avatarEntityProperties.append(QVariant(EntityTypes::getEntityTypeName(entityProperties.getType())));
-                avatarEntityProperties.append(QVariant(entityProperties.getMarketplaceID()));
-                avatarEntityProperties.append(QVariant(entityProperties.getEditionNumber()));
-                avatarEntityProperties.append(QVariant(entityProperties.getModelURL()));
-                avatarEntityProperties.append(QVariant(jointIndex));
-                avatarEntityProperties.append(QVariant(toJsonValue(positionOffset)));
-                avatarEntityProperties.append(QVariant(toJsonValue(rotationOffset)));
-                avatarEntityProperties.append(QVariant(entityProperties.getUserData()));
-                avatarEntityProperties.append(QVariant(toJsonValue(entityProperties.getDimensions())));
-                avatarEntitiesData.append(QVariant(avatarEntityProperties));
+                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
+                avatarEntitiesData.append(QVariant(avatarEntityData));
             }
         }
     });

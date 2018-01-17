@@ -25,6 +25,7 @@
 #include <EntityTree.h>
 #include <PhysicalEntitySimulation.h>
 #include <EntityEditPacketSender.h>
+#include <VariantMapToScriptValue.h>
 
 #include "MainWindow.h"
 #include "Menu.h"
@@ -35,7 +36,7 @@
 
 #include <QtQuick/QQuickWindow>
 
-void addAvatarEntities(const QVariantList& avatarEntities, std::shared_ptr<MyAvatar> myAvatar) {
+void addAvatarEntities(const QVariantList& avatarEntities) {
     auto nodeList = DependencyManager::get<NodeList>();
     const QUuid myNodeID = nodeList->getSessionUUID();
     EntityTreePointer entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
@@ -45,32 +46,20 @@ void addAvatarEntities(const QVariantList& avatarEntities, std::shared_ptr<MyAva
     EntitySimulationPointer entitySimulation = entityTree->getSimulation();
     PhysicalEntitySimulationPointer physicalEntitySimulation = std::static_pointer_cast<PhysicalEntitySimulation>(entitySimulation);
     EntityEditPacketSender* entityPacketSender = physicalEntitySimulation->getPacketSender();
+    QScriptEngine scriptEngine;
     for (int index = 0; index < avatarEntities.count(); index++) {
-        const QVariantList& avatarEntityProperties = avatarEntities.at(index).toList();
+        const QVariantMap& avatarEntityProperties = avatarEntities.at(index).toMap();
+        QVariant variantProperties = avatarEntityProperties["properties"];
+        QVariantMap asMap = variantProperties.toMap();
+        QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
         EntityItemProperties entityProperties;
+        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, entityProperties);
+
         entityProperties.setParentID(myNodeID);
-        QString typeName = avatarEntityProperties.value(0).toString();
-        entityProperties.setType(EntityTypes::getEntityTypeFromName(typeName));
-        QString marketplaceID = avatarEntityProperties.value(1).toString();
-        entityProperties.setMarketplaceID(marketplaceID);
-        int editionNumber = avatarEntityProperties.value(2).toInt();
-        entityProperties.setEditionNumber(editionNumber);
-        QString modelURL = avatarEntityProperties.value(3).toString();
-        entityProperties.setModelURL(modelURL);
-        int parentJointIndex = avatarEntityProperties.value(4).toInt();
-        entityProperties.setParentJointIndex(parentJointIndex);
-        glm::vec3 jointPosition = myAvatar->getJointPosition(parentJointIndex);
-        glm::vec3 positionOffset = vec3FromJsonValue(avatarEntityProperties.value(5).toJsonValue());
-        glm::vec3 finalPosition = jointPosition + positionOffset;
-        entityProperties.setPosition(finalPosition);
-        glm::quat jointRotation = myAvatar->getJointRotation(parentJointIndex);
-        glm::quat rotationOffset = quatFromJsonValue(avatarEntityProperties.value(6).toJsonValue());
-        glm::quat finalRotation = jointRotation * rotationOffset;
-        entityProperties.setRotation(finalRotation);
-        QString userData = avatarEntityProperties.value(7).toString();
-        entityProperties.setUserData(userData);
-        glm::vec3 dimensions = vec3FromJsonValue(avatarEntityProperties.value(8).toJsonValue());
-        entityProperties.setDimensions(dimensions);
+        entityProperties.setClientOnly(true);
+        entityProperties.setOwningAvatarID(myNodeID);
+        entityProperties.setSimulationOwner(myNodeID, AVATAR_ENTITY_SIMULATION_PRIORITY);
+        entityProperties.markAllChanged();
 
         EntityItemID id = EntityItemID(QUuid::createUuid());
         bool success = true;
@@ -146,10 +135,11 @@ void AvatarEntitiesBookmarks::applyBookmarkedAvatarEntities() {
     const QMap<QString, QVariant> bookmark = action->data().toMap();
 
     if (bookmark.value(ENTRY_VERSION) == AVATAR_ENTITIES_BOOKMARK_VERSION) {
+        myAvatar->removeAvatarEntities();
         const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
         myAvatar->useFullAvatarURL(avatarUrl);
         const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
-        addAvatarEntities(avatarEntities, myAvatar);
+        addAvatarEntities(avatarEntities);
         const float& avatarScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
         myAvatar->setAvatarScale(avatarScale);
     } else {

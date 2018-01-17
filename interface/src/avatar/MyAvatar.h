@@ -511,6 +511,7 @@ public:
     bool hasDriveInput() const;
 
     QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
 
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();
