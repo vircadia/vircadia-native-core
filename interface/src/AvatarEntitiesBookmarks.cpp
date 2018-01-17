@@ -62,7 +62,7 @@ void addAvatarEntities(const QVariantList& avatarEntities, std::shared_ptr<MyAva
         glm::vec3 jointPosition = myAvatar->getJointPosition(parentJointIndex);
         glm::vec3 positionOffset = vec3FromJsonValue(avatarEntityProperties.value(5).toJsonValue());
         glm::vec3 finalPosition = jointPosition + positionOffset;
-        entityProperties.setLocalPosition(finalPosition);
+        entityProperties.setPosition(finalPosition);
         glm::quat jointRotation = myAvatar->getJointRotation(parentJointIndex);
         glm::quat rotationOffset = quatFromJsonValue(avatarEntityProperties.value(6).toJsonValue());
         glm::quat finalRotation = jointRotation * rotationOffset;
