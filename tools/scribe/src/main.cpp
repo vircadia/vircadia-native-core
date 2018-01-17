@@ -41,6 +41,7 @@ int main (int argc, char** argv) {
         GRAB_VAR_VALUE,
         GRAB_INCLUDE_PATH,
         GRAB_TARGET_NAME,
+        GRAB_SHADER_TYPE,
         EXIT,
     } mode = READY;
 
@@ -78,15 +79,8 @@ int main (int argc, char** argv) {
                 } else if (inputs.back() == "-c++") {
                     makeCPlusPlus = true;
                     mode = READY;
-                } else if (inputs.back() == "-vert") {
-                    type = VERTEX;
-                    mode = READY;
-                } else if (inputs.back() == "-frag") {
-                    type = FRAGMENT;
-                    mode = READY;
-                } else if (inputs.back() == "-geom") {
-                    type = GEOMETRY;
-                    mode = READY;
+                } else if (inputs.back() == "-T") {
+                    mode = GRAB_SHADER_TYPE;
                 } else {
                     // just grabbed the source filename, stop parameter parsing
                     srcFilename = inputs.back();
@@ -127,6 +121,21 @@ int main (int argc, char** argv) {
             }
             break;
                 
+            case GRAB_SHADER_TYPE:
+            {
+                if (inputs.back() == "frag") {
+                    type = FRAGMENT;
+                } else if (inputs.back() == "geom") {
+                    type = GEOMETRY;
+                } else if (inputs.back() == "vert") {
+                    type = VERTEX;
+                } else {
+                    cerr << "Unrecognized shader type. Supported is vert, frag or geom" << endl;
+                }
+                mode = READY;
+            }
+            break;
+
             case EXIT: {
                 // THis shouldn't happen
             }
@@ -145,6 +154,8 @@ int main (int argc, char** argv) {
         cerr << "  -listVars : Will list the vars name and value in the standard output." << endl;
         cerr << "  -showParseTree : Draw the tree obtained while parsing the source" << endl;
         cerr << "  -c++ : Generate a c++ source file containing the output file stream stored as a char[] variable" << endl;
+        cerr << "  -T vert/frag/geom : define the type of the shader. Defaults to VERTEX if not specified." << endl;
+        cerr << "       This is necessary if the -c++ option is used." << endl;
         return 0;
     }
 
