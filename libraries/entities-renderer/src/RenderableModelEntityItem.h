@@ -81,15 +81,20 @@ public:
     void setCollisionShape(const btCollisionShape* shape) override;
 
     virtual bool contains(const glm::vec3& point) const override;
+    void stopModelOverrideIfNoParent();
 
     virtual bool shouldBePhysical() const override;
+    void simulateRelayedJoints();
+    bool getJointMapCompleted();
+    void setJointMap(std::vector<int> jointMap);
+    int avatarJointIndex(int modelJointIndex);
+    void setOverrideTransform(const Transform& transform, const glm::vec3& offset);
 
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
-
 
     virtual glm::quat getLocalJointRotation(int index) const override;
     virtual glm::vec3 getLocalJointTranslation(int index) const override;
@@ -119,7 +124,9 @@ private:
 
     void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
+    bool _jointMapCompleted { false };
     bool _originalTexturesRead { false };
+    std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };

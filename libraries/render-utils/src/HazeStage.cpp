@@ -17,12 +17,12 @@ std::string HazeStage::_stageName { "HAZE_STAGE"};
 const HazeStage::Index HazeStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 FetchHazeStage::FetchHazeStage() {
-    _haze = std::make_shared<model::Haze>();
+    _haze = std::make_shared<graphics::Haze>();
 }
 
 void FetchHazeStage::configure(const Config& config) {
     _haze->setHazeColor(config.hazeColor);
-    _haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(config.hazeGlareAngle));
+    _haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(config.hazeGlareAngle));
 
     _haze->setHazeGlareColor(config.hazeGlareColor);
     _haze->setHazeBaseReference(config.hazeBaseReference);
@@ -33,11 +33,11 @@ void FetchHazeStage::configure(const Config& config) {
     _haze->setModulateColorActive(config.isModulateColorActive);
     _haze->setHazeEnableGlare(config.isHazeEnableGlare);
 
-    _haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeRange));
-    _haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
+    _haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(config.hazeRange));
+    _haze->setHazeAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
 
-    _haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
-    _haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
+    _haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
+    _haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
 
     _haze->setHazeBackgroundBlend(config.hazeBackgroundBlend);
 }
@@ -86,7 +86,7 @@ void HazeStageSetup::run(const render::RenderContextPointer& renderContext) {
     }
 }
 
-void FetchHazeStage::run(const render::RenderContextPointer& renderContext, model::HazePointer& haze) {
+void FetchHazeStage::run(const render::RenderContextPointer& renderContext, graphics::HazePointer& haze) {
     auto hazeStage = renderContext->_scene->getStage<HazeStage>();
     assert(hazeStage);
 

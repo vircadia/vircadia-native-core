@@ -1,6 +1,6 @@
 //
 //  Skybox.cpp
-//  libraries/model/src/model
+//  libraries/graphics/src/graphics
 //
 //  Created by Sam Gateau on 5/4/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -18,7 +18,7 @@
 #include "skybox_vert.h"
 #include "skybox_frag.h"
 
-using namespace model;
+using namespace graphics;
 
 Skybox::Skybox() {
     Schema schema;
