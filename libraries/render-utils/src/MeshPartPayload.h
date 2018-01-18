@@ -103,7 +103,7 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setKey(bool isVisible, bool isLayered, bool isCauterized = false);
+    void setKey(bool isVisible, bool isLayered, uint8_t viewVisiblityMask);
     void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
     void setShapeKey(bool invalidateShapeKey, bool isWireframe);
 
