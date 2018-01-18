@@ -163,7 +163,7 @@ QString transactionString(const QJsonObject& valueObject) {
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
     QString result;
 
-    if (sentCerts <= 0 && receivedCerts <= 0) {
+    if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
         // this is an hfc transfer.
         if (sent > 0) {
             QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
