@@ -89,7 +89,7 @@
 
         this.isReady = function (controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
-            if (!otherModuleRunning) {
+            if (!otherModuleRunning && HMD.active) {
                 if (this.processLaser(controllerData)) {
                     this.running = true;
                     return ControllerDispatcherUtils.makeRunningValues(true, [], []);
