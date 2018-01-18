@@ -396,7 +396,18 @@ void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, uint8_t viewVi
     if (!isVisible) {
         builder.withInvisible();
     } else {
-        builder.withInvisible(viewVisiblityMask);
+        if (!(viewVisiblityMask & render::ItemKey::VISIBLE_MASK_0)) {
+            builder.withInvisible(render::ItemKey::INVISIBLE0 - render::ItemKey::INVISIBLE0);
+        }
+        if (!(viewVisiblityMask & render::ItemKey::VISIBLE_MASK_1)) {
+            builder.withInvisible(render::ItemKey::INVISIBLE1 - render::ItemKey::INVISIBLE0);
+        }
+        if (!(viewVisiblityMask & render::ItemKey::VISIBLE_MASK_2)) {
+            builder.withInvisible(render::ItemKey::INVISIBLE2 - render::ItemKey::INVISIBLE0);
+        }
+        if (!(viewVisiblityMask & render::ItemKey::VISIBLE_MASK_3)) {
+            builder.withInvisible(render::ItemKey::INVISIBLE3 - render::ItemKey::INVISIBLE0);
+        }
     }
 
     if (isLayered) {

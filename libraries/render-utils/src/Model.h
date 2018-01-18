@@ -86,7 +86,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t visibleMask);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewVisiblityMask);
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -104,6 +104,7 @@ public:
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
+    uint8_t getViewVisibilityMask() const { return _viewVisibilityMask; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
     bool isLayeredInHUD() const { return _isLayeredInHUD; }
@@ -388,6 +389,7 @@ protected:
 
     QUrl _url;
     bool _isVisible;
+    uint32_t _viewVisibilityMask { 0 };
 
     gpu::Buffers _blendedVertexBuffers;
 

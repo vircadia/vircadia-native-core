@@ -1333,16 +1333,15 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    if (model->isVisible() != _visible) {
+    uint32_t viewVisiblityMask = _cauterized ?
+        (render::ItemKey::VISIBLE_MASK_ALL & ~render::ItemKey::VISIBLE_MASK_0) : // draw in every view except the main one
+        render::ItemKey::VISIBLE_MASK_ALL;
+
+    if (model->isVisible() != _visible || model->getViewVisibilityMask() != viewVisiblityMask) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        if (_cauterized) {
-            // draw this in every view except the main one
-            model->setVisibleInScene(_visible, scene, render::ItemKey::VISIBLE_MASK_ALL & ~render::ItemKey::VISIBLE_MASK_0);
-        } else {
-            model->setVisibleInScene(_visible, scene, render::ItemKey::VISIBLE_MASK_ALL);
-        }
+        model->setVisibleInScene(_visible, scene, viewVisiblityMask);
     }
     // TODO? early exit here when not visible?
 
