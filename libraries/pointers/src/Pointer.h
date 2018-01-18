@@ -54,6 +54,8 @@ public:
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
+    void setNonHoverItems(const QVector<QUuid>& nonHoverItems);
+
     bool isLeftHand() const;
     bool isRightHand() const;
     bool isMouse() const;
@@ -102,6 +104,7 @@ private:
 
     PointerEvent::Button chooseButton(const std::string& button);
 
+    QVector<QUuid> _nonHoverItems;
 };
 
 #endif // hifi_Pick_h

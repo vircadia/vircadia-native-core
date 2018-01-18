@@ -52,6 +52,12 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
+void Pointer::setNonHoverItems(const QVector<QUuid>& nonHoverItems) {
+    withWriteLock([&] {
+        _nonHoverItems = nonHoverItems;
+    });
+}
+
 bool Pointer::isLeftHand() const {
     return DependencyManager::get<PickManager>()->isLeftHand(_pickUID);
 }
@@ -96,6 +102,11 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
 
     // Hover events
     bool doHover = shouldHover(pickResult);
+
+    auto pickResultMap = pickResult->toVariantMap();
+    auto uuid = QUuid(pickResultMap.value("objectID", "").toString());
+    doHover = doHover && !_nonHoverItems.contains(uuid);
+
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
     hoveredEvent.setType(PointerEvent::Move);

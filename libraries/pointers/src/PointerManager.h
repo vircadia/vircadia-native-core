@@ -34,6 +34,7 @@ public:
     void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignoreEntities) const;
     void setIncludeItems(unsigned int uid, const QVector<QUuid>& includeEntities) const;
+    void setNonHoverItems(unsigned int uid, const QVector<QUuid>& nonHoverItems) const;
 
     void setLength(unsigned int uid, float length) const;
     void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const;

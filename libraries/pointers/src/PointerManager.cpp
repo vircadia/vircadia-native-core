@@ -108,6 +108,13 @@ void PointerManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& inc
     }
 }
 
+void PointerManager::setNonHoverItems(unsigned int uid, const QVector<QUuid>& nonHoverItems) const {
+    auto pointer = find(uid);
+    if (pointer) {
+        pointer->setNonHoverItems(nonHoverItems);
+    }
+}
+
 void PointerManager::setLength(unsigned int uid, float length) const {
     auto pointer = find(uid);
     if (pointer) {

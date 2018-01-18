@@ -192,6 +192,14 @@ public:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
     /**jsdoc
+     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs that the pointer should not send hover events to.
+     * @function Pointers.setNonHoverItems
+     * @param {number} uid - The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @param {Uuid[]} nonHoverItems - A list of IDs to that hover events should not be sent to.
+     */
+    Q_INVOKABLE void setNonHoverItems(unsigned int uid, const QScriptValue& nonHoverItems) const;
+
+    /**jsdoc
      * Lock a Pointer onto a specific object (overlay, entity, or avatar).  Optionally, provide an offset in object-space, otherwise the Pointer will lock on to the center of the object.
      *   Not used by Stylus Pointers.
      * @function Pointers.setLockEndUUID
