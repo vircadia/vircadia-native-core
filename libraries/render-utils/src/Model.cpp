@@ -674,13 +674,13 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene,
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewVisibilityMask, isLayeredInFront,
                                                                 isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, 14);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, viewVisibilityMask);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewVisibilityMask, isLayeredInFront,
                                                                 isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, 14);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, viewVisibilityMask);
             });
         }
         scene->enqueueTransaction(transaction);
