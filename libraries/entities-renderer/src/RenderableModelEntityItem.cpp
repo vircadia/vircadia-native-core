@@ -1394,18 +1394,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
-        // check animation url change
-        auto newprops = entity->getAnimationProperties();
-        if (newprops != _previousAnimationProperties) {
-            if (newprops.getURL() != _previousAnimationProperties.getURL()) {
-                _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
-                _jointMappingCompleted = false;
-                mapJoints(entity, model->getJointNames());
-            }
-            _previousAnimationProperties = newprops;
+        
+        if (!jointsMapped()) {
+            mapJoints(entity, model->getJointNames());
         }
-        if (!jointsMapped() || _animation->getURL().toString() != entity->getAnimationURL()) {
-            qCDebug(entitiesrenderer) << "changed animation or started animation";
+        //else the joints have been mapped before but we have new animation to load
+        else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
+            _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
+            _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
         }
         if (!(entity->getAnimationFirstFrame() < 0) && !(entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())) {
