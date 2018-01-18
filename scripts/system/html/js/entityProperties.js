@@ -19,7 +19,7 @@ var ICON_FOR_TYPE = {
     ParticleEffect: "&#xe004;",
     Model: "&#xe008;",
     Web: "q",
-    Image: "q", // what do? 
+    Image: "q", // change this when image type icon added 
     Text: "l",
     Light: "p",
     Zone: "o",
@@ -995,6 +995,7 @@ function loaded() {
                             elWebDPI.value = properties.dpi;
                         } else if (properties.type === "Image") {
                             elImageURL.value = properties.imageURL;
+                            //elImageURL.value = properties.sourceURL;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);

@@ -546,7 +546,7 @@ var toolBar = (function () {
             createNewEntity({
                 type: "Image",
                 dimensions: DEFAULT_DIMENSIONS,
-                sourceUrl: "https://highfidelity.com/"
+                imageURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg"
             });
         });
 
