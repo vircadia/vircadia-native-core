@@ -33,7 +33,6 @@
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
-StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
@@ -396,12 +395,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
-    changedProperties += _stage.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
 
     return changedProperties;
@@ -529,6 +528,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -576,7 +576,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
-        _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
@@ -723,7 +722,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collidesWith, CollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
@@ -738,7 +737,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
@@ -758,6 +757,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -775,10 +775,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(keyLightMode, KeyLightMode);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(skyboxMode, SkyboxMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -810,7 +810,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _keyLight.copyFromScriptValue(object, _defaultSettings);
     _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _stage.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
@@ -961,7 +960,6 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _keyLight.merge(other._keyLight);
     _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
-    _stage.merge(other._stage);
     _haze.merge(other._haze);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
@@ -1168,6 +1166,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
@@ -1183,14 +1182,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
 
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
@@ -1399,6 +1390,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, properties.getJointRotations());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
+                APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1446,9 +1438,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
 
                 _staticAmbientLight.setProperties(properties);
                 _staticAmbientLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-                _staticStage.setProperties(properties);
-                _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
@@ -1761,6 +1750,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1805,7 +1795,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Zone) {
         properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
         properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
@@ -2056,7 +2045,6 @@ void EntityItemProperties::markAllChanged() {
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
-    _stage.markAllChanged();
     _haze.markAllChanged();
 
     _sourceUrlChanged = true;
@@ -2107,6 +2095,7 @@ void EntityItemProperties::markAllChanged() {
     _owningAvatarIDChanged = true;
 
     _dpiChanged = true;
+    _relayParentJointsChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -2473,6 +2462,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (jointTranslationsChanged()) {
         out += "jointTranslations";
     }
+    if (relayParentJointsChanged()) {
+        out += "relayParentJoints";
+    }
     if (queryAACubeChanged()) {
         out += "queryAACube";
     }
@@ -2513,7 +2505,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getKeyLight().listChangedProperties(out);
     getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
-    getStage().listChangedProperties(out);
     getHaze().listChangedProperties(out);
 
     return out;

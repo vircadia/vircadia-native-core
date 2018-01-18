@@ -49,6 +49,8 @@ void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptR
 WindowScriptingInterface::WindowScriptingInterface() {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
+
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
@@ -134,6 +136,10 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
     });
 }
 
+void WindowScriptingInterface::disconnectedFromDomain() {
+    emit domainChanged("");
+}
+
 CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {
     CustomPromptResult result;
     bool ok = false;
@@ -174,10 +180,6 @@ void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& loc
 bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->isPointOnDesktopWindow(point);
-}
-
-glm::vec2 WindowScriptingInterface::getDeviceSize() const {
-    return qApp->getDeviceSize();
 }
 
 /// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
@@ -389,11 +391,15 @@ QString WindowScriptingInterface::checkVersion() {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return qApp->getWindow()->geometry().width();
+    return qApp->getDeviceSize().x;
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return qApp->getWindow()->geometry().height();
+    return qApp->getDeviceSize().y;
+}
+
+glm::vec2 WindowScriptingInterface::getDeviceSize() const {
+    return qApp->getDeviceSize();
 }
 
 int WindowScriptingInterface::getX() {
@@ -405,6 +411,11 @@ int WindowScriptingInterface::getY() {
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard", Q_ARG(QString, text));
+        return;
+    }
+
     qDebug() << "Copying";
     QApplication::clipboard()->setText(text);
 }

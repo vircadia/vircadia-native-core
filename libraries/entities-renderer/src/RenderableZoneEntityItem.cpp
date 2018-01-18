@@ -13,7 +13,7 @@
 
 #include <gpu/Batch.h>
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -162,28 +162,31 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 
     if (_visible) {
-        // Finally, push the light visible in the frame
+        // Finally, push the lights visible in the frame
+        //
+        // If component is disabled then push component off state
+        // else if component is enabled then push current state
+        // (else mode is inherit, the value from the parent zone will be used
+        //
         if (_keyLightMode == COMPONENT_MODE_DISABLED) {
             _stage->_currentFrame.pushSunLight(_stage->getSunOffLight());
         } else if (_keyLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
-        // The background only if the mode is not inherit
         if (_skyboxMode == COMPONENT_MODE_DISABLED) {
             _backgroundStage->_currentFrame.pushBackground(INVALID_INDEX);
         } else if (_skyboxMode == COMPONENT_MODE_ENABLED) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
-        // The ambient light only if it has a valid texture to render with
         if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
             _stage->_currentFrame.pushAmbientLight(_stage->getAmbientOffLight());
         } else if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
             _stage->_currentFrame.pushAmbientLight(_ambientIndex);
         }
 
-        // Haze only if the mode is not inherit
+        // Haze only if the mode is not inherit, as the model deals with on/off
         if (_hazeMode != COMPONENT_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
@@ -218,7 +221,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _ambientLightProperties = entity->getAmbientLightProperties();
     _skyboxProperties = entity->getSkyboxProperties();
     _hazeProperties = entity->getHazeProperties();
-    _stageProperties = entity->getStageProperties();
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
@@ -320,7 +322,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     setKeyLightMode((ComponentMode)entity->getKeyLightMode());
 
     const auto& sunLight = editSunLight();
-    sunLight->setType(model::Light::SUN);
+    sunLight->setType(graphics::Light::SUN);
     sunLight->setPosition(_lastPosition);
     sunLight->setOrientation(_lastRotation);
 
@@ -334,7 +336,7 @@ void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& 
     setAmbientLightMode((ComponentMode)entity->getAmbientLightMode());
 
     const auto& ambientLight = editAmbientLight();
-    ambientLight->setType(model::Light::AMBIENT);
+    ambientLight->setType(graphics::Light::AMBIENT);
     ambientLight->setPosition(_lastPosition);
     ambientLight->setOrientation(_lastRotation);
 
@@ -358,23 +360,23 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
-    haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
+    haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
     xColor hazeColor = _hazeProperties.getHazeColor();
     haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
     xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
     haze->setHazeGlareColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
-    haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
+    haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
 
     float hazeAltitude = _hazeProperties.getHazeCeiling() - _hazeProperties.getHazeBaseRef();
-    haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
+    haze->setHazeAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
     haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
 
     haze->setHazeBackgroundBlend(_hazeProperties.getHazeBackgroundBlend());
 
     haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
-    haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
-    haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
+    haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
+    haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 
     haze->setZoneTransform(entity->getTransform().getMatrix());
 }

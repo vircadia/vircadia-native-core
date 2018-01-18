@@ -41,7 +41,6 @@
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
-#include "StagePropertyGroup.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 
@@ -185,13 +184,10 @@ public:
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
-    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
 
-    DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-    DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-    DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_ENABLED);
-
-    // This is the default mode for zone creation
+    DEFINE_PROPERTY_REF_ENUM(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
@@ -259,6 +255,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid, ENTITY_ITEM_DEFAULT_LAST_EDITED_BY);
 
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
+    DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
 
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);

@@ -63,13 +63,6 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _packetStatTimer(),
     _permissions(NodePermissions())
 {
-    static bool firstCall = true;
-    if (firstCall) {
-        NodeType::init();
-
-        firstCall = false;
-    }
-
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);

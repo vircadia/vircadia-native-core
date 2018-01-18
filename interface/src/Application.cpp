@@ -157,7 +157,7 @@
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
@@ -2093,6 +2093,11 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
+    // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
+    // it accesses the PickManager to delete its associated Pick
+    DependencyManager::destroy<PointerManager>();
+    DependencyManager::destroy<PickManager>();
+
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
@@ -2287,7 +2292,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/SendMoney.qml" },
+        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -2376,9 +2381,11 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
-    surfaceContext->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
-    surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
@@ -2444,7 +2451,7 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
-void Application::updateCamera(RenderArgs& renderArgs) {
+void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("updateCamera");
 
@@ -2459,6 +2466,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     // Using the latter will cause the camera to wobble with idle animations,
     // or with changes from the face tracker
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
@@ -2471,12 +2479,25 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
-            _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                myAvatar->getWorldOrientation() * boomOffset);
+
+            if (!_thirdPersonHMDCameraBoomValid) {
+                const glm::vec3 CAMERA_OFFSET = glm::vec3(0.0f, 0.0f, 0.7f);
+                _thirdPersonHMDCameraBoom = cancelOutRollAndPitch(myAvatar->getHMDSensorOrientation()) * CAMERA_OFFSET;
+                _thirdPersonHMDCameraBoomValid = true;
+            }
+
+            glm::mat4 thirdPersonCameraSensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+
+            const glm::vec3 cameraPos = myAvatar->getHMDSensorPosition() + _thirdPersonHMDCameraBoom * myAvatar->getBoomLength();
+            glm::mat4 sensorCameraMat = createMatFromQuatAndPos(myAvatar->getHMDSensorOrientation(), cameraPos);
+            glm::mat4 worldCameraMat = thirdPersonCameraSensorToWorldMatrix * sensorCameraMat;
+
+            _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
+            _myCamera.setPosition(extractTranslation(worldCameraMat));
         }
         else {
+            _thirdPersonHMDCameraBoomValid = false;
+
             _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
             if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
@@ -2489,6 +2510,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         }
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
@@ -2523,6 +2545,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
     else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+        _thirdPersonHMDCameraBoomValid= false;
         EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
         if (cameraEntity != nullptr) {
             if (isHMDMode()) {
@@ -4333,8 +4356,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
-        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
-        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
+        auto lodManager = DependencyManager::get<LODManager>();
+        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -5099,7 +5123,8 @@ void Application::update(float deltaTime) {
         _postUpdateLambdas.clear();
     }
 
-    editRenderArgs([this](AppRenderArgs& appRenderArgs) {
+
+    editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
         appRenderArgs._headPose= getHMDSensorPose();
 
@@ -5146,7 +5171,7 @@ void Application::update(float deltaTime) {
             resizeGL();
         }
 
-        this->updateCamera(appRenderArgs._renderArgs);
+        this->updateCamera(appRenderArgs._renderArgs, deltaTime);
         appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 
@@ -5448,7 +5473,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+    skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
@@ -5758,10 +5783,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    scriptEngine->registerGlobalObject("Account", GlobalServicesScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
-    scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -6161,7 +6187,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
+            static const QUrl url("../dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
@@ -6790,6 +6816,15 @@ void Application::loadAddAvatarBookmarkDialog() const {
     avatarBookmarks->addBookmark();
 }
 
+void Application::loadAvatarBrowser() const {
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    // construct the url to the marketplace item
+    QString url = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace?category=avatars";
+    QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
+    tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+}
+
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
@@ -6807,7 +6842,8 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot() {
     postLambdaEvent([this] {
-        Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
 
@@ -7371,11 +7407,13 @@ void Application::updateThreadPoolCount() const {
 }
 
 void Application::updateSystemTabletMode() {
-    qApp->setProperty(hifi::properties::HMD, isHMDMode());
-    if (isHMDMode()) {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
-    } else {
-        DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+    if (_settingsLoaded) {
+        qApp->setProperty(hifi::properties::HMD, isHMDMode());
+        if (isHMDMode()) {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
+        } else {
+            DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
+        }
     }
 }
 

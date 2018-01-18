@@ -27,10 +27,12 @@ TextField {
     property bool hasRoundedBorder: false
     property bool error: false;
     property bool hasClearButton: false;
+    property string leftPlaceholderGlyph: "";
 
     placeholderText: textField.placeholderText
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+    FontLoader { id: hifiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     font.italic: textField.text == ""
@@ -54,6 +56,7 @@ TextField {
     }
 
     style: TextFieldStyle {
+        id: style;
         textColor: {
             if (isLightColorScheme) {
                 if (textField.activeFocus) {
@@ -103,6 +106,16 @@ TextField {
             radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
 
             HiFiGlyphs {
+                text: textField.leftPlaceholderGlyph;
+                color: textColor;
+                size: hifi.fontSizes.textFieldSearchIcon;
+                anchors.left: parent.left;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.leftMargin: hifi.dimensions.textPadding - 2;
+                visible: text;
+            }
+
+            HiFiGlyphs {
                 text: hifi.glyphs.search
                 color: textColor
                 size: hifi.fontSizes.textFieldSearchIcon
@@ -132,7 +145,7 @@ TextField {
         placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
-        padding.left: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
+        padding.left: ((isSearchField || textField.leftPlaceholderGlyph !== "") ? textField.height - 2 : 0) + hifi.dimensions.textPadding
         padding.right: (hasClearButton ? textField.height - 2 : 0) + hifi.dimensions.textPadding
     }
 

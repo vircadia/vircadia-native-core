@@ -546,7 +546,7 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
     if (pipeline.locations->materialBufferUnit >= 0) {
         // Create a default schema
         static bool isMaterialSet = false;
-        static model::Material material;
+        static graphics::Material material;
         if (!isMaterialSet) {
             material.setAlbedo(vec3(1.0f));
             material.setOpacity(1.0f);

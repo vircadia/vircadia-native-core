@@ -45,6 +45,9 @@ signals:
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
+    void transferHfcToNodeResult(QJsonObject result);
+    void transferHfcToUsernameResult(QJsonObject result);
+
 protected:
     Q_INVOKABLE void getWalletStatus();
 
@@ -62,11 +65,12 @@ protected:
     Q_INVOKABLE void inventory();
     Q_INVOKABLE void history(const int& pageNumber);
     Q_INVOKABLE void generateKeyPair();
-    Q_INVOKABLE void reset();
-    Q_INVOKABLE void resetLocalWalletOnly();
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
+
+    Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
 };
 
 #endif // hifi_QmlCommerce_h
