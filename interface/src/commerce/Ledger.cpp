@@ -198,10 +198,16 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
+    QString remotePublicKey = data["public_key"].toString();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
+
+    QStringList localPublicKeys = wallet->listPublicKeys();
+    if (remotePublicKey.isEmpty() && !localPublicKeys.isEmpty()) {
+        receiveAt(localPublicKeys.first(), "");
+    }
 
     // none of the hfc account info should be emitted
     emit accountResult(QJsonObject{ {"status", "success"} });
