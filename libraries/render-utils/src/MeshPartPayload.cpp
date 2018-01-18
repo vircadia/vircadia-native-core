@@ -395,8 +395,7 @@ void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, bool isCauteri
 
     if (!isVisible) {
         builder.withInvisible();
-    }
-    else if (isCauterized) {
+    } else if (isCauterized) {
         builder.withInvisible(0); // hide these items in the vibility mask #0
     }
 
