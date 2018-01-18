@@ -36,6 +36,7 @@ const int Item::LAYER_3D_HUD = 3;
 
 const uint8_t ItemKey::NUM_VISIBLE_MASK_INDICES { 4 };
 const uint8_t ItemKey::VISIBLE_MASK_ALL { 0x0F };
+const uint8_t ItemKey::VISIBLE_MASK_NONE { 0x00 };
 const uint8_t ItemKey::VISIBLE_MASK_0 { 0x01 };
 const uint8_t ItemKey::VISIBLE_MASK_1 { 0x02 };
 const uint8_t ItemKey::VISIBLE_MASK_2 { 0x04 };

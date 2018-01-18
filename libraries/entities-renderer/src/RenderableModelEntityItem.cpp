@@ -1334,8 +1334,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->stopModelOverrideIfNoParent();
 
     uint32_t viewVisiblityMask = _cauterized ?
-        render::ItemKey::VISIBLE_MASK_0 : // draw in every view except the main one
-        render::ItemKey::VISIBLE_MASK_ALL; // draw in all views
+        render::ItemKey::VISIBLE_MASK_0 : // draw in every view except the main one (view zero)
+        render::ItemKey::VISIBLE_MASK_NONE; // draw in all views
 
     if (model->isVisible() != _visible || model->getViewVisibilityMask() != viewVisiblityMask) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in

@@ -65,6 +65,7 @@ public:
     // Beware that the visibility mask is the oposite of what stored in the key vals.
     const static uint8_t NUM_VISIBLE_MASK_INDICES;
     const static uint8_t VISIBLE_MASK_ALL;
+    const static uint8_t VISIBLE_MASK_NONE;
     const static uint8_t VISIBLE_MASK_0;
     const static uint8_t VISIBLE_MASK_1;
     const static uint8_t VISIBLE_MASK_2;
@@ -96,6 +97,21 @@ public:
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible(uint8_t maskIndex = 0) { _flags.set(INVISIBLE0 + maskIndex); return (*this); }
+        Builder& withViewVisibilityMask(uint8_t mask) {
+            if (mask & render::ItemKey::VISIBLE_MASK_0) {
+                _flags.set(INVISIBLE0);
+            }
+            if (mask & render::ItemKey::VISIBLE_MASK_1) {
+                _flags.set(INVISIBLE1);
+            }
+            if (mask & render::ItemKey::VISIBLE_MASK_2) {
+                _flags.set(INVISIBLE2);
+            }
+            if (mask & render::ItemKey::VISIBLE_MASK_3) {
+                _flags.set(INVISIBLE3);
+            }
+            return (*this);
+        }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
