@@ -2283,30 +2283,35 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setOwningAvatarID(myNodeID);
         }
 
-        // Fix for older content not containing these fields in the zones
+        // Fix for older content not containing mode fields in the zones
         if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+            // The legacy version had no keylight mode - this is set to on
+            properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            
             // The ambient URL has been moved from "keyLight" to "ambientLight"
             if (entityMap.contains("keyLight")) {
                 QVariantMap keyLightObject = entityMap["keyLight"].toMap();
                 properties.getAmbientLight().setAmbientURL(keyLightObject["ambientURL"].toString());
             }
 
+            // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+            // Use skybox value only if it is not empty, else set ambientMode to inherit (to use default URL)
+            properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            if (properties.getAmbientLight().getAmbientURL() == "") {
+                if (properties.getSkybox().getURL() != "") {
+                    properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                } else {
+                    properties.setAmbientLightMode(COMPONENT_MODE_INHERIT);
+                }
+            }
+
             // The background should be enabled if the mode is skybox
             // Note that if the values are default then they are not stored in the JSON file
             if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "skybox")) {
                 properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
- 
-                // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
-                if (properties.getAmbientLight().getAmbientURL() == "") {
-                    properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
-                }
-           } else {
+            } else {
                 properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
             }
-
-            // The legacy version had no keylight/ambient modes - these are always on
-            properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
-            properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);

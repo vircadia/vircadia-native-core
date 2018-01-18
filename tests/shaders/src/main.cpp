@@ -64,8 +64,8 @@
 #include <render-utils/overlay3D_vert.h>
 #include <render-utils/overlay3D_frag.h>
 
-#include <model/skybox_vert.h>
-#include <model/skybox_frag.h>
+#include <graphics/skybox_vert.h>
+#include <graphics/skybox_frag.h>
 
 #include <gpu/DrawTransformUnitQuad_vert.h>
 #include <gpu/DrawTexcoordRectTransformUnitQuad_vert.h>

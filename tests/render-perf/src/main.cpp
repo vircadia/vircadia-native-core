@@ -59,7 +59,7 @@
 #include <OctreeUtils.h>
 #include <render/Engine.h>
 #include <Model.h>
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <TextureCache.h>
 #include <FramebufferCache.h>
 #include <model-networking/ModelCache.h>
@@ -416,7 +416,7 @@ namespace render {
         auto backgroundMode = skyStage->getBackgroundMode();
 
         switch (backgroundMode) {
-            case model::SunSkyStage::SKY_BOX: {
+            case graphics::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
                     PerformanceTimer perfTimer("skybox");
@@ -1114,8 +1114,8 @@ private:
     RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    model::SunSkyStage _sunSkyStage;
-    model::LightPointer _globalLight { std::make_shared<model::Light>() };
+    graphics::SunSkyStage _sunSkyStage;
+    graphics::LightPointer _globalLight { std::make_shared<graphics::Light>() };
     bool _ready { false };
     EntitySimulationPointer _entitySimulation;
 

@@ -199,8 +199,6 @@ public:
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
 
-    void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
-
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
 
@@ -212,10 +210,15 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset);
+    bool isOverridingModelTransformAndOffset() { return _overrideModelTransform; };
+    void stopTransformAndOffsetOverride() { _overrideModelTransform = false; };
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+    const glm::vec3& getOverrideTranslation() const { return _overrideTranslation; }
+    const glm::quat& getOverrideRotation() const { return _overrideRotation; }
 
     glm::vec3 getNaturalDimensions() const;
 
@@ -240,7 +243,7 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     virtual bool updateGeometry();
-    void setCollisionMesh(model::MeshPointer mesh);
+    void setCollisionMesh(graphics::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -343,6 +346,9 @@ protected:
     glm::quat _rotation;
     glm::vec3 _scale;
 
+    glm::vec3 _overrideTranslation;
+    glm::quat _overrideRotation;
+
     // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
     // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
     // by the default pose, to the origin.
@@ -367,16 +373,6 @@ protected:
 
     void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
-
-    /// Restores the indexed joint to its default position.
-    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
-    /// the original position
-    /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
-
-    /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
-    /// first free ancestor.
-    float getLimbLength(int jointIndex) const;
 
     /// Allow sub classes to force invalidating the bboxes
     void invalidCalculatedMeshBoxes() {
@@ -403,6 +399,7 @@ protected:
 
     QMutex _mutex;
 
+    bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets();
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes

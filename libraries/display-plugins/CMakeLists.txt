@@ -5,7 +5,7 @@ link_hifi_libraries(shared plugins ui-plugins gl ui render-utils ${PLATFORM_GL_B
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(model-networking)
 include_hifi_library_headers(networking)
-include_hifi_library_headers(model)
+include_hifi_library_headers(graphics)
 include_hifi_library_headers(fbx)
 include_hifi_library_headers(image)
 include_hifi_library_headers(ktx)

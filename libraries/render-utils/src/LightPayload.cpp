@@ -40,7 +40,7 @@ namespace render {
 }
 
 LightPayload::LightPayload() :
-    _light(std::make_shared<model::Light>())
+    _light(std::make_shared<graphics::Light>())
 {
 }
 
@@ -109,7 +109,7 @@ namespace render {
 }
 
 KeyLightPayload::KeyLightPayload() :
-_light(std::make_shared<model::Light>())
+_light(std::make_shared<graphics::Light>())
 {
 }
 

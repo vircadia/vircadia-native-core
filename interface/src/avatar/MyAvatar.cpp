@@ -537,6 +537,7 @@ void MyAvatar::simulate(float deltaTime) {
     // we've achived our final adjusted position and rotation for the avatar
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
+    relayJointDataToChildren();
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -1059,11 +1060,6 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
-}
-
-void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
-    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
-    reset(true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1929,7 +1925,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
@@ -2100,7 +2096,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * _walkSpeed.get() * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2690,6 +2686,14 @@ float MyAvatar::getUserEyeHeight() const {
     float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
     float userHeight = _userHeight.get();
     return userHeight - userHeight * ratio;
+}
+
+float MyAvatar::getWalkSpeed() const {
+    return _walkSpeed.get();
+}
+
+void MyAvatar::setWalkSpeed(float value) {
+    _walkSpeed.set(value);
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

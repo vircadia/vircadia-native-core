@@ -237,28 +237,12 @@ bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getRightHandJointIndex(), position);
 }
 
-bool SkeletonModel::restoreLeftHandPosition(float fraction, float priority) {
-    return restoreJointPosition(getLeftHandJointIndex(), fraction, priority);
-}
-
 bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
 }
 
-float SkeletonModel::getLeftArmLength() const {
-    return getLimbLength(getLeftHandJointIndex());
-}
-
-bool SkeletonModel::restoreRightHandPosition(float fraction, float priority) {
-    return restoreJointPosition(getRightHandJointIndex(), fraction, priority);
-}
-
 bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
-float SkeletonModel::getRightArmLength() const {
-    return getLimbLength(getRightHandJointIndex());
 }
 
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {

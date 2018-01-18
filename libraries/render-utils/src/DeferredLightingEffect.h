@@ -17,8 +17,8 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 
-#include "model/Light.h"
-#include "model/Geometry.h"
+#include "graphics/Light.h"
+#include "graphics/Geometry.h"
 
 #include <procedural/ProceduralSkybox.h>
 
@@ -61,10 +61,10 @@ private:
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
 
-    model::MeshPointer _pointLightMesh;
-    model::MeshPointer getPointLightMesh();
-    model::MeshPointer _spotLightMesh;
-    model::MeshPointer getSpotLightMesh();
+    graphics::MeshPointer _pointLightMesh;
+    graphics::MeshPointer getPointLightMesh();
+    graphics::MeshPointer _spotLightMesh;
+    graphics::MeshPointer getSpotLightMesh();
 
     gpu::PipelinePointer _directionalSkyboxLight;
     gpu::PipelinePointer _directionalAmbientSphereLight;
@@ -121,7 +121,7 @@ public:
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
-        const model::HazePointer& haze,
+        const graphics::HazePointer& haze,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
@@ -158,7 +158,7 @@ class RenderDeferred {
 public:
     using Inputs = render::VaryingSet8 < 
         DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, 
-        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, model::HazePointer>;
+        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, graphics::HazePointer>;
 
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
@@ -184,13 +184,13 @@ public:
     void run(const render::RenderContextPointer& renderContext);
 
 protected:
-    model::LightPointer _defaultLight;
+    graphics::LightPointer _defaultLight;
     LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
-    model::SunSkyStagePointer _defaultBackground;
+    graphics::SunSkyStagePointer _defaultBackground;
     BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
-    model::HazePointer _defaultHaze{ nullptr };
+    graphics::HazePointer _defaultHaze{ nullptr };
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
+    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
