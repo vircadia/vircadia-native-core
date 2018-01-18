@@ -328,13 +328,15 @@ void Avatar::updateAvatarEntities() {
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
         if (!recentlyDettachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
+            AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
-                foreach (auto entityID, recentlyDettachedAvatarEntities) {
-                    if (!_avatarEntityData.contains(entityID)) {
-                        entityTree->deleteEntity(entityID, true, true);
-                    }
-                }
+                avatarEntityData = _avatarEntityData;
             });
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
+            }
 
             // remove stale data hashes
             foreach (auto entityID, recentlyDettachedAvatarEntities) {

@@ -139,6 +139,7 @@ QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) 
 }
 static const QString USER_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/users/";
 static const QString PLACE_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/places/";
+static const QStringList KNOWN_USERS(QStringList() << "highfidelity" << "marketplace");
 QString userLink(const QString& username, const QString& placename) {
     if (username.isEmpty()) {
         if (placename.isEmpty()) {
@@ -146,6 +147,9 @@ QString userLink(const QString& username, const QString& placename) {
         } else {
             return QString("someone <a href=\"%1%2\">nearby</a>").arg(PLACE_PAGE_BASE_URL, placename);
         }
+    }
+    if (KNOWN_USERS.contains(username)) {
+        return username;
     }
     return QString("<a href=\"%1%2\">%2</a>").arg(USER_PAGE_BASE_URL, username);
 }
