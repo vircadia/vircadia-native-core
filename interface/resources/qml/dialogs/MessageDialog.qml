@@ -37,14 +37,14 @@ ModalWindow {
         return OffscreenUi.waitForMessageBoxResult(root);
     }
 
-    Keys.onRightPressed: if(defaultButton === OriginalDialogs.StandardButton.Yes) {
+    Keys.onRightPressed: if (defaultButton === OriginalDialogs.StandardButton.Yes) {
        yesButton.forceActiveFocus()
-    } else if(defaultButton === OriginalDialogs.StandardButton.Ok) {
+    } else if (defaultButton === OriginalDialogs.StandardButton.Ok) {
        okButton.forceActiveFocus()
     }
-    Keys.onTabPressed: if(defaultButton === OriginalDialogs.StandardButton.Yes) {
+    Keys.onTabPressed: if (defaultButton === OriginalDialogs.StandardButton.Yes) {
        yesButton.forceActiveFocus()
-    } else if(defaultButton === OriginalDialogs.StandardButton.Ok) {
+    } else if (defaultButton === OriginalDialogs.StandardButton.Ok) {
        okButton.forceActiveFocus()
     }
     property alias detailedText: detailedText.text

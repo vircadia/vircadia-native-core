@@ -200,9 +200,9 @@ ModalWindow {
         case Qt.Key_Enter:
             if (acceptButton.focus) {
                 acceptAction.trigger()
-            } else if(cancelButton.focus) {
+            } else if (cancelButton.focus) {
                 cancelAction.trigger()
-            } else if(comboBox.focus || comboBox.popup.focus) {
+            } else if (comboBox.focus || comboBox.popup.focus) {
                 comboBox.showList()
             }
             event.accepted = true;
