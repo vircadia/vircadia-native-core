@@ -1,7 +1,7 @@
 set(TARGET_NAME baking)
 setup_hifi_library(Concurrent)
 
-link_hifi_libraries(shared model networking ktx image fbx)
+link_hifi_libraries(shared graphics networking ktx image fbx)
 include_hifi_library_headers(gpu)
 
 add_dependency_external_projects(draco)

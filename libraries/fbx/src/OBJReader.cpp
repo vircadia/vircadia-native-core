@@ -907,8 +907,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];
         fbxMaterial.materialID = materialID;
-        fbxMaterial._material = std::make_shared<model::Material>();
-        model::MaterialPointer modelMaterial = fbxMaterial._material;
+        fbxMaterial._material = std::make_shared<graphics::Material>();
+        graphics::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
             fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
@@ -928,7 +928,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
-        modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
+        modelMaterial->setRoughness(graphics::Material::shininessToRoughness(fbxMaterial.shininess));
 
         bool applyTransparency = false;
         bool applyShininess = false;
