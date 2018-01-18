@@ -17,6 +17,7 @@
 #include "Ledger.h"
 #include "CommerceLogging.h"
 #include <NetworkingConstants.h>
+#include <AddressManager.h>
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
@@ -137,9 +138,14 @@ QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) 
     return result;
 }
 static const QString USER_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/users/";
-QString userLink(const QString& username) {
+static const QString PLACE_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/places/";
+QString userLink(const QString& username, const QString& placename) {
     if (username.isEmpty()) {
-        return QString("someone");
+        if (placename.isEmpty()) {
+            return QString("someone");
+        } else {
+            return QString("someone in <a href=\"%1%2\"%2</a>").arg(PLACE_PAGE_BASE_URL, placename);
+        }
     }
     return QString("<a href=\"%1%2\">%2</a>").arg(USER_PAGE_BASE_URL, username);
 }
@@ -156,10 +162,10 @@ QString transactionString(const QJsonObject& valueObject) {
     if (sentCerts <= 0 && receivedCerts <= 0) {
         // this is an hfc transfer.
         if (sent > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString());
+            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money sent to %1").arg(recipient);
         } else {
-            QString sender = userLink(valueObject["sender_name"].toString());
+            QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money from %1").arg(sender);
         }
         if (!message.isEmpty()) {
@@ -310,6 +316,7 @@ void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, co
     transaction["node_id"] = nodeID;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
+    transaction["place_name"] = DependencyManager::get<AddressManager>()->getPlaceName();
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
     signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_node", "transferHfcToNodeSuccess", "transferHfcToNodeFailure");
