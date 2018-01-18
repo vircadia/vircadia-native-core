@@ -34,6 +34,14 @@ const int Item::LAYER_3D = 1;
 const int Item::LAYER_3D_FRONT = 2;
 const int Item::LAYER_3D_HUD = 3;
 
+const uint8_t ItemKey::NUM_VISIBLE_MASK_INDICES { 4 };
+const uint8_t ItemKey::VISIBLE_MASK_ALL { 0x0F };
+const uint8_t ItemKey::VISIBLE_MASK_0 { 0x01 };
+const uint8_t ItemKey::VISIBLE_MASK_1 { 0x02 };
+const uint8_t ItemKey::VISIBLE_MASK_2 { 0x04 };
+const uint8_t ItemKey::VISIBLE_MASK_3 { 0x08 };
+
+
 void Item::Status::Value::setScale(float scale) {
     _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
  }
