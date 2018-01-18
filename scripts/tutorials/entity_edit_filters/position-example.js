@@ -41,5 +41,5 @@ function filter(properties, type, originalProperties) {
 
     return properties;
 }
-filter.wantsOriginalProperties = true;
+filter.wantsOriginalProperties = "position";
 filter;

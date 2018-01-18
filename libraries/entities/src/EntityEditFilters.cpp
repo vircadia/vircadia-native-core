@@ -299,6 +299,9 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     filterData.wantsZoneProperties = !stringValue.isEmpty();
                     if (filterData.wantsZoneProperties) {
                         EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
+                        if (stringValue == "boundingBox") {
+                            filterData.wantsZoneBoundingBox = true;
+                        }
                     }
                 } else if (wantsZonePropertiesValue.isArray()) {
                     auto length = wantsZonePropertiesValue.property("length").toInteger();
