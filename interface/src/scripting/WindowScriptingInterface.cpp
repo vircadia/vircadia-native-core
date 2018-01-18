@@ -390,7 +390,7 @@ QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
 }
 
-QString WindowScriptingInterface::protocolVersion() {
+QString WindowScriptingInterface::protocolSignature() {
     return protocolVersionsSignatureBase64();
 }
 

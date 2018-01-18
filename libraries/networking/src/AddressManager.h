@@ -73,7 +73,7 @@ public:
      * Get Interface's protocol version.
      * @function location.protocolVersion
      * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
-     * @deprecated This function is deprecated and will removed. Use {@link Window.protocolVersion} instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link Window.protocolSignature} instead.
      */
     Q_INVOKABLE QString protocolVersion();
 
