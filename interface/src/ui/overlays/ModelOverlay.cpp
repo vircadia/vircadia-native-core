@@ -86,7 +86,8 @@ void ModelOverlay::update(float deltatime) {
     }
     if (_visibleDirty) {
         _visibleDirty = false;
-        _model->setVisibleInScene(getVisible(), scene);
+        // don't show overlays in mirrors
+        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::VISIBLE_MASK_ALL & ~render::ItemKey::VISIBLE_MASK_1);
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;

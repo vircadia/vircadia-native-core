@@ -297,7 +297,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
@@ -659,7 +659,7 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t visibleMask) {
     if (_isVisible != isVisible) {
         _isVisible = isVisible;
 
@@ -669,12 +669,12 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene)
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
             });
         }
         scene->enqueueTransaction(transaction);
@@ -692,13 +692,13 @@ void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer&
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -716,13 +716,13 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::VISIBLE_MASK_ALL);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
