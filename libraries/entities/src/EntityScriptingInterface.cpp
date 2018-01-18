@@ -266,8 +266,6 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     bool success = true;
     if (_entityTree) {
         _entityTree->withWriteLock([&] {
-            propertiesWithSimID.getType();
-            qCDebug(entities) << "check 2 type: " << propertiesWithSimID.getType();
             EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
             if (entity) {
                 if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {

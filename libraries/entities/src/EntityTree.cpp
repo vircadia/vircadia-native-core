@@ -514,7 +514,6 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
 
     // construct the instance of the entity
     EntityTypes::EntityType type = props.getType();
-    qCDebug(entities) << "check 3 type: " << type;
     result = EntityTypes::constructEntityItem(type, entityID, props);
 
     if (result) {
