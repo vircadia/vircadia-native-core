@@ -1397,9 +1397,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
-        }
-        //else the joints have been mapped before but we have new animation to load
-        else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
+        //else the joint have been mapped before but we have a new animation to load
+        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {             
             _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
             _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
