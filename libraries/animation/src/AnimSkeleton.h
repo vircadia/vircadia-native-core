@@ -30,13 +30,6 @@ public:
     int getNumJoints() const;
     int getChainDepth(int jointIndex) const;
 
-    // absolute pose, not relative to parent
-    const AnimPose& getAbsoluteBindPose(int jointIndex) const;
-
-    // relative to parent pose
-    const AnimPose& getRelativeBindPose(int jointIndex) const;
-    const AnimPoseVec& getRelativeBindPoses() const { return _relativeBindPoses; }
-
     // the default poses are the orientations of the joints on frame 0.
     const AnimPose& getRelativeDefaultPose(int jointIndex) const;
     const AnimPoseVec& getRelativeDefaultPoses() const { return _relativeDefaultPoses; }
@@ -72,8 +65,6 @@ protected:
 
     std::vector<FBXJoint> _joints;
     int _jointsSize { 0 };
-    AnimPoseVec _absoluteBindPoses;
-    AnimPoseVec _relativeBindPoses;
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;
     AnimPoseVec _relativePreRotationPoses;

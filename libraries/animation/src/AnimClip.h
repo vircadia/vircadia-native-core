@@ -25,8 +25,6 @@ class AnimClip : public AnimNode {
 public:
     friend class AnimTests;
 
-    static bool usePreAndPostPoseFromAnim;
-
     AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag);
     virtual ~AnimClip() override;
 
