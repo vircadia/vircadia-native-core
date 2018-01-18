@@ -139,7 +139,7 @@ QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) 
 static const QString USER_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/users/";
 static const QStringList KNOWN_USERS(QStringList() << "highfidelity" << "marketplace");
 QString userLink(const QString& username) {
-    if (username.isEmpty() ) {
+    if (username.isEmpty()) {
         return QString("someone");
     }
     if (KNOWN_USERS.contains(username)) {
