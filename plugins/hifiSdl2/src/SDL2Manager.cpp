@@ -9,14 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qapplication.h>
+#include "SDL2Manager.h"
+
+#include <QtCore/QCoreApplication>
 
 #include <controllers/UserInputMapper.h>
 #include <PerfStat.h>
 #include <Preferences.h>
 #include <SettingHandle.h>
 
-#include "SDL2Manager.h"
 
 static_assert(
     (int)controller::A == (int)SDL_CONTROLLER_BUTTON_A &&
