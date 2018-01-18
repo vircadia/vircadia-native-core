@@ -44,7 +44,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.highVarianceCount = 0;
         this.veryhighVarianceCount = 0;
         this.tabletID = null;
+        this.TABLET_UI_UUIDS = [];
         this.blacklist = [];
+        this.leftPointerNonHoverItem = null;
+        this.leftPointerNonHoverItemChanged = false;
+        this.rightPointerNonHoverItem = null;
+        this.rightPointerNonHoverItemChanged = false;
         this.pointerManager = new PointerManager();
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
@@ -122,6 +127,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return getControllerWorldLocation(Controller.Standard.RightHand, true);
         };
 
+        this.isTabletID = function (uuid) {
+            return _this.TABLET_UI_UUIDS.indexOf(uuid) !== -1;
+        };
+
         this.updateTimings = function () {
             _this.intervalCount++;
             var thisInterval = Date.now();
@@ -148,8 +157,32 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.setIgnorePointerItems = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
+                this.TABLET_UI_UUIDS = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID];
                 Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
                 Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
+            }
+        };
+
+        this.setNonHoverItems = function () {
+            if (_this.leftPointerNonHoverItemChanged) {
+                if (_this.leftPointerNonHoverItem === null) {
+                    Pointers.setNonHoverItems(_this.leftPointer, []);
+                } else if (_this.isTabletID(_this.leftPointerNonHoverItem)) {
+                    Pointers.setNonHoverItems(_this.leftPointer, _this.TABLET_UI_UUIDS);
+                } else {
+                    Pointers.setNonHoverItems(_this.leftPointer, [_this.leftPointerNonHoverItem]);
+                }
+                _this.leftPointerNonHoverItemChanged = false;
+            }
+            if (_this.rightPointerNonHoverItemChanged) {
+                if (_this.rightPointerNonHoverItem === null) {
+                    Pointers.setNonHoverItems(_this.rightPointer, []);
+                } else if (_this.isTabletID(_this.rightPointerNonHoverItem)) {
+                    Pointers.setNonHoverItems(_this.rightPointer, _this.TABLET_UI_UUIDS);
+                } else {
+                    Pointers.setNonHoverItems(_this.rightPointer, [_this.rightPointerNonHoverItem]);
+                }
+                _this.rightPointerNonHoverItemChanged = false;
             }
         };
 
@@ -324,6 +357,19 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
+
+                        if (candidatePlugin.parameters.handLaser.nonHoverItem !== undefined) {
+                            if (candidatePlugin.parameters.handLaser.hand === LEFT_HAND
+                                    && _this.leftPointerNonHoverItem !== candidatePlugin.parameters.handLaser.nonHoverItem) {
+                                _this.leftPointerNonHoverItem = candidatePlugin.parameters.handLaser.nonHoverItem;
+                                _this.leftPointerNonHoverItemChanged = true;
+                            } else if (candidatePlugin.parameters.handLaser.hand === RIGHT_HAND
+                                    && _this.rightPointerNonHoverItem !== candidatePlugin.parameters.handLaser.nonHoverItem) {
+                                _this.rightPointerNonHoverItem = candidatePlugin.parameters.handLaser.nonHoverItem;
+                                _this.rightPointerNonHoverItemChanged = true;
+                            }
+                        }
+
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -354,6 +400,21 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             Script.beginProfileRange("dispatch.run." + runningPluginName);
                         }
                         var runningness = plugin.run(controllerData, deltaTime);
+
+                        if (runningness.active) {
+                            if (plugin.parameters.handLaser.nonHoverItem !== undefined) {
+                                if (plugin.parameters.handLaser.hand === LEFT_HAND
+                                    && _this.leftPointerNonHoverItem !== plugin.parameters.handLaser.nonHoverItem) {
+                                    _this.leftPointerNonHoverItem = plugin.parameters.handLaser.nonHoverItem;
+                                    _this.leftPointerNonHoverItemChanged = true;
+                                } else if (plugin.parameters.handLaser.hand === RIGHT_HAND
+                                    && _this.rightPointerNonHoverItem !== plugin.parameters.handLaser.nonHoverItem) {
+                                    _this.rightPointerNonHoverItem = plugin.parameters.handLaser.nonHoverItem;
+                                    _this.rightPointerNonHoverItemChanged = true;
+                                }
+                            }
+                        }
+
                         if (!runningness.active) {
                             // plugin is finished running, for now.  remove it from the list
                             // of running plugins and mark its activity-slots as "not in use"
@@ -372,6 +433,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
+
+            _this.setNonHoverItems();
+
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }

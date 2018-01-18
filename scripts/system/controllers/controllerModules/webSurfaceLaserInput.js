@@ -87,28 +87,69 @@ Script.include("/~/system/libraries/controllers.js");
             return MyAvatar.getDominantHand() === "right" ? 1 : 0;
         };
 
+        this.hoverItem = null;
+
+        this.isTabletID = function (uuid) {
+            return [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHightlightID].indexOf(uuid) !== -1;
+        };
+
         this.isReady = function(controllerData) {
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
                 && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             if (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) {
                 this.updateAllwaysOn();
                 if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
+                    var pointingAt = controllerData.rayPicks[this.hand].objectID;
+                    if (this.isTabletID(pointingAt)) {
+                        pointingAt = HMD.tabletID;
+                    }
+
+                    if (pointingAt !== this.getOtherModule().hoverItem) {
+                        this.hoverItem = pointingAt;
+                        this.getOtherModule().parameters.handLaser.nonHoverItem = pointingAt;
+                    } else {
+                        this.hoverItem = null;
+                        this.getOtherModule().parameters.handLaser.nonHoverItem = null;
+                    }
+
                     return makeRunningValues(true, [], []);
                 }
             }
+
+            this.hoverItem = null;
+            this.getOtherModule().parameters.handLaser.nonHoverItem = null;
+
             return makeRunningValues(false, [], []);
         };
 
         this.run = function(controllerData, deltaTime) {
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (!grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
-                || this.parameters.handLaser.allwaysOn
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            if (!grabModuleNeedsToRun && (isTriggerPressed || this.parameters.handLaser.allwaysOn
                     && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
+
+                var pointingAt = controllerData.rayPicks[this.hand].objectID;
+                if (this.isTabletID(pointingAt)) {
+                    pointingAt = HMD.tabletID;
+                }
+
+                if (pointingAt !== this.getOtherModule().hoverItem || isTriggerPressed) {
+                    this.hoverItem = pointingAt;
+                    this.getOtherModule().parameters.handLaser.nonHoverItem = pointingAt;
+                } else {
+                    this.hoverItem = null;
+                    this.getOtherModule().parameters.handLaser.nonHoverItem = null;
+                }
+
                 return makeRunningValues(true, [], []);
             }
             this.deleteContextOverlay();
             this.running = false;
+
+            this.hoverItem = null;
+            this.getOtherModule().parameters.handLaser.nonHoverItem = null;
+
             return makeRunningValues(false, [], []);
         };
     }
