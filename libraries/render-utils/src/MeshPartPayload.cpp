@@ -389,12 +389,15 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
+void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, bool isCauterized) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
     if (!isVisible) {
         builder.withInvisible();
+    }
+    else if (isCauterized) {
+        builder.withInvisible(0); // hide these items in the vibility mask #0
     }
 
     if (isLayered) {

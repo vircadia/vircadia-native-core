@@ -65,6 +65,10 @@ public:
     // Beware that the visibility mask is the oposite of what stored in the key vals.
     const static uint8_t NUM_VISIBLE_MASK_INDICES{ 4 };
     const static uint8_t VISIBLE_MASK_ALL{ 0x0F };
+    const static uint8_t VISIBLE_MASK_0{ 0x01 };
+    const static uint8_t VISIBLE_MASK_1{ 0x02 };
+    const static uint8_t VISIBLE_MASK_2{ 0x04 };
+    const static uint8_t VISIBLE_MASK_3{ 0x08 };
 
     // The key is the Flags
     Flags _flags;
@@ -184,12 +188,15 @@ public:
 
         Builder& withVisible(uint8_t maskIndex)          { _value.reset(ItemKey::INVISIBLE0 + maskIndex); _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
         Builder& withInvisible(uint8_t maskIndex)        { _value.set(ItemKey::INVISIBLE0 + maskIndex);  _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
-        Builder& withVisibilityMask(uint8_t mask) {
+        Builder& withVisibilityMask(uint8_t mask, uint8_t touchBits) {
             for (int i = 0; i < ItemKey::NUM_VISIBLE_MASK_INDICES; i++) {
-                if ((1 << i) && mask) {
-                    withVisible(i);
-                } else {
-                    withInvisible(i);
+                if ((1 << i) & touchBits) {
+                    if ((1 << i) & mask) {
+                        withVisible(i);
+                    }
+                    else {
+                        withInvisible(i);
+                    }
                 }
             }
             return (*this);
@@ -206,7 +213,7 @@ public:
         Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static Builder visibleWorldItems(uint8_t visibilityMask) { return Builder().withVisibilityMask(visibilityMask).withWorldSpace(); }
+        static Builder visibleWorldItems(uint8_t visibilityMask, uint8_t visibilityMaskTouched) { return Builder().withVisibilityMask(visibilityMask, visibilityMaskTouched).withWorldSpace(); }
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
         static Builder light() { return Builder().withTypeLight(); }
