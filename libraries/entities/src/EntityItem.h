@@ -133,7 +133,7 @@ public:
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                     ReadBitstreamToTreeParams& args);
 
-    virtual int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
@@ -468,6 +468,9 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
+
+signals:
+    void requestRenderUpdate();
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;

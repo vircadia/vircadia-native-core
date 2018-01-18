@@ -12,6 +12,7 @@
 #include "MeshPartPayload.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "DeferredLightingEffect.h"
 
@@ -44,17 +45,17 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
 }
 
-void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
+void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex) {
     _drawMesh = drawMesh;
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+        _drawPart = _drawMesh->getPartBuffer().get<graphics::Mesh::Part>(partIndex);
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
 }
@@ -66,7 +67,7 @@ void MeshPartPayload::updateTransform(const Transform& transform, const Transfor
     _worldBound.transform(_drawTransform);
 }
 
-void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
+void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
@@ -89,7 +90,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }
@@ -155,7 +156,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
         } else {
@@ -165,7 +166,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Roughness map
     if (materialKey.isRoughnessMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
 
@@ -177,7 +178,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Normal map
     if (materialKey.isNormalMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
 
@@ -189,7 +190,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Metallic map
     if (materialKey.isMetallicMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
 
@@ -201,7 +202,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Occlusion map
     if (materialKey.isOcclusionMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
 
@@ -213,7 +214,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Scattering map
     if (materialKey.isScatteringMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
 
@@ -225,7 +226,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -233,7 +234,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -325,12 +326,20 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
-    computeAdjustedLocalBound(state.clusterMatrices);
+    computeAdjustedLocalBound(state.clusterTransforms);
 
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
-    if (state.clusterMatrices.size() == 1) {
-        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    if (state.clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+        Transform transform(state.clusterTransforms[0].getRotation(),
+                            state.clusterTransforms[0].getScale(),
+                            state.clusterTransforms[0].getTranslation());
+        renderTransform = transform.worldTransform(Transform(transform));
+#else
+        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
+#endif
+
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
@@ -360,17 +369,16 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>& clusterTransforms) {
     // Once computed the cluster matrices, update the buffer(s)
-    if (clusterMatrices.size() > 1) {
+    if (clusterTransforms.size() > 1) {
         if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
         else {
-            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
     }
 }
@@ -431,7 +439,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
         return;
     }
 
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }
@@ -480,28 +488,19 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
-    if (!_isBlendShaped) {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-        batch.setInputStream(0, _drawMesh->getVertexStream());
+    batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
+    batch.setInputFormat((_drawMesh->getVertexFormat()));
+    if (_isBlendShaped && _blendedVertexBuffer) {
+        batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
+        // Stride is 2*sizeof(glm::vec3) because normal and tangents are interleaved
+        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), 2 * sizeof(NormalType));
+        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     } else {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-
-        if (_blendedVertexBuffer) {
-            batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
-            batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
-            batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
-        } else {
-            batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-            batch.setInputFormat((_drawMesh->getVertexFormat()));
-            batch.setInputStream(0, _drawMesh->getVertexStream());
-        }
+        batch.setInputStream(0, _drawMesh->getVertexStream());
     }
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     if (_clusterBuffer) {
         batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }
@@ -539,13 +538,29 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms) {
     _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+    if (clusterTransforms.size() > 0) {
+#if defined(SKIN_DQ)
+        Transform rootTransform(clusterTransforms[0].getRotation(),
+                                clusterTransforms[0].getScale(),
+                                clusterTransforms[0].getTranslation());
+        _adjustedLocalBound.transform(rootTransform);
+#else
+        _adjustedLocalBound.transform(clusterTransforms[0]);
+#endif
+
+        for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
             AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
+#if defined(SKIN_DQ)
+            Transform transform(clusterTransforms[i].getRotation(),
+                                clusterTransforms[i].getScale(),
+                                clusterTransforms[i].getTranslation());
+            clusterBound.transform(transform);
+#else
+            clusterBound.transform(clusterTransforms[i]);
+#endif
             _adjustedLocalBound += clusterBound;
         }
     }

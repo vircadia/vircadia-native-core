@@ -20,16 +20,16 @@ using namespace render;
 CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform)
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
-void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices) {
-    ModelMeshPartPayload::updateClusterBuffer(clusterMatrices);
+void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>& clusterTransforms, const std::vector<TransformType>& cauterizedClusterTransforms) {
+    ModelMeshPartPayload::updateClusterBuffer(clusterTransforms);
 
-    if (cauterizedClusterMatrices.size() > 1) {
+    if (cauterizedClusterTransforms.size() > 1) {
         if (!_cauterizedClusterBuffer) {
-            _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) cauterizedClusterMatrices.data());
+            _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
         } else {
-            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) cauterizedClusterMatrices.data());
+            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) cauterizedClusterTransforms.data());
         }
     }
 }
@@ -39,7 +39,6 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform
 }
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE && renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) && _enableCauterization;
     if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {
@@ -47,10 +46,7 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::S
         }
         batch.setModelTransform(_cauterizedTransform);
     } else {
-        if (_clusterBuffer) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
-        }
-        batch.setModelTransform(_transform);
+        ModelMeshPartPayload::bindTransform(batch, locations, renderMode);
     }
 }
 

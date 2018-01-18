@@ -31,6 +31,7 @@ class ScriptEngines : public QObject, public Dependency {
 
     Q_PROPERTY(ScriptsModel* scriptsModel READ scriptsModel CONSTANT)
     Q_PROPERTY(ScriptsModelFilter* scriptsModelFilter READ scriptsModelFilter CONSTANT)
+    Q_PROPERTY(QString debugScriptUrl READ getDebugScriptUrl WRITE setDebugScriptUrl)
 
 public:
     using ScriptInitializer = std::function<void(ScriptEnginePointer)>;
@@ -40,6 +41,9 @@ public:
 
     void loadScripts();
     void saveScripts();
+
+    QString getDebugScriptUrl() { return _debugScriptUrl; };
+    void setDebugScriptUrl(const QString& url) { _debugScriptUrl = url; };
 
     QString getScriptsLocation() const;
     void loadDefaultScripts();
@@ -117,6 +121,7 @@ protected:
     std::atomic<bool> _isStopped { false };
     std::atomic<bool> _isReloading { false };
     bool _defaultScriptsLocationOverridden { false };
+    QString _debugScriptUrl;
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

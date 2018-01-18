@@ -18,7 +18,7 @@
 <$declareDeferredCurvature()$>
 
 // Everything about light
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 <$declareLightBuffer(256)$>
 <@include LightingModel.slh@>
 
@@ -84,9 +84,8 @@ void main(void) {
     // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
-
-    // Compute the rougness into gloss2 once:
-    float fragGloss2 = pow(frag.roughness + 0.001, 4.0);
+    
+    SurfaceData surface = initSurfaceData(frag.roughness, frag.normal, fragEyeDir);
     bool withScattering = (frag.scattering * isScatteringEnabled() > 0.0);
 
     int numLightTouching = 0;
@@ -119,16 +118,18 @@ void main(void) {
         float fragLightDistance = fragLightDirLen.w;
         vec3 fragLightDir = fragLightDirLen.xyz;
 
+        updateSurfaceDataWithLight(surface, fragLightDir);
+
         // Eval attenuation
         float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
         vec3 lightEnergy = radialAttenuation * getLightIrradiance(light);
 
         // Eval shading
         if (withScattering) {
-            evalFragShadingScattering(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
+            evalFragShadingScattering(diffuse, specular, frag.metallic, frag.fresnel, surface, frag.albedo
                 ,frag.scattering, midNormalCurvature, lowNormalCurvature );
         } else {
-           evalFragShadingGloss(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, fragGloss2, frag.albedo);
+           evalFragShadingGloss(diffuse, specular, frag.metallic, frag.fresnel, surface, frag.albedo);
         }
 
         diffuse *= lightEnergy * isDiffuseEnabled();
@@ -173,6 +174,8 @@ void main(void) {
         float fragLightDistance = fragLightDirLen.w;
         vec3 fragLightDir = fragLightDirLen.xyz;
 
+        updateSurfaceDataWithLight(surface, fragLightDir);
+
         // Eval attenuation
         float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
         float angularAttenuation = lightIrradiance_evalLightSpotAttenuation(light.irradiance, cosSpotAngle);
@@ -180,10 +183,10 @@ void main(void) {
 
         // Eval shading
         if (withScattering) {
-            evalFragShadingScattering(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, frag.roughness, frag.albedo
+            evalFragShadingScattering(diffuse, specular, frag.metallic, frag.fresnel, surface, frag.albedo
                 ,frag.scattering, midNormalCurvature, lowNormalCurvature );
         } else {
-           evalFragShadingGloss(diffuse, specular, frag.normal, fragLightDir, fragEyeDir, frag.metallic, frag.fresnel, fragGloss2, frag.albedo);
+           evalFragShadingGloss(diffuse, specular, frag.metallic, frag.fresnel, surface, frag.albedo);
         }
 
         diffuse *= lightEnergy * isDiffuseEnabled();

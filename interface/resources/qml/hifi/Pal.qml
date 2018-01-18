@@ -28,7 +28,7 @@ Rectangle {
     // Properties
     property bool debug: false;
     property int myCardWidth: width - upperRightInfoContainer.width;
-    property int myCardHeight: 80;
+    property int myCardHeight: 100;
     property int rowHeight: 60;
     property int actionButtonWidth: 55;
     property int locationColumnWidth: 170;
