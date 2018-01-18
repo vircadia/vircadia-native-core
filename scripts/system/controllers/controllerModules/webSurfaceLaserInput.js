@@ -87,20 +87,11 @@ Script.include("/~/system/libraries/controllers.js");
             return MyAvatar.getDominantHand() === "right" ? 1 : 0;
         };
 
-        this.dominantHandOverride = false;
-
         this.isReady = function(controllerData) {
-            var otherModuleRunning = this.getOtherModule().running;
-            otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
                 && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
-            if ((!otherModuleRunning || isTriggerPressed)
-                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) {
+            if (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) {
                 this.updateAllwaysOn();
-                if (isTriggerPressed) {
-                    this.dominantHandOverride = true; // Override dominant hand.
-                    this.getOtherModule().dominantHandOverride = false;
-                }
                 if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
                     return makeRunningValues(true, [], []);
                 }
@@ -109,11 +100,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function(controllerData, deltaTime) {
-            var otherModuleRunning = this.getOtherModule().running;
-            otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
-            otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (!otherModuleRunning && !grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
+            if (!grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
                 || this.parameters.handLaser.allwaysOn
                     && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
                 this.running = true;
@@ -121,7 +109,6 @@ Script.include("/~/system/libraries/controllers.js");
             }
             this.deleteContextOverlay();
             this.running = false;
-            this.dominantHandOverride = false;
             return makeRunningValues(false, [], []);
         };
     }
