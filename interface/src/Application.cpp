@@ -2200,7 +2200,7 @@ void Application::initializeGL() {
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred, render::ItemKey::VISIBLE_MASK_0, render::ItemKey::VISIBLE_MASK_0);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
