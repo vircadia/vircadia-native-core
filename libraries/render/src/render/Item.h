@@ -63,12 +63,12 @@ public:
     // VISIBLE MASK is defined from several bits in the Key.
     // An Item can be visible in some mask bits and not other allowing for per view rendering
     // Beware that the visibility mask is the oposite of what stored in the key vals.
-    const static uint8_t NUM_VISIBLE_MASK_INDICES{ 4 };
-    const static uint8_t VISIBLE_MASK_ALL{ 0x0F };
-    const static uint8_t VISIBLE_MASK_0{ 0x01 };
-    const static uint8_t VISIBLE_MASK_1{ 0x02 };
-    const static uint8_t VISIBLE_MASK_2{ 0x04 };
-    const static uint8_t VISIBLE_MASK_3{ 0x08 };
+    const static uint8_t NUM_VISIBLE_MASK_INDICES;
+    const static uint8_t VISIBLE_MASK_ALL;
+    const static uint8_t VISIBLE_MASK_0;
+    const static uint8_t VISIBLE_MASK_1;
+    const static uint8_t VISIBLE_MASK_2;
+    const static uint8_t VISIBLE_MASK_3;
 
     // The key is the Flags
     Flags _flags;
