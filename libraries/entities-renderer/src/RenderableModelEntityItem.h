@@ -192,8 +192,6 @@ private:
     bool _shouldHighlight { false };
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
-
-    //fix test
     AnimationPropertyGroup _previousAnimationProperties;
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };

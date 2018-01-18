@@ -1404,7 +1404,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             }
             _previousAnimationProperties = newprops;
         }
-        //
         if (!jointsMapped() || _animation->getURL().toString() != entity->getAnimationURL()) {
             qCDebug(entitiesrenderer) << "changed animation or started animation";
             mapJoints(entity, model->getJointNames());
