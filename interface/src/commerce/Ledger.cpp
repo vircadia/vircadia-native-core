@@ -144,7 +144,7 @@ QString userLink(const QString& username, const QString& placename) {
         if (placename.isEmpty()) {
             return QString("someone");
         } else {
-            return QString("someone in <a href=\"%1%2\"%2</a>").arg(PLACE_PAGE_BASE_URL, placename);
+            return QString("someone <a href=\"%1%2\">nearby</a>").arg(PLACE_PAGE_BASE_URL, placename);
         }
     }
     return QString("<a href=\"%1%2\">%2</a>").arg(USER_PAGE_BASE_URL, username);
