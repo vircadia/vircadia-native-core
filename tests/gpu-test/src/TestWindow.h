@@ -33,7 +33,7 @@ protected:
     render::ShapePlumberPointer _shapePlumber { std::make_shared<render::ShapePlumber>() };
     render::RenderContextPointer _renderContext{ std::make_shared<render::RenderContext>() };
     gpu::PipelinePointer _opaquePipeline;
-    model::LightPointer _light { std::make_shared<model::Light>() };
+    graphics::LightPointer _light { std::make_shared<graphics::Light>() };
 
     GenerateDeferredFrameTransform _generateDeferredFrameTransform;
     MakeLightingModel _generateLightingModel;

@@ -45,17 +45,17 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
 }
 
-void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
+void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex) {
     _drawMesh = drawMesh;
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+        _drawPart = _drawMesh->getPartBuffer().get<graphics::Mesh::Part>(partIndex);
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
 }
@@ -67,7 +67,7 @@ void MeshPartPayload::updateTransform(const Transform& transform, const Transfor
     _worldBound.transform(_drawTransform);
 }
 
-void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
+void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
@@ -90,7 +90,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }
@@ -156,7 +156,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
         } else {
@@ -166,7 +166,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Roughness map
     if (materialKey.isRoughnessMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
 
@@ -178,7 +178,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Normal map
     if (materialKey.isNormalMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
 
@@ -190,7 +190,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Metallic map
     if (materialKey.isMetallicMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
 
@@ -202,7 +202,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Occlusion map
     if (materialKey.isOcclusionMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
 
@@ -214,7 +214,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Scattering map
     if (materialKey.isScatteringMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
 
@@ -226,7 +226,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -234,7 +234,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -389,12 +389,15 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
+void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, bool isCauterized) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
     if (!isVisible) {
         builder.withInvisible();
+    }
+    else if (isCauterized) {
+        builder.withInvisible(0); // hide these items in the vibility mask #0
     }
 
     if (isLayered) {
@@ -439,7 +442,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
         return;
     }
 
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }

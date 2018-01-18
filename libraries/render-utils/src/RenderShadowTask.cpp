@@ -264,14 +264,14 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+        output.edit1() = ItemFilter::Builder::visibleWorldItems(0x00, 0x00).withTypeShape().withOpaque().withoutLayered();
 
         globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        if (lightStage->getCurrentKeyLight()->getType() == model::Light::SUN) {
+        if (lightStage->getCurrentKeyLight()->getType() == graphics::Light::SUN) {
             const float shadowSizeScale = 1e16f;
             // Set the size scale to a ridiculously high value to prevent small object culling which assumes
             // the view frustum is a perspective projection. But this isn't the case for the sun which

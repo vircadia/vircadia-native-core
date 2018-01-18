@@ -15,7 +15,6 @@ qmlWindow = new OverlayWindow({
     source: qml, 
     height: 240, 
     width: 320, 
-    toolWindow: false,
     visible: true
 });
 
