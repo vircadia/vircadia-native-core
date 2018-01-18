@@ -30,7 +30,7 @@ public:
     };
     Q_ENUM(PreviewDisabledReasons)
 
-    static QSharedPointer<DesktopPreviewProvider> DesktopPreviewProvider::getInstance();
+    static QSharedPointer<DesktopPreviewProvider> getInstance();
 
     QImage getPreviewDisabledImage(bool vsyncEnabled) const;
     void setPreviewDisabledReason(PreviewDisabledReasons reason);
