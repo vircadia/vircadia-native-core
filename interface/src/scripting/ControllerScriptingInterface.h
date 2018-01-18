@@ -65,6 +65,8 @@ public slots:
     virtual glm::vec2 getViewportDimensions() const;
     virtual QVariant getRecommendedHUDRect() const;
 
+    virtual void setVPadEnabled(bool enable);
+
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
