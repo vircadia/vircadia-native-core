@@ -16,6 +16,8 @@
     var button;
     // Used for animating and disappearing the bubble
     var bubbleOverlayTimestamp;
+    // Used for rate limiting the bubble sound
+    var lastBubbleSoundTimestamp = 0;
     // Used for flashing the HUD button upon activation
     var bubbleButtonFlashState = false;
     // Affects bubble height
@@ -38,6 +40,7 @@
 
     var BUBBLE_VISIBLE_DURATION_MS = 3000;
     var BUBBLE_RAISE_ANIMATION_DURATION_MS = 750;
+    var BUBBLE_SOUND_RATE_LIMIT_MS = 15000;
 
     // Hides the bubble model overlay and resets the button flash state
     function hideOverlays() {
@@ -49,11 +52,15 @@
 
     // Make the bubble overlay visible, set its position, and play the sound
     function createOverlays() {
-        Audio.playSound(bubbleActivateSound, {
-            position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
-            localOnly: true,
-            volume: 0.2
-        });
+        var nowTimestamp = Date.now();
+        if (nowTimestamp - lastBubbleSoundTimestamp >= BUBBLE_SOUND_RATE_LIMIT_MS) {
+            Audio.playSound(bubbleActivateSound, {
+                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                localOnly: true,
+                volume: 0.2
+            });
+            lastBubbleSoundTimestamp = nowTimestamp;
+        }
         hideOverlays();
         if (updateConnected === true) {
             updateConnected = false;
@@ -79,7 +86,7 @@
             },
             visible: true
         });
-        bubbleOverlayTimestamp = Date.now();
+        bubbleOverlayTimestamp = nowTimestamp;
         Script.update.connect(update);
         updateConnected = true;
 
