@@ -28,8 +28,8 @@
 
 #include <render/ShapePipeline.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 class SimpleProgramKey;
 

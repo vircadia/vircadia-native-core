@@ -411,6 +411,11 @@ int WindowScriptingInterface::getY() {
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard", Q_ARG(QString, text));
+        return;
+    }
+
     qDebug() << "Copying";
     QApplication::clipboard()->setText(text);
 }

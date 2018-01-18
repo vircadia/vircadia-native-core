@@ -57,7 +57,7 @@ ToggleButtonBuddy.prototype.addToggleHandler = function (callback) {
 };
 ToggleButtonBuddy.prototype.removeToggleHandler = function (callback) {
     var index = this.callbacks.indexOf(callback);
-    if (index != -1) {
+    if (index !== -1) {
         this.callbacks.splice(index, 1);
     }
 };
@@ -86,13 +86,23 @@ var coatButton = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_
     down: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-down.svg"
 });
 
+buttonPositionY += BUTTON_HEIGHT + BUTTON_PADDING;
+var coatButton2 = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_WIDTH, BUTTON_HEIGHT, {
+    up: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-up.svg",
+    down: "https://s3.amazonaws.com/hifi-public/tony/icons/coat-down.svg"
+});
+
+var AVATAR_ATTACHMENT = 0;
+var AVATAR_SOFT_ATTACHMENT = 1;
+var ENTITY_ATTACHMENT = 2;
+
 var HAT_ATTACHMENT = {
     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
     jointName: "Head",
     translation: {"x": 0, "y": 0.25, "z": 0.03},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
     scale: 0.052,
-    isSoft: false
+    type: AVATAR_ATTACHMENT
 };
 
 var COAT_ATTACHMENT = {
@@ -101,7 +111,16 @@ var COAT_ATTACHMENT = {
     translation: {"x": 0, "y": 0, "z": 0},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
     scale: 1,
-    isSoft: true
+    type: AVATAR_SOFT_ATTACHMENT
+};
+
+var COAT_ENTITY_ATTACHMENT = {
+    modelURL: "https://hifi-content.s3.amazonaws.com/ozan/dev/clothes/coat/coat_rig.fbx",
+    jointName: "Hips",
+    translation: {"x": 0, "y": 0, "z": 0},
+    rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
+    scale: 1,
+    type: ENTITY_ATTACHMENT
 };
 
 hatButton.addToggleHandler(function (isDown) {
@@ -120,28 +139,54 @@ coatButton.addToggleHandler(function (isDown) {
     }
 });
 
+coatButton2.addToggleHandler(function (isDown) {
+    if (isDown) {
+        wearAttachment(COAT_ENTITY_ATTACHMENT);
+    } else {
+        removeAttachment(COAT_ENTITY_ATTACHMENT);
+    }
+});
+
 function wearAttachment(attachment) {
-    MyAvatar.attach(attachment.modelURL,
-                    attachment.jointName,
-                    attachment.translation,
-                    attachment.rotation,
-                    attachment.scale,
-                    attachment.isSoft);
+    if (attachment.type === AVATAR_ATTACHMENT || attachment.type === AVATAR_SOFT_ATTACHMENT) {
+        MyAvatar.attach(attachment.modelURL,
+                        attachment.jointName,
+                        attachment.translation,
+                        attachment.rotation,
+                        attachment.scale,
+                        (attachment.type === AVATAR_SOFT_ATTACHMENT));
+    } else {
+        attachment.entityID = Entities.addEntity({
+            name: "attachment",
+            type: "Model",
+            modelURL: attachment.modelURL,
+            parentID: MyAvatar.sessionUUID,
+            relayParentJoints: true,
+            position: attachment.position,
+            rotation: attachment.rotation,
+            parentJointIndex: -1
+        }, true);
+    }
 }
 
 function removeAttachment(attachment) {
-    var attachments = MyAvatar.attachmentData;
-    var i, l = attachments.length;
-    for (i = 0; i < l; i++) {
-        if (attachments[i].modelURL === attachment.modelURL) {
-            attachments.splice(i, 1);
-            MyAvatar.attachmentData = attachments;
-            break;
+    if (attachment.type === AVATAR_ATTACHMENT || attachment.type === AVATAR_SOFT_ATTACHMENT) {
+        var attachments = MyAvatar.attachmentData;
+        var i, l = attachments.length;
+        for (i = 0; i < l; i++) {
+            if (attachments[i].modelURL === attachment.modelURL) {
+                attachments.splice(i, 1);
+                MyAvatar.attachmentData = attachments;
+                break;
+            }
         }
+    } else {
+        Entities.deleteEntity(attachment.entityID);
     }
 }
 
 Script.scriptEnding.connect(function() {
     hatButton.destroy();
     coatButton.destroy();
+    coatButton2.destroy();
 });

@@ -71,7 +71,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 
@@ -270,7 +270,7 @@ public:
     void takeSecondaryCameraSnapshot();
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
@@ -309,6 +309,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE void loadAvatarBrowser() const;
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
@@ -666,7 +667,7 @@ private:
 
     ConnectionMonitor _connectionMonitor;
 
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 

@@ -72,7 +72,7 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
-// TODO: Move to model::Mesh when Sam's ready
+// TODO: Move to graphics::Mesh when Sam's ready
 bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;
@@ -146,6 +146,59 @@ glm::vec3 parseVec3(const QString& string) {
         value[i] = elements.at(min(i, elements.size() - 1)).trimmed().toFloat();
     }
     return value;
+}
+
+enum RotationOrder {
+    OrderXYZ = 0,
+    OrderXZY,
+    OrderYZX,
+    OrderYXZ,
+    OrderZXY,
+    OrderZYX,
+    OrderSphericXYZ
+};
+
+bool haveReportedUnhandledRotationOrder = false; // Report error only once per FBX file.
+
+glm::vec3 convertRotationToXYZ(int rotationOrder, const glm::vec3& rotation) {
+    // Convert rotation with given rotation order to have order XYZ.
+    if (rotationOrder == OrderXYZ) {
+        return rotation;
+    }
+
+    glm::quat xyzRotation;
+
+    switch (rotationOrder) {
+        case OrderXZY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))));
+            break;
+        case OrderYZX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderYXZ:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, 0, rotation.z)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderZXY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        case OrderZYX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        default:
+            // FIXME: Handle OrderSphericXYZ.
+            if (!haveReportedUnhandledRotationOrder) {
+                qCDebug(modelformat) << "ERROR: Unhandled rotation order in FBX file:" << rotationOrder;
+                haveReportedUnhandledRotationOrder = true;
+            }
+            return rotation;
+    }
+
+    return glm::degrees(safeEulerAngles(xyzRotation));
 }
 
 QString processID(const QString& id) {
@@ -630,6 +683,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
+    haveReportedUnhandledRotationOrder = false;
     foreach (const FBXNode& child, node.children) {
 
         if (child.name == "FBXHeaderExtension") {
@@ -731,6 +785,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
+                    int rotationOrder = OrderXYZ;  // Default rotation order set in "Definitions" node is assumed to be XYZ.
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot, scaleOffset;
@@ -764,6 +819,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             index = 4;
                         }
                         if (properties) {
+                            static const QVariant ROTATION_ORDER = QByteArray("RotationOrder");
                             static const QVariant GEOMETRIC_TRANSLATION = QByteArray("GeometricTranslation");
                             static const QVariant GEOMETRIC_ROTATION = QByteArray("GeometricRotation");
                             static const QVariant GEOMETRIC_SCALING = QByteArray("GeometricScaling");
@@ -790,6 +846,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     if (childProperty == LCL_TRANSLATION) {
                                         translation = getVec3(property.properties, index);
 
+                                    } else if (childProperty == ROTATION_ORDER) {
+                                        rotationOrder = property.properties.at(index).toInt();
+
                                     } else if (childProperty == ROTATION_OFFSET) {
                                         rotationOffset = getVec3(property.properties, index);
 
@@ -797,13 +856,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                         rotationPivot = getVec3(property.properties, index);
 
                                     } else if (childProperty == PRE_ROTATION) {
-                                        preRotation = getVec3(property.properties, index);
+                                        preRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == LCL_ROTATION) {
-                                        rotation = getVec3(property.properties, index);
+                                        rotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == POST_ROTATION) {
-                                        postRotation = getVec3(property.properties, index);
+                                        postRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == SCALING_PIVOT) {
                                         scalePivot = getVec3(property.properties, index);
@@ -1675,6 +1734,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+                fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
@@ -1789,9 +1849,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
                 if (totalWeight > 0.0f) {
                     const float ALMOST_HALF = 0.499f;
-                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                     for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                        extracted.mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
                     }
                 }
             }

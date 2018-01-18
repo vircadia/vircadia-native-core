@@ -196,14 +196,17 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debuggin
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
+// Due to the different legacy behaviour, we need special processing for domains that were created before
+// the zone inheritance modes were added.  These have version numbers up to 80
 enum class EntityVersion : PacketVersion {
     StrokeColorProperty = 0,
     HasDynamicOwnershipTests,
     HazeEffect,
     StaticCertJsonVersionOne,
     OwnershipChallengeFix,
-    ZoneLightInheritModes,
-    ZoneStageRemoved
+    ZoneLightInheritModes = 82,
+    ZoneStageRemoved,
+    SoftEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

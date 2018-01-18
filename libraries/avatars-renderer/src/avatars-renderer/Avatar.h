@@ -330,6 +330,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
@@ -382,6 +383,7 @@ protected:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
     static int _jointConesID;
