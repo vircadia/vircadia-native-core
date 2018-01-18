@@ -50,8 +50,7 @@ private:
 
 class OBJMaterialTextureOptions {
 public:
-    float bumpMultiplier;
-    OBJMaterialTextureOptions() : bumpMultiplier(1.0f) {}
+    float bumpMultiplier { 1.0f };
 }
 ;
 // Materials and references to material names can come in any order, and different mesh parts can refer to the same material.

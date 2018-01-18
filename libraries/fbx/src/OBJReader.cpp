@@ -389,10 +389,8 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
     QString parser = textureLine;
     while (parser.length() > 0) {
         if (parser.startsWith("-blend")) { // -blendu/-blendv
-            parser.remove(0, 11); // remove through "-blendu on " or "-blendu off"
-            if (parser[0] == ' ') { // extra character for space after off
-                parser.remove(0, 1);
-            }
+            int removeLength = parser[10] == 'f' ? 12 : 11;
+            parser.remove(0, removeLength); // remove through "-blendu on " or "-blendu off"
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -blendu/-blendv";
             #endif
@@ -407,18 +405,14 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -boost";
             #endif
         } else if (parser.startsWith("-cc")) {
-            parser.remove(0, 7); // remove through "-cc on " or "-cc off"
-            if (parser[0] == ' ') { // extra character for space after off
-                parser.remove(0, 1);
-            }
+            int removeLength = parser[6] == 'f' ? 8 : 7;
+            parser.remove(0, removeLength); // remove through "-cc on " or "-cc off"
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -cc";
             #endif
         } else if (parser.startsWith("-clamp")) {
-            parser.remove(0, 10); // remove through "-clamp on " or "-clamp off"
-            if (parser[0] == ' ') { // extra character for space after off
-                parser.remove(0, 1);
-            }
+            int removeLength = parser[9] == 'f' ? 11 : 10;
+            parser.remove(0, removeLength); // remove through "-clamp on " or "-clamp off"
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -clamp";
             #endif
@@ -941,18 +935,17 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         bool applyRoughness = false;
         bool applyNonMetallic = false;
         bool fresnelOn = false;
-        bool fresnelOff = false;
 
         // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
         switch (objMaterial.illuminationModel) {
             case 0: // Color on and Ambient off
-                // We don't support ambient - do nothing?
+                // We don't support ambient = do nothing?
                 break;
             case 1: // Color on and Ambient on
-                // We don't support ambient - do nothing?
+                // We don't support ambient = do nothing?
                 break;
             case 2: // Highlight on
-                // Change specular intensity?
+                // Change specular intensity = do nothing for now?
                 break;
             case 3: // Reflection on and Ray trace on
                 applyShininess = true;
@@ -969,7 +962,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 applyTransparency = true;
                 applyNonMetallic = true;
                 applyShininess = true;
-                fresnelOff = true;
                 break;
             case 7: // Transparency: Refraction on and Reflection: Fresnel on and Ray trace on
                 applyTransparency = true;
@@ -990,8 +982,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 break;
         }      
 
-        if (applyTransparency && fbxMaterial.opacity <= ILLUMINATION_MODEL_MIN_OPACITY) {
-            fbxMaterial.opacity = ILLUMINATION_MODEL_MIN_OPACITY;
+        if (applyTransparency) {
+            fbxMaterial.opacity = std::max(fbxMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);
         }
         if (applyShininess) {
             modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_SHININESS);
@@ -1003,8 +995,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         if (fresnelOn) {
             modelMaterial->setFresnel(glm::vec3(1.0f));
-        } else if (fresnelOff) {
-            modelMaterial->setFresnel(glm::vec3(0.0f));
         }
 
         modelMaterial->setOpacity(fbxMaterial.opacity);
