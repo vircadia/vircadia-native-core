@@ -603,7 +603,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         if (!blendShape.normals.empty() && blendShape.tangents.empty()) {
             // Fill with a dummy value to force tangents to be present if there are normals
             blendShape.tangents.reserve(blendShape.normals.size());
-            std::fill_n(std::back_inserter(fbxMesh.tangents), blendShape.normals.size(), Vectors::UNIT_X);
+            std::fill_n(std::back_inserter(blendShape.tangents), blendShape.normals.size(), Vectors::UNIT_X);
         }
     }
 

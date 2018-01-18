@@ -145,7 +145,13 @@ void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
 }
 
 Transform Model::getTransform() const {
-    if (_spatiallyNestableOverride) {
+    if (_overrideModelTransform) {
+        Transform transform;
+        transform.setTranslation(getOverrideTranslation());
+        transform.setRotation(getOverrideRotation());
+        transform.setScale(getScale());
+        return transform;
+    } else if (_spatiallyNestableOverride) {
         bool success;
         Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
@@ -1259,25 +1265,6 @@ void Model::updateClusterMatrices() {
     }
 }
 
-void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
-    _rig.inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
-}
-
-bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.restoreJointPosition(jointIndex, fraction, priority, freeLineage);
-}
-
-float Model::getLimbLength(int jointIndex) const {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
-}
-
 bool Model::maybeStartBlender() {
     if (isLoaded()) {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
@@ -1379,6 +1366,14 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
     _collisionGeometry.reset();
+}
+
+void Model::overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset) {
+    _overrideTranslation = transform.getTranslation();
+    _overrideRotation = transform.getRotation();
+    _overrideModelTransform = true;
+    setScale(transform.getScale());
+    setOffset(offset);
 }
 
 AABox Model::getRenderableMeshBound() const {

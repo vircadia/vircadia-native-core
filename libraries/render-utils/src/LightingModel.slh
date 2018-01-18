@@ -133,7 +133,7 @@ SurfaceData initSurfaceData(float roughness, vec3 normal, vec3 eyeDir) {
     SurfaceData surface;
     surface.eyeDir = eyeDir;
     surface.normal = normal;
-    surface.roughness = mix(0.001, 1.0, roughness);
+    surface.roughness = mix(0.01, 1.0, roughness);
     surface.roughness2 = surface.roughness * surface.roughness;
     surface.roughness4 = surface.roughness2 * surface.roughness2;
     surface.ndotv = clamp(dot(normal, eyeDir), 0.0, 1.0);
@@ -181,7 +181,7 @@ float fresnelSchlickScalar(float fresnelScalar, SurfaceData surface) {
 float specularDistribution(SurfaceData surface) {
     // See https://www.khronos.org/assets/uploads/developers/library/2017-web3d/glTF-2.0-Launch_Jun17.pdf
     // for details of equations, especially page 20
-    float denom = (surface.ndoth*surface.ndoth * (surface.roughness2 - 1.0) + 1.0);
+    float denom = (surface.ndoth*surface.ndoth * (surface.roughness4 - 1.0) + 1.0);
     denom *= denom;
     // Add geometric factors G1(n,l) and G1(n,v)
     float smithInvG1NdotL = evalSmithInvG1(surface.roughness4, surface.ndotl);

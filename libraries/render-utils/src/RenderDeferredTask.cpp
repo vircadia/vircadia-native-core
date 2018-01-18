@@ -349,7 +349,9 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
-            batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
+            if (hazePointer) {
+                batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
+            }
         }
 
         // From the lighting model define a global shapKey ORED with individiual keys

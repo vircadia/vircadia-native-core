@@ -1,5 +1,5 @@
 //
-//  GlobalServicesScriptingInterface.h
+//  AccountServicesScriptingInterface.h
 //  interface/src/scripting
 //
 //  Created by Thijs Wenker on 9/10/14.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_GlobalServicesScriptingInterface_h
-#define hifi_GlobalServicesScriptingInterface_h
+#ifndef hifi_AccountServicesScriptingInterface_h
+#define hifi_AccountServicesScriptingInterface_h
 
 #include <QObject>
 #include <QScriptContext>
@@ -32,7 +32,7 @@ Q_DECLARE_METATYPE(DownloadInfoResult)
 QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result);
 void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoResult& result);
 
-class GlobalServicesScriptingInterface : public QObject {
+class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
@@ -41,7 +41,7 @@ class GlobalServicesScriptingInterface : public QObject {
     Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
     
 public:
-    static GlobalServicesScriptingInterface* getInstance();
+    static AccountServicesScriptingInterface* getInstance();
 
     const QString getUsername() const;
     bool loggedIn() const { return _loggedIn; }
@@ -74,11 +74,11 @@ signals:
     void loggedInChanged(bool loggedIn);
 
 private:
-    GlobalServicesScriptingInterface();
-    ~GlobalServicesScriptingInterface();
+    AccountServicesScriptingInterface();
+    ~AccountServicesScriptingInterface();
     
     bool _downloading;
     bool _loggedIn{ false };
 };
 
-#endif // hifi_GlobalServicesScriptingInterface_h
+#endif // hifi_AccountServicesScriptingInterface_h

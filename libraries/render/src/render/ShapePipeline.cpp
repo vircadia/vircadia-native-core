@@ -90,7 +90,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
     slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
     slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
-    slotBindings.insert(gpu::Shader::Binding(std::string("hazeParametersBuffer"), Slot::BUFFER::HAZE_MODEL));
+    slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
 
     if (key.isTranslucent()) {
         slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
