@@ -343,7 +343,6 @@ void Agent::scriptRequestFinished() {
 
 void Agent::executeScript() {
     _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
-    _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
 
