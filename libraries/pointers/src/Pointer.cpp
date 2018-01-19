@@ -52,12 +52,6 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
-void Pointer::setNonHoverItems(const QVector<QUuid>& nonHoverItems) {
-    withWriteLock([&] {
-        _nonHoverItems = nonHoverItems;
-    });
-}
-
 bool Pointer::isLeftHand() const {
     return DependencyManager::get<PickManager>()->isLeftHand(_pickUID);
 }
@@ -68,6 +62,12 @@ bool Pointer::isRightHand() const {
 
 bool Pointer::isMouse() const {
     return DependencyManager::get<PickManager>()->isMouse(_pickUID);
+}
+
+void Pointer::setDoesHover(bool doesHover) {
+    withWriteLock([&] {
+        _hover = doesHover;
+    });
 }
 
 void Pointer::update(unsigned int pointerID) {
@@ -101,11 +101,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // Hover events
-    bool doHover = shouldHover(pickResult);
-
-    auto pickResultMap = pickResult->toVariantMap();
-    auto uuid = QUuid(pickResultMap.value("objectID", "").toString());
-    doHover = doHover && !_nonHoverItems.contains(uuid);
+    bool doHover = _hover && shouldHover(pickResult);
 
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
@@ -240,7 +236,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // if we disable the pointer or disable hovering, send hoverEnd events after triggerEnd
-    if (_hover && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
+    if ((_hover || _prevHover) && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
         if (_prevHoveredObject.type == ENTITY) {
             emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
         } else if (_prevHoveredObject.type == OVERLAY) {
@@ -253,6 +249,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     _prevHoveredObject = hoveredObject;
     _prevButtons = buttons;
     _prevEnabled = _enabled;
+    _prevHover = _hover;
     _prevDoHover = doHover;
 }
 

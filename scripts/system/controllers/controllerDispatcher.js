@@ -46,10 +46,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.tabletID = null;
         this.TABLET_UI_UUIDS = [];
         this.blacklist = [];
-        this.leftPointerNonHoverItem = null;
-        this.leftPointerNonHoverItemChanged = false;
-        this.rightPointerNonHoverItem = null;
-        this.rightPointerNonHoverItemChanged = false;
+        this.leftPointerDoesHover = true;
+        this.leftPointerDoesHoverChanged = false;
+        this.rightPointerDoesHover = true;
+        this.rightPointerDoesHoverChanged = false;
         this.pointerManager = new PointerManager();
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
@@ -163,26 +163,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         };
 
-        this.setNonHoverItems = function () {
-            if (_this.leftPointerNonHoverItemChanged) {
-                if (_this.leftPointerNonHoverItem === null) {
-                    Pointers.setNonHoverItems(_this.leftPointer, []);
-                } else if (_this.isTabletID(_this.leftPointerNonHoverItem)) {
-                    Pointers.setNonHoverItems(_this.leftPointer, _this.TABLET_UI_UUIDS);
-                } else {
-                    Pointers.setNonHoverItems(_this.leftPointer, [_this.leftPointerNonHoverItem]);
-                }
-                _this.leftPointerNonHoverItemChanged = false;
+        this.updateHovering = function () {
+            if (_this.leftPointerDoesHoverChanged) {
+                Pointers.setDoesHover(_this.leftPointer, _this.leftPointerDoesHover);
+                _this.leftPointerDoesHoverChanged = false;
             }
-            if (_this.rightPointerNonHoverItemChanged) {
-                if (_this.rightPointerNonHoverItem === null) {
-                    Pointers.setNonHoverItems(_this.rightPointer, []);
-                } else if (_this.isTabletID(_this.rightPointerNonHoverItem)) {
-                    Pointers.setNonHoverItems(_this.rightPointer, _this.TABLET_UI_UUIDS);
-                } else {
-                    Pointers.setNonHoverItems(_this.rightPointer, [_this.rightPointerNonHoverItem]);
-                }
-                _this.rightPointerNonHoverItemChanged = false;
+            if (_this.rightPointerDoesHoverChanged) {
+                Pointers.setDoesHover(_this.rightPointer, _this.rightPointerDoesHover);
+                _this.rightPointerDoesHoverChanged = false;
             }
         };
 
@@ -358,15 +346,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
 
-                        if (candidatePlugin.parameters.handLaser.nonHoverItem !== undefined) {
+                        if (candidatePlugin.parameters.handLaser.doesHover !== undefined) {
                             if (candidatePlugin.parameters.handLaser.hand === LEFT_HAND
-                                    && _this.leftPointerNonHoverItem !== candidatePlugin.parameters.handLaser.nonHoverItem) {
-                                _this.leftPointerNonHoverItem = candidatePlugin.parameters.handLaser.nonHoverItem;
-                                _this.leftPointerNonHoverItemChanged = true;
+                                && _this.leftPointerDoesHover !== candidatePlugin.parameters.handLaser.doesHover) {
+                                _this.leftPointerDoesHover = candidatePlugin.parameters.handLaser.doesHover;
+                                _this.leftPointerDoesHoverChanged = true;
                             } else if (candidatePlugin.parameters.handLaser.hand === RIGHT_HAND
-                                    && _this.rightPointerNonHoverItem !== candidatePlugin.parameters.handLaser.nonHoverItem) {
-                                _this.rightPointerNonHoverItem = candidatePlugin.parameters.handLaser.nonHoverItem;
-                                _this.rightPointerNonHoverItemChanged = true;
+                                && _this.rightPointerDoesHover !== candidatePlugin.parameters.handLaser.doesHover) {
+                                _this.rightPointerDoesHover = candidatePlugin.parameters.handLaser.doesHover;
+                                _this.rightPointerDoesHoverChanged = true;
                             }
                         }
 
@@ -402,15 +390,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         var runningness = plugin.run(controllerData, deltaTime);
 
                         if (runningness.active) {
-                            if (plugin.parameters.handLaser.nonHoverItem !== undefined) {
+                            if (plugin.parameters.handLaser.doesHover !== undefined) {
                                 if (plugin.parameters.handLaser.hand === LEFT_HAND
-                                    && _this.leftPointerNonHoverItem !== plugin.parameters.handLaser.nonHoverItem) {
-                                    _this.leftPointerNonHoverItem = plugin.parameters.handLaser.nonHoverItem;
-                                    _this.leftPointerNonHoverItemChanged = true;
+                                    && _this.leftPointerDoesHover !== plugin.parameters.handLaser.doesHover) {
+                                    _this.leftPointerDoesHover = plugin.parameters.handLaser.doesHover;
+                                    _this.leftPointerDoesHoverChanged = true;
                                 } else if (plugin.parameters.handLaser.hand === RIGHT_HAND
-                                    && _this.rightPointerNonHoverItem !== plugin.parameters.handLaser.nonHoverItem) {
-                                    _this.rightPointerNonHoverItem = plugin.parameters.handLaser.nonHoverItem;
-                                    _this.rightPointerNonHoverItemChanged = true;
+                                    && _this.rightPointerDoesHover !== plugin.parameters.handLaser.doesHover) {
+                                    _this.rightPointerDoesHover = plugin.parameters.handLaser.doesHover;
+                                    _this.rightPointerDoesHoverChanged = true;
                                 }
                             }
                         }
@@ -421,6 +409,17 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
+
+                            if (plugin.parameters.handLaser.doesHover !== undefined) {
+                                if (plugin.parameters.handLaser.hand === LEFT_HAND && !_this.leftPointerDoesHover) {
+                                    _this.leftPointerDoesHover = true;
+                                    _this.leftPointerDoesHoverChanged = true;
+                                } else if (plugin.parameters.handLaser.hand === RIGHT_HAND && !_this.rightPointerDoesHover) {
+                                    _this.rightPointerDoesHover = true;
+                                    _this.rightPointerDoesHoverChanged = true;
+                                }
+                            }
+
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
@@ -433,8 +432,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
-
-            _this.setNonHoverItems();
+            _this.updateHovering();
 
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");

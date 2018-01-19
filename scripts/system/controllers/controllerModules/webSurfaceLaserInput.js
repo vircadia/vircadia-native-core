@@ -90,7 +90,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.hoverItem = null;
 
         this.isTabletID = function (uuid) {
-            return [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHightlightID].indexOf(uuid) !== -1;
+            return [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID].indexOf(uuid) !== -1;
         };
 
         this.isReady = function(controllerData) {
@@ -105,19 +105,19 @@ Script.include("/~/system/libraries/controllers.js");
                     }
 
                     if (pointingAt !== this.getOtherModule().hoverItem) {
+                        this.parameters.handLaser.doesHover = true;
                         this.hoverItem = pointingAt;
-                        this.getOtherModule().parameters.handLaser.nonHoverItem = pointingAt;
                     } else {
+                        this.parameters.handLaser.doesHover = false;
                         this.hoverItem = null;
-                        this.getOtherModule().parameters.handLaser.nonHoverItem = null;
                     }
 
                     return makeRunningValues(true, [], []);
                 }
             }
 
+            this.parameters.handLaser.doesHover = false;
             this.hoverItem = null;
-            this.getOtherModule().parameters.handLaser.nonHoverItem = null;
 
             return makeRunningValues(false, [], []);
         };
@@ -135,11 +135,11 @@ Script.include("/~/system/libraries/controllers.js");
                 }
 
                 if (pointingAt !== this.getOtherModule().hoverItem || isTriggerPressed) {
+                    this.parameters.handLaser.doesHover = true;
                     this.hoverItem = pointingAt;
-                    this.getOtherModule().parameters.handLaser.nonHoverItem = pointingAt;
                 } else {
+                    this.parameters.handLaser.doesHover = false;
                     this.hoverItem = null;
-                    this.getOtherModule().parameters.handLaser.nonHoverItem = null;
                 }
 
                 return makeRunningValues(true, [], []);
@@ -147,8 +147,8 @@ Script.include("/~/system/libraries/controllers.js");
             this.deleteContextOverlay();
             this.running = false;
 
+            this.parameters.handLaser.doesHover = false;
             this.hoverItem = null;
-            this.getOtherModule().parameters.handLaser.nonHoverItem = null;
 
             return makeRunningValues(false, [], []);
         };

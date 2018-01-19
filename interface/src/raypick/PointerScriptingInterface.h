@@ -192,14 +192,6 @@ public:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
     /**jsdoc
-     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs that the pointer should not send hover events to.
-     * @function Pointers.setNonHoverItems
-     * @param {number} uid - The ID of the Pointer, as returned by {@link Pointers.createPointer}.
-     * @param {Uuid[]} nonHoverItems - A list of IDs to that hover events should not be sent to.
-     */
-    Q_INVOKABLE void setNonHoverItems(unsigned int uid, const QScriptValue& nonHoverItems) const;
-
-    /**jsdoc
      * Lock a Pointer onto a specific object (overlay, entity, or avatar).  Optionally, provide an offset in object-space, otherwise the Pointer will lock on to the center of the object.
      *   Not used by Stylus Pointers.
      * @function Pointers.setLockEndUUID
@@ -209,6 +201,14 @@ public:
      * @param {Mat4} [offsetMat] The offset matrix to use if you do not want to lock on to the center of the object.
      */
     Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
+
+    /**jsdoc
+     * Sets whether or not a pointer should generate hover events.
+     * @function Pointers.setDoesHover
+     * @param {boolean} uid - The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @param {boolean} hover - If <code>true</code> then the pointer generates hover events, otherwise it does not.
+     */
+    Q_INVOKABLE void setDoesHover(unsigned int uid, bool hove) const;
 
     /**jsdoc
      * Check if a Pointer is associated with the left hand.

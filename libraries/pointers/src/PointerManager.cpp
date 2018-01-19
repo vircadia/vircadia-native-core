@@ -108,13 +108,6 @@ void PointerManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& inc
     }
 }
 
-void PointerManager::setNonHoverItems(unsigned int uid, const QVector<QUuid>& nonHoverItems) const {
-    auto pointer = find(uid);
-    if (pointer) {
-        pointer->setNonHoverItems(nonHoverItems);
-    }
-}
-
 void PointerManager::setLength(unsigned int uid, float length) const {
     auto pointer = find(uid);
     if (pointer) {
@@ -126,6 +119,13 @@ void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, boo
     auto pointer = find(uid);
     if (pointer) {
         pointer->setLockEndUUID(objectID, isOverlay, offsetMat);
+    }
+}
+
+void PointerManager::setDoesHover(unsigned int uid, bool hover) const {
+    auto pointer = find(uid);
+    if (pointer) {
+        pointer->setDoesHover(hover);
     }
 }
 

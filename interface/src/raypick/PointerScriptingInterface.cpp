@@ -24,10 +24,6 @@ void PointerScriptingInterface::setIncludeItems(unsigned int uid, const QScriptV
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-void PointerScriptingInterface::setNonHoverItems(unsigned int uid, const QScriptValue& nonHoverItems) const {
-    DependencyManager::get<PointerManager>()->setNonHoverItems(uid, qVectorQUuidFromScriptValue(nonHoverItems));
-}
-
 unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) {
     // Interaction with managers should always happen on the main thread
     if (QThread::currentThread() != qApp->thread()) {
@@ -179,4 +175,8 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
         result = pickResult->toVariantMap();
     }
     return result;
+}
+
+void PointerScriptingInterface::setDoesHover(unsigned int uid, bool hover) const {
+    DependencyManager::get<PointerManager>()->setDoesHover(uid, hover);
 }

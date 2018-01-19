@@ -54,8 +54,6 @@ public:
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
-    void setNonHoverItems(const QVector<QUuid>& nonHoverItems);
-
     bool isLeftHand() const;
     bool isRightHand() const;
     bool isMouse() const;
@@ -63,6 +61,8 @@ public:
     // Pointers can choose to implement these
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) {}
+
+    void setDoesHover(bool hover);
 
     void update(unsigned int pointerID);
     virtual void updateVisuals(const PickResultPointer& pickResult) = 0;
@@ -99,12 +99,11 @@ private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
     bool _prevEnabled { false };
+    bool _prevHover { false };
     bool _prevDoHover { false };
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 
     PointerEvent::Button chooseButton(const std::string& button);
-
-    QVector<QUuid> _nonHoverItems;
 };
 
 #endif // hifi_Pick_h
