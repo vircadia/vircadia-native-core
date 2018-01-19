@@ -124,7 +124,7 @@ public:
 protected:
     void jsCallback(const QScriptValue& handler, const QScriptValue& error, const QVariantMap& result);
     void jsCallback(const QScriptValue& handler, const QScriptValue& error, const QScriptValue& result);
-    bool jsAssert(bool condition, const QString& error);
+    bool jsVerify(bool condition, const QString& error);
 };
 
 #endif // hifi_AssetScriptingInterface_h

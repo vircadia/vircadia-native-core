@@ -28,12 +28,9 @@
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
-AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {
-    if (auto engine = qobject_cast<QScriptEngine*>(parent)) {
-        registerMetaTypes(engine);
-    }
-}
-#define JS_ASSERT(cond, error) { if (!this->jsAssert(cond, error)) { return; } }
+AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {}
+
+#define JS_VERIFY(cond, error) { if (!this->jsVerify(cond, error)) { return; } }
 
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     auto handler = makeScopedHandlerObject(thisObject(), callback);
@@ -176,8 +173,8 @@ void AssetScriptingInterface::sendFakedHandshake() {
 void AssetScriptingInterface::getMapping(QString asset, QScriptValue callback) {
     auto path = AssetUtils::getATPUrl(asset).path();
     auto handler = makeScopedHandlerObject(thisObject(), callback);
-    JS_ASSERT(AssetUtils::isValidFilePath(path), "invalid ATP file path: " + asset + "(path:"+path+")");
-    JS_ASSERT(callback.isFunction(), "expected second parameter to be a callback function");
+    JS_VERIFY(AssetUtils::isValidFilePath(path), "invalid ATP file path: " + asset + "(path:"+path+")");
+    JS_VERIFY(callback.isFunction(), "expected second parameter to be a callback function");
     qDebug() << ">>getMapping//getAssetInfo" << path;
     Promise promise = getAssetInfo(path);
     promise->ready([this, handler](QString error, QVariantMap result) {
@@ -186,14 +183,14 @@ void AssetScriptingInterface::getMapping(QString asset, QScriptValue callback) {
     });
 }
 
-bool AssetScriptingInterface::jsAssert(bool condition, const QString& error) {
+bool AssetScriptingInterface::jsVerify(bool condition, const QString& error) {
     if (condition) {
         return true;
     }
     if (context()) {
         context()->throwError(error);
     } else {
-        qDebug() << "WARNING -- jsAssert failed outside of a valid JS context: " + error;
+        qDebug() << "WARNING -- jsVerify failed outside of a valid JS context: " + error;
     }
     return false;
 }
@@ -202,7 +199,7 @@ void AssetScriptingInterface::jsCallback(const QScriptValue& handler,
                                          const QScriptValue& error, const QScriptValue& result) {
     Q_ASSERT(thread() == QThread::currentThread());
     auto errorValue = !error.toBool() ? QScriptValue::NullValue : error;
-    JS_ASSERT(handler.isObject() && handler.property("callback").isFunction(),
+    JS_VERIFY(handler.isObject() && handler.property("callback").isFunction(),
               QString("jsCallback -- .callback is not a function (%1)")
               .arg(handler.property("callback").toVariant().typeName()));
     ::callScopedHandlerObject(handler, errorValue, result);
@@ -217,11 +214,11 @@ void AssetScriptingInterface::jsCallback(const QScriptValue& handler,
 }
 
 void AssetScriptingInterface::deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
-    jsAssert(false, "TODO: deleteAsset API");
+    jsVerify(false, "TODO: deleteAsset API");
 }
 
 void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
-    JS_ASSERT(options.isObject() || options.isString(), "expected request options Object or URL as first parameter");
+    JS_VERIFY(options.isObject() || options.isString(), "expected request options Object or URL as first parameter");
 
     auto decompress = options.property("decompress").toBool() || options.property("compressed").toBool();
     auto responseType = options.property("responseType").toString().toLower();
@@ -235,11 +232,11 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
     auto asset = AssetUtils::getATPUrl(url).path();
     auto handler = makeScopedHandlerObject(scope, callback);
 
-    JS_ASSERT(handler.property("callback").isFunction(),
+    JS_VERIFY(handler.property("callback").isFunction(),
               QString("Invalid callback function (%1)").arg(handler.property("callback").toVariant().typeName()));
-    JS_ASSERT(AssetUtils::isValidHash(asset) || AssetUtils::isValidFilePath(asset),
+    JS_VERIFY(AssetUtils::isValidHash(asset) || AssetUtils::isValidFilePath(asset),
               QString("Invalid ATP url '%1'").arg(url));
-    JS_ASSERT(RESPONSE_TYPES.contains(responseType),
+    JS_VERIFY(RESPONSE_TYPES.contains(responseType),
               QString("Invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | ")));
 
     Promise resolved = makePromise("resolved");
@@ -283,9 +280,9 @@ void AssetScriptingInterface::resolveAsset(QScriptValue options, QScriptValue sc
     auto asset = AssetUtils::getATPUrl(url).path();
     auto handler = makeScopedHandlerObject(scope, callback);
 
-    JS_ASSERT(AssetUtils::isValidFilePath(asset) || AssetUtils::isValidHash(asset),
+    JS_VERIFY(AssetUtils::isValidFilePath(asset) || AssetUtils::isValidHash(asset),
              "expected options to be an asset URL or request options containing .url property");
-    JS_ASSERT(handler.property("callback").isFunction(), "invalid callback function");
+    JS_VERIFY(handler.property("callback").isFunction(), "invalid callback function");
     getAssetInfo(asset)->ready([=](QString error, QVariantMap result) {
         qDebug() << "//resolveAsset/getAssetInfo" << error << result.value("hash");
         jsCallback(handler, error, result);
@@ -348,11 +345,11 @@ void AssetScriptingInterface::putAsset(QScriptValue options, QScriptValue scope,
         data.toString().toUtf8() :
         qscriptvalue_cast<QByteArray>(data);
 
-    JS_ASSERT(path.isEmpty() || AssetUtils::isValidFilePath(path),
+    JS_VERIFY(path.isEmpty() || AssetUtils::isValidFilePath(path),
               QString("expected valid ATP file path '%1' ('%2')").arg(rawPath).arg(path));
-    JS_ASSERT(handler.property("callback").isFunction(),
+    JS_VERIFY(handler.property("callback").isFunction(),
               "invalid callback function");
-    JS_ASSERT(dataByteArray.size() > 0,
+    JS_VERIFY(dataByteArray.size() > 0,
               QString("expected non-zero .data (got %1 / #%2 bytes)")
               .arg(data.toVariant().typeName())
               .arg(dataByteArray.size()));
