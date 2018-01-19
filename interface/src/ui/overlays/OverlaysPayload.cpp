@@ -44,6 +44,13 @@ namespace render {
         } else {
             builder.withViewSpace();
         }
+
+        if (overlay->getVisible()) {
+            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_1); // don't draw overlays in mirror
+        } else {
+            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_ALL);
+        }
+
         return builder.build();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {

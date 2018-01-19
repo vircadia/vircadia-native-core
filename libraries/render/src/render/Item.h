@@ -96,7 +96,17 @@ public:
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
-        Builder& withInvisible(uint8_t maskIndex = 0) { _flags.set(INVISIBLE0 + maskIndex); return (*this); }
+        Builder& withInvisible(uint8_t maskIndex = NUM_VISIBLE_MASK_INDICES) {
+            if (maskIndex == NUM_VISIBLE_MASK_INDICES) {
+                _flags.set(INVISIBLE0);
+                _flags.set(INVISIBLE1);
+                _flags.set(INVISIBLE2);
+                _flags.set(INVISIBLE3);
+            } else {
+                _flags.set(INVISIBLE0 + maskIndex);
+            }
+            return (*this);
+        }
         Builder& withViewVisibilityMask(uint8_t mask) {
             if (mask & render::ItemKey::VISIBLE_MASK_0) {
                 _flags.set(INVISIBLE0);
