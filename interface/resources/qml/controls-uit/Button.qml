@@ -32,6 +32,12 @@ Original.Button {
             Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
+    
+    onFocusChanged: {
+        if (focus) {
+            Tablet.playSound(TabletEnums.ButtonHover);
+        }
+    }
 
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
