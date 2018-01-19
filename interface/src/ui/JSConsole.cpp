@@ -63,7 +63,7 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
 }
 
 void JSConsole::readAPI() {
-    QFile file(PathUtils::resourcesPath() + "auto-complete/export.json");
+    QFile file(PathUtils::resourcesPath() + "auto-complete/hifiJSDoc.json");
     file.open(QFile::ReadOnly);
     auto json = QTextStream(&file).readAll().toUtf8();
     _apiDocs = QJsonDocument::fromJson(json).array();
@@ -302,18 +302,12 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
                 insertCompletion(_completer->currentIndex());
                 _completer->popup()->hide();
                 return true;
-            case Qt::Key_Escape:
-            case Qt::Key_Tab:
-            case Qt::Key_Backtab:
-                qDebug() << "test";
-                keyEvent->ignore();//setAccepted(false);
-                return false; // let the completer do default behavior
             default:
                 return false;
             }
         }
 
-        if ((key == Qt::Key_Return || key == Qt::Key_Enter)) {
+        if (key == Qt::Key_Return || key == Qt::Key_Enter) {
             if (keyEvent->modifiers() & Qt::ShiftModifier) {
                 // If the shift key is being used then treat it as a regular return/enter. If this isn't done,
                 // a new QTextBlock isn't created.
@@ -361,15 +355,11 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
             }
 
             static QString eow("~!@#$%^&*()+{}|:\"<>?,/;'[]\\-="); // end of word
-            bool hasModifier = (keyEvent->modifiers() != Qt::NoModifier) && !ctrlOrShift;
-
 
             if (!isCompleterShortcut && (!keyEvent->text().isEmpty() && eow.contains(keyEvent->text().right(1)))) {
-                qDebug() << "eow contains " << keyEvent->text().right(1) << " full text: " << keyEvent->text();
                 _completer->popup()->hide();
                 return false;
             }
-            qDebug() << "auto completing";
 
             auto textCursor = _ui->promptTextEdit->textCursor();
                 
@@ -378,7 +368,6 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
             QString completionPrefix = textCursor.selectedText();
 
             auto leftOfCursor = _ui->promptTextEdit->toPlainText().left(textCursor.position());
-            qDebug() << "leftOfCursor" << leftOfCursor;
 
             // RegEx  [3]               [4]
             // (Module.subModule).(property/subModule)
@@ -387,7 +376,7 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
             const int PROPERTY_INDEX = 4;
             // TODO: disallow invalid characters on left of property
             QRegExp regExp("((([A-Za-z0-9_\\.]+)\\.)|(?!\\.))([a-zA-Z0-9_]*)$");
-            int pos = regExp.indexIn(leftOfCursor);
+            regExp.indexIn(leftOfCursor);
             auto rexExpCapturedTexts = regExp.capturedTexts();
             auto memberOf = rexExpCapturedTexts[MODULE_INDEX];
             completionPrefix = rexExpCapturedTexts[PROPERTY_INDEX];
@@ -399,14 +388,13 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
                     _completer->popup()->hide();
                     return false;
                 }
-	            _completer->setModel(autoCompleteModel);
+                _completer->setModel(autoCompleteModel);
                 _completer->popup()->installEventFilter(this);
                 switchedModule = true;
             }
 
             if (switchedModule || completionPrefix != _completer->completionPrefix()) {
                 _completer->setCompletionPrefix(completionPrefix);
-                qDebug() << "Set completion prefix to:" << completionPrefix;
                 _completer->popup()->setCurrentIndex(_completer->completionModel()->index(0, 0));
             }
             auto cursorRect = _ui->promptTextEdit->cursorRect();
