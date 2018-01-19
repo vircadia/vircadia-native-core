@@ -464,6 +464,36 @@ glm::vec3 SpatiallyNestable::localToWorldDimensions(const glm::vec3& dimensions,
     return dimensions;
 }
 
+void SpatiallyNestable::setWorldTransform(const glm::vec3& position, const glm::quat& orientation) {
+    // guard against introducing NaN into the transform
+    if (isNaN(orientation) || isNaN(position)) {
+        return;
+    }
+
+    bool changed = false;
+    bool success = true;
+    Transform parentTransform = getParentTransform(success);
+    _transformLock.withWriteLock([&] {
+        Transform myWorldTransform;
+        Transform::mult(myWorldTransform, parentTransform, _transform);
+        if (myWorldTransform.getRotation() != orientation) {
+            changed = true;
+            myWorldTransform.setRotation(orientation);
+        }
+        if (myWorldTransform.getTranslation() != position) {
+            changed = true;
+            myWorldTransform.setTranslation(position);
+        }
+        if (changed) {
+            Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+            _translationChanged = usecTimestampNow();
+        }
+    });
+    if (success && changed) {
+        locationChanged(false);
+    }
+}
+
 glm::vec3 SpatiallyNestable::getWorldPosition(bool& success) const {
     return getTransform(success).getTranslation();
 }

@@ -213,6 +213,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
+#include <DesktopPreviewProvider.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -686,6 +687,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PointerScriptingInterface>();
     DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
+    DependencyManager::set<DesktopPreviewProvider>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -5834,6 +5836,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
