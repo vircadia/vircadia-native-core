@@ -392,7 +392,6 @@ Item {
                             width: 118;
                             height: paintedHeight;
                             wrapMode: Text.WordWrap;
-                            font.bold: true;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
                         }
