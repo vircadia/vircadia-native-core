@@ -105,7 +105,8 @@ Item {
     // Send Money Home BEGIN
     Item {
         id: sendMoneyHome;
-        visible: root.currentActiveView === "sendMoneyHome";
+        z: 996;
+        visible: root.currentActiveView === "sendMoneyHome" || root.currentActiveView === "chooseRecipientConnection" || root.currentActiveView === "chooseRecipientNearby";
         anchors.fill: parent;
         anchors.topMargin: root.parentAppTitleBarHeight;
         anchors.bottomMargin: root.parentAppNavBarHeight;
@@ -299,9 +300,18 @@ Item {
     // Choose Recipient Connection BEGIN
     Rectangle {
         id: chooseRecipientConnection;
+        z: 997;
         visible: root.currentActiveView === "chooseRecipientConnection";
         anchors.fill: parent;
-        color: "#AAAAAA";
+        color: "#80000000";
+
+        // This object is always used in a popup or full-screen Wallet section.
+        // This MouseArea is used to prevent a user from being
+        //     able to click on a button/mouseArea underneath the popup/section.
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+        }
         
         ListModel {
             id: connectionsModel;
@@ -314,6 +324,8 @@ Item {
             anchors.centerIn: parent;
             width: parent.width - 30;
             height: parent.height - 30;
+            color: "#FFFFFF";
+            radius: 8;
 
             RalewaySemiBold {
                 id: chooseRecipientText_connections;
@@ -322,11 +334,11 @@ Item {
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
                 anchors.left: parent.left;
-                anchors.leftMargin: 20;
+                anchors.leftMargin: 36;
                 width: paintedWidth;
                 height: 30;
                 // Text size
-                size: 22;
+                size: 18;
                 // Style
                 color: hifi.colors.baseGray;
             }
@@ -334,6 +346,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_connections;
                 text: hifi.glyphs.close;
+                color: hifi.colors.lightGrayText;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -363,7 +376,7 @@ Item {
                 height: 40;
                 // Anchors
                 anchors.left: parent.left;
-                anchors.leftMargin: 16;
+                anchors.leftMargin: 36;
                 anchors.right: parent.right;
                 anchors.rightMargin: 16;
                 anchors.top: chooseRecipientText_connections.bottom;
@@ -374,8 +387,9 @@ Item {
                     colorScheme: hifi.colorSchemes.faintGray;
                     hasClearButton: true;
                     hasRoundedBorder: true;
+                    roundedBorderRadius: filterBar.height/2;
                     anchors.fill: parent;
-                    placeholderText: "filter recipients";
+                    centerPlaceholderGlyph: hifi.glyphs.search;
 
                     onTextChanged: {
                         buildFilteredConnectionsModel();
@@ -461,17 +475,28 @@ Item {
     // Choose Recipient Nearby BEGIN
     Rectangle {
         id: chooseRecipientNearby;
+        z: 997;
+        color: "#80000000";
 
         property string selectedRecipient;
 
         visible: root.currentActiveView === "chooseRecipientNearby";
         anchors.fill: parent;
-        color: "#AAAAAA";
+
+        // This object is always used in a popup or full-screen Wallet section.
+        // This MouseArea is used to prevent a user from being
+        //     able to click on a button/mouseArea underneath the popup/section.
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+        }
 
         Rectangle {
             anchors.centerIn: parent;
             width: parent.width - 30;
             height: parent.height - 30;
+            color: "#FFFFFF";
+            radius: 8;
 
             RalewaySemiBold {
                 text: "Choose Recipient:";
@@ -483,7 +508,7 @@ Item {
                 width: paintedWidth;
                 height: 30;
                 // Text size
-                size: 22;
+                size: 18;
                 // Style
                 color: hifi.colors.baseGray;
             }
@@ -491,6 +516,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_nearby;
                 text: hifi.glyphs.close;
+                color: hifi.colors.lightGrayText;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -676,9 +702,9 @@ Item {
     // Choose Recipient Nearby END
     
     // Send Money Screen BEGIN
-    Rectangle {
+    Item {
         id: sendMoneyStep;
-        z: 997;
+        z: 996;
 
         property string referrer; // either "connections" or "nearby"
         property string selectedRecipientNodeID;
@@ -688,12 +714,12 @@ Item {
 
         visible: root.currentActiveView === "sendMoneyStep";
         anchors.fill: parent;
-        color: "#AAAAAA";
 
         Rectangle {
             anchors.centerIn: parent;
             width: parent.width - 30;
             height: parent.height - 30;
+            color: "#AAAAAA";
 
             RalewaySemiBold {
                 id: sendMoneyText_sendMoneyStep;
@@ -806,7 +832,7 @@ Item {
                     anchors.right: parent.right;
                     height: 50;
                     // Style
-                    leftPlaceholderGlyph: hifi.glyphs.hfc;
+                    leftPermanentGlyph: hifi.glyphs.hfc;
                     activeFocusOnPress: true;
                     activeFocusOnTab: true;
 
@@ -1049,6 +1075,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_paymentSuccess;
                 text: hifi.glyphs.close;
+                color: lightGrayText;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -1234,6 +1261,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_paymentFailure;
                 text: hifi.glyphs.close;
+                color: hifi.colors.lightGrayText;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
