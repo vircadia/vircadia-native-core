@@ -49,6 +49,9 @@ static std::atomic<bool> compressGrayscaleTextures { false };
 static std::atomic<bool> compressCubeTextures { false };
 
 uint rectifyDimension(const uint& dimension) {
+    if (dimension == 0) {
+        return 0;
+    }
     if (dimension < SPARSE_PAGE_SIZE.x) {
         uint newSize = SPARSE_PAGE_SIZE.x;
         while (dimension <= newSize / 2) {
