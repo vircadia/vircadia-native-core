@@ -62,8 +62,6 @@ public:
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) {}
 
-    virtual void setDoesHover(bool hover);
-
     void update(unsigned int pointerID);
     virtual void updateVisuals(const PickResultPointer& pickResult) = 0;
     void generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult);
@@ -103,6 +101,7 @@ private:
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 
     PointerEvent::Button chooseButton(const std::string& button);
+
 };
 
 #endif // hifi_Pick_h
