@@ -154,12 +154,11 @@ ModalWindow {
                 size: 30
                 enabled: fileTableModel.parentFolder && fileTableModel.parentFolder !== ""
                 onClicked: d.navigateUp();
-                KeyNavigation.up: fileTableView.contentItem
-                KeyNavigation.down: fileTableView.contentItem
-                KeyNavigation.tab: fileTableView.contentItem
-                KeyNavigation.backtab: fileTableView.contentItem
-                KeyNavigation.left: fileTableView.contentItem
-                KeyNavigation.right: fileTableView.contentItem
+                Keys.onReturnPressed: { d.navigateUp(); }
+                KeyNavigation.tab: homeButton
+                KeyNavigation.backtab: upButton
+                KeyNavigation.left: upButton
+                KeyNavigation.right: homeButton
             }
 
             GlyphButton {
@@ -170,12 +169,10 @@ ModalWindow {
                 width: height
                 enabled: d.homeDestination ? true : false
                 onClicked: d.navigateHome();
-                KeyNavigation.up: fileTableView.contentItem
-                KeyNavigation.down: fileTableView.contentItem
+                Keys.onReturnPressed: { d.navigateHome(); }
                 KeyNavigation.tab: fileTableView.contentItem
-                KeyNavigation.backtab: fileTableView.contentItem
-                KeyNavigation.left: fileTableView.contentItem
-                KeyNavigation.right: fileTableView.contentItem
+                KeyNavigation.backtab: upButton
+                KeyNavigation.left: upButton
             }
         }
 
@@ -505,7 +502,6 @@ ModalWindow {
             }
             headerVisible: !selectDirectory
             onDoubleClicked: navigateToRow(row);
-            focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
             Keys.onEnterPressed: navigateToCurrentRow();
 
@@ -582,7 +578,7 @@ ModalWindow {
                 resizable: true
             }
             TableViewColumn {
-                id: fileMofifiedColumn
+                id: fileModifiedColumn
                 role: "fileModified"
                 title: "Date"
                 width: 0.3 * fileTableView.width
@@ -593,7 +589,7 @@ ModalWindow {
             TableViewColumn {
                 role: "fileSize"
                 title: "Size"
-                width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
+                width: fileTableView.width - fileNameColumn.width - fileModifiedColumn.width
                 movable: false
                 resizable: true
                 visible: !selectDirectory
@@ -668,7 +664,7 @@ ModalWindow {
                     break;
                 }
             }
-            
+
             KeyNavigation.tab: root.saveDialog ? currentSelection : openButton
         }
 
