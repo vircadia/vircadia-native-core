@@ -78,12 +78,12 @@ void HazeConfig::setHazeBackgroundBlend(const float value) {
 }
 
 MakeHaze::MakeHaze() {
-    _haze = std::make_shared<model::Haze>();
+    _haze = std::make_shared<graphics::Haze>();
 }
 
 void MakeHaze::configure(const Config& config) {
     _haze->setHazeColor(config.hazeColor);
-    _haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(config.hazeGlareAngle));
+    _haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(config.hazeGlareAngle));
 
     _haze->setHazeGlareColor(config.hazeGlareColor);
     _haze->setHazeBaseReference(config.hazeBaseReference);
@@ -94,16 +94,16 @@ void MakeHaze::configure(const Config& config) {
     _haze->setModulateColorActive(config.isModulateColorActive);
     _haze->setHazeEnableGlare(config.isHazeEnableGlare);
 
-    _haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeRange));
-    _haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
+    _haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(config.hazeRange));
+    _haze->setHazeAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
 
-    _haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
-    _haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
+    _haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
+    _haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
 
     _haze->setHazeBackgroundBlend(config.hazeBackgroundBlend);
 }
 
-void MakeHaze::run(const render::RenderContextPointer& renderContext, model::HazePointer& haze) {
+void MakeHaze::run(const render::RenderContextPointer& renderContext, graphics::HazePointer& haze) {
     haze = _haze;
 }
 
@@ -168,7 +168,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
-            model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
+            graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
                 batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
             } else {
@@ -181,7 +181,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
 	    auto lightStage = args->_scene->getStage<LightStage>();
 	    if (lightStage) {
-	        model::LightPointer keyLight;
+	        graphics::LightPointer keyLight;
 	        keyLight = lightStage->getCurrentKeyLight();
 	        if (keyLight) {
 	            batch.setUniformBuffer(HazeEffect_LightingMapSlot, keyLight->getLightSchemaBuffer());

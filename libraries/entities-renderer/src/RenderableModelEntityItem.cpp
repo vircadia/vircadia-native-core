@@ -558,10 +558,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             if (type == SHAPE_TYPE_STATIC_MESH) {
                 // copy into triangleIndices
                 triangleIndices.reserve((int32_t)((gpu::Size)(triangleIndices.size()) + indices.getNumElements()));
-                gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
-                while (partItr != parts.cend<const model::Mesh::Part>()) {
+                gpu::BufferView::Iterator<const graphics::Mesh::Part> partItr = parts.cbegin<const graphics::Mesh::Part>();
+                while (partItr != parts.cend<const graphics::Mesh::Part>()) {
                     auto numIndices = partItr->_numIndices;
-                    if (partItr->_topology == model::Mesh::TRIANGLES) {
+                    if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
                         //assert(numIndices % TRIANGLE_STRIDE == 0);
                         numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
@@ -572,7 +572,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                             triangleIndices.push_back(*indexItr + meshIndexOffset);
                             ++indexItr;
                         }
-                    } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                    } else if (partItr->_topology == graphics::Mesh::TRIANGLE_STRIP) {
                         // TODO: resurrect assert after we start sanitizing FBXMesh higher up
                         //assert(numIndices > 2);
 
@@ -593,7 +593,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                         // the rest use previous and next index
                         uint32_t triangleCount = 1;
                         while (indexItr != indexEnd) {
-                            if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                            if ((*indexItr) != graphics::Mesh::PRIMITIVE_RESTART_INDEX) {
                                 if (triangleCount % 2 == 0) {
                                     // even triangles use first two indices in order
                                     triangleIndices.push_back(*(indexItr - 2) + meshIndexOffset);
@@ -613,12 +613,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 }
             } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
                 // for each mesh copy unique part indices, separated by special bogus (flag) index values
-                gpu::BufferView::Iterator<const model::Mesh::Part> partItr = parts.cbegin<const model::Mesh::Part>();
-                while (partItr != parts.cend<const model::Mesh::Part>()) {
+                gpu::BufferView::Iterator<const graphics::Mesh::Part> partItr = parts.cbegin<const graphics::Mesh::Part>();
+                while (partItr != parts.cend<const graphics::Mesh::Part>()) {
                     // collect unique list of indices for this part
                     std::set<int32_t> uniqueIndices;
                     auto numIndices = partItr->_numIndices;
-                    if (partItr->_topology == model::Mesh::TRIANGLES) {
+                    if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
                         //assert(numIndices% TRIANGLE_STRIDE == 0);
                         numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
@@ -629,7 +629,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                             uniqueIndices.insert(*indexItr);
                             ++indexItr;
                         }
-                    } else if (partItr->_topology == model::Mesh::TRIANGLE_STRIP) {
+                    } else if (partItr->_topology == graphics::Mesh::TRIANGLE_STRIP) {
                         // TODO: resurrect assert after we start sanitizing FBXMesh higher up
                         //assert(numIndices > TRIANGLE_STRIDE - 1);
 
@@ -644,7 +644,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                         // the rest use previous and next index
                         uint32_t triangleCount = 1;
                         while (indexItr != indexEnd) {
-                            if ((*indexItr) != model::Mesh::PRIMITIVE_RESTART_INDEX) {
+                            if ((*indexItr) != graphics::Mesh::PRIMITIVE_RESTART_INDEX) {
                                 if (triangleCount % 2 == 0) {
                                     // EVEN triangles use first two indices in order
                                     uniqueIndices.insert(*(indexItr - 2));
@@ -706,6 +706,26 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
         _collisionMeshKey = key;
         emit requestCollisionGeometryUpdate();
     }
+}
+
+void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
+    if (jointMap.size() > 0) {
+        _jointMap = jointMap;
+        _jointMapCompleted = true;
+        return;
+    }
+
+    _jointMapCompleted = false;
+};
+
+int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
+    int result = -1;
+    int mapSize = (int) _jointMap.size();
+    if (modelJointIndex >=0 && modelJointIndex < mapSize) {
+        result = _jointMap[modelJointIndex];
+    }
+
+    return result;
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
@@ -813,6 +833,10 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     return setLocalJointTranslation(index, jointRelativePose.trans());
 }
 
+bool RenderableModelEntityItem::getJointMapCompleted() {
+    return _jointMapCompleted;
+}
+
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
     auto model = getModel();
     if (model) {
@@ -833,6 +857,13 @@ glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
         }
     }
     return glm::vec3();
+}
+
+void RenderableModelEntityItem::setOverrideTransform(const Transform& transform, const glm::vec3& offset) {
+    auto model = getModel();
+    if (model) {
+        model->overrideModelTransformAndOffset(transform, offset);
+    }
 }
 
 bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
@@ -927,6 +958,26 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     }
     BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
     return !result.isEmpty();
+}
+
+void RenderableModelEntityItem::simulateRelayedJoints() {
+    ModelPointer model = getModel();
+    if (model && model->isLoaded()) {
+        copyAnimationJointDataToModel();
+        model->simulate(0.0f);
+        model->updateRenderItems();
+    }
+}
+
+void RenderableModelEntityItem::stopModelOverrideIfNoParent() {
+    auto model = getModel();
+    if (model) {
+        bool overriding = model->isOverridingModelTransformAndOffset();
+        QUuid parentID = getParentID();
+        if (overriding && (!_relayParentJoints || parentID.isNull())) {
+            model->stopTransformAndOffsetOverride();
+        }
+    }
 }
 
 void RenderableModelEntityItem::copyAnimationJointDataToModel() {
@@ -1280,6 +1331,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     entity->updateModelBounds();
+    entity->stopModelOverrideIfNoParent();
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
@@ -1295,7 +1347,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         ShapeType type = entity->getShapeType();
         if (DependencyManager::get<EntityTreeRenderer>()->shouldRenderDebugHulls() && type != SHAPE_TYPE_STATIC_MESH && type != SHAPE_TYPE_NONE) {
             // NOTE: it is OK if _collisionMeshKey is nullptr
-            model::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
+            graphics::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
             // NOTE: the model will render the collisionGeometry if it has one
             _model->setCollisionMesh(mesh);
         } else {
@@ -1304,7 +1356,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 collisionMeshCache.releaseMesh(_collisionMeshKey);
             }
             // clear model's collision geometry
-            model::MeshPointer mesh = nullptr;
+            graphics::MeshPointer mesh = nullptr;
             _model->setCollisionMesh(mesh);
         }
     }

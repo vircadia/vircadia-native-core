@@ -306,6 +306,13 @@ public slots:
     QString checkVersion();
 
     /**jsdoc
+     * Get the signature for Interface's protocol version.
+     * @function Window.protocolSignature
+     * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
+     */
+    QString protocolSignature();
+
+    /**jsdoc
      * Copies text to the operating system's clipboard.
      * @function Window.copyToClipboard
      * @param {string} text - The text to copy to the operating system's clipboard.

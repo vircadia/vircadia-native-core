@@ -179,7 +179,7 @@ void Rig::restoreRoleAnimation(const QString& role) {
             } else {
                 qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
             }
-            
+
             auto statesIter = _roleAnimStates.find(role);
             if (statesIter != _roleAnimStates.end()) {
                 _roleAnimStates.erase(statesIter);
@@ -1049,52 +1049,6 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _externalPoseSet = _internalPoseSet;
     }
 }
-
-void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                            const QVector<int>& freeLineage, glm::mat4 rootTransform) {
-    ASSERT(false);
-}
-
-bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
-    ASSERT(false);
-    return false;
-}
-
-float Rig::getLimbLength(int jointIndex, const QVector<int>& freeLineage,
-                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const {
-    ASSERT(false);
-    return 1.0f;
-}
-
-glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority) {
-    ASSERT(false);
-    return glm::quat();
-}
-
-glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
-    ASSERT(false);
-    return glm::vec3();
-}
-
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, float mix) {
-    ASSERT(false);
-    return glm::quat();
-}
-
-bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut) const {
-    ASSERT(false);
-    return false;
-}
-
-void Rig::clearJointStatePriorities() {
-    ASSERT(false);
-}
-
-glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
-    ASSERT(false);
-    return glm::quat();
-}
-
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
     updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);

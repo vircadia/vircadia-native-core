@@ -390,6 +390,10 @@ QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
 }
 
+QString WindowScriptingInterface::protocolSignature() {
+    return protocolVersionsSignatureBase64();
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getDeviceSize().x;
 }
@@ -411,6 +415,11 @@ int WindowScriptingInterface::getY() {
 }
 
 void WindowScriptingInterface::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard", Q_ARG(QString, text));
+        return;
+    }
+
     qDebug() << "Copying";
     QApplication::clipboard()->setText(text);
 }
