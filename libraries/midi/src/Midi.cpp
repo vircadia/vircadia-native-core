@@ -24,7 +24,7 @@ const int MIDI_BYTE_MASK = 0x0FF;
 const int MIDI_NIBBLE_MASK = 0x00F;
 const int MIDI_PITCH_BEND_MASK = 0x3F80;
 const int MIDI_SHIFT_STATUS = 4;
-const int MIDI_SHIFT_NOTE = 8;-
+const int MIDI_SHIFT_NOTE = 8;
 const int MIDI_SHIFT_VELOCITY = 16;
 const int MIDI_SHIFT_PITCH_BEND = 9;
 //  Status Decode
