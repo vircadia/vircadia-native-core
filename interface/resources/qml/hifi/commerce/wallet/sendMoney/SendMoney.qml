@@ -832,6 +832,58 @@ Item {
                 }
             }
 
+            FiraSansSemiBold {
+                visible: amountTextFieldError.text === "";
+                text: "Balance: ";
+                // Anchors
+                anchors.top: amountTextField.bottom;
+                anchors.topMargin: 2;
+                anchors.left: amountTextField.left;
+                anchors.right: sendMoneyBalanceText_HFC.left;
+                width: paintedWidth;
+                height: 40;
+                // Text size
+                size: 16;
+                // Style
+                color: hifi.colors.lightGrayText;
+                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignRight;
+            }
+            HiFiGlyphs {
+                id: sendMoneyBalanceText_HFC;
+                visible: amountTextFieldError.text === "";
+                text: hifi.glyphs.hfc;
+                // Size
+                size: 16;
+                // Anchors
+                anchors.top: amountTextField.bottom;
+                anchors.topMargin: 2;
+                anchors.right: sendMoneyBalanceText.left;
+                width: paintedWidth;
+                height: 40;
+                // Style
+                color: hifi.colors.lightGrayText;
+                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignRight;
+            }
+            FiraSansSemiBold {
+                id: sendMoneyBalanceText;
+                visible: amountTextFieldError.text === "";
+                text: balanceText.text;
+                // Anchors
+                anchors.top: amountTextField.bottom;
+                anchors.topMargin: 2;
+                anchors.right: amountTextField.right;
+                width: paintedWidth;
+                height: 40;
+                // Text size
+                size: 16;
+                // Style
+                color: hifi.colors.lightGrayText;
+                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignRight;
+            }
+
             RalewaySemiBold {
                 id: amountTextFieldError;
                 // Anchors
@@ -895,7 +947,7 @@ Item {
                     previousText = text;
                 }
             }
-            RalewaySemiBold {
+            FiraSansSemiBold {
                 id: optionalMessageCharacterCount;
                 text: optionalMessage.text.length + "/" + optionalMessage.maximumLength;
                 // Anchors
@@ -1166,7 +1218,7 @@ Item {
                     color: hifi.colors.blueAccent;
                 }
 
-                RalewaySemiBold {
+                FiraSansSemiBold {
                     id: amountSentText;
                     text: amountTextField.text;
                     // Anchors
@@ -1371,7 +1423,7 @@ Item {
                     color: hifi.colors.baseGray;
                 }
 
-                RalewaySemiBold {
+                FiraSansSemiBold {
                     id: amountSentText_paymentFailure;
                     text: amountTextField.text;
                     // Anchors
