@@ -118,16 +118,16 @@ TextField {
         radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
 
         HiFiGlyphs {
-                text: textField.leftPlaceholderGlyph;
-                color: textColor;
-                size: hifi.fontSizes.textFieldSearchIcon;
-                anchors.left: parent.left;
-                anchors.verticalCenter: parent.verticalCenter;
-                anchors.leftMargin: hifi.dimensions.textPadding - 2;
-                visible: text;
-            }
+            text: textField.leftPlaceholderGlyph;
+            color: textColor;
+            size: hifi.fontSizes.textFieldSearchIcon;
+            anchors.left: parent.left;
+            anchors.verticalCenter: parent.verticalCenter;
+            anchors.leftMargin: hifi.dimensions.textPadding - 2;
+            visible: text;
+        }
 
-            HiFiGlyphs {
+        HiFiGlyphs {
             text: hifi.glyphs.search
             color: textColor
             size: hifi.fontSizes.textFieldSearchIcon
