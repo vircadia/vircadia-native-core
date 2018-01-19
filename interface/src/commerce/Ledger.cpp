@@ -123,17 +123,17 @@ QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) 
     int sent = sentValue.toInt();
     int received = receivedValue.toInt();
     if (sent <= 0 && received <= 0) {
-        return QString("-");
+        return QString("0 HFC");
     }
     QString result;
     if (sent > 0) {
-        result += QString("<font color='#B70A37'>-%1 HFC</font>").arg(sent);
+        result += QString("<font color='#B70A37'><b>-%1 HFC</b></font>").arg(sent);
         if (received > 0) {
             result += QString("<br>");
         }
     }
     if (received > 0) {
-        result += QString("<font color='#3AA38F'>%1 HFC</font>").arg(received);
+        result += QString("<font color='#3AA38F'><b>%1 HFC</b></font>").arg(received);
     }
     return result;
 }
@@ -178,8 +178,8 @@ QString transactionString(const QJsonObject& valueObject) {
     } else {
         result += valueObject["message"].toString();
     }
+    
     // no matter what we append a smaller date to the bottom of this...
-
     result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
     return result;
 }
