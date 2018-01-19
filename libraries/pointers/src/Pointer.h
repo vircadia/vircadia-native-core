@@ -99,7 +99,6 @@ private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
     bool _prevEnabled { false };
-    bool _prevHover { false };
     bool _prevDoHover { false };
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 

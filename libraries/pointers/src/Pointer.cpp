@@ -236,7 +236,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // if we disable the pointer or disable hovering, send hoverEnd events after triggerEnd
-    if ((_hover || _prevHover) && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
+    if ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover)) {
         if (_prevHoveredObject.type == ENTITY) {
             emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
         } else if (_prevHoveredObject.type == OVERLAY) {
@@ -249,7 +249,6 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     _prevHoveredObject = hoveredObject;
     _prevButtons = buttons;
     _prevEnabled = _enabled;
-    _prevHover = _hover;
     _prevDoHover = doHover;
 }
 
