@@ -37,6 +37,7 @@ public:
 
     void setLength(unsigned int uid, float length) const;
     void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const;
+    void setDoesHover(unsigned int uid, bool hover) const;
 
     void update();
 
