@@ -10,8 +10,7 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: Script.resolvePath("assets/images/run.svg"),
-        text: "RUN",
-        sortOrder: 15
+        text: "RUN"
     });
 
     function onClicked() {
