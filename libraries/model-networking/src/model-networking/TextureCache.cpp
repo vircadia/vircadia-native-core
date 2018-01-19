@@ -265,6 +265,10 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
+    if (image.isNull()) {
+        qCWarning(networking) << "Unable to load required resource texture" << path;
+        return nullptr;
+    }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
     return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false));
 }
