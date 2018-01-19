@@ -163,6 +163,20 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         };
 
+        this.updateDoesHover = function(handLaser) {
+            if (handLaser.doesHover !== undefined) {
+                if (handLaser.hand === LEFT_HAND
+                    && _this.leftPointerDoesHover !== handLaser.doesHover) {
+                    _this.leftPointerDoesHover = handLaser.doesHover;
+                    _this.leftPointerDoesHoverChanged = true;
+                } else if (handLaser.hand === RIGHT_HAND
+                    && _this.rightPointerDoesHover !== handLaser.doesHover) {
+                    _this.rightPointerDoesHover = handLaser.doesHover;
+                    _this.rightPointerDoesHoverChanged = true;
+                }
+            }
+        }
+
         this.updateHovering = function () {
             if (_this.leftPointerDoesHoverChanged) {
                 Pointers.setDoesHover(_this.leftPointer, _this.leftPointerDoesHover);
@@ -345,19 +359,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
-
-                        if (candidatePlugin.parameters.handLaser.doesHover !== undefined) {
-                            if (candidatePlugin.parameters.handLaser.hand === LEFT_HAND
-                                && _this.leftPointerDoesHover !== candidatePlugin.parameters.handLaser.doesHover) {
-                                _this.leftPointerDoesHover = candidatePlugin.parameters.handLaser.doesHover;
-                                _this.leftPointerDoesHoverChanged = true;
-                            } else if (candidatePlugin.parameters.handLaser.hand === RIGHT_HAND
-                                && _this.rightPointerDoesHover !== candidatePlugin.parameters.handLaser.doesHover) {
-                                _this.rightPointerDoesHover = candidatePlugin.parameters.handLaser.doesHover;
-                                _this.rightPointerDoesHoverChanged = true;
-                            }
-                        }
-
+                        _this.updateDoesHover(candidatePlugin.parameters.handLaser);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -387,39 +389,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         if (PROFILE) {
                             Script.beginProfileRange("dispatch.run." + runningPluginName);
                         }
+                        _this.updateDoesHover(plugin.parameters.handLaser);
                         var runningness = plugin.run(controllerData, deltaTime);
-
-                        if (runningness.active) {
-                            if (plugin.parameters.handLaser.doesHover !== undefined) {
-                                if (plugin.parameters.handLaser.hand === LEFT_HAND
-                                    && _this.leftPointerDoesHover !== plugin.parameters.handLaser.doesHover) {
-                                    _this.leftPointerDoesHover = plugin.parameters.handLaser.doesHover;
-                                    _this.leftPointerDoesHoverChanged = true;
-                                } else if (plugin.parameters.handLaser.hand === RIGHT_HAND
-                                    && _this.rightPointerDoesHover !== plugin.parameters.handLaser.doesHover) {
-                                    _this.rightPointerDoesHover = plugin.parameters.handLaser.doesHover;
-                                    _this.rightPointerDoesHoverChanged = true;
-                                }
-                            }
-                        }
-
                         if (!runningness.active) {
                             // plugin is finished running, for now.  remove it from the list
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
-
-                            if (plugin.parameters.handLaser.doesHover !== undefined) {
-                                if (plugin.parameters.handLaser.hand === LEFT_HAND && !_this.leftPointerDoesHover) {
-                                    _this.leftPointerDoesHover = true;
-                                    _this.leftPointerDoesHoverChanged = true;
-                                } else if (plugin.parameters.handLaser.hand === RIGHT_HAND && !_this.rightPointerDoesHover) {
-                                    _this.rightPointerDoesHover = true;
-                                    _this.rightPointerDoesHoverChanged = true;
-                                }
-                            }
-
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }

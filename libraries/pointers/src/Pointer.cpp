@@ -111,7 +111,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     hoveredEvent.setMoveOnHoverLeave(moveOnHoverLeave);
 
     // if shouldHover && !_prevDoHover, only send hoverBegin
-    if (_enabled && _hover && doHover && !_prevDoHover) {
+    if (_enabled && doHover && !_prevDoHover) {
         if (hoveredObject.type == ENTITY) {
             emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
         } else if (hoveredObject.type == OVERLAY) {
@@ -119,7 +119,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
         } else if (hoveredObject.type == HUD) {
             emit pointerManager->hoverBeginHUD(hoveredEvent);
         }
-    } else if (_enabled && _hover && doHover) {
+    } else if (_enabled && doHover) {
         if (hoveredObject.type == OVERLAY) {
             if (_prevHoveredObject.type == OVERLAY) {
                 if (hoveredObject.objectID == _prevHoveredObject.objectID) {

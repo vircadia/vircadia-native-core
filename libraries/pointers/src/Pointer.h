@@ -62,7 +62,7 @@ public:
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) {}
 
-    void setDoesHover(bool hover);
+    virtual void setDoesHover(bool hover);
 
     void update(unsigned int pointerID);
     virtual void updateVisuals(const PickResultPointer& pickResult) = 0;
