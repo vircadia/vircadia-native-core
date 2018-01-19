@@ -553,163 +553,142 @@ Item {
                 }
             }
 
-            Item {
-                id: selectionInstructionsContainer;
-                visible: chooseRecipientNearby.selectedRecipient === "";
-                anchors.fill: parent;
-
-                RalewaySemiBold {
-                    id: selectionInstructions_deselected;
-                    text: "Click/trigger on an avatar nearby to select them...";
-                    // Anchors
-                    anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: 200;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 58;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: anchors.leftMargin;
-                    height: paintedHeight;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    horizontalAlignment: Text.AlignHCenter;
-                    wrapMode: Text.Wrap;
-                }
+            RalewaySemiBold {
+                id: selectionInstructions;
+                text: chooseRecipientNearby.selectedRecipient === "" ? "Trigger or click on\nsomeone nearby to select them" : 
+                    "Trigger or click on\nsomeone else to select again";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 100;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: anchors.leftMargin;
+                height: paintedHeight;
+                // Text size
+                size: 20;
+                // Style
+                color: hifi.colors.baseGray;
+                horizontalAlignment: Text.AlignHCenter;
+                wrapMode: Text.Wrap;
             }
 
-            Item {
+            Image {
+                anchors.top: selectionInstructions.bottom;
+                anchors.topMargin: 20;
+                anchors.bottom: selectionMadeContainer.top;
+                anchors.bottomMargin: 30;
+                source: "./images/p2p-nearby-unselected.svg";
+                width: parent.width;
+                fillMode: Image.PreserveAspectFit;
+                horizontalAlignment: Image.AlignHCenter;
+                verticalAlignment: Image.AlignVCenter;
+                mipmap: true;
+            }
+
+            Rectangle {
                 id: selectionMadeContainer;
-                visible: !selectionInstructionsContainer.visible;
-                anchors.fill: parent;
+                visible: chooseRecipientNearby.selectedRecipient !== "";
+                anchors.bottom: parent.bottom;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                height: 190;
+                color: "#F3F3F3";
+                radius: 8;
+
+                // Used to square off the top left and top right edges of this container
+                Rectangle {
+                    color: "#F3F3F3";
+                    height: selectionMadeContainer.radius;
+                    anchors.top: selectionMadeContainer.top;
+                    anchors.left: selectionMadeContainer.left;
+                    anchors.right: selectionMadeContainer.right;
+                }
 
                 RalewaySemiBold {
                     id: sendToText;
-                    text: "Send To:";
+                    text: "Send to:";
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.topMargin: 120;
+                    anchors.topMargin: 36;
                     anchors.left: parent.left;
-                    anchors.leftMargin: 12;
+                    anchors.leftMargin: 36;
                     width: paintedWidth;
                     height: paintedHeight;
                     // Text size
-                    size: 20;
+                    size: 18;
                     // Style
                     color: hifi.colors.baseGray;
+                }
+
+                Image {
+                    id: selectedImage;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 24;
+                    anchors.bottom: parent.bottom;
+                    anchors.bottomMargin: 32;
+                    anchors.left: sendToText.right;
+                    anchors.leftMargin: 4;
+                    source: "./images/p2p-nearby-selected.svg";
+                    width: 50;
+                    fillMode: Image.PreserveAspectFit;
+                    horizontalAlignment: Image.AlignHCenter;
+                    verticalAlignment: Image.AlignVCenter;
+                    mipmap: true;
                 }
 
                 RalewaySemiBold {
                     id: avatarDisplayName;
                     text: '"' + AvatarList.getAvatar(chooseRecipientNearby.selectedRecipient).sessionDisplayName + '"';
                     // Anchors
-                    anchors.top: sendToText.bottom;
-                    anchors.topMargin: 60;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 30;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 34;
+                    anchors.left: selectedImage.right;
+                    anchors.leftMargin: 10;
                     anchors.right: parent.right;
-                    anchors.rightMargin: 30;
+                    anchors.rightMargin: 10;
                     height: paintedHeight;
                     // Text size
-                    size: 22;
+                    size: 20;
                     // Style
-                    horizontalAlignment: Text.AlignHCenter;
-                    color: hifi.colors.baseGray;
-                }
-
-                RalewaySemiBold {
-                    id: avatarNodeID;
-                    text: chooseRecipientNearby.selectedRecipient;
-                    // Anchors
-                    anchors.top: avatarDisplayName.bottom;
-                    anchors.topMargin: 6;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 30;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 30;
-                    height: paintedHeight;
-                    // Text size
-                    size: 14;
-                    // Style
-                    horizontalAlignment: Text.AlignHCenter;
-                    color: hifi.colors.lightGrayText;
+                    color: hifi.colors.blueAccent;
                 }
 
                 RalewaySemiBold {
                     id: avatarUserName;
                     text: sendMoneyStep.selectedRecipientUserName;
                     // Anchors
-                    anchors.top: avatarNodeID.bottom;
-                    anchors.topMargin: 12;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 30;
+                    anchors.top: avatarDisplayName.bottom;
+                    anchors.topMargin: 16;
+                    anchors.left: selectedImage.right;
+                    anchors.leftMargin: 10;
                     anchors.right: parent.right;
-                    anchors.rightMargin: 30;
+                    anchors.rightMargin: 10;
                     height: paintedHeight;
                     // Text size
-                    size: 22;
+                    size: 18;
                     // Style
-                    horizontalAlignment: Text.AlignHCenter;
                     color: hifi.colors.baseGray;
                 }
 
-                RalewaySemiBold {
-                    id: selectionInstructions_selected;
-                    text: "Click/trigger on another avatar nearby to select them...\n\nor press 'Next' to continue.";
-                    // Anchors
+                // "CHOOSE" button
+                HifiControlsUit.Button {
+                    id: chooseButton;
+                    color: hifi.buttons.blue;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.horizontalCenter: parent.horizontalCenter;
                     anchors.bottom: parent.bottom;
-                    anchors.bottomMargin: 200;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 58;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: anchors.leftMargin;
-                    height: paintedHeight;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    horizontalAlignment: Text.AlignHCenter;
-                    wrapMode: Text.Wrap;
-                }
-            }
+                    anchors.bottomMargin: 20;
+                    height: 40;
+                    width: 110;
+                    text: "CHOOSE";
+                    onClicked: {
+                        sendMoneyStep.referrer = "nearby";
+                        sendMoneyStep.selectedRecipientNodeID = chooseRecipientNearby.selectedRecipient;
+                        chooseRecipientNearby.selectedRecipient = "";
 
-            // "Cancel" button
-            HifiControlsUit.Button {
-                id: cancelButton;
-                color: hifi.buttons.noneBorderless;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.left: parent.left;
-                anchors.leftMargin: 60;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
-                height: 50;
-                width: 120;
-                text: "Cancel";
-                onClicked: {
-                    root.nextActiveView = "sendMoneyHome";
-                    resetSendMoneyData();
-                }
-            }
-
-            // "Next" button
-            HifiControlsUit.Button {
-                id: nextButton;
-                enabled: chooseRecipientNearby.selectedRecipient !== "";
-                color: hifi.buttons.blue;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.right: parent.right;
-                anchors.rightMargin: 60;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
-                height: 50;
-                width: 120;
-                text: "Next";
-                onClicked: {
-                    sendMoneyStep.referrer = "nearby";
-                    sendMoneyStep.selectedRecipientNodeID = chooseRecipientNearby.selectedRecipient;
-                    chooseRecipientNearby.selectedRecipient = "";
-
-                    root.nextActiveView = "sendMoneyStep";
+                        root.nextActiveView = "sendMoneyStep";
+                    }
                 }
             }
         }
@@ -790,7 +769,7 @@ Item {
             HifiControlsUit.Button {
                 id: changeButton;
                 color: hifi.buttons.none;
-                colorScheme: hifi.colorSchemes.white;
+                colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 35;
@@ -1086,7 +1065,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_paymentSuccess;
                 text: hifi.glyphs.close;
-                color: lightGrayText;
+                color: hifi.colors.lightGrayText;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
