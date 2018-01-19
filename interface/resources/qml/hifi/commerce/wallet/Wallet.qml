@@ -18,8 +18,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
-
-// references XXX from root context
+import "./sendMoney"
 
 Rectangle {
     HifiConstants { id: hifi; }
@@ -315,18 +314,29 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                sendToScript(msg);
+                if (msg.method === 'transactionHistory_usernameLinkClicked') {
+                    userInfoViewer.url = msg.usernameLink;
+                    userInfoViewer.visible = true;
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }
 
     SendMoney {
         id: sendMoney;
+        z: 997;
         visible: root.activeView === "sendMoney";
-        anchors.top: titleBarContainer.bottom;
-        anchors.bottom: tabButtonsContainer.top;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        anchors.fill: parent;
+        parentAppTitleBarHeight: titleBarContainer.height;
+        parentAppNavBarHeight: tabButtonsContainer.height;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
     }
 
     Security {
@@ -496,7 +506,7 @@ Rectangle {
         Rectangle {
             id: sendMoneyButtonContainer;
             visible: !walletSetup.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: exchangeMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -512,7 +522,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.topMargin: -2;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
             }
 
             RalewaySemiBold {
@@ -527,11 +537,23 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGray50;
+                color: root.activeView === "sendMoney" || sendMoneyTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignTop;
+            }
+
+            MouseArea {
+                id: sendMoneyTabMouseArea;
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    root.activeView = "sendMoney";
+                    tabButtonsContainer.resetTabButtonColors();
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -664,9 +686,16 @@ Rectangle {
     // TAB BUTTONS END
     //
 
+    HifiControls.TabletWebView {
+        id: userInfoViewer;
+        z: 998;
+        anchors.fill: parent;
+        visible: false;
+    }
+
     Item {
         id: keyboardContainer;
-        z: 998;
+        z: 999;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
@@ -711,6 +740,13 @@ Rectangle {
             break;
             case 'inspectionCertificate_resetCert':
                 // NOP
+            break;
+            case 'updateConnections':
+                sendMoney.updateConnections(message.connections);
+            break;
+            case 'selectRecipient':
+            case 'updateSelectedRecipientUsername':
+                sendMoney.fromScript(message);
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));

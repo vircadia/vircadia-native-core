@@ -102,7 +102,7 @@ Column {
             'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
-            'protocol=' + encodeURIComponent(AddressManager.protocolVersion()),
+            'protocol=' + encodeURIComponent(Window.protocolSignature()),
             'page=' + pageNumber
         ];
         var url = metaverseBase + 'user_stories?' + options.join('&');

@@ -27,8 +27,10 @@ TextField {
     property bool error: false;
     property bool hasClearButton: false;
     property alias textColor: textField.color
+    property string leftPlaceholderGlyph: "";
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+    FontLoader { id: hifiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     font.italic: textField.text == ""
@@ -116,6 +118,16 @@ TextField {
         radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
 
         HiFiGlyphs {
+                text: textField.leftPlaceholderGlyph;
+                color: textColor;
+                size: hifi.fontSizes.textFieldSearchIcon;
+                anchors.left: parent.left;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.leftMargin: hifi.dimensions.textPadding - 2;
+                visible: text;
+            }
+
+            HiFiGlyphs {
             text: hifi.glyphs.search
             color: textColor
             size: hifi.fontSizes.textFieldSearchIcon

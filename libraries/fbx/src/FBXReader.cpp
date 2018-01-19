@@ -72,7 +72,7 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
-// TODO: Move to model::Mesh when Sam's ready
+// TODO: Move to graphics::Mesh when Sam's ready
 bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;

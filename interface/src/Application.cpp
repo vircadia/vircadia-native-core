@@ -157,7 +157,7 @@
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
@@ -573,8 +573,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         }
     };
     reportAndQuit("--protocolVersion", [&](FILE* fp) {
-        DependencyManager::set<AddressManager>();
-        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        auto version = protocolVersionsSignatureBase64();
         fputs(version.toLatin1().data(), fp);
     });
     reportAndQuit("--version", [&](FILE* fp) {
@@ -2093,6 +2092,11 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
+    // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
+    // it accesses the PickManager to delete its associated Pick
+    DependencyManager::destroy<PointerManager>();
+    DependencyManager::destroy<PickManager>();
+
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
@@ -2287,7 +2291,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/SendMoney.qml" },
+        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -2376,9 +2380,11 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
-    surfaceContext->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
-    surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
@@ -4349,8 +4355,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
-        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
-        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
+        auto lodManager = DependencyManager::get<LODManager>();
+        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -5465,7 +5472,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+    skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
@@ -5775,10 +5782,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    scriptEngine->registerGlobalObject("Account", GlobalServicesScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
-    scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());

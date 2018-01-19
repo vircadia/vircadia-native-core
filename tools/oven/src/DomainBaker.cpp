@@ -195,9 +195,9 @@ void DomainBaker::enumerateEntities() {
                         auto filename = modelURL.fileName();
                         auto baseName = filename.left(filename.lastIndexOf('.'));
                         auto subDirName = "/" + baseName;
-                        int i = 0;
+                        int i = 1;
                         while (QDir(_contentOutputPath + subDirName).exists()) {
-                            subDirName = "/" + baseName + "-" + i++;
+                            subDirName = "/" + baseName + "-" + QString::number(i++);
                         }
                         QSharedPointer<FBXBaker> baker {
                             new FBXBaker(modelURL, []() -> QThread* {

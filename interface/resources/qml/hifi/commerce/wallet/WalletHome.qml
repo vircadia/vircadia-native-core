@@ -19,8 +19,6 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 
@@ -31,6 +29,20 @@ Item {
     property int pendingCount: 0;
     property int currentHistoryPage: 1;
     property var pagesAlreadyAdded: new Array();
+
+    onVisibleChanged: {
+        if (visible) {
+            transactionHistoryModel.clear();
+            Commerce.balance();
+            initialHistoryReceived = false;
+            root.currentHistoryPage = 1;
+            root.noMoreHistoryData = false;
+            root.historyRequestPending = true;
+            Commerce.history(root.currentHistoryPage);
+        } else {
+            refreshTimer.stop();
+        }
+    }
 
     Connections {
         target: Commerce;
@@ -189,20 +201,6 @@ Item {
             color: hifi.colors.white;
             // Alignment
             verticalAlignment: Text.AlignVCenter;
-
-            onVisibleChanged: {
-                if (visible) {
-                    transactionHistoryModel.clear();
-                    Commerce.balance();
-                    initialHistoryReceived = false;
-                    root.currentHistoryPage = 1;
-                    root.noMoreHistoryData = false;
-                    root.historyRequestPending = true;
-                    Commerce.history(root.currentHistoryPage);
-                } else {
-                    refreshTimer.stop();
-                }
-            }
         }
 
         // "balance" text below field
@@ -384,8 +382,8 @@ Item {
                         height: visible ? parent.height : 0;
 
                         AnonymousProRegular {
-                            id: dateText;
-                            text: model.created_at ? getFormattedDate(model.created_at * 1000) : "";
+                            id: hfcText;
+                            text: model.hfc_text || '';
                             // Style
                             size: 18;
                             anchors.left: parent.left;
@@ -393,7 +391,6 @@ Item {
                             anchors.topMargin: 15;
                             width: 118;
                             height: paintedHeight;
-                            color: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
@@ -401,20 +398,25 @@ Item {
 
                         AnonymousProRegular {
                             id: transactionText;
-                            text: model.text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.text) : model.text) : "";
+                            text: model.transaction_text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.transaction_text) : model.transaction_text) : "";
                             size: 18;
                             anchors.top: parent.top;
                             anchors.topMargin: 15;
-                            anchors.left: dateText.right;
+                            anchors.left: hfcText.right;
                             anchors.leftMargin: 20;
                             anchors.right: parent.right;
                             height: paintedHeight;
                             color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
+                            linkColor: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
                             font.strikeout: model.status === "invalidated";
 
                             onLinkActivated: {
-                                sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                if (link.indexOf("users/") !== -1) {
+                                    sendSignalToWallet({method: 'transactionHistory_usernameLinkClicked', usernameLink: link});
+                                } else {
+                                    sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                }
                             }
                         }
 

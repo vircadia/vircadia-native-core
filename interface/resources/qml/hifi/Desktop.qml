@@ -22,10 +22,6 @@ OriginalDesktop.Desktop {
         acceptedButtons: Qt.NoButton
     }
 
-    // The tool window, one instance
-    property alias toolWindow: toolWindow
-    ToolWindow { id: toolWindow }
-
     Action {
         text: "Open Browser"
         shortcut: "Ctrl+B"

@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QRegExp>
 #include <QStringList>
+#include <QThread>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -761,11 +762,21 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
     QApplication::clipboard()->setText(currentPath());
 }
 
