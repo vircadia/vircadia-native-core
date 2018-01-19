@@ -163,15 +163,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         };
 
-        this.updateDoesHover = function(handLaser) {
+        this.updateDoesHover = function(handLaser, doesHover) {
             if (handLaser.doesHover !== undefined) {
-                if (handLaser.hand === LEFT_HAND
-                    && _this.leftPointerDoesHover !== handLaser.doesHover) {
-                    _this.leftPointerDoesHover = handLaser.doesHover;
+                if (handLaser.hand === LEFT_HAND && _this.leftPointerDoesHover !== doesHover) {
+                    _this.leftPointerDoesHover = doesHover;
                     _this.leftPointerDoesHoverChanged = true;
-                } else if (handLaser.hand === RIGHT_HAND
-                    && _this.rightPointerDoesHover !== handLaser.doesHover) {
-                    _this.rightPointerDoesHover = handLaser.doesHover;
+                } else if (handLaser.hand === RIGHT_HAND && _this.rightPointerDoesHover !== doesHover) {
+                    _this.rightPointerDoesHover = doesHover;
                     _this.rightPointerDoesHoverChanged = true;
                 }
             }
@@ -359,7 +357,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
-                        _this.updateDoesHover(candidatePlugin.parameters.handLaser);
+                        _this.updateDoesHover(candidatePlugin.parameters.handLaser,
+                            candidatePlugin.parameters.handLaser.doesHover);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -389,14 +388,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         if (PROFILE) {
                             Script.beginProfileRange("dispatch.run." + runningPluginName);
                         }
-                        _this.updateDoesHover(plugin.parameters.handLaser);
                         var runningness = plugin.run(controllerData, deltaTime);
-                        if (!runningness.active) {
+                        if (runningness.active) {
+                            _this.updateDoesHover(plugin.parameters.handLaser, plugin.parameters.handLaser.doesHover);
+                        } else {
                             // plugin is finished running, for now.  remove it from the list
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
+                            _this.updateDoesHover(plugin.parameters.handLaser, true);
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
