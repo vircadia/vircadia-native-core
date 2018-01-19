@@ -306,6 +306,7 @@ protected:
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<bool> _attachmentModelsTexturesLoaded;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
