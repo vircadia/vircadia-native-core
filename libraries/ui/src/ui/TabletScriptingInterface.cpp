@@ -83,7 +83,8 @@ TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) 
     int insertButtonUsingIndex = computeNewButtonIndex(newTabletButtonProperties);
     auto newTabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newTabletButtonProperties));
     beginResetModel();
-    if (insertButtonUsingIndex < _buttons.size()) {
+    int buttonCount = (int)_buttons.size();
+    if (insertButtonUsingIndex < buttonCount) {
         _buttons.insert(_buttons.begin() + insertButtonUsingIndex, newTabletButtonProxy);
     } else {
         _buttons.push_back(newTabletButtonProxy);
