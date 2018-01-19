@@ -262,6 +262,7 @@ Item {
                     anchors.fill: parent;
                     onClicked: {
                         root.nextActiveView = "chooseRecipientConnection";
+                        filterBar.text = "";
                     }
                 }
             }
@@ -934,7 +935,7 @@ Item {
 
         HifiControlsUit.CheckBox {
             id: sendPubliclyCheckbox;
-            visible: true; // FIXME ONCE PARTICLE EFFECTS ARE IN
+            visible: false; // FIXME ONCE PARTICLE EFFECTS ARE IN
             text: "Send Publicly"
             // Anchors
             anchors.top: messageContainer.bottom;
@@ -1018,7 +1019,7 @@ Item {
 
         visible: root.isCurrentlySendingMoney;
         anchors.fill: parent;
-        color: Qt.rgba(0.0, 0.0, 0.0, 0.5);
+        color: Qt.rgba(0.0, 0.0, 0.0, 0.8);
 
         // This object is always used in a popup or full-screen Wallet section.
         // This MouseArea is used to prevent a user from being
@@ -1030,11 +1031,10 @@ Item {
                 
         AnimatedImage {
             id: sendingMoneyImage;
-            source: "../../../../../icons/profilePicLoading.gif"
-            width: 160;
+            source: "./images/loader.gif"
+            width: 96;
             height: width;
-            anchors.top: parent.top;
-            anchors.topMargin: 185;
+            anchors.verticalCenter: parent.verticalCenter;
             anchors.horizontalCenter: parent.horizontalCenter;
         }
 
@@ -1042,11 +1042,11 @@ Item {
             text: "Sending";
             // Anchors
             anchors.top: sendingMoneyImage.bottom;
-            anchors.topMargin: 22;
+            anchors.topMargin: 4;
             anchors.horizontalCenter: parent.horizontalCenter;
             width: paintedWidth;
             // Text size
-            size: 24;
+            size: 26;
             // Style
             color: hifi.colors.white;
             verticalAlignment: Text.AlignVCenter;
@@ -1055,17 +1055,17 @@ Item {
     // Sending Money Overlay END
     
     // Payment Success BEGIN
-    Rectangle {
+    Item {
         id: paymentSuccess;
 
         visible: root.currentActiveView === "paymentSuccess";
         anchors.fill: parent;
-        color: "#AAAAAA";
 
         Rectangle {
             anchors.centerIn: parent;
             width: parent.width - 30;
             height: parent.height - 30;
+            color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
@@ -1138,6 +1138,7 @@ Item {
                     anchors.left: sendToText_paymentSuccess.right;
                     anchors.right: parent.right;
                     height: parent.height;
+                    textColor: hifi.colors.blueAccent;
 
                     displayName: sendMoneyStep.selectedRecipientDisplayName;
                     userName: sendMoneyStep.selectedRecipientUserName;
@@ -1168,7 +1169,7 @@ Item {
                     // Text size
                     size: 18;
                     // Style
-                    color: hifi.colors.white;
+                    color: hifi.colors.baseGray;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 
@@ -1183,7 +1184,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter;
                     height: 50;
                     // Style
-                    color: hifi.colors.lightGrayText;
+                    color: hifi.colors.blueAccent;
                 }
 
                 RalewaySemiBold {
@@ -1197,7 +1198,7 @@ Item {
                     height: 50;
                     // Style
                     size: 22;
-                    color: hifi.colors.darkGray;
+                    color: hifi.colors.blueAccent;
                 }
             }
 
@@ -1215,7 +1216,7 @@ Item {
                 // Text size
                 size: 22;
                 // Style
-                color: hifi.colors.baseGray;
+                color: hifi.colors.blueAccent;
                 wrapMode: Text.Wrap;
                 verticalAlignment: Text.AlignTop;
             }
@@ -1241,17 +1242,17 @@ Item {
     // Payment Success END
     
     // Payment Failure BEGIN
-    Rectangle {
+    Item {
         id: paymentFailure;
 
         visible: root.currentActiveView === "paymentFailure";
         anchors.fill: parent;
-        color: "#AAAAAA";
 
         Rectangle {
             anchors.centerIn: parent;
             width: parent.width - 30;
             height: parent.height - 30;
+            color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentFailureText;
@@ -1342,6 +1343,7 @@ Item {
                     anchors.left: sentToText_paymentFailure.right;
                     anchors.right: parent.right;
                     height: parent.height;
+                    textColor: hifi.colors.baseGray;
 
                     displayName: sendMoneyStep.selectedRecipientDisplayName;
                     userName: sendMoneyStep.selectedRecipientUserName;
