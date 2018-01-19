@@ -33,6 +33,7 @@
 #include "../Logging.h"
 #include "../CompositorHelper.h"
 
+#include "DesktopPreviewProvider.h"
 #include "render-utils/hmd_ui_vert.h"
 #include "render-utils/hmd_ui_frag.h"
 
@@ -254,17 +255,9 @@ void HmdDisplayPlugin::internalPresent() {
         swapBuffers();
 
     } else if (_clearPreviewFlag) {
-        QImage image;
-        if (_vsyncEnabled) {
-            image = QImage(PathUtils::resourcesPath() + "images/preview.png");
-        } else {
-            image = QImage(PathUtils::resourcesPath() + "images/preview-disabled.png");
-        }
 
-        image = image.mirrored();
-        image = image.convertToFormat(QImage::Format_RGBA8888);
-        if (!_previewTexture) {
-            _previewTexture = gpu::Texture::createStrict(
+        QImage image = DesktopPreviewProvider::getInstance()->getPreviewDisabledImage(_vsyncEnabled);
+        _previewTexture = gpu::Texture::createStrict(
                 gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                 image.width(), image.height(),
                 gpu::Texture::MAX_NUM_MIPS,
@@ -274,7 +267,6 @@ void HmdDisplayPlugin::internalPresent() {
             _previewTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
             _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
             _previewTexture->setAutoGenerateMips(true);
-        }
 
         auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
 
