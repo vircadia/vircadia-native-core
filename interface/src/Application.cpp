@@ -214,6 +214,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
+#include <DesktopPreviewProvider.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -631,6 +632,24 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
 
+    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
+    // this conditional exclusion
+#if !defined(Q_OS_OSX)
+    {
+#if defined(Q_OS_ANDROID)
+        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
+#else
+        const QString resourcesBinaryFile = QCoreApplication::applicationDirPath() + "/resources.rcc";
+#endif
+        if (!QFile::exists(resourcesBinaryFile)) {
+            throw std::runtime_error("Unable to find primary resources");
+        }
+        if (!QResource::registerResource(resourcesBinaryFile)) {
+            throw std::runtime_error("Unable to load primary resources");
+        }
+    }
+#endif
+
     Setting::init();
 
     // Tell the plugin manager about our statically linked plugins
@@ -670,6 +689,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<VirtualPad::Manager>();
+    DependencyManager::set<DesktopPreviewProvider>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -817,24 +837,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 {
 
-    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
-    // this conditional exclusion
-#if !defined(Q_OS_OSX)
-    {
-#if defined(Q_OS_ANDROID)
-        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
-#else
-        const QString resourcesBinaryFile = applicationDirPath() + "/resources.rcc";
-#endif
-        if (!QFile::exists(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to find primary resources");
-        }
-        if (!QResource::registerResource(resourcesBinaryFile)) {
-            throw std::runtime_error("Unable to load primary resources");
-        }
-    }
-#endif
-    
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
@@ -5853,6 +5855,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
