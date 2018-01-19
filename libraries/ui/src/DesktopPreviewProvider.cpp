@@ -7,6 +7,8 @@
 DesktopPreviewProvider::DesktopPreviewProvider() {
 }
 
+constexpr const char* DesktopPreviewProvider::imagePaths[];
+
 QSharedPointer<DesktopPreviewProvider> DesktopPreviewProvider::getInstance() {
     static QSharedPointer<DesktopPreviewProvider> instance = DependencyManager::get<DesktopPreviewProvider>();
     return instance;
