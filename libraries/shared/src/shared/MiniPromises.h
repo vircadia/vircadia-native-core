@@ -54,7 +54,7 @@ public:
     Q_INVOKABLE void executeOnPromiseThread(std::function<void()> function) {
         if (QThread::currentThread() != thread()) {
             QMetaObject::invokeMethod(
-                this, "executeOnPromiseThread", Qt::BlockingQueuedConnection,
+                this, "executeOnPromiseThread", Qt::QueuedConnection,
                 Q_ARG(std::function<void()>, function));
         } else {
             function();
