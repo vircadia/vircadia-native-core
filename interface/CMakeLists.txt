@@ -349,6 +349,16 @@ endif()
 
 add_bugsplat()
 
+# generate the JSDoc JSON for the JSConsole auto-completer
+add_custom_command(TARGET ${TARGET_NAME} #POST_BUILD
+  COMMAND npm install
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tools/jsdoc
+)
+add_custom_command(TARGET ${TARGET_NAME}
+  COMMAND node_modules/.bin/jsdoc . -c config.json
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tools/jsdoc
+)
+
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")
 

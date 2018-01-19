@@ -12,10 +12,11 @@
 #include "JSConsole.h"
 
 #include <QFuture>
-#include <QKeyEvent>
 #include <QLabel>
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QStringListModel>
+#include <QListView>
 
 #include <shared/QtHelpers.h>
 #include <ScriptEngines.h>
@@ -61,12 +62,64 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
     QTextStream(&file) << json;
 }
 
+void JSConsole::readAPI() {
+    QFile file(PathUtils::resourcesPath() + "auto-complete/export.json");
+    file.open(QFile::ReadOnly);
+    auto json = QTextStream(&file).readAll().toUtf8();
+    _apiDocs = QJsonDocument::fromJson(json).array();
+}
+
+QStandardItem* getAutoCompleteItem(QJsonValue propertyObject) {
+    auto propertyItem = new QStandardItem(propertyObject.toObject().value("name").toString());
+    propertyItem->setData(propertyObject.toVariant());
+    return propertyItem;
+}
+
+QStandardItemModel* JSConsole::getAutoCompleteModel(const QString& memberOf) {
+    QString memberOfProperty = nullptr;
+
+    auto model = new QStandardItemModel(this);
+
+    if (memberOf != nullptr) {
+        foreach(auto doc, _apiDocs) {
+            auto object = doc.toObject();
+            if (object.value("name").toString() == memberOf && object.value("scope").toString() == "global" &&
+                object.value("kind").toString() == "namespace") {
+
+                memberOfProperty = object.value("longname").toString();
+
+                auto properties = doc.toObject().value("properties").toArray();
+                foreach(auto propertyObject, properties) {
+                    model->appendRow(getAutoCompleteItem(propertyObject));
+                }
+            }
+        }
+        if (memberOfProperty == nullptr) {
+            return nullptr;
+        }
+    }
+    
+    foreach(auto doc, _apiDocs) {
+        auto object = doc.toObject();
+        auto scope = object.value("scope");
+        if ((memberOfProperty == nullptr && scope.toString() == "global" && object.value("kind").toString() == "namespace") || (memberOfProperty != nullptr && object.value("memberof").toString() == memberOfProperty)) {
+            model->appendRow(getAutoCompleteItem(doc));
+        }
+    }
+    model->sort(0);
+    return model;
+}
+
 JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
     _savedHistoryFilename(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + HISTORY_FILENAME),
-    _commandHistory(_readLines(_savedHistoryFilename)) {
+    _commandHistory(_readLines(_savedHistoryFilename)),
+    _completer(new QCompleter(this)) {
+
+    readAPI();
+
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
     _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
@@ -78,38 +131,75 @@ JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
         setStyleSheet(styleSheet.readAll());
     }
 
-    connect(_ui->scrollArea->verticalScrollBar(), SIGNAL(rangeChanged(int, int)), this, SLOT(scrollToBottom()));
-    connect(_ui->promptTextEdit, SIGNAL(textChanged()), this, SLOT(resizeTextInput()));
+    connect(_ui->scrollArea->verticalScrollBar(), &QScrollBar::rangeChanged, this, &JSConsole::scrollToBottom);
+    connect(_ui->promptTextEdit, &QTextEdit::textChanged, this, &JSConsole::resizeTextInput);
+
+    _completer->setWidget(_ui->promptTextEdit);
+    _completer->setModel(getAutoCompleteModel(nullptr));
+    _completer->setModelSorting(QCompleter::CaseSensitivelySortedModel);
+    _completer->setMaxVisibleItems(12);
+    _completer->setFilterMode(Qt::MatchStartsWith);
+    _completer->setWrapAround(false);
+    _completer->setCompletionMode(QCompleter::PopupCompletion);
+    _completer->setCaseSensitivity(Qt::CaseSensitive);
+
+    QListView *listView = new QListView();
+    listView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    listView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    listView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    listView->setSelectionMode(QAbstractItemView::SingleSelection);
+    listView->setModelColumn(_completer->completionColumn());
+
+    _completer->setPopup(listView);
+    _completer->popup()->installEventFilter(this);
+    QObject::connect(_completer, static_cast<void(QCompleter::*)(const QModelIndex&)>(&QCompleter::activated), this,
+        &JSConsole::insertCompletion);
+
+    QObject::connect(_completer, static_cast<void(QCompleter::*)(const QModelIndex&)>(&QCompleter::highlighted), this,
+        &JSConsole::highlightedCompletion);
 
     setScriptEngine(scriptEngine);
 
     resizeTextInput();
 
-    connect(&_executeWatcher, SIGNAL(finished()), this, SLOT(commandFinished()));
+    connect(&_executeWatcher, &QFutureWatcher<QScriptValue>::finished, this, &JSConsole::commandFinished);
+}
+
+void JSConsole::insertCompletion(const QModelIndex& completion) {
+    auto completionString = completion.data().toString();
+    QTextCursor tc = _ui->promptTextEdit->textCursor();
+    int extra = completionString.length() - _completer->completionPrefix().length();
+    tc.movePosition(QTextCursor::Left);
+    tc.movePosition(QTextCursor::EndOfWord);
+    tc.insertText(completionString.right(extra));
+    _ui->promptTextEdit->setTextCursor(tc);
+}
+
+void JSConsole::highlightedCompletion(const QModelIndex& completion) {
+    qDebug() << "Highlighted " << completion.data().toString();
+    auto jsdocObject = QJsonValue::fromVariant(completion.data(Qt::UserRole + 1)).toObject();
+    
+  //  qDebug() << "Highlighted data " << QJsonDocument(jsdocObject).toJson(QJsonDocument::Compact);
 }
 
 JSConsole::~JSConsole() {
     if (_scriptEngine) {
-        disconnect(_scriptEngine.data(), SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
-        disconnect(_scriptEngine.data(), SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+        disconnect(_scriptEngine.data(), nullptr, this, nullptr);
         _scriptEngine.reset();
     }
     delete _ui;
 }
 
 void JSConsole::setScriptEngine(const ScriptEnginePointer&  scriptEngine) {
-    if (_scriptEngine == scriptEngine && scriptEngine != NULL) {
+    if (_scriptEngine == scriptEngine && scriptEngine != nullptr) {
         return;
     }
-    if (_scriptEngine != NULL) {
-        disconnect(_scriptEngine.data(), &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
-        disconnect(_scriptEngine.data(), &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
-        disconnect(_scriptEngine.data(), &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
-        disconnect(_scriptEngine.data(), &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+    if (_scriptEngine != nullptr) {
+        disconnect(_scriptEngine.data(), nullptr, this, nullptr);
         _scriptEngine.reset();
     }
 
-    // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
+    // if scriptEngine is nullptr then create one and keep track of it using _ownScriptEngine
     if (scriptEngine.isNull()) {
         _scriptEngine = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
     } else {
@@ -199,44 +289,131 @@ void JSConsole::showEvent(QShowEvent* event) {
 }
 
 bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
-    if (sender == _ui->promptTextEdit) {
-        if (event->type() == QEvent::KeyPress) {
-            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-            int key = keyEvent->key();
+    if ((sender == _ui->promptTextEdit || sender == _completer->popup()) && event->type() == QEvent::KeyPress) {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        int key = keyEvent->key();
 
-            if ((key == Qt::Key_Return || key == Qt::Key_Enter)) {
-                if (keyEvent->modifiers() & Qt::ShiftModifier) {
-                    // If the shift key is being used then treat it as a regular return/enter.  If this isn't done,
-                    // a new QTextBlock isn't created.
-                    keyEvent->setModifiers(keyEvent->modifiers() & ~Qt::ShiftModifier);
-                } else {
-                    QString command = _ui->promptTextEdit->toPlainText().replace("\r\n","\n").trimmed();
-
-                    if (!command.isEmpty()) {
-                        QTextCursor cursor = _ui->promptTextEdit->textCursor();
-                        _ui->promptTextEdit->clear();
-
-                        executeCommand(command);
-                    }
-
-                    return true;
-                }
-            } else if (key == Qt::Key_Down) {
-                // Go to the next command in history if the cursor is at the last line of the current command.
-                int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
-                int blockCount = _ui->promptTextEdit->document()->blockCount();
-                if (blockNumber == blockCount - 1) {
-                    setToNextCommandInHistory();
-                    return true;
-                }
-            } else if (key == Qt::Key_Up) {
-                // Go to the previous command in history if the cursor is at the first line of the current command.
-                int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
-                if (blockNumber == 0) {
-                    setToPreviousCommandInHistory();
-                    return true;
-                }
+        if (_completer->popup()->isVisible()) {
+            // The following keys are forwarded by the completer to the widget
+            switch (key) {
+            case Qt::Key_Space:
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+                insertCompletion(_completer->currentIndex());
+                _completer->popup()->hide();
+                return true;
+            case Qt::Key_Escape:
+            case Qt::Key_Tab:
+            case Qt::Key_Backtab:
+                qDebug() << "test";
+                keyEvent->ignore();//setAccepted(false);
+                return false; // let the completer do default behavior
+            default:
+                return false;
             }
+        }
+
+        if ((key == Qt::Key_Return || key == Qt::Key_Enter)) {
+            if (keyEvent->modifiers() & Qt::ShiftModifier) {
+                // If the shift key is being used then treat it as a regular return/enter. If this isn't done,
+                // a new QTextBlock isn't created.
+                keyEvent->setModifiers(keyEvent->modifiers() & ~Qt::ShiftModifier);
+            } else {
+                QString command = _ui->promptTextEdit->toPlainText().replace("\r\n", "\n").trimmed();
+
+                if (!command.isEmpty()) {
+                    QTextCursor cursor = _ui->promptTextEdit->textCursor();
+                    _ui->promptTextEdit->clear();
+
+                    executeCommand(command);
+                }
+
+                return true;
+            }
+        } else if (key == Qt::Key_Down) {
+            // Go to the next command in history if the cursor is at the last line of the current command.
+            int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
+            int blockCount = _ui->promptTextEdit->document()->blockCount();
+            if (blockNumber == blockCount - 1) {
+                setToNextCommandInHistory();
+                return true;
+            }
+        } else if (key == Qt::Key_Up) {
+            // Go to the previous command in history if the cursor is at the first line of the current command.
+            int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
+            if (blockNumber == 0) {
+                setToPreviousCommandInHistory();
+                return true;
+            }
+        }
+    } else if ((sender == _ui->promptTextEdit || sender == _completer->popup()) && event->type() == QEvent::KeyRelease) {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        int key = keyEvent->key();
+
+        // completer shortcut (CTRL + SPACE)
+        bool isCompleterShortcut = ((keyEvent->modifiers() & Qt::ControlModifier) && key == Qt::Key_Space) ||
+            key == Qt::Key_Period;
+        if (_completer->popup()->isVisible() || isCompleterShortcut) {
+
+            const bool ctrlOrShift = keyEvent->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier);
+            if (ctrlOrShift && keyEvent->text().isEmpty()) {
+                return false;
+            }
+
+            static QString eow("~!@#$%^&*()+{}|:\"<>?,/;'[]\\-="); // end of word
+            bool hasModifier = (keyEvent->modifiers() != Qt::NoModifier) && !ctrlOrShift;
+
+
+            if (!isCompleterShortcut && (!keyEvent->text().isEmpty() && eow.contains(keyEvent->text().right(1)))) {
+                qDebug() << "eow contains " << keyEvent->text().right(1) << " full text: " << keyEvent->text();
+                _completer->popup()->hide();
+                return false;
+            }
+            qDebug() << "auto completing";
+
+            auto textCursor = _ui->promptTextEdit->textCursor();
+                
+            textCursor.select(QTextCursor::WordUnderCursor);
+                
+            QString completionPrefix = textCursor.selectedText();
+
+            auto leftOfCursor = _ui->promptTextEdit->toPlainText().left(textCursor.position());
+            qDebug() << "leftOfCursor" << leftOfCursor;
+
+            // RegEx  [3]               [4]
+            // (Module.subModule).(property/subModule)
+
+            const int MODULE_INDEX = 3;
+            const int PROPERTY_INDEX = 4;
+            // TODO: disallow invalid characters on left of property
+            QRegExp regExp("((([A-Za-z0-9_\\.]+)\\.)|(?!\\.))([a-zA-Z0-9_]*)$");
+            int pos = regExp.indexIn(leftOfCursor);
+            auto rexExpCapturedTexts = regExp.capturedTexts();
+            auto memberOf = rexExpCapturedTexts[MODULE_INDEX];
+            completionPrefix = rexExpCapturedTexts[PROPERTY_INDEX];
+            bool switchedModule = false;
+            if (memberOf != _completerModule) {
+                _completerModule = memberOf;
+                auto autoCompleteModel = getAutoCompleteModel(memberOf);
+                if (autoCompleteModel == nullptr) {
+                    _completer->popup()->hide();
+                    return false;
+                }
+	            _completer->setModel(autoCompleteModel);
+                _completer->popup()->installEventFilter(this);
+                switchedModule = true;
+            }
+
+            if (switchedModule || completionPrefix != _completer->completionPrefix()) {
+                _completer->setCompletionPrefix(completionPrefix);
+                qDebug() << "Set completion prefix to:" << completionPrefix;
+                _completer->popup()->setCurrentIndex(_completer->completionModel()->index(0, 0));
+            }
+            auto cursorRect = _ui->promptTextEdit->cursorRect();
+            cursorRect.setWidth(_completer->popup()->sizeHintForColumn(0) +
+                _completer->popup()->verticalScrollBar()->sizeHint().width());
+            _completer->complete(cursorRect);
+            return false;
         }
     }
     return false;
@@ -321,7 +498,7 @@ void JSConsole::appendMessage(const QString& gutter, const QString& message) {
 
 void JSConsole::clear() {
     QLayoutItem* item;
-    while ((item = _ui->logArea->layout()->takeAt(0)) != NULL) {
+    while ((item = _ui->logArea->layout()->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }
