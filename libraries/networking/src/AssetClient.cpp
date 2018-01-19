@@ -100,6 +100,105 @@ void AssetClient::cacheInfoRequest(MiniPromise::Promise deferred) {
     }
 }
 
+void AssetClient::queryCacheMeta(MiniPromise::Promise deferred, const QUrl& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "cacheInfoRequest", Q_ARG(MiniPromise::Promise, deferred), Q_ARG(const QUrl&, url));
+        return;
+    }
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        QNetworkCacheMetaData metaData = cache->metaData(url);
+        QVariantMap attributes, rawHeaders;
+
+        QHashIterator<QNetworkRequest::Attribute, QVariant> i(metaData.attributes());
+        while (i.hasNext()) {
+            i.next();
+            attributes[QString::number(i.key())] = i.value();
+        }
+        for (const auto& i : metaData.rawHeaders()) {
+            rawHeaders[i.first] = i.second;
+        }
+        deferred->resolve({
+            { "isValid", metaData.isValid() },
+            { "url", metaData.url() },
+            { "expirationDate", metaData.expirationDate() },
+            { "lastModified", metaData.lastModified().toString().isEmpty() ? QDateTime() : metaData.lastModified() },
+            { "saveToDisk", metaData.saveToDisk() },
+            { "attributes", attributes },
+            { "rawHeaders", rawHeaders },
+        });
+    } else {
+        deferred->reject("cache currently unavailable");
+    }
+}
+
+void AssetClient::loadFromCache(MiniPromise::Promise deferred, const QUrl& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadFromCache", Q_ARG(MiniPromise::Promise, deferred), Q_ARG(const QUrl&, url));
+        return;
+    }
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        MiniPromise::Promise metaRequest = makePromise(__FUNCTION__);
+        queryCacheMeta(metaRequest, url);
+        metaRequest->then([&](QString error, QVariantMap metadata) {
+            if (!error.isEmpty()) {
+                deferred->reject(error, metadata);
+                return;
+            }
+            QVariantMap result = {
+                { "metadata", metadata },
+                { "data", QByteArray() },
+            };
+            // caller is responsible for the deletion of the ioDevice, hence the unique_ptr
+            if (auto ioDevice = std::unique_ptr<QIODevice>(cache->data(url))) {
+                QByteArray data = ioDevice->readAll();
+                result["data"] = data;
+            } else {
+                error = "cache data unavailable";
+            }
+            deferred->handle(error, result);
+       });
+    } else {
+        deferred->reject("cache currently unavailable");
+    }
+}
+
+namespace {
+    // parse RFC 1123 HTTP date format
+    QDateTime parseHttpDate(const QString& dateString) {
+        QDateTime dt = QDateTime::fromString(dateString.left(25), "ddd, dd MMM yyyy HH:mm:ss");
+        dt.setTimeSpec(Qt::UTC);
+        return dt;
+    }
+}
+
+void AssetClient::saveToCache(MiniPromise::Promise deferred, const QUrl& url, const QByteArray& data, const QVariantMap& headers) {
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        QDateTime lastModified = headers.contains("last-modified") ?
+            parseHttpDate(headers["last-modified"].toString()) :
+            QDateTime::currentDateTimeUtc();
+        QDateTime expirationDate = headers.contains("expires") ?
+            parseHttpDate(headers["expires"].toString()) :
+            QDateTime(); // never expires
+        QNetworkCacheMetaData metaData;
+        metaData.setUrl(url);
+        metaData.setSaveToDisk(true);
+        metaData.setLastModified(lastModified);
+        metaData.setExpirationDate(expirationDate);
+        if (auto ioDevice = cache->prepare(metaData)) {
+            ioDevice->write(data);
+            cache->insert(ioDevice);
+            qCDebug(asset_client) << url.toDisplayString() << "saved to disk cache ("<< data.size()<<" bytes)";
+            deferred->resolve({{ "success", true }});
+        } else {
+            auto error = QString("Could not save %1 to disk cache").arg(url.toDisplayString());
+            qCWarning(asset_client) << error;
+            deferred->reject(error);
+        }
+    } else {
+        deferred->reject("cache currently unavailable");
+    }
+}
+
 void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,

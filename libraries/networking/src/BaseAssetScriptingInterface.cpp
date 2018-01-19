@@ -31,31 +31,23 @@ QSharedPointer<AssetClient> BaseAssetScriptingInterface::assetClient() {
     return DependencyManager::get<AssetClient>();
 }
 
-BaseAssetScriptingInterface::BaseAssetScriptingInterface(QObject* parent) : QObject(parent), _cache(this) {
-}
-
+BaseAssetScriptingInterface::BaseAssetScriptingInterface(QObject* parent) : QObject(parent) {}
 
 bool BaseAssetScriptingInterface::initializeCache() {
-    // NOTE: *instances* of QNetworkDiskCache are not thread-safe -- however, different threads can effectively
-    // use the same underlying cache if configured with identical settings.  Once AssetClient's disk cache settings
-    // become available we configure our instance to match.
     auto assets = assetClient();
     if (!assets) {
         return false; // not yet possible to initialize the cache
     }
-    if (_cache.cacheDirectory().size()) {
+    if (!_cacheDirectory.isEmpty()) {
         return true; // cache is ready
     }
 
     // attempt to initialize the cache
-    QMetaObject::invokeMethod(assetClient().data(), "init");
+    QMetaObject::invokeMethod(assets.data(), "init");
 
     Promise deferred = makePromise("BaseAssetScriptingInterface--queryCacheStatus");
     deferred->then([&](QVariantMap result) {
-        auto cacheDirectory = result.value("cacheDirectory").toString();
-        auto maximumCacheSize = result.value("maximumCacheSize").toLongLong();
-        _cache.setCacheDirectory(cacheDirectory);
-        _cache.setMaximumCacheSize(maximumCacheSize);
+        _cacheDirectory = result.value("cacheDirectory").toString();
     });
     deferred->fail([&](QString error) {
         qDebug() << "BaseAssetScriptingInterface::queryCacheStatus ERROR" << QThread::currentThread() << error;
@@ -64,79 +56,28 @@ bool BaseAssetScriptingInterface::initializeCache() {
     return false; // cache is not ready yet
 }
 
-QVariantMap BaseAssetScriptingInterface::getCacheStatus() {
-    return {
-        { "cacheDirectory", _cache.cacheDirectory() },
-        { "cacheSize", _cache.cacheSize() },
-        { "maximumCacheSize", _cache.maximumCacheSize() },
-    };
+Promise BaseAssetScriptingInterface::getCacheStatus() {
+    Promise deferred = makePromise(__FUNCTION__);
+    DependencyManager::get<AssetClient>()->cacheInfoRequest(deferred);
+    return deferred;
 }
 
-QVariantMap BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
-    QNetworkCacheMetaData metaData = _cache.metaData(url);
-    QVariantMap attributes, rawHeaders;
-
-    QHashIterator<QNetworkRequest::Attribute, QVariant> i(metaData.attributes());
-    while (i.hasNext()) {
-        i.next();
-        attributes[QString::number(i.key())] = i.value();
-    }
-    for (const auto& i : metaData.rawHeaders()) {
-        rawHeaders[i.first] = i.second;
-    }
-    return {
-        { "isValid", metaData.isValid() },
-        { "url", metaData.url() },
-        { "expirationDate", metaData.expirationDate() },
-        { "lastModified", metaData.lastModified().toString().isEmpty() ? QDateTime() : metaData.lastModified() },
-        { "saveToDisk", metaData.saveToDisk() },
-        { "attributes", attributes },
-        { "rawHeaders", rawHeaders },
-    };
+Promise BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
+    Promise deferred = makePromise(__FUNCTION__);
+    DependencyManager::get<AssetClient>()->queryCacheMeta(deferred, url);
+    return deferred;
 }
 
-QVariantMap BaseAssetScriptingInterface::loadFromCache(const QUrl& url) {
-    QVariantMap result = {
-        { "metadata", queryCacheMeta(url) },
-        { "data", QByteArray() },
-    };
-    // caller is responsible for the deletion of the ioDevice, hence the unique_ptr
-    if (auto ioDevice = std::unique_ptr<QIODevice>(_cache.data(url))) {
-        QByteArray data = ioDevice->readAll();
-        result["data"] = data;
-    }
-    return result;
+Promise BaseAssetScriptingInterface::loadFromCache(const QUrl& url) {
+    Promise deferred = makePromise(__FUNCTION__);
+    DependencyManager::get<AssetClient>()->loadFromCache(deferred, url);
+    return deferred;
 }
 
-namespace {
-    // parse RFC 1123 HTTP date format
-    QDateTime parseHttpDate(const QString& dateString) {
-        QDateTime dt = QDateTime::fromString(dateString.left(25), "ddd, dd MMM yyyy HH:mm:ss");
-        dt.setTimeSpec(Qt::UTC);
-        return dt;
-    }
-}
-
-bool BaseAssetScriptingInterface::saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& headers) {
-    QDateTime lastModified = headers.contains("last-modified") ?
-        parseHttpDate(headers["last-modified"].toString()) :
-        QDateTime::currentDateTimeUtc();
-    QDateTime expirationDate = headers.contains("expires") ?
-        parseHttpDate(headers["expires"].toString()) :
-        QDateTime(); // never expires
-    QNetworkCacheMetaData metaData;
-    metaData.setUrl(url);
-    metaData.setSaveToDisk(true);
-    metaData.setLastModified(lastModified);
-    metaData.setExpirationDate(expirationDate);
-    if (auto ioDevice = _cache.prepare(metaData)) {
-        ioDevice->write(data);
-        _cache.insert(ioDevice);
-        qCDebug(asset_client) << url.toDisplayString() << "saved to disk cache ("<< data.size()<<" bytes)";
-        return true;
-    }
-    qCWarning(asset_client) << "Could not save" << url.toDisplayString() << "to disk cache.";
-    return false;
+Promise BaseAssetScriptingInterface::saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& headers) {
+    Promise deferred = makePromise(__FUNCTION__);
+    DependencyManager::get<AssetClient>()->saveToCache(deferred, url, data, headers);
+    return deferred;
 }
 
 Promise BaseAssetScriptingInterface::loadAsset(QString asset, bool decompress, QString responseType) {

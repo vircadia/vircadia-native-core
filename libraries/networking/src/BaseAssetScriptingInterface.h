@@ -33,15 +33,7 @@ public:
     BaseAssetScriptingInterface(QObject* parent = nullptr);
 
 public slots:
-    /**jsdoc
-     * Get the current status of the disk cache (if available)
-     * @function Assets.uploadData
-     * @static
-     * @return {String} result.cacheDirectory (path to the current disk cache)
-     * @return {Number} result.cacheSize (used cache size in bytes)
-     * @return {Number} result.maximumCacheSize (maxmimum cache size in bytes)
-     */
-    QVariantMap getCacheStatus();
+    Promise getCacheStatus();
 
     /**jsdoc
      * Initialize the disk cache (returns true if already initialized)
@@ -56,14 +48,14 @@ public slots:
     QString extractAssetHash(QString input) { return AssetUtils::extractAssetHash(input); }
     bool isValidHash(QString input) { return AssetUtils::isValidHash(input); }
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
+    QString hashDataHex(const QByteArray& data) { return hashData(data).toHex(); }
 
-    virtual QVariantMap queryCacheMeta(const QUrl& url);
-    virtual QVariantMap loadFromCache(const QUrl& url);
-    virtual bool saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap());
+    virtual Promise queryCacheMeta(const QUrl& url);
+    virtual Promise loadFromCache(const QUrl& url);
+    virtual Promise saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap());
 
 protected:
-    //void onCacheInfoResponse(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize);
-    QNetworkDiskCache _cache;
+    QString _cacheDirectory;
     const QString NoError{};
     //virtual bool jsAssert(bool condition, const QString& error) = 0;
     Promise loadAsset(QString asset, bool decompress, QString responseType);
