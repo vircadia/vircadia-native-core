@@ -1,6 +1,5 @@
 //
 //  Test.h
-//  zone/ambientLightInheritence
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
 //  Copyright 2013 High Fidelity, Inc.
@@ -15,6 +14,7 @@
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
 #include <QtCore/QRegularExpression>
+#include <QProgressBar>
 
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
@@ -23,10 +23,13 @@ class Test {
 public: 
     Test();
 
-    void evaluateTests();
-    void evaluateTestsRecursively();
+    void evaluateTests(bool interactiveMode, QProgressBar* progressBar);
+    void evaluateTestsRecursively(bool interactiveMode, QProgressBar* progressBar);
     void createRecursiveScript();
     void createTest();
+    void deleteOldSnapshots();
+
+    bool compareImageLists(QStringList expectedImages, QStringList resultImages, QString testDirectory, bool interactiveMode, QProgressBar* progressBar);
 
     QStringList createListOfAllJPEGimagesInDirectory(QString pathToImageDirectory);
 
@@ -35,8 +38,17 @@ public:
 
     void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
 
+    void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
+
+    bool createTestResultsFolderPathIfNeeded(QString directory);
+    void zipAndDeleteTestResultsFolder();
+
+    bool isAValidDirectory(QString pathname);
+
 private:
-    const QString testFilename{ "test.js" };
+    const QString TEST_FILENAME { "test.js" };
+    const QString TEST_RESULTS_FOLDER { "TestResults" };
+    const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
     QMessageBox messageBox;
 
@@ -49,7 +61,9 @@ private:
 
     ImageComparer imageComparer;
 
-    bool compareImageLists(QStringList expectedImages, QStringList resultImages);
+
+    QString testResultsFolderPath { "" };
+    int index { 1 };
 };
 
 #endif // hifi_test_h

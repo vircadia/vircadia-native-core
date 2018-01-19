@@ -791,10 +791,19 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
+        bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
+
+        // Watch for texture loading
+        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+            _attachmentModelsTexturesLoaded[i] = true;
+            model->updateRenderItems();
+        }
+
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
@@ -1319,6 +1328,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     while ((int)_attachmentModels.size() > attachmentData.size()) {
         auto attachmentModel = _attachmentModels.back();
         _attachmentModels.pop_back();
+        _attachmentModelsTexturesLoaded.pop_back();
         _attachmentsToRemove.push_back(attachmentModel);
     }
 
@@ -1326,11 +1336,16 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
             _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar()));
-        }
-        else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
+            _attachmentModelsTexturesLoaded.push_back(false);
+        } else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
             // if the attachment has changed type, we need to re-allocate a new one.
             _attachmentsToRemove.push_back(_attachmentModels[i]);
             _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar());
+            _attachmentModelsTexturesLoaded[i] = false;
+        }
+        // If the model URL has changd, we need to wait for the textures to load
+        if (_attachmentModels[i]->getURL() != attachmentData[i].modelURL) {
+            _attachmentModelsTexturesLoaded[i] = false;
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
