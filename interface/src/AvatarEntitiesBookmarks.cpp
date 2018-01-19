@@ -93,23 +93,6 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 
 AvatarEntitiesBookmarks::AvatarEntitiesBookmarks() {
     _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATAR_ENTITIES_BOOKMARKS_FILENAME;
-    readFromFile();
-}
-
-void AvatarEntitiesBookmarks::readFromFile() {
-    QString oldConfigPath = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + AVATAR_ENTITIES_BOOKMARKS_FILENAME;
-    QFile oldConfig(oldConfigPath);
-    // I imagine that in a year from now, this code for migrating (as well as the two lines above)
-    // may be removed since all bookmarks should have been migrated by then
-    // - Robbie Uvanni (6.8.2017)
-    if (oldConfig.exists()) {
-        if (QDir().rename(oldConfigPath, _bookmarksFilename)) {
-            qCDebug(interfaceapp) << "Successfully migrated" << AVATAR_ENTITIES_BOOKMARKS_FILENAME;
-        } else {
-            qCDebug(interfaceapp) << "Failed to migrate" << AVATAR_ENTITIES_BOOKMARKS_FILENAME;
-        }
-    }
-
     Bookmarks::readFromFile();
 }
 
