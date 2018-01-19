@@ -29,8 +29,9 @@ Item {
     property int parentAppNavBarHeight;
     property string currentActiveView: "sendMoneyHome";
     property string nextActiveView: "";
-    property bool isCurrentlyFullScreen: chooseRecipientConnection.visible ||
-        chooseRecipientNearby.visible || sendMoneyStep.visible || paymentSuccess.visible || paymentFailure.visible;
+    property bool shouldShowTopAndBottomOfWallet: chooseRecipientConnection.visible ||
+        chooseRecipientNearby.visible || paymentSuccess.visible || paymentFailure.visible;
+    property bool shouldShowTopOfWallet: sendMoneyStep.visible;
     property bool isCurrentlySendingMoney: false;
         
     // This object is always used in a popup or full-screen Wallet section.
@@ -38,9 +39,9 @@ Item {
     //     able to click on a button/mouseArea underneath the popup/section.
     MouseArea {
         x: 0;
-        y: root.isCurrentlyFullScreen ? 0 : root.parentAppTitleBarHeight;
+        y: (root.shouldShowTopAndBottomOfWallet && !root.shouldShowTopOfWallet) ? 0 : root.parentAppTitleBarHeight;
         width: parent.width;
-        height: root.isCurrentlyFullScreen ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
+        height: (root.shouldShowTopAndBottomOfWallet || root.shouldShowTopOfWallet) ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
         propagateComposedEvents: false;
     }
 
@@ -195,6 +196,17 @@ Item {
             anchors.right: parent.right;
             anchors.bottom: parent.bottom;
             height: 440;
+        
+    
+            LinearGradient {
+                anchors.fill: parent;
+                start: Qt.point(0, 0);
+                end: Qt.point(0, height);
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: hifi.colors.white }
+                    GradientStop { position: 1.0; color: hifi.colors.faintGray }
+                }
+            }
 
             RalewaySemiBold {
                 id: sendMoneyText;
@@ -224,12 +236,13 @@ Item {
 
                 Image {
                     anchors.top: parent.top;
-                    source: "../images/wallet-bg.jpg";
-                    height: 60;
+                    source: "./images/connection.svg";
+                    height: 70;
                     width: parent.width;
                     fillMode: Image.PreserveAspectFit;
                     horizontalAlignment: Image.AlignHCenter;
                     verticalAlignment: Image.AlignTop;
+                    mipmap: true;
                 }
 
                 RalewaySemiBold {
@@ -265,12 +278,13 @@ Item {
 
                 Image {
                     anchors.top: parent.top;
-                    source: "../images/wallet-bg.jpg";
-                    height: 60;
+                    source: "./images/nearby.svg";
+                    height: 70;
                     width: parent.width;
                     fillMode: Image.PreserveAspectFit;
                     horizontalAlignment: Image.AlignHCenter;
                     verticalAlignment: Image.AlignTop;
+                    mipmap: true;
                 }
 
                 RalewaySemiBold {
@@ -714,284 +728,281 @@ Item {
 
         visible: root.currentActiveView === "sendMoneyStep";
         anchors.fill: parent;
+        anchors.topMargin: root.parentAppTitleBarHeight;
 
-        Rectangle {
-            anchors.centerIn: parent;
-            width: parent.width - 30;
-            height: parent.height - 30;
-            color: "#AAAAAA";
+        RalewaySemiBold {
+            id: sendMoneyText_sendMoneyStep;
+            text: "Send Money";
+            // Anchors
+            anchors.top: parent.top;
+            anchors.topMargin: 26;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            width: paintedWidth;
+            height: 30;
+            // Text size
+            size: 22;
+            // Style
+            color: hifi.colors.white;
+        }
+
+        Item {
+            id: sendToContainer;
+            anchors.top: sendMoneyText_sendMoneyStep.bottom;
+            anchors.topMargin: 20;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            height: 80;
 
             RalewaySemiBold {
-                id: sendMoneyText_sendMoneyStep;
-                text: "Send Money To:";
+                id: sendToText_sendMoneyStep;
+                text: "Send to:";
                 // Anchors
                 anchors.top: parent.top;
-                anchors.topMargin: 26;
                 anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                width: paintedWidth;
-                height: 30;
+                anchors.bottom: parent.bottom;
+                width: 90;
                 // Text size
-                size: 22;
+                size: 18;
                 // Style
-                color: hifi.colors.baseGray;
+                color: hifi.colors.white;
+                verticalAlignment: Text.AlignVCenter;
             }
 
-            Item {
-                id: sendToContainer;
-                anchors.top: sendMoneyText_sendMoneyStep.bottom;
-                anchors.topMargin: 20;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
+            RecipientDisplay {
+                anchors.top: parent.top;
+                anchors.left: sendToText_sendMoneyStep.right;
+                anchors.right: changeButton.left;
+                anchors.rightMargin: 12;
+                height: parent.height;
+
+                displayName: sendMoneyStep.selectedRecipientDisplayName;
+                userName: sendMoneyStep.selectedRecipientUserName;
+                profilePic: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
+                    sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
+                isDisplayingNearby: sendMoneyStep.referrer === "nearby";
+            }
+
+            // "CHANGE" button
+            HifiControlsUit.Button {
+                id: changeButton;
+                color: hifi.buttons.none;
+                colorScheme: hifi.colorSchemes.white;
                 anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                height: 80;
-
-                RalewaySemiBold {
-                    id: sendToText_sendMoneyStep;
-                    text: "Send To:";
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left;
-                    anchors.bottom: parent.bottom;
-                    width: 90;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-
-                RecipientDisplay {
-                    anchors.top: parent.top;
-                    anchors.left: sendToText_sendMoneyStep.right;
-                    anchors.right: changeButton.left;
-                    anchors.rightMargin: 12;
-                    height: parent.height;
-
-                    displayName: sendMoneyStep.selectedRecipientDisplayName;
-                    userName: sendMoneyStep.selectedRecipientUserName;
-                    profilePic: sendMoneyStep.selectedRecipientProfilePic !== "" ? ((0 === sendMoneyStep.selectedRecipientProfilePic.indexOf("http")) ?
-                        sendMoneyStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendMoneyStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendMoneyStep.referrer === "nearby";
-                }
-
-                // "CHANGE" button
-                HifiControlsUit.Button {
-                    id: changeButton;
-                    color: hifi.buttons.black;
-                    colorScheme: hifi.colorSchemes.dark;
-                    anchors.right: parent.right;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    height: 35;
-                    width: 120;
-                    text: "CHANGE";
-                    onClicked: {
-                        if (sendMoneyStep.referrer === "connections") {
-                            root.nextActiveView = "chooseRecipientConnection";
-                        } else if (sendMoneyStep.referrer === "nearby") {
-                            root.nextActiveView = "chooseRecipientNearby";
-                        }
-                        resetSendMoneyData();
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 35;
+                width: 100;
+                text: "CHANGE";
+                onClicked: {
+                    if (sendMoneyStep.referrer === "connections") {
+                        root.nextActiveView = "chooseRecipientConnection";
+                    } else if (sendMoneyStep.referrer === "nearby") {
+                        root.nextActiveView = "chooseRecipientNearby";
                     }
+                    resetSendMoneyData();
+                }
+            }
+        }
+
+        Item {
+            id: amountContainer;
+            anchors.top: sendToContainer.bottom;
+            anchors.topMargin: 2;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            height: 80;
+
+            RalewaySemiBold {
+                id: amountText;
+                text: "Amount:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                anchors.bottom: parent.bottom;
+                width: 90;
+                // Text size
+                size: 18;
+                // Style
+                color: hifi.colors.white;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
+            HifiControlsUit.TextField {
+                id: amountTextField;
+                colorScheme: hifi.colorSchemes.dark;
+                inputMethodHints: Qt.ImhDigitsOnly;
+                // Anchors
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.left: amountText.right;
+                anchors.right: parent.right;
+                height: 50;
+                // Style
+                leftPermanentGlyph: hifi.glyphs.hfc;
+                activeFocusOnPress: true;
+                activeFocusOnTab: true;
+
+                validator: IntValidator { bottom: 0; }
+
+                onAccepted: {
+                    optionalMessage.focus = true;
                 }
             }
 
-            Item {
-                id: amountContainer;
-                anchors.top: sendToContainer.bottom;
+            RalewaySemiBold {
+                id: amountTextFieldError;
+                // Anchors
+                anchors.top: amountTextField.bottom;
                 anchors.topMargin: 2;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                height: 80;
-
-                RalewaySemiBold {
-                    id: amountText;
-                    text: "Amount:";
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left;
-                    anchors.bottom: parent.bottom;
-                    width: 90;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-
-                HifiControlsUit.TextField {
-                    id: amountTextField;
-                    colorScheme: hifi.colorSchemes.light;
-                    inputMethodHints: Qt.ImhDigitsOnly;
-                    // Anchors
-                    anchors.verticalCenter: parent.verticalCenter;
-                    anchors.left: amountText.right;
-                    anchors.right: parent.right;
-                    height: 50;
-                    // Style
-                    leftPermanentGlyph: hifi.glyphs.hfc;
-                    activeFocusOnPress: true;
-                    activeFocusOnTab: true;
-
-                    validator: IntValidator { bottom: 0; }
-
-                    onAccepted: {
-                        optionalMessage.focus = true;
-                    }
-                }
-
-                RalewaySemiBold {
-                    id: amountTextFieldError;
-                    // Anchors
-                    anchors.top: amountTextField.bottom;
-                    anchors.topMargin: 2;
-                    anchors.left: amountTextField.left;
-                    anchors.right: amountTextField.right;
-                    height: 40;
-                    // Text size
-                    size: 16;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignTop;
-                    horizontalAlignment: Text.AlignRight;
-                }
+                anchors.left: amountTextField.left;
+                anchors.right: amountTextField.right;
+                height: 40;
+                // Text size
+                size: 16;
+                // Style
+                color: hifi.colors.white;
+                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignRight;
             }
+        }
 
-            Item {
-                id: messageContainer;
-                anchors.top: amountContainer.bottom;
-                anchors.topMargin: 16;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                height: 140;
+        Item {
+            id: messageContainer;
+            anchors.top: amountContainer.bottom;
+            anchors.topMargin: 16;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            height: 140;
                 
-                FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
-                TextArea {
-                    id: optionalMessage;
-                    property int maximumLength: 70;
-                    property string previousText: text;
-                    placeholderText: "Optional Message";
-                    font.family: firaSansSemiBold.name;
-                    font.pixelSize: 20;
-                    // Anchors
+            FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
+            TextArea {
+                id: optionalMessage;
+                property int maximumLength: 72;
+                property string previousText: text;
+                placeholderText: "<i>Optional Message (" + maximumLength + " character limit)</i>";
+                font.family: firaSansSemiBold.name;
+                font.pixelSize: 20;
+                // Anchors
+                anchors.fill: parent;
+                // Style
+                background: Rectangle {
                     anchors.fill: parent;
-                    // Style
-                    background: Rectangle {
-                        anchors.fill: parent;
-                        color: optionalMessage.activeFocus ? hifi.colors.white : hifi.colors.textFieldLightBackground;
-                        border.width: optionalMessage.activeFocus ? 1 : 0;
-                        border.color: optionalMessage.activeFocus ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
-                    }
-                    color: hifi.colors.black;
-                    textFormat: TextEdit.PlainText;
-                    wrapMode: TextEdit.Wrap;
-                    activeFocusOnPress: true;
-                    activeFocusOnTab: true;
-                    // Workaround for no max length on TextAreas
-                    onTextChanged: {
-                        if (text.length > maximumLength) {
-                            var cursor = cursorPosition;
-                            text = previousText;
-                            if (cursor > text.length) {
-                                cursorPosition = text.length;
-                            } else {
-                                cursorPosition = cursor-1;
-                            }
-                        }
-                        previousText = text;
-                    }
+                    color: optionalMessage.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow;
+                    border.width: optionalMessage.activeFocus ? 1 : 0;
+                    border.color: optionalMessage.activeFocus ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
                 }
-                RalewaySemiBold {
-                    id: optionalMessageCharacterCount;
-                    text: optionalMessage.text.length + "/" + optionalMessage.maximumLength;
-                    // Anchors
-                    anchors.top: optionalMessage.bottom;
-                    anchors.topMargin: 2;
-                    anchors.right: optionalMessage.right;
-                    height: paintedHeight;
-                    // Text size
-                    size: 16;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignTop;
-                    horizontalAlignment: Text.AlignRight;
+                color: hifi.colors.white;
+                textFormat: TextEdit.PlainText;
+                wrapMode: TextEdit.Wrap;
+                activeFocusOnPress: true;
+                activeFocusOnTab: true;
+                // Workaround for no max length on TextAreas
+                onTextChanged: {
+                    if (text.length > maximumLength) {
+                        var cursor = cursorPosition;
+                        text = previousText;
+                        if (cursor > text.length) {
+                            cursorPosition = text.length;
+                        } else {
+                            cursorPosition = cursor-1;
+                        }
+                    }
+                    previousText = text;
+                }
+            }
+            RalewaySemiBold {
+                id: optionalMessageCharacterCount;
+                text: optionalMessage.text.length + "/" + optionalMessage.maximumLength;
+                // Anchors
+                anchors.top: optionalMessage.bottom;
+                anchors.topMargin: 4;
+                anchors.right: optionalMessage.right;
+                height: paintedHeight;
+                // Text size
+                size: 16;
+                // Style
+                color: optionalMessage.text.length === optionalMessage.maximumLength ? "#ea89a5" : hifi.colors.lightGrayText;
+                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignRight;
+            }
+        }
+
+        HifiControlsUit.CheckBox {
+            id: sendPubliclyCheckbox;
+            visible: true; // FIXME ONCE PARTICLE EFFECTS ARE IN
+            text: "Send Publicly"
+            // Anchors
+            anchors.top: messageContainer.bottom;
+            anchors.topMargin: 16;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            boxSize: 24;
+        }
+
+        Item {
+            id: bottomBarContainer;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 20;
+            height: 60;
+
+            // "CANCEL" button
+            HifiControlsUit.Button {
+                id: cancelButton_sendMoneyStep;
+                color: hifi.buttons.noneBorderlessWhite;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.left: parent.left;
+                anchors.leftMargin: 24;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 40;
+                width: 150;
+                text: "CANCEL";
+                onClicked: {
+                    resetSendMoneyData();
+                    root.nextActiveView = "sendMoneyHome";
                 }
             }
 
-            Item {
-                id: bottomBarContainer;
-                anchors.top: messageContainer.bottom;
-                anchors.topMargin: 30;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
+            // "SEND" button
+            HifiControlsUit.Button {
+                id: sendButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                height: 80;
-
-                HifiControlsUit.CheckBox {
-                    id: sendPubliclyCheckbox;
-                    visible: false; // FIXME ONCE PARTICLE EFFECTS ARE IN
-                    text: "Send Publicly"
-                    // Anchors
-                    anchors.verticalCenter: parent.verticalCenter;
-                    anchors.left: parent.left;
-                    anchors.right: cancelButton_sendMoneyStep.left;
-                    anchors.rightMargin: 16;
-                    boxSize: 24;
-                }
-
-                // "CANCEL" button
-                HifiControlsUit.Button {
-                    id: cancelButton_sendMoneyStep;
-                    color: hifi.buttons.noneBorderless;
-                    colorScheme: hifi.colorSchemes.dark;
-                    anchors.right: sendButton.left;
-                    anchors.rightMargin: 16;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    height: 35;
-                    width: 100;
-                    text: "CANCEL";
-                    onClicked: {
-                        resetSendMoneyData();
-                        root.nextActiveView = "sendMoneyHome";
-                    }
-                }
-
-                // "SEND" button
-                HifiControlsUit.Button {
-                    id: sendButton;
-                    color: hifi.buttons.blue;
-                    colorScheme: hifi.colorSchemes.dark;
-                    anchors.right: parent.right;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    height: 35;
-                    width: 100;
-                    text: "SEND";
-                    onClicked: {
-                        if (parseInt(amountTextField.text) > parseInt(balanceText.text)) {
-                            amountTextField.focus = true;
-                            amountTextField.error = true;
-                            amountTextFieldError.text = "<i>amount exceeds available funds</i>";
-                        } else if (amountTextField.text === "" || parseInt(amountTextField.text) < 1) {
-                            amountTextField.focus = true;
-                            amountTextField.error = true;
-                            amountTextFieldError.text = "<i>invalid amount</i>";
-                        } else {
-                            amountTextFieldError.text = "";
-                            amountTextField.error = false;
-                            root.isCurrentlySendingMoney = true;
-                            amountTextField.focus = false;
-                            optionalMessage.focus = false;
-                            if (sendMoneyStep.referrer === "connections") {
-                                Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
-                            } else if (sendMoneyStep.referrer === "nearby") {
-                                Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
-                            }
+                anchors.rightMargin: 24;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: 40;
+                width: 150;
+                text: "SUBMIT";
+                onClicked: {
+                    if (parseInt(amountTextField.text) > parseInt(balanceText.text)) {
+                        amountTextField.focus = true;
+                        amountTextField.error = true;
+                        amountTextFieldError.text = "<i>amount exceeds available funds</i>";
+                    } else if (amountTextField.text === "" || parseInt(amountTextField.text) < 1) {
+                        amountTextField.focus = true;
+                        amountTextField.error = true;
+                        amountTextFieldError.text = "<i>invalid amount</i>";
+                    } else {
+                        amountTextFieldError.text = "";
+                        amountTextField.error = false;
+                        root.isCurrentlySendingMoney = true;
+                        amountTextField.focus = false;
+                        optionalMessage.focus = false;
+                        if (sendMoneyStep.referrer === "connections") {
+                            Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
+                        } else if (sendMoneyStep.referrer === "nearby") {
+                            Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
                         }
                     }
                 }
@@ -1157,7 +1168,7 @@ Item {
                     // Text size
                     size: 18;
                     // Style
-                    color: hifi.colors.baseGray;
+                    color: hifi.colors.white;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 
@@ -1172,7 +1183,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter;
                     height: 50;
                     // Style
-                    color: hifi.colors.baseGray;
+                    color: hifi.colors.lightGrayText;
                 }
 
                 RalewaySemiBold {
@@ -1186,7 +1197,7 @@ Item {
                     height: 50;
                     // Style
                     size: 22;
-                    color: hifi.colors.baseGray;
+                    color: hifi.colors.darkGray;
                 }
             }
 

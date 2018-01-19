@@ -46,7 +46,7 @@ Item {
             // Text size
             size: 18;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.white;
             verticalAlignment: Text.AlignBottom;
             elide: Text.ElideRight;
         }
@@ -63,7 +63,7 @@ Item {
             // Text size
             size: 16;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.white;
             verticalAlignment: Text.AlignTop;
             elide: Text.ElideRight;
         }
@@ -108,7 +108,7 @@ Item {
             // Text size
             size: 16;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.white;
             verticalAlignment: Text.AlignVCenter;
             elide: Text.ElideRight;
         }
