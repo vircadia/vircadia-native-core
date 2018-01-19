@@ -24,7 +24,7 @@ const int MIDI_BYTE_MASK = 0x0FF;
 const int MIDI_NIBBLE_MASK = 0x00F;
 const int MIDI_PITCH_BEND_MASK = 0x3F80;
 const int MIDI_SHIFT_STATUS = 4;
-const int MIDI_SHIFT_NOTE = 8;
+const int MIDI_SHIFT_NOTE = 8;-
 const int MIDI_SHIFT_VELOCITY = 16;
 const int MIDI_SHIFT_PITCH_BEND = 9;
 //  Status Decode
@@ -163,7 +163,7 @@ void Midi::sendRawMessage(int device, int raw) {
 void Midi::sendMessage(int device, int channel, int type, int note, int velocity) {
     int message = (channel - 1) | (type << MIDI_SHIFT_STATUS);
     if (broadcastEnabled) {
-        for (int i = 0; i < midihout.size(); i++) {
+        for (int i = 1; i < midihout.size(); i++) {  //  Skip 0 (Microsoft GS Wavetable Synth)
             if (midihout[i] != NULL) {
                 midiOutShortMsg(midihout[i], message | (note << MIDI_SHIFT_NOTE) | (velocity << MIDI_SHIFT_VELOCITY));
             }
@@ -174,7 +174,7 @@ void Midi::sendMessage(int device, int channel, int type, int note, int velocity
 }
 
 void Midi::sendNote(int status, int note, int velocity) {
-    for (int i = 0; i < midihout.size(); i++) {
+    for (int i = 1; i < midihout.size(); i++) {  //  Skip 0 (Microsoft GS Wavetable Synth)
         if (midihout[i] != NULL) {
             midiOutShortMsg(midihout[i], status + (note << MIDI_SHIFT_NOTE) + (velocity << MIDI_SHIFT_VELOCITY));
         }
@@ -283,9 +283,6 @@ void Midi::midiHardwareChange() {
 
 Midi::Midi() {
     instance = this;
-#if defined Q_OS_WIN32
-    midiOutExclude.push_back("Microsoft GS Wavetable Synth");        // we don't want to hear this thing (Lags)
-#endif
     MidiSetup();
 }
 
