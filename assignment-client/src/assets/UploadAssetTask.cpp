@@ -20,8 +20,6 @@
 
 #include "ClientServerUtils.h"
 
-using namespace AssetUtils;
-
 UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
                                  const QDir& resourcesDir, uint64_t filesizeLimit) :
     _receivedMessage(receivedMessage),
@@ -51,7 +49,7 @@ void UploadAssetTask::run() {
     replyPacket->writePrimitive(messageID);
     
     if (fileSize > _filesizeLimit) {
-        replyPacket->writePrimitive(AssetServerError::AssetTooLarge);
+        replyPacket->writePrimitive(AssetUtils::AssetServerError::AssetTooLarge);
     } else {
         QByteArray fileData = buffer.read(fileSize);
         
@@ -72,7 +70,7 @@ void UploadAssetTask::run() {
 
                 existingCorrectFile = true;
 
-                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::NoError);
                 replyPacket->write(hash);
             } else {
                 qDebug() << "Overwriting an existing file whose contents did not match the expected hash: " << hexHash;
@@ -85,7 +83,7 @@ void UploadAssetTask::run() {
                 qDebug() << "Wrote file" << hexHash << "to disk. Upload complete";
                 file.close();
 
-                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::NoError);
                 replyPacket->write(hash);
             } else {
                 qWarning() << "Failed to upload or write to file" << hexHash << " - upload failed.";
@@ -97,7 +95,7 @@ void UploadAssetTask::run() {
                     qWarning() << "Removal of failed upload file" << hexHash << "failed.";
                 }
                 
-                replyPacket->writePrimitive(AssetServerError::FileOperationFailed);
+                replyPacket->writePrimitive(AssetUtils::AssetServerError::FileOperationFailed);
             }
         }
 

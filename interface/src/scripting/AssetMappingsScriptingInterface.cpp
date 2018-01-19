@@ -263,7 +263,7 @@ void AssetMappingModel::refresh() {
             for (auto& mapping : mappings) {
                 auto& path = mapping.first;
 
-                if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                if (path.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
                     // Hide baked mappings
                     continue;
                 }
@@ -306,7 +306,7 @@ void AssetMappingModel::refresh() {
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
-                    if (mapping.second.status == Pending) {
+                    if (mapping.second.status == AssetUtils::Pending) {
                         ++numPendingBakes;
                     }
                 }

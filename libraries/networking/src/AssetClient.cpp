@@ -34,8 +34,6 @@
 
 MessageID AssetClient::_currentID = 0;
 
-using AssetUtils::AssetMappingOperationType;
-
 AssetClient::AssetClient() {
     _cacheDir = qApp->property(hifi::properties::APP_LOCAL_DATA_PATH).toString();
     setCustomDeleter([](Dependency* dependency){
@@ -140,7 +138,7 @@ void AssetClient::handleAssetMappingOperationReply(QSharedPointer<ReceivedMessag
     MessageID messageID;
     message->readPrimitive(&messageID);
 
-    AssetServerError error;
+    AssetUtils::AssetServerError error;
     message->readPrimitive(&error);
 
     // Check if we have any pending requests for this node
@@ -176,7 +174,7 @@ bool haveAssetServer() {
     return true;
 }
 
-GetMappingRequest* AssetClient::createGetMappingRequest(const AssetPath& path) {
+GetMappingRequest* AssetClient::createGetMappingRequest(const AssetUtils::AssetPath& path) {
     auto request = new GetMappingRequest(path);
 
     request->moveToThread(thread());
@@ -192,7 +190,7 @@ GetAllMappingsRequest* AssetClient::createGetAllMappingsRequest() {
     return request;
 }
 
-DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetPathList& paths) {
+DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetUtils::AssetPathList& paths) {
     auto request = new DeleteMappingsRequest(paths);
 
     request->moveToThread(thread());
@@ -200,7 +198,7 @@ DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetPathL
     return request;
 }
 
-SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, const AssetHash& hash) {
+SetMappingRequest* AssetClient::createSetMappingRequest(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash) {
     auto request = new SetMappingRequest(path, hash);
 
     request->moveToThread(thread());
@@ -208,7 +206,7 @@ SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, c
     return request;
 }
 
-RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) {
+RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath) {
     auto request = new RenameMappingRequest(oldPath, newPath);
 
     request->moveToThread(thread());
@@ -216,7 +214,7 @@ RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& o
     return request;
 }
 
-SetBakingEnabledRequest* AssetClient::createSetBakingEnabledRequest(const AssetPathList& path, bool enabled) {
+SetBakingEnabledRequest* AssetClient::createSetBakingEnabledRequest(const AssetUtils::AssetPathList& path, bool enabled) {
     auto bakingEnabledRequest = new SetBakingEnabledRequest(path, enabled);
 
     bakingEnabledRequest->moveToThread(thread());
@@ -224,7 +222,7 @@ SetBakingEnabledRequest* AssetClient::createSetBakingEnabledRequest(const AssetP
     return bakingEnabledRequest;
 }
 
-AssetRequest* AssetClient::createRequest(const AssetHash& hash, const ByteRange& byteRange) {
+AssetRequest* AssetClient::createRequest(const AssetUtils::AssetHash& hash, const ByteRange& byteRange) {
     auto request = new AssetRequest(hash, byteRange);
 
     // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
@@ -249,7 +247,7 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data) {
     return upload;
 }
 
-MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end,
+MessageID AssetClient::getAsset(const QString& hash, AssetUtils::DataOffset start, AssetUtils::DataOffset end,
                                 ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
@@ -284,7 +282,7 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
         }
     }
 
-    callback(false, AssetServerError::NoError, QByteArray());
+    callback(false, AssetUtils::AssetServerError::NoError, QByteArray());
     return INVALID_MESSAGE_ID;
 }
 
@@ -310,7 +308,7 @@ MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callbac
         }
     }
 
-    callback(false, AssetServerError::NoError, { "", 0 });
+    callback(false, AssetUtils::AssetServerError::NoError, { "", 0 });
     return INVALID_MESSAGE_ID;
 }
 
@@ -321,12 +319,12 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
     message->readPrimitive(&messageID);
     auto assetHash = message->read(AssetUtils::SHA256_HASH_LENGTH);
 
-    AssetServerError error;
+    AssetUtils::AssetServerError error;
     message->readPrimitive(&error);
 
     AssetInfo info { assetHash.toHex(), 0 };
 
-    if (error == AssetServerError::NoError) {
+    if (error == AssetUtils::AssetServerError::NoError) {
         message->readPrimitive(&info.size);
     }
 
@@ -359,10 +357,10 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     MessageID messageID;
     message->readHeadPrimitive(&messageID);
 
-    AssetServerError error;
+    AssetUtils::AssetServerError error;
     message->readHeadPrimitive(&error);
 
-    DataOffset length = 0;
+    AssetUtils::DataOffset length = 0;
     if (!error) {
         message->readHeadPrimitive(&length);
     } else {
@@ -415,7 +413,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 }
 
 void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID,
-                                         qint64 size, DataOffset length) {
+                                         qint64 size, AssetUtils::DataOffset length) {
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
@@ -441,7 +439,7 @@ void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, Message
     callbacks.progressCallback(size, length);
 }
 
-void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length) {
+void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, AssetUtils::DataOffset length) {
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
@@ -475,9 +473,9 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
     }
 
     if (message->failed() || length != message->getBytesLeftToRead()) {
-        callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
+        callbacks.completeCallback(false, AssetUtils::AssetServerError::NoError, QByteArray());
     } else {
-        callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
+        callbacks.completeCallback(true, AssetUtils::AssetServerError::NoError, message->readAll());
     }
 
     // We should never get to this point without the associated senderNode and messageID
@@ -488,7 +486,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
 }
 
 
-MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
+MessageID AssetClient::getAssetMapping(const AssetUtils::AssetPath& path, MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -500,7 +498,7 @@ MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCa
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::Get);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::Get);
 
         packetList->writeString(path);
 
@@ -511,7 +509,7 @@ MessageID AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCa
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
@@ -527,7 +525,7 @@ MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::GetAll);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::GetAll);
 
         if (nodeList->sendPacketList(std::move(packetList), *assetServer) != -1) {
             _pendingMappingRequests[assetServer][messageID] = callback;
@@ -536,11 +534,11 @@ MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
-MessageID AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback) {
+MessageID AssetClient::deleteAssetMappings(const AssetUtils::AssetPathList& paths, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -550,7 +548,7 @@ MessageID AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOp
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::Delete);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::Delete);
 
         packetList->writePrimitive(int(paths.size()));
 
@@ -565,11 +563,11 @@ MessageID AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOp
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
-MessageID AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback) {
+MessageID AssetClient::setAssetMapping(const QString& path, const AssetUtils::AssetHash& hash, MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -581,7 +579,7 @@ MessageID AssetClient::setAssetMapping(const QString& path, const AssetHash& has
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::Set);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::Set);
 
         packetList->writeString(path);
         packetList->write(QByteArray::fromHex(hash.toUtf8()));
@@ -593,11 +591,11 @@ MessageID AssetClient::setAssetMapping(const QString& path, const AssetHash& has
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
-MessageID AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback) {
+MessageID AssetClient::renameAssetMapping(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -607,7 +605,7 @@ MessageID AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetP
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::Rename);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::Rename);
 
         packetList->writeString(oldPath);
         packetList->writeString(newPath);
@@ -620,11 +618,11 @@ MessageID AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetP
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
-MessageID AssetClient::setBakingEnabled(const AssetPathList& paths, bool enabled, MappingOperationCallback callback) {
+MessageID AssetClient::setBakingEnabled(const AssetUtils::AssetPathList& paths, bool enabled, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
@@ -634,7 +632,7 @@ MessageID AssetClient::setBakingEnabled(const AssetPathList& paths, bool enabled
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
 
-        packetList->writePrimitive(AssetMappingOperationType::SetBakingEnabled);
+        packetList->writePrimitive(AssetUtils::AssetMappingOperationType::SetBakingEnabled);
 
         packetList->writePrimitive(enabled);
 
@@ -651,7 +649,7 @@ MessageID AssetClient::setBakingEnabled(const AssetPathList& paths, bool enabled
         }
     }
 
-    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    callback(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
     return INVALID_MESSAGE_ID;
 }
 
@@ -735,7 +733,7 @@ MessageID AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback 
         }
     }
 
-    callback(false, AssetServerError::NoError, QString());
+    callback(false, AssetUtils::AssetServerError::NoError, QString());
     return INVALID_MESSAGE_ID;
 }
 
@@ -745,7 +743,7 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message
     MessageID messageID;
     message->readPrimitive(&messageID);
 
-    AssetServerError error;
+    AssetUtils::AssetServerError error;
     message->readPrimitive(&error);
 
     QString hashString;
@@ -792,7 +790,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingUploads.find(node);
         if (messageMapIt != _pendingUploads.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, "");
+                value.second(false, AssetUtils::AssetServerError::NoError, "");
             }
             messageMapIt->second.clear();
         }
@@ -824,7 +822,7 @@ void AssetClient::forceFailureOfPendingRequests(SharedNodePointer node) {
                     disconnect(message.data(), nullptr, this, nullptr);
                 }
 
-                value.second.completeCallback(false, AssetServerError::NoError, QByteArray());
+                value.second.completeCallback(false, AssetUtils::AssetServerError::NoError, QByteArray());
             }
             messageMapIt->second.clear();
         }
@@ -835,7 +833,7 @@ void AssetClient::forceFailureOfPendingRequests(SharedNodePointer node) {
         if (messageMapIt != _pendingInfoRequests.end()) {
             AssetInfo info { "", 0 };
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, info);
+                value.second(false, AssetUtils::AssetServerError::NoError, info);
             }
             messageMapIt->second.clear();
         }
@@ -845,7 +843,7 @@ void AssetClient::forceFailureOfPendingRequests(SharedNodePointer node) {
         auto messageMapIt = _pendingMappingRequests.find(node);
         if (messageMapIt != _pendingMappingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+                value.second(false, AssetUtils::AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
             }
             messageMapIt->second.clear();
         }

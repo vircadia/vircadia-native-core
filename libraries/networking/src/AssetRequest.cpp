@@ -80,7 +80,7 @@ void AssetRequest::start() {
     auto hash = _hash;
 
     _assetRequestID = assetClient->getAsset(_hash, _byteRange.fromInclusive, _byteRange.toExclusive,
-        [this, that, hash](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+        [this, that, hash](bool responseReceived, AssetUtils::AssetServerError serverError, const QByteArray& data) {
 
         if (!that) {
             qCWarning(asset_client) << "Got reply for dead asset request " << hash << "- error code" << _error;
@@ -91,12 +91,12 @@ void AssetRequest::start() {
 
         if (!responseReceived) {
             _error = NetworkError;
-        } else if (serverError != AssetServerError::NoError) {
+        } else if (serverError != AssetUtils::AssetServerError::NoError) {
             switch (serverError) {
-                case AssetServerError::AssetNotFound:
+                case AssetUtils::AssetServerError::AssetNotFound:
                     _error = NotFound;
                     break;
-                case AssetServerError::InvalidByteRange:
+                case AssetUtils::AssetServerError::InvalidByteRange:
                     _error = InvalidByteRange;
                     break;
                 default:

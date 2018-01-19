@@ -68,7 +68,7 @@ void AssetResourceRequest::doSend() {
     }
 }
 
-void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
+void AssetResourceRequest::requestMappingForPath(const AssetUtils::AssetPath& path) {
     auto statTracker = DependencyManager::get<StatTracker>();
     statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_STARTED);
 
@@ -140,7 +140,7 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
     _assetMappingRequest->start();
 }
 
-void AssetResourceRequest::requestHash(const AssetHash& hash) {
+void AssetResourceRequest::requestHash(const AssetUtils::AssetHash& hash) {
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash, _byteRange);

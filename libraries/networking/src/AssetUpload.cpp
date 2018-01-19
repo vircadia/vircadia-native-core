@@ -81,21 +81,21 @@ void AssetUpload::start() {
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
     }
     
-    assetClient->uploadAsset(_data, [this](bool responseReceived, AssetServerError error, const QString& hash){
+    assetClient->uploadAsset(_data, [this](bool responseReceived, AssetUtils::AssetServerError error, const QString& hash){
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
-                case AssetServerError::AssetTooLarge:
+                case AssetUtils::AssetServerError::AssetTooLarge:
                     _error = TooLarge;
                     break;
-                case AssetServerError::PermissionDenied:
+                case AssetUtils::AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
                     break;
-                case AssetServerError::FileOperationFailed:
+                case AssetUtils::AssetServerError::FileOperationFailed:
                     _error = ServerFileError;
                     break;
                 default:
