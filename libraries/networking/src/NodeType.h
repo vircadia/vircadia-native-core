@@ -31,8 +31,6 @@ namespace NodeType {
     const NodeType_t DownstreamAvatarMixer = 'w';
     const NodeType_t Unassigned = 1;
 
-    void init();
-
     const QString& getNodeTypeName(NodeType_t nodeType);
     bool isUpstream(NodeType_t nodeType);
     bool isDownstream(NodeType_t nodeType);

@@ -2086,6 +2086,10 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
 
         EntityDynamicPointer action = _objectActions[actionID];
         auto removedActionType = action->getType();
+        action->setOwnerEntity(nullptr);
+        action->setIsMine(false);
+        _objectActions.remove(actionID);
+
         if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
             _dirtyFlags &= ~Simulation::NO_BOOTSTRAPPING;
             _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
@@ -2101,9 +2105,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
-        action->setOwnerEntity(nullptr);
-        action->setIsMine(false);
-        _objectActions.remove(actionID);
 
         if (simulation) {
             action->removeFromSimulation(simulation);
