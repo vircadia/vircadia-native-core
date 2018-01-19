@@ -87,6 +87,23 @@ Script.include("/~/system/libraries/controllers.js");
             return MyAvatar.getDominantHand() === "right" ? 1 : 0;
         };
 
+        this.letOtherHandRunFirst = function (controllerData, pointingAt) {
+            // If both hands are ready to run, let the other hand run first if it is the dominant hand so that it gets the
+            // highlight.
+            var isOtherTriggerPressed = controllerData.triggerValues[this.otherHand] > TRIGGER_OFF_VALUE;
+            var isLetOtherHandRunFirst = !this.getOtherModule().running
+                && this.getDominantHand() === this.otherHand
+                && (this.parameters.handLaser.allwaysOn || isOtherTriggerPressed);
+            if (isLetOtherHandRunFirst) {
+                var otherHandPointingAt = controllerData.rayPicks[this.otherHand].objectID;
+                if (this.isTabletID(otherHandPointingAt)) {
+                    otherHandPointingAt = HMD.tabletID;
+                }
+                isLetOtherHandRunFirst = pointingAt === otherHandPointingAt;
+            }
+            return isLetOtherHandRunFirst;
+        };
+
         this.hoverItem = null;
 
         this.isTabletID = function (uuid) {
@@ -94,25 +111,28 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function(controllerData) {
-            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
-                && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             if (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) {
                 this.updateAllwaysOn();
+                
+                var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
                 if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
                     var pointingAt = controllerData.rayPicks[this.hand].objectID;
                     if (this.isTabletID(pointingAt)) {
                         pointingAt = HMD.tabletID;
                     }
 
-                    if (pointingAt !== this.getOtherModule().hoverItem) {
-                        this.parameters.handLaser.doesHover = true;
-                        this.hoverItem = pointingAt;
-                    } else {
-                        this.parameters.handLaser.doesHover = false;
-                        this.hoverItem = null;
-                    }
+                    if (!this.letOtherHandRunFirst(controllerData, pointingAt)) {
 
-                    return makeRunningValues(true, [], []);
+                        if (pointingAt !== this.getOtherModule().hoverItem) {
+                            this.parameters.handLaser.doesHover = true;
+                            this.hoverItem = pointingAt;
+                        } else {
+                            this.parameters.handLaser.doesHover = false;
+                            this.hoverItem = null;
+                        }
+
+                        return makeRunningValues(true, [], []);
+                    }
                 }
             }
 
