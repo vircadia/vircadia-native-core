@@ -65,7 +65,7 @@ gridTool.setVisible(false);
 var entityListTool = new EntityListTool();
 
 selectionManager.addEventListener(function () {
-    selectionDisplay.updateHandles();
+    selectionDisplay.updateGrabbers();
     entityIconOverlayManager.updatePositions();
 
     // Update particle explorer
