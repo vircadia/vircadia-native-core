@@ -142,7 +142,10 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
-        preferences->addPreference(new CheckPreference("Privacy", "Send data", getter, setter));
+        preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
+                                "client to improve the product through the logging of errors and tracking of usage patterns, "
+                                "installation and system details, and crash events. By allowing High Fidelity to collect "
+                                "this information you are helping to improve the product. ", getter, setter));
     }
     
     static const QString LOD_TUNING("Level of Detail Tuning");
@@ -297,26 +300,6 @@ void setupPreferences() {
     }
 #endif
 
-    {
-        auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
-        auto setter = [](float value) { qApp->setMaxOctreePacketsPerSecond(value); };
-        auto preference = new SpinnerPreference("Octree", "Max packets sent each second", getter, setter);
-        preference->setMin(60);
-        preference->setMax(6000);
-        preference->setStep(10);
-        preferences->addPreference(preference);
-    }
-
-
-    {
-        auto getter = []()->float { return qApp->getApplicationCompositor().getHmdUIAngularSize(); };
-        auto setter = [](float value) { qApp->getApplicationCompositor().setHmdUIAngularSize(value); };
-        auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
-        preference->setMin(30);
-        preference->setMax(160);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
 
     {
         static const QString RENDER("Graphics");
@@ -342,7 +325,7 @@ void setupPreferences() {
         }
     }
     {
-        static const QString RENDER("Networking");
+        static const QString NETWORKING("Networking");
 
         auto nodelist = DependencyManager::get<NodeList>();
         {
@@ -350,10 +333,21 @@ void setupPreferences() {
             static const int MAX_PORT_NUMBER { 65535 };
             auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
             auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
-            auto preference = new IntSpinnerPreference(RENDER, "Listening Port", getter, setter);
+            auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);
             preference->setMin(MIN_PORT_NUMBER);
             preference->setMax(MAX_PORT_NUMBER);
             preferences->addPreference(preference);
         }
+
+        {
+            auto getter = []()->float { return qApp->getMaxOctreePacketsPerSecond(); };
+            auto setter = [](float value) { qApp->setMaxOctreePacketsPerSecond(value); };
+            auto preference = new SpinnerPreference(NETWORKING, "Max entities packets sent each second", getter, setter);
+            preference->setMin(60);
+            preference->setMax(6000);
+            preference->setStep(10);
+            preferences->addPreference(preference);
+        }
+
     }
 }
