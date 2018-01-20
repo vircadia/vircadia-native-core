@@ -427,28 +427,11 @@ AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const fl
     options.stereo = sound->isStereo();
     options.position = position;
     options.volume = volume;
+    options.pitch = 1.0f / stretchFactor;
 
     QByteArray samples = sound->getByteArray();
-    if (stretchFactor == 1.0f) {
-        return playSoundAndDelete(samples, options);
-    }
 
-    const int standardRate = AudioConstants::SAMPLE_RATE;
-    const int resampledRate = standardRate * stretchFactor;
-    const int channelCount = sound->isStereo() ? 2 : 1;
-
-    AudioSRC resampler(standardRate, resampledRate, channelCount);
-
-    const int nInputFrames = samples.size() / (channelCount * sizeof(int16_t));
-    const int maxOutputFrames = resampler.getMaxOutput(nInputFrames);
-    QByteArray resampled(maxOutputFrames * channelCount * sizeof(int16_t), '\0');
-
-    int nOutputFrames = resampler.render(reinterpret_cast<const int16_t*>(samples.data()),
-                                         reinterpret_cast<int16_t*>(resampled.data()),
-                                         nInputFrames);
-
-    Q_UNUSED(nOutputFrames);
-    return playSoundAndDelete(resampled, options);
+    return playSoundAndDelete(samples, options);
 }
 
 AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
@@ -460,7 +443,6 @@ AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer,
 
     return sound;
 }
-
 
 AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
 
