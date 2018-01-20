@@ -135,10 +135,6 @@ void setupPreferences() {
         preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory", getter, setter));
     }
 
-    preferences->addPreference(new ButtonPreference("Scripts", "Load Default Scripts", [] {
-        DependencyManager::get<ScriptEngines>()->loadDefaultScripts();
-    }));
-
     {
         auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
