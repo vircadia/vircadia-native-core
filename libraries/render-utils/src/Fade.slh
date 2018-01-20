@@ -102,7 +102,7 @@ void applyFade(FadeObjectParams params, vec3 position, out vec3 emissive) {
     float edgeMask = alpha * fadeParameters[params.category]._edgeWidthInvWidth.y;
     float edgeAlpha = 1.0-clamp(edgeMask, 0.0, 1.0);
 
-    edgeMask = step(edgeMask, 1.f);
+    edgeMask = step(edgeMask, 1.0);
     edgeAlpha *= edgeAlpha; // Square to have a nice ease out
     vec4 color = mix(fadeParameters[params.category]._innerEdgeColor, fadeParameters[params.category]._outerEdgeColor, edgeAlpha);
     emissive = color.rgb * edgeMask * color.a;

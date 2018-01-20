@@ -105,7 +105,7 @@ QUrl AddressManager::currentFacingShareableAddress() const {
 
 void AddressManager::loadSettings(const QString& lookupString) {
     if (lookupString.isEmpty()) {
-        handleUrl(DEFAULT_HIFI_ADDRESS, LookupTrigger::StartupFromSettings);
+        handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);
     } else {
         handleUrl(lookupString, LookupTrigger::StartupFromSettings);
     }
