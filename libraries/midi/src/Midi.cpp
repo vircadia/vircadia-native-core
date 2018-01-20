@@ -176,7 +176,7 @@ void Midi::sendMessage(int device, int channel, int type, int note, int velocity
 void Midi::sendNote(int status, int note, int velocity) {
     for (int i = 1; i < midihout.size(); i++) {  //  Skip 0 (Microsoft GS Wavetable Synth)
         if (midihout[i] != NULL) {
-            midiOutShortMsg(midihout[i], status + (note << MIDI_SHIFT_NOTE) + (velocity << MIDI_SHIFT_VELOCITY));
+            midiOutShortMsg(midihout[i], status | (note << MIDI_SHIFT_NOTE) | (velocity << MIDI_SHIFT_VELOCITY));
         }
     }
 }
