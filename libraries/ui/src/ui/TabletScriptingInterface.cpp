@@ -76,21 +76,21 @@ QVariant TabletButtonListModel::data(const QModelIndex& index, int role) const {
 }
 
 TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) {
-    QVariantMap newTabletButtonProperties = properties.toMap();
-    if (newTabletButtonProperties.find(BUTTON_SORT_ORDER_KEY) == newTabletButtonProperties.end()) {
-        newTabletButtonProperties[BUTTON_SORT_ORDER_KEY] = DEFAULT_BUTTON_SORT_ORDER;
+    QVariantMap newProperties = properties.toMap();
+    if (newProperties.find(BUTTON_SORT_ORDER_KEY) == newProperties.end()) {
+        newProperties[BUTTON_SORT_ORDER_KEY] = DEFAULT_BUTTON_SORT_ORDER;
     }
-    int insertButtonUsingIndex = computeNewButtonIndex(newTabletButtonProperties);
-    auto newTabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newTabletButtonProperties));
+    int index = computeNewButtonIndex(newProperties);
+    auto button = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newProperties));
     beginResetModel();
-    int buttonCount = (int)_buttons.size();
-    if (insertButtonUsingIndex < buttonCount) {
-        _buttons.insert(_buttons.begin() + insertButtonUsingIndex, newTabletButtonProxy);
+    int numButtons = (int)_buttons.size();
+    if (index < numButtons) {
+        _buttons.insert(_buttons.begin() + index, button);
     } else {
-        _buttons.push_back(newTabletButtonProxy);
+        _buttons.push_back(button);
     }
     endResetModel();
-    return newTabletButtonProxy.data();
+    return button.data();
 }
 
 void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
@@ -105,17 +105,17 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
 }
 
 int TabletButtonListModel::computeNewButtonIndex(const QVariantMap& newButtonProperties) {
-    int buttonCount = (int)_buttons.size();
+    int numButtons = (int)_buttons.size();
     int newButtonSortOrder = newButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
-    if (newButtonSortOrder == DEFAULT_BUTTON_SORT_ORDER) return buttonCount;
-    for (int i = 0; i < buttonCount; i++) {
+    if (newButtonSortOrder == DEFAULT_BUTTON_SORT_ORDER) return numButtons;
+    for (int i = 0; i < numButtons; i++) {
         QVariantMap tabletButtonProperties = _buttons[i]->getProperties();
         int tabletButtonSortOrder = tabletButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
         if (newButtonSortOrder <= tabletButtonSortOrder) {
             return i;
         }
     }
-    return buttonCount;
+    return numButtons;
 }
 
 TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
