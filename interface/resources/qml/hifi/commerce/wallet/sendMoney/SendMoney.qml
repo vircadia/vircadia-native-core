@@ -402,6 +402,7 @@ Item {
                     colorScheme: hifi.colorSchemes.faintGray;
                     hasClearButton: true;
                     hasRoundedBorder: true;
+                    hasDefocusedBorder: false;
                     roundedBorderRadius: filterBar.height/2;
                     anchors.fill: parent;
                     centerPlaceholderGlyph: hifi.glyphs.search;

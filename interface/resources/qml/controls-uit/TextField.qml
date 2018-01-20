@@ -24,7 +24,7 @@ TextField {
     property bool isSearchField: false
     property string label: ""
     property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height + 1 : 0)
-    property bool hasDefocusedBorder: false;
+    property bool hasDefocusedBorder: true;
     property bool hasRoundedBorder: false
     property int roundedBorderRadius: 4
     property bool error: false;
