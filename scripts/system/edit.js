@@ -448,7 +448,7 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
@@ -1497,7 +1497,7 @@ function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
     try {
         // Not all calls to onFileOpenChanged() connect an event.
-        Window.openFileChanged.disconnect(onFileOpenChanged);
+        Window.browseChanged.disconnect(onFileOpenChanged);
     } catch (e) {
         // Ignore.
     }
@@ -1549,7 +1549,7 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
         if (menuItem === "Import Entities") {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
             Window.promptTextChanged.connect(onPromptTextChanged);
