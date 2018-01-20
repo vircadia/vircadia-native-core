@@ -43,7 +43,7 @@ var activeTimer = false; // used to cancel active timer if a user plays an amima
 var activeEmote = false; // to keep track of the currently playing emote
 
 button = tablet.addButton({
-    //icon: "icons/tablet-icons/emote.svg", // TODO - we need graphics for this
+    icon: "icons/tablet-icons/EmoteAppIcon.svg",
     text: EMOTE_LABEL,
     sortOrder: EMOTE_APP_SORT_ORDER
 });
