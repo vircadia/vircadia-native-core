@@ -758,6 +758,13 @@ Menu::Menu() {
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
 
+    // Developer > Advanced Settings...
+    action = addActionToQMenuAndActionHash(developerMenu, "Advanced Preferences...");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AdvancedPreferencesDialog.qml"),
+            QString("hifi/tablet/AdvancedPreferencesDialog.qml"), "AdvancedPreferencesDialog");
+    });
+
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");

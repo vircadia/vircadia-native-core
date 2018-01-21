@@ -82,19 +82,42 @@ void setupPreferences() {
         preference->setMax(500);
         preferences->addPreference(preference);
     }
-    {
-        auto getter = []()->float { return qApp->getDesktopTabletScale(); };
-        auto setter = [](float value) { qApp->setDesktopTabletScale(value); };
-        auto preference = new SpinnerPreference(UI_CATEGORY, "Desktop Tablet Scale %", getter, setter);
-        preference->setMin(20);
-        preference->setMax(500);
-        preferences->addPreference(preference);
-    }
+
+
     {
         auto getter = []()->bool { return qApp->getPreferStylusOverLaser(); };
         auto setter = [](bool value) { qApp->setPreferStylusOverLaser(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Stylus Over Laser", getter, setter));
     }
+
+    static const QString ADVANCED_UI_CATEGORY { "Advanced UI" };
+    {
+        auto getter = []()->float { return qApp->getDesktopTabletScale(); };
+        auto setter = [](float value) { qApp->setDesktopTabletScale(value); };
+        auto preference = new SpinnerPreference(ADVANCED_UI_CATEGORY, "Desktop Tablet Scale %", getter, setter);
+        preference->setMin(20);
+        preference->setMax(500);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
+        auto setter = [=](float value) { myAvatar->setRealWorldFieldOfView(value); };
+        auto preference = new SpinnerPreference(ADVANCED_UI_CATEGORY, "Real world vertical field of view (angular size of monitor)", getter, setter);
+        preference->setMin(1);
+        preference->setMax(180);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = []()->float { return qApp->getFieldOfView(); };
+        auto setter = [](float value) { qApp->setFieldOfView(value); };
+        auto preference = new SpinnerPreference(ADVANCED_UI_CATEGORY, "Vertical field of view", getter, setter);
+        preference->setMin(1);
+        preference->setMax(180);
+        preference->setStep(1);
+        preferences->addPreference(preference);
+    }
+
+
     // FIXME: Remove setting completely or make available through JavaScript API?
     /*
     {
@@ -128,18 +151,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    // Scripts
-    {
-        auto getter = []()->QString { return DependencyManager::get<ScriptEngines>()->getScriptsLocation(); };
-        auto setter = [](const QString& value) { DependencyManager::get<ScriptEngines>()->setScriptsLocation(value); };
-        preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory", getter, setter));
-    }
-
     {
         auto getter = []()->bool { return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
         preferences->addPreference(new CheckPreference("Privacy", "Send data - High Fidelity uses information provided by your "
-                                "client to improve the product through the logging of errors and tracking of usage patterns, "
+                                "client to improve the product through the logging of errors, tracking of usage patterns, "
                                 "installation and system details, and crash events. By allowing High Fidelity to collect "
                                 "this information you are helping to improve the product. ", getter, setter));
     }
@@ -166,23 +182,6 @@ void setupPreferences() {
     }
 
     static const QString AVATAR_TUNING { "Avatar Tuning" };
-    {
-        auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
-        auto setter = [=](float value) { myAvatar->setRealWorldFieldOfView(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Real world vertical field of view (angular size of monitor)", getter, setter);
-        preference->setMin(1);
-        preference->setMax(180);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = []()->float { return qApp->getFieldOfView(); };
-        auto setter = [](float value) { qApp->setFieldOfView(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Vertical field of view", getter, setter);
-        preference->setMin(1);
-        preference->setMax(180);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
     {
         auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
         auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
