@@ -279,6 +279,9 @@ endif(UNIX)
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
+# require JSDoc to be build before interface is deployed (Console Auto-complete)
+add_dependencies(${TARGET_NAME} jsdoc)
+
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   find_library(OpenGL OpenGL)
@@ -299,6 +302,9 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E copy
+    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
   )
 
   # call the fixup_interface macro to add required bundling commands for installation
@@ -313,6 +319,9 @@ else (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E copy
+    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
   )
 
   # link target to external libraries
@@ -348,16 +357,6 @@ if (SCRIPTS_INSTALL_DIR)
 endif()
 
 add_bugsplat()
-
-# generate the JSDoc JSON for the JSConsole auto-completer
-add_custom_command(TARGET ${TARGET_NAME} #POST_BUILD
-  COMMAND npm install
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tools/jsdoc
-)
-add_custom_command(TARGET ${TARGET_NAME}
-  COMMAND node_modules/.bin/jsdoc . -c config.json
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tools/jsdoc
-)
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")
