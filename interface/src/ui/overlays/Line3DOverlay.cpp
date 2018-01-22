@@ -56,12 +56,12 @@ glm::vec3 Line3DOverlay::getEnd() const {
     if (_endParentID != QUuid()) {
         glm::vec3 localOffset = _direction * _length;
         bool success;
-        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, success);
+        worldEnd = localToWorld(localOffset, _endParentID, _endParentJointIndex, getScalesWithParent(), success);
         return worldEnd;
     }
 
     localEnd = getLocalEnd();
-    worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), success);
+    worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), getScalesWithParent(), success);
     if (!success) {
         qDebug() << "Line3DOverlay::getEnd failed";
     }
@@ -79,10 +79,10 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
     glm::vec3 offset;
 
     if (_endParentID != QUuid()) {
-        offset = worldToLocal(end, _endParentID, _endParentJointIndex, success);
+        offset = worldToLocal(end, _endParentID, _endParentJointIndex, getScalesWithParent(), success);
     } else {
         localStart = getLocalStart();
-        localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), success);
+        localEnd = worldToLocal(end, getParentID(), getParentJointIndex(), getScalesWithParent(), success);
         offset = localEnd - localStart;
     }
     if (!success) {
@@ -275,8 +275,6 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
- * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
- *     rotating as you move your avatar.
  *
  * @property {string} name="" - A friendly name for the overlay.
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
@@ -286,10 +284,8 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
- *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
- *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
- *     be removed.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,

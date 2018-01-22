@@ -32,6 +32,8 @@
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
+#include "ModelEntityItem.h"
+#include "RenderableModelEntityItem.h"
 
 #include "Logging.h"
 
@@ -138,7 +140,6 @@ Avatar::~Avatar() {
 
 void Avatar::init() {
     getHead()->init();
-    _skeletonModel->init();
     _initialized = true;
 }
 
@@ -327,13 +328,15 @@ void Avatar::updateAvatarEntities() {
         AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
         if (!recentlyDettachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
+            AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
-                foreach (auto entityID, recentlyDettachedAvatarEntities) {
-                    if (!_avatarEntityData.contains(entityID)) {
-                        entityTree->deleteEntity(entityID, true, true);
-                    }
-                }
+                avatarEntityData = _avatarEntityData;
             });
+            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+                if (!avatarEntityData.contains(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
+            }
 
             // remove stale data hashes
             foreach (auto entityID, recentlyDettachedAvatarEntities) {
@@ -346,6 +349,65 @@ void Avatar::updateAvatarEntities() {
     });
 
     setAvatarEntityDataChanged(false);
+}
+
+void Avatar::relayJointDataToChildren() {
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto  modelEntity = std::dynamic_pointer_cast<RenderableModelEntityItem>(child);
+            if (modelEntity) {
+                if (modelEntity->getRelayParentJoints()) {
+                    if (!modelEntity->getJointMapCompleted() || _reconstructSoftEntitiesJointMap) {
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        std::vector<int> map;
+                        map.reserve(numJoints);
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++)  {
+                            QString jointName = modelJointNames.at(jointIndex);
+                            int avatarJointIndex = getJointIndex(jointName);
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            if (avatarJointIndex < 0) {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                                map.push_back(-1);
+                            } else {
+                                int jointIndex = getJointIndex(jointName);
+                                jointRotation = getJointRotation(jointIndex);
+                                jointTranslation = getJointTranslation(jointIndex);
+                                map.push_back(avatarJointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
+                        }
+                        modelEntity->setJointMap(map);
+                    } else {
+                        QStringList modelJointNames = modelEntity->getJointNames();
+                        int numJoints = modelJointNames.count();
+                        for (int jointIndex = 0; jointIndex < numJoints; jointIndex++) {
+                            int avatarJointIndex = modelEntity->avatarJointIndex(jointIndex);
+                            glm::quat jointRotation;
+                            glm::vec3 jointTranslation;
+                            if (avatarJointIndex >=0) {
+                                jointRotation = getJointRotation(avatarJointIndex);
+                                jointTranslation = getJointTranslation(avatarJointIndex);
+                            } else {
+                                jointRotation = modelEntity->getAbsoluteJointRotationInObjectFrame(jointIndex);
+                                jointTranslation = modelEntity->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+                            }
+                            modelEntity->setLocalJointRotation(jointIndex, jointRotation);
+                            modelEntity->setLocalJointTranslation(jointIndex, jointTranslation);
+                        }
+                    }
+                    Transform avatarTransform = _skeletonModel->getTransform();
+                    avatarTransform.setScale(_skeletonModel->getScale());
+                    modelEntity->setOverrideTransform(avatarTransform, _skeletonModel->getOffset());
+                    modelEntity->simulateRelayedJoints();
+                }
+            }
+        }
+    });
+    _reconstructSoftEntitiesJointMap = false;
 }
 
 void Avatar::simulate(float deltaTime, bool inView) {
@@ -380,6 +442,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             }
             head->setScale(getModelScale());
             head->simulate(deltaTime);
+            relayJointDataToChildren();
         } else {
             // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
             _skeletonModel->simulate(deltaTime, false);
@@ -728,10 +791,19 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
+    assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
+        bool texturesLoaded = _attachmentModelsTexturesLoaded.at(i);
+
+        // Watch for texture loading
+        if (!texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
+            _attachmentModelsTexturesLoaded[i] = true;
+            model->updateRenderItems();
+        }
+
         int jointIndex = getJointIndex(attachment.jointName);
         glm::vec3 jointPosition;
         glm::quat jointRotation;
@@ -1198,6 +1270,7 @@ void Avatar::setModelURLFinished(bool success) {
     invalidateJointIndicesCache();
 
     _isAnimatingScale = true;
+    _reconstructSoftEntitiesJointMap = true;
 
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
@@ -1255,6 +1328,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     while ((int)_attachmentModels.size() > attachmentData.size()) {
         auto attachmentModel = _attachmentModels.back();
         _attachmentModels.pop_back();
+        _attachmentModelsTexturesLoaded.pop_back();
         _attachmentsToRemove.push_back(attachmentModel);
     }
 
@@ -1262,11 +1336,16 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
             _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar()));
-        }
-        else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
+            _attachmentModelsTexturesLoaded.push_back(false);
+        } else if (i < oldAttachmentData.size() && oldAttachmentData[i].isSoft != attachmentData[i].isSoft) {
             // if the attachment has changed type, we need to re-allocate a new one.
             _attachmentsToRemove.push_back(_attachmentModels[i]);
             _attachmentModels[i] = allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel->getRig(), isMyAvatar());
+            _attachmentModelsTexturesLoaded[i] = false;
+        }
+        // If the model URL has changd, we need to wait for the textures to load
+        if (_attachmentModels[i]->getURL() != attachmentData[i].modelURL) {
+            _attachmentModelsTexturesLoaded[i] = false;
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }

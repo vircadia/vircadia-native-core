@@ -268,6 +268,7 @@ public:
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
@@ -305,6 +306,7 @@ protected:
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<bool> _attachmentModelsTexturesLoaded;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
@@ -329,6 +331,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
@@ -381,6 +384,7 @@ protected:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
     static int _jointConesID;

@@ -26,27 +26,17 @@
 
 OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _model(model),
-     _averageUpdatesPerSecond(SAMPLES_PER_SECOND)
+    _model(model)
 {
-    
-    _statCount = 0;
-    _octreeServerLabelsCount = 0;
-
-    for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
-        _octreeServerLables[i] = 0;
-        _extraServerDetails[i] = LESS;
-    }
-
     for (int i = 0; i < MAX_STATS; i++) {
-        _labels[i] = NULL;
+        _labels[i] = nullptr;
     }
 
-    this->setWindowTitle("Octree Server Statistics");
+    setWindowTitle("Octree Server Statistics");
 
     // Create layouter
     _form = new QFormLayout();
-    this->QDialog::setLayout(_form);
+    setLayout(_form);
 
     // Setup stat items
     _serverElements = AddStatItem("Elements on Servers");
@@ -63,7 +53,14 @@ OctreeStatsDialog::OctreeStatsDialog(QWidget* parent, NodeToOctreeSceneStats* mo
 
     _entityUpdateTime = AddStatItem("Entity Update Time");
     _entityUpdates = AddStatItem("Entity Updates");
-    
+
+
+    _octreeServerLabel = AddStatItem("Entity Server");
+    _labels[_octreeServerLabel]->setTextFormat(Qt::RichText);
+    _labels[_octreeServerLabel]->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    connect(_labels[_octreeServerLabel], SIGNAL(linkActivated(const QString&)),
+            this, SLOT(moreless(const QString&)));
+
     layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
 
@@ -74,23 +71,16 @@ void OctreeStatsDialog::RemoveStatItem(int item) {
     _form->removeWidget(automaticLabel);
     automaticLabel->deleteLater();
     myLabel->deleteLater();
-    _labels[item] = NULL;
+    _labels[item] = nullptr;
 }
 
 void OctreeStatsDialog::moreless(const QString& link) {
-    QStringList linkDetails = link.split("-");
-    const int COMMAND_ITEM = 0;
-    const int SERVER_NUMBER_ITEM = 1;
-    QString serverNumberString = linkDetails[SERVER_NUMBER_ITEM];
-    QString command = linkDetails[COMMAND_ITEM];
-    int serverNumber = serverNumberString.toInt();
-    
-    if (command == "more") {
-        _extraServerDetails[serverNumber-1] = MORE;
-    } else if (command == "most") {
-        _extraServerDetails[serverNumber-1] = MOST;
+    if (link == "more") {
+        _extraServerDetails = MORE;
+    } else if (link == "most") {
+        _extraServerDetails = MOST;
     } else {
-        _extraServerDetails[serverNumber-1] = LESS;
+        _extraServerDetails = LESS;
     }
 }
 
@@ -376,91 +366,34 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
     QDialog::paintEvent(event);
 }
 void OctreeStatsDialog::showAllOctreeServers() {
-    int serverCount = 0;
-
-    showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
-            qApp->getEntityServerJurisdictions());
-
-    if (_octreeServerLabelsCount > serverCount) {
-        for (int i = serverCount; i < _octreeServerLabelsCount; i++) {
-            int serverLabel = _octreeServerLables[i];
-            RemoveStatItem(serverLabel);
-            _octreeServerLables[i] = 0;
-        }
-        _octreeServerLabelsCount = serverCount;
-    }
+    showOctreeServersOfType(NodeType::EntityServer);
 }
 
-void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t serverType, const char* serverTypeName,
-                                                NodeToJurisdictionMap& serverJurisdictions) {
-                                                
+void OctreeStatsDialog::showOctreeServersOfType(NodeType_t serverType) {
     QLocale locale(QLocale::English);
     
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& node){
-        
-        // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
-        if (node->getType() == serverType) {
-            serverCount++;
-            
-            if (serverCount > _octreeServerLabelsCount) {
-                QString label = QString("%1 Server %2").arg(serverTypeName).arg(serverCount);
-                int thisServerRow = _octreeServerLables[serverCount-1] = AddStatItem(label.toUtf8().constData());
-                _labels[thisServerRow]->setTextFormat(Qt::RichText);
-                _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
-                connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));
-                _octreeServerLabelsCount++;
-            }
-            
-            std::stringstream serverDetails("");
-            std::stringstream extraDetails("");
-            std::stringstream linkDetails("");
-            
-            if (node->getActiveSocket()) {
-                serverDetails << "active ";
-            } else {
-                serverDetails << "inactive ";
-            }
-            
-            QUuid nodeUUID = node->getUUID();
-            
-            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're
-            // missing at least one jurisdiction
-            serverJurisdictions.withReadLock([&] {
-                if (serverJurisdictions.find(nodeUUID) == serverJurisdictions.end()) {
-                    serverDetails << " unknown jurisdiction ";
-                    return;
-                } 
-                const JurisdictionMap& map = serverJurisdictions[nodeUUID];
+    auto node = DependencyManager::get<NodeList>()->soloNodeOfType(serverType);
+    if (node) {
+        std::stringstream serverDetails("");
+        std::stringstream extraDetails("");
+        std::stringstream linkDetails("");
 
-                auto rootCode = map.getRootOctalCode();
+        if (node->getActiveSocket()) {
+            serverDetails << "active ";
+        } else {
+            serverDetails << "inactive ";
+        }
 
-                if (rootCode) {
-                    QString rootCodeHex = octalCodeToHexString(rootCode.get());
+        QUuid nodeUUID = node->getUUID();
 
-                    VoxelPositionSize rootDetails;
-                    voxelDetailsForCode(rootCode.get(), rootDetails);
-                    AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                    serverDetails << " jurisdiction: "
-                        << qPrintable(rootCodeHex)
-                        << " ["
-                        << rootDetails.x << ", "
-                        << rootDetails.y << ", "
-                        << rootDetails.z << ": "
-                        << rootDetails.s << "] ";
-                } else {
-                    serverDetails << " jurisdiction has no rootCode";
-                } // root code
-            });
-            
-            // now lookup stats details for this server...
-            if (_extraServerDetails[serverCount-1] != LESS) {
-                NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
-                sceneStats->withReadLock([&] {
-                    if (sceneStats->find(nodeUUID) != sceneStats->end()) {
-                        OctreeSceneStats& stats = sceneStats->at(nodeUUID);
+        // now lookup stats details for this server...
+        if (_extraServerDetails != LESS) {
+            NodeToOctreeSceneStats* sceneStats = qApp->getOcteeSceneStats();
+            sceneStats->withReadLock([&] {
+                if (sceneStats->find(nodeUUID) != sceneStats->end()) {
+                    OctreeSceneStats& stats = sceneStats->at(nodeUUID);
 
-                        switch (_extraServerDetails[serverCount - 1]) {
+                    switch (_extraServerDetails) {
                         case MOST: {
                             extraDetails << "<br/>";
 
@@ -538,7 +471,7 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                                 " Average Ping Time: " << qPrintable(incomingPingTimeString) << " msecs";
 
                             serverDetails << "<br/>" <<
-                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs" << 
+                                " Average Clock Skew: " << qPrintable(incomingClockSkewString) << " msecs" <<
                                 " [" << qPrintable(formattedClockSkewString) << "]";
 
 
@@ -547,38 +480,37 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
                                 " Wasted Bytes: " << qPrintable(incomingWastedBytesString);
 
                             serverDetails << extraDetails.str();
-                            if (_extraServerDetails[serverCount - 1] == MORE) {
-                                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>less...</a>]";
+                            if (_extraServerDetails == MORE) {
+                                linkDetails << "    [<a href='most'>most...</a>]";
+                                linkDetails << "    [<a href='less'>less...</a>]";
                             } else {
-                                linkDetails << "   " << " [<a href='more-" << serverCount << "'>less...</a>]";
-                                linkDetails << "   " << " [<a href='less-" << serverCount << "'>least...</a>]";
+                                linkDetails << "    [<a href='more'>less...</a>]";
+                                linkDetails << "    [<a href='less'>least...</a>]";
                             }
 
                         } break;
                         case LESS: {
                             // nothing
                         } break;
-                        }
                     }
-                });
-            } else {
-                linkDetails << "   " << " [<a href='more-" << serverCount << "'>more...</a>]";
-                linkDetails << "   " << " [<a href='most-" << serverCount << "'>most...</a>]";
-            }
-            serverDetails << linkDetails.str();
-            _labels[_octreeServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
-        } // is VOXEL_SERVER
-    });
+                }
+            });
+        } else {
+            linkDetails << "    [<a href='more'>more...</a>]";
+            linkDetails << "    [<a href='most'>most...</a>]";
+        }
+        serverDetails << linkDetails.str();
+        _labels[_octreeServerLabel]->setText(serverDetails.str().c_str());
+    }
 }
 
 void OctreeStatsDialog::reject() {
     // Just regularly close upon ESC
-    this->QDialog::close();
+    QDialog::close();
 }
 
 void OctreeStatsDialog::closeEvent(QCloseEvent* event) {
-    this->QDialog::closeEvent(event);
+    QDialog::closeEvent(event);
     emit closed();
 }
 

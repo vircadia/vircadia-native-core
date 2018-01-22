@@ -42,6 +42,7 @@
 
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
+std::function<bool()> EntityTreeRenderer::_renderDebugHullsOperator = [] { return false; };
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -349,7 +350,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
             uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
 
-            const EntityRendererPointer& getRenderer() const { return _renderer; }
+            EntityRendererPointer getRenderer() const { return _renderer; }
         private:
             EntityRendererPointer _renderer;
         };
@@ -382,7 +383,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderable = sortedRenderables.top().getRenderer();
+                const auto renderable = sortedRenderables.top().getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
                 sortedRenderables.pop();
@@ -612,7 +613,7 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
 
         glm::vec3 entityPosition = entity->getWorldPosition();
         glm::quat entityRotation = entity->getWorldOrientation();
-        glm::vec3 entityDimensions = entity->getDimensions();
+        glm::vec3 entityDimensions = entity->getScaledDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 
         // project the intersection point onto the local xy plane of the object.

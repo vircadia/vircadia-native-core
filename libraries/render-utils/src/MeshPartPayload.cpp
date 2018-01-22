@@ -12,6 +12,7 @@
 #include "MeshPartPayload.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "DeferredLightingEffect.h"
 
@@ -44,17 +45,17 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     updateMaterial(material);
 }
 
-void MeshPartPayload::updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex) {
+void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex) {
     _drawMesh = drawMesh;
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
-        _drawPart = _drawMesh->getPartBuffer().get<model::Mesh::Part>(partIndex);
+        _drawPart = _drawMesh->getPartBuffer().get<graphics::Mesh::Part>(partIndex);
         _localBound = _drawMesh->evalPartBound(partIndex);
     }
 }
@@ -66,7 +67,7 @@ void MeshPartPayload::updateTransform(const Transform& transform, const Transfor
     _worldBound.transform(_drawTransform);
 }
 
-void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
+void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
@@ -89,7 +90,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }
@@ -122,11 +123,6 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setInputFormat((_drawMesh->getVertexFormat()));
 
     batch.setInputStream(0, _drawMesh->getVertexStream());
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
 }
 
 void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool enableTextures) const {
@@ -160,7 +156,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Albedo
     if (materialKey.isAlbedoMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ALBEDO_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::ALBEDO, itr->second->getTextureView());
         } else {
@@ -170,7 +166,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Roughness map
     if (materialKey.isRoughnessMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::ROUGHNESS_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::ROUGHNESS, itr->second->getTextureView());
 
@@ -182,7 +178,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Normal map
     if (materialKey.isNormalMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::NORMAL_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::NORMAL, itr->second->getTextureView());
 
@@ -194,7 +190,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Metallic map
     if (materialKey.isMetallicMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::METALLIC_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::METALLIC, itr->second->getTextureView());
 
@@ -206,7 +202,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Occlusion map
     if (materialKey.isOcclusionMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::OCCLUSION_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::OCCLUSION, itr->second->getTextureView());
 
@@ -218,7 +214,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Scattering map
     if (materialKey.isScatteringMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::SCATTERING_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::SCATTERING, itr->second->getTextureView());
 
@@ -230,7 +226,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::LIGHTMAP_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -238,7 +234,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, textureCache->getGrayTexture());
         }
     } else if (materialKey.isEmissiveMap()) {
-        auto itr = textureMaps.find(model::MaterialKey::EMISSIVE_MAP);
+        auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
 
         if (itr != textureMaps.end() && itr->second->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::MAP::EMISSIVE_LIGHTMAP, itr->second->getTextureView());
@@ -325,27 +321,32 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
-    _model = model;
+    _blendedVertexBuffer = model->_blendedVertexBuffers[_meshIndex];
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
-    computeAdjustedLocalBound(state.clusterMatrices);
+    computeAdjustedLocalBound(state.clusterTransforms);
 
     updateTransform(transform, offsetTransform);
     Transform renderTransform = transform;
-    if (state.clusterMatrices.size() == 1) {
-        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    if (state.clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+        Transform transform(state.clusterTransforms[0].getRotation(),
+                            state.clusterTransforms[0].getScale(),
+                            state.clusterTransforms[0].getTranslation());
+        renderTransform = transform.worldTransform(Transform(transform));
+#else
+        renderTransform = transform.worldTransform(Transform(state.clusterTransforms[0]));
+#endif
+
     }
     updateTransformForSkinnedMesh(renderTransform, transform);
 
-    initCache();
+    initCache(model);
 }
 
-void ModelMeshPartPayload::initCache() {
-    ModelPointer model = _model.lock();
-    assert(model && model->isLoaded());
-
+void ModelMeshPartPayload::initCache(const ModelPointer& model) {
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
@@ -355,6 +356,7 @@ void ModelMeshPartPayload::initCache() {
         const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
 
         _isBlendShaped = !mesh.blendshapes.isEmpty();
+        _hasTangents = !mesh.tangents.isEmpty();
     }
 
     auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
@@ -367,17 +369,16 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
-
-void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices) {
+void ModelMeshPartPayload::updateClusterBuffer(const std::vector<TransformType>& clusterTransforms) {
     // Once computed the cluster matrices, update the buffer(s)
-    if (clusterMatrices.size() > 1) {
+    if (clusterTransforms.size() > 1) {
         if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
         else {
-            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _clusterBuffer->setSubData(0, clusterTransforms.size() * sizeof(TransformType),
+                (const gpu::Byte*) clusterTransforms.data());
         }
     }
 }
@@ -388,94 +389,70 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-ItemKey ModelMeshPartPayload::getKey() const {
+void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
-    ModelPointer model = _model.lock();
-    if (model) {
-        if (!model->isVisible()) {
-            builder.withInvisible();
-        }
+    if (!isVisible) {
+        builder.withInvisible();
+    }
 
-        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
-            builder.withLayered();
-        }
+    if (isLayered) {
+        builder.withLayered();
+    }
 
-        if (_isBlendShaped || _isSkinned) {
-            builder.withDeformed();
-        }
+    if (_isBlendShaped || _isSkinned) {
+        builder.withDeformed();
+    }
 
-        if (_drawMaterial) {
-            auto matKey = _drawMaterial->getKey();
-            if (matKey.isTranslucent()) {
-                builder.withTransparent();
-            }
+    if (_drawMaterial) {
+        auto matKey = _drawMaterial->getKey();
+        if (matKey.isTranslucent()) {
+            builder.withTransparent();
         }
     }
-    return builder.build();
+
+    _itemKey = builder.build();
+}
+
+ItemKey ModelMeshPartPayload::getKey() const {
+    return _itemKey;
+}
+
+void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {
+    if (isLayeredInFront) {
+        _layer = Item::LAYER_3D_FRONT;
+    } else if (isLayeredInHUD) {
+        _layer = Item::LAYER_3D_HUD;
+    } else {
+        _layer = Item::LAYER_3D;
+    }
 }
 
 int ModelMeshPartPayload::getLayer() const {
-    ModelPointer model = _model.lock();
-    if (model) {
-        if (model->isLayeredInFront()) {
-            return Item::LAYER_3D_FRONT;
-        } else if (model->isLayeredInHUD()) {
-            return Item::LAYER_3D_HUD;
-        }
-    }
-    return Item::LAYER_3D;
+    return _layer;
 }
 
-ShapeKey ModelMeshPartPayload::getShapeKey() const {
-    // guard against partially loaded meshes
-    ModelPointer model = _model.lock();
-    if (!model || !model->isLoaded() || !model->getGeometry()) {
-        return ShapeKey::Builder::invalid();
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe) {
+    if (invalidateShapeKey) {
+        _shapeKey = ShapeKey::Builder::invalid();
+        return;
     }
 
-    const FBXGeometry& geometry = model->getFBXGeometry();
-    const auto& networkMeshes = model->getGeometry()->getMeshes();
-
-    // guard against partially loaded meshes
-    if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)model->_meshStates.size()) {
-        return ShapeKey::Builder::invalid();
-    }
-
-    const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
-
-    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
-    // to false to rebuild out mesh groups.
-    if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
-        model->_needsFixupInScene = true; // trigger remove/add cycle
-        model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
-        return ShapeKey::Builder::invalid();
-    }
-
-
-    int vertexCount = mesh.vertices.size();
-    if (vertexCount == 0) {
-        // sanity check
-        return ShapeKey::Builder::invalid(); // FIXME
-    }
-
-
-    model::MaterialKey drawMaterialKey;
+    graphics::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
     }
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
-    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
+    bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
-    bool wireframe = model->isWireframe();
 
-    if (wireframe) {
+    if (isWireframe) {
         isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
     }
 
@@ -500,41 +477,30 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     if (isSkinned) {
         builder.withSkinned();
     }
-    if (wireframe) {
+    if (isWireframe) {
         builder.withWireframe();
     }
-    return builder.build();
+    _shapeKey = builder.build();
+}
+
+ShapeKey ModelMeshPartPayload::getShapeKey() const {
+    return _shapeKey;
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
-    if (!_isBlendShaped) {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-        batch.setInputStream(0, _drawMesh->getVertexStream());
+    batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
+    batch.setInputFormat((_drawMesh->getVertexFormat()));
+    if (_isBlendShaped && _blendedVertexBuffer) {
+        batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
+        // Stride is 2*sizeof(glm::vec3) because normal and tangents are interleaved
+        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), 2 * sizeof(NormalType));
+        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     } else {
-        batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        batch.setInputFormat((_drawMesh->getVertexFormat()));
-
-        ModelPointer model = _model.lock();
-        if (model) {
-            batch.setInputBuffer(0, model->_blendedVertexBuffers[_meshIndex], 0, sizeof(glm::vec3));
-            batch.setInputBuffer(1, model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
-            batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
-        } else {
-            batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-            batch.setInputFormat((_drawMesh->getVertexFormat()));
-            batch.setInputStream(0, _drawMesh->getVertexStream());
-        }
-    }
-
-    // TODO: Get rid of that extra call
-    if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        batch.setInputStream(0, _drawMesh->getVertexStream());
     }
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
-    // Still relying on the raw data from the model
     if (_clusterBuffer) {
         batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
     }
@@ -544,29 +510,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    ModelPointer model = _model.lock();
-    if (!model || !model->isAddedToScene() || !model->isVisible()) {
-        return; // bail asap
-    }
-
-    if (_state == WAITING_TO_START) {
-        if (model->isLoaded()) {
-            _state = STARTED;
-            model->setRenderItemsNeedUpdate();
-        } else {
-            return;
-        }
-    }
-
-    if (_materialNeedsUpdate && model->getGeometry()->areTexturesLoaded()) {
-        model->setRenderItemsNeedUpdate();
-        _materialNeedsUpdate = false;
-    }
-
     if (!args) {
-        return;
-    }
-    if (!getShapeKey().isValid()) {
         return;
     }
 
@@ -594,13 +538,29 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
 }
 
-void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
+
+void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms) {
     _adjustedLocalBound = _localBound;
-    if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+    if (clusterTransforms.size() > 0) {
+#if defined(SKIN_DQ)
+        Transform rootTransform(clusterTransforms[0].getRotation(),
+                                clusterTransforms[0].getScale(),
+                                clusterTransforms[0].getTranslation());
+        _adjustedLocalBound.transform(rootTransform);
+#else
+        _adjustedLocalBound.transform(clusterTransforms[0]);
+#endif
+
+        for (int i = 1; i < (int)clusterTransforms.size(); ++i) {
             AABox clusterBound = _localBound;
-            clusterBound.transform(clusterMatrices[i]);
+#if defined(SKIN_DQ)
+            Transform transform(clusterTransforms[i].getRotation(),
+                                clusterTransforms[i].getScale(),
+                                clusterTransforms[i].getTranslation());
+            clusterBound.transform(transform);
+#else
+            clusterBound.transform(clusterTransforms[i]);
+#endif
             _adjustedLocalBound += clusterBound;
         }
     }

@@ -225,7 +225,7 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
-var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
+var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -239,6 +239,7 @@ var toolBar = (function () {
         var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
+
         if (position !== null && position !== undefined) {
             var direction;
             if (Camera.mode === "entity" || Camera.mode === "independent") {
@@ -278,9 +279,13 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
+            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM) &&
+                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
+            } else {
+                properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
+
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {
@@ -443,7 +448,7 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
@@ -1492,7 +1497,7 @@ function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
     try {
         // Not all calls to onFileOpenChanged() connect an event.
-        Window.openFileChanged.disconnect(onFileOpenChanged);
+        Window.browseChanged.disconnect(onFileOpenChanged);
     } catch (e) {
         // Ignore.
     }
@@ -1544,7 +1549,7 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
         if (menuItem === "Import Entities") {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
             Window.promptTextChanged.connect(onPromptTextChanged);
@@ -2044,9 +2049,9 @@ var PropertiesTool = function (opts) {
 
                         // If any of the natural dimensions are not 0, resize
                         if (properties.type === "Model" && naturalDimensions.x === 0 && naturalDimensions.y === 0 &&
-                                naturalDimensions.z === 0) {
+                            naturalDimensions.z === 0) {
                             Window.notifyEditError("Cannot reset entity to its natural dimensions: Model URL" +
-                                         " is invalid or the model has not yet been loaded.");
+                                " is invalid or the model has not yet been loaded.");
                         } else {
                             Entities.editEntity(selectionManager.selections[i], {
                                 dimensions: properties.naturalDimensions

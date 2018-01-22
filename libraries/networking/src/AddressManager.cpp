@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QRegExp>
 #include <QStringList>
+#include <QThread>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -596,7 +597,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
     if (!handleViewpoint(path, false, trigger, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
-                            "- wll attempt to ask domain-server to resolve.";
+                            "- will attempt to ask domain-server to resolve.";
 
         if (!wasPathOnly) {
             // if we received a path with a host then we need to remember what it was here so we can not
@@ -761,11 +762,21 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
     QApplication::clipboard()->setText(currentPath());
 }
 

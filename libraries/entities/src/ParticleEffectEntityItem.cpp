@@ -353,7 +353,7 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     float maxDistanceValue = glm::compMax(maxDistance);
     //times 2 because dimensions are diameters not radii
     glm::vec3 dims(2.0f * maxDistanceValue);
-    EntityItem::setDimensions(dims);
+    EntityItem::setScaledDimensions(dims);
 }
 
 
@@ -593,7 +593,7 @@ void ParticleEffectEntityItem::debugDump() const {
         _particleProperties.color.gradient.target.green << "," << 
         _particleProperties.color.gradient.target.blue;
     qCDebug(entities) << "               position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "             dimensions:" << debugTreeVector(getDimensions());
+    qCDebug(entities) << "             dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "          getLastEdited:" << debugTime(getLastEdited(), now);
 }
 

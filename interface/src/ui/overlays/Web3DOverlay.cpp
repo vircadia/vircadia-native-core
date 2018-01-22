@@ -36,7 +36,6 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <AddressManager.h>
-#include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -51,7 +50,7 @@
 #include "ui/DomainConnectionModel.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
@@ -193,8 +192,15 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
+        // in Qt 5.10.0 there is already an "Audio" object in the QML context
+        // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
+        _webSurface->getSurfaceContext()->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
+
         _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
         _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
@@ -205,7 +211,6 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
@@ -219,10 +224,6 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
-        // mark the TabletProxy object as cpp ownership.
-        QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-        _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
     }
@@ -483,8 +484,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
- * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
- *     rotating as you move your avatar.
  *
  * @property {string} name="" - A friendly name for the overlay.
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
@@ -494,10 +493,8 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>,
- *     <code>filled</code>, and <code>filed</code>. Antonyms: <code>isWire</code> and <code>wire</code>.
- *     <strong>Deprecated:</strong> The erroneous property spelling "<code>filed</code>" is deprecated and support for it will
- *     be removed.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
  * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
@@ -514,7 +511,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {string} url - The URL of the Web page to display.
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
- * @property {Vec2} resolution - <strong>Deprecated:</strong> This property has been removed. 
  * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
  * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
  *     <code>scale</code>, <code>size</code>.

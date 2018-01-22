@@ -19,7 +19,7 @@
 #include <render/Scene.h>
 #include <render/ShapePipeline.h>
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 #include "Model.h"
 
@@ -28,17 +28,17 @@ class Model;
 class MeshPartPayload {
 public:
     MeshPartPayload() {}
-    MeshPartPayload(const std::shared_ptr<const model::Mesh>& mesh, int partIndex, model::MaterialPointer material);
+    MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material);
 
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateMeshPart(const std::shared_ptr<const model::Mesh>& drawMesh, int partIndex);
+    virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
     void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
-    virtual void updateMaterial(model::MaterialPointer drawMaterial);
+    virtual void updateMaterial(graphics::MaterialPointer drawMaterial);
 
     // Render Item interface
     virtual render::ItemKey getKey() const;
@@ -58,13 +58,13 @@ public:
     int _partIndex = 0;
     bool _hasColorAttrib { false };
 
-    model::Box _localBound;
-    model::Box _adjustedLocalBound;
-    mutable model::Box _worldBound;
-    std::shared_ptr<const model::Mesh> _drawMesh;
+    graphics::Box _localBound;
+    graphics::Box _adjustedLocalBound;
+    mutable graphics::Box _worldBound;
+    std::shared_ptr<const graphics::Mesh> _drawMesh;
 
-    std::shared_ptr<const model::Material> _drawMaterial;
-    model::Mesh::Part _drawPart;
+    std::shared_ptr<const graphics::Material> _drawMaterial;
+    graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
     size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
@@ -87,7 +87,14 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
+
+#if defined(SKIN_DQ)
+    using TransformType = Model::TransformDualQuaternion;
+#else
+    using TransformType = glm::mat4;
+#endif
+
+    void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
@@ -96,32 +103,32 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
+    void setKey(bool isVisible, bool isLayered);
+    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
+    void setShapeKey(bool invalidateShapeKey, bool isWireframe);
+
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
-    void initCache();
-
-    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
+    void computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms);
 
     gpu::BufferPointer _clusterBuffer;
-    ModelWeakPointer _model;
 
     int _meshIndex;
     int _shapeID;
 
     bool _isSkinned{ false };
     bool _isBlendShaped { false };
-    bool _materialNeedsUpdate { true };
+    bool _hasTangents { false };
 
 private:
+    void initCache(const ModelPointer& model);
 
-    enum State : uint8_t {
-        WAITING_TO_START = 0,
-        STARTED = 1,
-    };
-
-    mutable State _state { WAITING_TO_START } ;
+    gpu::BufferPointer _blendedVertexBuffer;
+    render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
+    render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    int _layer { render::Item::LAYER_3D };
 };
 
 namespace render {

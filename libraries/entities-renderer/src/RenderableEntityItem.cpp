@@ -141,6 +141,10 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
 }
 
 EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity) {
+    connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
+        _needsRenderUpdate = true;
+        emit requestRenderUpdate();
+    });
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -311,6 +315,9 @@ void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
 // Returns true if the item needs to have updateInscene called because of internal rendering 
 // changes (animation, fading, etc)
 bool EntityRenderer::needsRenderUpdate() const {
+    if (_needsRenderUpdate) {
+        return true;
+    }
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -328,10 +335,6 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     auto newModelTransform = _entity->getTransformToCenter(success);
     // FIXME can we use a stale model transform here?
     if (success && newModelTransform != _modelTransform) {
-        return true;
-    }
-
-    if (_visible != entity->getVisible()) {
         return true;
     }
 
@@ -363,6 +366,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
+        _needsRenderUpdate = false;
     });
 }
 
@@ -373,7 +377,7 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
             renderer->onEntityChanged(_entity->getID());
         }
     }, Qt::QueuedConnection);
-    _changeHandlerId = entity->registerChangeHandler([this](const EntityItemID& changedEntity) { 
+    _changeHandlerId = entity->registerChangeHandler([](const EntityItemID& changedEntity) {
         auto renderer = DependencyManager::get<EntityTreeRenderer>();
         if (renderer) {
             renderer->onEntityChanged(changedEntity);

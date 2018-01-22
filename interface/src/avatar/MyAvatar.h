@@ -163,6 +163,8 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
 
+    Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
+
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -448,9 +450,8 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-
-
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    bool isJointPinned(int index);
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
@@ -558,6 +559,9 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setWalkSpeed(float value);
+    float getWalkSpeed() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -595,7 +599,6 @@ public slots:
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
@@ -837,10 +840,14 @@ private:
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
 
+    std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    // max unscaled forward movement speed
+    ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

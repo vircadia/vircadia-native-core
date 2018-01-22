@@ -31,6 +31,8 @@
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
+const QString BUTTON_SORT_ORDER_KEY = "sortOrder";
+const int DEFAULT_BUTTON_SORT_ORDER = 100;
 
 static QString getUsername() {
     QString username = "Unknown user";
@@ -74,11 +76,21 @@ QVariant TabletButtonListModel::data(const QModelIndex& index, int role) const {
 }
 
 TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) {
-    auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
+    QVariantMap newProperties = properties.toMap();
+    if (newProperties.find(BUTTON_SORT_ORDER_KEY) == newProperties.end()) {
+        newProperties[BUTTON_SORT_ORDER_KEY] = DEFAULT_BUTTON_SORT_ORDER;
+    }
+    int index = computeNewButtonIndex(newProperties);
+    auto button = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newProperties));
     beginResetModel();
-    _buttons.push_back(tabletButtonProxy);
+    int numButtons = (int)_buttons.size();
+    if (index < numButtons) {
+        _buttons.insert(_buttons.begin() + index, button);
+    } else {
+        _buttons.push_back(button);
+    }
     endResetModel();
-    return tabletButtonProxy.data();
+    return button.data();
 }
 
 void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
@@ -92,8 +104,62 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
     endResetModel();
 }
 
+int TabletButtonListModel::computeNewButtonIndex(const QVariantMap& newButtonProperties) {
+    int numButtons = (int)_buttons.size();
+    int newButtonSortOrder = newButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
+    if (newButtonSortOrder == DEFAULT_BUTTON_SORT_ORDER) return numButtons;
+    for (int i = 0; i < numButtons; i++) {
+        QVariantMap tabletButtonProperties = _buttons[i]->getProperties();
+        int tabletButtonSortOrder = tabletButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
+        if (newButtonSortOrder <= tabletButtonSortOrder) {
+            return i;
+        }
+    }
+    return numButtons;
+}
+
+TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
+    : QSortFilterProxyModel(parent) {
+}
+
+int TabletButtonsProxyModel::pageIndex() const {
+    return _pageIndex;
+}
+
+int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
+    if (!sourceModel() || _pageIndex < 0) {
+        return -1;
+    }
+    TabletButtonListModel* model = static_cast<TabletButtonListModel*>(sourceModel());
+    for (int i = 0; i < model->rowCount(); i++) {
+        TabletButtonProxy* bproxy = model->data(model->index(i), ButtonProxyRole).value<TabletButtonProxy*>();
+        if (bproxy && bproxy->getUuid().toString().contains(uuid)) {
+            return i - (_pageIndex*TabletScriptingInterface::ButtonsOnPage);
+        }
+    }
+    return -1;
+}
+
+void TabletButtonsProxyModel::setPageIndex(int pageIndex)
+{
+    if (_pageIndex == pageIndex)
+        return;
+
+    _pageIndex = pageIndex;
+    invalidateFilter();
+    emit pageIndexChanged(_pageIndex);
+}
+
+bool TabletButtonsProxyModel::filterAcceptsRow(int sourceRow,
+                                               const QModelIndex &sourceParent) const {
+    Q_UNUSED(sourceParent);
+    return (sourceRow >= _pageIndex*TabletScriptingInterface::ButtonsOnPage
+            && sourceRow < (_pageIndex + 1)*TabletScriptingInterface::ButtonsOnPage);
+}
+
 TabletScriptingInterface::TabletScriptingInterface() {
     qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
+    qmlRegisterType<TabletButtonsProxyModel>("TabletScriptingInterface", 1, 0, "TabletButtonsProxyModel");
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
@@ -767,6 +833,7 @@ void TabletProxy::sendToQml(const QVariant& msg) {
         QMetaObject::invokeMethod(_desktopWindow, "sendToQml", Qt::AutoConnection, Q_ARG(QVariant, msg));
     }
 }
+
 
 
 OffscreenQmlSurface* TabletProxy::getTabletSurface() {

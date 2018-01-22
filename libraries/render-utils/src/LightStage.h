@@ -17,7 +17,7 @@
 
 #include <gpu/Framebuffer.h>
 
-#include <model/Light.h>
+#include <graphics/Light.h>
 
 #include <render/IndexedContainer.h>
 #include <render/Stage.h>
@@ -35,8 +35,8 @@ public:
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
-    using LightPointer = model::LightPointer;
-    using Lights = render::indexed_container::IndexedPointerVector<model::Light>;
+    using LightPointer = graphics::LightPointer;
+    using Lights = render::indexed_container::IndexedPointerVector<graphics::Light>;
     using LightMap = std::unordered_map<LightPointer, Index>;
 
     using LightIndices = std::vector<Index>;
@@ -75,7 +75,7 @@ public:
                                      float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
         };
 
-        Shadow(model::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
+        Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
 
         void setKeylightFrustum(const ViewFrustum& viewFrustum,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
@@ -91,7 +91,7 @@ public:
         float getMaxDistance() const { return _maxDistance; }
         void setMaxDistance(float value);
 
-        const model::LightPointer& getLight() const { return _light; }
+        const graphics::LightPointer& getLight() const { return _light; }
 
     protected:
 
@@ -101,7 +101,7 @@ public:
 
         static const glm::mat4 _biasMatrix;
 
-        model::LightPointer _light;
+        graphics::LightPointer _light;
         float _maxDistance;
         Cascades _cascades;
 
@@ -118,7 +118,9 @@ public:
     using Shadows = render::indexed_container::IndexedPointerVector<Shadow>;
 
     Index findLight(const LightPointer& light) const;
-    Index addLight(const LightPointer& light);
+    Index addLight(const LightPointer& light, const bool shouldSetAsDefault = false);
+    
+    Index getDefaultLight() { return _defaultLightId; }
 
     Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
@@ -163,12 +165,12 @@ public:
         Frame() {}
         
         void clear() { _pointLights.clear(); _spotLights.clear(); _sunLights.clear(); _ambientLights.clear(); }
-        void pushLight(LightStage::Index index, model::Light::Type type) {
+        void pushLight(LightStage::Index index, graphics::Light::Type type) {
             switch (type) {
-                case model::Light::POINT: { pushPointLight(index); break; }
-                case model::Light::SPOT: { pushSpotLight(index); break; }
-                case model::Light::SUN: { pushSunLight(index); break; }
-                case model::Light::AMBIENT: { pushAmbientLight(index); break; }
+                case graphics::Light::POINT: { pushPointLight(index); break; }
+                case graphics::Light::SPOT: { pushSpotLight(index); break; }
+                case graphics::Light::SUN: { pushSunLight(index); break; }
+                case graphics::Light::AMBIENT: { pushAmbientLight(index); break; }
                 default: { break; }
             }
         }
@@ -185,6 +187,11 @@ public:
     
     Frame _currentFrame;
     
+    Index getAmbientOffLight() { return _ambientOffLightId; }
+    Index getPointOffLight() { return _pointOffLightId; }
+    Index getSpotOffLight() { return _spotOffLightId; }
+    Index getSunOffLight() { return _sunOffLightId; }
+
 protected:
 
     struct Desc {
@@ -199,6 +206,13 @@ protected:
     Descs _descs;
     LightMap _lightMap;
 
+    // define off lights
+    Index _ambientOffLightId;
+    Index _pointOffLightId;
+    Index _spotOffLightId;
+    Index _sunOffLightId;
+
+    Index _defaultLightId;
 };
 using LightStagePointer = std::shared_ptr<LightStage>;
 

@@ -17,6 +17,7 @@
 #include "Ledger.h"
 #include "CommerceLogging.h"
 #include <NetworkingConstants.h>
+#include <AddressManager.h>
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
@@ -46,6 +47,8 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
+Handler(transferHfcToNode)
+Handler(transferHfcToUsername)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -72,11 +75,16 @@ void Ledger::signedSend(const QString& propertyName, const QByteArray& text, con
     send(endpoint, success, fail, QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
-void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& requestParams) {
     auto wallet = DependencyManager::get<Wallet>();
-    QJsonObject request;
-    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, request);
+    requestParams["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, requestParams);
+}
+
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+    QJsonObject requestParams;
+    keysQuery(endpoint, success, fail, requestParams);
 }
 
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure) {
@@ -111,23 +119,69 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
-QString amountString(const QString& label, const QString&color, const QJsonValue& moneyValue, const QJsonValue& certsValue) {
-    int money = moneyValue.toInt();
-    int certs = certsValue.toInt();
-    if (money <= 0 && certs <= 0) {
-        return QString();
+QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) {
+    int sent = sentValue.toInt();
+    int received = receivedValue.toInt();
+    if (sent <= 0 && received <= 0) {
+        return QString("0 HFC");
     }
-    QString result(QString("<font color='#%1'> %2").arg(color, label));
-    if (money > 0) {
-        result += QString(" %1 HFC").arg(money);
-    }
-    if (certs > 0) {
-        if (money > 0) {
-            result += QString(",");
+    QString result;
+    if (sent > 0) {
+        result += QString("<font color='#B70A37'><b>-%1 HFC</b></font>").arg(sent);
+        if (received > 0) {
+            result += QString("<br>");
         }
-        result += QString((certs == 1) ? " %1 certificate" : " %1 certificates").arg(certs);
     }
-    return result + QString("</font>");
+    if (received > 0) {
+        result += QString("<font color='#3AA38F'><b>%1 HFC</b></font>").arg(received);
+    }
+    return result;
+}
+static const QString USER_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/users/";
+static const QString PLACE_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/places/";
+static const QStringList KNOWN_USERS(QStringList() << "highfidelity" << "marketplace");
+QString userLink(const QString& username, const QString& placename) {
+    if (username.isEmpty()) {
+        if (placename.isEmpty()) {
+            return QString("someone");
+        } else {
+            return QString("someone <a href=\"%1%2\">nearby</a>").arg(PLACE_PAGE_BASE_URL, placename);
+        }
+    }
+    if (KNOWN_USERS.contains(username)) {
+        return username;
+    }
+    return QString("<a href=\"%1%2\">%2</a>").arg(USER_PAGE_BASE_URL, username);
+}
+
+QString transactionString(const QJsonObject& valueObject) {
+    int sentCerts = valueObject["sent_certs"].toInt();
+    int receivedCerts = valueObject["received_certs"].toInt();
+    int sent = valueObject["sent_money"].toInt();
+    int dateInteger = valueObject["created_at"].toInt();
+    QString message = valueObject["message"].toString();
+    QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
+    QString result;
+
+    if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
+        // this is an hfc transfer.
+        if (sent > 0) {
+            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+            result += QString("Money sent to %1").arg(recipient);
+        } else {
+            QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
+            result += QString("Money from %1").arg(sender);
+        }
+        if (!message.isEmpty()) {
+            result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
+        }
+    } else {
+        result += valueObject["message"].toString();
+    }
+    
+    // no matter what we append a smaller date to the bottom of this...
+    result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
+    return result;
 }
 
 static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
@@ -150,16 +204,13 @@ void Ledger::historySuccess(QNetworkReply& reply) {
 
     // TODO: do this with 0 copies if possible
     for (auto it = historyArray.begin(); it != historyArray.end(); it++) {
+        // We have 2 text fields to synthesize, the one on the left is a listing
+        // of the HFC in/out of your wallet.  The one on the right contains an explaination
+        // of the transaction.  That could be just the memo (if it is a regular purchase), or
+        // more text (plus the optional memo) if an hfc transfer
         auto valueObject = (*it).toObject();
-        QString sent = amountString("sent", "EA4C5F", valueObject["sent_money"], valueObject["sent_certs"]);
-        QString received = amountString("received", "1FC6A6", valueObject["received_money"], valueObject["received_certs"]);
-
-        // turns out on my machine, toLocalTime convert to some weird timezone, yet the
-        // systemTimeZone is correct.  To avoid a strange bug with other's systems too, lets
-        // be explicit
-        QDateTime createdAt = QDateTime::fromSecsSinceEpoch(valueObject["created_at"].toInt(), Qt::UTC);
-        QDateTime localCreatedAt = createdAt.toTimeZone(QTimeZone::systemTimeZone());
-        valueObject["text"] = QString("%1%2%3").arg(valueObject["message"].toString(), sent, received);
+        valueObject["hfc_text"] = hfcString(valueObject["sent_money"], valueObject["received_money"]);
+        valueObject["transaction_text"] = transactionString(valueObject);
         newHistoryArray.push_back(valueObject);
     }
     // now copy the rest of the json -- this is inefficient
@@ -169,6 +220,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     QJsonObject newDataData;
     newDataData["history"] = newHistoryArray;
     newData["data"] = newDataData;
+    newData["current_page"] = data["current_page"].toInt();
     emit historyResult(newData);
 }
 
@@ -176,15 +228,11 @@ void Ledger::historyFailure(QNetworkReply& reply) {
     failResponse("history", reply);
 }
 
-void Ledger::history(const QStringList& keys) {
-    keysQuery("history", "historySuccess", "historyFailure");
-}
-
-// The api/failResponse is called just for the side effect of logging.
-void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
-void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
-void Ledger::reset() {
-    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, QJsonObject());
+void Ledger::history(const QStringList& keys, const int& pageNumber) {
+    QJsonObject params;
+    params["per_page"] = 100;
+    params["page"] = pageNumber;
+    keysQuery("history", "historySuccess", "historyFailure", params);
 }
 
 void Ledger::accountSuccess(QNetworkReply& reply) {
@@ -196,10 +244,16 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
+    QString remotePublicKey = data["public_key"].toString();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
+
+    QStringList localPublicKeys = wallet->listPublicKeys();
+    if (remotePublicKey.isEmpty() && !localPublicKeys.isEmpty()) {
+        receiveAt(localPublicKeys.first(), "");
+    }
 
     // none of the hfc account info should be emitted
     emit accountResult(QJsonObject{ {"status", "success"} });
@@ -258,4 +312,27 @@ void Ledger::certificateInfo(const QString& certificateId) {
     QJsonObject request;
     request["certificate_id"] = certificateId;
     send(endpoint, "certificateInfoSuccess", "certificateInfoFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::None, request);
+}
+
+void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["node_id"] = nodeID;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    transaction["place_name"] = DependencyManager::get<AddressManager>()->getPlaceName();
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_node", "transferHfcToNodeSuccess", "transferHfcToNodeFailure");
+}
+
+void Ledger::transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["username"] = username;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_user", "transferHfcToUsernameSuccess", "transferHfcToUsernameFailure");
 }
