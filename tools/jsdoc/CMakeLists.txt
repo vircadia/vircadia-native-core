@@ -5,10 +5,11 @@ add_custom_target(${TARGET_NAME})
 SET(JSDOC_WORKING_DIR ${CMAKE_SOURCE_DIR}/tools/jsdoc)
 file(TO_NATIVE_PATH ${JSDOC_WORKING_DIR}/node_modules/.bin/jsdoc JSDOC_PATH)
 file(TO_NATIVE_PATH ${JSDOC_WORKING_DIR}/config.json JSDOC_CONFIG_PATH)
+file(TO_NATIVE_PATH ${JSDOC_WORKING_DIR}/out OUTPUT_DIR)
 file(TO_NATIVE_PATH ${JSDOC_WORKING_DIR} NATIVE_JSDOC_WORKING_DIR)
 
 add_custom_command(TARGET ${TARGET_NAME}
-  COMMAND (npm --no-progress install) & (${JSDOC_PATH} ${NATIVE_JSDOC_WORKING_DIR} -c ${JSDOC_CONFIG_PATH})
+  COMMAND (npm --no-progress install) & (${JSDOC_PATH} ${NATIVE_JSDOC_WORKING_DIR} -c ${JSDOC_CONFIG_PATH} -d ${OUTPUT_DIR})
   WORKING_DIRECTORY ${JSDOC_WORKING_DIR}
   COMMENT "generate the JSDoc JSON for the JSConsole auto-completer"
 )
