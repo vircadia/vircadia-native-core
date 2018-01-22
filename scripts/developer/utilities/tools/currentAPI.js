@@ -28,8 +28,8 @@
     var window = new OverlayWindow({
         title: 'API Debugger',
         source: qml,
-        width: 1200,
-        height: 500
+        width: 500,
+        height: 700
     });
 
     window.closed.connect(function () {
