@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* NOT IN USE
+
 #ifndef hifi_ImageEntityItem_h
 #define hifi_ImageEntityItem_h
 
@@ -60,3 +62,5 @@ protected:
 };
 
 #endif // hifi_ImageEntityItem_h
+
+*/

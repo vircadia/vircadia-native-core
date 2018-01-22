@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* NOT IN USE
+
 #include <QtCore/QJsonDocument>
 
 #include <ByteCountCoding.h>
@@ -127,14 +129,16 @@ QString ImageEntityItem::getImageURL() const {
     });
 }
 
-/*void ImageEntityItem::computeShapeInfo(ShapeInfo& info) {
+void ImageEntityItem::computeShapeInfo(ShapeInfo& info) {
     // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
     // is set.
 
     EntityItem::computeShapeInfo(info);
-}*/
+}
 
 // This value specifies how the shape should be treated by physics calculations.
 ShapeType ImageEntityItem::getShapeType() const {
     return _collisionShapeType;
 }
+
+*/

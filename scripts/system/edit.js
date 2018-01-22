@@ -540,13 +540,21 @@ var toolBar = (function () {
             });
         });
 
-        // for image button
+        /*// for image button
         addButton("newImageButton", "web-01.svg", function () {
             print("new image message is received");
             createNewEntity({
                 type: "Image",
                 dimensions: DEFAULT_DIMENSIONS,
                 imageURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg"
+            });
+        });*/
+        addButton("newImageButton", "web-01.svg", function () {
+            createNewEntity({
+                type: "Model",
+                dimensions: DEFAULT_DIMENSIONS,
+                modelURL: "http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx",
+                textures: JSON.stringify({ "tex.picture": "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg" })
             });
         });
 

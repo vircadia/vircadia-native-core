@@ -67,7 +67,7 @@ class EntityItemProperties {
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
-    friend class ImageEntityItem;
+    //friend class ImageEntityItem;
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods

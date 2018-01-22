@@ -350,7 +350,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
 
-    CHECK_PROPERTY_CHANGE(PROP_IMAGE_URL, imageURL);
+    //CHECK_PROPERTY_CHANGE(PROP_IMAGE_URL, imageURL);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -593,9 +593,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     // Image only
-    if (_type == EntityTypes::Image) {
+    /*if (_type == EntityTypes::Image) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
-    }
+    }*/
 
     // Web only
     if (_type == EntityTypes::Web) {
@@ -1144,7 +1144,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
-        ADD_PROPERTY_TO_MAP(PROP_IMAGE_URL, ImageURL, imageURL, QString);
+        //ADD_PROPERTY_TO_MAP(PROP_IMAGE_URL, ImageURL, imageURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
         ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
@@ -1381,9 +1381,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
             }
 
-            if (properties.getType() == EntityTypes::Image) {
+            /*if (properties.getType() == EntityTypes::Image) {
                 APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
-            }
+            }*/
 
             if (properties.getType() == EntityTypes::Text) {
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
@@ -1746,9 +1746,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
     }
 
-    if (properties.getType() == EntityTypes::Image) {
+    /*if (properties.getType() == EntityTypes::Image) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
-    }
+    }*/
 
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);

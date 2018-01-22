@@ -28,7 +28,7 @@
 #include "LineEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "PolyLineEntityItem.h"
-#include "ImageEntityItem.h"
+//#include "ImageEntityItem.h"
 #include "ShapeEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
@@ -48,7 +48,7 @@ REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyVox)
 REGISTER_ENTITY_TYPE(PolyLine)
-REGISTER_ENTITY_TYPE(Image)
+//REGISTER_ENTITY_TYPE(Image)
 REGISTER_ENTITY_TYPE(Shape)
 REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, ShapeEntityItem::boxFactory)
 REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, ShapeEntityItem::sphereFactory)
@@ -91,9 +91,6 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
     EntityItemPointer newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
     if (entityType >= 0 && entityType <= LAST) {
-        if (getEntityTypeName(entityType) == "Image") {
-            entityType = getEntityTypeFromName("Web");
-        }
         factory = _factories[entityType];
     }
     if (factory) {
