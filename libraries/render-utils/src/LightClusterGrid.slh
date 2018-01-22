@@ -100,23 +100,6 @@ int clusterGrid_getClusterLightId(int index, int offset) {
 <@endfunc@>
 
 bool hasLocalLights(int numLights, ivec3 clusterPos, ivec3 dims) {
-/*
-    if (numLights <= 0) {
-        return false;
-    }
-
-    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
-        return false;
-    }
-
-    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
-        return false;
-    }
-    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
-        return false;
-    }
-    return true;
-*/
     return numLights>0 
         && all(greaterThanEqual(clusterPos, ivec3(0))) 
         && all(lessThan(clusterPos.xy, dims.xy))
