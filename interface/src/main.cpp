@@ -24,6 +24,7 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
+#include <shared/Crashpad.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -44,6 +45,8 @@ int main(int argc, const char* argv[]) {
 #endif
 
     disableQtBearerPoll(); // Fixes wifi ping spikes
+
+    startCrashHandler();
 
     QElapsedTimer startupTime;
     startupTime.start();
