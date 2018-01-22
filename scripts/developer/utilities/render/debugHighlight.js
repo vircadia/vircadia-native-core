@@ -32,8 +32,7 @@
     var button = tablet.addButton({
         text: TABLET_BUTTON_NAME,
         icon: ICON_URL,
-        activeIcon: ACTIVE_ICON_URL,
-        sortOrder: 1
+        activeIcon: ACTIVE_ICON_URL
     });
 
     var hasEventBridge = false;

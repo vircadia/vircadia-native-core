@@ -1,26 +1,25 @@
 "use strict";
 
 //
-//  Luci.js
+//  lodi.js
 //  tablet-engine app
 //
-//  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 (function() {
-    var TABLET_BUTTON_NAME = "LUCI";
-    var QMLAPP_URL = Script.resolvePath("./deferredLighting.qml");
-    var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
-    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
+    var TABLET_BUTTON_NAME = "LOD";
+    var QMLAPP_URL = Script.resolvePath("./lod.qml");
+    var ICON_URL = Script.resolvePath("../../../system/assets/images/lod-i.svg");
+    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/lod-a.svg");
 
-   
-    var onLuciScreen = false;
+    var onScreen = false;
 
     function onClicked() {
-        if (onLuciScreen) {
+        if (onScreen) {
             tablet.gotoHomeScreen();
         } else {
             tablet.loadQMLSource(QMLAPP_URL);
@@ -55,14 +54,9 @@
     }
 
     function onScreenChanged(type, url) {
-        if (url === QMLAPP_URL) {
-            onLuciScreen = true;
-        } else { 
-            onLuciScreen = false;
-        }
-        
-        button.editProperties({isActive: onLuciScreen});
-        wireEventBridge(onLuciScreen);
+        onScreen = (url === QMLAPP_URL);
+        button.editProperties({isActive: onScreen});
+        wireEventBridge(onScreen);
     }
 
     function fromQml(message) {
@@ -71,31 +65,12 @@
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
-    var moveDebugCursor = false;
-    Controller.mousePressEvent.connect(function (e) {
-        if (e.isMiddleButton) {
-            moveDebugCursor = true;
-            setDebugCursor(e.x, e.y);
-        }
-    });
-    Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
-    Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
-
-
     Script.scriptEnding.connect(function () {
-        if (onLuciScreen) {
+        if (onScreen) {
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
         tablet.screenChanged.disconnect(onScreenChanged);
         tablet.removeButton(button);
     });
-
-    function setDebugCursor(x, y) {
-        nx = (x / Window.innerWidth);
-        ny = 1.0 - ((y) / (Window.innerHeight - 32));
-
-         Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
-    }
-
 }()); 

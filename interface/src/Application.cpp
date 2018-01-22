@@ -209,6 +209,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
+#include <DesktopPreviewProvider.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -573,8 +574,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         }
     };
     reportAndQuit("--protocolVersion", [&](FILE* fp) {
-        DependencyManager::set<AddressManager>();
-        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        auto version = protocolVersionsSignatureBase64();
         fputs(version.toLatin1().data(), fp);
     });
     reportAndQuit("--version", [&](FILE* fp) {
@@ -632,6 +632,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PointerScriptingInterface>();
     DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
+    DependencyManager::set<DesktopPreviewProvider>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -2092,6 +2093,11 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
+
+    // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
+    // it accesses the PickManager to delete its associated Pick
+    DependencyManager::destroy<PointerManager>();
+    DependencyManager::destroy<PickManager>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
@@ -4351,8 +4357,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
-        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
-        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
+        auto lodManager = DependencyManager::get<LODManager>();
+        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -5758,6 +5765,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());

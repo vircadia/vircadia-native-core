@@ -17,6 +17,7 @@
 #include "Ledger.h"
 #include "CommerceLogging.h"
 #include <NetworkingConstants.h>
+#include <AddressManager.h>
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
@@ -122,24 +123,33 @@ QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) 
     int sent = sentValue.toInt();
     int received = receivedValue.toInt();
     if (sent <= 0 && received <= 0) {
-        return QString("-");
+        return QString("0 HFC");
     }
     QString result;
     if (sent > 0) {
-        result += QString("<font color='#B70A37'>-%1 HFC</font>").arg(sent);
+        result += QString("<font color='#B70A37'><b>-%1 HFC</b></font>").arg(sent);
         if (received > 0) {
             result += QString("<br>");
         }
     }
     if (received > 0) {
-        result += QString("<font color='#3AA38F'>%1 HFC</font>").arg(received);
+        result += QString("<font color='#3AA38F'><b>%1 HFC</b></font>").arg(received);
     }
     return result;
 }
 static const QString USER_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/users/";
-QString userLink(const QString& username) {
+static const QString PLACE_PAGE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/places/";
+static const QStringList KNOWN_USERS(QStringList() << "highfidelity" << "marketplace");
+QString userLink(const QString& username, const QString& placename) {
     if (username.isEmpty()) {
-        return QString("someone");
+        if (placename.isEmpty()) {
+            return QString("someone");
+        } else {
+            return QString("someone <a href=\"%1%2\">nearby</a>").arg(PLACE_PAGE_BASE_URL, placename);
+        }
+    }
+    if (KNOWN_USERS.contains(username)) {
+        return username;
     }
     return QString("<a href=\"%1%2\">%2</a>").arg(USER_PAGE_BASE_URL, username);
 }
@@ -153,13 +163,13 @@ QString transactionString(const QJsonObject& valueObject) {
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
     QString result;
 
-    if (sentCerts <= 0 && receivedCerts <= 0) {
+    if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
         // this is an hfc transfer.
         if (sent > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString());
+            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money sent to %1").arg(recipient);
         } else {
-            QString sender = userLink(valueObject["sender_name"].toString());
+            QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money from %1").arg(sender);
         }
         if (!message.isEmpty()) {
@@ -168,8 +178,8 @@ QString transactionString(const QJsonObject& valueObject) {
     } else {
         result += valueObject["message"].toString();
     }
+    
     // no matter what we append a smaller date to the bottom of this...
-
     result += QString("<br><font size='-2' color='#1080B8'>%1").arg(createdAt.toLocalTime().toString(Qt::DefaultLocaleShortDate));
     return result;
 }
@@ -310,6 +320,7 @@ void Ledger::transferHfcToNode(const QString& hfc_key, const QString& nodeID, co
     transaction["node_id"] = nodeID;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
+    transaction["place_name"] = DependencyManager::get<AddressManager>()->getPlaceName();
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
     signedSend("transaction", transactionString, hfc_key, "transfer_hfc_to_node", "transferHfcToNodeSuccess", "transferHfcToNodeFailure");

@@ -277,7 +277,8 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
         if (!result.isEmpty()) {
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
-        emit openFileChanged(result);
+        emit browseChanged(result);
+        emit openFileChanged(result); // Deprecated signal; to be removed in due course.
     });
 }
 
@@ -388,6 +389,10 @@ void WindowScriptingInterface::showAssetServer(const QString& upload) {
 
 QString WindowScriptingInterface::checkVersion() {
     return QCoreApplication::applicationVersion();
+}
+
+QString WindowScriptingInterface::protocolSignature() {
+    return protocolVersionsSignatureBase64();
 }
 
 int WindowScriptingInterface::getInnerWidth() {

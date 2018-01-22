@@ -19,15 +19,6 @@
 #include <QBuffer>
 #include <QImageReader>
 
-
-#if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
-#else
-#define CPU_MIPMAPS 1
-#include <nvtt/nvtt.h>
-#endif
-
-
 #include <Finally.h>
 #include <Profile.h>
 #include <StatTracker.h>
@@ -37,6 +28,12 @@
 
 using namespace gpu;
 
+#if defined(Q_OS_ANDROID)
+#define CPU_MIPMAPS 0
+#else
+#define CPU_MIPMAPS 1
+#include <nvtt/nvtt.h>
+#endif
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
@@ -51,25 +48,21 @@ static std::atomic<bool> compressNormalTextures { false };
 static std::atomic<bool> compressGrayscaleTextures { false };
 static std::atomic<bool> compressCubeTextures { false };
 
-bool needsSparseRectification(const glm::uvec2& size) {
-    // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
-    if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
-        return false;
+uint rectifyDimension(const uint& dimension) {
+    if (dimension < SPARSE_PAGE_SIZE.x) {
+        uint newSize = SPARSE_PAGE_SIZE.x;
+        while (dimension <= newSize / 2) {
+            newSize /= 2;
+        }
+        return newSize;
+    } else {
+        uint pages = (dimension / SPARSE_PAGE_SIZE.x) + (dimension % SPARSE_PAGE_SIZE.x == 0 ? 0 : 1);
+        return pages * SPARSE_PAGE_SIZE.x;
     }
-
-    // Don't rectify textures that are already an exact multiple of sparse page size
-    if (glm::uvec2(0) == (size % SPARSE_PAGE_SIZE)) {
-        return false;
-    }
-
-    // Texture is not sparse compatible, but is bigger than the sparse page size in both dimensions, rectify!
-    return true;
 }
 
-glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
-    glm::uvec2 pages = ((size / SPARSE_PAGE_SIZE) + glm::clamp(size % SPARSE_PAGE_SIZE, glm::uvec2(0), glm::uvec2(1)));
-    glm::uvec2 result = pages * SPARSE_PAGE_SIZE;
-    return result;
+glm::uvec2 rectifySize(const glm::uvec2& size) {
+    return { rectifyDimension(size.x), rectifyDimension(size.y) };
 }
 
 
@@ -329,9 +322,12 @@ QImage processSourceImage(QImage&& srcImage, bool cubemap) {
         ++DECIMATED_TEXTURE_COUNT;
     }
 
-    if (!cubemap && needsSparseRectification(targetSize)) {
-        ++RECTIFIED_TEXTURE_COUNT;
-        targetSize = rectifyToSparseSize(targetSize);
+    if (!cubemap) {
+        auto rectifiedSize = rectifySize(targetSize);
+        if (rectifiedSize != targetSize) {
+            ++RECTIFIED_TEXTURE_COUNT;
+            targetSize = rectifiedSize;
+        }
     }
 
     if (DEV_DECIMATE_TEXTURES && glm::all(glm::greaterThanEqual(targetSize / SPARSE_PAGE_SIZE, glm::uvec2(2)))) {
