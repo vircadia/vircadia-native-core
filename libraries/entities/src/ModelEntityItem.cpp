@@ -452,7 +452,7 @@ void ModelEntityItem::resizeJointArrays(int newSize) {
     });
 }
 
-void ModelEntityItem::setAnimationJointsData(const QVector<JointData>& jointsData) {
+void ModelEntityItem::setAnimationJointsData(const QVector<EntityJointData>& jointsData) {
     resizeJointArrays(jointsData.size());
     _jointDataLock.withWriteLock([&] {
         for (auto index = 0; index < jointsData.size(); ++index) {
