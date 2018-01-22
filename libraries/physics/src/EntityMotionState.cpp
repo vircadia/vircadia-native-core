@@ -256,25 +256,32 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(_entity);
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
-    bool positionSuccess;
-    _entity->setWorldPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
-    if (!positionSuccess) {
-        static QString repeatedMessage =
-            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
-                                                              "setPosition failed.*");
-        qCDebug(physics) << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
+
+    // If transform or velocities are flagged as dirty it means a network or scripted change
+    // occured between the beginning and end of the stepSimulation() and we DON'T want to apply
+    // these physics simulation results.
+    uint32_t flags = _entity->getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES);
+    if (!flags) {
+        // flags are clear
+        _entity->setWorldTransform(bulletToGLM(worldTrans.getOrigin()), bulletToGLM(worldTrans.getRotation()));
+        _entity->setWorldVelocity(getBodyLinearVelocity());
+        _entity->setWorldAngularVelocity(getBodyAngularVelocity());
+        _entity->setLastSimulated(usecTimestampNow());
+    } else {
+        // only set properties NOT flagged
+        if (!(flags & Simulation::DIRTY_TRANSFORM)) {
+            _entity->setWorldTransform(bulletToGLM(worldTrans.getOrigin()), bulletToGLM(worldTrans.getRotation()));
+        }
+        if (!(flags & Simulation::DIRTY_LINEAR_VELOCITY)) {
+            _entity->setWorldVelocity(getBodyLinearVelocity());
+        }
+        if (!(flags & Simulation::DIRTY_ANGULAR_VELOCITY)) {
+            _entity->setWorldAngularVelocity(getBodyAngularVelocity());
+        }
+        if (flags != (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
+            _entity->setLastSimulated(usecTimestampNow());
+        }
     }
-    bool orientationSuccess;
-    _entity->setWorldOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
-    if (!orientationSuccess) {
-        static QString repeatedMessage =
-            LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "
-                                                              "setOrientation failed.*");
-        qCDebug(physics) << "EntityMotionState::setWorldTransform setOrientation failed" << _entity->getID();
-    }
-    _entity->setVelocity(getBodyLinearVelocity());
-    _entity->setAngularVelocity(getBodyAngularVelocity());
-    _entity->setLastSimulated(usecTimestampNow());
 
     if (_entity->getSimulatorID().isNull()) {
         _loopsWithoutOwner++;
@@ -530,9 +537,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
 
     if (!_body->isActive()) {
         // make sure all derivatives are zero
-        _entity->setVelocity(Vectors::ZERO);
-        _entity->setAngularVelocity(Vectors::ZERO);
-        _entity->setAcceleration(Vectors::ZERO);
+        zeroCleanObjectVelocities();
         _numInactiveUpdates++;
     } else {
         glm::vec3 gravity = _entity->getGravity();
@@ -559,9 +564,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             if (movingSlowly) {
                 // velocities might not be zero, but we'll fake them as such, which will hopefully help convince
                 // other simulating observers to deactivate their own copies
-                glm::vec3 zero(0.0f);
-                _entity->setVelocity(zero);
-                _entity->setAngularVelocity(zero);
+                zeroCleanObjectVelocities();
             }
         }
         _numInactiveUpdates = 0;
@@ -817,4 +820,23 @@ bool EntityMotionState::shouldBeLocallyOwned() const {
 
 void EntityMotionState::upgradeOutgoingPriority(uint8_t priority) {
     _outgoingPriority = glm::max<uint8_t>(_outgoingPriority, priority);
+}
+
+void EntityMotionState::zeroCleanObjectVelocities() const {
+    // If transform or velocities are flagged as dirty it means a network or scripted change
+    // occured between the beginning and end of the stepSimulation() and we DON'T want to apply
+    // these physics simulation results.
+    uint32_t flags = _entity->getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES);
+    if (!flags) {
+        _entity->setWorldVelocity(glm::vec3(0.0f));
+        _entity->setWorldAngularVelocity(glm::vec3(0.0f));
+    } else {
+        if (!(flags & Simulation::DIRTY_LINEAR_VELOCITY)) {
+            _entity->setWorldVelocity(glm::vec3(0.0f));
+        }
+        if (!(flags & Simulation::DIRTY_ANGULAR_VELOCITY)) {
+            _entity->setWorldAngularVelocity(glm::vec3(0.0f));
+        }
+    }
+    _entity->setAcceleration(glm::vec3(0.0f));
 }

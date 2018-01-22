@@ -23,11 +23,14 @@ TextField {
     property bool isSearchField: false
     property string label: ""
     property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height + 1 : 0)
+    property bool hasDefocusedBorder: true;
     property bool hasRoundedBorder: false
+    property int roundedBorderRadius: 4
     property bool error: false;
     property bool hasClearButton: false;
     property alias textColor: textField.color
-    property string leftPlaceholderGlyph: "";
+    property string leftPermanentGlyph: "";
+    property string centerPlaceholderGlyph: "";
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     FontLoader { id: hifiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
@@ -113,12 +116,12 @@ TextField {
             }
         }
         border.color: textField.error ? hifi.colors.redHighlight :
-                                        (textField.activeFocus ? hifi.colors.primaryHighlight : (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray))
+            (textField.activeFocus ? hifi.colors.primaryHighlight : (hasDefocusedBorder ? (isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray) : color))
         border.width: textField.activeFocus || hasRoundedBorder || textField.error ? 1 : 0
-        radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? 4 : 0)
+            radius: isSearchField ? textField.height / 2 : (hasRoundedBorder ? roundedBorderRadius : 0)
 
         HiFiGlyphs {
-            text: textField.leftPlaceholderGlyph;
+                text: textField.leftPermanentGlyph;
             color: textColor;
             size: hifi.fontSizes.textFieldSearchIcon;
             anchors.left: parent.left;
@@ -128,6 +131,15 @@ TextField {
         }
 
         HiFiGlyphs {
+                text: textField.centerPlaceholderGlyph;
+                color: textColor;
+                size: parent.height;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.verticalCenter: parent.verticalCenter;
+                visible: text && !textField.focus && textField.text === "";
+            }
+
+            HiFiGlyphs {
             text: hifi.glyphs.search
             color: textColor
             size: hifi.fontSizes.textFieldSearchIcon
@@ -158,7 +170,7 @@ TextField {
     property color placeholderTextColor: isFaintGrayColorScheme ? hifi.colors.lightGrayText : hifi.colors.lightGray
     selectedTextColor: hifi.colors.black
     selectionColor: hifi.colors.primaryHighlight
-    leftPadding: (isSearchField ? textField.height - 2 : 0) + hifi.dimensions.textPadding
+    leftPadding: hasRoundedBorder ? textField.height / 2 : ((isSearchField || textField.leftPermanentGlyph !== "") ? textField.height - 2 : 0) + hifi.dimensions.textPadding
     rightPadding: (hasClearButton ? textField.height - 2 : 0) + hifi.dimensions.textPadding
 
 

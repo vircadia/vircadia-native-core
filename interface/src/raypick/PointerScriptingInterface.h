@@ -203,6 +203,14 @@ public:
     Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
 
     /**jsdoc
+     * Sets whether or not a pointer should generate hover events.
+     * @function Pointers.setDoesHover
+     * @param {boolean} uid - The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @param {boolean} hover - If <code>true</code> then the pointer generates hover events, otherwise it does not.
+     */
+    Q_INVOKABLE void setDoesHover(unsigned int uid, bool hove) const;
+
+    /**jsdoc
      * Check if a Pointer is associated with the left hand.
      * @function Pointers.isLeftHand
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.

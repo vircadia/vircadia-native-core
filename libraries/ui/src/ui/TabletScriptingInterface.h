@@ -115,6 +115,7 @@ protected:
     friend class TabletProxy;
     TabletButtonProxy* addButton(const QVariant& properties);
     void removeButton(TabletButtonProxy* button);
+    int computeNewButtonIndex(const QVariantMap& newButtonProperties);
     using List = std::list<QSharedPointer<TabletButtonProxy>>;
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;

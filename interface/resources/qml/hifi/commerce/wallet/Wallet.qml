@@ -388,7 +388,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendMoneyStep";
         property int numTabs: 5;
         // Size
         width: root.width;

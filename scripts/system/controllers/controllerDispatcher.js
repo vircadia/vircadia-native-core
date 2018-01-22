@@ -44,7 +44,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.highVarianceCount = 0;
         this.veryhighVarianceCount = 0;
         this.tabletID = null;
+        this.TABLET_UI_UUIDS = [];
         this.blacklist = [];
+        this.leftPointerDoesHover = true;
+        this.leftPointerDoesHoverChanged = false;
+        this.rightPointerDoesHover = true;
+        this.rightPointerDoesHoverChanged = false;
         this.pointerManager = new PointerManager();
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
@@ -122,6 +127,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return getControllerWorldLocation(Controller.Standard.RightHand, true);
         };
 
+        this.isTabletID = function (uuid) {
+            return _this.TABLET_UI_UUIDS.indexOf(uuid) !== -1;
+        };
+
         this.updateTimings = function () {
             _this.intervalCount++;
             var thisInterval = Date.now();
@@ -148,8 +157,32 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.setIgnorePointerItems = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
+                this.TABLET_UI_UUIDS = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID];
                 Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
                 Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
+            }
+        };
+
+        this.updateDoesHover = function(handLaser, doesHover) {
+            if (handLaser.doesHover !== undefined) {
+                if (handLaser.hand === LEFT_HAND && _this.leftPointerDoesHover !== doesHover) {
+                    _this.leftPointerDoesHover = doesHover;
+                    _this.leftPointerDoesHoverChanged = true;
+                } else if (handLaser.hand === RIGHT_HAND && _this.rightPointerDoesHover !== doesHover) {
+                    _this.rightPointerDoesHover = doesHover;
+                    _this.rightPointerDoesHoverChanged = true;
+                }
+            }
+        }
+
+        this.updateHovering = function () {
+            if (_this.leftPointerDoesHoverChanged) {
+                Pointers.setDoesHover(_this.leftPointer, _this.leftPointerDoesHover);
+                _this.leftPointerDoesHoverChanged = false;
+            }
+            if (_this.rightPointerDoesHoverChanged) {
+                Pointers.setDoesHover(_this.rightPointer, _this.rightPointerDoesHover);
+                _this.rightPointerDoesHoverChanged = false;
             }
         };
 
@@ -324,6 +357,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                         _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
+                        _this.updateDoesHover(candidatePlugin.parameters.handLaser,
+                            candidatePlugin.parameters.handLaser.doesHover);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -354,12 +389,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             Script.beginProfileRange("dispatch.run." + runningPluginName);
                         }
                         var runningness = plugin.run(controllerData, deltaTime);
-                        if (!runningness.active) {
+                        if (runningness.active) {
+                            _this.updateDoesHover(plugin.parameters.handLaser, plugin.parameters.handLaser.doesHover);
+                        } else {
                             // plugin is finished running, for now.  remove it from the list
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
                             _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
+                            _this.updateDoesHover(plugin.parameters.handLaser, true);
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
@@ -372,6 +410,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
+            _this.updateHovering();
+
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
