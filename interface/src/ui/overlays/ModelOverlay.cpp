@@ -87,7 +87,7 @@ void ModelOverlay::update(float deltatime) {
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors
-        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::VISIBLE_MASK_1);
+        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::VISIBLE_MASK_0 * getVisible());
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
@@ -121,8 +121,10 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
 }
 
 void ModelOverlay::setVisible(bool visible) {
-    Overlay::setVisible(visible);
-    _visibleDirty = true;
+    if (visible != getVisible()) {
+        Overlay::setVisible(visible);
+        _visibleDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {

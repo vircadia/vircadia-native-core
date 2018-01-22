@@ -46,9 +46,9 @@ namespace render {
         }
 
         if (overlay->getVisible()) {
-            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_1); // don't draw overlays in mirror
+            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_0); // don't draw overlays in mirror
         } else {
-            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_ALL);
+            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_NONE);
         }
 
         return builder.build();
