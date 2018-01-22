@@ -176,3 +176,7 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
     }
     return result;
 }
+
+void PointerScriptingInterface::setDoesHover(unsigned int uid, bool hover) const {
+    DependencyManager::get<PointerManager>()->setDoesHover(uid, hover);
+}

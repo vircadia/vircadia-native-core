@@ -37,8 +37,7 @@
     var button = tablet.addButton({
         icon: "icons/tablet-icons/users-i.svg",
         activeIcon: "icons/tablet-icons/users-a.svg",
-        text: "USERS",
-        sortOrder: 11
+        text: "USERS"
     });
 
     var onUsersScreen = false;
