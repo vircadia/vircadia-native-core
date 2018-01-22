@@ -50,13 +50,5 @@ exports.handlers = {
                 }
             });
         });
-
-        fs.writeFile(pathTools.join(rootFolder, "out/hifiJSDoc.js"), e.source, function(err) {
-            if (err) {
-                return console.log(err);
-            }
-
-            console.log("The Hifi JSDoc JS was saved!");
-        });
     }
 };
