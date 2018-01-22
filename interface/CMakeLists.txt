@@ -347,8 +347,6 @@ if (SCRIPTS_INSTALL_DIR)
   )
 endif()
 
-add_bugsplat()
-
 package_crashpad_for_deployment()
 
 if (WIN32)
