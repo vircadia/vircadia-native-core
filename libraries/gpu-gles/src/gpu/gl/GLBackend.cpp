@@ -224,7 +224,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
     }
 
     { // Sync the transform buffers
-        PROFILE_RANGE(render_gpu_gl_detail, "syncGPUTransform");
+        PROFILE_RANGE(render_gpu_gl_detail, "transferGPUTransform");
         transferTransformState(batch);
     }
 
@@ -385,21 +385,21 @@ void GLBackend::resetStages() {
 
 void GLBackend::do_pushProfileRange(const Batch& batch, size_t paramOffset) {
     if (trace_render_gpu_gl_detail().isDebugEnabled()) {
-    auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
-    profileRanges.push_back(name);
+        auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
+        profileRanges.push_back(name);
 #if defined(NSIGHT_FOUND)
-    nvtxRangePush(name.c_str());
+        nvtxRangePush(name.c_str());
 #endif
-}
+    }
 }
 
 void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
     if (trace_render_gpu_gl_detail().isDebugEnabled()) {
-    profileRanges.pop_back();
+        profileRanges.pop_back();
 #if defined(NSIGHT_FOUND)
-    nvtxRangePop();
+        nvtxRangePop();
 #endif
-}
+    }
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface

@@ -139,17 +139,9 @@ static void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum s
     if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
         return;
     }
-    qCDebug(glLogging) << "OpenGL: " << message;
-
-    // For high severity errors, force a sync to the log, since we might crash 
+    // FIXME For high severity errors, force a sync to the log, since we might crash
     // before the log file was flushed otherwise.  Performance hit here
-    //if (GL_DEBUG_SEVERITY_HIGH == severity) {
-    //    AbstractLoggerInterface* logger = AbstractLoggerInterface::get();
-    //    if (logger) {
-    //        // FIXME find a way to force the log file to sync that doesn't lead to a deadlock
-    //        // logger->sync();
-    //    }
-    //}
+    qCDebug(glLogging) << "OpenGL: " << message;
 }
 
 static void setupPixelFormatSimple(HDC hdc) {

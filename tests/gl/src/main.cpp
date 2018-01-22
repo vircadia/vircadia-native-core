@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
         if (!window->makeCurrent()) {
             throw std::runtime_error("Failed");
         }
-        glClearColor(1.0, 0.0, 1.0, 1.0);
+        glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         window->swapBuffers();
         window->doneCurrent();
