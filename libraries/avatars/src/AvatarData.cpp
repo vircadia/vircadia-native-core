@@ -81,7 +81,11 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
 size_t AvatarDataPacket::maxJointDefaultPoseFlagsSize(size_t numJoints) {
     const size_t bitVectorSize = calcBitVectorSize((int)numJoints);
     size_t totalSize = sizeof(uint8_t); // numJoints
-    totalSize += 2 * bitVectorSize;
+
+    // one set of bits for rotation and one for translation
+    const size_t NUM_BIT_VECTORS_IN_DEFAULT_POSE_FLAGS_SECTION = 2;
+    totalSize += NUM_BIT_VECTORS_IN_DEFAULT_POSE_FLAGS_SECTION * bitVectorSize;
+
     return totalSize;
 }
 
