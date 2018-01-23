@@ -302,6 +302,8 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
     COMMAND "${CMAKE_COMMAND}" -E copy
     "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
@@ -319,6 +321,8 @@ else (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
     COMMAND "${CMAKE_COMMAND}" -E copy
     "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
