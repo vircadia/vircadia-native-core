@@ -38,6 +38,16 @@ const QStringList& FileUtils::getFileSelectors() {
 
 }
 
+QString FileUtils::selectFile(const QString& path) {
+    QFileSelector fileSelector;
+    fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+    QString result = fileSelector.select(path);
+    if (path != result) {
+        qDebug() << "Using" << result << "instead of" << path;
+    }
+    return result;
+}
+
 
 QString FileUtils::readFile(const QString& filename) {
     QFile file(filename);
@@ -51,7 +61,7 @@ QStringList FileUtils::readLines(const QString& filename, QString::SplitBehavior
     return readFile(filename).split(QRegularExpression("[\\r\\n]"), QString::SkipEmptyParts);
 }
 
-void FileUtils::locateFile(QString filePath) {
+void FileUtils::locateFile(const QString& filePath) {
 
     // adapted from
     // http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
