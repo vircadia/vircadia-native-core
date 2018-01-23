@@ -28,7 +28,7 @@
 #include <QtMultimedia/QMediaService>
 #include <QtMultimedia/QAudioOutputSelectorControl>
 #include <QtMultimedia/QMediaPlayer>
-
+#include <QtGui/QInputMethodEvent>
 #include <shared/NsightHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <shared/QtHelpers.h>
@@ -1133,6 +1133,17 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                 qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent->type()
                         << "_quickWindow handled it... accepted:" << fakeEvent->isAccepted();
                 return false; //event->isAccepted();
+            }
+            break;
+        }
+        case QEvent::InputMethod:
+        case QEvent::InputMethodQuery: {
+            if (_quickWindow && _quickWindow->activeFocusItem()) {
+                event->ignore();
+                if (QCoreApplication::sendEvent(_quickWindow->activeFocusItem(), event)) {
+                    return event->isAccepted();
+                }
+                return false;
             }
             break;
         }
