@@ -565,9 +565,9 @@ void ModelOverlay::animate() {
                 rotationMat * fbxJoints[index].postTransform);
             auto& jointData = jointsData[j];
             jointData.translation = extractTranslation(finalMat);
-            jointData.translationSet = true;
+            jointData.translationIsDefaultPose = false;
             jointData.rotation = glmExtractRotation(finalMat);
-            jointData.rotationSet = true;
+            jointData.rotationIsDefaultPose = false;
         }
     }
     // Set the data in the model

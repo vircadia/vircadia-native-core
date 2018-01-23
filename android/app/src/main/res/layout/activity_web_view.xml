@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <Toolbar
+        android:id="@+id/toolbar_actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="?android:attr/actionBarSize"
+        android:layout_alignParentTop="true"
+        style="@android:style/Widget.Material.ActionBar"
+        android:titleTextAppearance="@style/ActionBarTitleStyle"
+        android:subtitleTextAppearance="@style/ActionBarSubtitleStyle"
+        android:navigationIcon="@drawable/ic_close_black_24dp"
+        android:contentInsetStart="0dp"
+        android:contentInsetStartWithNavigation="0dp"
+        android:title="">
+    </Toolbar>
+
+    <WebView
+        android:id="@+id/web_view"
+        android:layout_below="@id/toolbar_actionbar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <ProgressBar
+        android:id="@+id/toolbarProgressBar"
+        android:layout_below="@id/toolbar_actionbar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:indeterminate="false"
+        android:padding="0dp" />
+</RelativeLayout>
