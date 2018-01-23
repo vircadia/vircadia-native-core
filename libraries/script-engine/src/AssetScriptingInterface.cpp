@@ -236,11 +236,12 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
     Promise fetched = jsPromiseReady(makePromise("fetched"), scope, callback);
     Promise mapped = makePromise("mapped");
 
-    mapped->ready([=](QString error, QVariantMap result) {
+    mapped->fail(fetched);
+    mapped->then([=](QVariantMap result) {
         QString hash = result.value("hash").toString();
         QString url = result.value("url").toString();
-        if (!error.isEmpty() || !AssetUtils::isValidHash(hash)) {
-            fetched->reject(error.isEmpty() ? "internal hash error: " + hash : error, result);
+        if (!AssetUtils::isValidHash(hash)) {
+            fetched->reject("internal hash error: " + hash, result);
         } else {
             Promise promise = loadAsset(hash, decompress, responseType);
             promise->mixin(result);
