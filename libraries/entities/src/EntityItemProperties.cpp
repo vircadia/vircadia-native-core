@@ -592,8 +592,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
     }
 
-    // Image only
-    /*if (_type == EntityTypes::Image) {
+
+
+    /*// Image only
+    if (_type == EntityTypes::Image) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
     }*/
 
@@ -787,7 +789,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(imageURL, QString, setImageURL);
+    //COPY_PROPERTY_FROM_QSCRIPTVALUE(imageURL, QString, setImageURL);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -949,7 +951,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(ambientLightMode);
     COPY_PROPERTY_IF_CHANGED(skyboxMode);
 
-    COPY_PROPERTY_IF_CHANGED(imageURL);
+    //COPY_PROPERTY_IF_CHANGED(imageURL);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -2067,7 +2069,7 @@ void EntityItemProperties::markAllChanged() {
     _skybox.markAllChanged();
     _haze.markAllChanged();
 
-    _imageURLChanged = true;
+    //_imageURLChanged = true;
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;

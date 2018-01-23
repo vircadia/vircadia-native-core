@@ -35,7 +35,7 @@ EntityItemPointer ImageEntityItem::factory(const EntityItemID& entityID, const E
 }
 
 ImageEntityItem::ImageEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
-    _type = EntityTypes::Image;
+    //_type = EntityTypes::Image;
 }
 
 EntityItemProperties ImageEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
