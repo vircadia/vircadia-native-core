@@ -1,6 +1,9 @@
-import QtQuick 2.5
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 import QtQuick.Layouts 1.3
+
+import TabletScriptingInterface 1.0
 
 import "."
 import "../../styles-uit"
@@ -10,7 +13,11 @@ Item {
     id: tablet
     objectName: "tablet"
     property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    
+
+    property var currentGridItems: null
+
+    focus: true
+
     Rectangle {
         id: bgTopBar
         height: 90
@@ -85,7 +92,6 @@ Item {
 
     Rectangle {
         id: bgMain
-        clip: true
         gradient: Gradient {
             GradientStop {
                 position: 0
@@ -102,55 +108,209 @@ Item {
         anchors.left: parent.left
         anchors.top: bgTopBar.bottom
 
-        GridView {
-            id: flickable
-            anchors.top: parent.top
-            anchors.topMargin: 15
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: cellWidth * 3
-            cellHeight: 145
-            cellWidth: 145
-            model: tabletProxy.buttons
-            delegate: Item {
-                width: flickable.cellWidth
-                height: flickable.cellHeight
-                property var proxy: modelData
-
-                TabletButton {
-                    id: tabletButton
-                    anchors.centerIn: parent
-                    onClicked: modelData.clicked()
-                    state: wrapper.GridView.isCurrentItem ? "hover state" : "base state"
+        SwipeView {
+            id: swipeView
+            clip: false
+            currentIndex: -1
+            property int previousIndex: -1
+            Repeater {
+                id: pageRepeater
+                model: Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage)
+                onItemAdded: {
+                    item.proxyModel.sourceModel = tabletProxy.buttons;
+                    item.proxyModel.pageIndex = index;
                 }
 
-                Connections {
-                    target: modelData;
-                    onPropertiesChanged:  {
-                        updateProperties();
+                delegate: Item {
+                    id: page
+                    property TabletButtonsProxyModel proxyModel: TabletButtonsProxyModel {}
+
+                    GridView {
+                        id: gridView
+
+                        keyNavigationEnabled: false
+                        highlightFollowsCurrentItem: false
+
+                        property int previousGridIndex: -1
+
+                        // true if any of the buttons contains mouse
+                        property bool containsMouse: false
+
+                        anchors {
+                            fill: parent
+                            topMargin: 20
+                            leftMargin: 30
+                            rightMargin: 30
+                            bottomMargin: 0
+                        }
+
+                        function setButtonState(buttonIndex, buttonstate) {
+                            if (buttonIndex < 0 || gridView.contentItem === undefined
+                                    || gridView.contentItem.children.length - 1 < buttonIndex) {
+                                return;
+                            }
+                            var itemat = gridView.contentItem.children[buttonIndex].children[0];
+                            if (itemat.isActive) {
+                                itemat.state = "active state";
+                            } else {
+                                itemat.state = buttonstate;
+                            }
+                        }
+
+                        onCurrentIndexChanged: {
+                            setButtonState(previousGridIndex, "base state");
+                            setButtonState(currentIndex, "hover state");
+                            previousGridIndex = currentIndex
+                        }
+
+                        cellWidth: width/3
+                        cellHeight: cellWidth
+                        flow: GridView.LeftToRight
+                        model: page.proxyModel
+
+                        delegate: Control {
+                            id: wrapper
+                            width: gridView.cellWidth
+                            height: gridView.cellHeight
+
+                            hoverEnabled: true
+
+                            property bool containsMouse: gridView.containsMouse
+                            onHoveredChanged: {
+                                if (hovered && !gridView.containsMouse) {
+                                    gridView.containsMouse = true
+                                } else {
+                                    gridView.containsMouse = false
+                                }
+                            }
+
+                            property var proxy: modelData
+
+                            TabletButton {
+                                id: tabletButton
+
+                                // Temporarily disable magnification
+                                // scale: wrapper.hovered ? 1.25 : wrapper.containsMouse ? 0.75 : 1.0
+                                // Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.Linear } }
+
+                                anchors.centerIn: parent
+                                gridView: wrapper.GridView.view
+                                buttonIndex: page.proxyModel.buttonIndex(uuid);
+                                flickable: swipeView.contentItem;
+                                onClicked: modelData.clicked()
+                            }
+
+                            Connections {
+                                target: modelData;
+                                onPropertiesChanged:  {
+                                    updateProperties();
+                                }
+                            }
+
+                            Component.onCompleted: updateProperties()
+
+                            function updateProperties() {
+                                var keys = Object.keys(modelData.properties).forEach(function (key) {
+                                    if (tabletButton[key] !== modelData.properties[key]) {
+                                        tabletButton[key] = modelData.properties[key];
+                                    }
+                                });
+                            }
+                        }
                     }
                 }
+            }
 
-                Component.onCompleted: updateProperties()
-
-                function updateProperties() {
-                    var keys = Object.keys(modelData.properties).forEach(function (key) {
-                        if (tabletButton[key] !== modelData.properties[key]) {
-                            tabletButton[key] = modelData.properties[key];
-                        }
-                    });
+            onCurrentIndexChanged: {
+                if (swipeView.currentIndex < 0
+                        || swipeView.itemAt(swipeView.currentIndex) === null
+                        || swipeView.itemAt(swipeView.currentIndex).children[0] === null) {
+                    return;
                 }
+
+                currentGridItems = swipeView.itemAt(swipeView.currentIndex).children[0];
+
+                currentGridItems.currentIndex = (previousIndex > swipeView.currentIndex ? currentGridItems.count - 1 : 0);
+                previousIndex = currentIndex;
+            }
+
+            hoverEnabled: true
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                bottom: pageIndicator.top
+            }
+        }
+
+        PageIndicator {
+            id: pageIndicator
+            currentIndex: swipeView.currentIndex
+            visible: swipeView.count > 1
+
+            delegate: Item {
+                width: 15
+                height: 15
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
+                    implicitWidth: index === pageIndicator.currentIndex ? 15 : 10
+                    implicitHeight: implicitWidth
+                    radius: width/2
+                    color: "white"
+                    Behavior on opacity {
+                        OpacityAnimator {
+                            duration: 100
+                        }
+                    }
+                }
+            }
+
+            interactive: false
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            count: swipeView.count
+        }
+    }
+
+    Component.onCompleted: {
+        focus = true;
+        forceActiveFocus();
+    }
+
+    Keys.onRightPressed: {
+        if (!currentGridItems) {
+            return;
+        }
+
+        var index = currentGridItems.currentIndex;
+        currentGridItems.moveCurrentIndexRight();
+        if (index === currentGridItems.count - 1 && index === currentGridItems.currentIndex) {
+            if (swipeView.currentIndex < swipeView.count - 1) {
+                swipeView.incrementCurrentIndex();
             }
         }
     }
 
-    Keys.onRightPressed: flickable.moveCurrentIndexRight();
-    Keys.onLeftPressed: flickable.moveCurrentIndexLeft();
-    Keys.onDownPressed: flickable.moveCurrentIndexDown();
-    Keys.onUpPressed: flickable.moveCurrentIndexUp();
+    Keys.onLeftPressed: {
+        if (!currentGridItems) {
+            return;
+        }
+
+        var index = currentGridItems.currentIndex;
+        currentGridItems.moveCurrentIndexLeft();
+        if (index === 0 && index === currentGridItems.currentIndex) {
+            if (swipeView.currentIndex > 0) {
+                swipeView.decrementCurrentIndex();
+            }
+        }
+    }
+    Keys.onDownPressed: currentGridItems.moveCurrentIndexDown();
+    Keys.onUpPressed: currentGridItems.moveCurrentIndexUp();
     Keys.onReturnPressed: {
-        if (flickable.currentItem) {
-            flickable.currentItem.proxy.clicked();
+        if (currentGridItems.currentItem) {
+            currentGridItems.currentItem.proxy.clicked();
             if (tabletRoot) {
                 tabletRoot.playButtonClickSound();
             }

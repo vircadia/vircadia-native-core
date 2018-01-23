@@ -19,14 +19,30 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 
-// references XXX from root context
-
 Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property bool historyReceived: false;
+    property bool initialHistoryReceived: false;
+    property bool historyRequestPending: true;
+    property bool noMoreHistoryData: false;
     property int pendingCount: 0;
+    property int currentHistoryPage: 1;
+    property var pagesAlreadyAdded: new Array();
+
+    onVisibleChanged: {
+        if (visible) {
+            transactionHistoryModel.clear();
+            Commerce.balance();
+            initialHistoryReceived = false;
+            root.currentHistoryPage = 1;
+            root.noMoreHistoryData = false;
+            root.historyRequestPending = true;
+            Commerce.history(root.currentHistoryPage);
+        } else {
+            refreshTimer.stop();
+        }
+    }
 
     Connections {
         target: Commerce;
@@ -36,32 +52,86 @@ Item {
         }
 
         onHistoryResult : {
-            historyReceived = true;
-            if (result.status === 'success') {
-                var sameItemCount = 0;
-                tempTransactionHistoryModel.clear();
-                
-                tempTransactionHistoryModel.append(result.data.history);
-        
-                for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                    if (!transactionHistoryModel.get(i)) {
-                        sameItemCount = -1;
-                        break;
-                    } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
-                    tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
-                        sameItemCount++;
-                    }
-                }
+            root.initialHistoryReceived = true;
+            root.historyRequestPending = false;
 
-                if (sameItemCount !== tempTransactionHistoryModel.count) {
-                    transactionHistoryModel.clear();
+            if (result.status === 'success') {
+                var currentPage = parseInt(result.current_page);
+
+                if (result.data.history.length === 0) {
+                    root.noMoreHistoryData = true;
+                    console.log("No more data to retrieve from Commerce.history() endpoint.")
+                } else if (root.currentHistoryPage === 1) {
+                    var sameItemCount = 0;
+                    tempTransactionHistoryModel.clear();
+                
+                    tempTransactionHistoryModel.append(result.data.history);
+        
                     for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
-                        transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                        if (!transactionHistoryModel.get(i)) {
+                            sameItemCount = -1;
+                            break;
+                        } else if (tempTransactionHistoryModel.get(i).transaction_type === transactionHistoryModel.get(i).transaction_type &&
+                        tempTransactionHistoryModel.get(i).text === transactionHistoryModel.get(i).text) {
+                            sameItemCount++;
+                        }
                     }
-                    calculatePendingAndInvalidated();
+
+                    if (sameItemCount !== tempTransactionHistoryModel.count) {
+                        transactionHistoryModel.clear();
+                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                            transactionHistoryModel.append(tempTransactionHistoryModel.get(i));
+                        }
+                        calculatePendingAndInvalidated();
+                    }
+                } else {
+                    if (root.pagesAlreadyAdded.indexOf(currentPage) !== -1) {
+                        console.log("Page " + currentPage + " of history has already been added to the list.");
+                    } else {
+                        // First, add the history result to a temporary model
+                        tempTransactionHistoryModel.clear();
+                        tempTransactionHistoryModel.append(result.data.history);
+
+                        // Make a note that we've already added this page to the model...
+                        root.pagesAlreadyAdded.push(currentPage);
+
+                        var insertionIndex = 0;
+                        // If there's nothing in the model right now, we don't need to modify insertionIndex.
+                        if (transactionHistoryModel.count !== 0) {
+                            var currentIteratorPage;
+                            // Search through the whole transactionHistoryModel and look for the insertion point.
+                            // The insertion point is found when the result page from the server is less than
+                            //     the page that the current item came from, OR when we've reached the end of the whole model.
+                            for (var i = 0; i < transactionHistoryModel.count; i++) {
+                                currentIteratorPage = transactionHistoryModel.get(i).resultIsFromPage;
+                        
+                                if (currentPage < currentIteratorPage) {
+                                    insertionIndex = i;
+                                    break;
+                                } else if (i === transactionHistoryModel.count - 1) {
+                                    insertionIndex = i + 1;
+                                    break;
+                                }
+                            }
+                        }
+                    
+                        // Go through the results we just got back from the server, setting the "resultIsFromPage"
+                        //     property of those results and adding them to the main model.
+                        for (var i = 0; i < tempTransactionHistoryModel.count; i++) {
+                            tempTransactionHistoryModel.setProperty(i, "resultIsFromPage", currentPage);
+                            transactionHistoryModel.insert(i + insertionIndex, tempTransactionHistoryModel.get(i))
+                        }
+
+                        calculatePendingAndInvalidated();
+                    }
                 }
             }
-            refreshTimer.start();
+
+            // Only auto-refresh if the user hasn't scrolled
+            // and there is more data to grab
+            if (transactionHistory.atYBeginning && !root.noMoreHistoryData) {
+                refreshTimer.start();
+            }
         }
     }
 
@@ -131,16 +201,6 @@ Item {
             color: hifi.colors.white;
             // Alignment
             verticalAlignment: Text.AlignVCenter;
-
-            onVisibleChanged: {
-                if (visible) {
-                    historyReceived = false;
-                    Commerce.balance();
-                    Commerce.history();
-                } else {
-                    refreshTimer.stop();
-                }
-            }
         }
 
         // "balance" text below field
@@ -164,9 +224,12 @@ Item {
         id: refreshTimer;
         interval: 4000;
         onTriggered: {
-            console.log("Refreshing Wallet Home...");
-            Commerce.balance();
-            Commerce.history();
+            if (transactionHistory.atYBeginning) {
+                console.log("Refreshing 1st Page of Recent Activity...");
+                root.historyRequestPending = true;
+                Commerce.balance();
+                Commerce.history(1);
+            }
         }
     }
 
@@ -197,14 +260,36 @@ Item {
             anchors.topMargin: 26;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
-            anchors.right: parent.right;
-            anchors.rightMargin: 30;
+            width: paintedWidth;
             height: 30;
             // Text size
             size: 22;
             // Style
             color: hifi.colors.baseGrayHighlight;
         }
+
+        RalewaySemiBold {
+            id: myPurchasesLink;
+            text: '<font color="#0093C5"><a href="#myPurchases">My Purchases</a></font>';
+            // Anchors
+            anchors.top: parent.top;
+            anchors.topMargin: 26;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            width: paintedWidth;
+            height: 30;
+            y: 4;
+            // Text size
+            size: 18;
+            // Style
+            color: hifi.colors.baseGrayHighlight;
+            horizontalAlignment: Text.AlignRight;
+
+            onLinkActivated: {
+                sendSignalToWallet({method: 'goToPurchases_fromWalletHome'});
+            }
+        }
+
         ListModel {
             id: tempTransactionHistoryModel;
         }
@@ -219,7 +304,7 @@ Item {
             anchors.right: parent.right;
 
             Item {
-                visible: transactionHistoryModel.count === 0 && root.historyReceived;
+                visible: transactionHistoryModel.count === 0 && root.initialHistoryReceived;
                 anchors.centerIn: parent;
                 width: parent.width - 12;
                 height: parent.height;
@@ -297,8 +382,8 @@ Item {
                         height: visible ? parent.height : 0;
 
                         AnonymousProRegular {
-                            id: dateText;
-                            text: model.created_at ? getFormattedDate(model.created_at * 1000) : "";
+                            id: hfcText;
+                            text: model.hfc_text || '';
                             // Style
                             size: 18;
                             anchors.left: parent.left;
@@ -306,7 +391,6 @@ Item {
                             anchors.topMargin: 15;
                             width: 118;
                             height: paintedHeight;
-                            color: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
@@ -314,20 +398,25 @@ Item {
 
                         AnonymousProRegular {
                             id: transactionText;
-                            text: model.text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.text) : model.text) : "";
+                            text: model.transaction_text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.transaction_text) : model.transaction_text) : "";
                             size: 18;
                             anchors.top: parent.top;
                             anchors.topMargin: 15;
-                            anchors.left: dateText.right;
+                            anchors.left: hfcText.right;
                             anchors.leftMargin: 20;
                             anchors.right: parent.right;
                             height: paintedHeight;
                             color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
+                            linkColor: hifi.colors.blueAccent;
                             wrapMode: Text.WordWrap;
                             font.strikeout: model.status === "invalidated";
 
                             onLinkActivated: {
-                                sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                if (link.indexOf("users/") !== -1) {
+                                    sendSignalToWallet({method: 'transactionHistory_usernameLinkClicked', usernameLink: link});
+                                } else {
+                                    sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                }
                             }
                         }
 
@@ -342,7 +431,12 @@ Item {
                 onAtYEndChanged: {
                     if (transactionHistory.atYEnd) {
                         console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        // Grab next page of results and append to model
+                        if (!root.historyRequestPending && !root.noMoreHistoryData) {
+                            // Grab next page of results and append to model
+                            root.historyRequestPending = true;
+                            Commerce.history(++root.currentHistoryPage);
+                            console.log("Fetching Page " + root.currentHistoryPage + " of Recent Activity...");
+                        }
                     }
                 }
             }

@@ -68,16 +68,10 @@ void Overlays::cleanupAllOverlays() {
     foreach(Overlay::Pointer overlay, overlaysWorld) {
         _overlaysToDelete.push_back(overlay);
     }
-#if OVERLAY_PANELS
-    _panels.clear();
-#endif
     cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
-#if OVERLAY_PANELS
-    _scriptEngine = new QScriptEngine();
-#endif
 }
 
 void Overlays::update(float deltatime) {
@@ -300,12 +294,6 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 
     if (thisOverlay) {
         OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
-#if OVERLAY_PANELS
-        auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
-        if (attachable && attachable->getParentPanel()) {
-            attachable->getParentPanel()->addChild(cloneId);
-        }
-#endif
         return cloneId;
     }
 
@@ -381,15 +369,6 @@ void Overlays::deleteOverlay(OverlayID id) {
         }
     }
 
-#if OVERLAY_PANELS
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
-    if (attachable && attachable->getParentPanel()) {
-        attachable->getParentPanel()->removeChild(id);
-        attachable->setParentPanel(nullptr);
-    }
-#endif
-
-
     _overlaysToDelete.push_back(overlayToDelete);
     emit overlayDeleted(id);
 }
@@ -423,49 +402,6 @@ QObject* Overlays::getOverlayObject(OverlayID id) {
     }
     return nullptr;
 }
-
-#if OVERLAY_PANELS
-OverlayID Overlays::getParentPanel(OverlayID childId) const {
-    Overlay::Pointer overlay = getOverlay(childId);
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
-    if (attachable) {
-        return _panels.key(attachable->getParentPanel());
-    } else if (_panels.contains(childId)) {
-        return _panels.key(getPanel(childId)->getParentPanel());
-    }
-    return UNKNOWN_OVERLAY_ID;
-}
-
-void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
-    auto attachable = std::dynamic_pointer_cast<PanelAttachable>(getOverlay(childId));
-    if (attachable) {
-        if (_panels.contains(panelId)) {
-            auto panel = getPanel(panelId);
-            panel->addChild(childId);
-            attachable->setParentPanel(panel);
-        } else {
-            auto panel = attachable->getParentPanel();
-            if (panel) {
-                panel->removeChild(childId);
-                attachable->setParentPanel(nullptr);
-            }
-        }
-    } else if (_panels.contains(childId)) {
-        OverlayPanel::Pointer child = getPanel(childId);
-        if (_panels.contains(panelId)) {
-            auto panel = getPanel(panelId);
-            panel->addChild(childId);
-            child->setParentPanel(panel);
-        } else {
-            auto panel = child->getParentPanel();
-            if (panel) {
-                panel->removeChild(childId);
-                child->setParentPanel(0);
-            }
-        }
-    }
-}
-#endif
 
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     if (!_enabled) {
@@ -716,62 +652,6 @@ QSizeF Overlays::textSize(OverlayID id, const QString& text) {
     }
     return QSizeF(0.0f, 0.0f);
 }
-
-#if OVERLAY_PANELS
-OverlayID Overlays::addPanel(OverlayPanel::Pointer panel) {
-    QWriteLocker lock(&_lock);
-
-    OverlayID thisID = QUuid::createUuid();
-    _panels[thisID] = panel;
-
-    return thisID;
-}
-
-OverlayID Overlays::addPanel(const QVariant& properties) {
-    OverlayPanel::Pointer panel = std::make_shared<OverlayPanel>();
-    panel->init(_scriptEngine);
-    panel->setProperties(properties.toMap());
-    return addPanel(panel);
-}
-
-void Overlays::editPanel(OverlayID panelId, const QVariant& properties) {
-    if (_panels.contains(panelId)) {
-        _panels[panelId]->setProperties(properties.toMap());
-    }
-}
-
-OverlayPropertyResult Overlays::getPanelProperty(OverlayID panelId, const QString& property) {
-    OverlayPropertyResult result;
-    if (_panels.contains(panelId)) {
-        OverlayPanel::Pointer thisPanel = getPanel(panelId);
-        QReadLocker lock(&_lock);
-        result.value = thisPanel->getProperty(property);
-    }
-    return result;
-}
-
-
-void Overlays::deletePanel(OverlayID panelId) {
-    OverlayPanel::Pointer panelToDelete;
-
-    {
-        QWriteLocker lock(&_lock);
-        if (_panels.contains(panelId)) {
-            panelToDelete = _panels.take(panelId);
-        } else {
-            return;
-        }
-    }
-
-    while (!panelToDelete->getChildren().isEmpty()) {
-        OverlayID childId = panelToDelete->popLastChild();
-        deleteOverlay(childId);
-        deletePanel(childId);
-    }
-
-    emit panelDeleted(panelId);
-}
-#endif
 
 bool Overlays::isAddedOverlay(OverlayID id) {
     if (QThread::currentThread() != thread()) {

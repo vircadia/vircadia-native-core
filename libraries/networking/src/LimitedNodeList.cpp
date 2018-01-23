@@ -42,7 +42,10 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer,
-    NodeType::AssetServer
+    NodeType::AssetServer,
+    NodeType::EntityServer,
+    NodeType::MessagesMixer,
+    NodeType::EntityScriptServer
 };
 
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
@@ -60,13 +63,6 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _packetStatTimer(),
     _permissions(NodePermissions())
 {
-    static bool firstCall = true;
-    if (firstCall) {
-        NodeType::init();
-
-        firstCall = false;
-    }
-
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
     auto port = (socketListenPort != INVALID_PORT) ? socketListenPort : LIMITED_NODELIST_LOCAL_PORT.get();
     _nodeSocket.bind(QHostAddress::AnyIPv4, port);

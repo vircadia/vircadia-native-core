@@ -261,15 +261,18 @@ HifiEntityUI.prototype = {
     addSection: function (parent, section, properties, index) {
         var self = this;
 
-        var sectionDivHeader = document.createElement("div");
-        var title = document.createElement("label");
+        var sectionDivHeader = document.createElement("fieldset");
+        var title = document.createElement("legend");
         var dropDown = document.createElement("span");
 
         dropDown.className = "arrow";
-        sectionDivHeader.className = "section-header";
+        sectionDivHeader.className = "major";
+        title.className = "section-header";
+        title.id = section + "-section";
         title.innerHTML = section;
+        title.appendChild(dropDown);
         sectionDivHeader.appendChild(title);
-        sectionDivHeader.appendChild(dropDown);
+        
         var collapsed = index !== 0;
 
         dropDown.innerHTML = collapsed ? "L" : "M";
@@ -292,7 +295,7 @@ HifiEntityUI.prototype = {
             }
         }
         sectionDivBody.appendChild(animationWrapper);
-        parent.appendChild(sectionDivBody);
+        sectionDivHeader.appendChild(sectionDivBody);
         _.defer(function () {
             var height = (animationWrapper.clientHeight) + "px";
             if (collapsed) {
@@ -303,7 +306,7 @@ HifiEntityUI.prototype = {
                 sectionDivBody.style.maxHeight = height;
             }
 
-            sectionDivHeader.onclick = function () {
+            title.onclick = function () {
                 collapsed = !collapsed;
                 if (collapsed) {
                     sectionDivBody.classList.remove("visible");
@@ -314,7 +317,7 @@ HifiEntityUI.prototype = {
                 }
                 // sectionDivBody.style.display = collapsed ? "none": "block";
                 dropDown.innerHTML = collapsed ? "L" : "M";
-                sectionDivHeader.setAttribute("collapsed", collapsed);
+                title.setAttribute("collapsed", collapsed);
             };
         });
     },

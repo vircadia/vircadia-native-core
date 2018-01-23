@@ -62,7 +62,8 @@ StackView {
 
         var callback = rpcCalls[message.id];
         if (!callback) {
-            console.log('No callback for message fromScript', JSON.stringify(message));
+            // FIXME: We often recieve very long messages here, the logging of which is drastically slowing down the main thread
+            //console.log('No callback for message fromScript', JSON.stringify(message));
             return;
         }
         delete rpcCalls[message.id];
@@ -72,10 +73,14 @@ StackView {
     Component { id: tabletWebView; TabletWebView {} }
     Component.onCompleted: {
         updateLocationText(false);
-        addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
+        Qt.callLater(function() {
+            addressBarDialog.keyboardEnabled = HMD.active;
+            addressLine.forceActiveFocus();
+        })
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);

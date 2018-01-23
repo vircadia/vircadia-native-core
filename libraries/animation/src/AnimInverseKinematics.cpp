@@ -591,18 +591,30 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 glm::vec3 d = basePose.trans() - topPose.trans();
                 float dLen = glm::length(d);
                 if (dLen > EPSILON) {
+
                     glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
+
+                    // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
+                    // however if mid joint angle is in between the two blend between both solutions.
+                    vec3 u = normalize(basePose.trans() - midPose.trans());
+                    vec3 v = normalize(topPose.trans() - midPose.trans());
+
+                    const float LERP_THRESHOLD = 3.05433f;  // 175 deg
+                    const float BENT_THRESHOLD = 2.96706f;  // 170 deg
+
+                    float jointAngle = acos(dot(u, v));
+                    if (jointAngle < BENT_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        e = normalize(midPose.trans() - midPoint);
+                    } else if (jointAngle < LERP_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        float alpha = (jointAngle - LERP_THRESHOLD) / (BENT_THRESHOLD - LERP_THRESHOLD);
+                        e = lerp(e, normalize(midPose.trans() - midPoint), alpha);
+                    }
+
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
                     float eProjLen = glm::length(eProj);
-
-                    const float MIN_EPROJ_LEN = 0.5f;
-                    if (eProjLen < MIN_EPROJ_LEN) {
-                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
-                        e = midPose.trans() - midPoint;
-                        eProj = e - glm::dot(e, dUnit) * dUnit;
-                        eProjLen = glm::length(eProj);
-                    }
 
                     glm::vec3 p = target.getPoleVector();
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
@@ -634,16 +646,27 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
                     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
-                    glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
-                    glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
-                    float eProjLen = glm::length(eProj);
-                    const float MIN_EPROJ_LEN = 0.5f;
-                    if (eProjLen < MIN_EPROJ_LEN) {
+
+                    // if mid joint is straight use the reference vector to compute eProj, otherwise use reference vector.
+                    // however if mid joint angle is in between the two blend between both solutions.
+                    vec3 u = normalize(basePose.trans() - midPose.trans());
+                    vec3 v = normalize(topPose.trans() - midPose.trans());
+
+                    const float LERP_THRESHOLD = 3.05433f;  // 175 deg
+                    const float BENT_THRESHOLD = 2.96706f;  // 170 deg
+
+                    float jointAngle = acos(dot(u, v));
+                    glm::vec4 eColor = RED;
+                    if (jointAngle < BENT_THRESHOLD) {
                         glm::vec3 midPoint = topPose.trans() + d * 0.5f;
-                        e = midPose.trans() - midPoint;
-                        eProj = e - glm::dot(e, dUnit) * dUnit;
-                        eProjLen = glm::length(eProj);
+                        e = normalize(midPose.trans() - midPoint);
+                        eColor = GREEN;
+                    } else if (jointAngle < LERP_THRESHOLD) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        float alpha = (jointAngle - LERP_THRESHOLD) / (BENT_THRESHOLD - LERP_THRESHOLD);
+                        e = lerp(e, normalize(midPose.trans() - midPoint), alpha);
+                        eColor = YELLOW;
                     }
 
                     glm::vec3 p = target.getPoleVector();
@@ -655,7 +678,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                                                      YELLOW);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(e)),
-                                                     RED);
+                                                     eColor);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(p)),
                                                      BLUE);
@@ -1232,7 +1255,7 @@ void AnimInverseKinematics::initConstraints() {
     //                     /       /
     //                 O--O    O--O
 
-    loadDefaultPoses(_skeleton->getRelativeBindPoses());
+    loadDefaultPoses(_skeleton->getRelativeDefaultPoses());
 
     int numJoints = (int)_defaultRelativePoses.size();
 

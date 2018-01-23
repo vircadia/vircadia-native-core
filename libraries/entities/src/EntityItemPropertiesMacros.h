@@ -367,7 +367,7 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         }                                                                \
     }
 
-#define COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(P, S)               \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)               \
     QScriptValue P = object.property(#P);                         \
     if (P.isValid()) {                                            \
         QString newValue = P.toVariant().toString();              \

@@ -106,11 +106,11 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
             break;
         case entity::Shape::Circle:
             // Circle is implicitly flat so we enforce flat dimensions
-            setDimensions(getDimensions());
+            setUnscaledDimensions(getUnscaledDimensions());
             break;
         case entity::Shape::Quad:
             // Quad is implicitly flat so we enforce flat dimensions
-            setDimensions(getDimensions());
+            setUnscaledDimensions(getUnscaledDimensions());
             break;
         default:
             _type = EntityTypes::Shape;
@@ -204,15 +204,15 @@ void ShapeEntityItem::setColor(const QColor& value) {
     setAlpha(value.alpha());
 }
 
-void ShapeEntityItem::setDimensions(const glm::vec3& value) {
+void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
-	if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
+    if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
         // enforce flatness in Y
         glm::vec3 newDimensions = value;
         newDimensions.y = MAX_FLAT_DIMENSION;
-        EntityItem::setDimensions(newDimensions);
-	} else {
-        EntityItem::setDimensions(value);
+        EntityItem::setUnscaledDimensions(newDimensions);
+    } else {
+        EntityItem::setUnscaledDimensions(value);
     }
 }
 
@@ -256,7 +256,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "           position:" << debugTreeVector(getWorldPosition());
-    qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
+    qCDebug(entities) << "         dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
@@ -266,7 +266,7 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
     // is set.
 
-    const glm::vec3 entityDimensions = getDimensions();
+    const glm::vec3 entityDimensions = getScaledDimensions();
 
     switch (_shape){
         case entity::Shape::Quad:

@@ -68,10 +68,11 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     auto lightStage = context->_scene->getStage<LightStage>();
     assert(lightStage);
     
-    lightStage->_currentFrame.pushSunLight(0);
-    lightStage->_currentFrame.pushAmbientLight(0);
+    lightStage->_currentFrame.pushSunLight(lightStage->getDefaultLight());
+    lightStage->_currentFrame.pushAmbientLight(lightStage->getDefaultLight());
 
     backgroundStage->_currentFrame.pushBackground(0);
+    hazeStage->_currentFrame.pushHaze(0);
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
@@ -144,14 +145,14 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
     auto deferredTransform = inputs;
 
     auto lightStage = context->_scene->getStage<LightStage>(LightStage::getName());
-    std::vector<model::LightPointer> keyLightStack;
+    std::vector<graphics::LightPointer> keyLightStack;
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         for (auto index : lightStage->_currentFrame._sunLights) {
             keyLightStack.push_back(lightStage->getLight(index));
         }
     }
 
-    std::vector<model::LightPointer> ambientLightStack;
+    std::vector<graphics::LightPointer> ambientLightStack;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
         for (auto index : lightStage->_currentFrame._ambientLights) {
             ambientLightStack.push_back(lightStage->getLight(index));
@@ -159,7 +160,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
     }
 
     auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
-    std::vector<model::SkyboxPointer> skyboxStack;
+    std::vector<graphics::SkyboxPointer> skyboxStack;
     if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
         for (auto index : backgroundStage->_currentFrame._backgrounds) {
             auto background = backgroundStage->getBackground(index);

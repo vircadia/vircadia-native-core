@@ -21,8 +21,8 @@
 
 #include <gpu/Forward.h>
 #include <gpu/Context.h>
-#include <model/Forward.h>
-#include <model/Geometry.h>
+#include <graphics/Forward.h>
+#include <graphics/Geometry.h>
 #include <TextureCache.h>
 #include <PolyVoxEntityItem.h>
 
@@ -104,7 +104,7 @@ public:
     void forEachVoxelValue(const ivec3& voxelSize, std::function<void(const ivec3&, uint8_t)> thunk);
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
-    void setMesh(model::MeshPointer mesh);
+    void setMesh(graphics::MeshPointer mesh);
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
     PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData.get(); }
 
@@ -134,7 +134,7 @@ private:
     // may not match _voxelVolumeSize.
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshReady{ false };
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
 
     ShapeInfo _shapeInfo;
 
@@ -178,7 +178,7 @@ private:
     bool _hasTransitioned{ false };
 #endif
 
-    model::MeshPointer _mesh;
+    graphics::MeshPointer _mesh;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
     glm::mat4 _lastVoxelToWorldMatrix;

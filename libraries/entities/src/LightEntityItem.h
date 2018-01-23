@@ -29,7 +29,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
     virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual bool setSubClassProperties(const EntityItemProperties& properties) override;

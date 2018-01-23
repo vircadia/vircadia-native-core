@@ -37,7 +37,7 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         lightPayload.editBound() = render::Item::Bound();
     }
 
-    glm::vec3 dimensions = entity->getDimensions();
+    glm::vec3 dimensions = entity->getScaledDimensions();
     float largestDiameter = glm::compMax(dimensions);
     light->setMaximumRadius(largestDiameter / 2.0f);
 
@@ -52,9 +52,9 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     float exponent = entity->getExponent();
     float cutoff = glm::radians(entity->getCutoff());
     if (!entity->getIsSpotlight()) {
-        light->setType(model::Light::POINT);
+        light->setType(graphics::Light::POINT);
     } else {
-        light->setType(model::Light::SPOT);
+        light->setType(graphics::Light::SPOT);
 
         light->setSpotAngle(cutoff);
         light->setSpotExponent(exponent);

@@ -72,7 +72,7 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
-// TODO: Move to model::Mesh when Sam's ready
+// TODO: Move to graphics::Mesh when Sam's ready
 bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;
@@ -146,6 +146,59 @@ glm::vec3 parseVec3(const QString& string) {
         value[i] = elements.at(min(i, elements.size() - 1)).trimmed().toFloat();
     }
     return value;
+}
+
+enum RotationOrder {
+    OrderXYZ = 0,
+    OrderXZY,
+    OrderYZX,
+    OrderYXZ,
+    OrderZXY,
+    OrderZYX,
+    OrderSphericXYZ
+};
+
+bool haveReportedUnhandledRotationOrder = false; // Report error only once per FBX file.
+
+glm::vec3 convertRotationToXYZ(int rotationOrder, const glm::vec3& rotation) {
+    // Convert rotation with given rotation order to have order XYZ.
+    if (rotationOrder == OrderXYZ) {
+        return rotation;
+    }
+
+    glm::quat xyzRotation;
+
+    switch (rotationOrder) {
+        case OrderXZY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))));
+            break;
+        case OrderYZX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderYXZ:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, 0, rotation.z)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderZXY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        case OrderZYX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        default:
+            // FIXME: Handle OrderSphericXYZ.
+            if (!haveReportedUnhandledRotationOrder) {
+                qCDebug(modelformat) << "ERROR: Unhandled rotation order in FBX file:" << rotationOrder;
+                haveReportedUnhandledRotationOrder = true;
+            }
+            return rotation;
+    }
+
+    return glm::degrees(safeEulerAngles(xyzRotation));
 }
 
 QString processID(const QString& id) {
@@ -303,17 +356,97 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
     return blendshape;
 }
 
+using IndexAccessor = std::function<glm::vec3*(const FBXMesh&, int, int, glm::vec3*, glm::vec3&)>;
 
-void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    const glm::vec3& normal = mesh.normals.at(firstIndex);
-    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
-    if (glm::length(bitangent) < EPSILON) {
-        return;
+static void setTangents(const FBXMesh& mesh, const IndexAccessor& vertexAccessor, int firstIndex, int secondIndex,
+                        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents) {
+    glm::vec3 vertex[2];
+    glm::vec3 normal;
+    glm::vec3* tangent = vertexAccessor(mesh, firstIndex, secondIndex, vertex, normal);
+    if (tangent) {
+        glm::vec3 bitangent = glm::cross(normal, vertex[1] - vertex[0]);
+        if (glm::length(bitangent) < EPSILON) {
+            return;
+        }
+        glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+        glm::vec3 normalizedNormal = glm::normalize(normal);
+        *tangent += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
+                                       glm::normalize(bitangent), normalizedNormal);
     }
-    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
-    glm::vec3 normalizedNormal = glm::normalize(normal);
-    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
-        glm::normalize(bitangent), normalizedNormal);
+}
+
+static void createTangents(const FBXMesh& mesh, bool generateFromTexCoords,
+                           const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents,
+                           IndexAccessor accessor) {
+    // if we have a normal map (and texture coordinates), we must compute tangents
+    if (generateFromTexCoords && !mesh.texCoords.isEmpty()) {
+        tangents.resize(vertices.size());
+
+        foreach(const FBXMeshPart& part, mesh.parts) {
+            for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                setTangents(mesh, accessor, part.quadIndices.at(i), part.quadIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 3), part.quadIndices.at(i), vertices, normals, tangents);
+            }
+            // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
+            // This is most likely evidence of a further problem in extractMesh()
+            for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
+                setTangents(mesh, accessor, part.triangleIndices.at(i), part.triangleIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 2), part.triangleIndices.at(i), vertices, normals, tangents);
+            }
+            if ((part.triangleIndices.size() % 3) != 0) {
+                qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+            }
+        }
+    }
+}
+
+static void createMeshTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+    // This is the only workaround I've found to trick the compiler into understanding that mesh.tangents isn't
+    // const in the lambda function.
+    auto& tangents = mesh.tangents;
+    createTangents(mesh, generateFromTexCoords, mesh.vertices, mesh.normals, mesh.tangents, 
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        outVertices[0] = mesh.vertices[firstIndex];
+        outVertices[1] = mesh.vertices[secondIndex];
+        outNormal = mesh.normals[firstIndex];
+        return &(tangents[firstIndex]);
+    });
+}
+
+static void createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape) {
+    // Create lookup to get index in blend shape from vertex index in mesh
+    std::vector<int> reverseIndices;
+    reverseIndices.resize(mesh.vertices.size());
+    std::iota(reverseIndices.begin(), reverseIndices.end(), 0);
+
+    for (int indexInBlendShape = 0; indexInBlendShape < blendShape.indices.size(); ++indexInBlendShape) {
+        auto indexInMesh = blendShape.indices[indexInBlendShape];
+        reverseIndices[indexInMesh] = indexInBlendShape;
+    }
+
+    createTangents(mesh, generateFromTexCoords, blendShape.vertices, blendShape.normals, blendShape.tangents,
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        const auto index1 = reverseIndices[firstIndex];
+        const auto index2 = reverseIndices[secondIndex];
+
+        if (index1 < blendShape.vertices.size()) {
+            outVertices[0] = blendShape.vertices[index1];
+            if (index2 < blendShape.vertices.size()) {
+                outVertices[1] = blendShape.vertices[index2];
+            } else {
+                // Index isn't in the blend shape so return vertex from mesh
+                outVertices[1] = mesh.vertices[secondIndex];
+            }
+            outNormal = blendShape.normals[index1];
+            return &blendShape.tangents[index1];
+        } else {
+            // Index isn't in blend shape so return nullptr
+            return (glm::vec3*)nullptr;
+        }
+    });
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -550,6 +683,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
+    haveReportedUnhandledRotationOrder = false;
     foreach (const FBXNode& child, node.children) {
 
         if (child.name == "FBXHeaderExtension") {
@@ -651,6 +785,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
+                    int rotationOrder = OrderXYZ;  // Default rotation order set in "Definitions" node is assumed to be XYZ.
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot, scaleOffset;
@@ -684,6 +819,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             index = 4;
                         }
                         if (properties) {
+                            static const QVariant ROTATION_ORDER = QByteArray("RotationOrder");
                             static const QVariant GEOMETRIC_TRANSLATION = QByteArray("GeometricTranslation");
                             static const QVariant GEOMETRIC_ROTATION = QByteArray("GeometricRotation");
                             static const QVariant GEOMETRIC_SCALING = QByteArray("GeometricScaling");
@@ -710,6 +846,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     if (childProperty == LCL_TRANSLATION) {
                                         translation = getVec3(property.properties, index);
 
+                                    } else if (childProperty == ROTATION_ORDER) {
+                                        rotationOrder = property.properties.at(index).toInt();
+
                                     } else if (childProperty == ROTATION_OFFSET) {
                                         rotationOffset = getVec3(property.properties, index);
 
@@ -717,13 +856,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                         rotationPivot = getVec3(property.properties, index);
 
                                     } else if (childProperty == PRE_ROTATION) {
-                                        preRotation = getVec3(property.properties, index);
+                                        preRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == LCL_ROTATION) {
-                                        rotation = getVec3(property.properties, index);
+                                        rotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == POST_ROTATION) {
-                                        postRotation = getVec3(property.properties, index);
+                                        postRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == SCALING_PIVOT) {
                                         scalePivot = getVec3(property.properties, index);
@@ -1570,27 +1709,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        // if we have a normal map (and texture coordinates), we must compute tangents
-        if (generateTangents && !extracted.mesh.texCoords.isEmpty()) {
-            extracted.mesh.tangents.resize(extracted.mesh.vertices.size());
-            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
-                for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    setTangents(extracted.mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
-                }
-                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
-                // This is most likely evidence of a further problem in extractMesh()
-                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
-                    setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
-                }
-                if ((part.triangleIndices.size() % 3) != 0){
-                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
-                }
-            }
+        createMeshTangents(extracted.mesh, generateTangents);
+        for (auto& blendShape : extracted.mesh.blendshapes) {
+            createBlendShapeTangents(extracted.mesh, generateTangents, blendShape);
         }
 
         // find the clusters with which the mesh is associated
@@ -1613,6 +1734,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     fbxCluster.jointIndex = 0;
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+                fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
@@ -1727,9 +1849,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 }
                 if (totalWeight > 0.0f) {
                     const float ALMOST_HALF = 0.499f;
-                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                     for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                        extracted.mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
                     }
                 }
             }

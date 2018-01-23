@@ -37,7 +37,7 @@ class AABox;
 class LODManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    
+
 public:
     Q_INVOKABLE void setAutomaticLODAdjust(bool value) { _automaticLODAdjust = value; }
     Q_INVOKABLE bool getAutomaticLODAdjust() const { return _automaticLODAdjust; }
@@ -49,34 +49,56 @@ public:
     Q_INVOKABLE void setHMDLODDecreaseFPS(float value);
     Q_INVOKABLE float getHMDLODDecreaseFPS() const;
     Q_INVOKABLE float getHMDLODIncreaseFPS() const;
-    
+
     // User Tweakable LOD Items
     Q_INVOKABLE QString getLODFeedbackText();
     Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
     Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
-    
+
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
-    
-    Q_INVOKABLE float getLODDecreaseFPS();
-    Q_INVOKABLE float getLODIncreaseFPS();
-    
+
+    Q_INVOKABLE float getLODDecreaseFPS() const;
+    Q_INVOKABLE float getLODIncreaseFPS() const;
+
+    Q_PROPERTY(float presentTime READ getPresentTime)
+    Q_PROPERTY(float engineRunTime READ getEngineRunTime)
+    Q_PROPERTY(float gpuTime READ getGPUTime)
+    Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
+    Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
+    Q_PROPERTY(float lodLevel READ getLODLevel)
+
+    Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
+    Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
+
+    float getPresentTime() const { return _presentTime; }
+    float getEngineRunTime() const { return _engineRunTime; }
+    float getGPUTime() const { return _gpuTime; }
+
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    void autoAdjustLOD(float renderTime, float realTimeDelta);
-    
+    void setRenderTimes(float presentTime, float engineRunTime, float gpuTime);
+    void autoAdjustLOD(float realTimeDelta);
+
     void loadSettings();
     void saveSettings();
     void resetLODAdjust();
-    
+
+    float getAverageRenderTime() const { return _avgRenderTime; };
+    float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
+    float getLODLevel() const;
+
 signals:
     void LODIncreased();
     void LODDecreased();
-    
+
 private:
     LODManager();
-    
+
     bool _automaticLODAdjust = true;
-    float _avgRenderTime { 0.0f };
+    float _presentTime { 0.0f }; // msec
+    float _engineRunTime { 0.0f }; // msec
+    float _gpuTime { 0.0f }; // msec
+    float _avgRenderTime { 0.0f }; // msec
     float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
     float _hmdMaxRenderTime { DEFAULT_HMD_MAX_RENDER_TIME };
 
