@@ -653,16 +653,16 @@ function loaded() {
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
         // Skybox
-        var elZoneSkyboxModeInherit  = document.getElementById("property-zone-skybox-mode-inherit");
+        var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
         var elZoneSkyboxModeDisabled = document.getElementById("property-zone-skybox-mode-disabled");
-        var elZoneSkyboxModeEnabled  = document.getElementById("property-zone-skybox-mode-enabled");
+        var elZoneSkyboxModeEnabled = document.getElementById("property-zone-skybox-mode-enabled");
 
         // Ambient light
         var elCopySkyboxURLToAmbientURL = document.getElementById("copy-skybox-url-to-ambient-url");
 
-        var elZoneAmbientLightModeInherit  = document.getElementById("property-zone-ambient-light-mode-inherit");
+        var elZoneAmbientLightModeInherit = document.getElementById("property-zone-ambient-light-mode-inherit");
         var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
-        var elZoneAmbientLightModeEnabled  = document.getElementById("property-zone-ambient-light-mode-enabled");
+        var elZoneAmbientLightModeEnabled = document.getElementById("property-zone-ambient-light-mode-enabled");
 
         var elZoneAmbientLightIntensity = document.getElementById("property-zone-key-ambient-intensity");
         var elZoneAmbientLightURL = document.getElementById("property-zone-key-ambient-url");
@@ -1013,9 +1013,9 @@ function loaded() {
 
                         } else if (properties.type === "Zone") {
                             // Key light
-                            elZoneKeyLightModeInherit.checked  = (properties.keyLightMode === 'inherit');
+                            elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
-                            elZoneKeyLightModeEnabled.checked  = (properties.keyLightMode === 'enabled');
+                            elZoneKeyLightModeEnabled.checked = (properties.keyLightMode === 'enabled');
 
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
                                                    properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
@@ -1027,14 +1027,14 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
 
                             // Skybox
-                            elZoneSkyboxModeInherit.checked  = (properties.skyboxMode === 'inherit');
+                            elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
                             elZoneSkyboxModeDisabled.checked = (properties.skyboxMode === 'disabled');
-                            elZoneSkyboxModeEnabled.checked  = (properties.skyboxMode === 'enabled');
+                            elZoneSkyboxModeEnabled.checked = (properties.skyboxMode === 'enabled');
 
                             // Ambient light
-                            elZoneAmbientLightModeInherit.checked  = (properties.ambientLightMode === 'inherit');
+                            elZoneAmbientLightModeInherit.checked = (properties.ambientLightMode === 'inherit');
                             elZoneAmbientLightModeDisabled.checked = (properties.ambientLightMode === 'disabled');
-                            elZoneAmbientLightModeEnabled.checked  = (properties.ambientLightMode === 'enabled');
+                            elZoneAmbientLightModeEnabled.checked = (properties.ambientLightMode === 'enabled');
 
                             elZoneAmbientLightIntensity.value = properties.ambientLight.ambientIntensity.toFixed(2);
                             elZoneAmbientLightURL.value = properties.ambientLight.ambientURL;
