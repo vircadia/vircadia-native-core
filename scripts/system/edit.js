@@ -252,7 +252,7 @@ var toolBar = (function () {
             properties.rotation = MyAvatar.orientation;
             
             // added image here
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web"];
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     
                 // Adjust position of entity per bounding box prior to creating it.
@@ -287,7 +287,6 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
-            print("check 1 type: " + properties.type);
             entityID = Entities.addEntity(properties);
 
             if (properties.type === "ParticleEffect") {
@@ -540,20 +539,21 @@ var toolBar = (function () {
             });
         });
 
-        /*// for image button
-        addButton("newImageButton", "web-01.svg", function () {
-            print("new image message is received");
-            createNewEntity({
-                type: "Image",
-                dimensions: DEFAULT_DIMENSIONS,
-                imageURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg"
-            });
-        });*/
         addButton("newImageButton", "web-01.svg", function () {
             createNewEntity({
                 type: "Model",
-                dimensions: DEFAULT_DIMENSIONS,
+                // make constant for this later
+                dimensions: {
+                    x: 4.16,
+                    y: 0.02,
+                    z: 2.58
+                },
                 modelURL: "http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx",
+                imageURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg",
+                // will this work?
+                /*get textures() {
+                    return JSON.stringify({ "tex.picture": this.imageURL });
+                }*/
                 textures: JSON.stringify({ "tex.picture": "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg" })
             });
         });
