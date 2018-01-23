@@ -14,8 +14,11 @@
 
 #include <QDebug>
 
+#include "GPULogging.h"
+
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"
+
 
 ProfileRangeBatch::ProfileRangeBatch(gpu::Batch& batch, const char *name) : _batch(batch) {
     _batch.pushProfileRange(name);
@@ -29,6 +32,11 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 #define ADD_COMMAND(call) _commands.emplace_back(COMMAND_##call); _commandOffsets.emplace_back(_params.size());
 
 using namespace gpu;
+
+// FIXME make these backend / pipeline dependent.
+static const int MAX_NUM_UNIFORM_BUFFERS = 12;
+static const int MAX_NUM_RESOURCE_BUFFERS = 16;
+static const int MAX_NUM_RESOURCE_TEXTURES = 16;
 
 size_t Batch::_commandsMax { BATCH_PREALLOCATE_MIN };
 size_t Batch::_commandOffsetsMax { BATCH_PREALLOCATE_MIN };
@@ -281,7 +289,9 @@ void Batch::setStateScissorRect(const Vec4i& rect) {
 
 void Batch::setUniformBuffer(uint32 slot, const BufferPointer& buffer, Offset offset, Offset size) {
     ADD_COMMAND(setUniformBuffer);
-
+    if (slot >= MAX_NUM_UNIFORM_BUFFERS) {
+        qCWarning(gpulogging) << "Slot" << slot << "exceeds max uniform buffer count of" << MAX_NUM_UNIFORM_BUFFERS;
+    }
     _params.emplace_back(size);
     _params.emplace_back(offset);
     _params.emplace_back(_buffers.cache(buffer));
@@ -294,6 +304,9 @@ void Batch::setUniformBuffer(uint32 slot, const BufferView& view) {
 
 void Batch::setResourceBuffer(uint32 slot, const BufferPointer& buffer) {
     ADD_COMMAND(setResourceBuffer);
+    if (slot >= MAX_NUM_RESOURCE_BUFFERS) {
+        qCWarning(gpulogging) << "Slot" << slot << "exceeds max resources buffer count of" << MAX_NUM_RESOURCE_BUFFERS;
+    }
 
     _params.emplace_back(_buffers.cache(buffer));
     _params.emplace_back(slot);
@@ -301,6 +314,10 @@ void Batch::setResourceBuffer(uint32 slot, const BufferPointer& buffer) {
 
 void Batch::setResourceTexture(uint32 slot, const TexturePointer& texture) {
     ADD_COMMAND(setResourceTexture);
+
+    if (slot >= MAX_NUM_RESOURCE_TEXTURES) {
+        qCWarning(gpulogging) << "Slot" << slot << "exceeds max texture count of" << MAX_NUM_RESOURCE_TEXTURES;
+    }
 
     _params.emplace_back(_textures.cache(texture));
     _params.emplace_back(slot);

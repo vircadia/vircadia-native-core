@@ -1,0 +1,15 @@
+{
+    "name": "TouchscreenVirtualPad to Actions",
+    "channels": [
+       { "from": "TouchscreenVirtualPad.LY", "when": "Application.CameraFirstPerson", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateZ" },
+        { "from": "TouchscreenVirtualPad.LX", "when": "Application.CameraFirstPerson", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.TranslateX" },
+
+
+        { "from": "TouchscreenVirtualPad.RX",  "when": "Application.CameraFirstPerson", "filters": { "type": "deadZone", "min": 0.05 }, "to": "Actions.Yaw" },
+
+        { "from": "TouchscreenVirtualPad.RY",
+          "when": "Application.CameraFirstPerson",
+          "to": "Actions.Pitch"
+        }
+    ]
+}
