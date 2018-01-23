@@ -305,6 +305,14 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different 
     "${RESOURCES_RCC}" 
     "$<TARGET_FILE_DIR:interface>"
+    # FIXME, the edit script code loads HTML from the scripts folder
+    # which in turn relies on CSS that refers to the fonts.  In theory
+    # we should be able to modify the CSS to reference the QRC path to 
+    # the ttf files, but doing so generates a CORS policy violation, 
+    # so we have to retain a copy of the fonts outside of the resources binary
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${PROJECT_SOURCE_DIR}/resources/fonts"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"

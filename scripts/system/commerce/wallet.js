@@ -593,10 +593,16 @@
                 getConnectionData(false);
                 break;
             case 'enable_ChooseRecipientNearbyMode':
-                Script.update.connect(updateOverlays);
+                if (!isUpdateOverlaysWired) {
+                    Script.update.connect(updateOverlays);
+                    isUpdateOverlaysWired = true;
+                }
                 break;
             case 'disable_ChooseRecipientNearbyMode':
-                Script.update.disconnect(updateOverlays);
+                if (isUpdateOverlaysWired) {
+                    Script.update.disconnect(updateOverlays);
+                    isUpdateOverlaysWired = false;
+                }
                 removeOverlays();
                 break;
             default:
@@ -681,13 +687,17 @@
         }
     }
     var isWired = false;
+    var isUpdateOverlaysWired = false;
     function off() {
         if (isWired) { // It is not ok to disconnect these twice, hence guard.
             Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-            Script.update.disconnect(updateOverlays);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
             isWired = false;
+        }
+        if (isUpdateOverlaysWired) {
+            Script.update.disconnect(updateOverlays);
+            isUpdateOverlaysWired = false;
         }
         triggerMapping.disable(); // It's ok if we disable twice.
         triggerPressMapping.disable(); // see above

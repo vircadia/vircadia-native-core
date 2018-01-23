@@ -16,10 +16,9 @@ import "controls-uit" as HifiControls
 Item {
     id: root
     width: parent.width
-    height: parent.height   
+    height: parent.height
 
     property var hideQtMethods: true
-    
     property var maxUpdateValues: 20
     property var maxReloadValues: 200
     property var apiMembers: []
@@ -30,7 +29,7 @@ Item {
     property Component keyboard
     
     Rectangle {
-        color: "white"
+        color: hifi.colors.baseGray
         width: parent.width
         height: parent.height
     }
@@ -51,32 +50,22 @@ Item {
     Row {
         id: topBar
         anchors.left: parent.left
-        anchors.leftMargin: 8
+        anchors.leftMargin: 30
+        anchors.top: parent.top
+        anchors.topMargin: 30
         width: parent.width
-        height: 50
-        HifiControls.GlyphButton {
-            id: search
-            enabled: true
-            glyph: hifi.glyphs.search
-            color: hifi.colors.text
-            size: 48
-            width: 50
-            height: 50
-            onClicked: {
-                addListElements(searchBar.text);
-                focus = true;
-            } 
-        }
+        height: 40
 
         HifiControls.GlyphButton {
             id: back;
             enabled: true;
+            color: hifi.buttons.black
             glyph: hifi.glyphs.backward
-            color: hifi.colors.text
-            size: 48
-            width: 30
-            height: 50
-            anchors.margins: 2
+            size: 40
+            width: 40
+            height: 40
+            anchors.left: search.right
+            anchors.leftMargin: 12
             onClicked: {
                 var text = searchBar.text;
                 var chain = text.split(".");
@@ -99,17 +88,20 @@ Item {
             }
         }
 
-        TextField {
-            id: searchBar            
+        HifiControls.TextField {
+            id: searchBar
             focus: true
-            font.pixelSize: 16
-            width: 2*(parent.width-back.width-search.width-reload.width-update.width-evaluate.width-addMember.width-16)/3
-            height: parent.height
-            font.family: ralewayRegular.name
+            isSearchField: true
+            width: parent.width - 112
+            height: 40
+            colorScheme: hifi.colorSchemes.dark
+            anchors.left: back.right
+            anchors.leftMargin: 10
+            font.family: firaSansSemiBold.name
             placeholderText: "Search"
             onAccepted: {
                 console.log("Enter Pressed");
-                search.clicked();
+                addListElements(searchBar.text);
             }
             onActiveFocusChanged: {
                 if (activeFocus && HMD.mounted) {
@@ -119,15 +111,27 @@ Item {
                 }
             }
 
-        }        
+        }
+    }
 
-        HifiControls.Button {
+    Row {
+        id: topBar2
+        anchors.left: parent.left
+        anchors.leftMargin: 30
+        anchors.top: topBar.bottom
+        anchors.topMargin: 30
+        width: parent.width -60
+        height: 40
+
+        HifiControls.GlyphButton {
             id: addMember;
             enabled: true;
-            text: "+"
-            width: 50
-            height: 50
-            anchors.margins: 2
+            color: hifi.buttons.black
+            glyph: hifi.glyphs.maximize
+            width: 40
+            height: 40
+            anchors.top: parent.top
+            anchors.left: parent.left
             onClicked: {
                 addNewMember();
                 updateList.start();
@@ -138,36 +142,48 @@ Item {
         HifiControls.Button {
             id: evaluate;
             enabled: true;
+            color: hifi.buttons.black
             text: "Eval"
-            width: 50
-            height: 50
-            anchors.margins: 2
+            width: 40
+            height: 40
+            anchors.left: addMember.right
+            anchors.leftMargin: 12
             onClicked: {
                 evaluateMember();
                 focus = true;
             } 
         }
-        TextField {
-            id: valueBar            
-            focus: true
+
+        HifiControls.TextField {
+            id: valueBar
+            isSearchField: false
             font.pixelSize: 16
-            width: (parent.width-back.width-search.width-reload.width-update.width-evaluate.width-addMember.width-16)/3
-            height: parent.height
-            font.family: ralewayRegular.name
+            width: parent.width - 208
+            height: 40
+            colorScheme: hifi.colorSchemes.dark
+            font.family: firaSansSemiBold.name
             placeholderText: "Value"
-            textColor: "#4466DD"
-            anchors.margins: 2
+            anchors.left: evaluate.right
+            anchors.leftMargin: 12
+            onActiveFocusChanged: {
+                if (activeFocus && HMD.mounted) {
+                    keyboard.raised = true;
+                } else {
+                    keyboard.raised = false;
+                }
+            }
         }
 
         HifiControls.GlyphButton {
             id: reload;
             enabled: false;
+            color: hifi.buttons.black
             glyph: hifi.glyphs.reload
-            color: hifi.colors.text
-            size: 48
-            width: 50
-            height: 50
-            anchors.margins: 2
+            size: 40
+            width: 40
+            height: 40
+            anchors.right: update.left
+            anchors.rightMargin: 12
             onClicked: {
                 reloadListValues();
                 focus = true;
@@ -177,11 +193,12 @@ Item {
         HifiControls.GlyphButton {
             id: update;
             enabled: false;
+            color: hifi.buttons.black
             glyph: hifi.glyphs.playback_play
-            size: 48
-            width: 50
-            height: 50
-            anchors.margins: 2
+            size: 40
+            width: 40
+            height: 40
+            anchors.right: parent.right
             onClicked: {
                 if (isReloading) {
                     update.glyph = hifi.glyphs.playback_play
@@ -196,71 +213,104 @@ Item {
             } 
         }
     }
- 
-    ListModel {
-        id: memberModel
-    }
 
-    Component {
-        id: memberDelegate
-        
-        Row {
-            id: memberRow
-            property var isMainKey: apiType === "class";
-            spacing: 10
-            Rectangle {
-                width: isMainKey ? 20 : 40;
-                height: parent.height 
-            }
-            
-            RalewayRegular { 
-                text: apiMember
-                size: !isMainKey ? 16 : 22
-                MouseArea {
-                    width: list.width
-                    height: parent.height
-                    onClicked: {
-                        searchBar.text = apiType=="function()" ? apiMember + "()" : apiMember;
-                        valueBar.text = !apiValue ? "" : apiValue;
-                        list.currentIndex = index;
-                        evaluatingIdx = index;
-                    }
-                    onDoubleClicked: {
-                        if (apiType === "class") {
-                            addListElements(apiMember+".");
-                        } else {
-                            isolateElement(evaluatingIdx);
-                        }
-                        
-                    }
-                }
-            }
-            
-
-            RalewayRegular { 
-                text: apiType
-                size: 14
-                color: hifi.colors.baseGrayHighlight
-            }
-
-            RalewayRegular { 
-                text: !apiValue ? "" : apiValue;
-                size: 16
-                color: "#4466DD"
-            }
-        }
-    }
-
-   
     Rectangle {
         id: membersBackground
         anchors {
-            left: parent.left; right: parent.right; top: topBar.bottom; bottom: parent.bottom;
-            margins: hifi.dimensions.contentMargin.x
-            bottomMargin: hifi.dimensions.contentSpacing.y + 40
+            left: parent.left; right: parent.right; top: topBar2.bottom; bottom: bottomBar.top;
+            margins: 30
         }
-        color: "white"
-        radius: 4
+        color: hifi.colors.tableBackgroundDark
+        border.color: hifi.colors.lightGray
+        border.width: 2
+        radius: 5
+
+        ListModel {
+            id: memberModel
+        }
+
+        Component {
+            id: memberDelegate
+            Item {
+                id: item
+                width: parent.width
+                anchors.left: parent.left
+                height: 26
+                clip: true
+
+                Rectangle {
+                    width: parent.width
+                    height: parent.height
+                    color: index % 2 == 0 ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Row {
+                        id: memberRow
+                        anchors.bottom: parent.bottom
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 10
+
+                        FiraSansSemiBold {
+                            property var isMainKey: apiType === "class";
+                            text: apiMember
+                            size: isMainKey ? 17 : 15
+                            font.bold: true
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: isMainKey ? hifi.colors.faintGray : hifi.colors.lightGrayText
+                            MouseArea {
+                                width: list.width
+                                height: parent.height
+                                onClicked: {
+                                    searchBar.text = apiType=="function()" ? apiMember + "()" : apiMember;
+                                    valueBar.text = !apiValue ? "" : apiValue;
+                                    list.currentIndex = index;
+                                    evaluatingIdx = index;
+                                }
+                                onDoubleClicked: {
+                                    if (apiType === "class") {
+                                        addListElements(apiMember+".");
+                                    } else {
+                                        isolateElement(evaluatingIdx);
+                                    }
+                                }
+                            }
+                        }
+
+                        FiraSansRegular {
+                            text: apiType
+                            anchors.left: apiMember.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            size: 13
+                            color: hifi.colors.lightGrayText
+                        }
+
+                        FiraSansRegular {
+                            text: !apiValue ? "" : apiValue;
+                            anchors.left: apiType.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            size: 14
+                            color: hifi.colors.primaryHighlight
+                        }
+                    }
+                }
+            }
+        }
+
+        Component {
+            id: highlight
+            Rectangle {
+                anchors {
+                    left: list.left
+                    right: scrollBar.left
+                    leftMargin: 2
+                    rightMargin: 2
+                }
+                color: hifi.colors.primaryHighlight
+                radius: 4
+                z: 10
+                opacity: 0.5
+            }
+        }
 
         ListView {
             id: list
@@ -269,23 +319,16 @@ Item {
                 left: parent.left
                 right: scrollBar.left
                 bottom: parent.bottom
-                margins: 4
+                topMargin: 2
+                leftMargin: 2
+                bottomMargin: 2
             }
             clip: true
             cacheBuffer: 4000
             model: memberModel
             delegate: memberDelegate
             highlightMoveDuration: 0
-
-            highlight: Rectangle {
-                anchors {
-                    left: parent ? parent.left : undefined
-                    right: parent ? parent.right : undefined
-                    leftMargin: hifi.dimensions.borderWidth
-                    rightMargin: hifi.dimensions.borderWidth
-                }
-                color: "#BBDDFF"
-            }
+            highlight: highlight
             onMovementStarted: {
                 scrollSlider.manual = true;
             }
@@ -310,12 +353,11 @@ Item {
                 top: parent.top
                 right: parent.right
                 bottom: parent.bottom
-                topMargin: 4
-                bottomMargin: 4
+                margins: 2
             }
-            width: scrolling ? 18 : 0
-            radius: 4
-            color: hifi.colors.baseGrayShadow
+            width: 22
+            height: parent.height - 4
+            color: hifi.colors.tableScrollBackgroundDark
 
             MouseArea {
                 anchors.fill: parent
@@ -344,14 +386,12 @@ Item {
                     y = index*(scrollBar.height - scrollSlider.height)/(list.count - 1);
                 }
 
-                anchors {
-                    right: parent.right
-                    rightMargin: 3
-                }
-                width: 12
-                height: (list.height / list.contentHeight) * list.height
-                radius: width / 4
-                color: "white"
+                anchors.right: parent.right
+                anchors.margins: 2
+                width: 18
+                height: ((list.height / list.contentHeight) * list.height) < 15 ? 15 : (list.height / list.contentHeight) * list.height
+                radius: 5
+                color: hifi.colors.tableScrollHandleDark
 
                 visible: scrollBar.scrolling;
 
@@ -373,66 +413,75 @@ Item {
             }
         }
     }
-    
-    HifiControls.GlyphButton {
-        id: clipboard;
-        enabled: true;
-        glyph: hifi.glyphs.scriptNew
-        size: 38
-        width: 50
-        height: 50
+
+    Row {
+        id: bottomBar
         anchors.left: parent.left
+        anchors.leftMargin: 30
         anchors.bottom: parent.bottom
-        anchors.margins: 2
-        anchors.leftMargin: 8
-        onClicked: {
-            var buffer = "";
-            for (var i = 0; i < memberModel.count; i++) {
-                var datarow = memberModel.get(i);
-                buffer += "\n" + datarow.apiMember + "    " + datarow.apiType + "    " + datarow.apiValue;
-            }
-            Window.copyToClipboard(buffer);
-            focus = true;
-        } 
-    }
-    
-    HifiControls.Button {
-        id: debug;
-        enabled: true;
-        text: "Debug Script"
-        width: 120
-        height: 50
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 2
-        anchors.rightMargin: 8
-        onClicked: {
-            sendToScript({type: "selectScript"});
-        } 
-    }
+        anchors.bottomMargin: 30
+        width: parent.width
+        height: 40
 
-    HifiControls.CheckBox {
-        id: hideQt
-        boxSize: 25
-        boxRadius: 3
-        checked: true
-        anchors.left: clipboard.right
-        anchors.leftMargin: 8
-        anchors.verticalCenter: clipboard.verticalCenter
-        anchors.margins: 2
-        onClicked: {
-            hideQtMethods = checked;
-            addListElements();
+        HifiControls.GlyphButton {
+            id: clipboard;
+            enabled: true;
+            color: hifi.buttons.black
+            glyph: hifi.glyphs.scriptNew
+            size: 25
+            width: 40
+            height: 40
+            anchors.left: parent.left
+            onClicked: {
+                var buffer = "";
+                for (var i = 0; i < memberModel.count; i++) {
+                    var datarow = memberModel.get(i);
+                    buffer += "\n" + datarow.apiMember + "    " + datarow.apiType + "    " + datarow.apiValue;
+                }
+                Window.copyToClipboard(buffer);
+                focus = true;
+            } 
         }
-    }
 
-    HifiControls.Label {
-        id: hideLabel
-        anchors.left: hideQt.right
-        anchors.verticalCenter: clipboard.verticalCenter
-        anchors.margins: 2
-        font.pixelSize: 15
-        text: "Hide Qt Methods"
+        HifiControls.CheckBox {
+            id: hideQt
+            colorScheme: hifi.checkbox.dark
+            boxSize: 25
+            boxRadius: 3
+            checked: true
+            anchors.left: clipboard.right
+            anchors.leftMargin: 10
+            anchors.verticalCenter: clipboard.verticalCenter
+            onClicked: {
+                hideQtMethods = checked;
+                addListElements();
+            }
+        }
+
+        HifiControls.Label {
+            id: hideLabel
+            anchors.left: hideQt.right
+            anchors.verticalCenter: clipboard.verticalCenter
+            anchors.margins: 2
+            font.pixelSize: 15
+            text: "Hide Qt Methods"
+        }
+    
+        HifiControls.Button {
+            id: debug;
+            enabled: true;
+            color: hifi.buttons.black
+            text: "Debug Script"
+            width: 120
+            height: 40
+            anchors.right: parent.right
+            anchors.rightMargin: 60
+            anchors.bottom: parent.bottom
+        
+            onClicked: {
+                sendToScript({type: "selectScript"});
+            } 
+        } 
     }
 
     HifiControls.Keyboard {

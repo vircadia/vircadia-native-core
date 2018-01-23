@@ -44,7 +44,7 @@ OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
     QVariantMap overlayProperties;
     // TODO: make these configurable per pointer
     overlayProperties["name"] = "stylus";
-    overlayProperties["url"] = PathUtils::resourcesPath() + "/meshes/tablet-stylus-fat.fbx";
+    overlayProperties["url"] = PathUtils::resourcesUrl() + "/meshes/tablet-stylus-fat.fbx";
     overlayProperties["loadPriority"] = 10.0f;
     overlayProperties["solid"] = true;
     overlayProperties["visible"] = false;
