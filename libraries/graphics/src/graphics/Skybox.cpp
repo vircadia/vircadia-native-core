@@ -89,12 +89,14 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             auto skyFS = gpu::Shader::createPixel(std::string(skybox_frag));
             auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
 
-            gpu::Shader::BindingSet bindings;
-            bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
-            bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-            if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
+            batch.runLambda([skyShader] {
+                gpu::Shader::BindingSet bindings;
+                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
+                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
+                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
 
-            }
+                }
+            });
 
             auto skyState = std::make_shared<gpu::State>();
             // Must match PrepareStencil::STENCIL_BACKGROUND

@@ -114,7 +114,7 @@ AvatarData::~AvatarData() {
 QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the AvatarInfo, every file would have it's own copy, even for class vars.
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
-        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");
+        _defaultFullAvatarModelUrl = PathUtils::resourcesUrl("/meshes/defaultAvatar_full.fst");
     }
     return _defaultFullAvatarModelUrl;
 }
@@ -308,7 +308,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
         (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
-        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0);
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
+        (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
