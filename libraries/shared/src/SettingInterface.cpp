@@ -26,7 +26,7 @@ namespace Setting {
     static QSharedPointer<Manager> globalManager;
 
     // cleans up the settings private instance. Should only be run once at closing down.
-    static void cleanupPrivateInstance() {
+    void cleanupPrivateInstance() {
         // grab the thread before we nuke the instance
         QThread* settingsManagerThread = DependencyManager::get<Manager>()->thread();
 
@@ -41,7 +41,7 @@ namespace Setting {
         settingsManagerThread->wait();
     }
 
-    static void setupPrivateInstance() {
+    void setupPrivateInstance() {
         // Let's set up the settings Private instance on its own thread
         QThread* thread = new QThread();
         Q_CHECK_PTR(thread);
