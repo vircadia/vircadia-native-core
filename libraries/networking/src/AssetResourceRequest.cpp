@@ -146,7 +146,7 @@ void AssetResourceRequest::requestHash(const AssetUtils::AssetHash& hash) {
     _assetRequest = assetClient->createRequest(hash, _byteRange);
 
     connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::onDownloadProgress);
-    connect(_assetRequest, &AssetRequest::finished, this, [this, hash](AssetRequest* req) {
+    connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(req == _assetRequest);
         Q_ASSERT(req->getState() == AssetRequest::Finished);
