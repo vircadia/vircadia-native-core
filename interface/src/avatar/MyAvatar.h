@@ -730,7 +730,7 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
-    void initAnimGraph();
+    void initAnimGraph(bool updateBodySensorMat = true);
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

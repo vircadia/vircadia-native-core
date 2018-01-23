@@ -1790,7 +1790,7 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
     updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
 }
 
-void MyAvatar::initAnimGraph() {
+void MyAvatar::initAnimGraph(bool updateBodySensorMat) {
     QUrl graphUrl;
     if (!_prefOverrideAnimGraphUrl.get().isEmpty()) {
         graphUrl = _prefOverrideAnimGraphUrl.get();
@@ -1803,8 +1803,10 @@ void MyAvatar::initAnimGraph() {
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
 
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    if (updateBodySensorMat) {
+        _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+        updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    }
 }
 
 void MyAvatar::destroyAnimGraph() {
@@ -1819,7 +1821,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-        initAnimGraph();
+        initAnimGraph(false);
         _isAnimatingScale = true;
     }
 
