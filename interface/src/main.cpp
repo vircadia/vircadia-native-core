@@ -64,6 +64,11 @@ int main(int argc, const char* argv[]) {
 
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
+    if (ual) {
+        auto crashHandlerStarted = startCrashHandler();
+        qDebug() << "Crash handler started:" << crashHandlerStarted;
+    }
+
     QStringList arguments;
     for (int i = 0; i < argc; ++i) {
         arguments << argv[i];
