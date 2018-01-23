@@ -64,12 +64,6 @@ bool Pointer::isMouse() const {
     return DependencyManager::get<PickManager>()->isMouse(_pickUID);
 }
 
-void Pointer::setDoesHover(bool doesHover) {
-    withWriteLock([&] {
-        _hover = doesHover;
-    });
-}
-
 void Pointer::update(unsigned int pointerID) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
@@ -101,8 +95,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // Hover events
-    bool doHover = _hover && shouldHover(pickResult);
-
+    bool doHover = shouldHover(pickResult);
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
     hoveredEvent.setType(PointerEvent::Move);
@@ -111,7 +104,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     hoveredEvent.setMoveOnHoverLeave(moveOnHoverLeave);
 
     // if shouldHover && !_prevDoHover, only send hoverBegin
-    if (_enabled && doHover && !_prevDoHover) {
+    if (_enabled && _hover && doHover && !_prevDoHover) {
         if (hoveredObject.type == ENTITY) {
             emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
         } else if (hoveredObject.type == OVERLAY) {
@@ -119,7 +112,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
         } else if (hoveredObject.type == HUD) {
             emit pointerManager->hoverBeginHUD(hoveredEvent);
         }
-    } else if (_enabled && doHover) {
+    } else if (_enabled && _hover && doHover) {
         if (hoveredObject.type == OVERLAY) {
             if (_prevHoveredObject.type == OVERLAY) {
                 if (hoveredObject.objectID == _prevHoveredObject.objectID) {
@@ -236,7 +229,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // if we disable the pointer or disable hovering, send hoverEnd events after triggerEnd
-    if ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover)) {
+    if (_hover && ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover))) {
         if (_prevHoveredObject.type == ENTITY) {
             emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
         } else if (_prevHoveredObject.type == OVERLAY) {

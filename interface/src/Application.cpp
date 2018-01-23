@@ -504,7 +504,13 @@ public:
             }
 
             if (message->message == WM_DEVICECHANGE) {
-                Midi::USBchanged();                // re-scan the MIDI bus
+                const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
+                static float lastTriggerTime = 0.0f;
+                const float deltaSeconds = secTimestampNow() - lastTriggerTime;
+                lastTriggerTime = secTimestampNow();
+                if (deltaSeconds > MIN_DELTA_SECONDS) {
+                    Midi::USBchanged();                // re-scan the MIDI bus
+                }
             }
         }
         return false;

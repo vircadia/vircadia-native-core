@@ -29,6 +29,7 @@ Item {
     property string displayName;
     property string userName;
     property string profilePic;
+    property string textColor: hifi.colors.white;
 
     Item {
         visible: root.isDisplayingNearby;
@@ -46,7 +47,7 @@ Item {
             // Text size
             size: 18;
             // Style
-            color: hifi.colors.baseGray;
+            color: root.textColor;
             verticalAlignment: Text.AlignBottom;
             elide: Text.ElideRight;
         }
@@ -63,7 +64,7 @@ Item {
             // Text size
             size: 16;
             // Style
-            color: hifi.colors.baseGray;
+            color: root.textColor;
             verticalAlignment: Text.AlignTop;
             elide: Text.ElideRight;
         }
@@ -108,7 +109,7 @@ Item {
             // Text size
             size: 16;
             // Style
-            color: hifi.colors.baseGray;
+            color: root.textColor;
             verticalAlignment: Text.AlignVCenter;
             elide: Text.ElideRight;
         }
