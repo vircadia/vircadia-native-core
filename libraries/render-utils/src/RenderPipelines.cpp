@@ -106,7 +106,7 @@ using namespace std::placeholders;
 
 void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
-void initForwardPipelines(ShapePlumber& plumber);
+void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -436,12 +436,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
-void initForwardPipelines(render::ShapePlumber& plumber) {
+void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
     auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
     auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
     auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
+    auto skinModelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_fade_vert));
 
     // Pixel shaders
     auto modelPixel = gpu::Shader::createPixel(std::string(forward_model_frag));
@@ -449,38 +450,43 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_map_frag));
     auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_specular_map_frag));
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_specular_map_frag));
+    auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
 
     using Key = render::ShapeKey;
-    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, nullptr, nullptr);
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
     // Opaques
     addPipeline(
         Key::Builder().withMaterial(),
-        modelVertex, modelPixel);
+        modelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
-        modelVertex, modelUnlitPixel);
+        modelVertex, modelUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
-        modelNormalMapVertex, modelNormalMapPixel);
+        modelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSpecular(),
-        modelVertex, modelSpecularMapPixel);
+        modelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents().withSpecular(),
-        modelNormalMapVertex, modelNormalSpecularMapPixel);
+        modelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
     // Skinned
     addPipeline(
         Key::Builder().withMaterial().withSkinned(),
-        skinModelVertex, modelPixel);
+        skinModelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents(),
-        skinModelNormalMapVertex, modelNormalMapPixel);
+        skinModelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withSpecular(),
-        skinModelVertex, modelSpecularMapPixel);
+        skinModelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
-        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
+            skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
+
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
