@@ -41,6 +41,8 @@ endif()
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
 
+find_npm()
+
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
   # Use .cpp and .h files as is.
@@ -297,22 +299,38 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
+  if (NPM_EXECUTABLE)
+    set(EXTRA_COPY_COMMANDS
+      COMMAND "${CMAKE_COMMAND}" -E make_directory
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
+      COMMAND "${CMAKE_COMMAND}" -E copy
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
+    )
+  endif()
+
   # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
-    COMMAND "${CMAKE_COMMAND}" -E copy
-    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
+
+    ${EXTRA_COPY_COMMANDS}
   )
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
 else (APPLE)
+  if (NPM_EXECUTABLE)
+    set(EXTRA_COPY_COMMANDS
+      COMMAND "${CMAKE_COMMAND}" -E make_directory
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
+      COMMAND "${CMAKE_COMMAND}" -E copy
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
+      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
+    )
+  endif()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
@@ -321,11 +339,8 @@ else (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
-    COMMAND "${CMAKE_COMMAND}" -E copy
-    "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
+
+    ${EXTRA_COPY_COMMANDS}
   )
 
   # link target to external libraries
