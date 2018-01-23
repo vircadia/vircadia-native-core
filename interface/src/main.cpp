@@ -57,6 +57,13 @@ int main(int argc, const char* argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
+    Setting::init();
+
+    // Instance UserActivityLogger now that the settings are loaded
+    auto& ual = UserActivityLogger::getInstance();
+
+    qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
+
     QStringList arguments;
     for (int i = 0; i < argc; ++i) {
         arguments << argv[i];

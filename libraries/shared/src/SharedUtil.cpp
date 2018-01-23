@@ -20,6 +20,7 @@
 #include <mutex>
 #include <thread>
 #include <set>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 
@@ -61,6 +62,43 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
+
+static std::unordered_map<std::string, QVariant> stagedGlobalInstances;
+
+
+std::mutex& globalInstancesMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+static void commitGlobalInstances() {
+    std::unique_lock<std::mutex> lock(globalInstancesMutex());
+    for (const auto& it : stagedGlobalInstances) {
+        qApp->setProperty(it.first.c_str(), it.second);
+    }
+    stagedGlobalInstances.clear();
+}
+FIXED_Q_COREAPP_STARTUP_FUNCTION(commitGlobalInstances)
+
+QVariant getGlobalInstance(const char* propertyName) {
+    if (qApp) {
+        return qApp->property(propertyName);
+    } else {
+        auto it = stagedGlobalInstances.find(propertyName);
+        if (it != stagedGlobalInstances.end()) {
+            return it->second;
+        }
+    }
+    return QVariant();
+}
+
+void setGlobalInstance(const char* propertyName, const QVariant& variant) {
+    if (qApp) {
+        qApp->setProperty(propertyName, variant);
+    } else {
+        stagedGlobalInstances[propertyName] = variant;
+    }
+}
 
 static qint64 usecTimestampNowAdjust = 0; // in usec
 void usecTimestampNowForceClockSkew(qint64 clockSkew) {
