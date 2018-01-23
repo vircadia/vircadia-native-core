@@ -279,7 +279,7 @@ colpick Color Picker / colpick.com
 }
 
 /*full layout with no submit button*/
-.colpick_full_ns  .colpick_submit, .colpick_full_ns .colpick_current_color{
+.colpick_full_ns  .colpick_submit {
 	display:none;
 }
 .colpick_full_ns .colpick_new_color {
@@ -320,11 +320,11 @@ colpick Color Picker / colpick.com
 }
 
 /*rgbhex layout, no submit button*/
-.colpick_rgbhex_ns  .colpick_submit, .colpick_rgbhex_ns .colpick_current_color{
+.colpick_rgbhex_ns  .colpick_submit {
 	display:none;
 }
 .colpick_rgbhex_ns .colpick_new_color{
-	width:68px;
+	width:34px;
 	border: 1px solid #8f8f8f;
 }
 .colpick_rgbhex_ns .colpick_rgb_r {
@@ -379,7 +379,7 @@ colpick Color Picker / colpick.com
 }
 
 /*hex layout, no submit button*/
-.colpick_hex_ns  .colpick_submit, .colpick_hex_ns .colpick_current_color {
+.colpick_hex_ns  .colpick_submit {
 	display:none;
 }
 .colpick_hex_ns .colpick_hex_field {
