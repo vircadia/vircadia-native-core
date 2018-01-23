@@ -50,7 +50,7 @@ QUrl getATPUrl(const QString& input) {
         QUrl::RemoveAuthority | QUrl::RemoveScheme |
         QUrl::StripTrailingSlash | QUrl::NormalizePathSegments
     );
-    QString baseName = QFileInfo(path).baseName();
+    QString baseName = QFileInfo(url.path()).baseName();
     if (isValidPath(path) || isValidHash(baseName)) {
         return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP).arg(path));
     }

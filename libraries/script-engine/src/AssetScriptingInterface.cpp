@@ -18,27 +18,33 @@
 #include <AssetRequest.h>
 #include <AssetUpload.h>
 #include <AssetUtils.h>
+#include <BaseScriptEngine.h>
 #include <MappingRequest.h>
 #include <NodeList.h>
 
 #include <RegisteredMetaTypes.h>
-
-#include <shared/QtHelpers.h>
-#include "Gzip.h"
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
-AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {}
+#include <shared/QtHelpers.h>
+#include <Gzip.h>
+
+using Promise = MiniPromise::Promise;
+
+AssetScriptingInterface::AssetScriptingInterface(QObject* parent) : BaseAssetScriptingInterface(parent) {
+    qCDebug(scriptengine) << "AssetScriptingInterface::AssetScriptingInterface" << parent;
+    MiniPromise::registerMetaTypes(parent);
+}
 
 #define JS_VERIFY(cond, error) { if (!this->jsVerify(cond, error)) { return; } }
 
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
-    auto handler = makeScopedHandlerObject(thisObject(), callback);
+    auto handler = jsBindCallback(thisObject(), callback);
     QByteArray dataByteArray = data.toUtf8();
     auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray);
 
     Promise deferred = makePromise(__FUNCTION__);
-    deferred->ready([this, handler](QString error, QVariantMap result) {
+    deferred->ready([=](QString error, QVariantMap result) {
         auto url = result.value("url").toString();
         auto hash = result.value("hash").toString();
         jsCallback(handler, url, hash);
@@ -47,7 +53,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     connect(upload, &AssetUpload::finished, upload, [this, deferred](AssetUpload* upload, const QString& hash) {
         // we are now on the "Resource Manager" thread (and "hash" being a *reference* makes it unsafe to use directly)
         Q_ASSERT(QThread::currentThread() == upload->thread());
-        deferred->resolve(NoError, {
+        deferred->resolve({
             { "url", "atp:" + hash },
             { "hash", hash },
         });
@@ -57,7 +63,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
 }
 
 void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValue callback) {
-    auto handler = makeScopedHandlerObject(thisObject(), callback);
+    auto handler = jsBindCallback(thisObject(), callback);
     auto setMappingRequest = assetClient()->createSetMappingRequest(path, hash);
     Promise deferred = makePromise(__FUNCTION__);
     deferred->ready([=](QString error, QVariantMap result) {
@@ -86,7 +92,7 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         return;
     }
     QString hash = AssetUtils::extractAssetHash(urlString);
-    auto handler = makeScopedHandlerObject(thisObject(), callback);
+    auto handler = jsBindCallback(thisObject(), callback);
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = assetClient->createRequest(hash);
 
@@ -104,11 +110,11 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
         if (request->getError() == AssetRequest::Error::NoError) {
             QString data = QString::fromUtf8(request->getData());
             // forward a thread-safe values back to our thread
-            deferred->resolve(NoError, { { "data", data } });
+            deferred->resolve({ { "data", data } });
         } else {
             // FIXME: propagate error to scripts? (requires changing signature or inverting param order above..)
             //deferred->resolve(request->getErrorString(), { { "error", requet->getError() } });
-            qDebug() << "AssetScriptingInterface::downloadData ERROR: " << request->getErrorString();
+            qCDebug(scriptengine) << "AssetScriptingInterface::downloadData ERROR: " << request->getErrorString();
         }
 
         request->deleteLater();
@@ -118,13 +124,9 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 }
 
 void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScriptValue callback) {
-    auto handler = makeScopedHandlerObject(thisObject(), callback);
     auto setBakingEnabledRequest = DependencyManager::get<AssetClient>()->createSetBakingEnabledRequest({ path }, enabled);
 
-    Promise deferred = makePromise(__FUNCTION__);
-    deferred->ready([=](QString error, QVariantMap result) {
-        jsCallback(handler, error, result);
-    });
+    Promise deferred = jsPromiseReady(makePromise(__FUNCTION__), thisObject(), callback);
 
     connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [this, deferred](SetBakingEnabledRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
@@ -150,13 +152,11 @@ void AssetScriptingInterface::sendFakedHandshake() {
 
 void AssetScriptingInterface::getMapping(QString asset, QScriptValue callback) {
     auto path = AssetUtils::getATPUrl(asset).path();
-    auto handler = makeScopedHandlerObject(thisObject(), callback);
+    auto handler = jsBindCallback(thisObject(), callback);
     JS_VERIFY(AssetUtils::isValidFilePath(path), "invalid ATP file path: " + asset + "(path:"+path+")");
     JS_VERIFY(callback.isFunction(), "expected second parameter to be a callback function");
-    qDebug() << ">>getMapping//getAssetInfo" << path;
     Promise promise = getAssetInfo(path);
-    promise->ready([this, handler](QString error, QVariantMap result) {
-        qDebug() << "//getMapping//getAssetInfo" << error << result.keys();
+    promise->ready([=](QString error, QVariantMap result) {
         jsCallback(handler, error, result.value("hash").toString());
     });
 }
@@ -168,9 +168,29 @@ bool AssetScriptingInterface::jsVerify(bool condition, const QString& error) {
     if (context()) {
         context()->throwError(error);
     } else {
-        qDebug() << "WARNING -- jsVerify failed outside of a valid JS context: " + error;
+        qCDebug(scriptengine) << "WARNING -- jsVerify failed outside of a valid JS context: " + error;
     }
     return false;
+}
+
+QScriptValue AssetScriptingInterface::jsBindCallback(QScriptValue scope, QScriptValue callback) {
+    QScriptValue handler = ::makeScopedHandlerObject(scope, callback);
+    QScriptValue value = handler.property("callback");
+    if (!jsVerify(handler.isObject() && value.isFunction(),
+                 QString("jsBindCallback -- .callback is not a function (%1)").arg(value.toVariant().typeName()))) {
+        return QScriptValue();
+    }
+    return handler;
+}
+
+Promise AssetScriptingInterface::jsPromiseReady(Promise promise, QScriptValue scope, QScriptValue callback) {
+    auto handler = jsBindCallback(scope, callback);
+    if (!jsVerify(handler.isValid(), "jsPromiseReady -- invalid callback handler")) {
+        return nullptr;
+    }
+    return promise->ready([this, handler](QString error, QVariantMap result) {
+        jsCallback(handler, error, result);
+    });
 }
 
 void AssetScriptingInterface::jsCallback(const QScriptValue& handler,
@@ -208,46 +228,36 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
         responseType = "text";
     }
     auto asset = AssetUtils::getATPUrl(url).path();
-    auto handler = makeScopedHandlerObject(scope, callback);
-
-    JS_VERIFY(handler.property("callback").isFunction(),
-              QString("Invalid callback function (%1)").arg(handler.property("callback").toVariant().typeName()));
     JS_VERIFY(AssetUtils::isValidHash(asset) || AssetUtils::isValidFilePath(asset),
               QString("Invalid ATP url '%1'").arg(url));
     JS_VERIFY(RESPONSE_TYPES.contains(responseType),
               QString("Invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | ")));
 
-    Promise resolved = makePromise("resolved");
-    Promise loaded = makePromise("loaded");
+    Promise fetched = jsPromiseReady(makePromise("fetched"), scope, callback);
+    Promise mapped = makePromise("mapped");
 
-    loaded->ready([=](QString error, QVariantMap result) {
-        qDebug() << "//loaded" << error;
-        jsCallback(handler, error, result);
-    });
-
-    resolved->ready([=](QString error, QVariantMap result) {
-        qDebug() << "//resolved" << result.value("hash");
+    mapped->ready([=](QString error, QVariantMap result) {
         QString hash = result.value("hash").toString();
+        QString url = result.value("url").toString();
         if (!error.isEmpty() || !AssetUtils::isValidHash(hash)) {
-            loaded->reject(error.isEmpty() ? "internal hash error: " + hash : error, result);
+            fetched->reject(error.isEmpty() ? "internal hash error: " + hash : error, result);
         } else {
             Promise promise = loadAsset(hash, decompress, responseType);
             promise->mixin(result);
-            promise->ready([this, loaded, hash](QString error, QVariantMap result) {
-                qDebug() << "//getAssetInfo/loadAsset" << error << hash;
-                loaded->resolve(NoError, result);
+            promise->ready([=](QString error, QVariantMap loadResult) {
+                loadResult["url"] = url; // maintain mapped .url in results (vs. atp:hash returned by loadAsset)
+                fetched->handle(error, loadResult);
             });
         }
     });
 
     if (AssetUtils::isValidHash(asset)) {
-        resolved->resolve(NoError, { { "hash", asset } });
-    } else {
-        Promise promise = getAssetInfo(asset);
-        promise->ready([this, resolved](QString error, QVariantMap result) {
-            qDebug() << "//getAssetInfo" << error << result.value("hash") << result.value("path");
-            resolved->resolve(error, result);
+        mapped->resolve({
+            { "hash", asset },
+            { "url", url },
         });
+    } else {
+        getAssetInfo(asset)->ready(mapped);
     }
 }
 
@@ -256,128 +266,166 @@ void AssetScriptingInterface::resolveAsset(QScriptValue options, QScriptValue sc
 
     auto url = (options.isString() ? options : options.property(URL)).toString();
     auto asset = AssetUtils::getATPUrl(url).path();
-    auto handler = makeScopedHandlerObject(scope, callback);
 
     JS_VERIFY(AssetUtils::isValidFilePath(asset) || AssetUtils::isValidHash(asset),
              "expected options to be an asset URL or request options containing .url property");
-    JS_VERIFY(handler.property("callback").isFunction(), "invalid callback function");
-    getAssetInfo(asset)->ready([=](QString error, QVariantMap result) {
-        qDebug() << "//resolveAsset/getAssetInfo" << error << result.value("hash");
-        jsCallback(handler, error, result);
-    });
+
+    jsPromiseReady(getAssetInfo(asset), scope, callback);
 }
 
 void AssetScriptingInterface::decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     auto data = options.property("data");
     QByteArray dataByteArray = qscriptvalue_cast<QByteArray>(data);
-    auto handler = makeScopedHandlerObject(scope, callback);
     auto responseType = options.property("responseType").toString().toLower();
     if (responseType.isEmpty()) {
         responseType = "text";
     }
-    Promise promise = decompressBytes(dataByteArray);
-    promise->ready([=](QString error, QVariantMap result) {
-        if (responseType == "arraybuffer") {
-            jsCallback(handler, error, result);
-        } else {
-            Promise promise = convertBytes(result.value("data").toByteArray(), responseType);
-            promise->mixin(result);
-            promise->ready([=](QString error, QVariantMap result) {
-                jsCallback(handler, error, result);
-            });
-        }
-    });
+    Promise completed = jsPromiseReady(makePromise(__FUNCTION__), scope, callback);
+    Promise decompressed = decompressBytes(dataByteArray);
+    if (responseType == "arraybuffer") {
+        decompressed->ready(completed);
+    } else {
+        decompressed->ready([=](QString error, QVariantMap result) {
+            Promise converted = convertBytes(result.value("data").toByteArray(), responseType);
+            converted->mixin(result);
+            converted->ready(completed);
+        });
+    }
 }
 
 namespace {
     const int32_t DEFAULT_GZIP_COMPRESSION_LEVEL = -1;
     const int32_t MAX_GZIP_COMPRESSION_LEVEL = 9;
 }
-
 void AssetScriptingInterface::compressData(QScriptValue options, QScriptValue scope, QScriptValue callback) {
-
-    auto data = options.property("data");
-    QByteArray dataByteArray = data.isString() ?
-        data.toString().toUtf8() :
-        qscriptvalue_cast<QByteArray>(data);
-    auto handler = makeScopedHandlerObject(scope, callback);
-    auto level = options.property("level").toInt32();
-    if (level < DEFAULT_GZIP_COMPRESSION_LEVEL || level > MAX_GZIP_COMPRESSION_LEVEL) {
-        level = DEFAULT_GZIP_COMPRESSION_LEVEL;
-    }
-    Promise promise = compressBytes(dataByteArray, level);
-    promise->ready([=](QString error, QVariantMap result) {
-        jsCallback(handler, error, result);
-    });
+    auto data = options.property("data").isValid() ? options.property("data") : options;
+    QByteArray dataByteArray = data.isString() ? data.toString().toUtf8() : qscriptvalue_cast<QByteArray>(data);
+    int level = options.property("level").isNumber() ? options.property("level").toInt32() : DEFAULT_GZIP_COMPRESSION_LEVEL;
+    JS_VERIFY(level >= DEFAULT_GZIP_COMPRESSION_LEVEL || level <= MAX_GZIP_COMPRESSION_LEVEL, QString("invalid .level %1").arg(level));
+    jsPromiseReady(compressBytes(dataByteArray, level), scope, callback);
 }
 
 void AssetScriptingInterface::putAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
-    auto compress = options.property("compress").toBool() ||
-        options.property("compressed").toBool();
-    auto handler = makeScopedHandlerObject(scope, callback);
-    auto data = options.property("data");
+    auto compress = options.property("compress").toBool() || options.property("compressed").toBool();
+    auto data = options.isObject() ? options.property("data") : options;
     auto rawPath = options.property("path").toString();
     auto path = AssetUtils::getATPUrl(rawPath).path();
 
-    QByteArray dataByteArray = data.isString() ?
-        data.toString().toUtf8() :
-        qscriptvalue_cast<QByteArray>(data);
+    QByteArray dataByteArray = data.isString() ? data.toString().toUtf8() : qscriptvalue_cast<QByteArray>(data);
 
     JS_VERIFY(path.isEmpty() || AssetUtils::isValidFilePath(path),
               QString("expected valid ATP file path '%1' ('%2')").arg(rawPath).arg(path));
-    JS_VERIFY(handler.property("callback").isFunction(),
-              "invalid callback function");
     JS_VERIFY(dataByteArray.size() > 0,
-              QString("expected non-zero .data (got %1 / #%2 bytes)")
-              .arg(data.toVariant().typeName())
-              .arg(dataByteArray.size()));
+              QString("expected non-zero .data (got %1 / #%2 bytes)").arg(data.toVariant().typeName()).arg(dataByteArray.size()));
 
     // [compressed] => uploaded to server => [mapped to path]
     Promise prepared = makePromise("putAsset::prepared");
     Promise uploaded = makePromise("putAsset::uploaded");
-    Promise finished = makePromise("putAsset::finished");
+    Promise completed = makePromise("putAsset::completed");
+    jsPromiseReady(completed, scope, callback);
 
     if (compress) {
-        qDebug() << "putAsset::compressBytes...";
-        Promise promise = compressBytes(dataByteArray, DEFAULT_GZIP_COMPRESSION_LEVEL);
-        promise->finally([=](QString error, QVariantMap result) {
-            qDebug() << "//putAsset::compressedBytes" << error << result.keys();
-            prepared->handle(error, result);
-        });
+        Promise compress = compressBytes(dataByteArray, DEFAULT_GZIP_COMPRESSION_LEVEL);
+        compress->ready(prepared);
     } else {
-        prepared->resolve(NoError, {{ "data", dataByteArray }});
+        prepared->resolve({{ "data", dataByteArray }});
     }
 
-    prepared->ready([=](QString error, QVariantMap result) {
-        qDebug() << "//putAsset::prepared" << error << result.value("data").toByteArray().size() << result.keys();
-        Promise promise = uploadBytes(result.value("data").toByteArray());
-        promise->mixin(result);
-        promise->ready([=](QString error, QVariantMap result) {
-            qDebug() << "===========//putAsset::prepared/uploadBytes" << error << result.keys();
-            uploaded->handle(error, result);
+    prepared->fail(completed);
+    prepared->then([=](QVariantMap result) {
+        Promise upload = uploadBytes(result.value("data").toByteArray());
+        upload->mixin(result);
+        upload->ready(uploaded);
+    });
+
+    uploaded->fail(completed);
+    if (path.isEmpty()) {
+        uploaded->then(completed);
+    } else {
+        uploaded->then([=](QVariantMap result) {
+            QString hash = result.value("hash").toString();
+            if (!AssetUtils::isValidHash(hash)) {
+                completed->reject("path mapping requested, but did not receive valid hash", result);
+            } else {
+                Promise link = symlinkAsset(hash, path);
+                link->mixin(result);
+                link->ready(completed);
+            }
         });
-    });
+    }
+}
 
-    uploaded->ready([=](QString error, QVariantMap result) {
-        QString hash = result.value("hash").toString();
-        qDebug() << "//putAsset::uploaded" << error << hash << result.keys();
-        if (path.isEmpty()) {
-            finished->handle(error, result);
-        } else if (!AssetUtils::isValidHash(hash)) {
-            finished->reject("path mapping requested, but did not receive valid hash", result);
-        } else {
-            qDebug() << "symlinkAsset" << hash << path << QThread::currentThread();
-            Promise promise = symlinkAsset(hash, path);
-            promise->mixin(result);
-            promise->ready([=](QString error, QVariantMap result) {
-                finished->handle(error, result);
-                qDebug() << "//symlinkAsset" << hash << path << result.keys();
-            });
-        }
-    });
+void AssetScriptingInterface::queryCacheMeta(QScriptValue options, QScriptValue scope, QScriptValue callback) {
+    QString url = options.isString() ? options.toString() : options.property("url").toString();
+    JS_VERIFY(QUrl(url).isValid(), QString("Invalid URL '%1'").arg(url));
+    jsPromiseReady(Parent::queryCacheMeta(url), scope, callback);
+}
 
-    finished->ready([=](QString error, QVariantMap result) {
-        qDebug() << "//putAsset::finished" << error << result.keys();
-        jsCallback(handler, error, result);
-    });
+void AssetScriptingInterface::loadFromCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
+    QString url, responseType;
+    bool decompress = false;
+    if (options.isString()) {
+        url = options.toString();
+        responseType = "text";
+    } else {
+        url = options.property("url").toString();
+        responseType = options.property("responseType").isValid() ? options.property("responseType").toString() : "text";
+        decompress = options.property("decompress").toBool() || options.property("compressed").toBool();
+    }
+    JS_VERIFY(QUrl(url).isValid(), QString("Invalid URL '%1'").arg(url));
+    JS_VERIFY(RESPONSE_TYPES.contains(responseType),
+              QString("Invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | ")));
+
+    jsPromiseReady(Parent::loadFromCache(url, decompress, responseType), scope, callback);
+}
+
+bool AssetScriptingInterface::canWriteCacheValue(const QUrl& url) {
+    auto scriptEngine = qobject_cast<ScriptEngine*>(engine());
+    if (!scriptEngine) {
+        qCDebug(scriptengine) << __FUNCTION__ << "invalid script engine" << url;
+        return false;
+    }
+    // allow cache writes only from Client, EntityServer and Agent scripts
+    bool isAllowedContext = (
+        scriptEngine->isClientScript() ||
+        scriptEngine->isAgentScript() ||
+        scriptEngine->isEntityServerScript()
+    );
+    if (!isAllowedContext) {
+        qCDebug(scriptengine) << __FUNCTION__ << "invalid context" << scriptEngine->getContext() << url;
+        return false;
+    }
+    return true;
+}
+
+void AssetScriptingInterface::saveToCache(QScriptValue options, QScriptValue scope, QScriptValue callback) {
+    JS_VERIFY(options.isObject(), QString("expected options object as first parameter not: %1").arg(options.toVariant().typeName()));
+
+    QString url = options.property("url").toString();
+    QByteArray data = qscriptvalue_cast<QByteArray>(options.property("data"));
+    QVariantMap headers = qscriptvalue_cast<QVariantMap>(options.property("headers"));
+
+    saveToCache(url, data, headers, scope, callback);
+}
+
+void AssetScriptingInterface::saveToCache(const QUrl& rawURL, const QByteArray& data, const QVariantMap& metadata, QScriptValue scope, QScriptValue callback) {
+    QUrl url = rawURL;
+    if (url.path().isEmpty() && !data.isEmpty()) {
+        // generate a valid ATP URL from the data  -- appending any existing fragment or querystring values
+        auto atpURL = AssetUtils::getATPUrl(hashDataHex(data));
+        atpURL.setQuery(url.query());
+        atpURL.setFragment(url.fragment());
+        qCDebug(scriptengine) << "autogenerated ATP URL" << url << "=>" << atpURL;
+        url = atpURL;
+    }
+    auto hash = AssetUtils::extractAssetHash(url.toDisplayString());
+
+    JS_VERIFY(url.isValid(), QString("Invalid URL '%1'").arg(url.toString()));
+    JS_VERIFY(canWriteCacheValue(url), "Invalid cache write URL: " + url.toString());
+    JS_VERIFY(url.scheme() == "atp" || url.scheme() == "cache", "only 'atp' and 'cache' URL schemes supported");
+    JS_VERIFY(hash.isEmpty() || hash == hashDataHex(data), QString("invalid checksum hash for atp:HASH style URL (%1 != %2)").arg(hash, hashDataHex(data)));
+
+    qCDebug(scriptengine) << "saveToCache" << url.toDisplayString() << data << hash << metadata;
+
+    jsPromiseReady(Parent::saveToCache(url, data, metadata), scope, callback);
 }

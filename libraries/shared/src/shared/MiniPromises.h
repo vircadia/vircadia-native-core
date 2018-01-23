@@ -32,6 +32,9 @@
 
 class MiniPromise : public QObject, public std::enable_shared_from_this<MiniPromise>, public ReadWriteLockable {
     Q_OBJECT
+    Q_PROPERTY(QString state READ getStateString)
+    Q_PROPERTY(QString error READ getError)
+    Q_PROPERTY(QVariantMap result READ getResult)
 public:
     using HandlerFunction = std::function<void(QString error, QVariantMap result)>;
     using SuccessFunction = std::function<void(QVariantMap result)>;
@@ -39,23 +42,25 @@ public:
     using HandlerFunctions = QVector<HandlerFunction>;
     using Promise = std::shared_ptr<MiniPromise>;
 
+    static void registerMetaTypes(QObject* engine);
     static int metaTypeID;
 
     MiniPromise() {}
     MiniPromise(const QString debugName) { setObjectName(debugName); }
 
     ~MiniPromise() {
-        if (!_rejected && !_resolved) {
-            qWarning() << "MiniPromise::~MiniPromise -- destroying unhandled promise:" << objectName() << _error << _result;
+        if (getStateString() == "pending") {
+            qWarning() << "MiniPromise::~MiniPromise -- destroying pending promise:" << objectName() << _error << _result << "handlers:" << getPendingHandlerCount();
         }
     }
     Promise self() { return shared_from_this(); }
 
-    Q_INVOKABLE void executeOnPromiseThread(std::function<void()> function) {
+    Q_INVOKABLE void executeOnPromiseThread(std::function<void()> function, MiniPromise::Promise root = nullptr) {
         if (QThread::currentThread() != thread()) {
             QMetaObject::invokeMethod(
                 this, "executeOnPromiseThread", Qt::QueuedConnection,
-                Q_ARG(std::function<void()>, function));
+                Q_ARG(std::function<void()>, function),
+                Q_ARG(MiniPromise::Promise, self()));
         } else {
             function();
         }
@@ -92,9 +97,7 @@ public:
             });
         } else {
             executeOnPromiseThread([&]{
-                withReadLock([&]{
-                    always(_error, _result);
-                });
+                always(getError(), getResult());
             });
         }
         return self();
@@ -112,9 +115,7 @@ public:
             });
         } else {
             executeOnPromiseThread([&]{
-                withReadLock([&]{
-                    failFunc(_error, _result);
-                });
+                failFunc(getError(), getResult());
             });
         }
         return self();
@@ -132,9 +133,7 @@ public:
             });
         } else {
             executeOnPromiseThread([&]{
-                withReadLock([&]{
-                    successFunc(_error, _result);
-                });
+                successFunc(getError(), getResult());
             });
         }
         return self();
@@ -150,6 +149,26 @@ public:
         }
         return self();
     }
+
+
+    // helper functions for forwarding results on to a next Promise
+    Promise ready(Promise next) { return finally(next); }
+    Promise finally(Promise next) {
+        return finally([next](QString error, QVariantMap result) {
+            next->handle(error, result);
+        });
+    }
+    Promise fail(Promise next) {
+        return fail([next](QString error, QVariantMap result) {
+            next->reject(error, result);
+        });
+    }
+    Promise then(Promise next) {
+        return then([next](QString error, QVariantMap result) {
+            next->resolve(error, result);
+        });
+    }
+
 
     // trigger methods
     // handle() automatically resolves or rejects the promise (based on whether an error value occurred)
@@ -168,17 +187,15 @@ public:
     Promise resolve(QString error, const QVariantMap& result) {
         setState(true, error, result);
 
-        QString localError;
-        QVariantMap localResult;
-        HandlerFunctions resolveHandlers;
-        HandlerFunctions finallyHandlers;
-        withReadLock([&]{
-            localError = _error;
-            localResult = _result;
-            resolveHandlers = _onresolve;
-            finallyHandlers = _onfinally;
-        });
         executeOnPromiseThread([&]{
+            const QString localError{ getError() };
+            const QVariantMap localResult{ getResult() };
+            HandlerFunctions resolveHandlers;
+            HandlerFunctions finallyHandlers;
+            withReadLock([&]{
+                resolveHandlers = _onresolve;
+                finallyHandlers = _onfinally;
+            });
             for (const auto& onresolve : resolveHandlers) {
                 onresolve(localError, localResult);
             }
@@ -195,17 +212,15 @@ public:
     Promise reject(QString error, const QVariantMap& result) {
         setState(false, error, result);
 
-        QString localError;
-        QVariantMap localResult;
-        HandlerFunctions rejectHandlers;
-        HandlerFunctions finallyHandlers;
-        withReadLock([&]{
-            localError = _error;
-            localResult = _result;
-            rejectHandlers = _onreject;
-            finallyHandlers = _onfinally;
-        });
         executeOnPromiseThread([&]{
+            const QString localError{ getError() };
+            const QVariantMap localResult{ getResult() };
+            HandlerFunctions rejectHandlers;
+            HandlerFunctions finallyHandlers;
+            withReadLock([&]{
+                rejectHandlers = _onreject;
+                finallyHandlers = _onfinally;
+            });
             for (const auto& onreject : rejectHandlers) {
                 onreject(localError, localResult);
             }
@@ -224,13 +239,25 @@ private:
         } else {
             _rejected = true;
         }
-        withWriteLock([&]{
-            _error = error;
-        });
+        setError(error);
         assignResult(result);
         return self();
     }
 
+    void setError(const QString error) { withWriteLock([&]{ _error = error; }); }
+    QString getError() const { return resultWithReadLock<QString>([this]() -> QString { return _error; }); }
+    QVariantMap getResult() const { return resultWithReadLock<QVariantMap>([this]() -> QVariantMap { return _result; }); }
+    int getPendingHandlerCount() const {
+        return resultWithReadLock<int>([this]() -> int {
+            return _onresolve.size() + _onreject.size() + _onfinally.size();
+        });
+    }
+    QString getStateString() const {
+        return _rejected ? "rejected" :
+            _resolved ? "resolved" :
+            getPendingHandlerCount() ? "pending" :
+            "unknown";
+    }
     QString _error;
     QVariantMap _result;
     std::atomic<bool> _rejected{false};
@@ -240,8 +267,12 @@ private:
     HandlerFunctions _onfinally;
 };
 
+Q_DECLARE_METATYPE(MiniPromise::Promise)
+
 inline MiniPromise::Promise makePromise(const QString& hint = QString()) {
+    if (!QMetaType::isRegistered(qMetaTypeId<MiniPromise::Promise>())) {
+        int type = qRegisterMetaType<MiniPromise::Promise>();
+        qDebug() << "makePromise -- registered MetaType<MiniPromise::Promise>:" << type;
+    }
     return std::make_shared<MiniPromise>(hint);
 }
-
-Q_DECLARE_METATYPE(MiniPromise::Promise)

@@ -29,6 +29,7 @@ static const QString BYTE_LENGTH_PROPERTY_NAME = "byteLength";
 class ArrayBufferViewClass : public QObject, public QScriptClass {
     Q_OBJECT
 public:
+    static void registerMetaTypes(QScriptEngine* scriptEngine);
     ArrayBufferViewClass(ScriptEngine* scriptEngine);
 
     ScriptEngine* getScriptEngine() { return _scriptEngine; }
@@ -48,5 +49,8 @@ protected:
 
     ScriptEngine* _scriptEngine;
 };
+
+Q_DECLARE_METATYPE(QScriptClass*)
+Q_DECLARE_METATYPE(QByteArray)
 
 #endif // hifi_ArrayBufferViewClass_h

@@ -27,37 +27,29 @@
 class BaseAssetScriptingInterface : public QObject {
     Q_OBJECT
 public:
+    const QStringList RESPONSE_TYPES{ "text", "arraybuffer", "json" };
     using Promise = MiniPromise::Promise;
     QSharedPointer<AssetClient> assetClient();
 
     BaseAssetScriptingInterface(QObject* parent = nullptr);
 
 public slots:
-    Promise getCacheStatus();
-
-    /**jsdoc
-     * Initialize the disk cache (returns true if already initialized)
-     * @function Assets.initializeCache
-     * @static
-     */
-    bool initializeCache();
-
-    virtual bool isValidPath(QString input) { return AssetUtils::isValidPath(input); }
-    virtual bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
+    bool isValidPath(QString input) { return AssetUtils::isValidPath(input); }
+    bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
     QUrl getATPUrl(QString input) { return AssetUtils::getATPUrl(input); }
     QString extractAssetHash(QString input) { return AssetUtils::extractAssetHash(input); }
     bool isValidHash(QString input) { return AssetUtils::isValidHash(input); }
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
     QString hashDataHex(const QByteArray& data) { return hashData(data).toHex(); }
 
-    virtual Promise queryCacheMeta(const QUrl& url);
-    virtual Promise loadFromCache(const QUrl& url);
-    virtual Promise saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap());
-
 protected:
     QString _cacheDirectory;
-    const QString NoError{};
-    //virtual bool jsAssert(bool condition, const QString& error) = 0;
+    bool initializeCache();
+    Promise getCacheStatus();
+    Promise queryCacheMeta(const QUrl& url);
+    Promise loadFromCache(const QUrl& url, bool decompress = false, const QString& responseType = "arraybuffer");
+    Promise saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap());
+
     Promise loadAsset(QString asset, bool decompress, QString responseType);
     Promise getAssetInfo(QString asset);
     Promise downloadBytes(QString hash);

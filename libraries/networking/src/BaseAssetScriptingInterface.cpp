@@ -28,14 +28,18 @@
 using Promise = MiniPromise::Promise;
 
 QSharedPointer<AssetClient> BaseAssetScriptingInterface::assetClient() {
-    return DependencyManager::get<AssetClient>();
+    auto client = DependencyManager::get<AssetClient>();
+    Q_ASSERT(client);
+    if (!client) {
+        qDebug() << "BaseAssetScriptingInterface::assetClient unavailable";
+    }
+    return client;
 }
 
 BaseAssetScriptingInterface::BaseAssetScriptingInterface(QObject* parent) : QObject(parent) {}
 
 bool BaseAssetScriptingInterface::initializeCache() {
-    auto assets = assetClient();
-    if (!assets) {
+    if (!assetClient()) {
         return false; // not yet possible to initialize the cache
     }
     if (!_cacheDirectory.isEmpty()) {
@@ -43,41 +47,64 @@ bool BaseAssetScriptingInterface::initializeCache() {
     }
 
     // attempt to initialize the cache
-    QMetaObject::invokeMethod(assets.data(), "init");
+    QMetaObject::invokeMethod(assetClient().data(), "init");
 
     Promise deferred = makePromise("BaseAssetScriptingInterface--queryCacheStatus");
-    deferred->then([&](QVariantMap result) {
+    deferred->then([this](QVariantMap result) {
         _cacheDirectory = result.value("cacheDirectory").toString();
     });
-    deferred->fail([&](QString error) {
+    deferred->fail([](QString error) {
         qDebug() << "BaseAssetScriptingInterface::queryCacheStatus ERROR" << QThread::currentThread() << error;
     });
-    assets->cacheInfoRequest(deferred);
+    assetClient()->cacheInfoRequestAsync(deferred);
     return false; // cache is not ready yet
 }
 
 Promise BaseAssetScriptingInterface::getCacheStatus() {
-    Promise deferred = makePromise(__FUNCTION__);
-    DependencyManager::get<AssetClient>()->cacheInfoRequest(deferred);
-    return deferred;
+    return assetClient()->cacheInfoRequestAsync(makePromise(__FUNCTION__));
 }
 
 Promise BaseAssetScriptingInterface::queryCacheMeta(const QUrl& url) {
-    Promise deferred = makePromise(__FUNCTION__);
-    DependencyManager::get<AssetClient>()->queryCacheMeta(deferred, url);
-    return deferred;
+    return assetClient()->queryCacheMetaAsync(url, makePromise(__FUNCTION__));
 }
 
-Promise BaseAssetScriptingInterface::loadFromCache(const QUrl& url) {
-    Promise deferred = makePromise(__FUNCTION__);
-    DependencyManager::get<AssetClient>()->loadFromCache(deferred, url);
-    return deferred;
+Promise BaseAssetScriptingInterface::loadFromCache(const QUrl& url, bool decompress, const QString& responseType) {
+    QVariantMap metaData = {
+        { "_type", "cache" },
+        { "url", url },
+        { "responseType", responseType },
+    };
+
+    Promise completed = makePromise("loadFromCache::completed");
+    Promise fetched = makePromise("loadFromCache::fetched");
+
+    Promise downloaded = assetClient()->loadFromCacheAsync(url, makePromise("loadFromCache-retrieval"));
+    downloaded->mixin(metaData);
+    downloaded->fail(fetched);
+
+    if (decompress) {
+        downloaded->then([=](QVariantMap result) {
+            fetched->mixin(result);
+            Promise decompressed = decompressBytes(result.value("data").toByteArray());
+            decompressed->mixin(result);
+            decompressed->ready(fetched);
+        });
+    } else {
+        downloaded->then(fetched);
+    }
+
+    fetched->fail(completed);
+    fetched->then([=](QVariantMap result) {
+        Promise converted = convertBytes(result.value("data").toByteArray(), responseType);
+        converted->mixin(result);
+        converted->ready(completed);
+    });
+
+    return completed;
 }
 
 Promise BaseAssetScriptingInterface::saveToCache(const QUrl& url, const QByteArray& data, const QVariantMap& headers) {
-    Promise deferred = makePromise(__FUNCTION__);
-    DependencyManager::get<AssetClient>()->saveToCache(deferred, url, data, headers);
-    return deferred;
+    return assetClient()->saveToCacheAsync(url, data, headers, makePromise(__FUNCTION__));
 }
 
 Promise BaseAssetScriptingInterface::loadAsset(QString asset, bool decompress, QString responseType) {
@@ -92,73 +119,81 @@ Promise BaseAssetScriptingInterface::loadAsset(QString asset, bool decompress, Q
         { "responseType", responseType },
     };
 
-    Promise fetched = makePromise("loadAsset::fetched"),
-        loaded = makePromise("loadAsset::loaded");
+    Promise completed = makePromise("loadAsset::completed");
+    Promise fetched = makePromise("loadAsset::fetched");
 
-    downloadBytes(hash)
-        ->mixin(metaData)
-        ->ready([=](QString error, QVariantMap result) {
-        Q_ASSERT(thread() == QThread::currentThread());
-        fetched->mixin(result);
-        if (decompress) {
-            decompressBytes(result.value("data").toByteArray())
-                ->mixin(result)
-                ->ready([=](QString error, QVariantMap result) {
-                    fetched->handle(error, result);
-                });
-        } else {
-            fetched->handle(error, result);
-        }
+    Promise downloaded = downloadBytes(hash);
+    downloaded->mixin(metaData);
+    downloaded->fail(fetched);
+
+    if (decompress) {
+        downloaded->then([=](QVariantMap result) {
+            Q_ASSERT(thread() == QThread::currentThread());
+            fetched->mixin(result);
+            Promise decompressed = decompressBytes(result.value("data").toByteArray());
+            decompressed->mixin(result);
+            decompressed->ready(fetched);
+        });
+    } else {
+        downloaded->then(fetched);
+    }
+
+    fetched->fail(completed);
+    fetched->then([=](QVariantMap result) {
+        Promise converted = convertBytes(result.value("data").toByteArray(), responseType);
+        converted->mixin(result);
+        converted->ready(completed);
     });
 
-    fetched->ready([=](QString error, QVariantMap result) {
-        if (responseType == "arraybuffer") {
-            loaded->resolve(NoError, result);
-        } else {
-            convertBytes(result.value("data").toByteArray(), responseType)
-                ->mixin(result)
-                ->ready([=](QString error, QVariantMap result) {
-                loaded->resolve(NoError, result);
-            });
-        }
-    });
-
-    return loaded;
+    return completed;
 }
 
 Promise BaseAssetScriptingInterface::convertBytes(const QByteArray& dataByteArray, const QString& responseType) {
-    QVariantMap result;
+    QVariantMap result = {
+        { "_contentType", QMimeDatabase().mimeTypeForData(dataByteArray).name() },
+        { "_byteLength", dataByteArray.size() },
+        { "_responseType", responseType },
+    };
+    QString error;
     Promise conversion = makePromise(__FUNCTION__);
-    if (dataByteArray.size() == 0) {
-        result["response"] = QString();
+    if (!RESPONSE_TYPES.contains(responseType)) {
+        error = QString("convertBytes: invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | "));
+    } else if (responseType == "arraybuffer") {
+        // interpret as bytes
+        result["response"] = dataByteArray;
     } else if (responseType == "text") {
+        // interpret as utf-8 text
         result["response"] = QString::fromUtf8(dataByteArray);
     } else if (responseType == "json") {
+        // interpret as JSON
         QJsonParseError status;
         auto parsed = QJsonDocument::fromJson(dataByteArray, &status);
         if (status.error == QJsonParseError::NoError) {
-            result["response"] = parsed.isArray() ?
-                QVariant(parsed.array().toVariantList()) :
-                QVariant(parsed.object().toVariantMap());
+            result["response"] = parsed.isArray() ? QVariant(parsed.array().toVariantList()) : QVariant(parsed.object().toVariantMap());
         } else {
-            QVariantMap errorResult = {
+            result = {
                 { "error", status.error },
                 { "offset", status.offset },
             };
-            return conversion->reject("JSON Parse Error: " + status.errorString(), errorResult);
+            error = "JSON Parse Error: " + status.errorString();
         }
-    } else if (responseType == "arraybuffer") {
-        result["response"] = dataByteArray;
     }
-    return conversion->resolve(NoError, result);
+    if (result.value("response").canConvert<QByteArray>()) {
+        auto data = result.value("response").toByteArray();
+        result["contentType"] = QMimeDatabase().mimeTypeForData(data).name();
+        result["byteLength"] = data.size();
+        result["responseType"] = responseType;
+    }
+    return conversion->handle(error, result);
 }
 
 Promise BaseAssetScriptingInterface::decompressBytes(const QByteArray& dataByteArray) {
     QByteArray inflated;
+    Promise decompressed = makePromise(__FUNCTION__);
     auto start = usecTimestampNow();
     if (gunzip(dataByteArray, inflated)) {
         auto end = usecTimestampNow();
-        return makePromise(__FUNCTION__)->resolve(NoError, {
+        decompressed->resolve({
             { "_compressedByteLength", dataByteArray.size() },
             { "_compressedContentType", QMimeDatabase().mimeTypeForData(dataByteArray).name() },
             { "_compressMS", (double)(end - start) / 1000.0 },
@@ -168,16 +203,18 @@ Promise BaseAssetScriptingInterface::decompressBytes(const QByteArray& dataByteA
             { "data", inflated },
        });
     } else {
-        return makePromise(__FUNCTION__)->reject("gunzip error", {});
+        decompressed->reject("gunzip error");
     }
+    return decompressed;
 }
 
 Promise BaseAssetScriptingInterface::compressBytes(const QByteArray& dataByteArray, int level) {
     QByteArray deflated;
     auto start = usecTimestampNow();
+    Promise compressed = makePromise(__FUNCTION__);
     if (gzip(dataByteArray, deflated, level)) {
         auto end = usecTimestampNow();
-        return makePromise(__FUNCTION__)->resolve(NoError, {
+        compressed->resolve({
             { "_uncompressedByteLength", dataByteArray.size() },
             { "_uncompressedContentType", QMimeDatabase().mimeTypeForData(dataByteArray).name() },
             { "_compressMS", (double)(end - start) / 1000.0 },
@@ -187,13 +224,13 @@ Promise BaseAssetScriptingInterface::compressBytes(const QByteArray& dataByteArr
             { "data", deflated },
        });
     } else {
-        return makePromise(__FUNCTION__)->reject("gzip error", {});
+        compressed->reject("gzip error", {});
     }
+    return compressed;
 }
 
 Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
-    auto assetClient = DependencyManager::get<AssetClient>();
-    QPointer<AssetRequest> assetRequest = assetClient->createRequest(hash);
+    QPointer<AssetRequest> assetRequest = assetClient()->createRequest(hash);
     Promise deferred = makePromise(__FUNCTION__);
 
     QObject::connect(assetRequest, &AssetRequest::finished, assetRequest, [this, deferred](AssetRequest* request) {
@@ -208,7 +245,7 @@ Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
                 { "url", request->getUrl() },
                 { "hash", request->getHash() },
                 { "cached", request->loadedFromCache() },
-                { "content-type", QMimeDatabase().mimeTypeForData(data).name() },
+                { "contentType", QMimeDatabase().mimeTypeForData(data).name() },
                 { "data", data },
             };
         } else {
@@ -225,8 +262,9 @@ Promise BaseAssetScriptingInterface::downloadBytes(QString hash) {
 
 Promise BaseAssetScriptingInterface::uploadBytes(const QByteArray& bytes) {
     Promise deferred = makePromise(__FUNCTION__);
-    QPointer<AssetUpload> upload = DependencyManager::get<AssetClient>()->createUpload(bytes);
+    QPointer<AssetUpload> upload = assetClient()->createUpload(bytes);
 
+    const auto byteLength = bytes.size();
     QObject::connect(upload, &AssetUpload::finished, upload, [=](AssetUpload* upload, const QString& hash) {
         Q_ASSERT(QThread::currentThread() == upload->thread());
         // note: we are now on the "Resource Manager" thread
@@ -237,6 +275,7 @@ Promise BaseAssetScriptingInterface::uploadBytes(const QByteArray& bytes) {
                 { "hash", hash },
                 { "url", AssetUtils::getATPUrl(hash).toString() },
                 { "filename", upload->getFilename() },
+                { "byteLength", byteLength },
             };
         } else {
             error = upload->getErrorString();
@@ -251,20 +290,19 @@ Promise BaseAssetScriptingInterface::uploadBytes(const QByteArray& bytes) {
 }
 
 Promise BaseAssetScriptingInterface::getAssetInfo(QString asset) {
-    auto deferred = makePromise(__FUNCTION__);
+    Promise deferred = makePromise(__FUNCTION__);
     auto url = AssetUtils::getATPUrl(asset);
     auto path = url.path();
     auto hash = AssetUtils::extractAssetHash(asset);
     if (AssetUtils::isValidHash(hash)) {
         // already a valid ATP hash -- nothing to do
-        deferred->resolve(NoError, {
+        deferred->resolve({
             { "hash", hash },
             { "path", path },
             { "url", url },
         });
     } else if (AssetUtils::isValidFilePath(path)) {
-        auto assetClient = DependencyManager::get<AssetClient>();
-        QPointer<GetMappingRequest> request = assetClient->createGetMappingRequest(path);
+        QPointer<GetMappingRequest> request = assetClient()->createGetMappingRequest(path);
 
         QObject::connect(request, &GetMappingRequest::finished, request, [=]() {
             Q_ASSERT(QThread::currentThread() == request->thread());
@@ -276,7 +314,9 @@ Promise BaseAssetScriptingInterface::getAssetInfo(QString asset) {
                     { "_hash", hash },
                     { "_path", path },
                     { "_url", url },
+                    { "url", url },
                     { "hash", request->getHash() },
+                    { "hashURL", AssetUtils::getATPUrl(request->getHash()).toString() },
                     { "wasRedirected", request->wasRedirected() },
                     { "path", request->wasRedirected() ? request->getRedirectedPath() : path },
                 };
@@ -297,8 +337,7 @@ Promise BaseAssetScriptingInterface::getAssetInfo(QString asset) {
 
 Promise BaseAssetScriptingInterface::symlinkAsset(QString hash, QString path) {
     auto deferred = makePromise(__FUNCTION__);
-    auto assetClient = DependencyManager::get<AssetClient>();
-    QPointer<SetMappingRequest> setMappingRequest = assetClient->createSetMappingRequest(path, hash);
+    QPointer<SetMappingRequest> setMappingRequest = assetClient()->createSetMappingRequest(path, hash);
 
     connect(setMappingRequest, &SetMappingRequest::finished, setMappingRequest, [=](SetMappingRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());

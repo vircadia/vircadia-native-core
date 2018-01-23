@@ -7,4 +7,21 @@
 //
 
 #include "MiniPromises.h"
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
+
 int MiniPromise::metaTypeID = qRegisterMetaType<MiniPromise::Promise>("MiniPromise::Promise");
+
+namespace {
+    void promiseFromScriptValue(const QScriptValue& object, MiniPromise::Promise& promise) {
+        Q_ASSERT(false);
+    }
+    QScriptValue promiseToScriptValue(QScriptEngine *engine, const MiniPromise::Promise& promise) {
+        return engine->newQObject(promise.get());
+    }
+}
+void MiniPromise::registerMetaTypes(QObject* engine) {
+    auto scriptEngine = qobject_cast<QScriptEngine*>(engine);
+    qDebug() << "----------------------- MiniPromise::registerMetaTypes ------------" << scriptEngine;
+    qScriptRegisterMetaType(scriptEngine, promiseToScriptValue, promiseFromScriptValue);
+}

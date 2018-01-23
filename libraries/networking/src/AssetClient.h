@@ -67,10 +67,10 @@ public slots:
     void init();
 
     void cacheInfoRequest(QObject* reciever, QString slot);
-    void cacheInfoRequest(MiniPromise::Promise deferred);
-    void queryCacheMeta(MiniPromise::Promise deferred, const QUrl& url);
-    void loadFromCache(MiniPromise::Promise deferred, const QUrl& url);
-    void saveToCache(MiniPromise::Promise deferred, const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap());
+    MiniPromise::Promise cacheInfoRequestAsync(MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise queryCacheMetaAsync(const QUrl& url, MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise loadFromCacheAsync(const QUrl& url, MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise saveToCacheAsync(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap(), MiniPromise::Promise deferred = nullptr);
     void clearCache();
 
 private slots:
