@@ -99,6 +99,10 @@ Item {
     function initModel() {
         gridModel.initModel();
     }
+
+    function resetSelection() {
+        securityImageGrid.currentIndex = -1;
+    }
     //
     // FUNCTION DEFINITIONS END
     //
