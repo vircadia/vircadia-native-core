@@ -566,6 +566,7 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    void animGraphLoaded();
 
     void setGravity(float gravity);
     float getGravity();
@@ -730,7 +731,7 @@ private:
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
-    void initAnimGraph(bool updateBodySensorMat = true);
+    void initAnimGraph();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
@@ -808,6 +809,7 @@ private:
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
+    bool _initHeadBones { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

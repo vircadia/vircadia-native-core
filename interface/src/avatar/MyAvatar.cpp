@@ -1785,12 +1785,10 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
 
     _currentAnimGraphUrl.set(url);
     _skeletonModel->getRig().initAnimGraph(url);
-
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
-void MyAvatar::initAnimGraph(bool updateBodySensorMat) {
+void MyAvatar::initAnimGraph() {
     QUrl graphUrl;
     if (!_prefOverrideAnimGraphUrl.get().isEmpty()) {
         graphUrl = _prefOverrideAnimGraphUrl.get();
@@ -1802,27 +1800,32 @@ void MyAvatar::initAnimGraph(bool updateBodySensorMat) {
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
-
-    if (updateBodySensorMat) {
-        _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-        updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
-    }
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
 void MyAvatar::destroyAnimGraph() {
     _skeletonModel->getRig().destroyAnimGraph();
 }
 
+void MyAvatar::animGraphLoaded() {
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    _isAnimatingScale = true;
+    disconnect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
+}
+
 void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
 
-    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode()) {
+    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode() && _initHeadBones) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-        initAnimGraph(false);
-        _isAnimatingScale = true;
+        initAnimGraph();
+        _initHeadBones = false;
+    } else if (!_skeletonModel->isLoaded()) {
+        _initHeadBones = true;
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
