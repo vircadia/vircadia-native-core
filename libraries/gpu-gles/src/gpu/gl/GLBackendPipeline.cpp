@@ -31,7 +31,6 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
 
     // null pipeline == reset
     if (!pipeline) {
-        qDebug() << " null pipeline";
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;
@@ -78,7 +77,12 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
         if (_pipeline._cameraCorrectionLocation != -1) {
-            auto cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
+            gl::GLBuffer* cameraCorrectionBuffer = nullptr;
+            if (_transform._viewCorrectionEnabled) {
+                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
+            } else {
+                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBufferIdentity._buffer);
+            }
             glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._cameraCorrectionLocation, cameraCorrectionBuffer->_id, 0, sizeof(CameraCorrection));
         }
         (void) CHECK_GL_ERROR();
@@ -150,6 +154,10 @@ void GLBackend::resetUniformStage() {
 
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
+    if (slot >(GLuint)MAX_NUM_UNIFORM_BUFFERS) {
+        qCDebug(gpugllogging) << "GLBackend::do_setUniformBuffer: Trying to set a uniform Buffer at slot #" << slot << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
+        return;
+    }
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
@@ -192,15 +200,48 @@ void GLBackend::releaseResourceTexture(uint32_t slot) {
 }
 
 void GLBackend::resetResourceStage() {
+    for (uint32_t i = 0; i < _resource._buffers.size(); i++) {
+        releaseResourceBuffer(i);
+    }
     for (uint32_t i = 0; i < _resource._textures.size(); i++) {
         releaseResourceTexture(i);
+    }
+}
+
+void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
+    GLuint slot = batch._params[paramOffset + 1]._uint;
+    if (slot >= (GLuint)MAX_NUM_RESOURCE_BUFFERS) {
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" << slot << " which doesn't exist. MaxNumResourceBuffers = " << getMaxNumResourceBuffers();
+        return;
+    }
+
+    auto resourceBuffer = batch._buffers.get(batch._params[paramOffset + 0]._uint);
+
+    if (!resourceBuffer) {
+        releaseResourceBuffer(slot);
+        return;
+    }
+    // check cache before thinking
+    if (_resource._buffers[slot] == resourceBuffer) {
+        return;
+    }
+
+    // One more True Buffer bound
+    _stats._RSNumResourceBufferBounded++;
+
+    // If successful bind then cache it
+    if (bindResourceBuffer(slot, resourceBuffer)) {
+        _resource._buffers[slot] = resourceBuffer;
+    } else { // else clear slot and cache
+        releaseResourceBuffer(slot);
+        return;
     }
 }
 
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {
-        // "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" + slot + " which doesn't exist. MaxNumResourceTextures = " + getMaxNumResourceTextures());
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
         return;
     }
 
@@ -230,7 +271,7 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
 
         _resource._textures[slot] = resourceTexture;
 
-        _stats._RSAmountTextureMemoryBounded += object->size();
+        _stats._RSAmountTextureMemoryBounded += (int) object->size();
 
     } else {
         releaseResourceTexture(slot);

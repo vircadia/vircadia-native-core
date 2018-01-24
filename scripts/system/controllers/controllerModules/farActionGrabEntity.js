@@ -370,20 +370,23 @@ Script.include("/~/system/libraries/Xform.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.notPointingAtEntity(controllerData)) {
-                return makeRunningValues(false, [], []);
-            }
+            if (HMD.active) {
+                if (this.notPointingAtEntity(controllerData)) {
+                    return makeRunningValues(false, [], []);
+                }
 
-            this.distanceHolding = false;
-            this.distanceRotating = false;
+                this.distanceHolding = false;
+                this.distanceRotating = false;
 
-            if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.prepareDistanceRotatingData(controllerData);
-                return makeRunningValues(true, [], []);
-            } else {
-                this.destroyContextOverlay();
-                return makeRunningValues(false, [], []);
+                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                    this.prepareDistanceRotatingData(controllerData);
+                    return makeRunningValues(true, [], []);
+                } else {
+                    this.destroyContextOverlay();
+                    return makeRunningValues(false, [], []);
+                }
             }
+            return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData) {

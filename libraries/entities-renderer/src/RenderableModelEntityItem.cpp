@@ -708,6 +708,26 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
     }
 }
 
+void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
+    if (jointMap.size() > 0) {
+        _jointMap = jointMap;
+        _jointMapCompleted = true;
+        return;
+    }
+
+    _jointMapCompleted = false;
+};
+
+int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
+    int result = -1;
+    int mapSize = (int) _jointMap.size();
+    if (modelJointIndex >=0 && modelJointIndex < mapSize) {
+        result = _jointMap[modelJointIndex];
+    }
+
+    return result;
+}
+
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
     if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
@@ -813,6 +833,10 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     return setLocalJointTranslation(index, jointRelativePose.trans());
 }
 
+bool RenderableModelEntityItem::getJointMapCompleted() {
+    return _jointMapCompleted;
+}
+
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
     auto model = getModel();
     if (model) {
@@ -833,6 +857,13 @@ glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
         }
     }
     return glm::vec3();
+}
+
+void RenderableModelEntityItem::setOverrideTransform(const Transform& transform, const glm::vec3& offset) {
+    auto model = getModel();
+    if (model) {
+        model->overrideModelTransformAndOffset(transform, offset);
+    }
 }
 
 bool RenderableModelEntityItem::setLocalJointRotation(int index, const glm::quat& rotation) {
@@ -929,6 +960,26 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     return !result.isEmpty();
 }
 
+void RenderableModelEntityItem::simulateRelayedJoints() {
+    ModelPointer model = getModel();
+    if (model && model->isLoaded()) {
+        copyAnimationJointDataToModel();
+        model->simulate(0.0f);
+        model->updateRenderItems();
+    }
+}
+
+void RenderableModelEntityItem::stopModelOverrideIfNoParent() {
+    auto model = getModel();
+    if (model) {
+        bool overriding = model->isOverridingModelTransformAndOffset();
+        QUuid parentID = getParentID();
+        if (overriding && (!_relayParentJoints || parentID.isNull())) {
+            model->stopTransformAndOffsetOverride();
+        }
+    }
+}
+
 void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     auto model = getModel();
     if (!model || !model->isLoaded()) {
@@ -999,7 +1050,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    QVector<JointData> jointsData;
+    QVector<EntityJointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     int frameCount = frames.size();
@@ -1280,6 +1331,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     entity->updateModelBounds();
+    entity->stopModelOverrideIfNoParent();
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
@@ -1342,7 +1394,13 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
+        
         if (!jointsMapped()) {
+            mapJoints(entity, model->getJointNames());
+        //else the joint have been mapped before but we have a new animation to load
+        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {             
+            _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
+            _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
         }
         if (!(entity->getAnimationFirstFrame() < 0) && !(entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())) {

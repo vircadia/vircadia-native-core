@@ -1459,7 +1459,7 @@ static gpu::PipelinePointer _pipelines[2];
 static gpu::PipelinePointer _wireframePipelines[2];
 static gpu::Stream::FormatPointer _vertexFormat;
 
-ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
+ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
         gpu::ShaderPointer vertexShaders[2] = { polyvox_vert::getShader(), polyvox_fade_vert::getShader() };
         gpu::ShaderPointer pixelShaders[2] = { polyvox_frag::getShader(), polyvox_fade_frag::getShader() };
@@ -1487,7 +1487,10 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
-            gpu::Shader::makeProgram(*program, slotBindings);
+         
+            batch.runLambda([program, slotBindings] {
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
 
             _pipelines[i] = gpu::Pipeline::create(program, state);
             _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);

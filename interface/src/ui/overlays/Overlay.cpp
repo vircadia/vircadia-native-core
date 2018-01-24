@@ -31,8 +31,7 @@ Overlay::Overlay() :
     _alphaPulse(0.0f),
     _colorPulse(0.0f),
     _color(DEFAULT_OVERLAY_COLOR),
-    _visible(true),
-    _anchor(NO_ANCHOR)
+    _visible(true)
 {
 }
 
@@ -49,8 +48,7 @@ Overlay::Overlay(const Overlay* overlay) :
     _alphaPulse(overlay->_alphaPulse),
     _colorPulse(overlay->_colorPulse),
     _color(overlay->_color),
-    _visible(overlay->_visible),
-    _anchor(overlay->_anchor)
+    _visible(overlay->_visible)
 {
 }
 
@@ -92,13 +90,6 @@ void Overlay::setProperties(const QVariantMap& properties) {
         bool visible = properties["visible"].toBool();
         setVisible(visible);
     }
-
-    if (properties["anchor"].isValid()) {
-        QString property = properties["anchor"].toString();
-        if (property == "MyAvatar") {
-            setAnchor(MY_AVATAR);
-        }
-    }
 }
 
 // JSDoc for copying to @typedefs of overlay types that inherit Overlay.
@@ -119,8 +110,6 @@ void Overlay::setProperties(const QVariantMap& properties) {
   *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
   *     used.)
   * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
-  * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
-  *     rotating as you move your avatar.
   */
 QVariant Overlay::getProperty(const QString& property) {
     if (property == "type") {
@@ -149,9 +138,6 @@ QVariant Overlay::getProperty(const QString& property) {
     }
     if (property == "visible") {
         return _visible;
-    }
-    if (property == "anchor") {
-        return _anchor == MY_AVATAR ? "MyAvatar" : "";
     }
 
     return QVariant();

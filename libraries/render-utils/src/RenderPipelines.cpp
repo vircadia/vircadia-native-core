@@ -106,7 +106,7 @@ using namespace std::placeholders;
 
 void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
-void initForwardPipelines(ShapePlumber& plumber);
+void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void addPlumberPipeline(ShapePlumber& plumber,
@@ -436,12 +436,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         skinModelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
-void initForwardPipelines(render::ShapePlumber& plumber) {
+void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
     auto modelVertex = model_vert::getShader();
     auto modelNormalMapVertex = model_normal_map_vert::getShader();
     auto skinModelVertex = skin_model_vert::getShader();
     auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
+    auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
 
     // Pixel shaders
     auto modelPixel = forward_model_frag::getShader();
@@ -449,38 +450,43 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     auto modelNormalMapPixel = forward_model_normal_map_frag::getShader();
     auto modelSpecularMapPixel = forward_model_specular_map_frag::getShader();
     auto modelNormalSpecularMapPixel = forward_model_normal_specular_map_frag::getShader();
+    auto modelNormalMapFadePixel = model_normal_map_fade_frag::getShader();
 
     using Key = render::ShapeKey;
-    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, nullptr, nullptr);
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
     // Opaques
     addPipeline(
         Key::Builder().withMaterial(),
-        modelVertex, modelPixel);
+        modelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
-        modelVertex, modelUnlitPixel);
+        modelVertex, modelUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
-        modelNormalMapVertex, modelNormalMapPixel);
+        modelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSpecular(),
-        modelVertex, modelSpecularMapPixel);
+        modelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents().withSpecular(),
-        modelNormalMapVertex, modelNormalSpecularMapPixel);
+        modelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
     // Skinned
     addPipeline(
         Key::Builder().withMaterial().withSkinned(),
-        skinModelVertex, modelPixel);
+        skinModelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents(),
-        skinModelNormalMapVertex, modelNormalMapPixel);
+        skinModelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withSpecular(),
-        skinModelVertex, modelSpecularMapPixel);
+        skinModelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
-        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    addPipeline(
+            Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
+            skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter, nullptr, nullptr);
+
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,

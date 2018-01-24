@@ -603,7 +603,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         if (!blendShape.normals.empty() && blendShape.tangents.empty()) {
             // Fill with a dummy value to force tangents to be present if there are normals
             blendShape.tangents.reserve(blendShape.normals.size());
-            std::fill_n(std::back_inserter(fbxMesh.tangents), blendShape.normals.size(), Vectors::UNIT_X);
+            std::fill_n(std::back_inserter(blendShape.tangents), blendShape.normals.size(), Vectors::UNIT_X);
         }
     }
 
@@ -611,7 +611,11 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     const int normalsSize = fbxMesh.normals.size() * sizeof(NormalType);
     const int tangentsSize = fbxMesh.tangents.size() * sizeof(NormalType);
     // If there are normals then there should be tangents
-    assert(normalsSize == tangentsSize);
+    
+    assert(normalsSize <= tangentsSize);
+    if (tangentsSize > normalsSize) {
+        qWarning() << "Unexpected tangents in " << url;
+    }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
     const int normalsAndTangentsStride = 2 * sizeof(NormalType);
     const int colorsSize = fbxMesh.colors.size() * sizeof(ColorType);

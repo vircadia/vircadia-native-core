@@ -30,7 +30,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ZoneStageRemoved);
+            return static_cast<PacketVersion>(EntityVersion::SoftEntities);
 
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
@@ -38,7 +38,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::UpdatedMannequinDefaultAvatar);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarJointDefaultPoseFlags);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:

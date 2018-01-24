@@ -13,10 +13,11 @@
 #define hifi_FileUtils_h
 
 #include <QString>
-
+#include <QtCore/QFileSelector>
 class FileUtils {
 
 public:
+    static const QStringList& getFileSelectors();
     static void locateFile(QString fileName);
     static QString standardPath(QString subfolder);
     static QString readFile(const QString& filename);

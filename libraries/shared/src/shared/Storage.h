@@ -61,10 +61,12 @@ namespace storage {
 
         const uint8_t* data() const override { return _mapped; }
         uint8_t* mutableData() override { return _hasWriteAccess ? _mapped : nullptr; }
-        size_t size() const override { return _file.size(); }
+        size_t size() const override { return _size; }
         operator bool() const override { return _valid; }
     private:
-
+        // For compressed QRC files we can't map the file object, so we need to read it into memory
+        QByteArray _fallback;
+        size_t _size { 0 };
         bool _valid { false };
         bool _hasWriteAccess { false };
         QFile _file;

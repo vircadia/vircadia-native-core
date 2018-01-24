@@ -26,7 +26,7 @@ static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
 // FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
 static int32_t PARTICLE_UNIFORM_SLOT { 11 };
 
-static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
+static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     auto texturedPipeline = _texturedPipeline.lock();
     if (!texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
@@ -40,10 +40,13 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
         auto fragShader = textured_particle_frag::getShader();
 
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("particleBuffer"), PARTICLE_UNIFORM_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
+
+        batch.runLambda([program] {
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("particleBuffer"), PARTICLE_UNIFORM_SLOT));
+            gpu::Shader::makeProgram(*program, slotBindings);
+        });
     }
 
     return std::make_shared<render::ShapePipeline>(texturedPipeline, nullptr, nullptr, nullptr);

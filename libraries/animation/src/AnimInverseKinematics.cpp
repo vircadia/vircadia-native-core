@@ -1255,7 +1255,7 @@ void AnimInverseKinematics::initConstraints() {
     //                     /       /
     //                 O--O    O--O
 
-    loadDefaultPoses(_skeleton->getRelativeBindPoses());
+    loadDefaultPoses(_skeleton->getRelativeDefaultPoses());
 
     int numJoints = (int)_defaultRelativePoses.size();
 

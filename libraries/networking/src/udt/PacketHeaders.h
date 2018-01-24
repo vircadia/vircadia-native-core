@@ -205,7 +205,8 @@ enum class EntityVersion : PacketVersion {
     StaticCertJsonVersionOne,
     OwnershipChallengeFix,
     ZoneLightInheritModes = 82,
-    ZoneStageRemoved
+    ZoneStageRemoved,
+    SoftEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -246,7 +247,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceFront,
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
-    UpdatedMannequinDefaultAvatar
+    UpdatedMannequinDefaultAvatar,
+    AvatarJointDefaultPoseFlags
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

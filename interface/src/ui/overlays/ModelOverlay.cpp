@@ -306,8 +306,6 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
- * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
- *     rotating as you move your avatar.
  *
  * @property {string} name="" - A friendly name for the overlay.
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
@@ -566,9 +564,9 @@ void ModelOverlay::animate() {
                 rotationMat * fbxJoints[index].postTransform);
             auto& jointData = jointsData[j];
             jointData.translation = extractTranslation(finalMat);
-            jointData.translationSet = true;
+            jointData.translationIsDefaultPose = false;
             jointData.rotation = glmExtractRotation(finalMat);
-            jointData.rotationSet = true;
+            jointData.rotationIsDefaultPose = false;
         }
     }
     // Set the data in the model
