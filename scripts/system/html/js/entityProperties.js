@@ -136,7 +136,8 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
 
 function createImageURLUpdateFunction(propertyName) {
     return function () {
-        updateProperty(propertyName, this.value);
+        var newTextures = JSON.stringify({ "tex.picture": this.value });
+        updateProperty(propertyName, newTextures);
     };
 }
 
@@ -511,10 +512,6 @@ function loaded() {
         var elPropertiesList = document.getElementById("properties-list");
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
-<<<<<<< HEAD
-=======
-        debugPrint("the type is: " + JSON.stringify(elType));
->>>>>>> creating new image entity opens image property options
         var elTypeIcon = document.getElementById("type-icon");
         var elName = document.getElementById("property-name");
         var elLocked = document.getElementById("property-locked");
@@ -665,28 +662,16 @@ function loaded() {
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
         // Skybox
-<<<<<<< HEAD
         var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
         var elZoneSkyboxModeDisabled = document.getElementById("property-zone-skybox-mode-disabled");
         var elZoneSkyboxModeEnabled = document.getElementById("property-zone-skybox-mode-enabled");
-=======
-        var elZoneSkyboxModeInherit  = document.getElementById("property-zone-skybox-mode-inherit");
-        var elZoneSkyboxModeDisabled = document.getElementById("property-zone-skybox-mode-disabled");
-        var elZoneSkyboxModeEnabled  = document.getElementById("property-zone-skybox-mode-enabled");
->>>>>>> creating new image entity opens image property options
 
         // Ambient light
         var elCopySkyboxURLToAmbientURL = document.getElementById("copy-skybox-url-to-ambient-url");
 
-<<<<<<< HEAD
         var elZoneAmbientLightModeInherit = document.getElementById("property-zone-ambient-light-mode-inherit");
         var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
         var elZoneAmbientLightModeEnabled = document.getElementById("property-zone-ambient-light-mode-enabled");
-=======
-        var elZoneAmbientLightModeInherit  = document.getElementById("property-zone-ambient-light-mode-inherit");
-        var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
-        var elZoneAmbientLightModeEnabled  = document.getElementById("property-zone-ambient-light-mode-enabled");
->>>>>>> creating new image entity opens image property options
 
         var elZoneAmbientLightIntensity = document.getElementById("property-zone-key-ambient-intensity");
         var elZoneAmbientLightURL = document.getElementById("property-zone-key-ambient-url");
@@ -803,11 +788,6 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-<<<<<<< HEAD
-
-=======
-                        debugPrint("props: " + JSON.stringify(properties));
->>>>>>> creating new image entity opens image property options
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
@@ -816,14 +796,11 @@ function loaded() {
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
-<<<<<<< HEAD
-=======
-                        // image is not yet a separate entity type
+                        // HTML workaround since image is not yet a separate entity type
                         if (properties.type === "Model" && properties.modelURL === "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx") {
                             properties.type = "Image";
                         }
 
->>>>>>> creating new image entity opens image property options
                         // Create class name for css ruleset filtering
                         elPropertiesList.className = properties.type + 'Menu';
 
@@ -1022,8 +999,9 @@ function loaded() {
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
                         } else if (properties.type === "Image") {
-                            elImageURL.value = properties.imageURL;
-                            //elImageURL.value = properties.sourceURL;
+                            var imageLink = JSON.parse(properties.textures)["tex.picture"];
+                            debugPrint("image url is: " + imageLink);
+                            elImageURL.value = imageLink;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
@@ -1052,15 +1030,9 @@ function loaded() {
 
                         } else if (properties.type === "Zone") {
                             // Key light
-<<<<<<< HEAD
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
                             elZoneKeyLightModeEnabled.checked = (properties.keyLightMode === 'enabled');
-=======
-                            elZoneKeyLightModeInherit.checked  = (properties.keyLightMode === 'inherit');
-                            elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
-                            elZoneKeyLightModeEnabled.checked  = (properties.keyLightMode === 'enabled');
->>>>>>> creating new image entity opens image property options
 
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
                                                    properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
@@ -1072,7 +1044,6 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
 
                             // Skybox
-<<<<<<< HEAD
                             elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
                             elZoneSkyboxModeDisabled.checked = (properties.skyboxMode === 'disabled');
                             elZoneSkyboxModeEnabled.checked = (properties.skyboxMode === 'enabled');
@@ -1081,30 +1052,14 @@ function loaded() {
                             elZoneAmbientLightModeInherit.checked = (properties.ambientLightMode === 'inherit');
                             elZoneAmbientLightModeDisabled.checked = (properties.ambientLightMode === 'disabled');
                             elZoneAmbientLightModeEnabled.checked = (properties.ambientLightMode === 'enabled');
-=======
-                            elZoneSkyboxModeInherit.checked  = (properties.skyboxMode === 'inherit');
-                            elZoneSkyboxModeDisabled.checked = (properties.skyboxMode === 'disabled');
-                            elZoneSkyboxModeEnabled.checked  = (properties.skyboxMode === 'enabled');
-
-                            // Ambient light
-                            elZoneAmbientLightModeInherit.checked  = (properties.ambientLightMode === 'inherit');
-                            elZoneAmbientLightModeDisabled.checked = (properties.ambientLightMode === 'disabled');
-                            elZoneAmbientLightModeEnabled.checked  = (properties.ambientLightMode === 'enabled');
->>>>>>> creating new image entity opens image property options
 
                             elZoneAmbientLightIntensity.value = properties.ambientLight.ambientIntensity.toFixed(2);
                             elZoneAmbientLightURL.value = properties.ambientLight.ambientURL;
 
                             // Haze
-<<<<<<< HEAD
                             elZoneHazeModeInherit.checked = (properties.hazeMode === 'inherit');
                             elZoneHazeModeDisabled.checked = (properties.hazeMode === 'disabled');
                             elZoneHazeModeEnabled.checked = (properties.hazeMode === 'enabled');
-=======
-                            elZoneHazeModeInherit.checked  = (properties.hazeMode === 'inherit');
-                            elZoneHazeModeDisabled.checked = (properties.hazeMode === 'disabled');
-                            elZoneHazeModeEnabled.checked  = (properties.hazeMode === 'enabled');
->>>>>>> creating new image entity opens image property options
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
                             elZoneHazeColor.style.backgroundColor = "rgb(" + 
@@ -1370,24 +1325,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-color-control2').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-color-control2').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1403,24 +1349,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-light-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-light-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1432,7 +1369,7 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
-        elImageURL.addEventListener('change', createImageURLUpdateFunction('imageURL'));
+        elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
         elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));
@@ -1469,24 +1406,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-text-text-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-text-text-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 $(el).attr('active', 'false');
                 emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
             }
@@ -1502,24 +1430,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-text-background-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-text-background-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1536,24 +1455,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
         }));
@@ -1614,24 +1524,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('hazeColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
@@ -1648,24 +1549,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('hazeGlareColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
@@ -1699,24 +1591,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
-<<<<<<< HEAD
             submit: false, // We don't want to have a submission button
-=======
->>>>>>> creating new image entity opens image property options
             onShow: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'false');
             },
-<<<<<<< HEAD
             onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-=======
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
->>>>>>> creating new image entity opens image property options
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
             }
         }));
