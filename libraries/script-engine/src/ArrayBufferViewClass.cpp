@@ -11,8 +11,7 @@
 
 #include "ArrayBufferViewClass.h"
 
-int qScriptClassPointerMetaTypeId = qRegisterMetaType<QScriptClass*>();
-int qByteArrayMetaTypeId = qRegisterMetaType<QByteArray>();
+Q_DECLARE_METATYPE(QByteArray*)
 
 ArrayBufferViewClass::ArrayBufferViewClass(ScriptEngine* scriptEngine) :
 QObject(scriptEngine),
@@ -22,7 +21,6 @@ _scriptEngine(scriptEngine) {
     _bufferName = engine()->toStringHandle(BUFFER_PROPERTY_NAME.toLatin1());
     _byteOffsetName = engine()->toStringHandle(BYTE_OFFSET_PROPERTY_NAME.toLatin1());
     _byteLengthName = engine()->toStringHandle(BYTE_LENGTH_PROPERTY_NAME.toLatin1());
-    registerMetaTypes(scriptEngine);
 }
 
 QScriptClass::QueryFlags ArrayBufferViewClass::queryProperty(const QScriptValue& object,
@@ -51,35 +49,4 @@ QScriptValue ArrayBufferViewClass::property(const QScriptValue& object,
 QScriptValue::PropertyFlags ArrayBufferViewClass::propertyFlags(const QScriptValue& object,
                                                                 const QScriptString& name, uint id) {
     return QScriptValue::Undeletable;
-}
-
-namespace {
-    void byteArrayFromScriptValue(const QScriptValue& object, QByteArray& byteArray) {
-        if (object.isValid()) {
-            if (object.isObject()) {
-                if (object.isArray()) {
-                    auto Uint8Array = object.engine()->globalObject().property("Uint8Array");
-                    auto typedArray = Uint8Array.construct(QScriptValueList{object});
-                    byteArray = qvariant_cast<QByteArray>(typedArray.property("buffer").toVariant());
-                } else {
-                    byteArray = qvariant_cast<QByteArray>(object.data().toVariant());
-                }
-            } else {
-                byteArray = object.toString().toUtf8();
-            }
-        }
-    }
-
-    QScriptValue byteArrayToScriptValue(QScriptEngine *engine, const QByteArray& byteArray) {
-        QScriptValue data = engine->newVariant(QVariant::fromValue(byteArray));
-        QScriptValue constructor = engine->globalObject().property("ArrayBuffer");
-        Q_ASSERT(constructor.isValid());
-        auto array = qscriptvalue_cast<QScriptClass*>(constructor.data());
-        Q_ASSERT(array);
-        return engine->newObject(array, data);
-    }
-}
-
-void ArrayBufferViewClass::registerMetaTypes(QScriptEngine* scriptEngine) {
-    qScriptRegisterMetaType(scriptEngine, byteArrayToScriptValue, byteArrayFromScriptValue);
 }
