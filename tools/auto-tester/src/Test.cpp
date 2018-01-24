@@ -307,7 +307,7 @@ void Test::evaluateTestsRecursively(bool interactiveMode, QProgressBar* progress
 }
 
 void Test::importTest(QTextStream& textStream, const QString& testPathname) {
-    textStream << "Script.include(\"" << "file:///" << testPathname + "\");" << endl;
+    textStream << "Script.include(\"" << "file:///" << testPathname + "?raw=true\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -332,7 +332,7 @@ void Test::createRecursiveScript() {
     QTextStream textStream(&allTestsFilename);
     textStream << "// This is an automatically generated file, created by auto-tester" << endl << endl;
 
-    textStream << "var autoTester = Script.require(\"https://github.com/highfidelity/hifi_tests/blob/master/tests/utils/autoTester.js\");" << endl;
+    textStream << "var autoTester = Script.require(\"https://github.com/highfidelity/hifi_tests/blob/master/tests/utils/autoTester.js?raw=true\");" << endl;
     textStream << "autoTester.enableRecursive();" << endl << endl;
 
     // The main will call each test after the previous test is completed
