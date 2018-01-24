@@ -61,7 +61,6 @@ int main(int argc, const char* argv[]) {
 
     // Instance UserActivityLogger now that the settings are loaded
     auto& ual = UserActivityLogger::getInstance();
-
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
     if (ual.isEnabled()) {

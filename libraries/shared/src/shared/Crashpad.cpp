@@ -42,7 +42,6 @@ bool startCrashHandler() {
 
     annotations["token"] = BACKTRACE_TOKEN;
     annotations["format"] = "minidump";
-    annotations["service-name"] = BuildInfo::INTERFACE_NAME.toStdString();
     annotations["version"] = BuildInfo::VERSION.toStdString();
 
     arguments.push_back("--no-rate-limit");
