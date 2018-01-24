@@ -547,6 +547,7 @@ var toolBar = (function () {
                     y: 0.02,
                     z: 2.58
                 },
+                shapeType: "box",
                 modelURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx",
                 // change to another default image
                 textures: JSON.stringify({ "tex.picture": "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg" })
