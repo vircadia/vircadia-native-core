@@ -121,10 +121,9 @@ MiniPromise::Promise AssetClient::queryCacheMetaAsync(const QUrl& url, MiniPromi
                     { "metaDataURL", metaData.url() },
                 });
             } else {
-                QHashIterator<QNetworkRequest::Attribute, QVariant> i(metaData.attributes());
-                while (i.hasNext()) {
-                    i.next();
-                    attributes[QString::number(i.key())] = i.value();
+                auto metaAttributes = metaData.attributes();
+                foreach(QNetworkRequest::Attribute k, metaAttributes.keys()) {
+                    attributes[QString::number(k)] = metaAttributes[k];
                 }
                 for (const auto& i : metaData.rawHeaders()) {
                     rawHeaders[i.first] = i.second;
