@@ -269,6 +269,10 @@ public:
 
     void _glColor4f(float red, float green, float blue, float alpha);
 
+    // Maybe useful but shoudln't be public. Please convince me otherwise
+    // Well porting to gles i need it...
+    void runLambda(std::function<void()> f);
+
     enum Command {
         COMMAND_draw = 0,
         COMMAND_drawIndexed,
@@ -497,8 +501,7 @@ protected:
     void startNamedCall(const std::string& name);
     void stopNamedCall();
 
-    // Maybe useful but shoudln't be public. Please convince me otherwise
-    void runLambda(std::function<void()> f);
+
 
     void captureDrawCallInfoImpl();
 };

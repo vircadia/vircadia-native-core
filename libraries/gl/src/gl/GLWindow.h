@@ -12,9 +12,9 @@
 
 #include <mutex>
 #include <QtGui/QWindow>
+#include "Context.h"
 
 class QOpenGLContext;
-class QOpenGLDebugLogger;
 
 class GLWindow : public QWindow {
 public:
@@ -26,8 +26,8 @@ public:
     void swapBuffers();
     QOpenGLContext* context() const;
 private:
+    gl::Context* _context{ nullptr };
     std::once_flag _reportOnce;
-    QOpenGLContext* _context{ nullptr };
 };
 
 #endif

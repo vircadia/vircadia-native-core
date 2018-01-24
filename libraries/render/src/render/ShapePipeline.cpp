@@ -149,7 +149,7 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
                 auto factoryIt = ShapePipeline::_globalCustomFactoryMap.find(key.getCustom());
                 if ((factoryIt != ShapePipeline::_globalCustomFactoryMap.end()) && (factoryIt)->second) {
                     // found a factory for the custom key, can now generate a shape pipeline for this case:
-                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key));
+                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key, *(args->_batch)));
 
                     return pickPipeline(args, key);
                 } else {
