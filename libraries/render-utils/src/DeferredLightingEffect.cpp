@@ -11,9 +11,12 @@
 
 #include "DeferredLightingEffect.h"
 
+#include <QtCore/QFileSelector>
+
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
+#include <shared/FileUtils.h>
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -562,9 +565,9 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Haze
         if (haze) {
-	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+            batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
         }
-		
+        
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
@@ -731,9 +734,11 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
                 PROFILE_RANGE(render, "Process Default Skybox");
                 auto textureCache = DependencyManager::get<TextureCache>();
 
-                auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+                QFileSelector fileSelector;
+                fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+                auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
 
-                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
                 _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
 
                 _defaultSkybox->setCubemap(_defaultSkyboxTexture);

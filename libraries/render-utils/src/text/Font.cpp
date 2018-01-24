@@ -369,11 +369,15 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
 
     batch.setPipeline(((*color).a < 1.0f || layered) ? _transparentPipeline : _pipeline);
     batch.setResourceTexture(_fontLoc, _texture);
-    batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
+    if (_outlineLoc >= 0) {
+        batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
+    }
     
     // need the gamma corrected color here
     glm::vec4 lrgba = ColorUtils::sRGBToLinearVec4(*color);
-    batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
+    if (_colorLoc >= 0) {
+        batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
+    }
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);

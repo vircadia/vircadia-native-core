@@ -4,7 +4,13 @@ AUTOSCRIBE_SHADER_LIB(gpu graphics render-utils)
 setup_hifi_project(Quick Gui OpenGL Script Widgets)
 setup_memory_debugger()
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
-link_hifi_libraries(networking gl gpu gpu-gl procedural shared fbx graphics model-networking animation script-engine render render-utils octree image ktx)
+link_hifi_libraries(
+    shared networking gl 
+    ktx gpu procedural octree image 
+    graphics model-networking fbx animation 
+    script-engine render render-utils 
+    ${PLATFORM_GL_BACKEND}
+)
 
 if (WIN32)
   add_dependency_external_projects(wasapi)

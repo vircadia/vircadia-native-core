@@ -39,8 +39,7 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
-
-    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+    connect(request, &SetMappingRequest::finished, this, [callback](SetMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString(), request->getPath() };
             callback.call(args);
@@ -48,15 +47,13 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
 
         request->deleteLater();
     });
-
     request->start();
 }
 
 void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetMappingRequest(path);
-
-    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+    connect(request, &GetMappingRequest::finished, this, [callback](GetMappingRequest* request) mutable {
         auto hash = request->getHash();
 
         if (callback.isCallable()) {
