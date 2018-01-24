@@ -251,9 +251,7 @@ var toolBar = (function () {
             // Align entity with Avatar orientation.
             properties.rotation = MyAvatar.orientation;
             
-            // added image here
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
-            //var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web"];
 
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     
@@ -541,21 +539,16 @@ var toolBar = (function () {
             });
         });
 
-        // for image button
         addButton("newImageButton", "web-01.svg", function () {
             createNewEntity({
                 type: "Model",
-                // make constant for this later
                 dimensions: {
                     x: 4.16,
                     y: 0.02,
                     z: 2.58
                 },
                 modelURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx",
-                // will this work?
-                /*get textures() {
-                    return JSON.stringify({ "tex.picture": this.imageURL });
-                }*/
+                // change to another default image
                 textures: JSON.stringify({ "tex.picture": "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg" })
             });
         });

@@ -48,7 +48,6 @@ public:
         Line,
         PolyVox,
         PolyLine,
-        //Image,
         Shape,
         LAST = Shape
     } EntityType;

@@ -67,7 +67,6 @@ class EntityItemProperties {
     friend class ParticleEffectEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ZoneEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class WebEntityItem; // TODO: consider removing this friend relationship and use public methods
-    //friend class ImageEntityItem;
     friend class LineEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyVoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class PolyLineEntityItem; // TODO: consider removing this friend relationship and use public methods
@@ -195,7 +194,6 @@ public:
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
-    //DEFINE_PROPERTY_REF(PROP_IMAGE_URL, ImageURL, imageURL, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, QVector<glm::vec3>());
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");

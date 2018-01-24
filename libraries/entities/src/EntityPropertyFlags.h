@@ -42,9 +42,6 @@ enum EntityPropertyList {
     PROP_ANIMATION_ALLOW_TRANSLATION,
     PROP_RELAY_PARENT_JOINTS,
 
-    /*// for image
-    PROP_IMAGE_URL,*/
-
     // these properties are supported by the EntityItem base class
     PROP_REGISTRATION_POINT,
     PROP_ANGULAR_VELOCITY,

@@ -101,7 +101,6 @@ TabView {
                     }
                 }
 
-                // for image
                 NewEntityButton {
                     icon: "icons/create-icons/25-web-1-01.svg"
                     text: "IMAGE"

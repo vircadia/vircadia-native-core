@@ -1000,7 +1000,6 @@ function loaded() {
                             elWebDPI.value = properties.dpi;
                         } else if (properties.type === "Image") {
                             var imageLink = JSON.parse(properties.textures)["tex.picture"];
-                            debugPrint("image url is: " + imageLink);
                             elImageURL.value = imageLink;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
