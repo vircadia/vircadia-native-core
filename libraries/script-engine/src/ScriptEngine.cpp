@@ -1390,7 +1390,7 @@ QUrl ScriptEngine::resolvePath(const QString& include) const {
 }
 
 QUrl ScriptEngine::resourcesPath() const {
-    return QUrl::fromLocalFile(PathUtils::resourcesPath());
+    return QUrl(PathUtils::resourcesUrl());
 }
 
 void ScriptEngine::print(const QString& message) {

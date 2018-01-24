@@ -15,7 +15,6 @@ using namespace gpu::gl;
 
 // Transform Stage
 void GLBackend::do_setModelTransform(const Batch& batch, size_t paramOffset) {
-    qDebug() << "do_setModelTransform";
 }
 
 void GLBackend::do_setViewTransform(const Batch& batch, size_t paramOffset) {
@@ -38,7 +37,7 @@ void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) 
         glViewport(vp.x, vp.y, vp.z, vp.w);
 
         // Where we assign the GL viewport
-        if (_stereo._enable) {
+        if (_stereo.isStereo()) {
             vp.z /= 2;
             if (_stereo._pass) {
                 vp.x += vp.z;
@@ -103,7 +102,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView) {
         // Apply the correction
-        if (_viewIsCamera && _correction.correction != glm::mat4()) {
+        if (_viewIsCamera && (_viewCorrectionEnabled && _correction.correction != glm::mat4())) {
             // FIXME should I switch to using the camera correction buffer in Transform.slf and leave this out?
             Transform result;
             _view.mult(result, _view, _correction.correction);
@@ -120,7 +119,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
 
-        if (stereo._enable) {
+        if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)));
 #else
@@ -152,7 +151,7 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 #ifdef GPU_STEREO_CAMERA_BUFFER
         bindCurrentCamera(0);
 #else 
-        if (!stereo._enable) {
+        if (!stereo.isStereo()) {
             bindCurrentCamera(0);
         }
 #endif
@@ -162,51 +161,11 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 
 void GLBackend::TransformStageState::bindCurrentCamera(int eye) const {
     if (_currentCameraOffset != INVALID_OFFSET) {
-        //qDebug() << "GLBackend::TransformStageState::bindCurrentCamera";
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT, _cameraBuffer, _currentCameraOffset + eye * _cameraUboSize, sizeof(CameraBufferElement));
     }
 }
 
-void GLBackend::updateTransform(const Batch& batch) {
-    _transform.update(_commandIndex, _stereo);
-
-    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
-    if (batch._currentNamedCall.empty()) {
-        (void)CHECK_GL_ERROR();
-        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
-        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
-        (void)CHECK_GL_ERROR();
-        GLint current_vao, current_vbo, maxVertexAtribs;
-        glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &current_vao);
-        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &current_vbo);
-        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &maxVertexAtribs);
-        glVertexAttribI4i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused, 0, 0);
-
-        //int values[] = {drawCallInfo.index, drawCallInfo.unused};
-        //glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_INT, 0, (const GLvoid *) values);
-
-        /*
-        //glDisableVertexAttribArray currentvao  1  current vbo  0
-        GL_INVALID_OPERATION is generated 
-                a non-zero vertex array object is bound, 
-                zero is bound to the GL_ARRAY_BUFFER buffer object binding point and
-                the pointer argument is not NULL.   TRUE
-        */
-        //qDebug() << "GLBackend::updateTransform glVertexAttribIPointer done";
-        (void)CHECK_GL_ERROR();
-
-    } else {
-        //qDebug() << "GLBackend::updateTransform else";
-        glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
-        glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
-                               _transform._drawCallInfoOffsets[batch._currentNamedCall]);
-        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
-    }
-    
-    (void)CHECK_GL_ERROR();
-}
-
 void GLBackend::resetTransformStage() {
-    
+    glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+    _transform._enabledDrawcallInfoBuffer = false;
 }
