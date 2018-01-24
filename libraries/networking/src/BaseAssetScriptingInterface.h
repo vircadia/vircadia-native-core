@@ -21,9 +21,6 @@
 #include "NetworkAccessManager.h"
 #include <QtNetwork/QNetworkDiskCache>
 
-/**jsdoc
- * @namespace Assets
- */
 class BaseAssetScriptingInterface : public QObject {
     Q_OBJECT
 public:

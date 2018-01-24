@@ -92,7 +92,7 @@ MiniPromise::Promise AssetClient::cacheInfoRequestAsync(MiniPromise::Promise def
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "cacheInfoRequestAsync", Q_ARG(MiniPromise::Promise, deferred));
     } else {
-        auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
+        auto cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
         if (cache) {
             deferred->resolve({
                 { "cacheDirectory", cache->cacheDirectory() },
