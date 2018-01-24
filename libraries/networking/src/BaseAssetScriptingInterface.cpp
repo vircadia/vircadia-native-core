@@ -42,7 +42,7 @@ bool BaseAssetScriptingInterface::initializeCache() {
     if (!assetClient()) {
         return false; // not yet possible to initialize the cache
     }
-    if (!_cacheDirectory.isEmpty()) {
+    if (_cacheReady) {
         return true; // cache is ready
     }
 
@@ -51,7 +51,7 @@ bool BaseAssetScriptingInterface::initializeCache() {
 
     Promise deferred = makePromise("BaseAssetScriptingInterface--queryCacheStatus");
     deferred->then([this](QVariantMap result) {
-        _cacheDirectory = result.value("cacheDirectory").toString();
+        _cacheReady = !result.value("cacheDirectory").toString().isEmpty();
     });
     deferred->fail([](QString error) {
         qDebug() << "BaseAssetScriptingInterface::queryCacheStatus ERROR" << QThread::currentThread() << error;

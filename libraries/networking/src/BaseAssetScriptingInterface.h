@@ -40,7 +40,7 @@ public slots:
     QString hashDataHex(const QByteArray& data) { return hashData(data).toHex(); }
 
 protected:
-    QString _cacheDirectory;
+    bool _cacheReady{ false };
     bool initializeCache();
     Promise getCacheStatus();
     Promise queryCacheMeta(const QUrl& url);
