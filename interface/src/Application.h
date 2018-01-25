@@ -469,6 +469,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);

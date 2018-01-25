@@ -335,15 +335,17 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // we will never drop below the 'min' value
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 
-static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString SVO_EXTENSION  = ".svo";
+static const QString SNAPSHOT_EXTENSION = ".jpg";
+static const QString JPG_EXTENSION = ".jpg";
+static const QString PNG_EXTENSION = ".png";
+static const QString SVO_EXTENSION = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
 static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
-static const QString JS_EXTENSION  = ".js";
-static const QString FST_EXTENSION  = ".fst";
-static const QString FBX_EXTENSION  = ".fbx";
-static const QString OBJ_EXTENSION  = ".obj";
+static const QString JS_EXTENSION = ".js";
+static const QString FST_EXTENSION = ".fst";
+static const QString FBX_EXTENSION = ".fbx";
+static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
@@ -382,7 +384,9 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
-    { ZIP_EXTENSION, &Application::importFromZIP }
+    { ZIP_EXTENSION, &Application::importFromZIP },
+    { JPG_EXTENSION, &Application::importImage },
+    { PNG_EXTENSION, &Application::importImage }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2896,6 +2900,27 @@ bool Application::importFromZIP(const QString& filePath) {
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
     }
+    return true;
+}
+
+bool Application::importImage(const QString& urlString) {
+    qCDebug(interfaceapp) << "dragged image";
+    QString filepath(urlString);
+    filepath.remove("file:///");
+    //<<gets stuck at addAssetToWorldUpload()>>
+    addAssetToWorld(filepath, "", false, false);
+    //emit uploadRequest(urlString);
+    /*auto upload = DependencyManager::get<AssetClient>()->createUpload(urlString);
+    QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+    if (upload->getError() != AssetUpload::NoError) {
+    QString errorInfo = "Could not upload model to the Asset Server.";
+    qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
+    //addAssetToWorldError(filenameFromPath(urlString), errorInfo);
+    } else {
+    //addAssetToWorldSetMapping(urlString, QString("/" + filenameFromPath(urlString)), hash);
+    }
+    upload->deleteLater();
+    });*/
     return true;
 }
 
@@ -6403,6 +6428,7 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString filename = filenameFromPath(path);
+    qCDebug(interfaceapp) << "Filename is: " << filename;
     if (isZip || isBlocks) {
         QString assetName = zipFile.section("/", -1).remove(QRegExp("[.]zip(.*)$"));
         QString assetFolder = path.section("model_repo/", -1);
@@ -6425,6 +6451,8 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
 }
 
 void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
+    qCDebug(interfaceapp) << "mapping request is: " << mapping;
+    qCDebug(interfaceapp) << "file is located: " << filePath;
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
 
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
