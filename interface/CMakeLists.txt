@@ -276,8 +276,10 @@ endif()
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
-# require JSDoc to be build before interface is deployed (Console Auto-complete)
-add_dependencies(${TARGET_NAME} jsdoc)
+if (BUILD_TOOLS)
+    # require JSDoc to be build before interface is deployed (Console Auto-complete)
+    add_dependencies(${TARGET_NAME} jsdoc)
+endif()
 
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
@@ -294,7 +296,7 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
-  if (NPM_EXECUTABLE)
+  if (BUILD_TOOLS AND NPM_EXECUTABLE)
     set(EXTRA_COPY_COMMANDS
       COMMAND "${CMAKE_COMMAND}" -E make_directory
       "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
@@ -317,7 +319,7 @@ if (APPLE)
   fixup_interface()
 
 else()
-  if (NPM_EXECUTABLE)
+  if (BUILD_TOOLS AND NPM_EXECUTABLE)
     set(EXTRA_COPY_COMMANDS
       COMMAND "${CMAKE_COMMAND}" -E make_directory
       "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
