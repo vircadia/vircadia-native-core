@@ -26,7 +26,8 @@ AudioInjectorOptions::AudioInjectorOptions() :
     ambisonic(false),
     ignorePenumbra(false),
     localOnly(false),
-    secondOffset(0.0f)
+    secondOffset(0.0f),
+    pitch(1.0f)
 {
 
 }
@@ -40,6 +41,7 @@ QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInje
     obj.setProperty("ignorePenumbra", injectorOptions.ignorePenumbra);
     obj.setProperty("localOnly", injectorOptions.localOnly);
     obj.setProperty("secondOffset", injectorOptions.secondOffset);
+    obj.setProperty("pitch", injectorOptions.pitch);
     return obj;
 }
 
@@ -86,6 +88,12 @@ void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOpt
                 injectorOptions.secondOffset = it.value().toNumber();
             } else {
                 qCWarning(audio) << "Audio injector options: secondOffset is not a number";
+            }
+        } else if (it.name() == "pitch") {
+            if (it.value().isNumber()) {
+                injectorOptions.pitch = it.value().toNumber();
+            } else {
+                qCWarning(audio) << "Audio injector options: pitch is not a number";
             }
         } else {
             qCWarning(audio) << "Unknown audio injector option:" << it.name();

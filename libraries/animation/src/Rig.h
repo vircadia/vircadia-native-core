@@ -69,11 +69,16 @@ public:
         NumSecondaryControllerTypes
     };
 
+    enum class ControllerFlags : uint8_t {
+        Enabled = 0x01,
+        Estimated = 0x02
+    };
+
     struct ControllerParameters {
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
-        bool primaryControllerActiveFlags[NumPrimaryControllerTypes];
+        uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
-        bool secondaryControllerActiveFlags[NumSecondaryControllerTypes];
+        uint8_t secondaryControllerFlags[NumSecondaryControllerTypes];
         bool isTalking;
         FBXJointShapeInfo hipsShapeInfo;
         FBXJointShapeInfo spineShapeInfo;
@@ -159,42 +164,13 @@ public:
 
     // rig space
     glm::mat4 getJointTransform(int jointIndex) const;
+    AnimPose getJointPose(int jointIndex) const;
 
     // Start or stop animations as needed.
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
-
-    // legacy
-    void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 rootTransform);
-
-    // legacy
-    bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
-
-    // legacy
-    float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
-                        const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
-
-    // legacy
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
-
-    // legacy
-    glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
-
-    // legacy
-    glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, float mix = 1.0f);
-
-    // legacy
-    bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
-
-    // legacy
-    glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
-
-    // legacy
-    void clearJointStatePriorities();
 
     void updateFromControllerParameters(const ControllerParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
@@ -251,7 +227,8 @@ protected:
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
-    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
+                     bool leftArmEnabled, bool rightArmEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo);
@@ -338,7 +315,7 @@ protected:
         float firstFrame;
         float lastFrame;
     };
-    
+
     struct RoleAnimState {
        RoleAnimState() {}
        RoleAnimState(const QString& roleId, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :

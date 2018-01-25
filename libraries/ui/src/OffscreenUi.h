@@ -80,7 +80,6 @@ public:
     QObject* getFlags();
     Q_INVOKABLE bool isPointOnDesktopWindow(QVariant point);
     QQuickItem* getDesktop();
-    QQuickItem* getToolWindow();
     QObject* getRootMenu();
     enum Icon {
         ICON_NONE = 0,
@@ -261,7 +260,6 @@ private:
     ModalDialogListener* assetDialogAsync(const QVariantMap& properties);
 
     QQuickItem* _desktop { nullptr };
-    QQuickItem* _toolWindow { nullptr };
     QList<QObject*> _modalDialogListeners;
     std::unordered_map<int, bool> _pressedKeys;
     VrMenu* _vrMenu { nullptr };

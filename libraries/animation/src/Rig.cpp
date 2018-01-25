@@ -179,7 +179,7 @@ void Rig::restoreRoleAnimation(const QString& role) {
             } else {
                 qCWarning(animation) << "Rig::restoreRoleAnimation could not find role " << role;
             }
-            
+
             auto statesIter = _roleAnimStates.find(role);
             if (statesIter != _roleAnimStates.end()) {
                 _roleAnimStates.erase(statesIter);
@@ -1050,52 +1050,6 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     }
 }
 
-void Rig::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                            const QVector<int>& freeLineage, glm::mat4 rootTransform) {
-    ASSERT(false);
-}
-
-bool Rig::restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage) {
-    ASSERT(false);
-    return false;
-}
-
-float Rig::getLimbLength(int jointIndex, const QVector<int>& freeLineage,
-                         const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const {
-    ASSERT(false);
-    return 1.0f;
-}
-
-glm::quat Rig::setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority) {
-    ASSERT(false);
-    return glm::quat();
-}
-
-glm::vec3 Rig::getJointDefaultTranslationInConstrainedFrame(int jointIndex) {
-    ASSERT(false);
-    return glm::vec3();
-}
-
-glm::quat Rig::setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation, float priority, float mix) {
-    ASSERT(false);
-    return glm::quat();
-}
-
-bool Rig::getJointRotationInConstrainedFrame(int jointIndex, glm::quat& quatOut) const {
-    ASSERT(false);
-    return false;
-}
-
-void Rig::clearJointStatePriorities() {
-    ASSERT(false);
-}
-
-glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
-    ASSERT(false);
-    return glm::quat();
-}
-
-
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
     updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);
     updateEyeJoint(params.rightEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);
@@ -1265,7 +1219,8 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
     return position;
 }
 
-void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
+                      bool leftArmEnabled, bool rightArmEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                       const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                       const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
@@ -1279,7 +1234,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::vec3 handPosition = leftHandPose.trans();
         glm::quat handRotation = leftHandPose.rot();
 
-        if (!hipsEnabled) {
+        if (!hipsEnabled || hipsEstimated) {
             // prevent the hand IK targets from intersecting the torso
             handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
@@ -1326,7 +1281,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::vec3 handPosition = rightHandPose.trans();
         glm::quat handRotation = rightHandPose.rot();
 
-        if (!hipsEnabled) {
+        if (!hipsEnabled || hipsEstimated) {
             // prevent the hand IK targets from intersecting the torso
             handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
@@ -1550,20 +1505,20 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
 
-    bool headEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Head];
-    bool leftHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftHand];
-    bool rightHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightHand];
-    bool hipsEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Hips];
-    bool leftFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftFoot];
-    bool rightFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightFoot];
-    bool spine2Enabled = params.primaryControllerActiveFlags[PrimaryControllerType_Spine2];
-
-    bool leftArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_LeftArm];
-    bool rightArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_RightArm];
+    bool headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
+    bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
+    bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
+    bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
+    bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
+    bool leftFootEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftFoot] & (uint8_t)ControllerFlags::Enabled;
+    bool rightFootEnabled = params.primaryControllerFlags[PrimaryControllerType_RightFoot] & (uint8_t)ControllerFlags::Enabled;
+    bool spine2Enabled = params.primaryControllerFlags[PrimaryControllerType_Spine2] & (uint8_t)ControllerFlags::Enabled;
+    bool leftArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_LeftArm] & (uint8_t)ControllerFlags::Enabled;
+    bool rightArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_RightArm] & (uint8_t)ControllerFlags::Enabled;
 
     updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, leftArmEnabled, rightArmEnabled, dt,
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
                 params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo);
 
@@ -1623,7 +1578,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     for (int i = 0; i < (int)NumSecondaryControllerTypes; i++) {
         int index = indexOfJoint(secondaryControllerJointNames[i]);
         if (index >= 0) {
-            if (params.secondaryControllerActiveFlags[i]) {
+            if (params.secondaryControllerFlags[i] & (uint8_t)ControllerFlags::Enabled) {
                 ikNode->setSecondaryTargetInRigFrame(index, params.secondaryControllerPoses[i]);
             } else {
                 ikNode->clearSecondaryTarget(index);
@@ -1731,6 +1686,14 @@ glm::mat4 Rig::getJointTransform(int jointIndex) const {
     }
 }
 
+AnimPose Rig::getJointPose(int jointIndex) const {
+    if (isIndexValid(jointIndex)) {
+        return _internalPoseSet._absolutePoses[jointIndex];
+    } else {
+        return AnimPose::identity;
+    }
+}
+
 void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 
     const AnimPose geometryToRigPose(_geometryToRigTransform);
@@ -1742,16 +1705,16 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
             // rotations are in absolute rig frame.
             glm::quat defaultAbsRot = geometryToRigPose.rot() * _animSkeleton->getAbsoluteDefaultPose(i).rot();
             data.rotation = _internalPoseSet._absolutePoses[i].rot();
-            data.rotationSet = !isEqual(data.rotation, defaultAbsRot);
+            data.rotationIsDefaultPose = isEqual(data.rotation, defaultAbsRot);
 
             // translations are in relative frame but scaled so that they are in meters,
             // instead of geometry units.
             glm::vec3 defaultRelTrans = _geometryOffset.scale() * _animSkeleton->getRelativeDefaultPose(i).trans();
             data.translation = _geometryOffset.scale() * _internalPoseSet._relativePoses[i].trans();
-            data.translationSet = !isEqual(data.translation, defaultRelTrans);
+            data.translationIsDefaultPose = isEqual(data.translation, defaultRelTrans);
         } else {
-            data.translationSet = false;
-            data.rotationSet = false;
+            data.translationIsDefaultPose = true;
+            data.rotationIsDefaultPose = true;
         }
     }
 }
@@ -1776,11 +1739,11 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
     for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
-        if (data.rotationSet) {
+        if (data.rotationIsDefaultPose) {
+            rotations.push_back(absoluteDefaultPoses[i].rot());
+        } else {
             // JointData rotations are in absolute rig-frame so we rotate them to absolute geometry-frame
             rotations.push_back(rigToGeometryRot * data.rotation);
-        } else {
-            rotations.push_back(absoluteDefaultPoses[i].rot());
         }
     }
 
@@ -1796,11 +1759,11 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         const JointData& data = jointDataVec.at(i);
         _internalPoseSet._relativePoses[i].scale() = Vectors::ONE;
         _internalPoseSet._relativePoses[i].rot() = rotations[i];
-        if (data.translationSet) {
+        if (data.translationIsDefaultPose) {
+            _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
+        } else {
             // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
             _internalPoseSet._relativePoses[i].trans() = _invGeometryOffset.scale() * data.translation;
-        } else {
-            _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
         }
     }
 }

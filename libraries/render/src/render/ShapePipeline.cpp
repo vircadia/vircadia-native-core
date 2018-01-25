@@ -87,7 +87,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
     slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
     slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
-    slotBindings.insert(gpu::Shader::Binding(std::string("hazeParametersBuffer"), Slot::BUFFER::HAZE_MODEL));
+    slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -131,7 +131,7 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
                 auto factoryIt = ShapePipeline::_globalCustomFactoryMap.find(key.getCustom());
                 if ((factoryIt != ShapePipeline::_globalCustomFactoryMap.end()) && (factoryIt)->second) {
                     // found a factory for the custom key, can now generate a shape pipeline for this case:
-                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key));
+                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key, *(args->_batch)));
 
                     return pickPipeline(args, key);
                 } else {

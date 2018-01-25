@@ -19,7 +19,7 @@
 #include <utility>
 
 #include <GLMHelpers.h>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
@@ -210,7 +210,7 @@ private:
     bool _hmdDesktopTracking { false };
     
     glm::mat4 _resetMat { glm::mat4() };
-    model::Geometry _modelGeometry;
+    graphics::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
     int _leftHandRenderID { 0 };

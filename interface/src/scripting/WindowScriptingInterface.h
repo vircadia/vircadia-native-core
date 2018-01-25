@@ -1,5 +1,5 @@
 //
-//  WindowScriptingInterface.cpp
+//  WindowScriptingInterface.h
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 4/29/14.
@@ -42,7 +42,7 @@ void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptR
  * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other 
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
- *     chrome) plus the height of the menu bar, in pixels. <em>Read-only.</em>
+ *     chrome), in pixels. <em>Read-only.</em>
  * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
  * @property {number} x - The x coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
  * @property {number} y - The y coordinate of the top left corner of the Interface window on the display. <em>Read-only.</em>
@@ -54,6 +54,7 @@ class WindowScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int innerHeight READ getInnerHeight)
     Q_PROPERTY(int x READ getX)
     Q_PROPERTY(int y READ getY)
+
 public:
     WindowScriptingInterface();
     ~WindowScriptingInterface();
@@ -143,7 +144,7 @@ public slots:
 
     /**jsdoc
      * Prompt the user for input in a custom, modal dialog.
-     * @deprecated This funtion is deprecated and will be removed.
+     * @deprecated This function is deprecated and will soon be removed.
      * @function Window.customPrompt
      * @param {object} config - Configures the modal dialog.
      * @returns {object} The user's response.
@@ -196,18 +197,19 @@ public slots:
 
     /**jsdoc
      * Prompt the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
-     * {@link Window.openFileChanged|openFileChanged} signal is emitted when a file is chosen; no signal is emitted if the user
+     * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
+     * @deprecated A deprecated {@link Window.openFileChanged|openFileChanged} signal is also emitted when a file is chosen.
      * @function Window.browseAsync
      * @param {string} title="" - The title to display at the top of the dialog.
      * @param {string} directory="" - The initial directory to start browsing at.
      * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to choose an image file without waiting for the answer.</caption>
-     * function onOpenFileChanged(filename) {
+     * function onBrowseChanged(filename) {
      *     print("File: " + filename);
      * }
-     * Window.openFileChanged.connect(onOpenFileChanged);
+     * Window.browseChanged.connect(onBrowseChanged);
      *
      * Window.browseAsync("Select Image File", Paths.resources, "Images (*.png *.jpg *.svg)");
      * print("Script continues without waiting");
@@ -300,9 +302,16 @@ public slots:
     /**jsdoc
      * Get Interface's build number.
      * @function Window.checkVersion
-     * @returns {string} - Interface's build number.
+     * @returns {string} Interface's build number.
      */
     QString checkVersion();
+
+    /**jsdoc
+     * Get the signature for Interface's protocol version.
+     * @function Window.protocolSignature
+     * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
+     */
+    QString protocolSignature();
 
     /**jsdoc
      * Copies text to the operating system's clipboard.
@@ -326,7 +335,7 @@ public slots:
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
      * @example <caption>Using the snapshot function and signals.</caption>
-     * function onStillSnapshottaken(path, notify) {
+     * function onStillSnapshotTaken(path, notify) {
      *     print("Still snapshot taken: " + path);
      *     print("Notify: " + notify);
      * }
@@ -339,7 +348,7 @@ public slots:
      *     print("Animated snapshot taken: " + animatedPath);
      * }
      *
-     * Window.stillSnapshotTaken.connect(onStillSnapshottaken);
+     * Window.stillSnapshotTaken.connect(onStillSnapshotTaken);
      * Window.processingGifStarted.connect(onProcessingGifStarted);
      * Window.processingGifCompleted.connect(onProcessingGifCompleted);
      *
@@ -515,6 +524,7 @@ public slots:
 
 private slots:
     void onMessageBoxSelected(int button);
+    void disconnectedFromDomain();
 
 signals:
 
@@ -553,7 +563,7 @@ signals:
 
     /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 
-     *     <code>includeAnimated = false</code>.
+     *     <code>includeAnimated = false</code> or {@link Window.takeSecondaryCameraSnapshot|takeSecondaryCameraSnapshot}.
      * @function Window.stillSnapshotTaken
      * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
      * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSnapshot|takeSnapshot}
@@ -652,7 +662,16 @@ signals:
 
     /**jsdoc
      * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
+     * @function Window.browseChanged
+     * @param {string} filename - The path and name of the file the user chose in the dialog.
+     * @returns {Signal}
+     */
+    void browseChanged(QString filename);
+
+    /**jsdoc
+     * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
      * @function Window.openFileChanged
+     * @deprecated This signal is being replaced with {@link Window.browseChanged|browseChanged} and will be removed.
      * @param {string} filename - The path and name of the file the user chose in the dialog.
      * @returns {Signal}
      */

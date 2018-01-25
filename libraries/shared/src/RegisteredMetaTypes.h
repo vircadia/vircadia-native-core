@@ -315,11 +315,11 @@ Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
 
-namespace model {
+namespace graphics {
     class Mesh;
 }
 
-using MeshPointer = std::shared_ptr<model::Mesh>;
+using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
 
 class MeshProxy : public QObject {
