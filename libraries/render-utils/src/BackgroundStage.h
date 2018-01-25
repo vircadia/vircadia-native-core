@@ -11,7 +11,7 @@
 #ifndef hifi_render_utils_BackgroundStage_h
 #define hifi_render_utils_BackgroundStage_h
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 #include <set>
 #include <unordered_map>
 #include <render/IndexedContainer.h>
@@ -30,8 +30,8 @@ public:
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
-    using BackgroundPointer = model::SunSkyStagePointer;
-    using Backgrounds = render::indexed_container::IndexedPointerVector<model::SunSkyStage>;
+    using BackgroundPointer = graphics::SunSkyStagePointer;
+    using Backgrounds = render::indexed_container::IndexedPointerVector<graphics::SunSkyStage>;
     using BackgroundMap = std::unordered_map<BackgroundPointer, Index>;
 
     using BackgroundIndices = std::vector<Index>;

@@ -22,7 +22,6 @@ Item {
         anchors.fill: parent
         id: d
         objectName: "stack"
-        initialItem: topMenu
 
         property var menuStack: []
         property var topMenu: null;

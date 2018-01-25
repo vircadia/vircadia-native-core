@@ -945,8 +945,7 @@
         tabletButton = tablet.addButton({
             icon: tabletButtonIcon,
             activeIcon: tabletButtonActiveIcon,
-            text: tabletButtonName,
-            sortOrder: 0
+            text: tabletButtonName
         });
 
         Messages.subscribe(channelName);

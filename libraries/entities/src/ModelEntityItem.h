@@ -99,6 +99,9 @@ public:
     void setAnimationHold(bool hold);
     bool getAnimationHold() const;
 
+    void setRelayParentJoints(bool relayJoints);
+    bool getRelayParentJoints() const;
+
     void setAnimationFirstFrame(float firstFrame);
     float getAnimationFirstFrame() const;
 
@@ -121,7 +124,7 @@ public:
     virtual void setJointTranslations(const QVector<glm::vec3>& translations);
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
 
-    virtual void setAnimationJointsData(const QVector<JointData>& jointsData);
+    virtual void setAnimationJointsData(const QVector<EntityJointData>& jointsData);
 
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
@@ -147,7 +150,7 @@ protected:
     bool _jointTranslationsExplicitlySet{ false }; // were the joints set as a property or just side effect of animations
 
     struct ModelJointData {
-        JointData joint;
+        EntityJointData joint;
         bool rotationDirty { false };
         bool translationDirty { false };
     };
@@ -157,6 +160,7 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
+    bool _relayParentJoints;
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 

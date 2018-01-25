@@ -18,7 +18,7 @@
 <$declareDeferredCurvature()$>
 
 // Everything about light
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 <$declareLightBuffer(128)$>
 <@include LightingModel.slh@>
 

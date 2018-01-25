@@ -12,7 +12,15 @@ setup_hifi_project(Quick Gui OpenGL)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries
-link_hifi_libraries(shared networking model fbx ktx image octree gl gpu gpu-gl render model-networking networking render-utils entities entities-renderer animation audio avatars script-engine physics procedural midi ui)
+link_hifi_libraries(
+    shared networking animation 
+    ktx image octree gl gpu  
+    render render-utils 
+    graphics fbx model-networking 
+    entities entities-renderer audio avatars script-engine 
+    physics procedural midi ui
+    ${PLATFORM_GL_BACKEND}
+)
 
 if (WIN32)
     target_link_libraries(${TARGET_NAME} Winmm.lib)

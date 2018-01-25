@@ -26,7 +26,7 @@ void PrepareStencil::configure(const Config& config) {
     _forceDraw = config.forceDraw;
 }
 
-model::MeshPointer PrepareStencil::getMesh() {
+graphics::MeshPointer PrepareStencil::getMesh() {
     if (!_mesh) {
 
         std::vector<glm::vec3> vertices {
@@ -36,7 +36,7 @@ model::MeshPointer PrepareStencil::getMesh() {
             { 1.0f, -1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } };
 
         std::vector<uint32_t> indices { 0, 7, 1, 1, 3, 2, 3, 5, 4, 5, 7, 6 };
-        _mesh = model::Mesh::createIndexedTriangles_P3F((uint32_t) vertices.size(), (uint32_t) indices.size(), vertices.data(), indices.data());
+        _mesh = graphics::Mesh::createIndexedTriangles_P3F((uint32_t) vertices.size(), (uint32_t) indices.size(), vertices.data(), indices.data());
     }
     return _mesh;
 }
@@ -95,7 +95,7 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
             batch.setInputStream(0, mesh->getVertexStream());
 
             // Draw
-            auto part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+            auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
             batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
         } else {
             batch.setPipeline(getPaintStencilPipeline());
@@ -129,7 +129,7 @@ void PrepareStencil::testNoAA(gpu::State& state) {
 }
 
 // Pass if this area WAS marked as BACKGROUND
-// (see: model/src/Skybox.cpp, procedural/src/ProceduralSkybox.cpp)
+// (see: graphics/src/Skybox.cpp, procedural/src/ProceduralSkybox.cpp)
 void PrepareStencil::testBackground(gpu::State& state) {
     state.setStencilTest(true, 0x00, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));

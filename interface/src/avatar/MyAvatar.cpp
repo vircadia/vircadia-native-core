@@ -537,6 +537,7 @@ void MyAvatar::simulate(float deltaTime) {
     // we've achived our final adjusted position and rotation for the avatar
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
+    relayJointDataToChildren();
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -1059,11 +1060,6 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
-}
-
-void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
-    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
-    reset(true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1801,7 +1797,7 @@ void MyAvatar::initAnimGraph() {
     } else if (!_fstAnimGraphOverrideUrl.isEmpty()) {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
-        graphUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json");
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
@@ -1929,7 +1925,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
@@ -2023,8 +2019,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         _smoothOrientationTimer = 0.0f;
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
-
+    Head* head = getHead();
     auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         glm::quat localOrientation = headPose.rotation * Quaternions::Y_180;
@@ -2036,6 +2031,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
+    } else {
+        head->setBaseYaw(0.0f);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBaseRoll(0.0f);
     }
 }
 
@@ -2100,7 +2099,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * _walkSpeed.get() * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2692,6 +2691,14 @@ float MyAvatar::getUserEyeHeight() const {
     return userHeight - userHeight * ratio;
 }
 
+float MyAvatar::getWalkSpeed() const {
+    return _walkSpeed.get();
+}
+
+void MyAvatar::setWalkSpeed(float value) {
+    _walkSpeed.set(value);
+}
+
 glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
@@ -2799,14 +2806,9 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 }
 
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    auto cameraMode = qApp->getCamera().getMode();
-    if (cameraMode == CAMERA_MODE_THIRD_PERSON) {
-        return false;
-    } else {
-        const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
-        glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
-    }
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
+    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {

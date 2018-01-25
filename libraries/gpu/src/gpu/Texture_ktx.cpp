@@ -499,7 +499,9 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
     GPUKTXPayload gpuktxKeyValue;
     if (!GPUKTXPayload::findInKeyValues(descriptor.keyValues, gpuktxKeyValue)) {
         qCWarning(gpulogging) << "Could not find GPUKTX key values.";
-        return TexturePointer();
+        // FIXME use sensible defaults based on the texture type and format
+        gpuktxKeyValue._usageType = TextureUsageType::RESOURCE;
+        gpuktxKeyValue._usage = Texture::Usage::Builder().withColor().withAlpha().build();
     }
 
     auto texture = create(gpuktxKeyValue._usageType,
@@ -525,7 +527,7 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
     return texture;
 }
 
-TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry) {
+TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry, const std::string& source) {
     std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(cacheEntry->getFilepath().c_str()));
     if (!ktxPointer) {
         return nullptr;
@@ -534,6 +536,9 @@ TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry) {
     auto texture = build(ktxPointer->toDescriptor());
     if (texture) {
         texture->setKtxBacking(cacheEntry);
+        if (texture->source().empty()) {
+            texture->setSource(source);
+        }
     }
 
     return texture;
@@ -548,6 +553,7 @@ TexturePointer Texture::unserialize(const std::string& ktxfile) {
     auto texture = build(ktxPointer->toDescriptor());
     if (texture) {
         texture->setKtxBacking(ktxfile);
+        texture->setSource(ktxfile);
     }
 
     return texture;

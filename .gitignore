@@ -80,3 +80,11 @@ npm-debug.log
 
 # ignore qmlc files generated from qml as cache
 *.qmlc
+# Android studio files
+*___jb_old___
+
+# Generated assets for Android
+android/app/src/main/assets
+
+# Resource binary file
+interface/compiledResources

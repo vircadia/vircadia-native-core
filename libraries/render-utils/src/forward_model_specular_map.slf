@@ -12,9 +12,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include ForwardBufferWrite.slh@>
 
-<@include model/Material.slh@>
+<!<@include ForwardBufferWrite.slh@> !>
+
+<@include ForwardGlobalLight.slh@>
+<$declareEvalSkyboxGlobalColor()$>
+
+<@include graphics/Material.slh@>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
@@ -25,12 +32,13 @@ in vec2 _texCoord1;
 in vec3 _normal;
 in vec3 _color;
 
+out vec4 _fragColor;
 
 void main(void) {
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex)$>
-    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+  <!  <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$> !>
 
     float opacity = 1.0;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
@@ -48,7 +56,14 @@ void main(void) {
 
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
-
+    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
+    if (metallic <= 0.5) {
+        metallic = 0.0;
+    }
+    else {
+        fresnel = albedo;
+        metallic = 1.0;
+    }/*
     float scattering = getMaterialScattering(mat);
 
     packForwardFragment(
@@ -60,4 +75,26 @@ void main(void) {
         emissive,
         occlusionTex,
         scattering);
+        */
+    vec3 fragPosition = _position.xyz;
+
+    TransformCamera cam = getTransformCamera();
+    vec3 fragNormal;
+    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
+
+        vec4 color = vec4(evalSkyboxGlobalColor(
+            cam._viewInverse,
+            1.0,
+            1.0,
+            fragPosition,
+            fragNormal,
+            albedo,
+            fresnel,
+            metallic,
+            roughness),
+            opacity);
+    color.rgb += emissive * isEmissiveEnabled();
+
+    //    _fragColor = vec4(albedo, opacity);
+    _fragColor = color;
 }
