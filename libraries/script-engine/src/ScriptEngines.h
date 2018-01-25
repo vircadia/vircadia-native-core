@@ -45,9 +45,9 @@ public:
     QString getDebugScriptUrl() { return _debugScriptUrl; };
     void setDebugScriptUrl(const QString& url) { _debugScriptUrl = url; };
 
-    QString getScriptsLocation() const;
     void loadDefaultScripts();
-    void setScriptsLocation(const QString& scriptsLocation);
+    void reloadLocalFiles();
+
     QStringList getRunningScripts();
     ScriptEnginePointer getScriptEngine(const QUrl& scriptHash);
 
@@ -115,7 +115,6 @@ protected:
     QSet<ScriptEnginePointer> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
     std::list<ScriptInitializer> _scriptInitializers;
-    mutable Setting::Handle<QString> _scriptsLocationHandle;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
