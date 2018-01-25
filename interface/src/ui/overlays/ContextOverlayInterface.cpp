@@ -267,10 +267,15 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-void ContextOverlayInterface::requestEntityOwnershipVerification(const QUuid& entityItemID) {
+void ContextOverlayInterface::proveAvatarEntityOwnershipVerification(const QUuid& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
     _entityMarketplaceID = entityProperties.getMarketplaceID();
     if (!entityItemID.isNull() && _entityMarketplaceID.length() > 0) {
+        if (!entityProperties.getClientOnly()) {
+            qCDebug(entities) << "Failed to prove ownership of:" << entityItemID << "is not an avatar entity";
+            emit ownershipVerificationFailed(entityItemID);
+            return;
+        }
         setLastInspectedEntity(entityItemID);
         requestOwnershipVerification();
     }

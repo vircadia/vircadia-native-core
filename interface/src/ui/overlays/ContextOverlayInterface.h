@@ -50,7 +50,7 @@ class ContextOverlayInterface : public QObject, public Dependency {
 public:
     ContextOverlayInterface();
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
-    Q_INVOKABLE void requestEntityOwnershipVerification(const QUuid& entityID);
+    Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
     void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
     void setEnabled(bool enabled);
