@@ -23,6 +23,8 @@
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
 #include <client/settings.h>
+// #include <client/annotation_list.h>
+// #include <client/crashpad_info.h>
 
 using namespace crashpad;
 
@@ -31,15 +33,17 @@ static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
 extern QString qAppFileName();
 
+// crashpad::AnnotationList* crashpadAnnotations { nullptr };
+
 bool startCrashHandler() {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
         return false;
     }
 
     CrashpadClient client;
-    std::map<std::string, std::string> annotations;
     std::vector<std::string> arguments;
 
+    std::map<std::string, std::string> annotations;
     annotations["token"] = BACKTRACE_TOKEN;
     annotations["format"] = "minidump";
     annotations["version"] = BuildInfo::VERSION.toStdString();
@@ -75,12 +79,23 @@ bool startCrashHandler() {
     return client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
 }
 
-#else
+void setCrashAnnotation(std::string name, std::string value) {
+    // if (!crashpadAnnotations) {
+    //     crashpadAnnotations = new crashpad::AnnotationList(); // don't free this, let it leak
+    //     crashpad::CrashpadInfo* crashpad_info = crashpad::GetCrashpadInfo();
+    //     crashpad_info->set_simple_annotations(crashpadAnnotations);
+    // }
+    // crashpadAnnotations->SetKeyValue(name, value);
+}
 
+#else
 
 bool startCrashHandler() {
     qDebug() << "No crash handler available.";
     return false;
+}
+
+void setCrashAnnotation(std::string name, std::string value) {
 }
 
 #endif

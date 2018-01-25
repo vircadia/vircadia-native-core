@@ -12,6 +12,9 @@
 #ifndef hifi_Crashpad_h
 #define hifi_Crashpad_h
 
+#include <string>
+
 bool startCrashHandler();
+void setCrashAnnotation(std::string name, std::string value);
 
 #endif // hifi_Crashpad_h

@@ -865,9 +865,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _logger->setSessionID(accountManager->getSessionID());
 
-#if HAS_CRASHPAD
-    backtraceAnnotations->SetKeyValue("MetaverseSessionID", accountManager->getSessionID());
-#endif // HAS_CRASHPAD
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
