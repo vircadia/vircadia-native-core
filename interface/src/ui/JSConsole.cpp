@@ -17,6 +17,7 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <QStringListModel>
 #include <QListView>
+#include <QToolTip>
 
 #include <shared/QtHelpers.h>
 #include <ScriptEngines.h>
@@ -39,6 +40,21 @@ const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
 const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
 
+const QString JSDOC_LINE_SEPARATOR = "\r";
+
+const QString JSDOC_STYLE =
+    "<style type=\"text/css\"> \
+        .code { \
+            font-family: Consolas, Monaco, 'Andale Mono', monospace \
+        } \
+        pre, code { \
+            display: inline; \
+        } \
+        .no-wrap { \
+            white-space: nowrap; \
+        } \
+    </style>";
+
 const QString JSConsole::_consoleFileName { "about:console" };
 
 const QString JSON_KEY = "entries";
@@ -50,7 +66,7 @@ QList<QString> _readLines(const QString& filename) {
     // TODO: check root["version"]
     return root[JSON_KEY].toVariant().toStringList();
 }
-
+ 
 void _writeLines(const QString& filename, const QList<QString>& lines) {
     QFile file(filename);
     file.open(QFile::WriteOnly);
@@ -60,6 +76,10 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
     root[JSON_KEY] = QJsonArray::fromStringList(lines);
     auto json = QJsonDocument(root).toJson();
     QTextStream(&file) << json;
+}
+
+QString _jsdocTypeToString(QJsonValue jsdocType) {
+    return jsdocType.toObject().value("names").toVariant().toStringList().join("/");
 }
 
 void JSConsole::readAPI() {
@@ -102,7 +122,10 @@ QStandardItemModel* JSConsole::getAutoCompleteModel(const QString& memberOf) {
     foreach(auto doc, _apiDocs) {
         auto object = doc.toObject();
         auto scope = object.value("scope");
-        if ((memberOfProperty == nullptr && scope.toString() == "global" && object.value("kind").toString() == "namespace") || (memberOfProperty != nullptr && object.value("memberof").toString() == memberOfProperty)) {
+        if ((memberOfProperty == nullptr && scope.toString() == "global" && object.value("kind").toString() == "namespace") ||
+            (memberOfProperty != nullptr && object.value("memberof").toString() == memberOfProperty &&
+                object.value("kind").toString() != "typedef")) {
+
             model->appendRow(getAutoCompleteItem(doc));
         }
     }
@@ -166,20 +189,119 @@ JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
 }
 
 void JSConsole::insertCompletion(const QModelIndex& completion) {
+    auto jsdocObject = QJsonValue::fromVariant(completion.data(Qt::UserRole + 1)).toObject();
+    auto kind = jsdocObject.value("kind").toString();
     auto completionString = completion.data().toString();
-    QTextCursor tc = _ui->promptTextEdit->textCursor();
+    if (kind == "function") {
+        auto params = jsdocObject.value("params").toArray();
+        // automatically add the parenthesis/parentheses for the functions
+        completionString += params.isEmpty() ? "()" : "(";
+    }
+    QTextCursor textCursor = _ui->promptTextEdit->textCursor();
     int extra = completionString.length() - _completer->completionPrefix().length();
-    tc.movePosition(QTextCursor::Left);
-    tc.movePosition(QTextCursor::EndOfWord);
-    tc.insertText(completionString.right(extra));
-    _ui->promptTextEdit->setTextCursor(tc);
+    textCursor.movePosition(QTextCursor::Left);
+    textCursor.movePosition(QTextCursor::EndOfWord);
+    textCursor.insertText(completionString.right(extra));
+    _ui->promptTextEdit->setTextCursor(textCursor);
 }
 
 void JSConsole::highlightedCompletion(const QModelIndex& completion) {
-    qDebug() << "Highlighted " << completion.data().toString();
     auto jsdocObject = QJsonValue::fromVariant(completion.data(Qt::UserRole + 1)).toObject();
-    
-  //  qDebug() << "Highlighted data " << QJsonDocument(jsdocObject).toJson(QJsonDocument::Compact);
+    QString memberOf = "";
+    if (!_completerModule.isEmpty()) {
+        memberOf = _completerModule + ".";
+    }
+    auto name = memberOf + "<b>" + jsdocObject.value("name").toString() + "</b>";
+    auto description = jsdocObject.value("description").toString();
+    auto examples = jsdocObject.value("examples").toArray();
+    auto kind = jsdocObject.value("kind").toString();
+    QString returnTypeText = "";
+
+    QString paramsTable = "";
+    if (kind == "function") {
+        auto params = jsdocObject.value("params").toArray();
+        auto returns = jsdocObject.value("returns");
+        if (!returns.isUndefined()) {
+            returnTypeText = _jsdocTypeToString(jsdocObject.value("returns").toArray().at(0).toObject().value("type")) + " ";
+        }
+        name += "(";
+        if (!params.isEmpty()) {
+            bool hasDefaultParam = false;
+            bool hasOptionalParam = false;
+            bool firstItem = true;
+            foreach(auto param, params) {
+                auto paramObject = param.toObject();
+                if (!hasOptionalParam && paramObject.value("optional").toBool(false)) {
+                    hasOptionalParam = true;
+                    name += "<i>[";
+                }
+                if (!firstItem) {
+                    name += ", ";
+                } else {
+                    firstItem = false;
+                }
+                name += paramObject.value("name").toString();
+                if (!hasDefaultParam && !paramObject.value("defaultvalue").isUndefined()) {
+                    hasDefaultParam = true;
+                }
+            }
+            if (hasOptionalParam) {
+                name += "]</i>";
+            }
+
+            paramsTable += "<table border=\"1\" cellpadding=\"10\"><thead><tr><th>Name</th><th>Type</th>";
+            if (hasDefaultParam) {
+                paramsTable += "<th>Default</th>";
+            }
+            paramsTable += "<th>Description</th></tr></thead><tbody>";
+            foreach(auto param, params) {
+                auto paramObject = param.toObject();
+                paramsTable += "<tr><td>" + paramObject.value("name").toString() + "</td><td>" +
+                    _jsdocTypeToString(paramObject.value("type")) + "</td><td>";
+                if (hasDefaultParam) {
+                    paramsTable += paramObject.value("defaultvalue").toVariant().toString() + "</td><td>";
+                }
+                paramsTable += paramObject.value("description").toString() + "</td></tr>";
+            }
+
+            paramsTable += "</tbody></table>";
+        }
+        name += ")";
+    } else if (!jsdocObject.value("type").isUndefined()){
+        returnTypeText = _jsdocTypeToString(jsdocObject.value("type")) + " ";
+    }
+    auto popupText = JSDOC_STYLE + "<span class=\"no-wrap\">" + returnTypeText + name + "</span>";
+	auto descriptionText = "<p>" + description.replace(JSDOC_LINE_SEPARATOR, "<br>") + "</p>";
+
+    popupText += descriptionText;
+    popupText += paramsTable;
+    auto returns = jsdocObject.value("returns");
+    if (!returns.isUndefined()) {
+        foreach(auto returnEntry, returns.toArray()) {
+            auto returnsObject = returnEntry.toObject();
+            auto returnsDescription = returnsObject.value("description").toString().replace(JSDOC_LINE_SEPARATOR, "<br>");
+            popupText += "<h4>Returns</h4><p>" + returnsDescription + "</p><h5>Type</h5><pre><code>" +
+                _jsdocTypeToString(returnsObject.value("type")) + "</code></pre>";
+        }
+    }
+
+    if (!examples.isEmpty()) {
+        popupText += "<h4>Examples</h4>";
+        foreach(auto example, examples) {
+            auto exampleText = example.toString();
+            auto exampleLines = exampleText.split(JSDOC_LINE_SEPARATOR);
+            foreach(auto exampleLine, exampleLines) {
+                if (exampleLine.contains("<caption>")) {
+                    popupText += exampleLine.replace("caption>", "h5>");
+                } else {
+                    popupText += "<pre><code>" + exampleLine + "\n</code></pre>";
+                }
+            }
+        }
+    }
+
+    QToolTip::showText(QPoint(_completer->popup()->pos().x() + _completer->popup()->width(), _completer->popup()->pos().y()),
+        popupText, _completer->popup());
 }
 
 JSConsole::~JSConsole() {
@@ -299,7 +421,7 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
             case Qt::Key_Space:
             case Qt::Key_Enter:
             case Qt::Key_Return:
-                insertCompletion(_completer->currentIndex());
+                insertCompletion(_completer->popup()->currentIndex());
                 _completer->popup()->hide();
                 return true;
             default:
@@ -401,6 +523,7 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
             cursorRect.setWidth(_completer->popup()->sizeHintForColumn(0) +
                 _completer->popup()->verticalScrollBar()->sizeHint().width());
             _completer->complete(cursorRect);
+            highlightedCompletion(_completer->popup()->currentIndex());
             return false;
         }
     }
