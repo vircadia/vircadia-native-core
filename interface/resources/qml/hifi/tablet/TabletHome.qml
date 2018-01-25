@@ -148,6 +148,18 @@ Item {
                             previousGridIndex = currentIndex
                         }
 
+                        onMovementStarted: {
+                            if (currentIndex < 0 || gridView.currentItem === undefined || gridView.contentItem.children.length - 1 < currentIndex) {
+                                return;
+                            }
+                            var button = gridView.contentItem.children[currentIndex].children[0];
+                            if (button.isActive) {
+                                button.state = "active state";
+                            } else {
+                                button.state = "base state";
+                            }
+                        }
+
                         cellWidth: width/3
                         cellHeight: cellWidth
                         flow: GridView.LeftToRight
