@@ -24,7 +24,7 @@
         if (onSkyboxChangerScreen) {
             tablet.gotoHomeScreen();
         } else {
-            tablet.loadQMLSource("../SkyboxChanger.qml");
+            tablet.loadQMLSource("hifi/SkyboxChanger.qml");
         }
     }
 

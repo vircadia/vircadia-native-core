@@ -46,15 +46,27 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         _context->setShareContext(sharedContext);
     }
     _context->setFormat(getDefaultOpenGLSurfaceFormat());
-
-    if (_context->create()) {
-        _offscreenSurface->setFormat(_context->format());
-        _offscreenSurface->create();
-        return _offscreenSurface->isValid();
+    if (!_context->create()) {
+        qFatal("Failed to create OffscreenGLCanvas context");
     }
-    qWarning("Failed to create OffscreenGLCanvas context");
 
-    return false;
+    _offscreenSurface->setFormat(_context->format());
+    _offscreenSurface->create();
+
+    // Due to a https://bugreports.qt.io/browse/QTBUG-65125 we can't rely on `isValid`
+    // to determine if the offscreen surface was successfully created, so we use
+    // makeCurrent as a proxy test.  Bug is fixed in Qt 5.9.4
+#if defined(Q_OS_ANDROID)
+    if (!_context->makeCurrent(_offscreenSurface)) {
+        qFatal("Unable to make offscreen surface current");
+    }
+#else
+    if (!_offscreenSurface->isValid()) {
+        qFatal("Offscreen surface is invalid");
+    }
+#endif
+
+    return true;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {

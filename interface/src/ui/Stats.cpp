@@ -78,6 +78,8 @@ bool Stats::includeTimingRecord(const QString& name) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
+        } else if (name.startsWith("step/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
         }
         return true;
     }

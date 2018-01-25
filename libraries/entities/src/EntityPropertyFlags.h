@@ -200,6 +200,7 @@ enum EntityPropertyList {
     PROP_EDITION_NUMBER,
     PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
+    PROP_STATIC_CERTIFICATE_VERSION,
 
     PROP_HAZE_MODE,
 
@@ -218,6 +219,8 @@ enum EntityPropertyList {
     PROP_HAZE_ATTENUATE_KEYLIGHT,
     PROP_HAZE_KEYLIGHT_RANGE,
     PROP_HAZE_KEYLIGHT_ALTITUDE,
+
+    PROP_LOCAL_DIMENSIONS, // only used to convert values to and from scripts
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

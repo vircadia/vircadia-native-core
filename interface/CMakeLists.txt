@@ -13,7 +13,7 @@ endfunction()
 
 
 set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
-generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)      
+generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -54,14 +54,6 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
   get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
-endif ()
-
-if (ANDROID)
-  set(PLATFORM_QT_COMPONENTS AndroidExtras)
-  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
-else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
 endif ()
 
 find_package(
@@ -209,14 +201,14 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree ktx gpu gl gpu-gl procedural model render
+  shared octree ktx gpu gl procedural model render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
-  ${NON_ANDROID_LIBRARIES}
+  ${PLATFORM_GL_BACKEND}
 )
 
 # include the binary directory of render-utils for shader includes

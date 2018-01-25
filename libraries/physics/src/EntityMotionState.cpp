@@ -14,8 +14,9 @@
 #include <EntityItem.h>
 #include <EntityItemProperties.h>
 #include <EntityEditPacketSender.h>
-#include <PhysicsCollisionGroups.h>
 #include <LogHandler.h>
+#include <PhysicsCollisionGroups.h>
+#include <Profile.h>
 
 #include "BulletUtil.h"
 #include "EntityMotionState.h"
@@ -154,7 +155,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
         // (1) we own it but may need to change the priority OR...
         // (2) we don't own it but should bid (because a local script has been changing physics properties)
         uint8_t newPriority = isLocallyOwned() ? _entity->getSimulationOwner().getPriority() : _entity->getSimulationOwner().getPendingPriority();
-        _outgoingPriority = glm::max(_outgoingPriority, newPriority);
+        upgradeOutgoingPriority(newPriority);
 
         // reset bid expiry so that we bid ASAP
         _nextOwnershipBid = 0;
@@ -325,6 +326,7 @@ bool EntityMotionState::isCandidateForOwnership() const {
 }
 
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");
     // NOTE: we only get here if we think we own the simulation
     assert(_body);
 
@@ -401,7 +403,8 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_entity->dynamicDataNeedsTransmit()) {
-        _outgoingPriority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
+        uint8_t priority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
+        upgradeOutgoingPriority(priority);
         return true;
     }
 
@@ -476,6 +479,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "ShouldSend");
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL.
     assert(_entity);
@@ -499,23 +503,28 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         // we don't own the simulation
 
         // NOTE: we do not volunteer to own kinematic or static objects
-        uint8_t insufficientPriority = _body->isStaticOrKinematicObject() ? VOLUNTEER_SIMULATION_PRIORITY : 0;
+        uint8_t volunteerPriority = _body->isStaticOrKinematicObject() ? VOLUNTEER_SIMULATION_PRIORITY : 0;
 
-        bool shouldBid = _outgoingPriority > insufficientPriority && // but we would like to own it AND
+        bool shouldBid = _outgoingPriority > volunteerPriority && // but we would like to own it AND
                 usecTimestampNow() > _nextOwnershipBid; // it is time to bid again
         if (shouldBid && _outgoingPriority < _entity->getSimulationPriority()) {
-            // we are insufficiently interested so clear our interest
+            // we are insufficiently interested so clear _outgoingPriority
             // and reset the bid expiry
             _outgoingPriority = 0;
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
         }
         return shouldBid;
+    } else {
+        // When we own the simulation: make sure _outgoingPriority is not less than current owned priority
+        // because: an _outgoingPriority of zero indicates that we should drop ownership when we have it.
+        upgradeOutgoingPriority(_entity->getSimulationPriority());
     }
 
     return remoteSimulationOutOfSync(simulationStep);
 }
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
+    DETAILED_PROFILE_RANGE(simulation_physics, "Send");
     assert(_entity);
     assert(entityTreeIsLocked());
 
@@ -614,8 +623,10 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
         // don't forget to remember that we have made a bid
         _entity->rememberHasSimulationOwnershipBid();
-        // ...then reset _outgoingPriority in preparation for the next frame
+        // ...then reset _outgoingPriority
         _outgoingPriority = 0;
+        // _outgoingPrioriuty will be re-computed before next bid,
+        // or will be set to agree with ownership priority should we win the bid
     } else if (_outgoingPriority != _entity->getSimulationPriority()) {
         // we own the simulation but our desired priority has changed
         if (_outgoingPriority == 0) {
@@ -731,6 +742,7 @@ void EntityMotionState::resetMeasuredBodyAcceleration() {
 }
 
 void EntityMotionState::measureBodyAcceleration() {
+    DETAILED_PROFILE_RANGE(simulation_physics, "MeasureAccel");
     // try to manually measure the true acceleration of the object
     uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
     uint32_t numSubsteps = thisStep - _lastMeasureStep;

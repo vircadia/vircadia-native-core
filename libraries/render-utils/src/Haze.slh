@@ -40,7 +40,160 @@ layout(std140) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 
-uniform sampler2D linearDepthMap;
+
+// Input:
+//      color               - fragment original color
+//      lightDirection      - parameters of the keylight
+//      worldFragPos        - fragment position in world coordinates
+// Output:
+//      fragment colour after haze effect
+//
+// General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
+//
+vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirection, vec3 worldFragPos) {
+    // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
+    // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
+    //
+    // The distance is computed from the height and the directional light orientation
+    // The distance is limited to height * 1,000, which gives an angle of ~0.057 degrees
+
+    // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
+    float height_95p = 2000.0;
+    const float log_p_005 = log(0.05);
+    if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
+        height_95p = -log_p_005 / hazeParams.hazeKeyLightAltitudeFactor;
+    }
+
+    // Note that we need the sine to be positive
+    float sin_pitch = abs(lightDirection.y);
+            
+    float distance;
+    const float minimumSinPitch = 0.001;
+    if (sin_pitch < minimumSinPitch) {
+        distance = height_95p / minimumSinPitch;
+    } else {
+        distance = height_95p / sin_pitch;
+    }
+
+    // Integration is from the fragment towards the light source
+    // Note that the haze base reference affects only the haze density as function of altitude
+    float hazeDensityDistribution =  
+        hazeParams.hazeKeyLightRangeFactor * 
+        exp(-hazeParams.hazeKeyLightAltitudeFactor * (worldFragPos.y - hazeParams.hazeBaseReference));
+
+    float hazeIntegral =  hazeDensityDistribution * distance;
+
+    // Note that t is constant and equal to -log(0.05)
+    //      float t = hazeParams.hazeAltitudeFactor * height_95p;
+    //      hazeIntegral *= (1.0 - exp (-t)) / t;
+    hazeIntegral *= 0.3171178;
+
+    return color * exp(-hazeIntegral);
+}
+
+// Input:
+//      fragColor      - fragment original color
+//      eyeFragPos     - fragment position in eye   coordinates
+//      worldFragPos   - fragment position in world coordinates
+//      worldEyeHeight - eye      height   in world coordinates
+// Output:
+//      fragment colour after haze effect
+//
+// General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
+//
+vec4 computeHazeColor(vec4 fragColor, vec3 eyeFragPos, vec3 worldFragPos, float worldEyeHeight, vec3 lightDirection) {
+    // Distance to fragment 
+    float distance = length(eyeFragPos);
+
+    // Convert haze colour from uniform into a vec4
+    vec4 hazeColor  = vec4(hazeParams.hazeColor, 1.0);
+
+    // Directional light component is a function of the angle from the eye, between the fragment and the sun
+    vec3 eyeFragDir = normalize(worldFragPos);
+
+    float glareComponent = max(0.0, dot(eyeFragDir, -lightDirection));
+    float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
+
+    vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
+
+    // Use the haze colour for the glare colour, if blend is not enabled
+    vec4 blendedHazeColor;
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
+        blendedHazeColor = mix(hazeColor, glareColor, power);
+    } else {
+        blendedHazeColor = hazeColor;
+    }
+
+    vec4 potentialFragColor;
+
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) == HAZE_MODE_IS_MODULATE_COLOR) {
+        // Compute separately for each colour
+        // Haze is based on both range and altitude
+        // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
+
+        // Note that the haze base reference affects only the haze density as function of altitude
+        vec3 hazeDensityDistribution =  
+            hazeParams.colorModulationFactor * 
+            exp(-hazeParams.hazeHeightFactor * (worldEyeHeight - hazeParams.hazeBaseReference));
+
+        vec3 hazeIntegral =  hazeDensityDistribution * distance;
+
+        const float slopeThreshold = 0.01;
+        float deltaHeight = worldFragPos.y - worldEyeHeight;
+        if (abs(deltaHeight) > slopeThreshold) {
+            float t = hazeParams.hazeHeightFactor * deltaHeight;
+            hazeIntegral *= (1.0 - exp (-t)) / t;
+        }
+
+        vec3 hazeAmount = 1.0 - exp(-hazeIntegral);
+
+        // Compute color after haze effect
+        potentialFragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), vec4(hazeAmount, 1.0));
+    } else if ((hazeParams.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) {
+        // Haze is based only on range
+        float hazeAmount = 1.0 - exp(-distance * hazeParams.hazeRangeFactor);
+
+        // Compute color after haze effect
+        potentialFragColor = mix(fragColor, blendedHazeColor, hazeAmount);
+    } else {
+        // Haze is based on both range and altitude
+        // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
+
+        // Note that the haze base reference affects only the haze density as function of altitude
+        float hazeDensityDistribution =  
+            hazeParams.hazeRangeFactor * 
+            exp(-hazeParams.hazeHeightFactor * (worldEyeHeight - hazeParams.hazeBaseReference));
+
+        float hazeIntegral =  hazeDensityDistribution * distance;
+
+        const float slopeThreshold = 0.01;
+        float deltaHeight = worldFragPos.y - worldEyeHeight;
+        if (abs(deltaHeight) > slopeThreshold) {
+            float t = hazeParams.hazeHeightFactor * deltaHeight;
+            // Protect from wild values
+            const float EPSILON = 0.0000001f;
+            if (abs(t) > EPSILON) {
+                hazeIntegral *= (1.0 - exp (-t)) / t;
+            }
+        }
+
+        float hazeAmount = 1.0 - exp(-hazeIntegral);
+
+        // Compute color after haze effect
+        potentialFragColor = mix(fragColor, blendedHazeColor, hazeAmount);
+    }
+
+    // Mix with background at far range
+    const float BLEND_DISTANCE = 27000.0f;
+    vec4 outFragColor;
+    if (distance > BLEND_DISTANCE) {
+        outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlend);
+    } else {
+        outFragColor = potentialFragColor;
+    }
+
+    return outFragColor;
+}
 
 <@endif@>
 

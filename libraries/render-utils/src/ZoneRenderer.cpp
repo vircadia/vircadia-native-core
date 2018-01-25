@@ -70,7 +70,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     
     lightStage->_currentFrame.pushSunLight(0);
     lightStage->_currentFrame.pushAmbientLight(0);
-
+    hazeStage->_currentFrame.pushHaze(0);
     backgroundStage->_currentFrame.pushBackground(0);
 }
 

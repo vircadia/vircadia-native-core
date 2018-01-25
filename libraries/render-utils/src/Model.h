@@ -78,13 +78,13 @@ public:
 
     /// Sets the URL of the model to render.
     // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setURL(const QUrl& url);
+    Q_INVOKABLE virtual void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
-    void setLayeredInFront(bool layered, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
+    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -122,7 +122,6 @@ public:
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
 
-    void init();
     void reset();
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
@@ -137,7 +136,7 @@ public:
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
-    Q_INVOKABLE void setTextures(const QVariantMap& textures);
+    Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
@@ -346,11 +345,7 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-
-protected:
-
     virtual void deleteGeometry();
-    void initJointTransforms();
 
     QVector<float> _blendshapeCoefficients;
 
@@ -418,6 +413,8 @@ protected:
 
     bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
+
+    bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:
     float _loadingPriority { 0.0f };

@@ -56,8 +56,8 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
+        UNUSED_PACKET_TYPE_1,
+        UNUSED_PACKET_TYPE_2,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -197,9 +197,11 @@ uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77,
+    StrokeColorProperty = 0,
     HasDynamicOwnershipTests,
-    HazeEffect
+    HazeEffect,
+    StaticCertJsonVersionOne,
+    OwnershipChallengeFix,
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -210,7 +212,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
-    ConnectionIdentifier = 20
+    ConnectionIdentifier = 20,
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
