@@ -12,14 +12,14 @@
 #ifndef hifi_BitVectorHelpers_h
 #define hifi_BitVectorHelpers_h
 
-size_t calcBitVectorSize(int numBits) {
+int calcBitVectorSize(int numBits) {
     return ((numBits - 1) >> 3) + 1;
 }
 
 // func should be of type bool func(int index)
 template <typename F>
-size_t writeBitVector(uint8_t* destinationBuffer, int numBits, const F& func) {
-    size_t totalBytes = ((numBits - 1) >> 3) + 1;
+int writeBitVector(uint8_t* destinationBuffer, int numBits, const F& func) {
+    int totalBytes = calcBitVectorSize(numBits);
     uint8_t* cursor = destinationBuffer;
     uint8_t byte = 0;
     uint8_t bit = 0;
@@ -34,13 +34,19 @@ size_t writeBitVector(uint8_t* destinationBuffer, int numBits, const F& func) {
             bit = 0;
         }
     }
+    // write the last byte, if necessary
+    if (bit != 0) {
+        *cursor++ = byte;
+    }
+
+    assert((int)(cursor - destinationBuffer) == totalBytes);
     return totalBytes;
 }
 
 // func should be of type 'void func(int index, bool value)'
 template <typename F>
-size_t readBitVector(const uint8_t* sourceBuffer, int numBits, const F& func) {
-    size_t totalBytes = ((numBits - 1) >> 3) + 1;
+int readBitVector(const uint8_t* sourceBuffer, int numBits, const F& func) {
+    int totalBytes = calcBitVectorSize(numBits);
     const uint8_t* cursor = sourceBuffer;
     uint8_t bit = 0;
 

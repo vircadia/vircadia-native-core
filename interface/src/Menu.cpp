@@ -756,6 +756,13 @@ Menu::Menu() {
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
 
+    // Developer > Advanced Settings...
+    action = addActionToQMenuAndActionHash(developerMenu, "Advanced Preferences...");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AdvancedPreferencesDialog.qml"),
+            QString("hifi/tablet/AdvancedPreferencesDialog.qml"), "AdvancedPreferencesDialog");
+    });
+
     // Developer > API Debugger
     action = addActionToQMenuAndActionHash(developerMenu, "API Debugger");
     connect(action, &QAction::triggered, [] {
