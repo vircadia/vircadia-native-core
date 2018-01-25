@@ -158,7 +158,6 @@ Item {
             gridView.currentIndex = buttonIndex
             tabletButton.isEntered = true;
             Tablet.playSound(TabletEnums.ButtonHover);
-
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
             } else {
