@@ -2724,7 +2724,7 @@ void Application::showHelp() {
     queryString.addQueryItem("defaultTab", defaultTab);
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    tablet->gotoWebScreen(PathUtils::resourcesPath() + INFO_HELP_PATH + "?" + queryString.toString());
+    tablet->gotoWebScreen(PathUtils::resourcesUrl() + INFO_HELP_PATH + "?" + queryString.toString());
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
