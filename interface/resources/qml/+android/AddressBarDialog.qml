@@ -220,7 +220,7 @@ Item {
             location.visible = false;
         } else {
             notice.text = AddressManager.isConnected ? "YOUR LOCATION:" : "NOT CONNECTED";
-            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.turquoise : hifiStyleConstants.colors.redHighlight;
+            notice.color = AddressManager.isConnected ? hifiStyleConstants.colors.blueHighlight : hifiStyleConstants.colors.redHighlight;
             // Display hostname, which includes ip address, localhost, and other non-placenames.
             location.text = (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : '');
             location.visible = true;
