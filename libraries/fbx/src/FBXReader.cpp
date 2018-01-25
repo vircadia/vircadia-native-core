@@ -1733,8 +1733,18 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
+
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+
+                // slam bottom row to (0, 0, 0, 1), we KNOW this is not a perspective matrix and
+                // sometimes floating point fuzz can be introduced after the inverse.
+                fbxCluster.inverseBindMatrix[0][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[1][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[2][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[3][3] = 1.0f;
+
                 fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
+
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
@@ -1836,13 +1846,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
 
             // now that we've accumulated the most relevant weights for each vertex
-            // normalize and compress to 8-bits
+            // normalize and compress to 16-bits
             extracted.mesh.clusterWeights.fill(0, numClusterIndices);
             int numVertices = extracted.mesh.vertices.size();
             for (int i = 0; i < numVertices; ++i) {
                 int j = i * WEIGHTS_PER_VERTEX;
 
-                // normalize weights into uint8_t
+                // normalize weights into uint16_t
                 float totalWeight = weightAccumulators[j];
                 for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
                     totalWeight += weightAccumulators[k];

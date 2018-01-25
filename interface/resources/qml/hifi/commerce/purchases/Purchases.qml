@@ -677,7 +677,7 @@ Rectangle {
             }
         }
 
-        if (sameItemCount !== tempPurchasesModel.count) {
+        if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== "") {
             filteredPurchasesModel.clear();
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
