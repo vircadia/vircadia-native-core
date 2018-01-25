@@ -96,6 +96,18 @@ public:
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
+        Builder& withVisible(uint8_t maskIndex = NUM_VISIBLE_MASK_INDICES) {
+            if (maskIndex == NUM_VISIBLE_MASK_INDICES) {
+                _flags.reset(INVISIBLE0);
+                _flags.reset(INVISIBLE1);
+                _flags.reset(INVISIBLE2);
+                _flags.reset(INVISIBLE3);
+            }
+            else {
+                _flags.reset(INVISIBLE0 + maskIndex);
+            }
+            return (*this);
+        }
         Builder& withInvisible(uint8_t maskIndex = NUM_VISIBLE_MASK_INDICES) {
             if (maskIndex == NUM_VISIBLE_MASK_INDICES) {
                 _flags.set(INVISIBLE0);
@@ -109,16 +121,16 @@ public:
         }
         Builder& withViewVisibilityMask(uint8_t mask) {
             if (mask & render::ItemKey::VISIBLE_MASK_0) {
-                _flags.set(INVISIBLE0);
+                _flags.reset(INVISIBLE0);
             }
             if (mask & render::ItemKey::VISIBLE_MASK_1) {
-                _flags.set(INVISIBLE1);
+                _flags.reset(INVISIBLE1);
             }
             if (mask & render::ItemKey::VISIBLE_MASK_2) {
-                _flags.set(INVISIBLE2);
+                _flags.reset(INVISIBLE2);
             }
             if (mask & render::ItemKey::VISIBLE_MASK_3) {
-                _flags.set(INVISIBLE3);
+                _flags.reset(INVISIBLE3);
             }
             return (*this);
         }
