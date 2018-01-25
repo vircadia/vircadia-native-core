@@ -2904,23 +2904,10 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 bool Application::importImage(const QString& urlString) {
-    qCDebug(interfaceapp) << "dragged image";
+    qCDebug(interfaceapp) << "An image file has been dropped in";
     QString filepath(urlString);
     filepath.remove("file:///");
-    //<<gets stuck at addAssetToWorldUpload()>>
     addAssetToWorld(filepath, "", false, false);
-    //emit uploadRequest(urlString);
-    /*auto upload = DependencyManager::get<AssetClient>()->createUpload(urlString);
-    QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
-    if (upload->getError() != AssetUpload::NoError) {
-    QString errorInfo = "Could not upload model to the Asset Server.";
-    qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
-    //addAssetToWorldError(filenameFromPath(urlString), errorInfo);
-    } else {
-    //addAssetToWorldSetMapping(urlString, QString("/" + filenameFromPath(urlString)), hash);
-    }
-    upload->deleteLater();
-    });*/
     return true;
 }
 
@@ -6428,7 +6415,6 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString filename = filenameFromPath(path);
-    qCDebug(interfaceapp) << "Filename is: " << filename;
     if (isZip || isBlocks) {
         QString assetName = zipFile.section("/", -1).remove(QRegExp("[.]zip(.*)$"));
         QString assetFolder = path.section("model_repo/", -1);
@@ -6451,8 +6437,6 @@ void Application::addAssetToWorld(QString path, QString zipFile, bool isZip, boo
 }
 
 void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
-    qCDebug(interfaceapp) << "mapping request is: " << mapping;
-    qCDebug(interfaceapp) << "file is located: " << filePath;
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
 
     QObject::connect(request, &GetMappingRequest::finished, this, [=](GetMappingRequest* request) mutable {
@@ -6519,7 +6503,8 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+            if (filePath.endsWith(OBJ_EXTENSION) || filePath.endsWith(FBX_EXTENSION) || 
+                filePath.endsWith(JPG_EXTENSION) || filePath.endsWith(PNG_EXTENSION)) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
@@ -6536,8 +6521,17 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
-    properties.setModelURL("atp:" + mapping);
-    properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    if (filePath.endsWith(PNG_EXTENSION) || filePath.endsWith(JPG_EXTENSION)) {
+        QJsonObject textures {
+            {"tex.picture", QString("atp:" + mapping) }
+        };
+        properties.setModelURL("https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx");
+        properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
+        properties.setShapeType(SHAPE_TYPE_BOX);
+    } else {
+        properties.setModelURL("atp:" + mapping);
+        properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    }
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
     glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
