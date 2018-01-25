@@ -58,7 +58,7 @@ class JitterSample {
 public:
 
     enum {
-        SEQUENCE_LENGTH = 16 
+        SEQUENCE_LENGTH = 128 
     };
 
     using Config = JitterSampleConfig;
@@ -106,12 +106,12 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float blend{ 0.1f };
+    float blend{ 0.075f };
 
 
     bool constrainColor{ true };
     bool covarianceClipColor{ true };
-    float covarianceGamma{ 1.0f };
+    float covarianceGamma{ 0.9f };
     bool clipExactColor{ false };
     bool feedbackColor{ false };
 

@@ -43,3 +43,8 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> Displa
     }
     return hudOperator;
 }
+
+glm::mat4 HmdDisplay::getEyeToHeadTransform(Eye eye) const {
+    static const glm::mat4 xform;
+    return xform;
+}
