@@ -73,13 +73,11 @@ void GLBackend::initInput() {
     if(!_input._defaultVAO) {
         glGenVertexArrays(1, &_input._defaultVAO);
     }
-    qDebug() << "glBindVertexArray(" << _input._defaultVAO << ")";
     glBindVertexArray(_input._defaultVAO);
     (void) CHECK_GL_ERROR();
 }
 
 void GLBackend::killInput() {
-    qDebug() << "glBindVertexArray(0)";
     glBindVertexArray(0);    
     if(_input._defaultVAO) {
         glDeleteVertexArrays(1, &_input._defaultVAO);
@@ -94,7 +92,6 @@ void GLBackend::syncInputStateCache() {
         _input._attributeActivation[i] = active;
     }
     //_input._defaultVAO
-    qDebug() << "glBindVertexArray("<<_input._defaultVAO<< ")";
     glBindVertexArray(_input._defaultVAO);
 }
 
@@ -103,7 +100,6 @@ void GLBackend::resetInputStage() {
     _input._indexBufferType = UINT32;
     _input._indexBufferOffset = 0;
     _input._indexBuffer.reset();
-    //qDebug() << "GLBackend::resetInputStage glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);";
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 
@@ -159,49 +155,83 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
     (void)CHECK_GL_ERROR();
 }
 
-
-// Core 41 doesn't expose the features to really separate the vertex format from the vertex buffers binding
-// Core 43 does :)
-// FIXME crashing problem with glVertexBindingDivisor / glVertexAttribFormat
-// Once resolved, break this up into the GL 4.1 and 4.5 backends
-#if 1 || (GPU_INPUT_PROFILE == GPU_CORE_41)
-#define NO_SUPPORT_VERTEX_ATTRIB_FORMAT
-#else
-#define SUPPORT_VERTEX_ATTRIB_FORMAT
-#endif
-
 void GLBackend::updateInput() {
-#if defined(SUPPORT_VERTEX_ATTRIB_FORMAT)
     if (_input._invalidFormat) {
-
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
         if (_input._format) {
-            for (auto& it : _input._format->getAttributes()) {
-                const Stream::Attribute& attrib = (it).second;
+            bool hasColorAttribute{ false };
 
-                GLuint slot = attrib._slot;
-                GLuint count = attrib._element.getLocationScalarCount();
-                uint8_t locationCount = attrib._element.getLocationCount();
-                GLenum type = _elementTypeToGL41Type[attrib._element.getType()];
-                GLuint offset = attrib._offset;;
-                GLboolean isNormalized = attrib._element.isNormalized();
+            _input._attribBindingBuffers.reset();
 
-                GLenum perLocationSize = attrib._element.getLocationSize();
+            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
+            auto& inputChannels = _input._format->getChannels();
+            for (auto& channelIt : inputChannels) {
+                auto bufferChannelNum = (channelIt).first;
+                const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;
+                _input._attribBindingBuffers.set(bufferChannelNum);
 
-                for (size_t locNum = 0; locNum < locationCount; ++locNum) {
-                    newActivation.set(slot + locNum);
-                    glVertexAttribFormat(slot + locNum, count, type, isNormalized, offset + locNum * perLocationSize);
-                    glVertexAttribBinding(slot + locNum, attrib._channel);
+                GLuint frequency = 0;
+                for (unsigned int i = 0; i < channel._slots.size(); i++) {
+                    const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
+
+                    GLuint slot = attrib._slot;
+                    GLuint count = attrib._element.getLocationScalarCount();
+                    uint8_t locationCount = attrib._element.getLocationCount();
+                    GLenum type = gl::ELEMENT_TYPE_TO_GL[attrib._element.getType()];
+
+                    GLuint offset = (GLuint)attrib._offset;;
+                    GLboolean isNormalized = attrib._element.isNormalized();
+
+                    GLenum perLocationSize = attrib._element.getLocationSize();
+
+                    hasColorAttribute = hasColorAttribute || (slot == Stream::COLOR);
+
+                    for (GLuint locNum = 0; locNum < locationCount; ++locNum) {
+                        GLuint attriNum = (GLuint)(slot + locNum);
+                        newActivation.set(attriNum);
+                        if (!_input._attributeActivation[attriNum]) {
+                            _input._attributeActivation.set(attriNum);
+                            glEnableVertexAttribArray(attriNum);
+                        }
+                        if (attrib._element.isInteger()) {
+                            glVertexAttribIFormat(attriNum, count, type, offset + locNum * perLocationSize);
+                        } else {
+                            glVertexAttribFormat(attriNum, count, type, isNormalized, offset + locNum * perLocationSize);
+                        }
+                        glVertexAttribBinding(attriNum, attrib._channel);
+                    }
+
+                    if (i == 0) {
+                        frequency = attrib._frequency;
+                    } else {
+                        assert(frequency == attrib._frequency);
+                    }
+
+
+                    (void)CHECK_GL_ERROR();
                 }
-                glVertexBindingDivisor(attrib._channel, attrib._frequency);
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+                glVertexBindingDivisor(bufferChannelNum, frequency * (isStereo() ? 2 : 1));
+#else
+                glVertexBindingDivisor(bufferChannelNum, frequency);
+#endif
             }
-            (void)CHECK_GL_ERROR();
+
+            if (_input._hadColorAttribute && !hasColorAttribute) {
+                // The previous input stage had a color attribute but this one doesn't so reset
+                // color to pure white.
+                const auto white = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+                glVertexAttrib4fv(Stream::COLOR, &white.r);
+                _input._colorAttribute = white;
+            }
+            _input._hadColorAttribute = hasColorAttribute;
         }
 
         // Manage Activation what was and what is expected now
-        for (size_t i = 0; i < newActivation.size(); i++) {
+        // This should only disable VertexAttribs since the one needed by the vertex format (if it exists) have been enabled above
+        for (GLuint i = 0; i < (GLuint)newActivation.size(); i++) {
             bool newState = newActivation[i];
             if (newState != _input._attributeActivation[i]) {
                 if (newState) {
@@ -219,120 +249,18 @@ void GLBackend::updateInput() {
     }
 
     if (_input._invalidBuffers.any()) {
-        int numBuffers = _input._buffers.size();
-        auto buffer = _input._buffers.data();
         auto vbo = _input._bufferVBOs.data();
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (int bufferNum = 0; bufferNum < numBuffers; bufferNum++) {
-            if (_input._invalidBuffers.test(bufferNum)) {
-                glBindVertexBuffer(bufferNum, (*vbo), (*offset), (*stride));
+        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+            if (_input._invalidBuffers.test(buffer)) {
+                glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
             }
-            buffer++;
-            vbo++;
-            offset++;
-            stride++;
         }
+
         _input._invalidBuffers.reset();
         (void)CHECK_GL_ERROR();
     }
-#else
-    if (_input._invalidFormat || _input._invalidBuffers.any()) {
-
-        if (_input._invalidFormat) {
-            InputStageState::ActivationCache newActivation;
-
-            _stats._ISNumFormatChanges++;
-
-            // Check expected activation
-            if (_input._format) {
-                for (auto& it : _input._format->getAttributes()) {
-                    const Stream::Attribute& attrib = (it).second;
-                    uint8_t locationCount = attrib._element.getLocationCount();
-                    for (int i = 0; i < locationCount; ++i) {
-                        newActivation.set(attrib._slot + i);
-                    }
-                }
-            }
-
-            // Manage Activation what was and what is expected now
-            for (unsigned int i = 0; i < newActivation.size(); i++) {
-                bool newState = newActivation[i];
-                if (newState != _input._attributeActivation[i]) {
-
-                    if (newState) {
-                        glEnableVertexAttribArray(i);
-                    } else {
-                        glDisableVertexAttribArray(i);
-                    }
-                    (void)CHECK_GL_ERROR();
-
-                    _input._attributeActivation.flip(i);
-                }
-            }
-        }
-
-        // now we need to bind the buffers and assign the attrib pointers
-        if (_input._format) {
-            const Buffers& buffers = _input._buffers;
-            const Offsets& offsets = _input._bufferOffsets;
-            const Offsets& strides = _input._bufferStrides;
-
-            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
-            auto& inputChannels = _input._format->getChannels();
-            _stats._ISNumInputBufferChanges++;
-
-            GLuint boundVBO = 0;
-            for (auto& channelIt : inputChannels) {
-                const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;
-                if ((channelIt).first < buffers.size()) {
-                    int bufferNum = (channelIt).first;
-
-                    if (_input._invalidBuffers.test(bufferNum) || _input._invalidFormat) {
-                        //  GLuint vbo = gpu::GL41Backend::getBufferID((*buffers[bufferNum]));
-                        GLuint vbo = _input._bufferVBOs[bufferNum];
-                        if (boundVBO != vbo) {
-                            //qDebug() <<  "GLBackend::updateInput glBindBuffer(GL_ARRAY_BUFFER, " << vbo <<")";
-                            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                            (void)CHECK_GL_ERROR();
-                            boundVBO = vbo;
-                        }
-                        _input._invalidBuffers[bufferNum] = false;
-
-                        for (unsigned int i = 0; i < channel._slots.size(); i++) {
-                            const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
-                            GLuint slot = attrib._slot;
-                            GLuint count = attrib._element.getLocationScalarCount();
-                            uint8_t locationCount = attrib._element.getLocationCount();
-                            GLenum type = gl::ELEMENT_TYPE_TO_GL[attrib._element.getType()];
-                            // GLenum perLocationStride = strides[bufferNum];
-                            GLenum perLocationStride = attrib._element.getLocationSize();
-                            GLuint stride = (GLuint)strides[bufferNum];
-                            GLuint pointer = (GLuint)(attrib._offset + offsets[bufferNum]);
-                            GLboolean isNormalized = attrib._element.isNormalized();
-
-                            for (size_t locNum = 0; locNum < locationCount; ++locNum) {
-                                glVertexAttribPointer(slot + (GLuint)locNum, count, type, isNormalized, stride,
-                                    reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereo() ? 2 : 1));
-#else
-                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
-#endif
-                            }
-
-                            // TODO: Support properly the IAttrib version
-
-                            (void)CHECK_GL_ERROR();
-                        }
-                    }
-                }
-            }
-        }
-        // everything format related should be in sync now
-        _input._invalidFormat = false;
-    }
-#endif
 }
 

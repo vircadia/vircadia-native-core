@@ -48,8 +48,8 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
-    if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
-        //qWarning("Clear without scissor in stereo mode");
+    if (_stereo.isStereo() && !_pipeline._stateCache.scissorEnable) {
+        qWarning("Clear without scissor in stereo mode");
     }
 
     uint32 masks = batch._params[paramOffset + 7]._uint;
@@ -63,17 +63,21 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     int useScissor = batch._params[paramOffset + 0]._int;
 
     GLuint glmask = 0;
+    bool restoreStencilMask = false;
+    uint8_t cacheStencilMask = 0xFF;
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
-        // TODO: we will probably need to also check the write mask of stencil like we do
-        // for depth buffer, but as would say a famous Fez owner "We'll cross that bridge when we come to it"
+        cacheStencilMask = _pipeline._stateCache.stencilActivation.getWriteMaskFront();
+        if (cacheStencilMask != 0xFF) {
+            restoreStencilMask = true;
+            glStencilMask(0xFF);
+        }
     }
 
     bool restoreDepthMask = false;
     if (masks & Framebuffer::BUFFER_DEPTH) {
         glClearDepthf(depth);
-
         glmask |= GL_DEPTH_BUFFER_BIT;
         
         bool cacheDepthMask = _pipeline._stateCache.depthTest.getWriteMask();
@@ -122,6 +126,11 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
         glDisable(GL_SCISSOR_TEST);
     }
 
+    // Restore Stencil write mask
+    if (restoreStencilMask) {
+        glStencilMask(cacheStencilMask);
+    }
+
     // Restore write mask meaning turn back off
     if (restoreDepthMask) {
         glDepthMask(GL_FALSE);
@@ -142,22 +151,19 @@ void GLBackend::downloadFramebuffer(const FramebufferPointer& srcFramebuffer, co
     auto readFBO = getFramebufferID(srcFramebuffer);
     if (srcFramebuffer && readFBO) {
         if ((srcFramebuffer->getWidth() < (region.x + region.z)) || (srcFramebuffer->getHeight() < (region.y + region.w))) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : srcFramebuffer is too small to provide the region queried";
           return;
         }
     }
 
     if ((destImage.width() < region.z) || (destImage.height() < region.w)) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage is too small to receive the region of the framebuffer";
           return;
     }
     
     GLenum format = GL_RGBA;
-    //GLenum format = GL_BGRA;
-    qDebug() << "TODO: GLBackendOutput.cpp:do_clearFramebuffer GL_BGRA";
-
     if (destImage.format() != QImage::Format_ARGB32) {
-          qCDebug(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
+          qCWarning(gpugllogging) << "GLBackend::downloadFramebuffer : destImage format must be FORMAT_ARGB32 to receive the region of the framebuffer";
           return;
     }
 

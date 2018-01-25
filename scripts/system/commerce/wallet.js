@@ -562,9 +562,11 @@
                 break;
             case 'disableHmdPreview':
                 isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
+                DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
                 Menu.setIsOptionChecked("Disable Preview", true);
                 break;
             case 'maybeEnableHmdPreview':
+                DesktopPreviewProvider.setPreviewDisabledReason("USER");
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             case 'passphraseReset':
@@ -591,10 +593,16 @@
                 getConnectionData(false);
                 break;
             case 'enable_ChooseRecipientNearbyMode':
-                Script.update.connect(updateOverlays);
+                if (!isUpdateOverlaysWired) {
+                    Script.update.connect(updateOverlays);
+                    isUpdateOverlaysWired = true;
+                }
                 break;
             case 'disable_ChooseRecipientNearbyMode':
-                Script.update.disconnect(updateOverlays);
+                if (isUpdateOverlaysWired) {
+                    Script.update.disconnect(updateOverlays);
+                    isUpdateOverlaysWired = false;
+                }
                 removeOverlays();
                 break;
             default:
@@ -635,7 +643,11 @@
     //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     function onTabletScreenChanged(type, url) {
-        onWalletScreen = (type === "QML" && url === WALLET_QML_SOURCE);
+        var onWalletScreenNow = (type === "QML" && url === WALLET_QML_SOURCE);
+        if (!onWalletScreenNow && onWalletScreen) {
+            DesktopPreviewProvider.setPreviewDisabledReason("USER");
+        }
+        onWalletScreen = onWalletScreenNow;
         wireEventBridge(onWalletScreen);
         // Change button to active when window is first openend, false otherwise.
         if (button) {
@@ -675,13 +687,17 @@
         }
     }
     var isWired = false;
+    var isUpdateOverlaysWired = false;
     function off() {
         if (isWired) { // It is not ok to disconnect these twice, hence guard.
             Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-            Script.update.disconnect(updateOverlays);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
             isWired = false;
+        }
+        if (isUpdateOverlaysWired) {
+            Script.update.disconnect(updateOverlays);
+            isUpdateOverlaysWired = false;
         }
         triggerMapping.disable(); // It's ok if we disable twice.
         triggerPressMapping.disable(); // see above

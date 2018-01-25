@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_share"
+        android:title="@string/web_view_action_share"
+        android:showAsAction="never"/>
+    <item android:id="@+id/action_browser"
+        android:title="@string/web_view_action_open_in_browser"
+        android:showAsAction="never"/>
+</menu>

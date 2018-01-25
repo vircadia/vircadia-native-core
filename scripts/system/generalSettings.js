@@ -37,8 +37,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
             icon: "icons/tablet-icons/goto-i.svg",
-            text: buttonName,
-            sortOrder: 8
+            text: buttonName
         });
     }
 
