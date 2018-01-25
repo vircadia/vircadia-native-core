@@ -57,7 +57,8 @@ public:
     enum FilterType {
         Add,
         Edit,
-        Physics
+        Physics,
+        Erase
     };
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();

@@ -1928,6 +1928,24 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             #endif
 
             EntityItemID entityItemID(entityID);
+
+            EntityItemPointer existingEntity;
+
+            auto startLookup = usecTimestampNow();
+            existingEntity = findEntityByEntityItemID(entityItemID);
+            auto endLookup = usecTimestampNow();
+            _totalLookupTime += endLookup - startLookup;
+
+            auto startFilter = usecTimestampNow();
+            FilterType filterType = FilterType::Erase;
+            EntityItemProperties dummyProperties;
+            bool wasChanged = false;
+
+            bool allowed = (sourceNode->isAllowedEditor()) || filterProperties(existingEntity, dummyProperties, dummyProperties, wasChanged, filterType);
+            auto endFilter = usecTimestampNow();
+
+            _totalFilterTime += endFilter - startFilter;
+
             entityItemIDsToDelete << entityItemID;
 
             if (wantEditLogging() || wantTerseEditLogging()) {
