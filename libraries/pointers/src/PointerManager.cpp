@@ -122,13 +122,6 @@ void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, boo
     }
 }
 
-void PointerManager::setDoesHover(unsigned int uid, bool hover) const {
-    auto pointer = find(uid);
-    if (pointer) {
-        pointer->setDoesHover(hover);
-    }
-}
-
 bool PointerManager::isLeftHand(unsigned int uid) {
     auto pointer = find(uid);
     if (pointer) {
