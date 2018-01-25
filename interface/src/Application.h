@@ -47,6 +47,7 @@
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
 #include <shared/FileLogger.h>
+#include <shared/Crashpad.h>
 
 #include <RunningMarker.h>
 
@@ -707,5 +708,9 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+#if HAS_CRASHPAD
+    crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
+#endif // HAS_CRASHPAD
 };
 #endif // hifi_Application_h
