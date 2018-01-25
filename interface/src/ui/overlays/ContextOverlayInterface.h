@@ -36,21 +36,20 @@
 class ContextOverlayInterface : public QObject, public Dependency {
     Q_OBJECT
 
-        Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
-        Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled)
-        Q_PROPERTY(bool isInMarketplaceInspectionMode READ getIsInMarketplaceInspectionMode WRITE setIsInMarketplaceInspectionMode)
+    Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
+    Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled)
+    Q_PROPERTY(bool isInMarketplaceInspectionMode READ getIsInMarketplaceInspectionMode WRITE setIsInMarketplaceInspectionMode)
 
-        QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
+    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
     QSharedPointer<TabletScriptingInterface> _tabletScriptingInterface;
     QSharedPointer<SelectionScriptingInterface> _selectionScriptingInterface;
-    OverlayID _contextOverlayID{ UNKNOWN_OVERLAY_ID };
-    std::shared_ptr<Image3DOverlay> _contextOverlay{ nullptr };
+    OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
+    std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
     ContextOverlayInterface();
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
-    Q_INVOKABLE bool getLastInspectedEntityWasValid();
     Q_INVOKABLE void requestEntityOwnershipVerification(const QUuid& entityID);
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
     void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
@@ -61,8 +60,10 @@ public:
 
 signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);
+    void ownershipVerificationSuccess(const QUuid& entityID);
+    void ownershipVerificationFailed(const QUuid& entityID);
 
-    public slots:
+public slots:
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID);
@@ -73,7 +74,7 @@ signals:
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
 
-    private slots:
+private slots:
     void handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
@@ -85,7 +86,6 @@ private:
     bool _enabled{ true };
     EntityItemID _currentEntityWithContextOverlay{};
     EntityItemID _lastInspectedEntity{};
-    EntityItemID _lastInspectedValidEntity{};
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 

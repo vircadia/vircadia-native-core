@@ -267,13 +267,6 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-bool ContextOverlayInterface::getLastInspectedEntityWasValid() {
-    if (!_lastInspectedEntity.isNull() && !_lastInspectedValidEntity.isNull()) {
-        return _lastInspectedEntity == _lastInspectedValidEntity;
-    }
-    return false;
-}
-
 void ContextOverlayInterface::requestEntityOwnershipVerification(const QUuid& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
     _entityMarketplaceID = entityProperties.getMarketplaceID();
@@ -368,6 +361,7 @@ void ContextOverlayInterface::requestOwnershipVerification() {
             auto ledger = DependencyManager::get<Ledger>();
             _challengeOwnershipTimeoutTimer.stop();
             emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+            emit ownershipVerificationFailed(_lastInspectedEntity);
             qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
         }
     }
@@ -424,6 +418,7 @@ void ContextOverlayInterface::startChallengeOwnershipTimer() {
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
         emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit ownershipVerificationFailed(_lastInspectedEntity);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -448,8 +443,9 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
-        _lastInspectedValidEntity = _lastInspectedEntity;
+        emit ownershipVerificationSuccess(_lastInspectedEntity);
     } else {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+        emit ownershipVerificationFailed(_lastInspectedEntity);
     }
 }
