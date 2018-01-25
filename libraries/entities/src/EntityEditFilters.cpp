@@ -271,7 +271,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     }
                 } else if (wantsOriginalPropertiesValue.isArray()) {
                     auto length = wantsOriginalPropertiesValue.property("length").toInteger();
-                    for (int i; i < length; i++) {
+                    for (int i = 0; i < length; i++) {
                         auto stringValue = wantsOriginalPropertiesValue.property(i).toString();
                         if (!stringValue.isEmpty()) {
                             filterData.wantsOriginalProperties = true;
@@ -305,7 +305,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     }
                 } else if (wantsZonePropertiesValue.isArray()) {
                     auto length = wantsZonePropertiesValue.property("length").toInteger();
-                    for (int i; i < length; i++) {
+                    for (int i = 0; i < length; i++) {
                         auto stringValue = wantsZonePropertiesValue.property(i).toString();
                         if (!stringValue.isEmpty()) {
                             filterData.wantsZoneProperties = true;
