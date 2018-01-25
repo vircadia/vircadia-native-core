@@ -561,6 +561,12 @@ void MyAvatar::simulate(float deltaTime) {
         if (!_skeletonModel->getHeadPosition(headPosition)) {
             headPosition = getWorldPosition();
         }
+
+        if (isNaN(headPosition)) {
+            qCDebug(interfaceapp) << "MyAvatar::simulate headPosition is NaN";
+            headPosition = glm::vec3(0.0f);
+        }
+
         head->setPosition(headPosition);
         head->setScale(getModelScale());
         head->simulate(deltaTime);
@@ -2700,27 +2706,42 @@ void MyAvatar::setWalkSpeed(float value) {
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {
+    glm::vec3 result;
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getPosition();
+            result = getHead()->getPosition();
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getPosition();
+            result = qApp->getCamera().getPosition();
         case AudioListenerMode::CUSTOM:
-            return _customListenPosition;
+            result = _customListenPosition;
     }
-    return vec3();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getPositionForAudio produced NaN" << _audioListenerMode;
+        result = glm::vec3(0.0f);
+    }
+
+    return result;
 }
 
 glm::quat MyAvatar::getOrientationForAudio() {
+    glm::quat result;
+
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getFinalOrientationInWorldFrame();
+            result = getHead()->getFinalOrientationInWorldFrame();
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getOrientation();
+            result = qApp->getCamera().getOrientation();
         case AudioListenerMode::CUSTOM:
-            return _customListenOrientation;
+            result = _customListenOrientation;
     }
-    return quat();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getOrientationForAudio produced NaN" << _audioListenerMode;
+        result = glm::quat();
+    }
+
+    return result;
 }
 
 void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
