@@ -39,7 +39,6 @@ BaseLogDialog::BaseLogDialog(QWidget* parent) : QDialog(parent, Qt::Window) {
 
     QFile styleSheet(PathUtils::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 

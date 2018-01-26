@@ -54,26 +54,8 @@ void main(void) {
     mat4 invViewMat = getViewInverse();
     vec4 fragPos = invViewMat * fragPosition;
     
-    // From frag world pos find the cluster
-    vec4 clusterEyePos = frustumGrid_worldToEye(fragPos);
-    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
-
-    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
-    int numLights = cluster.x + cluster.y;
-    if (numLights <= 0) {
-        discard;
-    }
-    int lightClusterOffset = cluster.z;
-
-    ivec3 dims = frustumGrid.dims.xyz;
-    if (clusterPos.x < 0 || clusterPos.x >= dims.x) {
-        discard;
-    }
-
-    if (clusterPos.y < 0 || clusterPos.y >= dims.y) {
-        discard;
-    }
-    if (clusterPos.z < 0 || clusterPos.z > dims.z) {
+    <$fetchClusterInfo(fragPos)$>;
+    if (!hasLocalLights(numLights, clusterPos, dims)) {
         discard;
     }
 
@@ -82,6 +64,7 @@ void main(void) {
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
     int numLightTouching = 0;
+    int lightClusterOffset = cluster.z;
     for (int i = 0; i < cluster.x; i++) {
         // Need the light now
         int theLightIndex = clusterGrid_getClusterLightId(i, lightClusterOffset);

@@ -235,10 +235,15 @@ public:
             MATERIAL,
             TEXMAPARRAY,
             LIGHTING_MODEL,
+            KEY_LIGHT,
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
             HAZE_MODEL,
             FADE_PARAMETERS,
+            LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+            LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+            LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+
         };
 
         enum MAP {
@@ -266,12 +271,16 @@ public:
         int skinClusterBufferUnit;
         int materialBufferUnit;
         int texMapArrayBufferUnit;
+        int keyLightBufferUnit;
         int lightBufferUnit;
         int lightAmbientBufferUnit;
         int lightAmbientMapUnit;
         int fadeMaskTextureUnit;
         int fadeParameterBufferUnit;
         int hazeParameterBufferUnit;
+        int lightClusterGridBufferUnit;
+        int lightClusterContentBufferUnit;
+        int lightClusterFrustumBufferUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 

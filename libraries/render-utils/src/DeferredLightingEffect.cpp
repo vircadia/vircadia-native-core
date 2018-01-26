@@ -45,6 +45,7 @@ using namespace render;
 
 struct LightLocations {
     int radius{ -1 };
+    int keyLightBufferUnit{ -1 };
     int lightBufferUnit{ -1 };
     int ambientBufferUnit { -1 };
     int lightIndexBufferUnit { -1 };
@@ -147,6 +148,29 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
     }
 }
 
+void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch,
+                                                   int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
+                                                   const LightClustersPointer& lightClusters) {
+    // Bind the global list of lights and the visible lights this frame
+    batch.setUniformBuffer(_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
+
+    batch.setUniformBuffer(frustumGridBufferUnit, lightClusters->_frustumGridBuffer);
+    batch.setUniformBuffer(clusterGridBufferUnit, lightClusters->_clusterGridBuffer);
+    batch.setUniformBuffer(clusterContentBufferUnit, lightClusters->_clusterContentBuffer);
+}
+
+void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
+    if (clusterGridBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterGridBufferUnit, nullptr);
+    }
+    if (clusterContentBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterContentBufferUnit, nullptr);
+    }
+    if (frustumGridBufferUnit >= 0) {
+        batch.setUniformBuffer(frustumGridBufferUnit, nullptr);
+    }
+}
+
 static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
     auto VS = gpu::Shader::createVertex(std::string(vertSource));
     auto PS = gpu::Shader::createPixel(std::string(fragSource));
@@ -189,6 +213,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
+    locations->keyLightBufferUnit = program->getUniformBuffers().findLocation("keyLightBuffer");
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
@@ -561,7 +586,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         // Haze
         if (haze) {
@@ -570,7 +595,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->unsetKeyLightBatch(batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
             batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
@@ -625,12 +650,8 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-            // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
-
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
+            deferredLightingEffect->setupLocalLightsBatch(batch, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+                                                          lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
