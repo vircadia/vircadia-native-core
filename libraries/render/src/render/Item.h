@@ -119,18 +119,14 @@ public:
             }
             return (*this);
         }
-        Builder& withViewVisibilityMask(uint8_t mask) {
-            if (mask & render::ItemKey::VISIBLE_MASK_0) {
-                _flags.reset(INVISIBLE0);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_1) {
-                _flags.reset(INVISIBLE1);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_2) {
-                _flags.reset(INVISIBLE2);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_3) {
-                _flags.reset(INVISIBLE3);
+        Builder& withVisibilityMask(uint8_t mask) {
+            for (int i = 0; i < ItemKey::NUM_VISIBLE_MASK_INDICES; i++) {
+                if ((1 << i) & mask) {
+                    withVisible(i);
+                }
+                else {
+                    withInvisible(i);
+                }
             }
             return (*this);
         }

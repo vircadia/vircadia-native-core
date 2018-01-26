@@ -396,7 +396,7 @@ void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, uint8_t viewVi
     if (!isVisible) {
         builder.withInvisible();
     } else {
-        builder.withViewVisibilityMask(viewVisiblityMask);
+        builder.withVisibilityMask(viewVisiblityMask);
     }
 
     if (isLayered) {
