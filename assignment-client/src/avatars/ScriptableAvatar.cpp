@@ -123,12 +123,12 @@ void ScriptableAvatar::update(float deltatime) {
                 AnimPose& absPose = absPoses[i];
                 if (data.rotation != absPose.rot()) {
                     data.rotation = absPose.rot();
-                    data.rotationSet = true;
+                    data.rotationIsDefaultPose = false;
                 }
                 AnimPose& relPose = poses[i];
                 if (data.translation != relPose.trans()) {
                     data.translation = relPose.trans();
-                    data.translationSet = true;
+                    data.translationIsDefaultPose = false;
                 }
             }
 

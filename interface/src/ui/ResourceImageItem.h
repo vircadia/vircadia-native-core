@@ -14,6 +14,8 @@
 
 #include "Application.h"
 
+#include <gl/Config.h>
+
 #include <QQuickFramebufferObject>
 #include <QQuickWindow>
 #include <QTimer>

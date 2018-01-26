@@ -33,8 +33,11 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QString resources READ resourcesPath CONSTANT)
     Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
+    static const QString& resourcesUrl();
+    static QUrl resourcesUrl(const QString& relative);
     static const QString& resourcesPath();
-    static const QString& qmlBasePath();
+    static const QString& qmlBaseUrl();
+    static QUrl qmlUrl(const QString& relative);
 #ifdef DEV_BUILD
     static const QString& projectRootPath();
 #endif
@@ -54,7 +57,6 @@ public:
     // note: this is FS-case-sensitive version of parentURL.isParentOf(childURL)
     static bool isDescendantOf(const QUrl& childURL, const QUrl& parentURL);
     static QUrl defaultScriptsLocation(const QString& newDefault = "");
-
 };
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);

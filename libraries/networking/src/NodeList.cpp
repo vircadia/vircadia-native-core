@@ -437,7 +437,7 @@ void NodeList::sendPendingDSPathQuery() {
     QString pendingPath = _domainHandler.getPendingPath();
 
     if (!pendingPath.isEmpty()) {
-        qCDebug(networking) << "Attemping to send pending query to DS for path" << pendingPath;
+        qCDebug(networking) << "Attempting to send pending query to DS for path" << pendingPath;
 
         // this is a slot triggered if we just established a network link with a DS and want to send a path query
         sendDSPathQuery(_domainHandler.getPendingPath());

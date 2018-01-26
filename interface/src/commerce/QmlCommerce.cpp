@@ -29,6 +29,8 @@ QmlCommerce::QmlCommerce() {
     connect(wallet.data(), &Wallet::walletStatusResult, this, &QmlCommerce::walletStatusResult);
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
+    connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
+    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
     
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
@@ -96,12 +98,12 @@ void QmlCommerce::inventory() {
     }
 }
 
-void QmlCommerce::history() {
+void QmlCommerce::history(const int& pageNumber) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->history(cachedPublicKeys);
+        ledger->history(cachedPublicKeys, pageNumber);
     }
 }
 
@@ -128,18 +130,6 @@ void QmlCommerce::generateKeyPair() {
     getWalletAuthenticatedStatus();
 }
 
-void QmlCommerce::reset() {
-    auto ledger = DependencyManager::get<Ledger>();
-    auto wallet = DependencyManager::get<Wallet>();
-    ledger->reset();
-    wallet->reset();
-}
-
-void QmlCommerce::resetLocalWalletOnly() {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->reset();
-}
-
 void QmlCommerce::account() {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->account();
@@ -148,4 +138,28 @@ void QmlCommerce::account() {
 void QmlCommerce::certificateInfo(const QString& certificateId) {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->certificateInfo(certificateId);
+}
+
+void QmlCommerce::transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        return emit buyResult(result);
+    }
+    QString key = keys[0];
+    ledger->transferHfcToNode(key, nodeID, amount, optionalMessage);
+}
+
+void QmlCommerce::transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        return emit buyResult(result);
+    }
+    QString key = keys[0];
+    ledger->transferHfcToUsername(key, username, amount, optionalMessage);
 }

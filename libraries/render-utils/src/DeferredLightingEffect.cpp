@@ -11,9 +11,12 @@
 
 #include "DeferredLightingEffect.h"
 
+#include <QtCore/QFileSelector>
+
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
+#include <shared/FileUtils.h>
 
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -42,6 +45,7 @@ using namespace render;
 
 struct LightLocations {
     int radius{ -1 };
+    int keyLightBufferUnit{ -1 };
     int lightBufferUnit{ -1 };
     int ambientBufferUnit { -1 };
     int lightIndexBufferUnit { -1 };
@@ -103,13 +107,13 @@ void DeferredLightingEffect::init() {
 
 void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    model::LightPointer keySunLight;
+    graphics::LightPointer keySunLight;
     auto lightStage = args->_scene->getStage<LightStage>();
     if (lightStage) {
         keySunLight = lightStage->getCurrentKeyLight();
     }
 
-    model::LightPointer keyAmbiLight;
+    graphics::LightPointer keyAmbiLight;
     if (lightStage) {
         keyAmbiLight = lightStage->getCurrentAmbientLight();
     }
@@ -141,6 +145,29 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
 
     if ((skyboxCubemapUnit >= 0)) {
         batch.setResourceTexture(skyboxCubemapUnit, nullptr);
+    }
+}
+
+void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch,
+                                                   int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
+                                                   const LightClustersPointer& lightClusters) {
+    // Bind the global list of lights and the visible lights this frame
+    batch.setUniformBuffer(_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
+
+    batch.setUniformBuffer(frustumGridBufferUnit, lightClusters->_frustumGridBuffer);
+    batch.setUniformBuffer(clusterGridBufferUnit, lightClusters->_clusterGridBuffer);
+    batch.setUniformBuffer(clusterContentBufferUnit, lightClusters->_clusterContentBuffer);
+}
+
+void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
+    if (clusterGridBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterGridBufferUnit, nullptr);
+    }
+    if (clusterContentBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterContentBufferUnit, nullptr);
+    }
+    if (frustumGridBufferUnit >= 0) {
+        batch.setUniformBuffer(frustumGridBufferUnit, nullptr);
     }
 }
 
@@ -186,6 +213,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
+    locations->keyLightBufferUnit = program->getUniformBuffers().findLocation("keyLightBuffer");
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
@@ -229,9 +257,9 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 #include <shared/Shapes.h>
 
-model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
+graphics::MeshPointer DeferredLightingEffect::getPointLightMesh() {
     if (!_pointLightMesh) {
-        _pointLightMesh = std::make_shared<model::Mesh>();
+        _pointLightMesh = std::make_shared<graphics::Mesh>();
 
         // let's use a icosahedron
         auto solid = geometry::icosahedron();
@@ -256,19 +284,19 @@ model::MeshPointer DeferredLightingEffect::getPointLightMesh() {
         delete[] indexData;
 
 
-        std::vector<model::Mesh::Part> parts;
-        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::TRIANGLES));
-        parts.push_back(model::Mesh::Part(0, nbIndices, 0, model::Mesh::LINE_STRIP)); // outline version
+        std::vector<graphics::Mesh::Part> parts;
+        parts.push_back(graphics::Mesh::Part(0, nbIndices, 0, graphics::Mesh::TRIANGLES));
+        parts.push_back(graphics::Mesh::Part(0, nbIndices, 0, graphics::Mesh::LINE_STRIP)); // outline version
 
 
-        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+        _pointLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
     }
     return _pointLightMesh;
 }
 
-model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
+graphics::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     if (!_spotLightMesh) {
-        _spotLightMesh = std::make_shared<model::Mesh>();
+        _spotLightMesh = std::make_shared<graphics::Mesh>();
 
         int slices = 16;
         int rings = 3;
@@ -353,12 +381,12 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         delete[] indexData;
 
         
-        std::vector<model::Mesh::Part> parts;
-        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::TRIANGLES));
-        parts.push_back(model::Mesh::Part(0, indices, 0, model::Mesh::LINE_STRIP)); // outline version
+        std::vector<graphics::Mesh::Part> parts;
+        parts.push_back(graphics::Mesh::Part(0, indices, 0, graphics::Mesh::TRIANGLES));
+        parts.push_back(graphics::Mesh::Part(0, indices, 0, graphics::Mesh::LINE_STRIP)); // outline version
 
         
-        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+        _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
     }
     return _spotLightMesh;
 }
@@ -439,7 +467,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const model::HazePointer& haze,
+    const graphics::HazePointer& haze,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
@@ -513,7 +541,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         auto keyLight = lightAndShadow.first;
 
-        model::LightPointer keyAmbientLight;
+        graphics::LightPointer keyAmbientLight;
         if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
             keyAmbientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
         }
@@ -558,16 +586,16 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         // Haze
         if (haze) {
-	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+            batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
         }
-		
+        
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->unsetKeyLightBatch(batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
             batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
@@ -622,12 +650,8 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-            // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
-
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
+            deferredLightingEffect->setupLocalLightsBatch(batch, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+                                                          lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
@@ -731,9 +755,11 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
                 PROFILE_RANGE(render, "Process Default Skybox");
                 auto textureCache = DependencyManager::get<TextureCache>();
 
-                auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+                QFileSelector fileSelector;
+                fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
+                auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");
 
-                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl.toStdString());
                 _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
 
                 _defaultSkybox->setCubemap(_defaultSkyboxTexture);
@@ -744,12 +770,12 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         if (lightStage) { 
 
             // Allocate a default global light directional and ambient
-            auto lp = std::make_shared<model::Light>();
-            lp->setType(model::Light::SUN);
+            auto lp = std::make_shared<graphics::Light>();
+            lp->setType(graphics::Light::SUN);
             lp->setDirection(glm::vec3(-1.0f));
             lp->setColor(glm::vec3(1.0f));
             lp->setIntensity(1.0f);
-            lp->setType(model::Light::SUN);
+            lp->setType(graphics::Light::SUN);
             lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 
             lp->setAmbientIntensity(0.5f);
@@ -763,14 +789,15 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             _defaultLight = lp;
 
             // Add the global light to the light stage (for later shadow rendering)
-            _defaultLightID = lightStage->addLight(lp);
+            // Set this light to be the default
+            _defaultLightID = lightStage->addLight(lp, true);
             lightStage->addShadow(_defaultLightID);
         }
 
         auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
         if (backgroundStage) {
 
-            auto background = std::make_shared<model::SunSkyStage>();
+            auto background = std::make_shared<graphics::SunSkyStage>();
             background->setSkybox(_defaultSkybox);
 
             // capture deault background
@@ -785,7 +812,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         auto hazeStage = renderContext->_scene->getStage<HazeStage>();
         if (hazeStage) {
 
-            auto haze = std::make_shared<model::Haze>();
+            auto haze = std::make_shared<graphics::Haze>();
 
             _defaultHaze = haze;
             _defaultHazeID = hazeStage->addHaze(_defaultHaze);

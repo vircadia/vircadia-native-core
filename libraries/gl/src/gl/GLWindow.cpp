@@ -8,6 +8,7 @@
 
 #include "GLWindow.h"
 
+#include "Config.h"
 #include <QtCore/QDebug>
 #include <QtGui/QOpenGLContext>
 
@@ -19,26 +20,18 @@ void GLWindow::createContext(QOpenGLContext* shareContext) {
 }
 
 void GLWindow::createContext(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
-    setSurfaceType(QSurface::OpenGLSurface);
-    setFormat(format);
-    _context = new QOpenGLContext;
-    _context->setFormat(format);
-    if (shareContext) {
-        _context->setShareContext(shareContext);
-    }
+    _context = new gl::Context();
+    _context->setWindow(this);
     _context->create();
+    _context->makeCurrent();
+    _context->clear();
 }
 
 GLWindow::~GLWindow() {
-    if (_context) {
-        _context->doneCurrent();
-        _context->deleteLater();
-        _context = nullptr;
-    }
 }
 
 bool GLWindow::makeCurrent() {
-    bool makeCurrentResult = _context->makeCurrent(this);
+    bool makeCurrentResult = _context->makeCurrent();
     Q_ASSERT(makeCurrentResult);
     
     std::call_once(_reportOnce, []{
@@ -48,8 +41,6 @@ bool GLWindow::makeCurrent() {
         qCDebug(glLogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
     });
     
-    Q_ASSERT(_context == QOpenGLContext::currentContext());
-    
     return makeCurrentResult;
 }
 
@@ -58,11 +49,11 @@ void GLWindow::doneCurrent() {
 }
 
 void GLWindow::swapBuffers() {
-    _context->swapBuffers(this);
+    _context->swapBuffers();
 }
 
 QOpenGLContext* GLWindow::context() const {
-    return _context;
+    return _context->qglContext();
 }
 
 

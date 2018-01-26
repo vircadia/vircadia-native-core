@@ -194,7 +194,6 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
-    const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";

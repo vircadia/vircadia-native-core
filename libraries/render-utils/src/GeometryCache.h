@@ -28,8 +28,8 @@
 
 #include <render/ShapePipeline.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 class SimpleProgramKey;
 
@@ -158,7 +158,7 @@ public:
     static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList);
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
-    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch);
     static void registerShapePipeline() {
         if (!CUSTOM_PIPELINE_NUMBER) {
             CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
