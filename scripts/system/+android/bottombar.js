@@ -15,7 +15,7 @@ var bottombar;
 var bottomHudOptionsBar;
 var gotoBtn;
 
-var gotoScript = Script.require('./goto-android.js');
+var gotoScript = Script.require('./goto.js');
 
 var logEnabled = false;
 
