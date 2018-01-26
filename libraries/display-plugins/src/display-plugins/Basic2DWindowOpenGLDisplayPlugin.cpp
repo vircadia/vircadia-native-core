@@ -72,6 +72,9 @@ void Basic2DWindowOpenGLDisplayPlugin::uncustomizeContext() {
 
 bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     _framerateActions.clear();
+#if defined(Q_OS_ANDROID)
+    _container->setFullscreen(nullptr, true);
+#endif
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), FULLSCREEN,
         [this](bool clicked) {
             if (clicked) {

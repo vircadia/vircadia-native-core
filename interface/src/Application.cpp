@@ -2826,7 +2826,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
         // If this is a first run we short-circuit the address passed in
         if (firstRun.get()) {
+#if !defined(Q_OS_ANDROID)
             showHelp();
+#endif            
             if (sandboxIsRunning) {
                 qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                 DependencyManager::get<AddressManager>()->goToLocalSandbox();
