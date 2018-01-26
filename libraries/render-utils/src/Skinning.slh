@@ -39,12 +39,12 @@ mat4 dualQuatToMat4(vec4 real, vec4 dual) {
                      twoRealXZ - twoRealYW,
                      0.0);
     vec4 col1 = vec4(twoRealXY - twoRealZW,
-                     1 - twoRealXSq - twoRealZSq,
+                     1.0 - twoRealXSq - twoRealZSq,
                      twoRealYZ + twoRealXW,
                      0.0);
     vec4 col2 = vec4(twoRealXZ + twoRealYW,
                      twoRealYZ - twoRealXW,
-                     1 - twoRealXSq - twoRealYSq,
+                     1.0 - twoRealXSq - twoRealYSq,
                      0.0);
     vec4 col3 = vec4(2.0 * (-dual.w * real.x + dual.x * real.w - dual.y * real.z + dual.z * real.y),
                      2.0 * (-dual.w * real.y + dual.x * real.z + dual.y * real.w - dual.z * real.x),
