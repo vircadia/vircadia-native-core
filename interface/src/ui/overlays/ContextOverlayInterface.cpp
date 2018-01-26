@@ -168,7 +168,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
                 _contextOverlay->setIgnoreRayIntersection(false);
                 _contextOverlay->setDrawInFront(true);
-                _contextOverlay->setURL(PathUtils::resourcesPath() + "images/inspect-icon.png");
+                _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
