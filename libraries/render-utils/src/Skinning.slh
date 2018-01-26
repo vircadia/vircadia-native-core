@@ -92,8 +92,11 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
 
-    // an sAccum.w of > 0 indicates that this joint is cauterized.
-    if (sAccum.w > 0.1) {
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
         skinnedPosition = cAccum;
     } else {
         sAccum.w = 1.0;
@@ -140,8 +143,11 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
 
-    // an sAccum.w of > 0 indicates that this joint is cauterized.
-    if (sAccum.w > 0.1) {
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
         skinnedPosition = cAccum;
     } else {
         sAccum.w = 1.0;
@@ -190,8 +196,11 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
 
-    // an sAccum.w of > 0 indicates that this vertex is cauterized.
-    if (sAccum.w > 0.1) {
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
         skinnedPosition = cAccum;
     } else {
         sAccum.w = 1.0;
