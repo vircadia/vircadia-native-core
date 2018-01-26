@@ -127,7 +127,7 @@ Item {
 
                     GridView {
                         id: gridView
-
+                        flickableDirection: Flickable.AutoFlickIfNeeded
                         keyNavigationEnabled: false
                         highlightFollowsCurrentItem: false
 
