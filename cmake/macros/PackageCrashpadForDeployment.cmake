@@ -13,6 +13,11 @@ macro(PACKAGE_CRASHPAD_FOR_DEPLOYMENT)
     get_property(HAS_CRASHPAD GLOBAL PROPERTY HAS_CRASHPAD)
 
     if (HAS_CRASHPAD)
+
+        if (WIN32)
+            set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+        endif()
+
         add_custom_command(
             TARGET ${TARGET_NAME}
             POST_BUILD

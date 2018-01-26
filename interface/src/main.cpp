@@ -46,8 +46,6 @@ int main(int argc, const char* argv[]) {
 
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
-    startCrashHandler();
-
     QElapsedTimer startupTime;
     startupTime.start();
 
