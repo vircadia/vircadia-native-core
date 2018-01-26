@@ -1598,7 +1598,6 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
             if (_shouldRestartInputSetup) {
                 Lock lock(_deviceMutex);
                 _inputDevice = _audioInput->start();
-                qCDebug(audioclient) << "[AUDIO-WA] Restarted _audioInput";
                 lock.unlock();
                 if (_inputDevice) {
                     connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleMicAudioInput()));
@@ -1614,12 +1613,8 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
 
 void AudioClient::checkInputTimeout() {
     if (_audioInput && _inputReadsSinceLastCheck < MIN_READS_TO_CONSIDER_INPUT_ALIVE) {
-        qCDebug(audioclient) << "[AUDIO-WA] No input in last second _inputReadsSinceLastCheck" << _inputReadsSinceLastCheck;
-        // this is a weird issue happening at low level in android
-        // it simply stops sending us mic data
         _audioInput->stop();
     } else {
-        //qCDebug(audioclient) << "[AUDIO-WA] ok _inputReadsSinceLastCheck " << _inputReadsSinceLastCheck;
         _inputReadsSinceLastCheck = 0;
     }
 }
