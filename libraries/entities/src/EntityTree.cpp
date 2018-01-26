@@ -1946,11 +1946,15 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
             _totalFilterTime += endFilter - startFilter;
 
-            entityItemIDsToDelete << entityItemID;
-
-            if (wantEditLogging() || wantTerseEditLogging()) {
-                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            if (allowed) {
+                entityItemIDsToDelete << entityItemID;
+                if (wantEditLogging() || wantTerseEditLogging()) {
+                    qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+                }
+            } else if (wantEditLogging() || wantTerseEditLogging()) {
+                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] attempted to deleteentity. ID:" << entityItemID << " Filter rejected erase.";
             }
+
 
         }
         deleteEntities(entityItemIDsToDelete, true, true);
