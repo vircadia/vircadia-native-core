@@ -132,8 +132,7 @@ vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
 vec3 evalEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
     // compute the view space position using the depth
     vec3 clipPos;
-    clipPos.xy = texcoord.xy * 2.0 - 1.0;
-    clipPos.z = Zdb * 2.0 - 1.0;
+    clipPos.xyz = vec3(texcoord.xy, Zdb) * 2.0 - 1.0;
     vec4 eyePos = frameTransform._invProjection[side] * vec4(clipPos.xyz, 1.0);
     return eyePos.xyz / eyePos.w;
 }

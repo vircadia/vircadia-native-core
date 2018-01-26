@@ -200,6 +200,7 @@ Rectangle {
                     ListElement { text: "Debug Scattering"; color: "White" }
                     ListElement { text: "Ambient Occlusion"; color: "White" }
                     ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
+                    ListElement { text: "Velocity"; color: "White" }
                     ListElement { text: "Custom"; color: "White" }
                 }
                 width: 200
