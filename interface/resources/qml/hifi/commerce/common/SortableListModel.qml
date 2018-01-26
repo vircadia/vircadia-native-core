@@ -22,7 +22,7 @@ ListModel {
     function swap(a, b) {
         if (a < b) {
             move(a, b, 1);
-            move (b - 1, a, 1);
+            move(b - 1, a, 1);
         } else if (a > b) {
             move(b, a, 1);
             move(a - 1, b, 1);
@@ -34,16 +34,17 @@ ListModel {
             var piv = get(pivot)[sortColumnName];
             swap(pivot, end - 1);
             var store = begin;
+            var i;
 
-            for (var i = begin; i < end - 1; ++i) {
+            for (i = begin; i < end - 1; ++i) {
                 var currentElement = get(i)[sortColumnName];
                 if (isSortingDescending) {
-                    if (currentElement < piv) {
+                    if (currentElement > piv) {
                         swap(store, i);
                         ++store;
                     }
                 } else {
-                    if (currentElement > piv) {
+                    if (currentElement < piv) {
                         swap(store, i);
                         ++store;
                     }
@@ -56,16 +57,17 @@ ListModel {
             var piv = get(pivot)[sortColumnName].toLowerCase();
             swap(pivot, end - 1);
             var store = begin;
+            var i;
 
-            for (var i = begin; i < end - 1; ++i) {
+            for (i = begin; i < end - 1; ++i) {
                 var currentElement = get(i)[sortColumnName].toLowerCase();
                 if (isSortingDescending) {
-                    if (currentElement < piv) {
+                    if (currentElement > piv) {
                         swap(store, i);
                         ++store;
                     }
                 } else {
-                    if (currentElement > piv) {
+                    if (currentElement < piv) {
                         swap(store, i);
                         ++store;
                     }
