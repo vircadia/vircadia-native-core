@@ -1,6 +1,6 @@
 "use strict";
 //
-//  android.js
+//  touchscreenvirtualpad.js
 //  scripts/system/
 //
 //  Created by Gabriel Calero & Cristian Duarte on Jan 16, 2018
