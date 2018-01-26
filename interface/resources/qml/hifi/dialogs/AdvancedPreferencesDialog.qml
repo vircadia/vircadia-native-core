@@ -1,8 +1,8 @@
 //
-//  GeneralPreferencesDialog.qml
+//  AdvancedPreferencesDialog.qml
 //
-//  Created by Bradley Austin Davis on 24 Jan 2016
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Brad Hefta-Gaub on 20 Jan 2018
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -15,9 +15,9 @@ import "../../dialogs"
 
 PreferencesDialog {
     id: root
-    objectName: "GeneralPreferencesDialog"
-    title: "General Settings"
-    showCategories: ["UI", "Snapshots", "Privacy", "HMD", "Game Controller", "Sixense Controllers", "Perception Neuron", "Kinect", "Leap Motion"]
+    objectName: "AdvancedPreferencesDialog"
+    title: "Advanced Settings"
+    showCategories: ["Advanced UI" ]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

@@ -351,7 +351,7 @@ static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
 static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
-static const QString INFO_HELP_PATH = "../../../html/tabletHelp.html";
+static const QString INFO_HELP_PATH = "html/tabletHelp.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
@@ -1436,8 +1436,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
     }
 
-    // force the model the look at the correct directory (weird order of operations issue)
-    scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
+    // this will force the model the look at the correct directory (weird order of operations issue)
+    scriptEngines->reloadLocalFiles();
+
     // do this as late as possible so that all required subsystems are initialized
     // If we've overridden the default scripts location, just load default scripts
     // otherwise, load 'em all
@@ -2723,7 +2724,8 @@ void Application::showHelp() {
     queryString.addQueryItem("defaultTab", defaultTab);
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    tablet->gotoWebScreen(INFO_HELP_PATH + "?" + queryString.toString());
+    tablet->gotoWebScreen(PathUtils::resourcesUrl() + INFO_HELP_PATH + "?" + queryString.toString());
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
 
