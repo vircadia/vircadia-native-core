@@ -142,7 +142,6 @@ Windows.ScrollingWindow {
         });
     }
 
-    // Elisa note - need to link this with specific add entity call
     function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
         

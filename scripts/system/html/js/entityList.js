@@ -156,6 +156,10 @@ function loaded() {
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
+          if (url === "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx") {
+              type = "Image";
+          }
+
           if (entities[id] === undefined) {
               entityList.add([{
                   id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
