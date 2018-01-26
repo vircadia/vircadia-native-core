@@ -37,7 +37,7 @@ Windows.ScrollingWindow {
     property var assetProxyModel: Assets.proxyModel;
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
-    property var selectedItems: treeView.selection.selectedIndexes.length;
+    property var selectedItemCount: treeView.selection.selectedIndexes.length;
 
     Settings {
         category: "Overlay.AssetServer"
@@ -75,17 +75,17 @@ Windows.ScrollingWindow {
         });
     }
 
-    function doDeleteFile(path) {
-        console.log("Deleting " + path);
+    function doDeleteFile(paths) {
+        console.log("Deleting " + paths);
 
-        Assets.deleteMappings(path, function(err) {
+        Assets.deleteMappings(paths, function(err) {
             if (err) {
-                console.log("Asset browser - error deleting path: ", path, err);
+                console.log("Asset browser - error deleting paths: ", paths, err);
 
-                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + err);
+                box = errorMessageBox("There was an error deleting:\n" + paths + "\n" + err);
                 box.selected.connect(reload);
             } else {
-                console.log("Asset browser - finished deleting path: ", path);
+                console.log("Asset browser - finished deleting paths: ", paths);
                 reload();
             }
         });
@@ -145,7 +145,7 @@ Windows.ScrollingWindow {
     function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
         
-        if (selectedItems > 1) {
+        if (selectedItemCount > 1) {
             return false;
         }
 
@@ -155,7 +155,7 @@ Windows.ScrollingWindow {
     }
     
     function canRename() {    
-        if (treeView.selection.hasSelection && selectedItems == 1) {
+        if (treeView.selection.hasSelection && selectedItemCount == 1) {
             return true;
         } else {
             return false;
@@ -333,29 +333,28 @@ Windows.ScrollingWindow {
         });
     }
     function deleteFile(index) {
-        var path = [];
+        var paths = [];
         
         if (!index) {
-            for (var i = 0; i < selectedItems; i++) {
-                 treeView.selection.setCurrentIndex(treeView.selection.selectedIndexes[i], 0x100);
-                 index = treeView.selection.currentIndex;
-                 path[i] = assetProxyModel.data(index, 0x100);                  
+            for (var i = 0; i < selectedItemCount; ++i) {
+                 index = treeView.selection.selectedIndexes[i];
+                 paths[i] = assetProxyModel.data(index, 0x100);
             }
         }
         
-        if (!path) {
+        if (!paths) {
             return;
         }
 
         var modalMessage = "";
-        var items = selectedItems.toString();
+        var items = selectedItemCount.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
         
-        if (selectedItems > 1) {
+        if (selectedItemCount > 1) {
             modalMessage = "You are about to delete " + items + " items \nDo you want to continue?";
         } else {
-            modalMessage = "You are about to delete the following " + typeString + ":\n" + path + "\nDo you want to continue?";
+            modalMessage = "You are about to delete the following " + typeString + ":\n" + paths + "\nDo you want to continue?";
         }
         
         var object = desktop.messageBox({
@@ -367,7 +366,7 @@ Windows.ScrollingWindow {
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
-                doDeleteFile(path);
+                doDeleteFile(paths);
             }
         });
     }
@@ -743,7 +742,7 @@ Windows.ScrollingWindow {
                         // the selection.
                         var clickedIndex = treeView.indexAt(mouse.x, mouse.y);
                         var displayContextMenu = false;
-                        for ( var i = 0; i < selectedItems; ++i) {
+                        for ( var i = 0; i < selectedItemCount; ++i) {
                             var currentSelectedIndex = treeView.selection.selectedIndexes[i];
                             if (clickedIndex === currentSelectedIndex) {
                                 contextMenu.popup();
@@ -761,7 +760,7 @@ Windows.ScrollingWindow {
 
                 MenuItem {
                     text: "Copy URL"
-                    enabled: (selectedItems == 1)
+                    enabled: (selectedItemCount == 1)
                     onTriggered: {
                         copyURLToClipboard(treeView.selection.currentIndex);
                     }
@@ -769,7 +768,7 @@ Windows.ScrollingWindow {
 
                 MenuItem {
                     text: "Rename"
-                    enabled: (selectedItems == 1)
+                    enabled: (selectedItemCount == 1)
                     onTriggered: {
                         renameFile(treeView.selection.currentIndex);
                     }
@@ -777,7 +776,7 @@ Windows.ScrollingWindow {
 
                 MenuItem {
                     text: "Delete"
-                    enabled: (selectedItems > 0)
+                    enabled: (selectedItemCount > 0)
                     onTriggered: {
                         deleteFile();
                     }
@@ -796,8 +795,8 @@ Windows.ScrollingWindow {
 
                 function makeText() {
                     var numPendingBakes = assetMappingsModel.numPendingBakes;
-                    if (selectedItems > 1 || numPendingBakes === 0) {
-                        return selectedItems + " items selected";
+                    if (selectedItemCount > 1 || numPendingBakes === 0) {
+                        return selectedItemCount + " items selected";
                     } else {
                         return numPendingBakes + " bakes pending"
                     }
