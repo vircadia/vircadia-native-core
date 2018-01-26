@@ -694,7 +694,7 @@ Windows.ScrollingWindow {
                         }
                     }
                 }
-            }
+            }// End_OF( itemLoader )
 
             Rectangle {
                 id: treeLabelToolTip
@@ -731,50 +731,59 @@ Windows.ScrollingWindow {
                     showTimer.stop();
                     treeLabelToolTip.visible = false;
                 }
-            }
+            }// End_OF( treeLabelToolTip )
             
             MouseArea {
                 propagateComposedEvents: true
                 anchors.fill: parent
                 acceptedButtons: Qt.RightButton
                 onClicked: {
-                    if (!HMD.active) {  // Popup only displays properly on desktop
-                        var index = treeView.indexAt(mouse.x, mouse.y);
-                        treeView.selection.setCurrentIndex(index, 0x0002);
-                        contextMenu.currentIndex = index;
-                        contextMenu.popup();
+                    if (treeView.selection.hasSelection && !HMD.active) {  // Popup only displays properly on desktop
+                        // Only display the popup if the click triggered within
+                        // the selection.
+                        var clickedIndex = treeView.indexAt(mouse.x, mouse.y);
+                        var displayContextMenu = false;
+                        for ( var i = 0; i < selectedItems; ++i) {
+                            var currentSelectedIndex = treeView.selection.selectedIndexes[i];
+                            if (clickedIndex === currentSelectedIndex) {
+                                contextMenu.popup();
+                                break;
+                            }
+                        }
                     }
                 }
             }
-                
+
             Menu {
                 id: contextMenu
                 title: "Edit"
                 property var url: ""
-                property var currentIndex: null
 
                 MenuItem {
                     text: "Copy URL"
+                    enabled: (selectedItems == 1)
                     onTriggered: {
-                        copyURLToClipboard(contextMenu.currentIndex);
+                        copyURLToClipboard(treeView.selection.currentIndex);
                     }
                 }
 
                 MenuItem {
                     text: "Rename"
+                    enabled: (selectedItems == 1)
                     onTriggered: {
-                        renameFile(contextMenu.currentIndex);
+                        renameFile(treeView.selection.currentIndex);
                     }
                 }
 
                 MenuItem {
                     text: "Delete"
+                    enabled: (selectedItems > 0)
                     onTriggered: {
-                        deleteFile(contextMenu.currentIndex);
+                        deleteFile();
                     }
                 }
-            }
-        }
+            }// End_OF( contextMenu )
+        }// End_OF( treeView )
 
         Row {
             id: infoRow
@@ -885,7 +894,7 @@ Windows.ScrollingWindow {
                                             "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
                     }
             } 
-        }
+        }// End_OF( infoRow )
 
         HifiControls.ContentSection {
             id: uploadSection
@@ -945,7 +954,7 @@ Windows.ScrollingWindow {
                     }
                 }
             }
-        }
+        }// End_OF( uploadSection )
     }
 }
 
