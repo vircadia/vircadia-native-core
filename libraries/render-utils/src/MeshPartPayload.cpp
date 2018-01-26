@@ -395,9 +395,9 @@ void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered, uint8_t viewVi
 
     if (!isVisible) {
         builder.withInvisible();
-    } else {
-        builder.withVisibilityMask(viewVisiblityMask);
     }
+
+    builder.withTagBits(render::ItemKey::TAG_BITS_ALL); // Draw models in all tags
 
     if (isLayered) {
         builder.withLayered();

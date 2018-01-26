@@ -389,7 +389,7 @@ protected:
 
     QUrl _url;
     bool _isVisible;
-    uint8_t _viewVisibilityMask { render::ItemKey::VISIBLE_MASK_ALL };
+    uint8_t _viewVisibilityMask { render::ItemKey::TAG_BITS_ALL };
 
     gpu::Buffers _blendedVertexBuffers;
 

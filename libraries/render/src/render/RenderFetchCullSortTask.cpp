@@ -17,12 +17,12 @@
 
 using namespace render;
 
-void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor, uint8_t visibilityMask, uint8_t visibilityMaskTouched) {
+void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // CPU jobs:
     // Fetch and cull the items from the scene
-    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems(visibilityMask, visibilityMaskTouched).withoutLayered();
+    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered().withTagBits(tagBits, tagMask);
     const auto spatialFilter = render::Varying(filter);
     const auto spatialSelection = task.addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
     const auto cullInputs = CullSpatialSelection::Inputs(spatialSelection, spatialFilter).asVarying();
@@ -40,15 +40,15 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const int META_BUCKET = 3;
     const int BACKGROUND_BUCKET = 2;
     MultiFilterItems<NUM_SPATIAL_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape().withVisibilityMask(visibilityMask, visibilityMaskTouched),
-            ItemFilter::Builder::transparentShape().withVisibilityMask(visibilityMask, visibilityMaskTouched),
-            ItemFilter::Builder::light().withVisibilityMask(visibilityMask, visibilityMaskTouched),
-            ItemFilter::Builder::meta().withVisibilityMask(visibilityMask, visibilityMaskTouched)
+            ItemFilter::Builder::opaqueShape().withVisible().withTagBits(tagBits, tagMask),
+            ItemFilter::Builder::transparentShape().withVisible().withTagBits(tagBits, tagMask),
+            ItemFilter::Builder::light().withVisible().withTagBits(tagBits, tagMask),
+            ItemFilter::Builder::meta().withVisible().withTagBits(tagBits, tagMask)
         } };
     MultiFilterItems<NUM_NON_SPATIAL_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape().withVisibilityMask(visibilityMask, visibilityMaskTouched),
-            ItemFilter::Builder::transparentShape().withVisibilityMask(visibilityMask, visibilityMaskTouched),
-            ItemFilter::Builder::background().withVisibilityMask(visibilityMask, visibilityMaskTouched)
+            ItemFilter::Builder::opaqueShape().withVisible().withTagBits(tagBits, tagMask),
+            ItemFilter::Builder::transparentShape().withVisible().withTagBits(tagBits, tagMask),
+            ItemFilter::Builder::background().withVisible().withTagBits(tagBits, tagMask)
         } };
     const auto filteredSpatialBuckets = 
         task.addJob<MultiFilterItems<NUM_SPATIAL_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters)
