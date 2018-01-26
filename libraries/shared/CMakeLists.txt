@@ -5,10 +5,8 @@ setup_hifi_library(Gui Network Script Widgets)
 
 if (WIN32)
     target_link_libraries(${TARGET_NAME} Wbemuuid.lib)
-endif()
 
-if (ANDROID)
-    target_link_libraries(${TARGET_NAME} android)
+    add_crashpad()
 endif()
 
 target_zlib()
