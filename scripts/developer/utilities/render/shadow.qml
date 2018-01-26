@@ -10,6 +10,9 @@
 //
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
+import  "configSlider"
 
 Column {
     id: root
@@ -67,5 +70,37 @@ Column {
             color: "magenta"
             font.italic: true
         }
+    }
+    ConfigSlider {
+        label: qsTr("Cascade 0 bias")
+        integral: false
+        config: Render.getConfig("RenderMainView.ShadowCascadeSetup0")
+        property: "bias"
+        max: 1.0
+        min: 0.01
+    }
+    ConfigSlider {
+        label: qsTr("Cascade 1 bias")
+        integral: false
+        config: Render.getConfig("RenderMainView.ShadowCascadeSetup1")
+        property: "bias"
+        max: 1.0
+        min: 0.01
+    }
+    ConfigSlider {
+        label: qsTr("Cascade 2 bias")
+        integral: false
+        config: Render.getConfig("RenderMainView.ShadowCascadeSetup2")
+        property: "bias"
+        max: 1.0
+        min: 0.01
+    }
+    ConfigSlider {
+        label: qsTr("Cascade 3 bias")
+        integral: false
+        config: Render.getConfig("RenderMainView.ShadowCascadeSetup3")
+        property: "bias"
+        max: 1.0
+        min: 0.01
     }
 }

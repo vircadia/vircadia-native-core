@@ -62,17 +62,31 @@ public:
 
 };
 
+class RenderShadowCascadeSetupConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float bias MEMBER bias NOTIFY dirty)
+public:
+
+    float bias{ 0.5f };
+
+signals:
+    void dirty();
+};
+
 class RenderShadowCascadeSetup {
 public:
     using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
-    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
+    using Config = RenderShadowCascadeSetupConfig;
+    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs, Config>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
+    void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, Outputs& output);
 
 private:
 
     unsigned int _cascadeIndex;
+    float _baseBias{ 0.1f };
 };
 
 class RenderShadowCascadeTeardown {

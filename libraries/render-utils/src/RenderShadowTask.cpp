@@ -216,7 +216,9 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     task.addJob<RenderShadowSetup>("ShadowSetup");
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i);
+        char jobName[64];
+        sprintf(jobName, "ShadowCascadeSetup%d", i);
+        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i);
         const auto shadowFilter = setupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
 
         // CPU jobs:
@@ -253,6 +255,10 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
     }
 }
 
+void RenderShadowCascadeSetup::configure(const Config& configuration) {
+    _baseBias = configuration.bias * configuration.bias * 0.01f;
+}
+
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
@@ -266,7 +272,7 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
         output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
-        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, _baseBias);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));

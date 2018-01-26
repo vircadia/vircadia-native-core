@@ -220,7 +220,7 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
 }
 
 void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                            float nearDepth, float farDepth) {
+                                            float nearDepth, float farDepth, float baseBias) {
     assert(nearDepth < farDepth);
     assert(cascadeIndex < _cascades.size());
 
@@ -270,11 +270,7 @@ void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, co
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
     schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
-    // Adapt shadow bias to shadow resolution with a totally empirical formula
-    const auto maxShadowFrustumDim = std::max(fabsf(min.x - max.x), fabsf(min.y - max.y));
-    const auto REFERENCE_TEXEL_DENSITY = 7.5f;
-    const auto cascadeTexelDensity = MAP_SIZE / maxShadowFrustumDim;
-    schema.cascades[cascadeIndex].bias = MAX_BIAS * std::min(1.0f, REFERENCE_TEXEL_DENSITY / cascadeTexelDensity);
+    schema.cascades[cascadeIndex].bias = baseBias;
 }
 
 void LightStage::Shadow::setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
