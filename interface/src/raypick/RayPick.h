@@ -18,8 +18,8 @@ class RayPickResult : public PickResult {
 public:
     RayPickResult() {}
     RayPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
-    RayPickResult(const IntersectionType type, const QUuid& objectID, float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {
+    RayPickResult(const IntersectionType type, const QUuid& objectID, float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN), const QVariantMap& extraInfo = QVariantMap()) :
+        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal), extraInfo(extraInfo) {
     }
 
     RayPickResult(const RayPickResult& rayPickResult) : PickResult(rayPickResult.pickVariant) {
