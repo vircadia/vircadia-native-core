@@ -2710,10 +2710,13 @@ glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
             result = getHead()->getPosition();
+            break;
         case AudioListenerMode::FROM_CAMERA:
             result = qApp->getCamera().getPosition();
+            break;
         case AudioListenerMode::CUSTOM:
             result = _customListenPosition;
+            break;
     }
 
     if (isNaN(result)) {
@@ -2730,10 +2733,13 @@ glm::quat MyAvatar::getOrientationForAudio() {
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
             result = getHead()->getFinalOrientationInWorldFrame();
+            break;
         case AudioListenerMode::FROM_CAMERA:
             result = qApp->getCamera().getOrientation();
+            break;
         case AudioListenerMode::CUSTOM:
             result = _customListenOrientation;
+            break;
     }
 
     if (isNaN(result)) {
