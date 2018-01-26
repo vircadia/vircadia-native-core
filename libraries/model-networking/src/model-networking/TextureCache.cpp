@@ -50,7 +50,11 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_raw, "trace.resource.parse.image.raw")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.ktx")
 
-const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
+#if defined(USE_GLES)
+const std::string TextureCache::KTX_DIRNAME { "ktx_cache_gles" };
+#else
+const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
+#endif
 const std::string TextureCache::KTX_EXT { "ktx" };
 
 static const QString RESOURCE_SCHEME = "resource";
