@@ -125,7 +125,7 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 return false;
             }
 
-            if (result.isObject()){
+            if (result.isObject()) {
                 // make propertiesIn reflect the changes, for next filter...
                 propertiesIn.copyFromScriptValue(result, false);
 
@@ -134,6 +134,17 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
                 auto out = QJsonValue::fromVariant(result.toVariant());
                 wasChanged |= (in != out);
+            } else if (result.isBool()) {
+
+                // if the filter returned false, then it's authoritative
+                if (!result.toBool()) {
+                    return false;
+                }
+
+                // otherwise, assume it wants to pass all properties
+                propertiesOut = propertiesIn;
+                wasChanged = false;
+                
             } else {
                 return false;
             }
