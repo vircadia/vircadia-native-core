@@ -62,6 +62,16 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 return false;
             }
 
+            // check to see if this filter wants to filter this message type
+            if ((!filterData.wantsToFilterEdit && filterType == EntityTree::FilterType::Edit) ||
+                (!filterData.wantsToFilterPhysics && filterType == EntityTree::FilterType::Physics) ||
+                (!filterData.wantsToFilterDelete && filterType == EntityTree::FilterType::Delete) ||
+                (!filterData.wantsToFilterAdd && filterType == EntityTree::FilterType::Add)) {
+
+                wasChanged = false;
+                return true; // accept the message
+            }
+
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
@@ -253,6 +263,22 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     delete engine;
                     filterData.rejectAll=true;
                 }
+
+                // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterAddValue = filterData.filterFn.property("wantsToFilterAdd");
+                filterData.wantsToFilterAdd = wantsToFilterAddValue.isBool() ? wantsToFilterAddValue.toBool() : true;
+
+                // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterEditValue = filterData.filterFn.property("wantsToFilterEdit");
+                filterData.wantsToFilterEdit = wantsToFilterEditValue.isBool() ? wantsToFilterEditValue.toBool() : true;
+
+                // if the wantsToFilterPhysics is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterPhysicsValue = filterData.filterFn.property("wantsToFilterPhysics");
+                filterData.wantsToFilterPhysics = wantsToFilterPhysicsValue.isBool() ? wantsToFilterPhysicsValue.toBool() : true;
+
+                // if the wantsToFilterDelete is a boolean evaluate as a boolean, otherwise assume false
+                QScriptValue wantsToFilterDeleteValue = filterData.filterFn.property("wantsToFilterDelete");
+                filterData.wantsToFilterDelete = wantsToFilterDeleteValue.isBool() ? wantsToFilterDeleteValue.toBool() : false;
 
                 // check to see if the filterFn has properties asking for Original props
                 QScriptValue wantsOriginalPropertiesValue = filterData.filterFn.property("wantsOriginalProperties");

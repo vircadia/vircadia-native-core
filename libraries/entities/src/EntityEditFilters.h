@@ -30,6 +30,12 @@ public:
         QScriptValue filterFn;
         bool wantsOriginalProperties { false };
         bool wantsZoneProperties { false };
+
+        bool wantsToFilterAdd { true };
+        bool wantsToFilterEdit { true };
+        bool wantsToFilterPhysics { true };
+        bool wantsToFilterDelete { true };
+
         EntityPropertyFlags includedOriginalProperties;
         EntityPropertyFlags includedZoneProperties;
         bool wantsZoneBoundingBox { false };
