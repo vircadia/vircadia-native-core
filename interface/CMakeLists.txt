@@ -11,9 +11,22 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
+set(CUSTOM_INTERFACE_QRC_PATHS "")
+
+function(ADD_CUSTOM_QRC_PATH CUSTOM_PATHS_VAR IMPORT_PATH LOCAL_PATH)
+  list(APPEND ${CUSTOM_PATHS_VAR} "${IMPORT_PATH}=${LOCAL_PATH}")
+  set(${CUSTOM_PATHS_VAR} ${${CUSTOM_PATHS_VAR}} PARENT_SCOPE)
+endfunction()
+
+find_npm()
+
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+endif ()
+
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
-generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *)
+generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
 add_custom_command(
     OUTPUT ${RESOURCES_RCC}
@@ -52,8 +65,6 @@ endif()
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
 list(APPEND INTERFACE_SRCS ${RESOURCES_RCC})
-
-find_npm()
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
@@ -164,6 +175,11 @@ elseif (ANDROID)
 else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
+
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  add_dependencies(resources jsdoc)
+endif()
 
 add_dependencies(${TARGET_NAME} resources)
 
@@ -276,11 +292,6 @@ endif()
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
-if (BUILD_TOOLS)
-    # require JSDoc to be build before interface is deployed (Console Auto-complete)
-    add_dependencies(${TARGET_NAME} jsdoc)
-endif()
-
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
   find_library(OpenGL OpenGL)
@@ -296,38 +307,18 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
-  if (BUILD_TOOLS AND NPM_EXECUTABLE)
-    set(EXTRA_COPY_COMMANDS
-      COMMAND "${CMAKE_COMMAND}" -E make_directory
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
-      COMMAND "${CMAKE_COMMAND}" -E copy
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/auto-complete"
-    )
-  endif()
 
   # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources/scripts"
-
-    ${EXTRA_COPY_COMMANDS}
   )
 
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
 else()
-  if (BUILD_TOOLS AND NPM_EXECUTABLE)
-    set(EXTRA_COPY_COMMANDS
-      COMMAND "${CMAKE_COMMAND}" -E make_directory
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
-      COMMAND "${CMAKE_COMMAND}" -E copy
-      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json"
-      "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/auto-complete"
-    )
-  endif()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different 
@@ -344,8 +335,6 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
-
-    ${EXTRA_COPY_COMMANDS}
   )
 
   # link target to external libraries
