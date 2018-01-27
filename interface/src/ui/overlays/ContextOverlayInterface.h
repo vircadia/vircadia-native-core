@@ -50,13 +50,13 @@ class ContextOverlayInterface : public QObject, public Dependency {
 public:
     ContextOverlayInterface();
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
-    Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
     void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
     void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
     void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
+    void requestOwnershipVerification(const QUuid& entityID);
 
 signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);
@@ -92,7 +92,6 @@ private:
     bool _isInMarketplaceInspectionMode { false };
 
     void openInspectionCertificate();
-    void requestOwnershipVerification();
     void openMarketplace();
     void enableEntityHighlight(const EntityItemID& entityItemID);
     void disableEntityHighlight(const EntityItemID& entityItemID);

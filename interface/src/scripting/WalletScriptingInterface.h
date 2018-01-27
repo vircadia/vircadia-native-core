@@ -21,6 +21,7 @@
 #include <OffscreenUi.h>
 #include "Application.h"
 #include "commerce/Wallet.h"
+#include "ui/overlays/ContextOverlayInterface.h"
 
 class CheckoutProxy : public QmlWrapper {
     Q_OBJECT
@@ -33,12 +34,15 @@ class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
     Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
+    QSharedPointer<ContextOverlayInterface> _contextOverlayInterface;
+
 
 public:
     WalletScriptingInterface();
 
     Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
+    Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
     // setWalletStatus() should never be made Q_INVOKABLE. If it were,
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
@@ -49,6 +53,7 @@ signals:
 
 private:
     uint _walletStatus;
+    EntityPropertyFlags _entityPropertyFlags;
 };
 
 #endif // hifi_WalletScriptingInterface_h

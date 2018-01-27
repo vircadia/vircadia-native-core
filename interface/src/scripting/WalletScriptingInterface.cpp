@@ -16,6 +16,16 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
 }
 
 WalletScriptingInterface::WalletScriptingInterface() {
+    _contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+
+    _entityPropertyFlags += PROP_POSITION;
+    _entityPropertyFlags += PROP_ROTATION;
+    _entityPropertyFlags += PROP_MARKETPLACE_ID;
+    _entityPropertyFlags += PROP_DIMENSIONS;
+    _entityPropertyFlags += PROP_REGISTRATION_POINT;
+    _entityPropertyFlags += PROP_CERTIFICATE_ID;
+    _entityPropertyFlags += PROP_CLIENT_ONLY;
+    _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 }
 
 void WalletScriptingInterface::refreshWalletStatus() {
@@ -26,4 +36,16 @@ void WalletScriptingInterface::refreshWalletStatus() {
 void WalletScriptingInterface::setWalletStatus(const uint& status) {
     _walletStatus = status;
     emit DependencyManager::get<Wallet>()->walletStatusResult(status);
+}
+
+void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUuid& entityID) {
+    EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID, _entityPropertyFlags);
+    if (!entityID.isNull() && entityProperties.getMarketplaceID().length() > 0) {
+        if (!entityProperties.getClientOnly()) {
+            qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
+            emit _contextOverlayInterface->ownershipVerificationFailed(entityID);
+            return;
+        }
+        _contextOverlayInterface->requestOwnershipVerification(entityID);
+    }
 }
