@@ -48,7 +48,7 @@ public:
     using JobModel = render::Task::Model<RenderShadowTask, Config>;
 
     RenderShadowTask() {}
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
 
     void configure(const Config& configuration);
 };

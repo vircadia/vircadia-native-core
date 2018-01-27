@@ -40,15 +40,15 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const int META_BUCKET = 3;
     const int BACKGROUND_BUCKET = 2;
     MultiFilterItems<NUM_SPATIAL_FILTERS>::ItemFilterArray spatialFilters = { {
-            ItemFilter::Builder::opaqueShape().withVisible().withTagBits(tagBits, tagMask),
-            ItemFilter::Builder::transparentShape().withVisible().withTagBits(tagBits, tagMask),
-            ItemFilter::Builder::light().withVisible().withTagBits(tagBits, tagMask),
-            ItemFilter::Builder::meta().withVisible().withTagBits(tagBits, tagMask)
+            ItemFilter::Builder::opaqueShape(),
+            ItemFilter::Builder::transparentShape(),
+            ItemFilter::Builder::light(),
+            ItemFilter::Builder::meta()
         } };
     MultiFilterItems<NUM_NON_SPATIAL_FILTERS>::ItemFilterArray nonspatialFilters = { {
-            ItemFilter::Builder::opaqueShape().withVisible().withTagBits(tagBits, tagMask),
-            ItemFilter::Builder::transparentShape().withVisible().withTagBits(tagBits, tagMask),
-            ItemFilter::Builder::background().withVisible().withTagBits(tagBits, tagMask)
+            ItemFilter::Builder::opaqueShape(),
+            ItemFilter::Builder::transparentShape(),
+            ItemFilter::Builder::background()
         } };
     const auto filteredSpatialBuckets = 
         task.addJob<MultiFilterItems<NUM_SPATIAL_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters)

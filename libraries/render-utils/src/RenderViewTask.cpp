@@ -14,7 +14,7 @@
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
 
-void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t visibilityMask, uint8_t visibilityMaskTouched) {
+void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits, uint8_t tagMask) {
    // auto items = input.get<Input>();
 
     // Shadows use an orthographic projection because they are linked to sunlights
@@ -30,7 +30,7 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
         return true;
     });
 
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, visibilityMask, visibilityMaskTouched);
+    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
 
     if (isDeferred) {

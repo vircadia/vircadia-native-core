@@ -200,7 +200,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     });
 }
 
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&) { return true; };
 
     // Prepare the ShapePipeline
@@ -258,6 +258,8 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     assert(lightStage);
     // Cache old render args
     RenderArgs* args = renderContext->args;
+
+ //   const auto& filterMask = inputs;
 
     output.edit0() = args->_renderMode;
     output.edit2() = args->_sizeScale;

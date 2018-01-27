@@ -159,10 +159,10 @@ Item::Bound EntityRenderer::getBound() {
 
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta();
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 
-    return ItemKey::Builder::opaqueShape().withTypeMeta();
+    return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
