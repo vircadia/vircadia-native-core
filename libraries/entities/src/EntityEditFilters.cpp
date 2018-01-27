@@ -245,7 +245,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 entitiesObject.setProperty("ADD_FILTER_TYPE", EntityTree::FilterType::Add);
                 entitiesObject.setProperty("EDIT_FILTER_TYPE", EntityTree::FilterType::Edit);
                 entitiesObject.setProperty("PHYSICS_FILTER_TYPE", EntityTree::FilterType::Physics);
-                entitiesObject.setProperty("ERASE_FILTER_TYPE", EntityTree::FilterType::Erase);
+                entitiesObject.setProperty("DELETE_FILTER_TYPE", EntityTree::FilterType::Delete);
                 global.setProperty("Entities", entitiesObject);
                 filterData.filterFn = global.property("filter");
                 if (!filterData.filterFn.isFunction()) {
