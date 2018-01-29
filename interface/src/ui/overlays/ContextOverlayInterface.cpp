@@ -299,14 +299,11 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                     if (networkReply->error() == QNetworkReply::NoError) {
                         if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                             qCDebug(entities) << "invalid_reason not empty";
-                        }
-                        else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
+                        } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                             qCDebug(entities) << "'transfer_status' is 'failed'";
-                        }
-                        else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
+                        } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
                             qCDebug(entities) << "'transfer_status' is 'pending'";
-                        }
-                        else {
+                        } else {
                             QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
                             QByteArray certID = entityProperties.getCertificateID().toUtf8();
@@ -332,25 +329,21 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                             if (thread() != QThread::currentThread()) {
                                 QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
                                 return;
-                            }
-                            else {
+                            } else {
                                 startChallengeOwnershipTimer();
                             }
                         }
-                    }
-                    else {
+                    } else {
                         qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
                             "More info:" << networkReply->readAll();
                     }
 
                     networkReply->deleteLater();
                 });
-            }
-            else {
+            } else {
                 qCWarning(context_overlay) << "Couldn't get Entity Server!";
             }
-        }
-        else {
+        } else {
             auto ledger = DependencyManager::get<Ledger>();
             _challengeOwnershipTimeoutTimer.stop();
             emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
