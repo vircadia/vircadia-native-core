@@ -15,6 +15,7 @@
 #include <QJsonDocument>
 #include <QRegExp>
 #include <QStringList>
+#include <QThread>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -28,14 +29,10 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#ifdef Q_OS_ANDROID
-const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
-#else
 #if USE_STABLE_GLOBAL_SERVICES
 const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
 const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -761,11 +758,21 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
     QApplication::clipboard()->setText(currentPath());
 }
 

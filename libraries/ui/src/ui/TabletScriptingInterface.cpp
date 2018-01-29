@@ -31,6 +31,8 @@
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
+const QString BUTTON_SORT_ORDER_KEY = "sortOrder";
+const int DEFAULT_BUTTON_SORT_ORDER = 100;
 
 static QString getUsername() {
     QString username = "Unknown user";
@@ -74,11 +76,21 @@ QVariant TabletButtonListModel::data(const QModelIndex& index, int role) const {
 }
 
 TabletButtonProxy* TabletButtonListModel::addButton(const QVariant& properties) {
-    auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
+    QVariantMap newProperties = properties.toMap();
+    if (newProperties.find(BUTTON_SORT_ORDER_KEY) == newProperties.end()) {
+        newProperties[BUTTON_SORT_ORDER_KEY] = DEFAULT_BUTTON_SORT_ORDER;
+    }
+    int index = computeNewButtonIndex(newProperties);
+    auto button = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(newProperties));
     beginResetModel();
-    _buttons.push_back(tabletButtonProxy);
+    int numButtons = (int)_buttons.size();
+    if (index < numButtons) {
+        _buttons.insert(_buttons.begin() + index, button);
+    } else {
+        _buttons.push_back(button);
+    }
     endResetModel();
-    return tabletButtonProxy.data();
+    return button.data();
 }
 
 void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
@@ -90,6 +102,20 @@ void TabletButtonListModel::removeButton(TabletButtonProxy* button) {
     beginResetModel();
     _buttons.erase(itr);
     endResetModel();
+}
+
+int TabletButtonListModel::computeNewButtonIndex(const QVariantMap& newButtonProperties) {
+    int numButtons = (int)_buttons.size();
+    int newButtonSortOrder = newButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
+    if (newButtonSortOrder == DEFAULT_BUTTON_SORT_ORDER) return numButtons;
+    for (int i = 0; i < numButtons; i++) {
+        QVariantMap tabletButtonProperties = _buttons[i]->getProperties();
+        int tabletButtonSortOrder = tabletButtonProperties[BUTTON_SORT_ORDER_KEY].toInt();
+        if (newButtonSortOrder <= tabletButtonSortOrder) {
+            return i;
+        }
+    }
+    return numButtons;
 }
 
 TabletButtonsProxyModel::TabletButtonsProxyModel(QObject *parent)
@@ -172,9 +198,8 @@ void TabletScriptingInterface::preloadSounds() {
     //preload audio events
     const QStringList &audioSettings = tabletSoundsButtonClick.get();
     for (int i = 0; i < TabletAudioEvents::Last; i++) {
-        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + audioSettings.at(i));
         SharedSoundPointer sound = DependencyManager::get<SoundCache>()->
-                getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
+                getSound(PathUtils::resourcesUrl(audioSettings.at(i)));
         _audioEvents.insert(static_cast<TabletAudioEvents>(i), sound);
     }
 }

@@ -87,6 +87,7 @@ public:
 
     virtual Transform getParentTransform(bool& success, int depth = 0) const;
 
+    void setWorldTransform(const glm::vec3& position, const glm::quat& orientation);
     virtual glm::vec3 getWorldPosition(bool& success) const;
     virtual glm::vec3 getWorldPosition() const;
     virtual void setWorldPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);

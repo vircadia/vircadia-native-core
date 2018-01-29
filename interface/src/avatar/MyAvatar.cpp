@@ -1064,11 +1064,6 @@ void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
 }
 
-void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
-    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
-    reset(true);
-}
-
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }
@@ -1835,7 +1830,7 @@ void MyAvatar::initAnimGraph() {
     } else if (!_fstAnimGraphOverrideUrl.isEmpty()) {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
-        graphUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json");
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
@@ -1963,7 +1958,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
@@ -2057,8 +2052,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         _smoothOrientationTimer = 0.0f;
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
-
+    Head* head = getHead();
     auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         glm::quat localOrientation = headPose.rotation * Quaternions::Y_180;
@@ -2070,6 +2064,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
+    } else {
+        head->setBaseYaw(0.0f);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBaseRoll(0.0f);
     }
 }
 
@@ -2134,7 +2132,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * _walkSpeed.get() * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2724,6 +2722,14 @@ float MyAvatar::getUserEyeHeight() const {
     float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
     float userHeight = _userHeight.get();
     return userHeight - userHeight * ratio;
+}
+
+float MyAvatar::getWalkSpeed() const {
+    return _walkSpeed.get();
+}
+
+void MyAvatar::setWalkSpeed(float value) {
+    _walkSpeed.set(value);
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

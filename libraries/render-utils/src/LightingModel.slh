@@ -186,7 +186,7 @@ float specularDistribution(SurfaceData surface) {
     // Add geometric factors G1(n,l) and G1(n,v)
     float smithInvG1NdotL = evalSmithInvG1(surface.roughness4, surface.ndotl);
     denom *= surface.smithInvG1NdotV * smithInvG1NdotL;
-    // Don't divide by PI as it will be done later
+    // Don't divide by PI as this is part of the light normalization factor
     float power = surface.roughness4 / denom;
     return power;
 }
@@ -202,12 +202,11 @@ vec4 evalPBRShading(float metallic, vec3 fresnel, SurfaceData surface) {
     vec3 specular = fresnelColor * power * angleAttenuation;
     float diffuse = (1.0 - metallic) * angleAttenuation * (1.0 - fresnelColor.x);
 
-    diffuse /= 3.1415926;
-    // Diffuse is divided by PI but specular isn't because an infinitesimal volume light source
-    // has a multiplier of PI, says Naty Hoffman.
+    // We don't divided by PI, as the "normalized" equations state we should, because we decide, as Naty Hoffman, that
+    // we wish to have a similar color as raw albedo on a perfectly diffuse surface perpendicularly lit
+    // by a white light of intensity 1. But this is an arbitrary normalization of what light intensity "means".
     // (see http://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
     // page 23 paragraph "Punctual light sources")
-
     return vec4(specular, diffuse);
 }
 
@@ -222,9 +221,9 @@ vec4 evalPBRShadingDielectric(SurfaceData surface, float fresnel) {
     vec3 specular = vec3(fresnelScalar) * power * angleAttenuation;
     float diffuse = angleAttenuation * (1.0 - fresnelScalar);
 
-    diffuse /= 3.1415926;
-    // Diffuse is divided by PI but specular isn't because an infinitesimal volume light source
-    // has a multiplier of PI, says Naty Hoffman.
+    // We don't divided by PI, as the "normalized" equations state we should, because we decide, as Naty Hoffman, that
+    // we wish to have a similar color as raw albedo on a perfectly diffuse surface perpendicularly lit
+    // by a white light of intensity 1. But this is an arbitrary normalization of what light intensity "means".
     // (see http://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
     // page 23 paragraph "Punctual light sources")
     return vec4(specular, diffuse);
@@ -239,8 +238,9 @@ vec4 evalPBRShadingMetallic(SurfaceData surface, vec3 fresnel) {
     float power = specularDistribution(surface);
     vec3 specular = fresnelColor * power * angleAttenuation;
 
-    // Specular isn't divided by PI because an infinitesimal volume light source
-    // has a multiplier of PI, says Naty Hoffman.
+    // We don't divided by PI, as the "normalized" equations state we should, because we decide, as Naty Hoffman, that
+    // we wish to have a similar color as raw albedo on a perfectly diffuse surface perpendicularly lit
+    // by a white light of intensity 1. But this is an arbitrary normalization of what light intensity "means".
     // (see http://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
     // page 23 paragraph "Punctual light sources")
     return vec4(specular, 0.f);
@@ -289,9 +289,8 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
 
 
 void evalFragShadingScattering(out vec3 diffuse, out vec3 specular,
-    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo
-    ,float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
-) {
+    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo,
+    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
     vec3 brdf = evalSkinBRDF(surface.lightDir, surface.normal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
     float NdotL = surface.ndotl;
     diffuse = mix(vec3(NdotL), brdf, scattering);
@@ -305,8 +304,7 @@ void evalFragShadingScattering(out vec3 diffuse, out vec3 specular,
 }
 
 void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
-    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo
-) {
+    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo) {
     vec4 shading = evalPBRShading(metallic, fresnel, surface);
     diffuse = vec3(shading.w);
     diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());

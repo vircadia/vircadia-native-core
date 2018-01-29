@@ -578,8 +578,6 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, true,
-        avatar.get(), SLOT(setUseAnimPreAndPostRotations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
         avatar.get(), SLOT(setEnableInverseKinematics(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSensorToWorldMatrix, 0, false,
@@ -761,6 +759,13 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+
+    // Developer > Advanced Settings...
+    action = addActionToQMenuAndActionHash(developerMenu, "Advanced Preferences...");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AdvancedPreferencesDialog.qml"),
+            QString("hifi/tablet/AdvancedPreferencesDialog.qml"), "AdvancedPreferencesDialog");
+    });
 
     // Developer > API Debugger
     action = addActionToQMenuAndActionHash(developerMenu, "API Debugger");
