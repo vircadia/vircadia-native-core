@@ -35,6 +35,8 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
+#include <ModelEntityItem.h>
+#include <GLMHelpers.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -1419,6 +1421,37 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
     emit skeletonChanged();
 
+}
+
+void MyAvatar::removeAvatarEntities() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+}
+
+QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    QVariantList avatarEntitiesData;
+    QScriptEngine scriptEngine;
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
+            if (modelEntity) {
+                QVariantMap avatarEntityData;
+                EntityItemProperties entityProperties = modelEntity->getProperties();
+                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
+                avatarEntitiesData.append(QVariant(avatarEntityData));
+            }
+        }
+    });
+    return avatarEntitiesData;
 }
 
 
