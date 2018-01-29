@@ -33,7 +33,6 @@ namespace Setting {
         // tell the private instance to clean itself up on its thread
         DependencyManager::destroy<Manager>();
 
-        //
         globalManager.reset();
 
         // quit the settings manager thread and wait on it to make sure it's gone
@@ -42,20 +41,23 @@ namespace Setting {
     }
 
     void setupPrivateInstance() {
-        // Let's set up the settings Private instance on its own thread
-        QThread* thread = new QThread();
-        Q_CHECK_PTR(thread);
-        thread->setObjectName("Settings Thread");
+        // Ensure Setting::init has already ran and qApp exists
+        if (qApp && globalManager) {
+            // Let's set up the settings Private instance on its own thread
+            QThread* thread = new QThread();
+            Q_CHECK_PTR(thread);
+            thread->setObjectName("Settings Thread");
 
-        QObject::connect(thread, SIGNAL(started()), globalManager.data(), SLOT(startTimer()));
-        QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-        QObject::connect(thread, SIGNAL(finished()), globalManager.data(), SLOT(deleteLater()));
-        globalManager->moveToThread(thread);
-        thread->start();
-        qCDebug(shared) << "Settings thread started.";
+            QObject::connect(thread, SIGNAL(started()), globalManager.data(), SLOT(startTimer()));
+            QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+            QObject::connect(thread, SIGNAL(finished()), globalManager.data(), SLOT(deleteLater()));
+            globalManager->moveToThread(thread);
+            thread->start();
+            qCDebug(shared) << "Settings thread started.";
 
-        // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
-        qAddPostRoutine(cleanupPrivateInstance);
+            // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
+            qAddPostRoutine(cleanupPrivateInstance);
+        }
     }
     FIXED_Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
 
@@ -79,6 +81,8 @@ namespace Setting {
         }
 
         globalManager = DependencyManager::set<Manager>();
+
+        setupPrivateInstance();
     }
     
     void Interface::init() {

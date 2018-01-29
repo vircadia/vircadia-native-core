@@ -32,14 +32,14 @@
 // We cannot used std::call_once with a static once_flag because
 // this is used in shared libraries that are linked by several DLLs
 // (ie. plugins), meaning the static will be useless in that case
-#define FIXED_Q_COREAPP_STARTUP_FUNCTION(AFUNC)                      \
-    static void AFUNC ## _fixed() {                                  \
-    const auto propertyName = std::string(Q_FUNC_INFO) + __FILE__;   \
-        if (!qApp->property(propertyName.c_str()).toBool()) {        \
-            AFUNC();                                                 \
-            qApp->setProperty(propertyName.c_str(), QVariant(true)); \
-        }                                                            \
-    }                                                                \
+#define FIXED_Q_COREAPP_STARTUP_FUNCTION(AFUNC)                        \
+    static void AFUNC ## _fixed() {                                    \
+        const auto propertyName = std::string(Q_FUNC_INFO) + __FILE__; \
+        if (!qApp->property(propertyName.c_str()).toBool()) {          \
+            AFUNC();                                                   \
+            qApp->setProperty(propertyName.c_str(), QVariant(true));   \
+        }                                                              \
+    }                                                                  \
     Q_COREAPP_STARTUP_FUNCTION(AFUNC ## _fixed)
 
 // When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
