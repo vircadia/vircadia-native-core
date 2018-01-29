@@ -2,11 +2,11 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_translucent_fade.frag
+//  model_translucent_normal_map_fade.frag
 //  fragment shader
 //
-//  Created by Olivier Prat on 06/05/17.
-//  Copyright 2017 High Fidelity, Inc.
+//  Created by Olivier Prat on 23/01/18.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,7 +24,7 @@
 <$declareStandardCameraTransform()$>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
@@ -33,6 +33,7 @@ in vec2 _texCoord0;
 in vec2 _texCoord1;
 in vec4 _position;
 in vec3 _normal;
+in vec3 _tangent;
 in vec3 _color;
 in float _alpha;
 in vec4 _worldPosition;
@@ -48,7 +49,7 @@ void main(void) {
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
@@ -69,7 +70,8 @@ void main(void) {
 
     vec3 fragPosition = _position.xyz;
     // Lighting is done in world space
-    vec3 fragNormal = normalize(_normal);
+    vec3 fragNormal;
+    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, fragNormal)$>
 
     TransformCamera cam = getTransformCamera();
     vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
