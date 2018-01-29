@@ -17,6 +17,9 @@
 #include <QObject>
 #include <QString>
 #include <QtScript/QScriptable>
+#include <QVector>
+#include <glm/glm.hpp>
+#include "RegisteredMetaTypes.h"
 
 /// Scriptable Mat4 object.  Used exclusively in the JavaScript API
 class Mat4 : public QObject, protected QScriptable {
@@ -28,6 +31,7 @@ public slots:
     glm::mat4 createFromRotAndTrans(const glm::quat& rot, const glm::vec3& trans) const;
     glm::mat4 createFromScaleRotAndTrans(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) const;
     glm::mat4 createFromColumns(const glm::vec4& col0, const glm::vec4& col1, const glm::vec4& col2, const glm::vec4& col3) const;
+    glm::mat4 createFromArray(const QVector<float>& floats) const;
 
     glm::vec3 extractTranslation(const glm::mat4& m) const;
     glm::quat extractRotation(const glm::mat4& m) const;

@@ -62,7 +62,7 @@ public:
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
-    EntityItemPointer entity;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)

@@ -1908,7 +1908,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 entityResult.distance = pickResult->distance;
                 entityResult.surfaceNormal = pickResult->surfaceNormal;
                 entityResult.entityID = pickResult->objectID;
-                entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+                entityResult.extraInfo = pickResult->extraInfo;
             }
         }
         return entityResult;
