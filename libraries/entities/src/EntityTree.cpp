@@ -1678,14 +1678,23 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
+QVector<EntityItemWeakPointer> EntityTree::getEntitiesParentFixup() const {
+    QReadLocker locker(&_needsParentFixupLock);
+    return _needsParentFixup;
+}
+
+void EntityTree::setNeedsParentFixup(QVector<EntityItemWeakPointer> entitiesFixup) {
+    QWriteLocker locker(&_needsParentFixupLock);
+    _needsParentFixup = entitiesFixup;
+}
 
 void EntityTree::fixupNeedsParentFixups() {
     PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
 
-    QWriteLocker locker(&_needsParentFixupLock);
+    QVector<EntityItemWeakPointer> entitiesParentFixup = getEntitiesParentFixup();
 
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesParentFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1748,6 +1757,8 @@ void EntityTree::fixupNeedsParentFixups() {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
     }
+
+    setNeedsParentFixup(entitiesParentFixup);
 }
 
 void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {

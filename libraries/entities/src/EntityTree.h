@@ -385,6 +385,8 @@ private:
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
     void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
+    QVector<EntityItemWeakPointer> getEntitiesParentFixup() const;
+    void setNeedsParentFixup(QVector<EntityItemWeakPointer> entitiesFixup);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 };
