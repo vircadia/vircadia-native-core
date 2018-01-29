@@ -323,12 +323,12 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
-        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
+        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
-    int parentIndex = modelIDs.size() - 1;
+    int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
@@ -1478,7 +1478,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
         QString topID = getTopModelID(_connectionParentMap, models, first, url);
-        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
     }
 
     // figure the number of animation frames from the curves
