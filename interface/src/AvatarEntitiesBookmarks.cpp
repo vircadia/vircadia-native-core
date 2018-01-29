@@ -111,7 +111,6 @@ void AvatarEntitiesBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 }
 
 void AvatarEntitiesBookmarks::applyBookmarkedAvatarEntities() {
-    qDebug() << "AvatarEntitiesBookmarks::applyBookmarkedAvatarEntities";
     QAction* action = qobject_cast<QAction*>(sender());
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
