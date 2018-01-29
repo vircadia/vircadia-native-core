@@ -67,7 +67,7 @@ class RenderShadowCascadeSetupConfig : public render::Job::Config {
         Q_PROPERTY(float bias MEMBER bias NOTIFY dirty)
 public:
 
-    float bias{ 0.5f };
+    float bias{ 0.25f };
 
 signals:
     void dirty();

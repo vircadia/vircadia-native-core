@@ -110,6 +110,8 @@ public:
 
             Schema();
 
+            void updateCascade(int cascadeIndex, const ViewFrustum& shadowFrustum);
+
         };
         UniformBufferView _schemaBuffer = nullptr;
     };
@@ -213,6 +215,7 @@ protected:
     Index _sunOffLightId;
 
     Index _defaultLightId;
+
 };
 using LightStagePointer = std::shared_ptr<LightStage>;
 

@@ -256,7 +256,9 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
 }
 
 void RenderShadowCascadeSetup::configure(const Config& configuration) {
-    _baseBias = configuration.bias * configuration.bias * 0.01f;
+    // I'm not very proud of this empirical adjustment
+    auto cascadeBias = configuration.bias * powf(1.1f, _cascadeIndex);
+    _baseBias = cascadeBias * cascadeBias * 0.01f;
 }
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {

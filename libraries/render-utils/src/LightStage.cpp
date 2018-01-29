@@ -23,8 +23,6 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.5, 0.5, 0.5, 1.0 };
 const int LightStage::Shadow::MAP_SIZE = 1024;
 
-static const auto MAX_BIAS = 0.006f;
-
 const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
@@ -63,13 +61,25 @@ LightStage::LightStage() {
 
 LightStage::Shadow::Schema::Schema() {
     ShadowTransform defaultTransform;
-    defaultTransform.bias = MAX_BIAS;
+    defaultTransform.fixedBias = 0.005f;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
     cascadeCount = 1;
     invCascadeBlendWidth = 1.0f / 0.2f;
     invFalloffDistance = 1.0f / 2.0f;
     maxDistance = 20.0f;
+}
+
+void LightStage::Shadow::Schema::updateCascade(int cascadeIndex, const ViewFrustum& shadowFrustum) {
+    auto& cascade = cascades[cascadeIndex];
+    cascade.frustumPosition = shadowFrustum.getPosition();
+    // The adaptative bias is computing how much depth offset we have to add to
+    // push back a coarsely sampled surface perpendicularly to the shadow direction,
+    // to not have shadow acnee. The final computation is done in the shader, based on the
+    // surface normal.
+    auto maxWorldFrustumSize = glm::max(shadowFrustum.getWidth(), shadowFrustum.getHeight());
+    cascade.adaptiveBiasUnitScale = maxWorldFrustumSize * 0.5f * invMapSize;
+    cascade.adaptiveBiasTransformScale = shadowFrustum.getNearClip() * shadowFrustum.getFarClip() / (shadowFrustum.getFarClip() - shadowFrustum.getNearClip());
 }
 
 LightStage::Shadow::Cascade::Cascade() : 
@@ -210,13 +220,15 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
 
     // Position the keylight frustum
     auto position = viewFrustum.getPosition() - (nearDepth + farDepth)*lightDirection;
+    // Update the buffer
+    auto& schema = _schemaBuffer.edit<Schema>();
+    auto cascadeIndex = 0;
     for (auto& cascade : _cascades) {
         cascade._frustum->setOrientation(orientation);
         cascade._frustum->setPosition(position);
+        schema.cascades[cascadeIndex].frustumPosition = position;
+        cascadeIndex++;
     }
-    // Update the buffer
-    auto& schema = _schemaBuffer.edit<Schema>();
-    schema.lightDirInViewSpace = glm::inverse(viewFrustum.getView()) * glm::vec4(lightDirection, 0.f);
 }
 
 void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
@@ -269,8 +281,10 @@ void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, co
 
     // Update the buffer
     auto& schema = _schemaBuffer.edit<Schema>();
-    schema.cascades[cascadeIndex].reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
-    schema.cascades[cascadeIndex].bias = baseBias;
+    auto& schemaCascade = schema.cascades[cascadeIndex];
+    schemaCascade.reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
+    schemaCascade.fixedBias = baseBias;
+    schema.updateCascade(cascadeIndex, *cascade._frustum);
 }
 
 void LightStage::Shadow::setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
@@ -281,7 +295,10 @@ void LightStage::Shadow::setCascadeFrustum(unsigned int cascadeIndex, const View
 
     *cascade._frustum = shadowFrustum;
     // Update the buffer
-    _schemaBuffer.edit<Schema>().cascades[cascadeIndex].reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
+    auto& schema = _schemaBuffer.edit<Schema>();
+    auto& schemaCascade = schema.cascades[cascadeIndex];
+    schemaCascade.reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
+    schema.updateCascade(cascadeIndex, shadowFrustum);
 }
 
 LightStage::Index LightStage::findLight(const LightPointer& light) const {

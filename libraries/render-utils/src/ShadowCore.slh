@@ -38,11 +38,19 @@ float getShadowScale() {
 }
 
 float getShadowBias(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].bias;
+	return shadow.cascades[cascadeIndex].fixedBias;
 }
 
-vec3 getShadowDirInViewSpace() {
-    return shadow.lightDirInViewSpace;
+vec3 getShadowFrustumPosition(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].frustumPosition;
+}
+
+float getShadowAdaptiveBiasUnitScale(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].adaptiveBiasUnitScale;
+}
+
+float transformShadowAdaptiveBias(int cascadeIndex, float shadowDepth, float depthBias) {
+    return shadow.cascades[cascadeIndex].adaptiveBiasTransformScale * depthBias / (shadowDepth*shadowDepth);
 }
 
 // Compute the texture coordinates from world coordinates
