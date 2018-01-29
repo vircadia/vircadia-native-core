@@ -361,7 +361,7 @@ void ATPClientApp::lookupAsset() {
     request->start();
 }
 
-void ATPClientApp::download(AssetHash hash) {
+void ATPClientApp::download(AssetUtils::AssetHash hash) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = new AssetRequest(hash);
 
