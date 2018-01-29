@@ -189,7 +189,6 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
     return false;
 }
 
-
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
     Setting::Handle<bool> _settingSwitch{ "commerce", true };

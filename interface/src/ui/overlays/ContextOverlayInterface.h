@@ -57,6 +57,7 @@ public:
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
     void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
     void requestOwnershipVerification(const QUuid& entityID);
+    EntityPropertyFlags getEntityPropertyFlags() { return _entityPropertyFlags; }
 
 signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);

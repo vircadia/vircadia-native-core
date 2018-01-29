@@ -17,14 +17,6 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
 
 WalletScriptingInterface::WalletScriptingInterface() {
 
-    _entityPropertyFlags += PROP_POSITION;
-    _entityPropertyFlags += PROP_ROTATION;
-    _entityPropertyFlags += PROP_MARKETPLACE_ID;
-    _entityPropertyFlags += PROP_DIMENSIONS;
-    _entityPropertyFlags += PROP_REGISTRATION_POINT;
-    _entityPropertyFlags += PROP_CERTIFICATE_ID;
-    _entityPropertyFlags += PROP_CLIENT_ONLY;
-    _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 }
 
 void WalletScriptingInterface::refreshWalletStatus() {
@@ -37,11 +29,17 @@ void WalletScriptingInterface::setWalletStatus(const uint& status) {
     emit DependencyManager::get<Wallet>()->walletStatusResult(status);
 }
 
-void WalletScriptingInterface::proveEntityOwnershipVerification(const QUuid& entityID) {
-    EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID, _entityPropertyFlags);
-    if (!entityID.isNull() && entityProperties.getMarketplaceID().length() > 0) {
-        DependencyManager::get<ContextOverlayInterface>()->requestOwnershipVerification(entityID);
+void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUuid& entityID) {
+    QSharedPointer<ContextOverlayInterface> contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+    EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID,
+        contextOverlayInterface->getEntityPropertyFlags());
+    if (entityProperties.getClientOnly()) {
+        if (!entityID.isNull() && entityProperties.getCertificateID().length() > 0) {
+            contextOverlayInterface->requestOwnershipVerification(entityID);
+        } else {
+            qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is null or not a certified item";
+        }
     } else {
-        qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is null or not a marketplace item";
+        qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
     }
 }
