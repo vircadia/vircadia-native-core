@@ -29,7 +29,9 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, RenderDetails::ITEM);
 
     // Overlays are not culled
-    const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchOverlaySelection");
+    const ItemFilter overlayfilter = ItemFilter::Builder().withVisible().withTagBits(tagBits, tagMask);
+    const auto nonspatialFilter = render::Varying(overlayfilter);
+    const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchOverlaySelection", nonspatialFilter);
 
     // Multi filter visible items into different buckets
     const int NUM_SPATIAL_FILTERS = 4; 

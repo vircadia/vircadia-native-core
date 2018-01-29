@@ -28,7 +28,7 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
         const auto threshold = 1e-3f;
         return relativeBoundRadius > threshold;
         return true;
-    });
+    }, tagBits, tagMask);
 
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
