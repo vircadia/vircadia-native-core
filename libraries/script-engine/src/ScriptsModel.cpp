@@ -100,6 +100,7 @@ QVariant ScriptsModel::data(const QModelIndex& index, int role) const {
         return QVariant();
     }
     if (node->getType() == TREE_NODE_TYPE_SCRIPT) {
+
         TreeNodeScript* script = static_cast<TreeNodeScript*>(node);
         if (role == Qt::DisplayRole) {
             return QVariant(script->getName() + (script->getOrigin() == SCRIPT_ORIGIN_LOCAL ? " (local)" : ""));
@@ -133,7 +134,6 @@ void ScriptsModel::updateScriptsLocation(const QString& newPath) {
             _fsWatcher.addPath(_localDirectory.absolutePath());
         }
     }
-
     reloadLocalFiles();
 }
 
@@ -305,6 +305,7 @@ void ScriptsModel::rebuildTree() {
             _treeNodes.removeAt(i);
         }
     }
+
     QHash<QString, TreeNodeFolder*> folders;
     for (int i = 0; i < _treeNodes.size(); i++) {
         TreeNodeBase* node = _treeNodes.at(i);

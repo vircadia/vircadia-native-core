@@ -42,7 +42,7 @@ vec3 evalScatteringBRDF(vec2 texcoord) {
     vec3 fragNormal = vec3((normal));
 
     // Get light
-    Light light = getLight();
+    Light light = getKeyLight();
     vec3 fresnel = vec3(0.028); // Default Di-electric fresnel value for skin
     float metallic = 0.0;
 
@@ -65,7 +65,7 @@ vec3 drawScatteringTableUV(vec2 cursor, vec2 texcoord) {
     float curvature = unpackCurvature(diffusedCurvature.w);
 
     // Get light
-    Light light = getLight();
+    Light light = getKeyLight();
     vec3 fresnel = vec3(0.028); // Default Di-electric fresnel value for skin
 
     vec3 fragLightDir = -normalize(getLightDirection(light));

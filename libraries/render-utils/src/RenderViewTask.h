@@ -23,7 +23,7 @@ public:
 
     RenderViewTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred, uint8_t visibilityMask = 0xFF, uint8_t visibilityMaskTouched = 0x00);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
 
 };
 

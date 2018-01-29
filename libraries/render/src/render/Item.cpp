@@ -34,13 +34,19 @@ const int Item::LAYER_3D = 1;
 const int Item::LAYER_3D_FRONT = 2;
 const int Item::LAYER_3D_HUD = 3;
 
-const uint8_t ItemKey::NUM_VISIBLE_MASK_INDICES { 4 };
-const uint8_t ItemKey::VISIBLE_MASK_ALL { 0x0F };
-const uint8_t ItemKey::VISIBLE_MASK_NONE { 0x00 };
-const uint8_t ItemKey::VISIBLE_MASK_0 { 0x01 };
-const uint8_t ItemKey::VISIBLE_MASK_1 { 0x02 };
-const uint8_t ItemKey::VISIBLE_MASK_2 { 0x04 };
-const uint8_t ItemKey::VISIBLE_MASK_3 { 0x08 };
+const uint8_t ItemKey::TAG_BITS_ALL{ 0xFF };
+const uint8_t ItemKey::TAG_BITS_NONE{ 0x00 };
+const uint8_t ItemKey::TAG_BITS_0{ 0x01 };
+const uint8_t ItemKey::TAG_BITS_1{ 0x02 };
+const uint8_t ItemKey::TAG_BITS_2{ 0x04 };
+const uint8_t ItemKey::TAG_BITS_3{ 0x08 };
+const uint8_t ItemKey::TAG_BITS_4 { 0x10 };
+const uint8_t ItemKey::TAG_BITS_5{ 0x20 };
+const uint8_t ItemKey::TAG_BITS_6{ 0x40 };
+const uint8_t ItemKey::TAG_BITS_7 { 0x80 };
+
+const uint32_t ItemKey::KEY_TAG_BITS_MASK = ((uint32_t) ItemKey::TAG_BITS_ALL) << FIRST_TAG_BIT;
+
 
 
 void Item::Status::Value::setScale(float scale) {

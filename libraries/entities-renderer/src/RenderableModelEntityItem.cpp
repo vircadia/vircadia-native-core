@@ -1014,9 +1014,9 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 }
 
@@ -1329,19 +1329,22 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _currentTextures = newTextures;
         }
     }
-
+    if (entity->_needsJointSimulation) {
+        entity->copyAnimationJointDataToModel();
+    }
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    uint32_t viewVisiblityMask = _cauterized ?
-        render::ItemKey::VISIBLE_MASK_0 : // draw in every view except the main one (view zero)
-        render::ItemKey::VISIBLE_MASK_NONE; // draw in all views
+    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
+    uint32_t viewTaskBits = _cauterized ?
+        render::ItemKey::TAG_BITS_1 : // draw in every view except the main one (view zero)
+        render::ItemKey::TAG_BITS_ALL; // draw in all views
 
-    if (model->isVisible() != _visible || model->getViewVisibilityMask() != viewVisiblityMask) {
+    if (model->isVisible() != _visible || model->getViewTagBits() != viewTaskBits) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene, viewVisiblityMask);
+        model->setVisibleInScene(_visible, scene, viewTaskBits);
     }
     // TODO? early exit here when not visible?
 

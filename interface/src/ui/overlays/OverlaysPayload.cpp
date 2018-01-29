@@ -45,11 +45,11 @@ namespace render {
             builder.withViewSpace();
         }
 
-        if (overlay->getVisible()) {
-            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_1); // don't draw overlays in mirror
-        } else {
-            builder.withViewVisibilityMask(render::ItemKey::VISIBLE_MASK_ALL);
+        if (!overlay->getVisible()) {
+            builder.withInvisible();
         }
+
+        builder.withTagBits(render::ItemKey::TAG_BITS_0); // Only draw overlays in main view
 
         return builder.build();
     }

@@ -38,38 +38,61 @@ class Context;
 // Key is the KEY to filter Items and create specialized lists
 class ItemKey {
 public:
-    enum FlagBit {
+    // 8 tags are available to organize the items and filter them against as fields of the ItemKey.
+    // TAG & TAG_BITS are defined from several bits in the Key.
+    // An Item can be tagged and filtering can rely on the tags to keep or exclude items
+    // ItemKey are not taged by default
+    enum Tag : uint8_t {
+        TAG_0 = 0, // 8 Tags 
+        TAG_1,
+        TAG_2,
+        TAG_3,
+        TAG_4,
+        TAG_5,
+        TAG_6,
+        TAG_7,
+
+        NUM_TAGS,
+    };
+    // Tag bits are derived from the Tag enum
+    const static uint8_t TAG_BITS_ALL;
+    const static uint8_t TAG_BITS_NONE;
+    const static uint8_t TAG_BITS_0;
+    const static uint8_t TAG_BITS_1;
+    const static uint8_t TAG_BITS_2;
+    const static uint8_t TAG_BITS_3;
+    const static uint8_t TAG_BITS_4;
+    const static uint8_t TAG_BITS_5;
+    const static uint8_t TAG_BITS_6;
+    const static uint8_t TAG_BITS_7;
+
+    enum FlagBit : uint32_t {
         TYPE_SHAPE = 0,   // Item is a Shape
         TYPE_LIGHT,       // Item is a Light
         TYPE_META,        // Item is a Meta: meanning it s used to represent a higher level object, potentially represented by other render items
+
         TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
         DEFORMED,         // Deformed within bound, not solid
-        INVISIBLE0,       // Visible or not in this mask index?
-        INVISIBLE1,       // Visible or not in this mask index?
-        INVISIBLE2,       // Visible or not in this mask index?
-        INVISIBLE3,       // Visible or not in this mask index?
+        INVISIBLE,        // Visible or not in the scene?
         SHADOW_CASTER,    // Item cast shadows
-        PICKABLE,         // Item can be picked/selected
         LAYERED,          // Item belongs to one of the layers different from the default layer
 
-        SMALLER,
+        FIRST_TAG_BIT, // 8 Tags available to organize the items and filter them against
+        LAST_TAG_BIT = FIRST_TAG_BIT + NUM_TAGS,
+
+        __SMALLER,        // Reserved bit for spatialized item to indicate that it is smaller than expected in the cell in which it belongs (probably because it overlaps over several smaller cells)
 
         NUM_FLAGS,      // Not a valid flag
     };
     typedef std::bitset<NUM_FLAGS> Flags;
 
-    // VISIBLE MASK is defined from several bits in the Key.
-    // An Item can be visible in some mask bits and not other allowing for per view rendering
-    // Beware that the visibility mask is the oposite of what stored in the key vals.
-    const static uint8_t NUM_VISIBLE_MASK_INDICES;
-    const static uint8_t VISIBLE_MASK_ALL;
-    const static uint8_t VISIBLE_MASK_NONE;
-    const static uint8_t VISIBLE_MASK_0;
-    const static uint8_t VISIBLE_MASK_1;
-    const static uint8_t VISIBLE_MASK_2;
-    const static uint8_t VISIBLE_MASK_3;
+    // All the bits touching tag bits sets to true
+    const static uint32_t KEY_TAG_BITS_MASK;
+    static uint32_t evalTagBitsWithKeyBits(uint8_t tagBits, const uint32_t keyBits) {
+        return (keyBits & ~KEY_TAG_BITS_MASK) | (((uint32_t)tagBits) << FIRST_TAG_BIT);
+    }
 
     // The key is the Flags
     Flags _flags;
@@ -96,35 +119,13 @@ public:
         Builder& withViewSpace() { _flags.set(VIEW_SPACE); return (*this); }
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
-        Builder& withInvisible(uint8_t maskIndex = NUM_VISIBLE_MASK_INDICES) {
-            if (maskIndex == NUM_VISIBLE_MASK_INDICES) {
-                _flags.set(INVISIBLE0);
-                _flags.set(INVISIBLE1);
-                _flags.set(INVISIBLE2);
-                _flags.set(INVISIBLE3);
-            } else {
-                _flags.set(INVISIBLE0 + maskIndex);
-            }
-            return (*this);
-        }
-        Builder& withViewVisibilityMask(uint8_t mask) {
-            if (mask & render::ItemKey::VISIBLE_MASK_0) {
-                _flags.set(INVISIBLE0);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_1) {
-                _flags.set(INVISIBLE1);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_2) {
-                _flags.set(INVISIBLE2);
-            }
-            if (mask & render::ItemKey::VISIBLE_MASK_3) {
-                _flags.set(INVISIBLE3);
-            }
-            return (*this);
-        }
+        Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
-        Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
+
+        Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
+        // Set ALL the tags in one call using the Tag bits
+        Builder& withTagBits(uint8_t tagBits) { _flags = evalTagBitsWithKeyBits(tagBits, _flags.to_ulong()); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static Builder opaqueShape() { return Builder().withTypeShape(); }
@@ -150,21 +151,20 @@ public:
     bool isRigid() const { return !_flags[DEFORMED]; }
     bool isDeformed() const { return _flags[DEFORMED]; }
 
-    bool isVisible(uint8_t maskIndex) const { return !_flags[INVISIBLE0 + maskIndex]; }
-    bool isInvisible(uint8_t maskIndex) const { return _flags[INVISIBLE0 + maskIndex]; }
-    uint8_t getVisibleMask() const { return (~(_flags.to_ulong() >> INVISIBLE0) & VISIBLE_MASK_ALL);}
-    bool isVisibleMask(uint8_t mask) const { return getVisibleMask() & mask; }
+    bool isVisible() const { return !_flags[INVISIBLE]; }
+    bool isInvisible() const { return _flags[INVISIBLE]; }
 
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
-
-    bool isPickable() const { return _flags[PICKABLE]; }
 
     bool isLayered() const { return _flags[LAYERED]; }
     bool isSpatial() const { return !isLayered(); }
 
+    bool isTag(Tag tag) const { return _flags[FIRST_TAG_BIT + tag]; }
+    uint8_t getTagBits() const { return ((_flags.to_ulong() & KEY_TAG_BITS_MASK) >> FIRST_TAG_BIT); }
+
     // Probably not public, flags used by the scene
-    bool isSmall() const { return _flags[SMALLER]; }
-    void setSmaller(bool smaller) { (smaller ? _flags.set(SMALLER) : _flags.reset(SMALLER)); }
+    bool isSmall() const { return _flags[__SMALLER]; }
+    void setSmaller(bool smaller) { (smaller ? _flags.set(__SMALLER) : _flags.reset(__SMALLER)); }
 
     bool operator==(const ItemKey& key) { return (_flags == key._flags); }
     bool operator!=(const ItemKey& key) { return (_flags != key._flags); }
@@ -212,34 +212,24 @@ public:
         Builder& withRigid()            { _value.reset(ItemKey::DEFORMED); _mask.set(ItemKey::DEFORMED); return (*this); }
         Builder& withDeformed()         { _value.set(ItemKey::DEFORMED);  _mask.set(ItemKey::DEFORMED); return (*this); }
 
-        Builder& withVisible(uint8_t maskIndex)          { _value.reset(ItemKey::INVISIBLE0 + maskIndex); _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
-        Builder& withInvisible(uint8_t maskIndex)        { _value.set(ItemKey::INVISIBLE0 + maskIndex);  _mask.set(ItemKey::INVISIBLE0 + maskIndex); return (*this); }
-        Builder& withVisibilityMask(uint8_t mask, uint8_t touchBits) {
-            for (int i = 0; i < ItemKey::NUM_VISIBLE_MASK_INDICES; i++) {
-                if ((1 << i) & touchBits) {
-                    if ((1 << i) & mask) {
-                        withVisible(i);
-                    }
-                    else {
-                        withInvisible(i);
-                    }
-                }
-            }
-            return (*this);
-        }
+        Builder& withVisible()          { _value.reset(ItemKey::INVISIBLE); _mask.set(ItemKey::INVISIBLE); return (*this); }
+        Builder& withInvisible()        { _value.set(ItemKey::INVISIBLE);  _mask.set(ItemKey::INVISIBLE); return (*this); }
 
         Builder& withNoShadowCaster()   { _value.reset(ItemKey::SHADOW_CASTER); _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
         Builder& withShadowCaster()     { _value.set(ItemKey::SHADOW_CASTER);  _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
 
-        Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
-
         Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
+
+        Builder& withoutTag(ItemKey::Tag tagIndex)    { _value.reset(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
+        Builder& withTag(ItemKey::Tag tagIndex)       { _value.set(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
+        // Set ALL the tags in one call using the Tag bits and the Tag bits touched
+        Builder& withTagBits(uint8_t tagBits, uint8_t tagMask) { _value = ItemKey::evalTagBitsWithKeyBits(tagBits, _value.to_ulong()); _mask = ItemKey::evalTagBitsWithKeyBits(tagMask, _mask.to_ulong()); return (*this); }
 
         Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
-        static Builder visibleWorldItems(uint8_t visibilityMask, uint8_t visibilityMaskTouched) { return Builder().withVisibilityMask(visibilityMask, visibilityMaskTouched).withWorldSpace(); }
+        static Builder visibleWorldItems() { return Builder().withVisible().withWorldSpace(); }
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
         static Builder light() { return Builder().withTypeLight(); }
