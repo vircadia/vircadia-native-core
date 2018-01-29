@@ -84,7 +84,7 @@ private:
         MAX_SELECTION_COUNT = 16
     };
     bool _verboseLogging{ true };
-    bool _enabled{ true };
+    bool _enabled { true };
     EntityItemID _currentEntityWithContextOverlay{};
     EntityItemID _lastInspectedEntity{};
     QString _entityMarketplaceID;
