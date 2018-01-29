@@ -34,8 +34,6 @@ class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
     Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
-    QSharedPointer<ContextOverlayInterface> _contextOverlayInterface;
-
 
 public:
     WalletScriptingInterface();
