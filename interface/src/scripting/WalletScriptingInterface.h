@@ -40,7 +40,7 @@ public:
 
     Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
-    Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
+    Q_INVOKABLE void proveEntityOwnershipVerification(const QUuid& entityID);
     // setWalletStatus() should never be made Q_INVOKABLE. If it were,
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);

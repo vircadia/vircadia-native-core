@@ -37,14 +37,11 @@ void WalletScriptingInterface::setWalletStatus(const uint& status) {
     emit DependencyManager::get<Wallet>()->walletStatusResult(status);
 }
 
-void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUuid& entityID) {
+void WalletScriptingInterface::proveEntityOwnershipVerification(const QUuid& entityID) {
     EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID, _entityPropertyFlags);
     if (!entityID.isNull() && entityProperties.getMarketplaceID().length() > 0) {
-        if (!entityProperties.getClientOnly()) {
-            qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is not an avatar entity";
-            emit DependencyManager::get<ContextOverlayInterface>()->ownershipVerificationFailed(entityID);
-            return;
-        }
         DependencyManager::get<ContextOverlayInterface>()->requestOwnershipVerification(entityID);
+    } else {
+        qCDebug(entities) << "Failed to prove ownership of:" << entityID << "is null or not a marketplace item";
     }
 }
