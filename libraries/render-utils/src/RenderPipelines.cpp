@@ -30,7 +30,6 @@
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
-#include "model_translucent_fade_vert.h"
 #include "model_translucent_normal_map_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
@@ -73,6 +72,7 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
+#include "model_translucent_normal_map_frag.h"
 #include "model_translucent_unlit_frag.h"
 #include "model_translucent_normal_map_frag.h"
 
@@ -195,7 +195,6 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     auto modelLightmapNormalMapVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert));
     auto modelTranslucentVertex = gpu::Shader::createVertex(std::string(model_translucent_vert));
     auto modelTranslucentNormalMapVertex = gpu::Shader::createVertex(std::string(model_translucent_normal_map_vert));
-    auto modelTranslucentFadeVertex = gpu::Shader::createVertex(std::string(model_translucent_fade_vert));
     auto modelShadowVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
     auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
     auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
@@ -327,7 +326,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withFade(),
-        modelTranslucentFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        modelTranslucentVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withTranslucent().withFade(),
         simpleFadeVertex, simpleTranslucentFadePixel, batchSetter, itemSetter);
