@@ -17,11 +17,12 @@ ListModel {
     id: root;
     property string sortColumnName: "";
     property bool isSortingDescending: true;
+    property bool valuesAreNumerical: false;
 
     function swap(a, b) {
         if (a < b) {
             move(a, b, 1);
-            move (b - 1, a, 1);
+            move(b - 1, a, 1);
         } else if (a > b) {
             move(b, a, 1);
             move(a - 1, b, 1);
@@ -29,26 +30,53 @@ ListModel {
     }
 
     function partition(begin, end, pivot) {
-        var piv = get(pivot)[sortColumnName];
-        swap(pivot, end - 1);
-        var store = begin;
+        if (valuesAreNumerical) {
+            var piv = get(pivot)[sortColumnName];
+            swap(pivot, end - 1);
+            var store = begin;
+            var i;
 
-        for (var i = begin; i < end - 1; ++i) {
-            if (isSortingDescending) {
-                if (get(i)[sortColumnName] < piv) {
-                    swap(store, i);
-                    ++store;
-                }
-            } else {
-                if (get(i)[sortColumnName] > piv) {
-                    swap(store, i);
-                    ++store;
+            for (i = begin; i < end - 1; ++i) {
+                var currentElement = get(i)[sortColumnName];
+                if (isSortingDescending) {
+                    if (currentElement > piv) {
+                        swap(store, i);
+                        ++store;
+                    }
+                } else {
+                    if (currentElement < piv) {
+                        swap(store, i);
+                        ++store;
+                    }
                 }
             }
-        }
-        swap(end - 1, store);
+            swap(end - 1, store);
 
-        return store;
+            return store;
+        } else {
+            var piv = get(pivot)[sortColumnName].toLowerCase();
+            swap(pivot, end - 1);
+            var store = begin;
+            var i;
+
+            for (i = begin; i < end - 1; ++i) {
+                var currentElement = get(i)[sortColumnName].toLowerCase();
+                if (isSortingDescending) {
+                    if (currentElement > piv) {
+                        swap(store, i);
+                        ++store;
+                    }
+                } else {
+                    if (currentElement < piv) {
+                        swap(store, i);
+                        ++store;
+                    }
+                }
+            }
+            swap(end - 1, store);
+
+            return store;
+        }
     }
 
     function qsort(begin, end) {

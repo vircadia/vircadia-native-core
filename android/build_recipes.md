@@ -43,15 +43,17 @@ export LDFLAGS="-pie"
 * Install Python 3.6 for Windows
 * Open a Git Bash command prompt
 * Ensure the following commands are visible in the path with `which <command>`
- * gcc
- * javac
- * python
- * gmake
+   * gcc
+   * javac
+   * python
+   * gmake
 * If any of them fail, fix your path and restart the bash prompt
 * Fetch the pre-built OpenSSL binaries for Android/iOS from here:  https://github.com/leenjewel/openssl_for_ios_and_android/releases
   * Grab the latest release of the 1.0.2 series
   * Open the archive and extract the `/android/openssl-arm64-v8a` folder 
    
+### All platforms
+
 * Download the Qt sources 
   * `git clone git://code.qt.io/qt/qt5.git`
   * `cd qt5`
@@ -60,7 +62,11 @@ export LDFLAGS="-pie"
   * `git submodule update --recursive`
   * `cd ..`
 * Create a build directory with the command `mkdir qt5build`
-* Configure the Qt5 build with the command `../qt5/configure -xplatform android-clang -android-ndk-host windows-x86_64 -confirm-license -opensource  --disable-rpath -nomake tests -nomake examples -skip qttranslations -skip qtserialport -skip qt3d -skip qtwebengine -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d  -android-ndk C:/Android/NDK -android-toolchain-version 4.9 -android-arch arm64-v8a -no-warnings-are-errors -android-ndk-platform android-24 -v -platform win32-g++ -prefix C:/qt5build_debug -android-sdk C:/Android/SDK -c++std c++14 -openssl-linked -L<PATH_TO_SSL>/lib -I<PATH_TO_SSL>/include`
+* Configure the Qt5 build with the command `../qt5/configure -opensource -confirm-license -xplatform android-clang --disable-rpath -nomake tests -nomake examples -skip qttranslations -skip qtserialport -skip qt3d -skip qtwebengine -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d  -android-toolchain-version 4.9 -android-ndk $HOME/Android/NDK -android-arch arm64-v8a -no-warnings-are-errors -android-ndk-platform android-24 -v -android-ndk-host windows-x86_64 -platform win32-g++ -prefix C:/qt5build_debug -android-sdk $HOME/Android/SDK -c++std c++14 -openssl-linked -L<PATH_TO_SSL>/lib -I<PATH_TO_SSL>/include`
+* Some of those entries must be customized depending on platform.
+  * `-platform win32-g++` 
+  * `-android-ndk-host windows-x86_64`
+  * `-prefix C:/qt5build_debug` 
 
 
    

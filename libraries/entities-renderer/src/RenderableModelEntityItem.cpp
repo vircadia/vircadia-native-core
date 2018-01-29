@@ -1050,7 +1050,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
-    QVector<JointData> jointsData;
+    QVector<EntityJointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     int frameCount = frames.size();
@@ -1329,7 +1329,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _currentTextures = newTextures;
         }
     }
-
+    if (entity->_needsJointSimulation) {
+        entity->copyAnimationJointDataToModel();
+    }
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
