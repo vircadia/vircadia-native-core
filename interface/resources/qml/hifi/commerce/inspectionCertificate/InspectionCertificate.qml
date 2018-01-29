@@ -48,22 +48,29 @@ Rectangle {
                 "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
                 root.itemEdition = root.isCertificateInvalid ? "Uncertified Copy" :
                 (result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run));
-                root.dateOfPurchase = (root.isCertificateInvalid || !root.isMyCert) ? "Undisclosed" : getFormattedDate(result.data.transfer_created_at * 1000);
+                root.dateOfPurchase = root.isCertificateInvalid ? "--" : (!root.isMyCert ? "Undisclosed" : getFormattedDate(result.data.transfer_created_at * 1000));
                 root.itemName = result.data.marketplace_item_name;
-                root.itemCost = result.data.cost && root.isMyCert ? result.data.cost : "Undisclosed";
+                root.itemCost = root.isCertificateInvalid ? "--" : (root.isMyCert ? result.data.cost : "Undisclosed");
 
                 if (result.data.invalid_reason || result.data.transfer_status[0] === "failed") {
+                    root.isCertificateInvalid = true;
                     titleBarText.text = "Invalid Certificate";
                     titleBarText.color = hifi.colors.redHighlight;
                     popText.text = "";
+                    root.itemOwner = "--";
+                    root.dateOfPurchase = "--";
+                    root.itemCost = "--";
+                    root.itemEdition = "Uncertified Copy";
                     if (result.data.invalid_reason) {
                         errorText.text = result.data.invalid_reason;
                     }
                 } else if (result.data.transfer_status[0] === "pending") {
+                    root.isCertificateInvalid = true;
                     titleBarText.text = "Certificate Pending";
+                    titleBarText.color = hifi.colors.redHighlight;
+                    popText.text = "";
                     errorText.text = "The status of this item is still pending confirmation. If the purchase is not confirmed, " +
                     "this entity will be cleaned up by the domain.";
-                    errorText.color = hifi.colors.baseGray;
                 }
             }
         }
@@ -73,31 +80,39 @@ Rectangle {
                 // NOP
             } else if (certStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
                 root.isCertificateInvalid = true;
+                titleBarText.text = "Invalid Certificate";
+                titleBarText.color = hifi.colors.redHighlight;
+                popText.text = "";
+                root.itemOwner = "--";
+                root.dateOfPurchase = "--";
+                root.itemCost = "--";
+                root.itemEdition = "Uncertified Copy";
+
                 errorText.text = "Verification of this certificate timed out.";
-                errorText.color = hifi.colors.redHighlight;
             } else if (certStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
                 root.isCertificateInvalid = true;
                 titleBarText.text = "Invalid Certificate";
                 titleBarText.color = hifi.colors.redHighlight;
-
                 popText.text = "";
                 root.itemOwner = "--";
                 root.dateOfPurchase = "--";
                 root.itemCost = "--";
                 root.itemEdition = "Uncertified Copy";
                 showInMarketplaceButton.visible = false;
+
                 errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
-                errorText.color = hifi.colors.baseGray;
             } else if (certStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
                 root.isCertificateInvalid = true;
                 titleBarText.text = "Invalid Certificate";
                 titleBarText.color = hifi.colors.redHighlight;
-
                 popText.text = "";
+                root.itemOwner = "--";
+                root.dateOfPurchase = "--";
+                root.itemCost = "--";
                 root.itemEdition = "Uncertified Copy";
+                root.isMyCert = false;
 
                 errorText.text = "The avatar who rezzed this item doesn't own it.";
-                errorText.color = hifi.colors.baseGray;
             } else {
                 console.log("Unknown certificate status received from ledger signal!");
             }
@@ -133,7 +148,7 @@ Rectangle {
         anchors.top: parent.top;
         anchors.topMargin: 40;
         anchors.left: parent.left;
-        anchors.leftMargin: 45;
+        anchors.leftMargin: 36;
         anchors.right: parent.right;
         height: paintedHeight;
         // Style
@@ -193,7 +208,7 @@ Rectangle {
         anchors.topMargin: 30;
         anchors.bottom: infoContainer.top;
         anchors.left: parent.left;
-        anchors.leftMargin: 45;
+        anchors.leftMargin: titleBarText.anchors.leftMargin;
         anchors.right: parent.right;
         anchors.rightMargin: 24;
 
@@ -225,6 +240,7 @@ Rectangle {
             color: root.isCertificateInvalid ? hifi.colors.redHighlight : hifi.colors.white;
             elide: Text.ElideRight;
             MouseArea {
+                enabled: showInMarketplaceButton.visible;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -292,7 +308,7 @@ Rectangle {
         id: infoContainer;
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
-        anchors.leftMargin: 45;
+        anchors.leftMargin: titleBarText.anchors.leftMargin;
         anchors.right: parent.right;
         anchors.rightMargin: 24;
         height: root.isCertificateInvalid ? 372 : 220;
@@ -307,10 +323,10 @@ Rectangle {
             anchors.topMargin: 36;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            height: 120;
+            height: 116;
             // Style
             wrapMode: Text.WordWrap;
-            color: hifi.colors.darkGray;
+            color: hifi.colors.baseGray;
             verticalAlignment: Text.AlignTop;
         }
 
@@ -345,7 +361,7 @@ Rectangle {
         }
         AnonymousProRegular {
             id: isMyCertText;
-            visible: root.isMyCert;
+            visible: root.isMyCert && !root.isCertificateInvalid;
             text: "(Private)";
             size: 18;
             // Anchors
@@ -482,6 +498,9 @@ Rectangle {
     signal sendToScript(var message);
 
     function getFormattedDate(timestamp) {
+        if (timestamp === "--") {
+            return "--";
+        }
         function addLeadingZero(n) {
             return n < 10 ? '0' + n : '' + n;
         }
@@ -506,7 +525,7 @@ Rectangle {
 
         var min = addLeadingZero(a.getMinutes());
         var sec = addLeadingZero(a.getSeconds());
-        return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
+        return year + '-' + month + '-' + day + ' ' + drawnHour + ':' + min + amOrPm;
     }
     //
     // FUNCTION DEFINITIONS END
