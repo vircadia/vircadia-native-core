@@ -445,22 +445,31 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
 }
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
+    bool success { false };
     if (QThread::currentThread() == thread()) {
         if (isIndexValid(jointIndex)) {
             position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
-            return true;
+            success = true;
         } else {
-            return false;
+            success = false;
+        }
+    } else {
+        QReadLocker readLock(&_externalPoseSetLock);
+        if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+            position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            success = true;
+        } else {
+            success = false;
         }
     }
 
-    QReadLocker readLock(&_externalPoseSetLock);
-    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
-        position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
-        return true;
-    } else {
-        return false;
+    if (isNaN(position)) {
+        qCWarning(animation) << "Rig::getJointPositionInWorldFrame produces NaN";
+        success = false;
+        position = glm::vec3(0.0f);
     }
+
+    return success;
 }
 
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
