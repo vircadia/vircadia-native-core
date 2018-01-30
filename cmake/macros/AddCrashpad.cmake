@@ -26,7 +26,6 @@ macro(add_crashpad)
   endif()
 
   if (WIN32 AND USE_CRASHPAD AND NOT CRASHPAD_CHECKED)
-    set_property(GLOBAL PROPERTY HAS_CRASHPAD TRUE)
     add_definitions(-DHAS_CRASHPAD)
     add_definitions(-DCMAKE_BACKTRACE_URL=\"${CMAKE_BACKTRACE_URL}\")
     add_definitions(-DCMAKE_BACKTRACE_TOKEN=\"${CMAKE_BACKTRACE_TOKEN}\")
@@ -35,6 +34,21 @@ macro(add_crashpad)
     find_package(crashpad REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${CRASHPAD_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${CRASHPAD_LIBRARY} ${CRASHPAD_BASE_LIBRARY} ${CRASHPAD_UTIL_LIBRARY})
+    
+    if (WIN32)
+      set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+    endif()
+
+    add_custom_command(
+      TARGET ${TARGET_NAME}
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy ${CRASHPAD_HANDLER_EXE_PATH} "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+    )
+    install(
+      PROGRAMS ${CRASHPAD_HANDLER_EXE_PATH}
+      DESTINATION ${CLIENT_COMPONENT}
+      COMPONENT ${INTERFACE_INSTALL_DIR}
+    )
 
     set_property(GLOBAL PROPERTY CHECKED_FOR_CRASHPAD_ONCE TRUE)
   endif ()

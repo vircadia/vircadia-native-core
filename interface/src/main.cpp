@@ -24,10 +24,10 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
-#include <shared/Crashpad.h>
 
 #include "AddressManager.h"
 #include "Application.h"
+#include "Crashpad.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
