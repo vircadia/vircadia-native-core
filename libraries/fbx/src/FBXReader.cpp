@@ -272,6 +272,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
+        if (model.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(model.geometricScaling, model.geometricRotation, model.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
         if (mixamoHack) {
             // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
             return globalTransform;
@@ -323,12 +328,12 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
-        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
+        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
-    int parentIndex = modelIDs.size() - 1;
+    int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
@@ -1478,7 +1483,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
         QString topID = getTopModelID(_connectionParentMap, models, first, url);
-        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
     }
 
     // figure the number of animation frames from the curves
@@ -1533,7 +1538,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
-           joint.distanceToParent = 0.0f;
+            joint.distanceToParent = 0.0f;
 
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
