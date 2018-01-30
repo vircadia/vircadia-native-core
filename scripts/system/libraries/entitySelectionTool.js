@@ -299,6 +299,7 @@ SelectionDisplay = (function() {
 
     var rotZero;
     var rotationNormal;
+    var rotDegreePos;
 
     var worldRotationX;
     var worldRotationY;
@@ -1119,20 +1120,8 @@ SelectionDisplay = (function() {
     }
 
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
-    function updateRotationDegreesOverlay(angleFromZero, direction, centerPosition) {
+    function updateRotationDegreesOverlay(angleFromZero, position) {
         var angle = angleFromZero * (Math.PI / 180);
-        var position = {
-            x: Math.cos(angle) * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-            y: Math.sin(angle) * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-            z: 0
-        };
-        if (direction === ROTATE_DIRECTION.PITCH)
-            position = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, -90, 0), position);
-        else if (direction === ROTATE_DIRECTION.YAW)
-            position = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(90, 0, 0), position);
-        else if (direction === ROTATE_DIRECTION.ROLL)
-            position = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, 180, 0), position);
-        position = Vec3.sum(centerPosition, position);
         var overlayProps = {
             position: position,
             dimensions: {
@@ -1222,7 +1211,6 @@ SelectionDisplay = (function() {
                     endAt: 0,
                     visible: true
                 });
-                updateRotationDegreesOverlay(0, direction, rotCenter);
 
                 // editOverlays may not have committed rotation changes.
                 // Compute zero position based on where the overlay will be eventually.
@@ -1230,6 +1218,11 @@ SelectionDisplay = (function() {
                 // In case of a parallel ray, this will be null, which will cause early-out
                 // in the onMove helper.
                 rotZero = result;
+
+                var rotCenterToZero = Vec3.subtract(rotZero, rotCenter);
+                var rotCenterToZeroLength = Vec3.length(rotCenterToZero);
+                rotDegreePos = Vec3.sum(rotCenter, Vec3.multiply(Vec3.normalize(rotCenterToZero), rotCenterToZeroLength * 1.2));
+                updateRotationDegreesOverlay(0, rotDegreePos);
             },
             onEnd: function(event, reason) {
                 Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
@@ -1257,7 +1250,7 @@ SelectionDisplay = (function() {
                     angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                     var rotChange = Quat.angleAxis(angleFromZero, rotationNormal);
                     updateSelectionsRotation(rotChange);
-                    updateRotationDegreesOverlay(-angleFromZero, direction, rotCenter);
+                    updateRotationDegreesOverlay(-angleFromZero, rotDegreePos);
 
                     var startAtCurrent = 0;
                     var endAtCurrent = angleFromZero;
