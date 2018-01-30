@@ -14,7 +14,6 @@
 #include <QtCore/QCommandLineParser>
 
 #include <image/Image.h>
-#include <SettingInterface.h>
 
 #include "ui/OvenMainWindow.h"
 #include "Oven.h"
@@ -29,12 +28,6 @@ static const QString CLI_TYPE_PARAMETER = "t";
 Oven::Oven(int argc, char* argv[]) :
     QApplication(argc, argv)
 {
-    QCoreApplication::setOrganizationName("High Fidelity");
-    QCoreApplication::setApplicationName("Oven");
-
-    // init the settings interface so we can save and load settings
-    Setting::init();
-
     // parse the command line parameters
     QCommandLineParser parser;
    

@@ -21,6 +21,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <QtCore/QResource>
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QMimeData>
@@ -144,6 +145,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
+#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -612,8 +614,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
 
-    Setting::init();
-
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
@@ -860,6 +860,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
+
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
