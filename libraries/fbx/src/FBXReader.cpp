@@ -272,6 +272,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
+        if (model.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(model.geometricScaling, model.geometricRotation, model.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
         if (mixamoHack) {
             // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
             return globalTransform;
