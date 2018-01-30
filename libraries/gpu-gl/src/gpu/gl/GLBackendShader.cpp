@@ -101,7 +101,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
     return object;
 }
 
-GLShader* GLBackend::compileBackendProgram(const Shader& program) {
+GLShader* GLBackend::compileBackendProgram(const Shader& program, Shader::CompilationHandler handler) {
     if (!program.isProgram()) {
         return nullptr;
     }
@@ -116,11 +116,13 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program) {
         // Let's go through every shaders and make sure they are ready to go
         std::vector< GLuint > shaderGLObjects;
         for (auto subShader : program.getShaders()) {
-            auto object = GLShader::sync((*this), *subShader);
+            auto object = GLShader::sync((*this), *subShader, handler);
             if (object) {
                 shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
             } else {
                 qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - One of the shaders of the program is not compiled?";
+                compilationLogs[version].compiled = false;
+                compilationLogs[version].message = std::string("Failed to compile, one of the shaders of the program is not compiled ?");
                 program.setCompilationLogs(compilationLogs);
                 return nullptr;
             }
@@ -132,7 +134,7 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program) {
             program.setCompilationLogs(compilationLogs);
             return nullptr;
         }
-
+        compilationLogs[version].compiled = true;
         programObject.glprogram = glprogram;
 
         makeProgramBindings(programObject);

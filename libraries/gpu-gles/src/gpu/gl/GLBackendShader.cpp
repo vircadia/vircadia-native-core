@@ -140,7 +140,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
     return object;
 }
 
-GLShader* GLBackend::compileBackendProgram(const Shader& program) {
+GLShader* GLBackend::compileBackendProgram(const Shader& program, Shader::CompilationHandler handler) {
     if (!program.isProgram()) {
         return nullptr;
     }
@@ -155,7 +155,7 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program) {
         // Let's go through every shaders and make sure they are ready to go
         std::vector< GLuint > shaderGLObjects;
         for (auto subShader : program.getShaders()) {
-            auto object = GLShader::sync((*this), *subShader);
+            auto object = GLShader::sync((*this), *subShader, handler);
             if (object) {
                 shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
             } else {

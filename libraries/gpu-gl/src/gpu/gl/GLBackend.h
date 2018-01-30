@@ -64,7 +64,7 @@ protected:
     explicit GLBackend(bool syncCache);
     GLBackend();
 public:
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet(), Shader::CompilationHandler handler = nullptr);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, Shader::CompilationHandler handler);
 
     virtual ~GLBackend();
 
@@ -423,7 +423,7 @@ protected:
     } _pipeline;
 
     // Backend dependant compilation of the shader
-    virtual GLShader* compileBackendProgram(const Shader& program);
+    virtual GLShader* compileBackendProgram(const Shader& program, Shader::CompilationHandler handler);
     virtual GLShader* compileBackendShader(const Shader& shader, Shader::CompilationHandler handler);
     virtual std::string getBackendShaderHeader() const;
     virtual void makeProgramBindings(ShaderObject& shaderObject);

@@ -39,7 +39,7 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, Shader::Compi
     }
     // need to have a gpu object?
     if (shader.isProgram()) {
-        GLShader* tempObject = backend.compileBackendProgram(shader);
+        GLShader* tempObject = backend.compileBackendProgram(shader, handler);
         if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);

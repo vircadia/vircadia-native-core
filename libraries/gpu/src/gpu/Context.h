@@ -262,7 +262,7 @@ protected:
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings, Shader::CompilationHandler handler = nullptr);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings, Shader::CompilationHandler handler);
 
     static CreateBackend _createBackendCallback;
     static MakeProgram _makeProgramCallback;

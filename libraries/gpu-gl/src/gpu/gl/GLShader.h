@@ -22,7 +22,7 @@ struct ShaderObject {
 class GLShader : public GPUObject {
 public:
     static GLShader* sync(GLBackend& backend, const Shader& shader, Shader::CompilationHandler handler = nullptr);
-    static bool makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, Shader::CompilationHandler handler = nullptr);
+    static bool makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, Shader::CompilationHandler handler);
 
     enum Version {
         Mono = 0,
