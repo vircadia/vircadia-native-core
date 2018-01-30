@@ -125,6 +125,7 @@ protected:
     bool _prevIsTransparent { false };
     bool _visible { false };
     bool _moving { false };
+    bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
 

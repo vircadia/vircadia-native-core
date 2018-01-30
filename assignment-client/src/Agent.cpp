@@ -343,7 +343,6 @@ void Agent::scriptRequestFinished() {
 
 void Agent::executeScript() {
     _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
-    _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
     DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
 
@@ -439,7 +438,7 @@ void Agent::executeScript() {
             encodedBuffer = audio;
         }
 
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber,
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false, 
             audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
             packetType, _selectedCodecName);
     });

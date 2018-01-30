@@ -12,10 +12,8 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 
-if (NOT DEV_BUILD)
-    set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
-    generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
-endif()      
+set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
+generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -74,9 +72,7 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-if (NOT DEV_BUILD)
 list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
-endif()
 
 if (UNIX)
   install(
@@ -205,7 +201,7 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree ktx gpu gl procedural model render
+  shared octree ktx gpu gl procedural graphics render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
@@ -220,6 +216,7 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 
 target_bullet()
 target_opengl()
+add_crashpad()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -350,8 +347,6 @@ if (SCRIPTS_INSTALL_DIR)
     COMPONENT ${CLIENT_COMPONENT}
   )
 endif()
-
-add_bugsplat()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")

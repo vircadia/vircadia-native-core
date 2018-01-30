@@ -65,7 +65,7 @@
 #pragma warning(pop)
 #endif
 
-#include "model/Geometry.h"
+#include "graphics/Geometry.h"
 
 #include "StencilMaskPass.h"
 
@@ -1060,7 +1060,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
-        model::MeshPointer mesh(new model::Mesh());
+        graphics::MeshPointer mesh(new graphics::Mesh());
 
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
@@ -1122,18 +1122,18 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
 
-        std::vector<model::Mesh::Part> parts;
-        parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                             (model::Index)vecIndices.size(), // numIndices
-                                             (model::Index)0, // baseVertex
-                                             model::Mesh::TRIANGLES)); // topology
-        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+        std::vector<graphics::Mesh::Part> parts;
+        parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                             (graphics::Index)vecIndices.size(), // numIndices
+                                             (graphics::Index)0, // baseVertex
+                                             graphics::Mesh::TRIANGLES)); // topology
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                             (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
         entity->setMesh(mesh);
     });
 }
 
-void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
+void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     // this catches the payload from recomputeMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
@@ -1164,7 +1164,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     glm::vec3 voxelVolumeSize;
-    model::MeshPointer mesh;
+    graphics::MeshPointer mesh;
 
     withReadLock([&] {
         voxelSurfaceStyle = _voxelSurfaceStyle;
@@ -1422,27 +1422,29 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     }
 
     bool success = false;
-    MeshProxy* meshProxy = nullptr;
-    glm::mat4 transform = voxelToLocalMatrix();
-    withReadLock([&] {
-        gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
-        if (!_meshReady) {
-            // we aren't ready to return a mesh.  the caller will have to try again later.
-            success = false;
-        } else if (numVertices == 0) {
-            // we are ready, but there are no triangles in the mesh.
-            success = true;
-        } else {
-            success = true;
-            // the mesh will be in voxel-space.  transform it into object-space
-            meshProxy = new SimpleMeshProxy(
-                _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
-                           [=](glm::vec3 color){ return color; },
-                           [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
-                           [&](uint32_t index){ return index; }));
-            result << meshProxy;
-        }
-    });
+    if (_mesh) {
+        MeshProxy* meshProxy = nullptr;
+        glm::mat4 transform = voxelToLocalMatrix();
+        withReadLock([&] {
+            gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+            if (!_meshReady) {
+                // we aren't ready to return a mesh.  the caller will have to try again later.
+                success = false;
+            } else if (numVertices == 0) {
+                // we are ready, but there are no triangles in the mesh.
+                success = true;
+            } else {
+                success = true;
+                // the mesh will be in voxel-space.  transform it into object-space
+                meshProxy = new SimpleMeshProxy(
+                    _mesh->map([=](glm::vec3 position) { return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                    [=](glm::vec3 color) { return color; },
+                    [=](glm::vec3 normal) { return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                    [&](uint32_t index) { return index; }));
+                result << meshProxy;
+            }
+        });
+    }
     return success;
 }
 
@@ -1580,7 +1582,7 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
-    model::MeshPointer newMesh;
+    graphics::MeshPointer newMesh;
     entity->withReadLock([&] {
         newMesh = entity->_mesh;
     });

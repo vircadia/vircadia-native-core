@@ -21,6 +21,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <QtCore/QResource>
 #include <QtCore/QAbstractNativeEventFilter>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QMimeData>
@@ -144,6 +145,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
+#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -157,7 +159,7 @@
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
-#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
@@ -209,6 +211,7 @@
 #include "commerce/QmlCommerce.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
+#include <DesktopPreviewProvider.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -377,6 +380,7 @@ public:
         setObjectName("Deadlock Watchdog");
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
+        _paused = false;
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
@@ -394,11 +398,20 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void pause() {
+        _paused = true;
+    }
+
+    static void resume() {
+        _paused = false;
+        updateHeartbeat();
+    }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             // Don't do heartbeat detection under nsight
-            if (nsightActive()) {
+            if (nsightActive() || _paused) {
                 continue;
             }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
@@ -454,6 +467,7 @@ public:
         }
     }
 
+    static std::atomic<bool> _paused;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
@@ -462,6 +476,7 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_paused;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
@@ -503,7 +518,13 @@ public:
             }
 
             if (message->message == WM_DEVICECHANGE) {
-                Midi::USBchanged();                // re-scan the MIDI bus
+                const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
+                static float lastTriggerTime = 0.0f;
+                const float deltaSeconds = secTimestampNow() - lastTriggerTime;
+                lastTriggerTime = secTimestampNow();
+                if (deltaSeconds > MIN_DELTA_SECONDS) {
+                    Midi::USBchanged();                // re-scan the MIDI bus
+                }
             }
         }
         return false;
@@ -573,8 +594,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         }
     };
     reportAndQuit("--protocolVersion", [&](FILE* fp) {
-        DependencyManager::set<AddressManager>();
-        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        auto version = protocolVersionsSignatureBase64();
         fputs(version.toLatin1().data(), fp);
     });
     reportAndQuit("--version", [&](FILE* fp) {
@@ -593,8 +613,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     if (!cacheDir.isEmpty()) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
-
-    Setting::init();
 
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
@@ -632,6 +650,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PointerScriptingInterface>();
     DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
+    DependencyManager::set<DesktopPreviewProvider>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -841,6 +860,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
+
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1851,6 +1872,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
+    EntityTreeRenderer::setRenderDebugHullsOperator([] {
+        return Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls);
+    });
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
@@ -2090,6 +2114,11 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
+    // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
+    // it accesses the PickManager to delete its associated Pick
+    DependencyManager::destroy<PointerManager>();
+    DependencyManager::destroy<PickManager>();
+
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
 
@@ -2191,6 +2220,11 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+#ifdef Q_OS_OSX
+    // FIXME: on mac os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
+    DeadlockWatchdogThread::pause();
+#endif
+
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
@@ -2198,6 +2232,11 @@ void Application::initializeGL() {
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
+
+#ifdef Q_OS_OSX
+    DeadlockWatchdogThread::resume();
+#endif
+
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -2284,7 +2323,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/SecurityImageChange.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageModel.qml" },
         QUrl{ "hifi/commerce/wallet/SecurityImageSelection.qml" },
-        QUrl{ "hifi/commerce/wallet/SendMoney.qml" },
+        QUrl{ "hifi/commerce/wallet/sendMoney/SendMoney.qml" },
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/commerce/wallet/WalletSetup.qml" },
@@ -2373,9 +2412,11 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
-    surfaceContext->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
-    surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
@@ -2441,7 +2482,7 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
-void Application::updateCamera(RenderArgs& renderArgs) {
+void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("updateCamera");
 
@@ -2456,6 +2497,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     // Using the latter will cause the camera to wobble with idle animations,
     // or with changes from the face tracker
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setPosition(extractTranslation(camMat));
@@ -2468,12 +2510,25 @@ void Application::updateCamera(RenderArgs& renderArgs) {
     }
     else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         if (isHMDMode()) {
-            auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
-            _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                myAvatar->getWorldOrientation() * boomOffset);
+
+            if (!_thirdPersonHMDCameraBoomValid) {
+                const glm::vec3 CAMERA_OFFSET = glm::vec3(0.0f, 0.0f, 0.7f);
+                _thirdPersonHMDCameraBoom = cancelOutRollAndPitch(myAvatar->getHMDSensorOrientation()) * CAMERA_OFFSET;
+                _thirdPersonHMDCameraBoomValid = true;
+            }
+
+            glm::mat4 thirdPersonCameraSensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+
+            const glm::vec3 cameraPos = myAvatar->getHMDSensorPosition() + _thirdPersonHMDCameraBoom * myAvatar->getBoomLength();
+            glm::mat4 sensorCameraMat = createMatFromQuatAndPos(myAvatar->getHMDSensorOrientation(), cameraPos);
+            glm::mat4 worldCameraMat = thirdPersonCameraSensorToWorldMatrix * sensorCameraMat;
+
+            _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
+            _myCamera.setPosition(extractTranslation(worldCameraMat));
         }
         else {
+            _thirdPersonHMDCameraBoomValid = false;
+
             _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
             if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
@@ -2486,6 +2541,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         }
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
@@ -2520,6 +2576,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
     }
     else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+        _thirdPersonHMDCameraBoomValid= false;
         EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
         if (cameraEntity != nullptr) {
             if (isHMDMode()) {
@@ -4330,8 +4387,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
-        float maxRenderTime = glm::max(gpuTime, glm::max(presentTime, engineRunTime));
-        DependencyManager::get<LODManager>()->autoAdjustLOD(maxRenderTime, deltaTime);
+        auto lodManager = DependencyManager::get<LODManager>();
+        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -5004,8 +5062,6 @@ void Application::update(float deltaTime) {
         }
     }
 
-    PerformanceTimer perfTimer("misc");
-
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
@@ -5014,11 +5070,13 @@ void Application::update(float deltaTime) {
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
         PROFILE_RANGE(app, "PickManager");
+        PerformanceTimer perfTimer("pickManager");
         DependencyManager::get<PickManager>()->update();
     }
 
     {
         PROFILE_RANGE(app, "PointerManager");
+        PerformanceTimer perfTimer("pointerManager");
         DependencyManager::get<PointerManager>()->update();
     }
 
@@ -5044,8 +5102,8 @@ void Application::update(float deltaTime) {
     // Update my voxel servers with my current voxel query...
     {
         PROFILE_RANGE_EX(app, "QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-        QMutexLocker viewLocker(&_viewMutex);
         PerformanceTimer perfTimer("queryOctree");
+        QMutexLocker viewLocker(&_viewMutex);
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
         bool queryIsDue = sinceLastQuery > TOO_LONG_SINCE_LAST_QUERY;
@@ -5081,12 +5139,14 @@ void Application::update(float deltaTime) {
         }
     }
 
-    avatarManager->postUpdate(deltaTime, getMain3DScene());
-
+    {
+        PerformanceTimer perfTimer("avatarManager/postUpdate");
+        avatarManager->postUpdate(deltaTime, getMain3DScene());
+    }
 
     {
-        PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
-
+        PROFILE_RANGE_EX(app, "PostUpdateLambdas", 0xffff0000, (uint64_t)0);
+        PerformanceTimer perfTimer("postUpdateLambdas");
         std::unique_lock<std::mutex> guard(_postUpdateLambdasLock);
         for (auto& iter : _postUpdateLambdas) {
             iter.second();
@@ -5094,7 +5154,9 @@ void Application::update(float deltaTime) {
         _postUpdateLambdas.clear();
     }
 
-    editRenderArgs([this](AppRenderArgs& appRenderArgs) {
+
+    editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
+        PerformanceTimer perfTimer("editRenderArgs");
         appRenderArgs._headPose= getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
@@ -5140,7 +5202,7 @@ void Application::update(float deltaTime) {
             resizeGL();
         }
 
-        this->updateCamera(appRenderArgs._renderArgs);
+        this->updateCamera(appRenderArgs._renderArgs, deltaTime);
         appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 
@@ -5208,12 +5270,20 @@ void Application::update(float deltaTime) {
         }
     });
 
-    AnimDebugDraw::getInstance().update();
+    {
+        PerformanceTimer perfTimer("limitless");
+        AnimDebugDraw::getInstance().update();
+    }
 
-    DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
+    {
+        PerformanceTimer perfTimer("limitless");
+        DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
+    }
 
-    // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
-    getMain3DScene()->enqueueFrame();
+    { // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
+        PerformanceTimer perfTimer("enqueueFrame");
+        getMain3DScene()->enqueueFrame();
+    }
 }
 
 void Application::sendAvatarViewFrustum() {
@@ -5434,7 +5504,7 @@ void Application::clearDomainOctreeDetails() {
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
-    skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
+    skyStage->setBackgroundMode(graphics::SunSkyStage::SKY_DEFAULT);
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
@@ -5725,6 +5795,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
@@ -5744,10 +5815,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    scriptEngine->registerGlobalObject("Account", GlobalServicesScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
-    scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -6147,7 +6219,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("../dialogs/TabletAssetServer.qml");
+            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
@@ -6802,7 +6874,8 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
 
 void Application::takeSecondaryCameraSnapshot() {
     postLambdaEvent([this] {
-        Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
 

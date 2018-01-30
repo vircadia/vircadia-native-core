@@ -537,6 +537,7 @@ void MyAvatar::simulate(float deltaTime) {
     // we've achived our final adjusted position and rotation for the avatar
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
+    relayJointDataToChildren();
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -560,6 +561,12 @@ void MyAvatar::simulate(float deltaTime) {
         if (!_skeletonModel->getHeadPosition(headPosition)) {
             headPosition = getWorldPosition();
         }
+
+        if (isNaN(headPosition)) {
+            qCDebug(interfaceapp) << "MyAvatar::simulate headPosition is NaN";
+            headPosition = glm::vec3(0.0f);
+        }
+
         head->setPosition(headPosition);
         head->setScale(getModelScale());
         head->simulate(deltaTime);
@@ -1059,11 +1066,6 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
-}
-
-void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
-    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
-    reset(true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1929,7 +1931,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
@@ -2023,8 +2025,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         _smoothOrientationTimer = 0.0f;
     }
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
-
+    Head* head = getHead();
     auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         glm::quat localOrientation = headPose.rotation * Quaternions::Y_180;
@@ -2036,6 +2037,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
         head->setBaseRoll(ROLL(euler));
+    } else {
+        head->setBaseYaw(0.0f);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBaseRoll(0.0f);
     }
 }
 
@@ -2100,7 +2105,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * _walkSpeed.get() * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2692,28 +2697,57 @@ float MyAvatar::getUserEyeHeight() const {
     return userHeight - userHeight * ratio;
 }
 
+float MyAvatar::getWalkSpeed() const {
+    return _walkSpeed.get();
+}
+
+void MyAvatar::setWalkSpeed(float value) {
+    _walkSpeed.set(value);
+}
+
 glm::vec3 MyAvatar::getPositionForAudio() {
+    glm::vec3 result;
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getPosition();
+            result = getHead()->getPosition();
+            break;
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getPosition();
+            result = qApp->getCamera().getPosition();
+            break;
         case AudioListenerMode::CUSTOM:
-            return _customListenPosition;
+            result = _customListenPosition;
+            break;
     }
-    return vec3();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getPositionForAudio produced NaN" << _audioListenerMode;
+        result = glm::vec3(0.0f);
+    }
+
+    return result;
 }
 
 glm::quat MyAvatar::getOrientationForAudio() {
+    glm::quat result;
+
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getFinalOrientationInWorldFrame();
+            result = getHead()->getFinalOrientationInWorldFrame();
+            break;
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getOrientation();
+            result = qApp->getCamera().getOrientation();
+            break;
         case AudioListenerMode::CUSTOM:
-            return _customListenOrientation;
+            result = _customListenOrientation;
+            break;
     }
-    return quat();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getOrientationForAudio produced NaN" << _audioListenerMode;
+        result = glm::quat();
+    }
+
+    return result;
 }
 
 void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {
@@ -2799,14 +2833,9 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 }
 
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    auto cameraMode = qApp->getCamera().getMode();
-    if (cameraMode == CAMERA_MODE_THIRD_PERSON) {
-        return false;
-    } else {
-        const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
-        glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
-    }
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
+    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {

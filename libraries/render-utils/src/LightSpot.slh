@@ -12,7 +12,7 @@
 <@func declareLightingSpot(supportScattering)@>
 
 void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
-    vec4 fragLightDirLen, float cosSpotAngle, vec3 fragEyeDir, vec3 normal, float roughness,
+    vec4 fragLightDirLen, float cosSpotAngle, SurfaceData surface,
     float metallic, vec3 fresnel, vec3 albedo, float shadow
 <@if supportScattering@>
     , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
@@ -23,6 +23,7 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     float fragLightDistance = fragLightDirLen.w;
     vec3 fragLightDir = fragLightDirLen.xyz;
 
+    updateSurfaceDataWithLight(surface, fragLightDir);
 
     // Eval attenuation  
     float radialAttenuation = lightIrradiance_evalLightAttenuation(light.irradiance, fragLightDistance);
@@ -30,14 +31,15 @@ void evalLightingSpot(out vec3 diffuse, out vec3 specular, Light light,
     vec3 lightEnergy = angularAttenuation * radialAttenuation * shadow *getLightIrradiance(light);
 
     // Eval shading
-    evalFragShading(diffuse, specular, normal, fragLightDir, fragEyeDir, metallic, fresnel, roughness, albedo
+    evalFragShading(diffuse, specular, metallic, fresnel, surface, albedo
 <@if supportScattering@>
     ,scattering, midNormalCurvature, lowNormalCurvature
 <@endif@>
     );
     
-    diffuse *= lightEnergy * isDiffuseEnabled() * isSpotEnabled();
-    specular *= lightEnergy * isSpecularEnabled() * isSpotEnabled();
+    lightEnergy *= isSpotEnabled();
+    diffuse *= lightEnergy * isDiffuseEnabled();
+    specular *= lightEnergy * isSpecularEnabled();
 
     if (isShowLightContour() > 0.0) {
         // Show edges

@@ -27,7 +27,6 @@
 #include "Overlay.h"
 
 #include "PanelAttachable.h"
-#include "OverlayPanel.h"
 
 class PickRay;
 
@@ -93,9 +92,6 @@ public:
     void enable();
 
     Overlay::Pointer getOverlay(OverlayID id) const;
-#if OVERLAY_PANELS
-    OverlayPanel::Pointer getPanel(OverlayID id) const { return _panels[id]; }
-#endif
 
     /// adds an overlay that's already been created
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
@@ -233,6 +229,7 @@ public slots:
     /**jsdoc
      * Get the overlay script object.
      * @function Overlays.getOverlayObject
+     * @deprecated This function is deprecated and will soon be removed.
      * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
      * @returns {object} The script object for the overlay if found.
      */
@@ -467,30 +464,6 @@ public slots:
      */
     bool isAddedOverlay(OverlayID id);
 
-#if OVERLAY_PANELS
-    OverlayID getParentPanel(OverlayID childId) const;
-    void setParentPanel(OverlayID childId, OverlayID panelId);
-
-    /// adds a panel that has already been created
-    OverlayID addPanel(OverlayPanel::Pointer panel);
-
-    /// creates and adds a panel based on a set of properties
-    OverlayID addPanel(const QVariant& properties);
-
-    /// edit the properties of a panel
-    void editPanel(OverlayID panelId, const QVariant& properties);
-
-    /// get a property of a panel
-    OverlayPropertyResult getPanelProperty(OverlayID panelId, const QString& property);
-
-    /// deletes a panel and all child overlays
-    void deletePanel(OverlayID panelId);
-
-    /// return true if there is a panel with that id else false
-    bool isAddedPanel(OverlayID id) { return _panels.contains(id); }
-
-#endif
-
     /**jsdoc
      * Generate a mouse press event on an overlay.
      * @function Overlays.sendMousePressOnOverlay
@@ -611,10 +584,6 @@ signals:
      */
     void overlayDeleted(OverlayID id);
 
-#if OVERLAY_PANELS
-    void panelDeleted(OverlayID id);
-#endif
-
     /**jsdoc
      * Triggered when a mouse press event occurs on an overlay. Only occurs for 3D overlays (unless you use 
      *     {@link Overlays.sendMousePressOnOverlay|sendMousePressOnOverlay} for a 2D overlay).
@@ -731,15 +700,9 @@ private:
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
 
-#if OVERLAY_PANELS
-    QMap<OverlayID, OverlayPanel::Pointer> _panels;
-#endif
     QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _stackOrder { 1 };
 
-#if OVERLAY_PANELS
-    QScriptEngine* _scriptEngine;
-#endif
     bool _enabled = true;
 
     PointerEvent calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,

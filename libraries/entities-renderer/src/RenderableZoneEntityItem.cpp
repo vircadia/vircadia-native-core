@@ -13,7 +13,7 @@
 
 #include <gpu/Batch.h>
 
-#include <model/Stage.h>
+#include <graphics/Stage.h>
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
@@ -145,10 +145,8 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         updateSkyboxMap();
 
         if (_needBackgroundUpdate) {
-            if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
+            if (_skyboxMode == COMPONENT_MODE_ENABLED && BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
-            } else {
-
             }
             _needBackgroundUpdate = false;
         }
@@ -164,21 +162,31 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 
     if (_visible) {
-        // FInally, push the light visible in the frame
-        // THe directional key light for sure
-        _stage->_currentFrame.pushSunLight(_sunIndex);
-
-        // The ambient light only if it has a valid texture to render with
-        if (_validAmbientTexture || _validSkyboxTexture) {
-            _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+        // Finally, push the lights visible in the frame
+        //
+        // If component is disabled then push component off state
+        // else if component is enabled then push current state
+        // (else mode is inherit, the value from the parent zone will be used
+        //
+        if (_keyLightMode == COMPONENT_MODE_DISABLED) {
+            _stage->_currentFrame.pushSunLight(_stage->getSunOffLight());
+        } else if (_keyLightMode == COMPONENT_MODE_ENABLED) {
+            _stage->_currentFrame.pushSunLight(_sunIndex);
         }
 
-        // The background only if the mode is not inherit
-        if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
+        if (_skyboxMode == COMPONENT_MODE_DISABLED) {
+            _backgroundStage->_currentFrame.pushBackground(INVALID_INDEX);
+        } else if (_skyboxMode == COMPONENT_MODE_ENABLED) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
-        // Haze only if the mode is not inherit
+        if (_ambientLightMode == COMPONENT_MODE_DISABLED) {
+            _stage->_currentFrame.pushAmbientLight(_stage->getAmbientOffLight());
+        } else if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
+            _stage->_currentFrame.pushAmbientLight(_ambientIndex);
+        }
+
+        // Haze only if the mode is not inherit, as the model deals with on/off
         if (_hazeMode != COMPONENT_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
@@ -194,14 +202,13 @@ void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction&
     Parent::removeFromScene(scene, transaction);
 }
 
-
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
 
     // FIXME one of the bools here could become true between being fetched and being reset, 
     // resulting in a lost update
-    bool sunChanged = entity->keyLightPropertiesChanged();
-    bool backgroundChanged = entity->backgroundPropertiesChanged();
+    bool keyLightChanged = entity->keyLightPropertiesChanged();
+    bool ambientLightChanged = entity->ambientLightPropertiesChanged();
     bool skyboxChanged = entity->skyboxPropertiesChanged();
     bool hazeChanged = entity->hazePropertiesChanged();
 
@@ -211,9 +218,9 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _lastDimensions = entity->getScaledDimensions();
 
     _keyLightProperties = entity->getKeyLightProperties();
+    _ambientLightProperties = entity->getAmbientLightProperties();
     _skyboxProperties = entity->getSkyboxProperties();
     _hazeProperties = entity->getHazeProperties();
-    _stageProperties = entity->getStageProperties();
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
@@ -236,15 +243,15 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
     updateKeyZoneItemFromEntity();
 
-    if (sunChanged) {
-        updateKeySunFromEntity();
+    if (keyLightChanged) {
+        updateKeySunFromEntity(entity);
     }
 
-    if (sunChanged || skyboxChanged) {
-        updateKeyAmbientFromEntity();
+    if (ambientLightChanged) {
+        updateAmbientLightFromEntity(entity);
     }
 
-    if (backgroundChanged || skyboxChanged) {
+    if (skyboxChanged) {
         updateKeyBackgroundFromEntity(entity);
     }
 
@@ -267,9 +274,10 @@ ItemKey ZoneEntityRenderer::getKey() {
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->keyLightPropertiesChanged() ||
-        entity->backgroundPropertiesChanged() ||
+        entity->ambientLightPropertiesChanged() ||
         entity->hazePropertiesChanged() ||
         entity->skyboxPropertiesChanged()) {
+
         return true;
     }
 
@@ -310,9 +318,11 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
     return false;
 }
 
-void ZoneEntityRenderer::updateKeySunFromEntity() {
+void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity) {
+    setKeyLightMode((ComponentMode)entity->getKeyLightMode());
+
     const auto& sunLight = editSunLight();
-    sunLight->setType(model::Light::SUN);
+    sunLight->setType(graphics::Light::SUN);
     sunLight->setPosition(_lastPosition);
     sunLight->setOrientation(_lastRotation);
 
@@ -322,20 +332,22 @@ void ZoneEntityRenderer::updateKeySunFromEntity() {
     sunLight->setDirection(_keyLightProperties.getDirection());
 }
 
-void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
+void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& entity) {
+    setAmbientLightMode((ComponentMode)entity->getAmbientLightMode());
+
     const auto& ambientLight = editAmbientLight();
-    ambientLight->setType(model::Light::AMBIENT);
+    ambientLight->setType(graphics::Light::AMBIENT);
     ambientLight->setPosition(_lastPosition);
     ambientLight->setOrientation(_lastRotation);
 
 
-    // Set the keylight
-    ambientLight->setAmbientIntensity(_keyLightProperties.getAmbientIntensity());
+    // Set the ambient light
+    ambientLight->setAmbientIntensity(_ambientLightProperties.getAmbientIntensity());
 
-    if (_keyLightProperties.getAmbientURL().isEmpty()) {
+    if (_ambientLightProperties.getAmbientURL().isEmpty()) {
         setAmbientURL(_skyboxProperties.getURL());
     } else {
-        setAmbientURL(_keyLightProperties.getAmbientURL());
+        setAmbientURL(_ambientLightProperties.getAmbientURL());
     }
 }
 
@@ -348,30 +360,31 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
-    haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
+    haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
     xColor hazeColor = _hazeProperties.getHazeColor();
     haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
     xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
     haze->setHazeGlareColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
-    haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
+    haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
 
     float hazeAltitude = _hazeProperties.getHazeCeiling() - _hazeProperties.getHazeBaseRef();
-    haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
+    haze->setHazeAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
     haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
 
     haze->setHazeBackgroundBlend(_hazeProperties.getHazeBackgroundBlend());
 
     haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
-    haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
-    haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
+    haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
+    haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 
     haze->setZoneTransform(entity->getTransform().getMatrix());
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
+    setSkyboxMode((ComponentMode)entity->getSkyboxMode());
+
     editBackground();
-    setBackgroundMode(entity->getBackgroundMode());
     setSkyboxColor(_skyboxProperties.getColorVec3());
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());
@@ -403,7 +416,6 @@ void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
     _ambientTextureURL = ambientUrl;
 
     if (_ambientTextureURL.isEmpty()) {
-        _validAmbientTexture = false;
         _pendingAmbientTexture = false;
         _ambientTexture.clear();
 
@@ -431,7 +443,6 @@ void ZoneEntityRenderer::updateAmbientMap() {
                     _ambientLight->setAmbientSpherePreset(gpu::SphericalHarmonics::BREEZEWAY);
                 }
                 editAmbientLight()->setAmbientMap(texture);
-                _validAmbientTexture = true;
             } else {
                 qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << _ambientTexture->getURL();
             }
@@ -447,7 +458,6 @@ void ZoneEntityRenderer::setSkyboxURL(const QString& skyboxUrl) {
     _skyboxTextureURL = skyboxUrl;
 
     if (_skyboxTextureURL.isEmpty()) {
-        _validSkyboxTexture = false;
         _pendingSkyboxTexture = false;
         _skyboxTexture.clear();
 
@@ -467,7 +477,6 @@ void ZoneEntityRenderer::updateSkyboxMap() {
             auto texture = _skyboxTexture->getGPUTexture();
             if (texture) {
                 editSkybox()->setCubemap(texture);
-                _validSkyboxTexture = true;
             } else {
                 qCDebug(entitiesrenderer) << "Failed to load Skybox texture:" << _skyboxTexture->getURL();
             }
@@ -475,12 +484,20 @@ void ZoneEntityRenderer::updateSkyboxMap() {
     }
 }
 
-void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
-    _backgroundMode = mode;
-}
-
 void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
     _hazeMode = mode;
+}
+
+void ZoneEntityRenderer::setKeyLightMode(ComponentMode mode) {
+    _keyLightMode = mode;
+}
+
+void ZoneEntityRenderer::setAmbientLightMode(ComponentMode mode) {
+    _ambientLightMode = mode;
+}
+
+void ZoneEntityRenderer::setSkyboxMode(ComponentMode mode) {
+    _skyboxMode = mode;
 }
 
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {

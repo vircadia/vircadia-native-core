@@ -14,7 +14,7 @@
 
 #include <render/Engine.h>
 #include <gpu/Pipeline.h>
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 class PrepareStencilConfig : public render::Job::Config {
     Q_OBJECT
@@ -63,8 +63,8 @@ private:
     gpu::PipelinePointer _paintStencilPipeline;
     gpu::PipelinePointer getPaintStencilPipeline();
 
-    model::MeshPointer _mesh;
-    model::MeshPointer getMesh();
+    graphics::MeshPointer _mesh;
+    graphics::MeshPointer getMesh();
 
     int _maskMode { 0 };
     bool _forceDraw { false };
