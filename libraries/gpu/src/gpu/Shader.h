@@ -138,9 +138,6 @@ public:
     bool isProgram() const { return getType() > NUM_DOMAINS; }
     bool isDomain() const { return getType() < NUM_DOMAINS; }
 
-    void setCompilationHasFailed(bool compilationHasFailed) { _compilationHasFailed = compilationHasFailed; }
-    bool compilationHasFailed() const { return _compilationHasFailed; }
-
     const Source& getSource() const { return _source; }
 
     const Shaders& getShaders() const { return _shaders; }
