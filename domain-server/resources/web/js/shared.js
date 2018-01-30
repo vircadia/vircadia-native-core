@@ -1,6 +1,4 @@
-var Settings = {
-  showAdvanced: false,
-  ADVANCED_CLASS: 'advanced-setting',
+Object.assign(Settings, {
   DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
@@ -41,7 +39,7 @@ var Settings = {
   FORM_ID: 'settings-form',
   INVALID_ROW_CLASS: 'invalid-input',
   DATA_ROW_INDEX: 'data-row-index'
-};
+});
 
 var URLs = {
   // STABLE METAVERSE_URL: https://metaverse.highfidelity.com

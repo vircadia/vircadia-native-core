@@ -1,0 +1,51 @@
+<div class="col-md-10 col-md-offset-1 col-xs-12">
+  <div class="row">
+    <div class="col-xs-12">
+      <div class="alert" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="row">
+
+    <div class="col-xs-12">
+      <div id="cloud-domains-alert" class="alert alert-info alert-dismissible" role="alert" style="display: none;">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <span class="alert-link">
+          <a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Visit Cloud Hosted Domains</a> to manage all your cloud domains
+        </span>
+      </div>
+
+      <form id="settings-form" role="form">
+        <script id="panels-template" type="text/template">
+          <% _.each(descriptions, function(group){ %>
+            <% if (!group.hidden) { %>
+
+              <% var settings = _.partition(group.settings, function(value, index) { %>
+                <% return !value.deprecated %>
+              <% })[0] %>
+
+              <% isGrouped = !!group.name %>
+              <% panelID = isGrouped ? group.name : group.html_id %>
+
+              <div id="<%- panelID %>_group" class="anchor"></div>
+              <div class="panel panel-default<%- (isGrouped) ? ' grouped' : '' %>"
+                   id="<%- panelID %>">
+                <div class="panel-heading">
+                  <h3 class="panel-title"><%- group.label %></h3>
+                  <span class="badge"></span>
+                </div>
+                <div class="panel-body">
+                  <% _.each(settings, function(setting) { %>
+                    <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
+                    <%= getFormGroup(keypath, setting, values, false) %>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+          <% }); %>
+        </script>
+        <div id="panels"></div>
+      </form>
+    </div>
+  </div>
+</div>

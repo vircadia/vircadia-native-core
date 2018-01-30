@@ -1,5 +1,7 @@
 $(document).ready(function(){
 
+  Settings.afterReloadActions = function() {};
+
   function showSpinnerAlert(title) {
     swal({
       title: title,

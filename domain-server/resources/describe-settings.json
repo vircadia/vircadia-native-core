@@ -935,6 +935,7 @@
           "name": "persistent_scripts",
           "type": "table",
           "label": "Persistent Scripts",
+          "content_setting": true,
           "help": "Add the URLs for scripts that you would like to ensure are always running in your domain.",
           "can_add_new_rows": true,
           "columns": [
@@ -1105,6 +1106,7 @@
           "label": "Zones",
           "help": "In this table you can define a set of zones in which you can specify various audio properties.",
           "numbered": false,
+          "content_setting": true,
           "can_add_new_rows": true,
           "key": {
             "name": "name",
@@ -1155,6 +1157,7 @@
           "type": "table",
           "label": "Attenuation Coefficients",
           "help": "In this table you can set custom attenuation coefficients between audio zones",
+          "content_setting": true,
           "numbered": true,
           "can_order": true,
           "can_add_new_rows": true,
@@ -1185,6 +1188,7 @@
           "label": "Reverb Settings",
           "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet/dry mix of 25%. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet/dry mix of 50%.",
           "numbered": true,
+          "content_setting": true,
           "can_add_new_rows": true,
           "columns": [
             {

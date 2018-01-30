@@ -39,8 +39,10 @@ const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
+const QString DESCRIPTION_GROUP_LABEL_KEY = "label";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
+const QString CONTENT_SETTING_FLAG_KEY = "content_setting";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
@@ -63,6 +65,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() {
 
             if (descriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
                 _descriptionArray = descriptionDocument.object()[DESCRIPTION_SETTINGS_KEY].toArray();
+                splitSettingsDescription();
+
                 return;
             }
         }
@@ -76,6 +80,91 @@ DomainServerSettingsManager::DomainServerSettingsManager() {
     QMetaObject::invokeMethod(QCoreApplication::instance(), "queuedQuit", Qt::QueuedConnection,
                               Q_ARG(QString, MISSING_SETTINGS_DESC_MSG),
                               Q_ARG(int, MISSING_SETTINGS_DESC_ERROR_CODE));
+}
+
+void DomainServerSettingsManager::splitSettingsDescription() {
+    // construct separate description arrays for domain settings and content settings
+    // since they are displayed on different pages
+
+    // along the way we also construct one object that holds the groups separated by domain settings
+    // and content settings, so that the DS can setup dropdown menus below "Content" and "Settings"
+    // headers to jump directly to a settings group on the page of either
+    QJsonArray domainSettingsMenuGroups;
+    QJsonArray contentSettingsMenuGroups;
+
+    foreach(const QJsonValue& group, _descriptionArray) {
+        QJsonObject groupObject = group.toObject();
+
+        static const QString HIDDEN_GROUP_KEY = "hidden";
+        bool groupHidden = groupObject.contains(HIDDEN_GROUP_KEY) && groupObject[HIDDEN_GROUP_KEY].toBool();
+
+        QJsonArray domainSettingArray;
+        QJsonArray contentSettingArray;
+
+        foreach(const QJsonValue& settingDescription, groupObject[DESCRIPTION_SETTINGS_KEY].toArray()) {
+            QJsonObject settingDescriptionObject = settingDescription.toObject();
+
+            bool isContentSetting = settingDescriptionObject.contains(CONTENT_SETTING_FLAG_KEY)
+                && settingDescriptionObject[CONTENT_SETTING_FLAG_KEY].toBool();
+
+            if (isContentSetting) {
+                // push the setting description to the pending content setting array
+                contentSettingArray.push_back(settingDescriptionObject);
+            } else {
+                // push the setting description to the pending domain setting array
+                domainSettingArray.push_back(settingDescriptionObject);
+            }
+        }
+
+        if (!domainSettingArray.isEmpty() || !contentSettingArray.isEmpty()) {
+
+            // we know for sure we'll have something to add to our settings menu groups
+            // so setup that object for the group now, as long as the group isn't hidden alltogether
+            QJsonObject settingsDropdownGroup;
+
+            if (!groupHidden) {
+                settingsDropdownGroup[DESCRIPTION_NAME_KEY] = groupObject[DESCRIPTION_NAME_KEY];
+                settingsDropdownGroup[DESCRIPTION_GROUP_LABEL_KEY] = groupObject[DESCRIPTION_GROUP_LABEL_KEY];
+
+                static const QString DESCRIPTION_GROUP_HTML_ID_KEY = "html_id";
+                if (groupObject.contains(DESCRIPTION_GROUP_HTML_ID_KEY)) {
+                    settingsDropdownGroup[DESCRIPTION_GROUP_HTML_ID_KEY] = groupObject[DESCRIPTION_GROUP_HTML_ID_KEY];
+                }
+            }
+
+            if (!domainSettingArray.isEmpty()) {
+                // we have some domain settings from this group, add the group with the filtered settings
+                QJsonObject filteredGroupObject = groupObject;
+                filteredGroupObject[DESCRIPTION_SETTINGS_KEY] = domainSettingArray;
+                _domainSettingsDescription.push_back(filteredGroupObject);
+
+                // if the group isn't hidden, add its information to the domain settings menu groups
+                if (!groupHidden) {
+                    domainSettingsMenuGroups.push_back(settingsDropdownGroup);
+                }
+            }
+
+            if (!contentSettingArray.isEmpty()) {
+                // we have some content settings from this group, add the group with the filtered settings
+                QJsonObject filteredGroupObject = groupObject;
+                filteredGroupObject[DESCRIPTION_SETTINGS_KEY] = contentSettingArray;
+                _contentSettingsDescription.push_back(filteredGroupObject);
+
+                // if the group isn't hidden, add its information to the content settings menu groups
+                if (!groupHidden) {
+                    contentSettingsMenuGroups.push_back(settingsDropdownGroup);
+                }
+            }
+        }
+    }
+
+    // populate the settings menu groups with what we've collected
+
+    static const QString SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY = "domain_settings";
+    static const QString SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY = "content_settings";
+
+    _settingsMenuGroups[SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY] = domainSettingsMenuGroups;
+    _settingsMenuGroups[SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY] = contentSettingsMenuGroups;
 }
 
 void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message) {
@@ -986,48 +1075,72 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
 }
 
 bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH_JSON) {
-        // this is a POST operation to change one or more settings
-        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
-        QJsonObject postedObject = postedDocument.object();
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
+        if (url.path() == SETTINGS_PATH_JSON || url.path() == CONTENT_SETTINGS_PATH_JSON) {
+            // this is a POST operation to change one or more settings
+            QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
+            QJsonObject postedObject = postedDocument.object();
 
-        // we recurse one level deep below each group for the appropriate setting
-        bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject);
+            SettingsType endpointType = url.path() == SETTINGS_PATH_JSON ? DomainSettings : ContentSettings;
 
-        // store whatever the current _settingsMap is to file
-        persistToFile();
+            // we recurse one level deep below each group for the appropriate setting
+            bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject, endpointType);
 
-        // return success to the caller
-        QString jsonSuccess = "{\"status\": \"success\"}";
-        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+            // store whatever the current _settingsMap is to file
+            persistToFile();
 
-        // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
-        if (restartRequired) {
-            const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
-            QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
-        } else {
-            unpackPermissions();
-            apiRefreshGroupInformation();
-            emit updateNodePermissions();
-            emit settingsUpdated();
+            // return success to the caller
+            QString jsonSuccess = "{\"status\": \"success\"}";
+            connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+
+            // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
+            if (restartRequired) {
+                const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+                QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+            } else {
+                unpackPermissions();
+                apiRefreshGroupInformation();
+                emit updateNodePermissions();
+                emit settingsUpdated();
+            }
+
+            return true;
         }
+    }   else if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        static const QString SETTINGS_MENU_GROUPS_PATH = "/settings-menu-groups.json";
 
-        return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
-        // setup a JSON Object with descriptions and non-omitted settings
-        const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
-        const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+        if (url.path() == SETTINGS_PATH_JSON || url.path() == CONTENT_SETTINGS_PATH_JSON) {
 
-        QJsonObject rootObject;
-        rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
-        rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
-        connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
+            // setup a JSON Object with descriptions and non-omitted settings
+            const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
+            const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+
+            QJsonObject rootObject;
+
+            bool forDomainSettings = (url.path() == SETTINGS_PATH_JSON);
+            bool forContentSettings = (url.path() == CONTENT_SETTINGS_PATH_JSON);;
+
+            rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = forDomainSettings
+                ? _domainSettingsDescription : _contentSettingsDescription;
+
+            // grab a domain settings object for all types, filtered for the right class of settings
+            rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true, forDomainSettings, forContentSettings);
+
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
+
+            return true;
+        } else if (url.path() == SETTINGS_MENU_GROUPS_PATH) {
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(_settingsMenuGroups).toJson(), "application/json");
+
+            return true;
+        }
     }
 
     return false;
 }
 
-QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated) {
+QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated,
+                                                               bool includeDomainSettings, bool includeContentSettings) {
     QJsonObject responseObject;
 
     if (!typeValue.isEmpty() || isAuthenticated) {
@@ -1036,8 +1149,15 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
         const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
 
+        QJsonArray& filteredDescriptionArray = _descriptionArray;
+        if (includeDomainSettings && !includeContentSettings) {
+            filteredDescriptionArray = _domainSettingsDescription;
+        } else if (includeContentSettings && !includeDomainSettings) {
+            filteredDescriptionArray = _contentSettingsDescription;
+        }
+
         // enumerate the groups in the description object to find which settings to pass
-        foreach(const QJsonValue& groupValue, _descriptionArray) {
+        foreach(const QJsonValue& groupValue, filteredDescriptionArray) {
             QJsonObject groupObject = groupValue.toObject();
             QString groupKey = groupObject[DESCRIPTION_NAME_KEY].toString();
             QJsonArray groupSettingsArray = groupObject[DESCRIPTION_SETTINGS_KEY].toArray();
@@ -1045,10 +1165,13 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
             QJsonObject groupResponseObject;
 
             foreach(const QJsonValue& settingValue, groupSettingsArray) {
+
                 const QString VALUE_HIDDEN_FLAG_KEY = "value-hidden";
 
                 QJsonObject settingObject = settingValue.toObject();
 
+                // consider this setting as long as it isn't hidden
+                // and we've been asked to include this type (domain setting or content setting)
                 if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
@@ -1212,7 +1335,8 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
+                                                                        SettingsType settingsType) {
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
@@ -1221,6 +1345,8 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
+
+    auto& filteredDescriptionArray = settingsType == DomainSettings ? _domainSettingsDescription : _contentSettingsDescription;
 
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
@@ -1236,7 +1362,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         QJsonObject groupDescriptionObject;
 
         // we need to check the description array to see if this is a root setting or a group setting
-        foreach(const QJsonValue& groupValue, _descriptionArray) {
+        foreach(const QJsonValue& groupValue, filteredDescriptionArray) {
             if (groupValue.toObject()[DESCRIPTION_NAME_KEY] == rootKey) {
                 // we matched a group - keep this since we'll use it below to update the settings
                 groupDescriptionObject = groupValue.toObject();
@@ -1269,6 +1395,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
+
                 if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
                     rootKey != SETTINGS_PATHS_KEY && rootKey != WIZARD_KEY) {
                     needRestart = true;
@@ -1286,6 +1413,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
+
                     if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
                          rootKey != DESCRIPTION_ROOT_KEY && rootKey != WIZARD_KEY) ||
                         settingKey == AC_SUBNET_WHITELIST_KEY) {
