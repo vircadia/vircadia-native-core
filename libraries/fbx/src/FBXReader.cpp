@@ -1538,7 +1538,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
-           joint.distanceToParent = 0.0f;
+            joint.distanceToParent = 0.0f;
 
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
