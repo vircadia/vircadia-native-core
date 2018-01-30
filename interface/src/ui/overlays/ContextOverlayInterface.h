@@ -26,6 +26,7 @@
 #include "ui/overlays/Overlays.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
+#include "scripting/WalletScriptingInterface.h"
 
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
@@ -61,8 +62,6 @@ public:
 
 signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);
-    void ownershipVerificationSuccess(const QUuid& entityID);
-    void ownershipVerificationFailed(const QUuid& entityID);
 
 public slots:
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);

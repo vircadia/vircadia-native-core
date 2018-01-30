@@ -48,6 +48,8 @@ public:
 signals:
     void walletStatusChanged();
     void walletNotSetup();
+    void ownershipVerificationSuccess(const QUuid& entityID);
+    void ownershipVerificationFailed(const QUuid& entityID);
 
 private:
     uint _walletStatus;
