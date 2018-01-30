@@ -146,16 +146,16 @@ public:
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
     virtual bool canRayIntersect() const override { return hasEntities(); }
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         bool& keepSearching, OctreeElementPointer& node, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly = false, bool collidableOnly = false,
-        void** intersectedObject = NULL, bool precisionPicking = false);
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
                          const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
+                         QVariantMap& extraInfo, bool precisionPicking, float distanceToElementCube);
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
