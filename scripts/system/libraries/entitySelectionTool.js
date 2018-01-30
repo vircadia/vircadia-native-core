@@ -254,6 +254,10 @@ SelectionDisplay = (function() {
     var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
     var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.14;
 
+    var ROTATION_CTRL_SNAP_ANGLE = 22.5;
+    var ROTATION_DEFAULT_SNAP_ANGLE = 1;
+    var ROTATION_DEFAULT_TICK_MARKS_ANGLE = 5;
+
     var TRANSLATE_DIRECTION = {
         X : 0,
         Y : 1,
@@ -300,6 +304,8 @@ SelectionDisplay = (function() {
     var worldRotationY;
     var worldRotationZ;
 
+    var ctrlPressed = false;
+
     var activeTool = null;
     var grabberTools = {};
 
@@ -335,7 +341,7 @@ SelectionDisplay = (function() {
         innerRadius: 0.9,
         startAt: 0,
         endAt: 360,
-        majorTickMarksAngle: 5,
+        majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE,
         majorTickMarksLength: 0.1,
         visible: false,
         ignoreRayIntersection: false,
@@ -583,6 +589,25 @@ SelectionDisplay = (function() {
     }
     that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
     that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+
+    // Control key remains active only while key is held down
+    function keyReleaseEvent(key) {
+        if (key.key === 16777249) {
+            ctrlPressed = false;
+            that.updateActiveRotateRing();
+        }
+    }
+
+    // Triggers notification on specific key driven events
+    function keyPressEvent(key) {
+        if (key.key === 16777249) {
+            ctrlPressed = true;
+            that.updateActiveRotateRing();
+        }
+    }
+
+    Controller.keyPressEvent.connect(keyPressEvent);
+    Controller.keyReleaseEvent.connect(keyReleaseEvent);
 
     function controllerComputePickRay() {
         var controllerPose = getControllerWorldLocation(activeHand, true);
@@ -1227,7 +1252,9 @@ SelectionDisplay = (function() {
                     var centerToIntersect = Vec3.subtract(result, rotCenter);
                     // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
                     //             handles that internally, so it's to pass unnormalized vectors here.
-                    var angleFromZero = Math.floor((Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal)));        
+                    var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);        
+                    var snapAngle = ctrlPressed ? ROTATION_CTRL_SNAP_ANGLE : ROTATION_DEFAULT_SNAP_ANGLE;
+                    angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                     var rotChange = Quat.angleAxis(angleFromZero, rotationNormal);
                     updateSelectionsRotation(rotChange);
                     updateRotationDegreesOverlay(-angleFromZero, direction, rotCenter);
@@ -1309,12 +1336,6 @@ SelectionDisplay = (function() {
                 Vec3.print("       current position:", properties.position);
             }
         }
-
-        /*
-        Overlays.editOverlay(highlightBox, {
-            visible: false
-        });
-        */
 
         that.updateGrabbers();
     };
@@ -1544,24 +1565,28 @@ SelectionDisplay = (function() {
                 Overlays.editOverlay(grabberRotatePitchRing, { 
                     position: SelectionManager.worldPosition, 
                     rotation: worldRotationY,
-                    dimensions: rotateDimensions
+                    dimensions: rotateDimensions,
+                    majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
             }
             if (!isActiveTool(grabberRotateYawRing)) {
                 Overlays.editOverlay(grabberRotateYawRing, { 
                     position: SelectionManager.worldPosition, 
                     rotation: worldRotationZ,
-                    dimensions: rotateDimensions
+                    dimensions: rotateDimensions,
+                    majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
             }
             if (!isActiveTool(grabberRotateRollRing)) {
                 Overlays.editOverlay(grabberRotateRollRing, { 
                     position: SelectionManager.worldPosition, 
                     rotation: worldRotationX,
-                    dimensions: rotateDimensions
+                    dimensions: rotateDimensions,
+                    majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
             }
             Overlays.editOverlay(grabberRotateCurrentRing, { dimensions: rotateDimensions });
+            that.updateActiveRotateRing();
 
             var inModeRotate = isActiveTool(grabberRotatePitchRing) || isActiveTool(grabberRotateYawRing) || isActiveTool(grabberRotateRollRing);
             var inModeTranslate = isActiveTool(grabberTranslateXCone) || isActiveTool(grabberTranslateXCylinder) ||
@@ -1601,6 +1626,21 @@ SelectionDisplay = (function() {
 
         if (wantDebug) {
             print("====== Update Grabbers <=======");
+        }
+    };
+
+    that.updateActiveRotateRing = function() {
+        var activeRotateRing = null;
+        if (isActiveTool(grabberRotatePitchRing)) {
+            activeRotateRing = grabberRotatePitchRing;
+        } else if (isActiveTool(grabberRotateYawRing)) {
+            activeRotateRing = grabberRotateYawRing;
+        } else if (isActiveTool(grabberRotateRollRing)) {
+            activeRotateRing = grabberRotateRollRing;
+        }
+        if (activeRotateRing != null) {
+            var tickMarksAngle =  ctrlPressed ? ROTATION_CTRL_SNAP_ANGLE : ROTATION_DEFAULT_TICK_MARKS_ANGLE;
+            Overlays.editOverlay(activeRotateRing, { majorTickMarksAngle: tickMarksAngle });
         }
     };
 
