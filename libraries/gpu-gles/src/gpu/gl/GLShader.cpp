@@ -30,7 +30,7 @@ GLShader::~GLShader() {
     }
 }
 
-GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
+GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, Shader::CompilationHandler handler) {
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
 
     // If GPU object already created then good
@@ -45,7 +45,7 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
             Backend::setGPUObject(shader, object);
         }
     } else if (shader.isDomain()) {
-        GLShader* tempObject = backend.compileBackendShader(shader);
+        GLShader* tempObject = backend.compileBackendShader(shader, handler);
         if (tempObject) {
             object = tempObject;
             Backend::setGPUObject(shader, object);
@@ -56,10 +56,10 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader) {
     return object;
 }
 
-bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings) {
+bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, Shader::CompilationHandler handler) {
 
     // First make sure the Shader has been compiled
-    GLShader* object = sync(backend, shader);
+    GLShader* object = sync(backend, shader, handler);
     if (!object) {
         return false;
     }

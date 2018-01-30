@@ -44,6 +44,19 @@ public:
         Language _lang = GLSL;
     };
 
+    struct CompilationLog {
+        std::string message;
+        std::vector<char> binary;
+        bool compiled{ false };
+
+        CompilationLog() {}
+        CompilationLog(const CompilationLog& src) :
+            message(src.message),
+            binary(src.binary),
+            compiled(src.compiled) {}
+    };
+    using CompilationLogs = std::vector<CompilationLog>;
+
     static const int32 INVALID_LOCATION = -1;
 
     class Slot {
@@ -155,6 +168,8 @@ public:
                      const SlotSet& inputs,
                      const SlotSet& outputs);
 
+    typedef bool(*CompilationHandler)(const Shader& shader, const std::string& src, CompilationLog& log, std::string& newSrc);
+
     // makeProgram(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
@@ -168,7 +183,16 @@ public:
     // on a gl Context and the driver to compile the glsl shader. 
     // Hoppefully in a few years the shader compilation will be completely abstracted in a separate shader compiler library
     // independant of the graphics api in use underneath (looking at you opengl & vulkan).
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet(), CompilationHandler handler = nullptr);
+
+    // Check the compilation state
+    bool compilationHasFailed() const { return _compilationHasFailed; }
+    const CompilationLogs& getCompilationLogs() const { return _compilationLogs; }
+
+    // Set COmpilation logs can only be called by the Backend layers
+    void setCompilationHasFailed(bool compilationHasFailed) { _compilationHasFailed = compilationHasFailed; }
+    void setCompilationLogs(const CompilationLogs& logs) const;
+
 
     const GPUObjectPointer gpuObject {};
     
@@ -197,6 +221,9 @@ protected:
 
     // The type of the shader, the master key
     Type _type;
+
+    // Compilation logs (one for each versions generated)
+    mutable CompilationLogs _compilationLogs;
 
     // Whether or not the shader compilation failed
     bool _compilationHasFailed { false };

@@ -82,9 +82,16 @@ void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers,
     _outputs = outputs;
 }
 
-bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings, CompilationHandler handler) {
     if (shader.isProgram()) {
-        return Context::makeProgram(shader, bindings);
+        return Context::makeProgram(shader, bindings, handler);
     }
     return false;
+}
+
+void Shader::setCompilationLogs(const CompilationLogs& logs) const {
+    _compilationLogs.clear();
+    for (const auto& log : logs) {
+        _compilationLogs.emplace_back(CompilationLog(log));
+    }
 }
