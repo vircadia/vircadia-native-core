@@ -31,7 +31,7 @@ void TriangleSet::clear() {
 }
 
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-    float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, bool allowBackface) {
+         float& distance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface) {
 
     // reset our distance to be the max possible, lower level tests will store best distance here
     distance = std::numeric_limits<float>::max();
@@ -41,7 +41,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     }
 
     int trianglesTouched = 0;
-    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched, allowBackface);
+    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, triangle, precision, trianglesTouched, allowBackface);
 
     #if WANT_DEBUGGING
     if (precision) {
@@ -95,11 +95,12 @@ void TriangleSet::balanceOctree() {
 // Determine of the given ray (origin/direction) in model space intersects with any triangles
 // in the set. If an intersection occurs, the distance and surface normal will be provided.
 bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface) {
+            float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched, bool allowBackface) {
 
     bool intersectedSomething = false;
     float boxDistance = distance;
     float bestDistance = distance;
+    glm::vec3 surfaceNormal;
 
     if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
 
@@ -112,14 +113,14 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
 
         if (precision) {
             for (const auto& triangleIndex : _triangleIndices) {
-                const auto& triangle = _allTriangles[triangleIndex];
+                const auto& thisTriangle = _allTriangles[triangleIndex];
                 float thisTriangleDistance;
                 trianglesTouched++;
-                if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance, allowBackface)) {
+                if (findRayTriangleIntersection(origin, direction, thisTriangle, thisTriangleDistance, allowBackface)) {
                     if (thisTriangleDistance < bestDistance) {
                         bestDistance = thisTriangleDistance;
                         intersectedSomething = true;
-                        surfaceNormal = triangle.getNormal();
+                        triangle = thisTriangle;
                         distance = bestDistance;
                     }
                 }
@@ -204,7 +205,8 @@ void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
 }
 
 bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface) {
+                float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
+                bool allowBackface) {
 
     if (_population < 1) {
         return false; // no triangles below here, so we can't intersect
@@ -212,6 +214,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
 
     float bestLocalDistance = distance;
     BoxFace bestLocalFace;
+    Triangle bestLocalTriangle;
     glm::vec3 bestLocalNormal;
     bool intersects = false;
 
@@ -229,7 +232,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
 
         float childDistance = distance;
         BoxFace childFace;
-        glm::vec3 childNormal;
+        Triangle childTriangle;
 
         // if we're not yet at the max depth, then check which child the triangle fits in
         if (_depth < MAX_DEPTH) {
@@ -237,22 +240,22 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
                 // check each child, if there's an intersection, it will return some distance that we need
                 // to compare against the other results, because there might be multiple intersections and
                 // we will always choose the best (shortest) intersection
-                if (child.second.findRayIntersection(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched)) {
+                if (child.second.findRayIntersection(origin, direction, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
                     if (childDistance < bestLocalDistance) {
                         bestLocalDistance = childDistance;
                         bestLocalFace = childFace;
-                        bestLocalNormal = childNormal;
+                        bestLocalTriangle = childTriangle;
                         intersects = true;
                     }
                 }
             }
         }
         // also check our local triangle set
-        if (findRayIntersectionInternal(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched, allowBackface)) {
+        if (findRayIntersectionInternal(origin, direction, childDistance, childFace, childTriangle, precision, trianglesTouched, allowBackface)) {
             if (childDistance < bestLocalDistance) {
                 bestLocalDistance = childDistance;
                 bestLocalFace = childFace;
-                bestLocalNormal = childNormal;
+                bestLocalTriangle = childTriangle;
                 intersects = true;
             }
         }
@@ -260,7 +263,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
     if (intersects) {
         distance = bestLocalDistance;
         face = bestLocalFace;
-        surfaceNormal = bestLocalNormal;
+        triangle = bestLocalTriangle;
     }
     return intersects;
 }

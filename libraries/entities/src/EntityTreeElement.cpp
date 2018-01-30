@@ -588,57 +588,60 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     bool& keepSearching, OctreeElementPointer& element, float& distance,
     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-    void** intersectedObject, bool precisionPicking) {
+    QVariantMap& extraInfo, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
 
+    EntityItemID result;
     float distanceToElementCube = std::numeric_limits<float>::max();
     float distanceToElementDetails = distance;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
+    QVariantMap localExtraInfo;
 
     // if the ray doesn't intersect with our cube, we can stop searching!
     if (!_cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal)) {
         keepSearching = false; // no point in continuing to search
-        return false; // we did not intersect
+        return result; // we did not intersect
     }
 
     // by default, we only allow intersections with leaves with content
     if (!canRayIntersect()) {
-        return false; // we don't intersect with non-leaves, and we keep searching
+        return result; // we don't intersect with non-leaves, and we keep searching
     }
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
     if (_cube.contains(origin) || distanceToElementCube < distance) {
 
-        if (findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
+        EntityItemID entityID = findDetailedRayIntersection(origin, direction, keepSearching, element, distanceToElementDetails,
                 face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
-                intersectedObject, precisionPicking, distanceToElementCube)) {
-
+                localExtraInfo, precisionPicking, distanceToElementCube);
+        if (!entityID.isNull()) {
             if (distanceToElementDetails < distance) {
                 distance = distanceToElementDetails;
                 face = localFace;
                 surfaceNormal = localSurfaceNormal;
-                return true;
+                extraInfo = localExtraInfo;
+                result = entityID;
             }
         }
     }
-    return false;
+    return result;
 }
 
-bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
+EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction, bool& keepSearching,
                                     OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                     const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
-                                    bool visibleOnly, bool collidableOnly, void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
+                                    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     int entityNumber = 0;
-    bool somethingIntersected = false;
+    EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
         if ( (visibleOnly && !entity->isVisible()) || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
             || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
@@ -655,6 +658,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         float localDistance;
         BoxFace localFace;
         glm::vec3 localSurfaceNormal;
+        QVariantMap localExtraInfo;
 
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (!entityBox.findRayIntersection(origin, direction, localDistance, localFace, localSurfaceNormal)) {
@@ -684,14 +688,14 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 // now ask the entity if we actually intersect
                 if (entity->supportsDetailedRayIntersection()) {
                     if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance,
-                        localFace, localSurfaceNormal, intersectedObject, precisionPicking)) {
+                        localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
 
                         if (localDistance < distance) {
                             distance = localDistance;
                             face = localFace;
                             surfaceNormal = localSurfaceNormal;
-                            *intersectedObject = (void*)entity.get();
-                            somethingIntersected = true;
+                            extraInfo = localExtraInfo;
+                            entityID = entity->getEntityItemID();
                         }
                     }
                 } else {
@@ -701,15 +705,14 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
-                        *intersectedObject = (void*)entity.get();
-                        somethingIntersected = true;
+                        entityID = entity->getEntityItemID();
                     }
                 }
             }
         }
         entityNumber++;
     });
-    return somethingIntersected;
+    return entityID;
 }
 
 // TODO: change this to use better bounding shape for entity than sphere

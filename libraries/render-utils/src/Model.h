@@ -161,8 +161,8 @@ public:
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, glm::vec3& surfaceNormal, 
-                                             QString& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
