@@ -1,6 +1,6 @@
 //
 //  Crashpad.cpp
-//  shared/src/shared
+//  interface/src
 //
 //  Created by Clement Brisset on 01/19/18.
 //  Copyright 2018 High Fidelity, Inc.
