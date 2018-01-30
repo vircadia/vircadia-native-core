@@ -37,10 +37,10 @@
 QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
-#if defined(Q_OS_OSX)
-static bool USE_SOURCE_TREE_RESOURCES = true;
-#else
 static bool USE_SOURCE_TREE_RESOURCES() {
+#if defined(Q_OS_OSX)
+    return true;
+#else
     static bool result = false;
     static std::once_flag once;
     std::call_once(once, [&] {
@@ -48,8 +48,8 @@ static bool USE_SOURCE_TREE_RESOURCES() {
         result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
     });
     return result;
-}
 #endif
+}
 #endif
 
 #ifdef DEV_BUILD
