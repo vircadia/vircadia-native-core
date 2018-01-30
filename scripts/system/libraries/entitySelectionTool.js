@@ -246,6 +246,7 @@ SelectionDisplay = (function() {
 
     var SCALE_MINIMUM_DIMENSION = 0.02;
     var STRETCH_MINIMUM_DIMENSION = 0.001;
+    var STRETCH_DIRECTION_ALL_FACTOR = 15;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
     var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.0;
@@ -266,12 +267,6 @@ SelectionDisplay = (function() {
         ALL : 3
     }
 
-    var ROTATE_DIRECTION = {
-        PITCH : 0,
-        YAW : 1,
-        ROLL : 2
-    }
-
     var SCALE_DIRECTION = {
         LBN : 0,
         RBN : 1,
@@ -281,6 +276,12 @@ SelectionDisplay = (function() {
         RTN : 5,
         LTF : 6,
         RTF : 7
+    }
+
+    var ROTATE_DIRECTION = {
+        PITCH : 0,
+        YAW : 1,
+        ROLL : 2
     }
 
     var spaceMode = SPACE_LOCAL;
@@ -706,7 +707,7 @@ SelectionDisplay = (function() {
         };
     };
 
-    function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset) {
+    function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, scaleGrabber) {
         var directionFor3DStretch = directionVec;
         var distanceFor3DStretch = 0;
         var DISTANCE_INFLUENCE_THRESHOLD = 1.2;
@@ -892,16 +893,29 @@ SelectionDisplay = (function() {
 
             that.setGrabberTranslateVisible(false);
             that.setGrabberRotateVisible(false);
-            that.setGrabberScaleVisible(directionEnum === STRETCH_DIRECTION.ALL);
+            that.setGrabberScaleVisible(true);
             that.setGrabberStretchXVisible(directionEnum === STRETCH_DIRECTION.X);
             that.setGrabberStretchYVisible(directionEnum === STRETCH_DIRECTION.Y);
             that.setGrabberStretchZVisible(directionEnum === STRETCH_DIRECTION.Z);
             that.setGrabberClonerVisible(false);
+
+            if (stretchPanel != null) {
+                Overlays.editOverlay(stretchPanel, { visible: true });
+            }
+            if (scaleGrabber != null) {
+                Overlays.editOverlay(scaleGrabber, { color: GRABBER_SCALE_CUBE_SELECTED_COLOR });
+            }
         
             SelectionManager.saveProperties();
         };
 
         var onEnd = function(event, reason) {    
+            if (stretchPanel != null) {
+                Overlays.editOverlay(stretchPanel, { visible: false });
+            }
+            if (scaleGrabber != null) {
+                Overlays.editOverlay(scaleGrabber, { color: GRABBER_SCALE_CUBE_IDLE_COLOR });
+            }
             pushCommandForSelections();
         };
 
@@ -959,6 +973,11 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(-1, vec3Mult(localSigns, vector));
+
+            if (directionEnum === STRETCH_DIRECTION.ALL) {
+                changeInDimensions = Vec3.multiply(changeInDimensions, STRETCH_DIRECTION_ALL_FACTOR);
+            }
+
             var newDimensions;
             if (proportional) {
                 var absX = Math.abs(changeInDimensions.x);
@@ -1024,60 +1043,53 @@ SelectionDisplay = (function() {
     }
 
     function addGrabberStretchTool(overlay, mode, directionEnum) {
-        var directionVec, pivot, offset;
+        var directionVec, pivot, offset, stretchPanel;
         if (directionEnum === STRETCH_DIRECTION.X) {
+            stretchPanel = grabberStretchXPanel;
             directionVec = { x:-1, y:0, z:0 };
-            pivot = { x:-1, y:0, z:0 };
-            offset = { x:1, y:0, z:0 };
         } else if (directionEnum === STRETCH_DIRECTION.Y) {
+            stretchPanel = grabberStretchYPanel;
             directionVec = { x:0, y:-1, z:0 };
-            pivot = { x:0, y:-1, z:0 };
-            offset = { x:0, y:1, z:0 };
         } else if (directionEnum === STRETCH_DIRECTION.Z) {
+            stretchPanel = grabberStretchZPanel
             directionVec = { x:0, y:0, z:-1 };
-            pivot = { x:0, y:0, z:-1 };
-            offset = { x:0, y:0, z:1 };
         }
-        var tool = makeStretchTool(mode, directionEnum, directionVec, pivot, offset);
+        pivot = directionVec;
+        offset = Vec3.multiply(directionVec, -1);
+        var tool = makeStretchTool(mode, directionEnum, directionVec, pivot, offset, stretchPanel, null);
         return addGrabberTool(overlay, tool);
     }
 
     function addGrabberScaleTool(overlay, mode, directionEnum) {
-        var directionVec, pivot, offset;
+        var directionVec, pivot, offset, selectedGrabber;
         if (directionEnum === SCALE_DIRECTION.LBN) {
             directionVec = { x:1, y:1, z:1 };
-            pivot = { x:1, y:1, z:1 };
-            offset = { x:-1, y:-1, z:-1 };
+            selectedGrabber = grabberScaleLBNCube;
         } else if (directionEnum === SCALE_DIRECTION.RBN) {
             directionVec = { x:1, y:1, z:-1 };
-            pivot = { x:1, y:1, z:-1 };
-            offset = { x:-1, y:-1, z:1 };
+            selectedGrabber = grabberScaleRBNCube;
         } else if (directionEnum === SCALE_DIRECTION.LBF) {
             directionVec = { x:-1, y:1, z:1 };
-            pivot = { x:-1, y:1, z:1 };
-            offset = { x:1, y:-1, z:-1 };
+            selectedGrabber = grabberScaleLBFCube;
         } else if (directionEnum === SCALE_DIRECTION.RBF) {
             directionVec = { x:-1, y:1, z:-1 };
-            pivot = { x:-1, y:1, z:-1 };
-            offset = { x:1, y:-1, z:1 };
+            selectedGrabber = grabberScaleRBFCube;
         } else if (directionEnum === SCALE_DIRECTION.LTN) { 
             directionVec = { x:1, y:-1, z:1 };
-            pivot = { x:1, y:-1, z:1 };
-            offset = { x:-1, y:1, z:-1 };
+            selectedGrabber = grabberScaleLTNCube;
         } else if (directionEnum === SCALE_DIRECTION.RTN) {
             directionVec = { x:1, y:-1, z:-1 };
-            pivot = { x:1, y:-1, z:-1 };
-            offset = { x:-1, y:1, z:1 };
+            selectedGrabber = grabberScaleRTNCube;
         } else if (directionEnum === SCALE_DIRECTION.LTF) {
             directionVec = { x:-1, y:-1, z:1 };
-            pivot = { x:-1, y:-1, z:1 };
-            offset = { x:1, y:1, z:-1 };
+            selectedGrabber = grabberScaleLTFCube;
         } else if (directionEnum === SCALE_DIRECTION.RTF) {
             directionVec = { x:-1, y:-1, z:-1 };
-            pivot = { x:-1, y:-1, z:-1 };
-            offset = { x:1, y:1, z:1 };
+            selectedGrabber = grabberScaleRTFCube;
         }
-        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVec, pivot, offset);
+        pivot = directionVec;
+        offset = Vec3.multiply(directionVec, -1);
+        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVec, pivot, offset, null, selectedGrabber);
         return addGrabberTool(overlay, tool);
     }
 
@@ -1346,6 +1358,7 @@ SelectionDisplay = (function() {
         if (SelectionManager.hasSelection()) {
             var worldPosition = SelectionManager.worldPosition;
             var worldRotation = SelectionManager.worldRotation;
+            var worldRotationInverse = Quat.inverse(worldRotation);
             var worldDimensions = SelectionManager.worldDimensions;
 
             var worldDimensionsX = worldDimensions.x;
@@ -1478,7 +1491,9 @@ SelectionDisplay = (function() {
                 position: stretchXPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var stretchPanelXDimensions = Vec3.subtract(grabberScaleLTFCubePos, grabberScaleRBFCubePos);
+            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleLTFCubePos);
+            var grabberScaleRBFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRBFCubePos);
+            var stretchPanelXDimensions = Vec3.subtract(grabberScaleLTFCubePosRot, grabberScaleRBFCubePosRot);
             var tempY = Math.abs(stretchPanelXDimensions.y);
             stretchPanelXDimensions.x = 0.01;
             stretchPanelXDimensions.y = Math.abs(stretchPanelXDimensions.z);
@@ -1493,7 +1508,9 @@ SelectionDisplay = (function() {
                 position: stretchYPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var stretchPanelYDimensions = Vec3.subtract(grabberScaleLTFCubePos, grabberScaleRTNCubePos);
+            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleLTNCubePos);
+            var grabberScaleRTNCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRTFCubePos);
+            var stretchPanelYDimensions = Vec3.subtract(grabberScaleLTFCubePosRot, grabberScaleRTNCubePosRot);
             var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
             stretchPanelYDimensions.y = 0.01;
@@ -1508,7 +1525,9 @@ SelectionDisplay = (function() {
                 position: stretchZPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var stretchPanelZDimensions = Vec3.subtract(grabberScaleRTFCubePos, grabberScaleRBNCubePos);
+            var grabberScaleRTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRTFCubePos);
+            var grabberScaleRBNCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRBNCubePos);
+            var stretchPanelZDimensions = Vec3.subtract(grabberScaleRTFCubePosRot, grabberScaleRBNCubePosRot);
             var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
             stretchPanelZDimensions.y = tempX;
@@ -1576,7 +1595,8 @@ SelectionDisplay = (function() {
         that.setGrabberStretchYVisible(!activeTool || isActiveTool(grabberStretchYSphere));
         that.setGrabberStretchZVisible(!activeTool || isActiveTool(grabberStretchZSphere));
         that.setGrabberScaleVisible(!activeTool || isActiveTool(grabberScaleLBNCube) || isActiveTool(grabberScaleRBNCube) || isActiveTool(grabberScaleLBFCube) || isActiveTool(grabberScaleRBFCube)
-                                                || isActiveTool(grabberScaleLTNCube) || isActiveTool(grabberScaleRTNCube) || isActiveTool(grabberScaleLTFCube) || isActiveTool(grabberScaleRTFCube));
+                                                || isActiveTool(grabberScaleLTNCube) || isActiveTool(grabberScaleRTNCube) || isActiveTool(grabberScaleLTFCube) || isActiveTool(grabberScaleRTFCube)
+                                                || isActiveTool(grabberStretchXSphere) || isActiveTool(grabberStretchYSphere) || isActiveTool(grabberStretchZSphere));
         that.setGrabberClonerVisible(!activeTool || isActiveTool(grabberCloner));
 
         if (wantDebug) {
