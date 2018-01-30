@@ -47,7 +47,6 @@
 #include <shared/RateCounter.h>
 #include <ThreadSafeValueCache.h>
 #include <shared/FileLogger.h>
-#include <shared/Crashpad.h>
 
 #include <RunningMarker.h>
 
