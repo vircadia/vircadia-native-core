@@ -2,12 +2,6 @@
   "version": 2.1,
   "settings": [
     {
-      "name": "label",
-      "label": "Label",
-      "settings": [
-      ]
-    },
-    {
       "name": "metaverse",
       "label": "Metaverse / Networking",
       "settings": [

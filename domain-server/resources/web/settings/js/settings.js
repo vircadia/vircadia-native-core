@@ -16,7 +16,11 @@ $(document).ready(function(){
 
   // define extra groups to add to description, with their splice index
   Settings.extraGroups = {
-    1: {
+    0: {
+      html_id: 'label',
+      label: 'Label'
+    },
+    2: {
       html_id: 'places',
       label: 'Places'
     }
