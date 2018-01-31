@@ -2834,7 +2834,7 @@ DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVer
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & 0x0000ffff;
+        result = _flags & ~Simulation::SPECIAL_FLAGS;
     });
     return result;
 }
@@ -2842,14 +2842,14 @@ uint32_t EntityItem::getDirtyFlags() const {
 
 void EntityItem::markDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= 0x0000ffff;
+        mask &= ~Simulation::SPECIAL_FLAGS;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= 0x0000ffff;
+        mask &= ~Simulation::SPECIAL_FLAGS;
         _flags &= ~mask;
     });
 }
@@ -2857,21 +2857,21 @@ void EntityItem::clearDirtyFlags(uint32_t mask) {
 uint32_t EntityItem::getSpecialFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & 0xffff0000;
+        result = _flags & ~Simulation::DIRTY_FLAGS;
     });
     return result;
 }
 
 void EntityItem::markSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= 0xffff0000;
+        mask &= ~Simulation::DIRTY_FLAGS;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= 0xffff0000;
+        mask &= ~Simulation::DIRTY_FLAGS;
         _flags &= ~mask;
     });
 }
