@@ -684,9 +684,7 @@
                 sendMoneyRecipient = message.recipient;
                 var amount = message.amount;
                 var props = SEND_MONEY_PARTICLE_PROPERTIES;
-                if (sendMoneyParticleEffect) {
-                    deleteSendMoneyParticleEffect();
-                }
+                deleteSendMoneyParticleEffect();
                 props.parentID = MyAvatar.sessionUUID;
                 props.position = MyAvatar.position;
                 props.position.y += 0.2;

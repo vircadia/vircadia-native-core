@@ -57,6 +57,9 @@ Item {
 
             if (result.status === 'success') {
                 root.nextActiveView = 'paymentSuccess';
+                if (sendPubliclyCheckbox.checked && sendMoneyStep.referrer === "nearby") {
+                    sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: sendMoneyStep.selectedRecipientNodeID, amount: parseInt(amountTextField.text)});
+                }
             } else {
                 root.nextActiveView = 'paymentFailure';
             }
@@ -306,22 +309,6 @@ Item {
                     onClicked: {
                         root.nextActiveView = "chooseRecipientNearby";
                     }
-                }
-            }
-
-            // "Particle" button
-            HifiControlsUit.Button {
-                id: particle;
-                color: hifi.buttons.blue;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.horizontalCenter: parent.horizontalCenter;
-                anchors.top: nearbyButton.bottom;
-                anchors.topMargin: 24;
-                height: 50;
-                width: 160;
-                text: "Try Particles";
-                onClicked: {
-                    sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: "{09f76bc2-c108-41e9-9a94-18bbda228ed2}", amount: 2});
                 }
             }
         }
@@ -983,7 +970,8 @@ Item {
 
         HifiControlsUit.CheckBox {
             id: sendPubliclyCheckbox;
-            visible: true;
+            visible: sendMoneyStep.referrer === "nearby";
+            checked: Settings.getValue("sendMoneyNearbyPublicly", true);
             text: "Send Publicly"
             // Anchors
             anchors.top: messageContainer.bottom;
@@ -992,7 +980,10 @@ Item {
             anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 16;
-            boxSize: 24;
+            boxSize: 28;
+            onCheckedChanged: {
+                Settings.setValue("sendMoneyNearbyPublicly", checked);
+            }
         }
 
         Item {
@@ -1051,11 +1042,7 @@ Item {
                         if (sendMoneyStep.referrer === "connections") {
                             Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
                         } else if (sendMoneyStep.referrer === "nearby") {
-                            var transferAmount = parseInt(amountTextField.text);
-                            Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, transferAmount, optionalMessage.text);
-                            if (sendPubliclyCheckbox.checked) {
-                                sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: sendMoneyStep.selectedRecipientNodeID, amount: transferAmount});
-                            }
+                            Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
                         }
                     }
                 }
@@ -1554,6 +1541,7 @@ Item {
         amountTextField.text = "";
         optionalMessage.text = "";
         sendPubliclyCheckbox.checked = false;
+        sendMoneyStep.referrer = "";
     }
 
     //
