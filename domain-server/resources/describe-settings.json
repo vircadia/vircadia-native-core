@@ -55,8 +55,8 @@
       ]
     },
     {
-      "label": "Places / Paths",
-      "html_id": "places_paths",
+      "label": "Paths",
+      "html_id": "paths",
       "restart": false,
       "settings": [
         {
@@ -64,6 +64,7 @@
           "label": "Paths",
           "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
           "type": "table",
+          "content_setting": true,
           "can_add_new_rows": true,
           "key": {
             "name": "path",
@@ -1081,6 +1082,7 @@
           "name": "attenuation_per_doubling_in_distance",
           "label": "Default Domain Attenuation",
           "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
+          "content_setting": true,
           "placeholder": "0.5",
           "default": "0.5",
           "advanced": false
@@ -1313,6 +1315,7 @@
           "name": "entityEditFilter",
           "label": "Filter Entity Edits",
           "help": "Check all entity edits against this filter function.",
+          "content_setting": true,
           "placeholder": "url whose content is like: function filter(properties) { return properties; }",
           "default": "",
           "advanced": true

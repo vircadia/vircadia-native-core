@@ -94,9 +94,13 @@ var viewHelpers = {
 
 function reloadSettings(callback) {
   $.getJSON(Settings.endpoint, function(data){
-    _.extend(data, viewHelpers)
+    _.extend(data, viewHelpers);
 
-    $('#panels').html(Settings.panelsTemplate(data))
+    for (var spliceIndex in Settings.extraGroups) {
+      data.descriptions.splice(spliceIndex, 0, Settings.extraGroups[spliceIndex]);
+    }
+
+    $('#panels').html(Settings.panelsTemplate(data));
 
     Settings.data = data;
     Settings.initialValues = form2js('settings-form', ".", false, cleanupFormValues, true);

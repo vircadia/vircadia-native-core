@@ -14,6 +14,14 @@ $(document).ready(function(){
       return b;
   })(window.location.search.substr(1).split('&'));
 
+  // define extra groups to add to description, with their splice index
+  Settings.extraGroups = {
+    1: {
+      html_id: 'places',
+      label: 'Places'
+    }
+  }
+
   Settings.afterReloadActions = function() {
     // append the domain selection modal
     appendDomainIDButtons();
@@ -657,8 +665,7 @@ $(document).ready(function(){
     var placesTableGroup = viewHelpers.getFormGroup('', placesTableSetting, Settings.data.values);
 
     // append the places table in the right place
-    $('#places_paths .panel-body').prepend(placesTableGroup);
-    //$('#' + Settings.PLACES_TABLE_ID).append("<tr><td colspan=3></td></tr>");
+    $('#places .panel-body').prepend(placesTableGroup);
 
     var spinner = createDomainSpinner();
     $('#' + Settings.PLACES_TABLE_ID).after($(spinner));

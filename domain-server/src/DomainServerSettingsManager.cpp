@@ -123,7 +123,10 @@ void DomainServerSettingsManager::splitSettingsDescription() {
             QJsonObject settingsDropdownGroup;
 
             if (!groupHidden) {
-                settingsDropdownGroup[DESCRIPTION_NAME_KEY] = groupObject[DESCRIPTION_NAME_KEY];
+                if (groupObject.contains(DESCRIPTION_NAME_KEY)) {
+                    settingsDropdownGroup[DESCRIPTION_NAME_KEY] = groupObject[DESCRIPTION_NAME_KEY];
+                }
+
                 settingsDropdownGroup[DESCRIPTION_GROUP_LABEL_KEY] = groupObject[DESCRIPTION_GROUP_LABEL_KEY];
 
                 static const QString DESCRIPTION_GROUP_HTML_ID_KEY = "html_id";
@@ -1383,7 +1386,9 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             foreach(const QJsonValue& groupValue, _descriptionArray) {
                 // find groups with root values (they don't have a group name)
                 QJsonObject groupObject = groupValue.toObject();
+
                 if (!groupObject.contains(DESCRIPTION_NAME_KEY)) {
+
                     // this is a group with root values - check if our setting is in here
                     matchingDescriptionObject = settingDescriptionFromGroup(groupObject, rootKey);
 

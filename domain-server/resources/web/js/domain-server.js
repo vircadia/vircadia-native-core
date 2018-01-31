@@ -79,6 +79,13 @@ $(document).ready(function(){
         }
 
         $settingsDropdown.append(makeGroupDropdownElement(group, "/settings/"));
+
+        // for domain settings, we add a dummy "Places" group that we fill
+        // via the API - add it to the dropdown menu in the right spot
+        if (index == 1) {
+          $settingsDropdown.append("<li role='separator' class='divider'></li>");
+          $settingsDropdown.append(makeGroupDropdownElement({ html_id: 'places', label: 'Places' }, "/settings/"));
+        }
       });
     });
   }
