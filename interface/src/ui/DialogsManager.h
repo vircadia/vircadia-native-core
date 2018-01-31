@@ -39,7 +39,6 @@ public:
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
     QPointer<TestingDialog> getTestingDialog() const { return _testingDialog; }
     void emitAddressBarShown(bool visible) { emit addressBarShown(visible); }
-    void setAddressBarVisible(bool addressBarVisible);
 
 public slots:
     void showAddressBar();
@@ -53,7 +52,6 @@ public slots:
     void hmdTools(bool showTools);
     void showDomainConnectionDialog();
     void showTestingResults();
-    void toggleAddressBar();
     
     // Application Update
     void showUpdateDialog();
@@ -80,7 +78,7 @@ private:
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
     QPointer<TestingDialog> _testingDialog;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
-    bool _addressBarVisible { false };
+    bool _closeAddressBar { false };
 };
 
 #endif // hifi_DialogsManager_h

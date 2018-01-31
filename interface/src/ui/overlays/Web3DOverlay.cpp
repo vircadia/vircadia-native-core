@@ -72,13 +72,6 @@ Web3DOverlay::Web3DOverlay() {
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
-
-    //need to be intialized before Tablet 1st open
-    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
-    _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-    _webSurface->getSurfaceContext()->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
-    _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
