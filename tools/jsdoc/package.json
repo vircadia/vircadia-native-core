@@ -1,0 +1,7 @@
+{
+  "name": "hifiJSDoc",
+  "dependencies": {
+    "jsdoc": "^3.5.5"
+  },
+  "private": true
+}

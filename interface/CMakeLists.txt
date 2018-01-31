@@ -11,9 +11,17 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
+set(CUSTOM_INTERFACE_QRC_PATHS "")
+
+find_npm()
+
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+endif ()
+
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
-generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *)
+generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
 add_custom_command(
     OUTPUT ${RESOURCES_RCC}
@@ -163,6 +171,11 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  add_dependencies(resources jsdoc)
+endif()
+
 add_dependencies(${TARGET_NAME} resources)
 
 if (WIN32)
@@ -289,6 +302,7 @@ if (APPLE)
   )
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+
 
   # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD

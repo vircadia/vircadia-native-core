@@ -4,5 +4,8 @@
             "outputSourceFiles": false
         }
     },
-    "plugins": ["plugins/hifi"]
+    "plugins": [
+        "plugins/hifi",
+        "plugins/hifiJSONExport"
+    ]
 }
