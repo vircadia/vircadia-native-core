@@ -100,7 +100,7 @@
             button.editProperties({isActive: shouldActivateButton});
             wireEventBridge(true);
             messagesWaiting(false);
-            tablet.sendToQml({ method: 'refreshFeeds' })
+            tablet.sendToQml({ method: 'refreshFeeds', protocolSignature: Window.protocolSignature() })
 
         } else {
             shouldActivateButton = false;

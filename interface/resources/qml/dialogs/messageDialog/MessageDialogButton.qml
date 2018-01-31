@@ -16,10 +16,21 @@ import "../../controls-uit"
 
 Button {
     property var dialog;
-    property int button: StandardButton.NoButton;
+    property int button: StandardButton.Ok;
 
-    color: dialog.defaultButton === button ? hifi.buttons.blue : hifi.buttons.white
-    focus: dialog.defaultButton === button
+    color: focus ? hifi.buttons.blue : hifi.buttons.white
     onClicked: dialog.click(button)
     visible: dialog.buttons & button
+    Keys.onPressed: {
+        if (!focus) {
+            return
+        }
+        switch (event.key) {
+        case Qt.Key_Enter:
+        case Qt.Key_Return:
+            event.accepted = true
+            dialog.click(button)
+            break
+        }
+    }
 }

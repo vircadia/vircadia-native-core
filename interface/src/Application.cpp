@@ -149,6 +149,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
+#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -396,6 +397,7 @@ public:
         setObjectName("Deadlock Watchdog");
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
+        _paused = false;
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
@@ -413,11 +415,20 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void pause() {
+        _paused = true;
+    }
+
+    static void resume() {
+        _paused = false;
+        updateHeartbeat();
+    }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             // Don't do heartbeat detection under nsight
-            if (nsightActive()) {
+            if (nsightActive() || _paused) {
                 continue;
             }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
@@ -473,6 +484,7 @@ public:
         }
     }
 
+    static std::atomic<bool> _paused;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
@@ -481,6 +493,7 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_paused;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
@@ -655,8 +668,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         }
     }
 #endif
-
-    Setting::init();
 
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
@@ -908,6 +919,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
+
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -2269,6 +2282,11 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+#ifdef Q_OS_OSX
+    // FIXME: on mac os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
+    DeadlockWatchdogThread::pause();
+#endif
+
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
@@ -2277,6 +2295,11 @@ void Application::initializeGL() {
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
+
+#ifdef Q_OS_OSX
+    DeadlockWatchdogThread::resume();
+#endif
+
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -6272,7 +6295,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("../dialogs/TabletAssetServer.qml");
+            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
