@@ -67,41 +67,6 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
         auto& shaderObject = shaderObjects[version];
 
         std::string shaderDefines = getBackendShaderHeader() + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version]
-        + "\n#extension GL_EXT_texture_buffer : enable"
-        + "\nprecision lowp float; // check precision 2"
-        + "\nprecision lowp samplerBuffer;"
-        + "\nprecision lowp sampler2DShadow;";
-        std::string error;
-
-#ifdef SEPARATE_PROGRAM
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram, error);
-#else
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, error);
-#endif
-        if (!result) {
-            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << error.c_str();
-            return nullptr;
-        }
-    }
-
-    // So far so good, the shader is created successfully
-    GLShader* object = new GLShader(this->shared_from_this());
-    object->_shaderObjects = shaderObjects;
-
-    return object;
-}
-
-GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::CompilationHandler handler) {
-    // Any GLSLprogram ? normally yes...
-    const std::string& shaderSource = shader.getSource().getCode();
-    GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
-    GLShader::ShaderObjects shaderObjects;
-    Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
-
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& shaderObject = shaderObjects[version];
-
-        std::string shaderDefines = getBackendShaderHeader() + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version]
             + "\n#extension GL_EXT_texture_buffer : enable"
             + "\nprecision lowp float; // check precision 2"
             + "\nprecision lowp samplerBuffer;"
