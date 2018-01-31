@@ -72,7 +72,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         BatchSetter batchSetter, ItemSetter itemSetter) {
     ShapeKey key{ filter._flags };
 
-    if (program->getInputs().empty()) {
+    if (program->getNumCompilationAttempts() < 1) {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
         slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));

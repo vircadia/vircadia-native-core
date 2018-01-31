@@ -95,3 +95,7 @@ void Shader::setCompilationLogs(const CompilationLogs& logs) const {
         _compilationLogs.emplace_back(CompilationLog(log));
     }
 }
+
+void Shader::incrementCompilationAttempt() const {
+    _numCompilationAttempts++;
+}

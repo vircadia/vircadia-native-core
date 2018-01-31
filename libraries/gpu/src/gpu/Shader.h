@@ -185,10 +185,12 @@ public:
     // Check the compilation state
     bool compilationHasFailed() const { return _compilationHasFailed; }
     const CompilationLogs& getCompilationLogs() const { return _compilationLogs; }
+    uint32_t getNumCompilationAttempts() const { return _numCompilationAttempts; }
 
     // Set COmpilation logs can only be called by the Backend layers
     void setCompilationHasFailed(bool compilationHasFailed) { _compilationHasFailed = compilationHasFailed; }
     void setCompilationLogs(const CompilationLogs& logs) const;
+    void incrementCompilationAttempt() const;
 
 
     const GPUObjectPointer gpuObject {};
@@ -219,6 +221,8 @@ protected:
     // The type of the shader, the master key
     Type _type;
 
+    // Number of attempts to compile the shader
+    mutable uint32_t _numCompilationAttempts{ 0 };
     // Compilation logs (one for each versions generated)
     mutable CompilationLogs _compilationLogs;
 

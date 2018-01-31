@@ -62,6 +62,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
+    shader.incrementCompilationAttempt();
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
@@ -108,6 +109,7 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, Shader::Compil
 
     GLShader::ShaderObjects programObjects;
 
+    program.incrementCompilationAttempt();
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
