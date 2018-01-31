@@ -527,6 +527,69 @@
     //
     //***********************************************
 
+    var sendMoneyParticleEffectUpdateTimer;
+    var sendMoneyParticleEffectDeleteTimer;
+    var sendMoneyParticleEffect;
+    var SEND_MONEY_PARTICLE_TIMER_UPDATE = 250;
+    var SEND_MONEY_PARTICLE_TIMER_TIMEOUT = 4000;
+    var SEND_MONEY_PARTICLE_PROPERTIES = {
+        accelerationSpread: { x: 0, y: 0, z: 0 },
+        alpha: 1,
+        alphaFinish: 1,
+        alphaSpread: 0,
+        alphaStart: 1,
+        azimuthFinish: 0,
+        azimuthStart: -6,
+        color: { red: 143, green: 5, blue: 255 },
+        colorFinish: { red: 255, green: 0, blue: 204 },
+        colorSpread: { red: 0, green: 0, blue: 0 },
+        colorStart: { red: 0, green: 136, blue: 255 },
+        emitAcceleration: { x: 0, y: -3, z: 0 },
+        emitDimensions: { x: 0, y: 0, z: 0 },
+        emitOrientation: { x: 0, y: 0, z: 0 },
+        emitRate: 4.5,
+        emitSpeed: 2.1,
+        emitterShouldTrail: true,
+        isEmitting: 1,
+        lifespan: 3,
+        lifetime: 15,
+        maxParticles: 10,
+        name: 'hfc-particles',
+        particleRadius: 0.2,
+        polarFinish: 0,
+        polarStart: 0,
+        radiusFinish: 0,
+        radiusSpread: 0,
+        radiusStart: 0,
+        speedSpread: 0,
+        textures: "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle-HFC.png",
+        type: 'ParticleEffect'
+    };
+
+    function updateSendMoneyParticleEffect() {
+        if (sendMoneyParticleEffect) {
+            var accel = Vec3.subtract(AvatarList.getAvatar(recipient).position, MyAvatar.position);
+            accel.y -= 3.0;
+            Entities.editEntity(sendMoneyParticleEffect, {
+                emitAcceleration: accel
+            });
+        }
+    }
+
+    function deleteSendMoneyParticleEffect() {
+        if (sendMoneyParticleEffectDeleteTimer) {
+            Script.clearTimeout(sendMoneyParticleEffectDeleteTimer);
+            sendMoneyParticleEffectDeleteTimer = null;
+        }
+        if (sendMoneyParticleEffectUpdateTimer) {
+            Script.clearInterval(sendMoneyParticleEffectUpdateTimer);
+            sendMoneyParticleEffectUpdateTimer = null;
+        }
+        if (sendMoneyParticleEffect) {
+            sendMoneyParticleEffect = Entities.deleteEntity(sendMoneyParticleEffect);
+        }
+    }
+
     // Function Name: fromQml()
     //
     // Description:
@@ -534,6 +597,7 @@
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
     var isHmdPreviewDisabled = true;
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+
     function fromQml(message) {
         switch (message.method) {
             case 'passphrasePopup_cancelClicked':
@@ -604,6 +668,22 @@
                     isUpdateOverlaysWired = false;
                 }
                 removeOverlays();
+                break;
+            case 'sendMoney_sendPublicly':
+                var recipient = message.recipient;
+                var amount = message.amount;
+                var props = SEND_MONEY_PARTICLE_PROPERTIES;
+                if (sendMoneyParticleEffect) {
+                    deleteSendMoneyParticleEffect();
+                }
+                props.parentID = MyAvatar.sessionUUID;
+                props.emitAcceleration = Vec3.subtract(AvatarList.getAvatar(recipient).position, MyAvatar.position);
+                props.emitAcceleration.y -= 3.0;
+                props.position = MyAvatar.position;
+                props.position.y += 0.2;
+                sendMoneyParticleEffect = Entities.addEntity(props, true);
+                sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+                sendMoneyParticleEffectDeleteTimer = Script.setTimeout(deleteSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_TIMEOUT);
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
@@ -706,6 +786,7 @@
     function shutdown() {
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
+        deleteSendMoneyParticleEffect();
         if (tablet) {
             tablet.screenChanged.disconnect(onTabletScreenChanged);
             if (onWalletScreen) {

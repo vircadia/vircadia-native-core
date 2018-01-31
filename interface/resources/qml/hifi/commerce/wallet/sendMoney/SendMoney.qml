@@ -308,6 +308,22 @@ Item {
                     }
                 }
             }
+
+            // "Particle" button
+            HifiControlsUit.Button {
+                id: particle;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: nearbyButton.bottom;
+                anchors.topMargin: 24;
+                height: 50;
+                width: 160;
+                text: "Try Particles";
+                onClicked: {
+                    sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: "{d90f0952-20c0-46b7-8851-92184db83e1f}", amount: 2});
+                }
+            }
         }
     }
     // Send Money Home END
@@ -967,7 +983,7 @@ Item {
 
         HifiControlsUit.CheckBox {
             id: sendPubliclyCheckbox;
-            visible: false; // FIXME ONCE PARTICLE EFFECTS ARE IN
+            visible: true;
             text: "Send Publicly"
             // Anchors
             anchors.top: messageContainer.bottom;
@@ -1035,7 +1051,11 @@ Item {
                         if (sendMoneyStep.referrer === "connections") {
                             Commerce.transferHfcToUsername(sendMoneyStep.selectedRecipientUserName, parseInt(amountTextField.text), optionalMessage.text);
                         } else if (sendMoneyStep.referrer === "nearby") {
-                            Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, parseInt(amountTextField.text), optionalMessage.text);
+                            var transferAmount = parseInt(amountTextField.text);
+                            Commerce.transferHfcToNode(sendMoneyStep.selectedRecipientNodeID, transferAmount, optionalMessage.text);
+                            if (sendPubliclyCheckbox.checked) {
+                                sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: sendMoneyStep.selectedRecipientNodeID, amount: transferAmount});
+                            }
                         }
                     }
                 }
@@ -1533,6 +1553,7 @@ Item {
         sendMoneyStep.selectedRecipientProfilePic = "";
         amountTextField.text = "";
         optionalMessage.text = "";
+        sendPubliclyCheckbox.checked = false;
     }
 
     //
