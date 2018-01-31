@@ -543,6 +543,7 @@ void OffscreenQmlSurface::cleanup() {
 
 void OffscreenQmlSurface::render() {
 #if !defined(DISABLE_QML)
+
     if (nsightActive()) {
         return;
     }
@@ -565,6 +566,7 @@ void OffscreenQmlSurface::render() {
     glBindTexture(GL_TEXTURE_2D, texture);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
+    glFinish();
 
 
     {
