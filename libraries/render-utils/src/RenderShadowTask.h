@@ -17,6 +17,8 @@
 
 #include <render/CullTask.h>
 
+#include "Shadows_shared.slh"
+
 class ViewFrustum;
 
 class RenderShadowMap {
@@ -53,43 +55,64 @@ public:
     void configure(const Config& configuration);
 };
 
-class RenderShadowSetup {
-public:
-    using JobModel = render::Job::Model<RenderShadowSetup>;
-
-    RenderShadowSetup() {}
-    void run(const render::RenderContextPointer& renderContext);
-
-};
-
-class RenderShadowCascadeSetupConfig : public render::Job::Config {
+class RenderShadowSetupConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float fixedBias MEMBER fixedBias NOTIFY dirty)
-        Q_PROPERTY(float slopeBias MEMBER slopeBias NOTIFY dirty)
+        Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
+        Q_PROPERTY(float constantBias1 MEMBER constantBias1 NOTIFY dirty)
+        Q_PROPERTY(float constantBias2 MEMBER constantBias2 NOTIFY dirty)
+        Q_PROPERTY(float constantBias3 MEMBER constantBias3 NOTIFY dirty)
+        Q_PROPERTY(float slopeBias0 MEMBER slopeBias0 NOTIFY dirty)
+        Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
+        Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
+        Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
 public:
 
-    float fixedBias{ 0.15f };
-    float slopeBias{ 0.55f };
+    float constantBias0{ 0.15f };
+    float constantBias1{ 0.15f };
+    float constantBias2{ 0.15f };
+    float constantBias3{ 0.15f };
+    float slopeBias0{ 0.55f };
+    float slopeBias1{ 0.55f };
+    float slopeBias2{ 0.55f };
+    float slopeBias3{ 0.55f };
 
 signals:
     void dirty();
 };
 
+class RenderShadowSetup {
+public:
+    using Output = ViewFrustumPointer;
+    using Config = RenderShadowSetupConfig;
+    using JobModel = render::Job::ModelO<RenderShadowSetup, Output, Config>;
+
+    RenderShadowSetup();
+    void configure(const Config& configuration);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+
+private:
+
+    ViewFrustumPointer _coarseShadowFrustum;
+    struct {
+        float _constant;
+        float _slope;
+    } _bias[SHADOW_CASCADE_MAX_COUNT];
+
+    void setConstantBias(int cascadeIndex, float value);
+    void setSlopeBias(int cascadeIndex, float value);
+};
+
 class RenderShadowCascadeSetup {
 public:
     using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
-    using Config = RenderShadowCascadeSetupConfig;
-    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs, Config>;
+    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
-    void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, Outputs& output);
 
 private:
 
     unsigned int _cascadeIndex;
-    float _fixedBias{ 0.1f };
-    float _slopeBias{ 0.1f };
 };
 
 class RenderShadowCascadeTeardown {

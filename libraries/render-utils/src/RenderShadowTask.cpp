@@ -213,7 +213,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
-    task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto coarseFrustum = task.addJob<RenderShadowSetup>("ShadowSetup");
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
@@ -243,7 +243,31 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
+RenderShadowSetup::RenderShadowSetup() :
+    _coarseShadowFrustum{ std::make_shared<ViewFrustum>() } {
+
+}
+
+void RenderShadowSetup::configure(const Config& configuration) {
+    setConstantBias(0, configuration.constantBias0);
+    setConstantBias(1, configuration.constantBias1);
+    setConstantBias(2, configuration.constantBias2);
+    setConstantBias(3, configuration.constantBias3);
+    setSlopeBias(0, configuration.slopeBias0);
+    setSlopeBias(1, configuration.slopeBias1);
+    setSlopeBias(2, configuration.slopeBias2);
+    setSlopeBias(3, configuration.slopeBias3);
+}
+
+void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
+    _bias[cascadeIndex]._constant = value * value * value * 0.004f;
+}
+
+void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
+    _bias[cascadeIndex]._slope = value * value * value * 0.01f;
+}
+
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
     // Cache old render args
@@ -252,12 +276,46 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
         globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
-    }
-}
+        auto firstCascadeFrustum = globalShadow->getCascade(0).getFrustum();
+        unsigned int cascadeIndex;
+        _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
+        _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
 
-void RenderShadowCascadeSetup::configure(const Config& configuration) {
-    _fixedBias = configuration.fixedBias * configuration.fixedBias * configuration.fixedBias * 0.004f;
-    _slopeBias = configuration.slopeBias * configuration.slopeBias * configuration.slopeBias * 0.01f;
+        // Adjust each cascade frustum
+        for (cascadeIndex = 0; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
+            auto& bias = _bias[cascadeIndex];
+            globalShadow->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
+                                                    SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
+                                                    bias._constant, bias._slope);
+        }
+        // Now adjust coarse frustum bounds
+        auto left = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getRight());
+        auto right = glm::dot(firstCascadeFrustum->getFarTopRight(), firstCascadeFrustum->getRight());
+        auto top = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getUp());
+        auto bottom = glm::dot(firstCascadeFrustum->getFarBottomRight(), firstCascadeFrustum->getUp());
+        auto near = firstCascadeFrustum->getNearClip();
+        auto far = firstCascadeFrustum->getFarClip();
+        for (cascadeIndex = 1; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
+            auto cascadeLeft = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getRight());
+            auto cascadeRight = glm::dot(firstCascadeFrustum->getFarTopRight(), firstCascadeFrustum->getRight());
+            auto cascadeTop = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getUp());
+            auto cascadeBottom = glm::dot(firstCascadeFrustum->getFarBottomRight(), firstCascadeFrustum->getUp());
+            auto cascadeNear = firstCascadeFrustum->getNearClip();
+            auto cascadeFar = firstCascadeFrustum->getFarClip();
+            left = glm::min(left, cascadeLeft);
+            right = glm::max(right, cascadeRight);
+            bottom = glm::min(bottom, cascadeBottom);
+            top = glm::max(top, cascadeTop);
+            near = glm::min(near, cascadeNear);
+            far = glm::max(far, cascadeFar);
+        }
+        _coarseShadowFrustum->setProjection(glm::ortho<float>(left, right, bottom, top, near, far));
+        _coarseShadowFrustum->calculate();
+
+        output = _coarseShadowFrustum;
+    } else {
+        output = nullptr;
+    }
 }
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
@@ -272,9 +330,6 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
         output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
-
-        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, 
-                                                _fixedBias, _slopeBias);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));

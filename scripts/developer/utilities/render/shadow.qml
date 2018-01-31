@@ -18,6 +18,7 @@ Column {
     id: root
     spacing: 8
     property var viewConfig: Render.getConfig("RenderMainView.DrawViewFrustum");
+    property var shadowConfig : Render.getConfig("RenderMainView.ShadowSetup");
     property var shadow0Config: Render.getConfig("RenderMainView.DrawShadowFrustum0");
     property var shadow1Config: Render.getConfig("RenderMainView.DrawShadowFrustum1");
     property var shadow2Config: Render.getConfig("RenderMainView.DrawShadowFrustum2");
@@ -80,34 +81,34 @@ Column {
         }
     }
     ConfigSlider {
-        label: qsTr("Cascade 0 fixed bias")
+        label: qsTr("Cascade 0 constant bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup0")
-        property: "fixedBias"
+        config: shadowConfig
+        property: "constantBias0"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
-        label: qsTr("Cascade 1 fixed bias")
+        label: qsTr("Cascade 1 constant bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup1")
-        property: "fixedBias"
+        config: shadowConfig
+        property: "constantBias1"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
-        label: qsTr("Cascade 2 fixed bias")
+        label: qsTr("Cascade 2 constant bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup2")
-        property: "fixedBias"
+        config: shadowConfig
+        property: "constantBias2"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
-        label: qsTr("Cascade 3 fixed bias")
+        label: qsTr("Cascade 3 constant bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup3")
-        property: "fixedBias"
+        config: shadowConfig
+        property: "constantBias3"
         max: 1.0
         min: 0.0
     }
@@ -115,32 +116,32 @@ Column {
     ConfigSlider {
         label: qsTr("Cascade 0 slope bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup0")
-        property: "slopeBias"
+        config: shadowConfig
+        property: "slopeBias0"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
         label: qsTr("Cascade 1 slope bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup1")
-        property: "slopeBias"
+        config: shadowConfig
+        property: "slopeBias1"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
         label: qsTr("Cascade 2 slope bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup2")
-        property: "slopeBias"
+        config: shadowConfig
+        property: "slopeBias2"
         max: 1.0
         min: 0.0
     }
     ConfigSlider {
         label: qsTr("Cascade 3 slope bias")
         integral: false
-        config: Render.getConfig("RenderMainView.ShadowCascadeSetup3")
-        property: "slopeBias"
+        config: shadowConfig
+        property: "slopeBias3"
         max: 1.0
         min: 0.0
     }
