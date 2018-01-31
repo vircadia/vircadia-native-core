@@ -2283,7 +2283,7 @@ void Application::initializeGL() {
 
 #ifdef Q_OS_OSX
     // FIXME: on mac os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
-    +DeadlockWatchdogThread::pause();
+    DeadlockWatchdogThread::pause();
 #endif
 
     // Set up the render engine
