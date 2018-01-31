@@ -1645,7 +1645,6 @@ void EntityItem::setParentID(const QUuid& value) {
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
             if ((bool)(newParentNoBootstrapping & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
                 markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                qDebug() << "setParentID" << QString::fromStdString(std::bitset<32>(_flags).to_string()) << " <--------";
                 forEachDescendant([&](SpatiallyNestablePointer object) {
                         if (object->getNestableType() == NestableType::Entity) {
                             EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
