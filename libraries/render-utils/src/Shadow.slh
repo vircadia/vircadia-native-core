@@ -83,19 +83,12 @@ float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, ve
     return shadowAttenuation;
 }
 
-float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord, float bias,
-                                   vec3 worldPosition, vec3 worldLightDir) {
+float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord, float oneMinusNdotL) {
     if (!isShadowCascadeProjectedOnPixel(shadowTexcoord)) {
         // If a point is not in the map, do not attenuate
         return 1.0;
     }
-    // After this, bias is in view units
-    bias *= getShadowAdaptiveBiasUnitScale(cascadeIndex);
-    // Transform to texcoord space (between 0 and 1)
-    float shadowDepth = abs(dot(worldPosition-getShadowFrustumPosition(cascadeIndex), worldLightDir));
-    bias = transformShadowAdaptiveBias(cascadeIndex, shadowDepth, bias);
-    // Add fixed bias
-    bias += getShadowBias(cascadeIndex);
+    float bias = getShadowFixedBias(cascadeIndex) + getShadowSlopeBias(cascadeIndex) * oneMinusNdotL;
     return evalShadowAttenuationPCF(cascadeIndex, offsets, shadowTexcoord, bias);
 }
 
@@ -106,12 +99,11 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     float cascadeMix = determineShadowCascadesOnPixel(worldPosition, viewDepth, cascadeShadowCoords, cascadeIndices);
 	
     // Adjust bias if we are at a grazing angle with light
-    float ndotl = dot(worldLightDir, worldNormal);
-    float bias = 1.0/(ndotl*ndotl)-1.0;
+    float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0, 1);
     vec2 cascadeAttenuations = vec2(1.0, 1.0);
-    cascadeAttenuations.x = evalShadowCascadeAttenuation(cascadeIndices.x, offsets, cascadeShadowCoords[0], bias, worldPosition.xyz, worldLightDir);
+    cascadeAttenuations.x = evalShadowCascadeAttenuation(cascadeIndices.x, offsets, cascadeShadowCoords[0], oneMinusNdotL);
     if (cascadeMix > 0.0 && cascadeIndices.y < getShadowCascadeCount()) {
-        cascadeAttenuations.y = evalShadowCascadeAttenuation(cascadeIndices.y, offsets, cascadeShadowCoords[1], bias, worldPosition.xyz, worldLightDir);
+        cascadeAttenuations.y = evalShadowCascadeAttenuation(cascadeIndices.y, offsets, cascadeShadowCoords[1], oneMinusNdotL);
     }
     float attenuation = mix(cascadeAttenuations.x, cascadeAttenuations.y, cascadeMix);
     // Falloff to max distance

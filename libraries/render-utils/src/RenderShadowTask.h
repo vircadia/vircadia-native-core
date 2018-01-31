@@ -64,10 +64,12 @@ public:
 
 class RenderShadowCascadeSetupConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float bias MEMBER bias NOTIFY dirty)
+        Q_PROPERTY(float fixedBias MEMBER fixedBias NOTIFY dirty)
+        Q_PROPERTY(float slopeBias MEMBER slopeBias NOTIFY dirty)
 public:
 
-    float bias{ 0.25f };
+    float fixedBias{ 0.15f };
+    float slopeBias{ 0.55f };
 
 signals:
     void dirty();
@@ -86,7 +88,8 @@ public:
 private:
 
     unsigned int _cascadeIndex;
-    float _baseBias{ 0.1f };
+    float _fixedBias{ 0.1f };
+    float _slopeBias{ 0.1f };
 };
 
 class RenderShadowCascadeTeardown {

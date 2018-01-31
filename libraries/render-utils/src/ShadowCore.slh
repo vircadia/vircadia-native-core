@@ -37,21 +37,14 @@ float getShadowScale() {
 	return shadow.invMapSize;
 }
 
-float getShadowBias(int cascadeIndex) {
+float getShadowFixedBias(int cascadeIndex) {
 	return shadow.cascades[cascadeIndex].fixedBias;
 }
 
-vec3 getShadowFrustumPosition(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].frustumPosition;
+float getShadowSlopeBias(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].slopeBias;
 }
 
-float getShadowAdaptiveBiasUnitScale(int cascadeIndex) {
-	return shadow.cascades[cascadeIndex].adaptiveBiasUnitScale;
-}
-
-float transformShadowAdaptiveBias(int cascadeIndex, float shadowDepth, float depthBias) {
-    return shadow.cascades[cascadeIndex].adaptiveBiasTransformScale * depthBias / (shadowDepth*shadowDepth);
-}
 
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {

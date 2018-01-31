@@ -256,9 +256,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
 }
 
 void RenderShadowCascadeSetup::configure(const Config& configuration) {
-    // I'm not very proud of this empirical adjustment
-    auto cascadeBias = configuration.bias * powf(1.1f, _cascadeIndex);
-    _baseBias = cascadeBias * cascadeBias * 0.01f;
+    _fixedBias = configuration.fixedBias * configuration.fixedBias * configuration.fixedBias * 0.004f;
+    _slopeBias = configuration.slopeBias * configuration.slopeBias * configuration.slopeBias * 0.01f;
 }
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
@@ -274,7 +273,8 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
         output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
-        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, _baseBias);
+        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, 
+                                                _fixedBias, _slopeBias);
 
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));

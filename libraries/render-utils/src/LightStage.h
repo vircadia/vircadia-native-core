@@ -80,7 +80,7 @@ public:
         void setKeylightFrustum(const ViewFrustum& viewFrustum,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
         void setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                float nearDepth = 1.0f, float farDepth = 1000.0f, float baseBias = 0.005f);
+                                float nearDepth = 1.0f, float farDepth = 1000.0f, float fixedBias = 0.005f, float slopeBias = 0.005f);
         void setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
@@ -109,8 +109,6 @@ public:
         public:
 
             Schema();
-
-            void updateCascade(int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         };
         UniformBufferView _schemaBuffer = nullptr;

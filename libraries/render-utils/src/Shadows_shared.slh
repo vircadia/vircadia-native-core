@@ -11,10 +11,8 @@
 
 struct ShadowTransform {
 	MAT4 reprojection;
-    VEC3 frustumPosition;
 	float fixedBias;
-    float adaptiveBiasUnitScale;
-    float adaptiveBiasTransformScale;
+    float slopeBias;
     float _padding1;
     float _padding2;
 };
