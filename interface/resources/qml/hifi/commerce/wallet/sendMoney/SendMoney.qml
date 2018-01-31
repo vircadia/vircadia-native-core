@@ -321,7 +321,7 @@ Item {
                 width: 160;
                 text: "Try Particles";
                 onClicked: {
-                    sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: "{d90f0952-20c0-46b7-8851-92184db83e1f}", amount: 2});
+                    sendSignalToWallet({method: 'sendMoney_sendPublicly', recipient: "{09f76bc2-c108-41e9-9a94-18bbda228ed2}", amount: 2});
                 }
             }
         }

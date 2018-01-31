@@ -527,11 +527,13 @@
     //
     //***********************************************
 
+    var sendMoneyRecipient;
     var sendMoneyParticleEffectUpdateTimer;
-    var sendMoneyParticleEffectDeleteTimer;
+    var particleEffectTimestamp;
     var sendMoneyParticleEffect;
     var SEND_MONEY_PARTICLE_TIMER_UPDATE = 250;
-    var SEND_MONEY_PARTICLE_TIMER_TIMEOUT = 4000;
+    var SEND_MONEY_PARTICLE_EMITTING_DURATION = 3000;
+    var SEND_MONEY_PARTICLE_LIFETIME_SECONDS = 8;
     var SEND_MONEY_PARTICLE_PROPERTIES = {
         accelerationSpread: { x: 0, y: 0, z: 0 },
         alpha: 1,
@@ -544,43 +546,51 @@
         colorFinish: { red: 255, green: 0, blue: 204 },
         colorSpread: { red: 0, green: 0, blue: 0 },
         colorStart: { red: 0, green: 136, blue: 255 },
-        emitAcceleration: { x: 0, y: -3, z: 0 },
+        emitAcceleration: { x: 0, y: 0, z: 0 }, // Immediately gets updated to be accurate
         emitDimensions: { x: 0, y: 0, z: 0 },
         emitOrientation: { x: 0, y: 0, z: 0 },
-        emitRate: 4.5,
+        emitRate: 4,
         emitSpeed: 2.1,
         emitterShouldTrail: true,
         isEmitting: 1,
-        lifespan: 3,
-        lifetime: 15,
-        maxParticles: 10,
+        lifespan: SEND_MONEY_PARTICLE_LIFETIME_SECONDS + 1, // Immediately gets updated to be accurate
+        lifetime: SEND_MONEY_PARTICLE_LIFETIME_SECONDS + 1,
+        maxParticles: 20,
         name: 'hfc-particles',
         particleRadius: 0.2,
         polarFinish: 0,
         polarStart: 0,
-        radiusFinish: 0,
+        radiusFinish: 0.05,
         radiusSpread: 0,
-        radiusStart: 0,
+        radiusStart: 0.2,
         speedSpread: 0,
         textures: "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle-HFC.png",
         type: 'ParticleEffect'
     };
 
     function updateSendMoneyParticleEffect() {
-        if (sendMoneyParticleEffect) {
-            var accel = Vec3.subtract(AvatarList.getAvatar(recipient).position, MyAvatar.position);
-            accel.y -= 3.0;
+        var timestampNow = Date.now();
+        if ((timestampNow - particleEffectTimestamp) > (SEND_MONEY_PARTICLE_LIFETIME_SECONDS * 1000)) {
+            deleteSendMoneyParticleEffect();
+            return;
+        } else if ((timestampNow - particleEffectTimestamp) > SEND_MONEY_PARTICLE_EMITTING_DURATION) {
             Entities.editEntity(sendMoneyParticleEffect, {
-                emitAcceleration: accel
+                isEmitting: 0
+            });
+        } else if (sendMoneyParticleEffect) {
+            var recipientPosition = AvatarList.getAvatar(sendMoneyRecipient).position;
+            var distance = Vec3.distance(recipientPosition, MyAvatar.position);
+            var accel = Vec3.subtract(recipientPosition, MyAvatar.position);
+            accel.y -= 3.0;
+            var life = Math.sqrt(2 * distance / Vec3.length(accel));
+            Entities.editEntity(sendMoneyParticleEffect, {
+                emitAcceleration: accel,
+                lifespan: life
             });
         }
     }
 
     function deleteSendMoneyParticleEffect() {
-        if (sendMoneyParticleEffectDeleteTimer) {
-            Script.clearTimeout(sendMoneyParticleEffectDeleteTimer);
-            sendMoneyParticleEffectDeleteTimer = null;
-        }
         if (sendMoneyParticleEffectUpdateTimer) {
             Script.clearInterval(sendMoneyParticleEffectUpdateTimer);
             sendMoneyParticleEffectUpdateTimer = null;
@@ -588,6 +598,7 @@
         if (sendMoneyParticleEffect) {
             sendMoneyParticleEffect = Entities.deleteEntity(sendMoneyParticleEffect);
         }
+        sendMoneyRecipient = null;
     }
 
     // Function Name: fromQml()
@@ -670,20 +681,19 @@
                 removeOverlays();
                 break;
             case 'sendMoney_sendPublicly':
-                var recipient = message.recipient;
+                sendMoneyRecipient = message.recipient;
                 var amount = message.amount;
                 var props = SEND_MONEY_PARTICLE_PROPERTIES;
                 if (sendMoneyParticleEffect) {
                     deleteSendMoneyParticleEffect();
                 }
                 props.parentID = MyAvatar.sessionUUID;
-                props.emitAcceleration = Vec3.subtract(AvatarList.getAvatar(recipient).position, MyAvatar.position);
-                props.emitAcceleration.y -= 3.0;
                 props.position = MyAvatar.position;
                 props.position.y += 0.2;
                 sendMoneyParticleEffect = Entities.addEntity(props, true);
+                particleEffectTimestamp = Date.now();
+                updateSendMoneyParticleEffect();
                 sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
-                sendMoneyParticleEffectDeleteTimer = Script.setTimeout(deleteSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_TIMEOUT);
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
