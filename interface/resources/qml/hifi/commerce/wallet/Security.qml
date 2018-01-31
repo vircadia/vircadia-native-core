@@ -192,7 +192,7 @@ Item {
                 color: hifi.colors.white;
             }
 
-            // "Change Passphrase" button
+            // "Change Security Pic" button
             HifiControlsUit.Button {
                 id: changeSecurityImageButton;
                 color: hifi.buttons.blue;

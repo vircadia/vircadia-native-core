@@ -23,7 +23,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property int currentIndex: securityImageGrid.currentIndex;
+    property alias currentIndex: securityImageGrid.currentIndex;
     
     // This will cause a bug -- if you bring up security image selection in HUD mode while
     // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
@@ -97,6 +97,11 @@ Item {
 
     function initModel() {
         gridModel.initModel();
+        securityImageGrid.currentIndex = -1;
+    }
+
+    function resetSelection() {
+        securityImageGrid.currentIndex = -1;
     }
     //
     // FUNCTION DEFINITIONS END

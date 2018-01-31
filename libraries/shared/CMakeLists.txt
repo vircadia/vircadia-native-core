@@ -7,5 +7,9 @@ if (WIN32)
     target_link_libraries(${TARGET_NAME} Wbemuuid.lib)
 endif()
 
+if (ANDROID)
+    target_link_libraries(${TARGET_NAME} android)
+endif()
+
 target_zlib()
 target_nsight()

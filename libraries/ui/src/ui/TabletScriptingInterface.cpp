@@ -198,9 +198,8 @@ void TabletScriptingInterface::preloadSounds() {
     //preload audio events
     const QStringList &audioSettings = tabletSoundsButtonClick.get();
     for (int i = 0; i < TabletAudioEvents::Last; i++) {
-        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + audioSettings.at(i));
         SharedSoundPointer sound = DependencyManager::get<SoundCache>()->
-                getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
+                getSound(PathUtils::resourcesUrl(audioSettings.at(i)));
         _audioEvents.insert(static_cast<TabletAudioEvents>(i), sound);
     }
 }

@@ -27,9 +27,9 @@ struct CompositeInfo {
     using Array = std::array<CompositeInfo, COMPOSITING_BUFFER_SIZE>;
     
     gpu::TexturePointer texture;
-    GLuint textureID { 0 };
+    uint32_t textureID { 0 };
     glm::mat4 pose;
-    GLsync fence{ 0 };
+    void* fence{ 0 };
 };
 
 class OpenVrDisplayPlugin : public HmdDisplayPlugin {

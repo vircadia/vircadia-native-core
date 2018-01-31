@@ -316,6 +316,7 @@ Rectangle {
 
             HifiControlsUit.TextField {
                 id: filterBar;
+                property string previousText: "";
                 colorScheme: hifi.colorSchemes.faintGray;
                 hasClearButton: true;
                 hasRoundedBorder: true;
@@ -328,6 +329,8 @@ Rectangle {
 
                 onTextChanged: {
                     buildFilteredPurchasesModel();
+                    purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
+                    filterBar.previousText = filterBar.text;
                 }
 
                 onAccepted: {
@@ -646,7 +649,8 @@ Rectangle {
 
     function sortByDate() {
         filteredPurchasesModel.sortColumnName = "purchase_date";
-        filteredPurchasesModel.isSortingDescending = false;
+        filteredPurchasesModel.isSortingDescending = true;
+        filteredPurchasesModel.valuesAreNumerical = true;
         filteredPurchasesModel.quickSort();
     }
 
@@ -676,7 +680,7 @@ Rectangle {
             }
         }
 
-        if (sameItemCount !== tempPurchasesModel.count) {
+        if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== filterBar.previousText) {
             filteredPurchasesModel.clear();
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));

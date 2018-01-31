@@ -93,19 +93,19 @@ ModalWindow {
             TextField {
                 id: textResult
                 label: root.label
-                focus: items ? false : true
                 visible: items ? false : true
                 anchors {
                     left: parent.left;
                     right: parent.right;
                     bottom: parent.bottom
                 }
+                KeyNavigation.down: acceptButton
+                KeyNavigation.tab: acceptButton
             }
 
             ComboBox {
                 id: comboBox
                 label: root.label
-                focus: true
                 visible: items ? true : false
                 anchors {
                     left: parent.left
@@ -113,6 +113,8 @@ ModalWindow {
                     bottom: parent.bottom
                 }
                 model: items ? items : []
+                KeyNavigation.down: acceptButton
+                KeyNavigation.tab: acceptButton
             }
         }
 
@@ -133,7 +135,6 @@ ModalWindow {
 
         Flow {
             id: buttons
-            focus: true
             spacing: hifi.dimensions.contentSpacing.x
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
@@ -144,11 +145,19 @@ ModalWindow {
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
             Button {
-                action: cancelAction;
+                id: cancelButton
+                action: cancelAction
+                KeyNavigation.left: acceptButton
+                KeyNavigation.up: items ? comboBox : textResult
+                KeyNavigation.backtab: acceptButton
             }
-
             Button {
+                id: acceptButton
                 action: acceptAction
+                KeyNavigation.right: cancelButton
+                KeyNavigation.up: items ? comboBox : textResult
+                KeyNavigation.tab: cancelButton
+                KeyNavigation.backtab: items ? comboBox : textResult
             }
         }
 
@@ -188,7 +197,13 @@ ModalWindow {
 
         case Qt.Key_Return:
         case Qt.Key_Enter:
-            acceptAction.trigger()
+            if (acceptButton.focus) {
+                acceptAction.trigger()
+            } else if (cancelButton.focus) {
+                cancelAction.trigger()
+            } else if (comboBox.focus || comboBox.popup.focus) {
+                comboBox.showList()
+            }
             event.accepted = true;
             break;
         }
@@ -198,6 +213,10 @@ ModalWindow {
         keyboardEnabled = HMD.active;
         updateIcon();
         d.resize();
-        textResult.forceActiveFocus();
+        if (items) {
+            comboBox.forceActiveFocus()
+        } else {
+            textResult.forceActiveFocus()
+        }
     }
 }

@@ -33,13 +33,11 @@ Item {
             securityImageChangePageSecurityImage.source = "image://security/securityImage";
             if (exists) { // Success submitting new security image
                 if (root.justSubmitted) {
-                    root.resetSubmitButton();
                     sendSignalToWallet({method: "walletSecurity_changeSecurityImageSuccess"});
                     root.justSubmitted = false;
                 }
             } else if (root.justSubmitted) {
                 // Error submitting new security image.
-                root.resetSubmitButton();
                 root.justSubmitted = false;
             }
         }
@@ -179,7 +177,8 @@ Item {
             // "Submit" button
             HifiControlsUit.Button {
                 id: securityImageSubmitButton;
-                enabled: securityImageSelection.currentIndex !== -1;
+                text: root.justSubmitted ? "Submitting..." : "Submit";
+                enabled: securityImageSelection.currentIndex !== -1 && !root.justSubmitted;
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
@@ -187,11 +186,8 @@ Item {
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 width: 150;
-                text: "Submit";
                 onClicked: {
                     root.justSubmitted = true;
-                    securityImageSubmitButton.text = "Submitting...";
-                    securityImageSubmitButton.enabled = false;
                     var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
                     Commerce.chooseSecurityImage(securityImagePath);
                 }
@@ -203,11 +199,6 @@ Item {
     //
 
     signal sendSignalToWallet(var msg);
-
-    function resetSubmitButton() {
-        securityImageSubmitButton.enabled = true;
-        securityImageSubmitButton.text = "Submit";
-    }
 
     function initModel() {
         securityImageSelection.initModel();

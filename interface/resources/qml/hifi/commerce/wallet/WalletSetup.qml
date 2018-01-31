@@ -347,6 +347,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.activeView = "step_1";
                 }
             }
@@ -515,6 +516,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.lastPage = "step_3";
                     root.activeView = "step_2";
                 }

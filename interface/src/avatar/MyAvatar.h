@@ -81,7 +81,7 @@ class MyAvatar : public Avatar {
      *   and MyAvatar.customListenOrientation properties.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
+     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
      *   of the audio spatialization listener.
      * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
      *   around the avatar's head.
@@ -511,6 +511,9 @@ public:
     controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
 
     bool hasDriveInput() const;
+
+    QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
 
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();

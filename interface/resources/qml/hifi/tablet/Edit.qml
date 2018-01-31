@@ -22,7 +22,7 @@ ColumnLayout {
     signal sendToScript(var message);
 
     function pushSource(path) {
-        console.error("Edit. push source", path, Qt.resolvedUrl(path))
+        editRoot.push(Qt.resolvedUrl("../../" + path));
         editStack.push(Qt.resolvedUrl(path));
         editStack.currentItem.sendToScript.connect(editRoot.sendToScript);
     }
