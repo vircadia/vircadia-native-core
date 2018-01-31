@@ -156,7 +156,9 @@ function loaded() {
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
-          if (url === "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx") {
+          var snapURL = 'qrc:///snapshot/snapshot.fbx';
+
+          if (url === snapURL) {
               type = "Image";
           }
 

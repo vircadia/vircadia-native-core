@@ -548,9 +548,9 @@ var toolBar = (function () {
                     z: 2.58
                 },
                 shapeType: "box",
-                modelURL: "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx",
+                modelURL: 'qrc:///snapshot/snapshot.fbx',
                 // change to another default image
-                textures: JSON.stringify({ "tex.picture": "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/dog.jpg" })
+                textures: JSON.stringify({ "tex.picture": 'qrc:///snapshot/img/no-image.jpg' })
             });
         });
 

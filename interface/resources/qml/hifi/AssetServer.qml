@@ -183,7 +183,7 @@ Windows.ScrollingWindow {
 
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
             var name = assetProxyModel.data(treeView.selection.currentIndex);
-            var modelURL = "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx";
+            var modelURL = "qrc:///snapshot/snapshot.fbx";
             var textures = JSON.stringify({ "tex.picture": defaultURL});
             var shapeType = "box";
             var dynamic = false;

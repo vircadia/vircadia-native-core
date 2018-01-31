@@ -797,7 +797,8 @@ function loaded() {
                         elID.value = properties.id;
 
                         // HTML workaround since image is not yet a separate entity type
-                        if (properties.type === "Model" && properties.modelURL === "https://hifi-content.s3.amazonaws.com/elisalj/image_entity/snapshot.fbx") {
+                        var snapURL = 'qrc:///snapshot/snapshot.fbx';
+                        if (properties.type === "Model" && properties.modelURL === snapURL) {
                             properties.type = "Image";
                         }
 
