@@ -51,8 +51,8 @@ macro(add_crashpad)
     )
     install(
       PROGRAMS ${CRASHPAD_HANDLER_EXE_PATH}
-      DESTINATION ${CLIENT_COMPONENT}
-      COMPONENT ${INTERFACE_INSTALL_DIR}
+      DESTINATION ${INTERFACE_INSTALL_DIR}
+      COMPONENT ${CLIENT_COMPONENT}
     )
   endif ()
 endmacro()
