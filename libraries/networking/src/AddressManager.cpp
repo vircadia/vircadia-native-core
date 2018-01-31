@@ -776,7 +776,7 @@ void AddressManager::copyPath() {
     QApplication::clipboard()->setText(currentPath());
 }
 
-QString AddressManager::getDomainId() const {
+QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 

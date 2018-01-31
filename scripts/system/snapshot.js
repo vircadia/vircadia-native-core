@@ -337,7 +337,7 @@ function fillImageDataFromPrevious() {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
         shouldUpload: false,
-        canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+        canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
         isLoggedIn: isLoggedIn
     };
     imageData = [];
@@ -416,7 +416,7 @@ function snapshotUploaded(isError, reply) {
     }
     isUploadingPrintableStill = false;
 }
-var href, domainId;
+var href, domainID;
 function takeSnapshot() {
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
@@ -443,11 +443,11 @@ function takeSnapshot() {
     MyAvatar.setClearOverlayWhenMoving(false);
 
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
-    // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
+    // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
     Settings.setValue("previousSnapshotHref", href);
-    domainId = location.domainId;
-    Settings.setValue("previousSnapshotDomainID", domainId);
+    domainID = location.domainID;
+    Settings.setValue("previousSnapshotDomainID", domainID);
 
     maybeDeleteSnapshotStories();
 
@@ -548,7 +548,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     }
     HMD.openTablet();
 
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: false,
             processingGif: false,
@@ -594,7 +594,7 @@ function processingGifStarted(pathStillSnapshot) {
     }
     HMD.openTablet();
     
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
@@ -622,13 +622,13 @@ function processingGifCompleted(pathAnimatedSnapshot) {
 
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    isDomainOpen(domainId, function (canShare) {
+    isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: false,
             canShare: canShare,
             isLoggedIn: isLoggedIn,
-            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+            canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
         };
         imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
         tablet.emitScriptEvent(JSON.stringify({
