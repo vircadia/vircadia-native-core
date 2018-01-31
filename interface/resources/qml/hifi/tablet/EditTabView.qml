@@ -102,7 +102,7 @@ TabView {
                 }
 
                 NewEntityButton {
-                    icon: "icons/create-icons/25-web-1-01.svg"
+                    icon: "icons/create-icons/image.svg"
                     text: "IMAGE"
                     onClicked: {
                         editRoot.sendToScript({

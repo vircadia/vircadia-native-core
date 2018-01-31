@@ -19,7 +19,7 @@ var ICON_FOR_TYPE = {
     ParticleEffect: "&#xe004;",
     Model: "&#xe008;",
     Web: "q",
-    Image: "q", // change this when image type icon added 
+    Image: "&#xe02a;",
     Text: "l",
     Light: "p",
     Zone: "o",

@@ -549,7 +549,6 @@ var toolBar = (function () {
                 },
                 shapeType: "box",
                 modelURL: 'qrc:///snapshot/snapshot.fbx',
-                // change to another default image
                 textures: JSON.stringify({ "tex.picture": 'qrc:///snapshot/img/no-image.jpg' })
             });
         });
