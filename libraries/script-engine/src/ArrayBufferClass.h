@@ -41,7 +41,6 @@ public:
     QString name() const override;
     QScriptValue prototype() const override;
 
-    ScriptEngine* getEngine() { return _scriptEngine; }
 
 private:
     static QScriptValue construct(QScriptContext* context, QScriptEngine* engine);
@@ -56,7 +55,6 @@ private:
     QScriptString _name;
     QScriptString _byteLength;
 
-    ScriptEngine* _scriptEngine;
 };
 
 #endif // hifi_ArrayBufferClass_h

@@ -35,6 +35,8 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
+#include <ModelEntityItem.h>
+#include <GLMHelpers.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -561,6 +563,12 @@ void MyAvatar::simulate(float deltaTime) {
         if (!_skeletonModel->getHeadPosition(headPosition)) {
             headPosition = getWorldPosition();
         }
+
+        if (isNaN(headPosition)) {
+            qCDebug(interfaceapp) << "MyAvatar::simulate headPosition is NaN";
+            headPosition = glm::vec3(0.0f);
+        }
+
         head->setPosition(headPosition);
         head->setScale(getModelScale());
         head->simulate(deltaTime);
@@ -1413,6 +1421,37 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
     emit skeletonChanged();
 
+}
+
+void MyAvatar::removeAvatarEntities() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+}
+
+QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    QVariantList avatarEntitiesData;
+    QScriptEngine scriptEngine;
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
+            if (modelEntity) {
+                QVariantMap avatarEntityData;
+                EntityItemProperties entityProperties = modelEntity->getProperties();
+                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
+                avatarEntitiesData.append(QVariant(avatarEntityData));
+            }
+        }
+    });
+    return avatarEntitiesData;
 }
 
 
@@ -2414,7 +2453,6 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
         OctreeElementPointer element;
-        EntityItemPointer intersectedEntity = NULL;
         float distance;
         BoxFace face;
         const bool visibleOnly = false;
@@ -2426,13 +2464,14 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
-        bool intersects = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, normalOut, (void**)&intersectedEntity, lockType, accurateResult);
-        if (!intersects || !intersectedEntity) {
+        QVariantMap extraInfo;
+        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, normalOut, extraInfo, lockType, accurateResult);
+        if (entityID.isNull()) {
              return false;
         }
         intersectionOut = startPointIn + (directionIn * distance);
-        entityIdOut = intersectedEntity->getEntityItemID();
+        entityIdOut = entityID;
         return true;
     };
 
@@ -2700,27 +2739,48 @@ void MyAvatar::setWalkSpeed(float value) {
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {
+    glm::vec3 result;
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getPosition();
+            result = getHead()->getPosition();
+            break;
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getPosition();
+            result = qApp->getCamera().getPosition();
+            break;
         case AudioListenerMode::CUSTOM:
-            return _customListenPosition;
+            result = _customListenPosition;
+            break;
     }
-    return vec3();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getPositionForAudio produced NaN" << _audioListenerMode;
+        result = glm::vec3(0.0f);
+    }
+
+    return result;
 }
 
 glm::quat MyAvatar::getOrientationForAudio() {
+    glm::quat result;
+
     switch (_audioListenerMode) {
         case AudioListenerMode::FROM_HEAD:
-            return getHead()->getFinalOrientationInWorldFrame();
+            result = getHead()->getFinalOrientationInWorldFrame();
+            break;
         case AudioListenerMode::FROM_CAMERA:
-            return qApp->getCamera().getOrientation();
+            result = qApp->getCamera().getOrientation();
+            break;
         case AudioListenerMode::CUSTOM:
-            return _customListenOrientation;
+            result = _customListenOrientation;
+            break;
     }
-    return quat();
+
+    if (isNaN(result)) {
+        qCDebug(interfaceapp) << "MyAvatar::getOrientationForAudio produced NaN" << _audioListenerMode;
+        result = glm::quat();
+    }
+
+    return result;
 }
 
 void MyAvatar::setAudioListenerMode(AudioListenerMode audioListenerMode) {

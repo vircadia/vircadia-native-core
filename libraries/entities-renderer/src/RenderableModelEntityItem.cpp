@@ -282,7 +282,7 @@ bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
-                         glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
+                         glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model) {
         return true;
@@ -290,9 +290,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
     //                           << precisionPicking;
 
-    QString extraInfo;
     return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
-                                                       face, surfaceNormal, extraInfo, precisionPicking, false);
+               face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {

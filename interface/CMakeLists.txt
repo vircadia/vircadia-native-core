@@ -206,6 +206,7 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 
 target_bullet()
 target_opengl()
+add_crashpad()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -349,8 +350,6 @@ if (SCRIPTS_INSTALL_DIR)
     COMPONENT ${CLIENT_COMPONENT}
   )
 endif()
-
-add_bugsplat()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")

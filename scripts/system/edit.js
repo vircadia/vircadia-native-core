@@ -469,7 +469,7 @@ var toolBar = (function () {
 
             // tablet version of new-model dialog
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.pushOntoStack("NewModelDialog.qml");
+            tablet.pushOntoStack("hifi/tablet/NewModelDialog.qml");
         });
 
         addButton("newCubeButton", "cube-01.svg", function () {
@@ -1344,7 +1344,7 @@ function recursiveDelete(entities, childrenList, deletedIDs) {
         var entityID = entities[i];
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList);
+        recursiveDelete(children, grandchildrenList, deletedIDs);
         var initialProperties = Entities.getEntityProperties(entityID);
         childrenList.push({
             entityID: entityID,
