@@ -78,7 +78,7 @@
         });
     }
     function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successful. (Logs otherwise)
-        url = METAVERSE_BASE + '/api/v1/users?'
+        url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
         if (domain) {
             url += 'status=' + domain.slice(1, -1); // without curly braces
         } else {
