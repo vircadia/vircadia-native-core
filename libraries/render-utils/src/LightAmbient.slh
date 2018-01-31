@@ -99,7 +99,6 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 
         // Diffuse from ambient
         diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lowNormalCurvature.xyz).xyz;
-        diffuse /= 3.1415926;
         specular = vec3(0.0);
     }
 <@endif@>
