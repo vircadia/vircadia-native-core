@@ -263,26 +263,34 @@ public:
             _scale.x = p.scale().x;
             _scale.y = p.scale().y;
             _scale.z = p.scale().z;
+            _scale.w = 0.0f;
             _dq = DualQuaternion(p.rot(), p.trans());
         }
         TransformDualQuaternion(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
             _scale.x = scale.x;
             _scale.y = scale.y;
             _scale.z = scale.z;
+            _scale.w = 0.0f;
             _dq = DualQuaternion(rot, trans);
         }
         TransformDualQuaternion(const Transform& transform) {
             _scale = glm::vec4(transform.getScale(), 0.0f);
+            _scale.w = 0.0f;
             _dq = DualQuaternion(transform.getRotation(), transform.getTranslation());
         }
         glm::vec3 getScale() const { return glm::vec3(_scale); }
         glm::quat getRotation() const { return _dq.getRotation(); }
         glm::vec3 getTranslation() const { return _dq.getTranslation(); }
         glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRotation(), getTranslation()); };
+
+        void setCauterizationParameters(float cauterizationAmount, const glm::vec3& cauterizedPosition) {
+            _scale.w = cauterizationAmount;
+            _cauterizedPosition = glm::vec4(cauterizedPosition, 1.0f);
+        }
     protected:
         glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
         DualQuaternion _dq;
-        glm::vec4 _padding;
+        glm::vec4 _cauterizedPosition { 0.0f, 0.0f, 0.0f, 1.0f };
     };
 #endif
 

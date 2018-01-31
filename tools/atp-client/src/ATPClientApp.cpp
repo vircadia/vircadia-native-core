@@ -135,7 +135,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         _domainServerAddress = domainURL.toString();
     }
 
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<StatTracker>();

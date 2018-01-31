@@ -12,7 +12,7 @@ StackView {
     HifiConstants { id: hifi }
 
     function pushSource(path) {
-        editRoot.push(Qt.resolvedUrl(path));
+        editRoot.push(Qt.resolvedUrl("../../" + path));
         editRoot.currentItem.sendToScript.connect(editRoot.sendToScript);
     }
 

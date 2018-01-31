@@ -70,35 +70,39 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter, ItemSetter itemSetter) {
+
     ShapeKey key{ filter._flags };
 
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
-    slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
-    slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::MAP::ALBEDO));
-    slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::MAP::ROUGHNESS));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::MAP::NORMAL));
-    slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::MAP::METALLIC));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::MAP::EMISSIVE_LIGHTMAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
-    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
-    slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), Slot::BUFFER::KEY_LIGHT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
-    slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
-    slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
+    // don't call makeProgram on shaders that are already made.
+    if (program->getUniformBuffers().empty()) {
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
+        slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::BUFFER::MATERIAL));
+        slotBindings.insert(gpu::Shader::Binding(std::string("texMapArrayBuffer"), Slot::BUFFER::TEXMAPARRAY));
+        slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::MAP::ALBEDO));
+        slotBindings.insert(gpu::Shader::Binding(std::string("roughnessMap"), Slot::MAP::ROUGHNESS));
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::MAP::NORMAL));
+        slotBindings.insert(gpu::Shader::Binding(std::string("metallicMap"), Slot::MAP::METALLIC));
+        slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::MAP::EMISSIVE_LIGHTMAP));
+        slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
+        slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), Slot::BUFFER::KEY_LIGHT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
+        slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
 
-    if (key.isTranslucent()) {
-        slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
+        if (key.isTranslucent()) {
+            slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), Slot::BUFFER::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
+        }
+
+        gpu::Shader::makeProgram(*program, slotBindings);
     }
-
-    gpu::Shader::makeProgram(*program, slotBindings);
 
     auto locations = std::make_shared<Locations>();
 
