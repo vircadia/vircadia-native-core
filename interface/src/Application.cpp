@@ -149,6 +149,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
+#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -668,8 +669,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 #endif
 
-    Setting::init();
-
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
@@ -920,6 +919,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
+
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -2294,6 +2295,11 @@ void Application::initializeGL() {
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
+
+#ifdef Q_OS_OSX
+    DeadlockWatchdogThread::resume();
+#endif
+
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -6293,7 +6299,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("../dialogs/TabletAssetServer.qml");
+            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }
