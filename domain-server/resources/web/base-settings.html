@@ -24,6 +24,10 @@
                 <% return !value.deprecated %>
               <% })[0] %>
 
+              <% var split_settings = _.partition(group.settings, function(value, index) { %>
+                <% return !value.advanced %>
+              <% }) %>
+
               <% isGrouped = !!group.name %>
               <% panelID = isGrouped ? group.name : group.html_id %>
 
@@ -35,10 +39,20 @@
                   <span class="badge"></span>
                 </div>
                 <div class="panel-body">
-                  <% _.each(settings, function(setting) { %>
+                  <% _.each(split_settings[0], function(setting) { %>
                     <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
                     <%= getFormGroup(keypath, setting, values, false) %>
                   <% }); %>
+
+                  <% if (split_settings[1].length > 0) { %>
+                    <button type="button" class="btn btn-default" data-toggle="collapse" data-target="#<%- panelID %>-advanced">Advanced Settings <span class="caret"></span></button>
+                    <div id="<%- panelID %>-advanced" class="collapse advanced-settings-section">
+                      <% _.each(split_settings[1], function(setting) { %>
+                        <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
+                        <%= getFormGroup(keypath, setting, values, true) %>
+                      <% }); %>
+                    </div>
+                  <% } %>
                 </div>
               </div>
             <% } %>

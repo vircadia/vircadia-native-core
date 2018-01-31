@@ -426,3 +426,7 @@ ul.nav li.dropdown ul.dropdown-menu .divider {
   position: relative;
   top: -1px;
 }
+
+.advanced-settings-section {
+  margin-top: 20px;
+}
