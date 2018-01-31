@@ -64,8 +64,6 @@ static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
-#pragma optimize("", off)
-
 TextureCache::TextureCache() {
     _ktxCache->initialize();
 #if defined(DISABLE_KTX_CACHE)

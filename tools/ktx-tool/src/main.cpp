@@ -7,12 +7,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <gli/gli.hpp>
-#include <gli/convert.hpp>
-#include <gli/generate_mipmaps.hpp>
-#include <gli/load.hpp>
-#include <gli/save.hpp>
-
 #include <QtGlobal>
 #include <QtCore/QTime>
 #include <QtCore/QTimer>
@@ -56,16 +50,12 @@ void stripKtxKeyValues(const std::string& sourceFile, const std::string& destFil
     auto newStorageSize = ktx::KTX::evalStorageSize(ktx->_header, ktx->_images);
     storage::FileStorage::create(destFile.c_str(), newStorageSize, nullptr);
     storage::FileStorage destStorage(destFile.c_str());
-    auto writtenSize = ktx::KTX::write(destStorage.mutableData(), newStorageSize, ktx->_header, ktx->_images);
+    ktx::KTX::write(destStorage.mutableData(), newStorageSize, ktx->_header, ktx->_images);
 }
-
-
-
 
 
 const QDir SOURCE_FOLDER{ PathUtils::projectRootPath() + "/interface/resources/meshes/mannequin" };
 const QDir DEST_FOLDER{ PathUtils::projectRootPath() + "/interface/resources/meshes/mannequin/+gles" };
-const gli::gl GL(gli::gl::PROFILE_GL33);
 
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
