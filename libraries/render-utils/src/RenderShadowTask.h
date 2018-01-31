@@ -82,13 +82,13 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Output = ViewFrustumPointer;
+    using Outputs = render::VaryingSet2<RenderArgs::RenderMode, float>;
     using Config = RenderShadowSetupConfig;
-    using JobModel = render::Job::ModelO<RenderShadowSetup, Output, Config>;
+    using JobModel = render::Job::ModelO<RenderShadowSetup, Outputs, Config>;
 
     RenderShadowSetup();
     void configure(const Config& configuration);
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, Outputs& output);
 
 private:
 
@@ -104,7 +104,7 @@ private:
 
 class RenderShadowCascadeSetup {
 public:
-    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
+    using Outputs = render::ItemFilter;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
@@ -117,8 +117,15 @@ private:
 
 class RenderShadowCascadeTeardown {
 public:
-    using Input = RenderShadowCascadeSetup::Outputs;
+    using Input = render::ItemFilter;
     using JobModel = render::Job::ModelI<RenderShadowCascadeTeardown, Input>;
+    void run(const render::RenderContextPointer& renderContext, const Input& input);
+};
+
+class RenderShadowTeardown {
+public:
+    using Input = RenderShadowSetup::Outputs;
+    using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
     void run(const render::RenderContextPointer& renderContext, const Input& input);
 };
 

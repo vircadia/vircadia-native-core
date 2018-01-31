@@ -21,13 +21,8 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
     // but the cullFunctor passed is probably tailored for perspective projection and culls too much.
     task.addJob<RenderShadowTask>("RenderShadowTask", [](const RenderArgs* args, const AABox& bounds) {
         // Cull only objects that are too small relatively to shadow frustum
-        auto& frustum = args->getViewFrustum();
-        auto frustumSize = std::max(frustum.getHeight(), frustum.getWidth());
-        const auto boundsRadius = bounds.getDimensions().length();
-        const auto relativeBoundRadius = boundsRadius / frustumSize;
-        const auto threshold = 1e-3f;
-        return relativeBoundRadius > threshold;
-        return true;
+        const auto boundsSquareRadius = glm::dot(bounds.getDimensions(), bounds.getDimensions());
+        return boundsSquareRadius > args->_sizeScale;
     });
 
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);

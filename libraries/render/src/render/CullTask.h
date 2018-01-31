@@ -55,12 +55,13 @@ namespace render {
         float _lodAngle;
     public:
         using Config = FetchSpatialTreeConfig;
-        using JobModel = Job::ModelIO<FetchSpatialTree, ItemFilter, ItemSpatialTree::ItemSelection, Config>;
+        using Inputs = ItemFilter;
+        using JobModel = Job::ModelIO<FetchSpatialTree, Inputs, ItemSpatialTree::ItemSelection, Config>;
 
         FetchSpatialTree() {}
 
         void configure(const Config& config);
-        void run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemSpatialTree::ItemSelection& outSelection);
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemSpatialTree::ItemSelection& outSelection);
     };
 
     class CullSpatialSelectionConfig : public Job::Config {
@@ -96,12 +97,45 @@ namespace render {
             _detailType(type) {}
 
         CullSpatialSelection(CullFunctor cullFunctor) :
-            _cullFunctor{ cullFunctor } {}
+            _cullFunctor{ cullFunctor } {
+        }
 
         CullFunctor _cullFunctor;
         RenderDetails::Type _detailType{ RenderDetails::OTHER };
 
         void configure(const Config& config);
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
+    };
+
+    class CullShapeBounds {
+    public:
+        using Inputs = render::VaryingSet2<ShapeBounds, ItemFilter>;
+        using Outputs = render::VaryingSet2<ShapeBounds, AABox>;
+        using JobModel = Job::ModelIO<CullShapeBounds, Inputs, Outputs>;
+
+        CullShapeBounds(CullFunctor cullFunctor, RenderDetails::Type type) :
+            _cullFunctor{ cullFunctor },
+            _detailType(type) {}
+
+        CullShapeBounds(CullFunctor cullFunctor) :
+            _cullFunctor{ cullFunctor } {
+        }
+
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+
+    private:
+
+        CullFunctor _cullFunctor;
+        RenderDetails::Type _detailType{ RenderDetails::OTHER };
+
+    };
+
+    class FetchSpatialSelection {
+    public:
+        using Inputs = render::VaryingSet2<ItemSpatialTree::ItemSelection, ItemFilter>;
+        using JobModel = Job::ModelIO<FetchSpatialSelection, Inputs, ItemBounds>;
+
+        FetchSpatialSelection() {}
         void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
