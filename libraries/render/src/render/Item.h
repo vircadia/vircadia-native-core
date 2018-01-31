@@ -43,7 +43,7 @@ public:
     // An Item can be tagged and filtering can rely on the tags to keep or exclude items
     // ItemKey are not taged by default
     enum Tag : uint8_t {
-        TAG_0 = 0, // 8 Tags 
+        TAG_0 = 0, // 8 Tags
         TAG_1,
         TAG_2,
         TAG_3,
@@ -52,7 +52,7 @@ public:
         TAG_6,
         TAG_7,
 
-        NUM_TAGS,
+        NUM_TAGS
     };
     // Tag bits are derived from the Tag enum
     const static uint8_t TAG_BITS_ALL;
