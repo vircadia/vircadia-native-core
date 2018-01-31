@@ -1268,7 +1268,7 @@
     },
     {
       "name": "entity_server_settings",
-      "label": "Entity Server Settings",
+      "label": "Entity Server",
       "assignment-types": [
         6
       ],
