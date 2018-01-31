@@ -16,11 +16,7 @@ $(document).ready(function(){
 
   // define extra groups to add to description, with their splice index
   Settings.extraGroups = {
-    0: {
-      html_id: 'label',
-      label: 'Label'
-    },
-    2: {
+    1: {
       html_id: 'places',
       label: 'Places'
     }
@@ -37,7 +33,7 @@ $(document).ready(function(){
     setupPlacesTable();
 
     setupDomainNetworkingSettings();
-    setupDomainLabelSetting();
+    // setupDomainLabelSetting();
 
     if (Settings.data.values.metaverse.id.length > 0) {
       // now, ask the API for what places, if any, point to this domain
