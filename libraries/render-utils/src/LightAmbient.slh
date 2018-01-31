@@ -99,7 +99,9 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 
         // Diffuse from ambient
         diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lowNormalCurvature.xyz).xyz;
-        specular = vec3(0.0);
+
+        // Scattering ambient specular is the same as non scattering for now
+        // TODO: we should use the same specular answer as for direct lighting
     }
 <@endif@>
 
