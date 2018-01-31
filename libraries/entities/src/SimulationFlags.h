@@ -28,7 +28,7 @@ namespace Simulation {
     const uint32_t DIRTY_SIMULATOR_ID = 0x1000; // the simulatorID has changed
     const uint32_t DIRTY_SIMULATION_OWNERSHIP_PRIORITY = 0x2000; // our own bid priority has changed
 
-
+    // bits 17-32 are reservied for special flags
     const uint32_t SPECIAL_FLAGS_NO_BOOTSTRAPPING = 0x10000;
 
     const uint32_t DIRTY_TRANSFORM = DIRTY_POSITION | DIRTY_ROTATION;
