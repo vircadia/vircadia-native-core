@@ -131,7 +131,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElementPointer& element, float& distance, 
                      BoxFace& face, glm::vec3& surfaceNormal,
-                     void** intersectedObject, bool precisionPicking) const {
+                     QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();

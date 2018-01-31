@@ -115,6 +115,7 @@ void CauterizedModel::updateClusterMatrices() {
             Transform clusterTransform;
             Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+            state.clusterTransforms[j].setCauterizationParameters(0.0f, jointPose.trans());
 #else
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
@@ -151,6 +152,7 @@ void CauterizedModel::updateClusterMatrices() {
                     Transform clusterTransform;
                     Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
                     state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+                    state.clusterTransforms[j].setCauterizationParameters(1.0f, cauterizePose.trans());
 #else
                     glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif

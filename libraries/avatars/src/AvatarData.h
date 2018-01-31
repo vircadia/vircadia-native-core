@@ -982,6 +982,7 @@ RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
     QUuid avatarID;
     float distance;
     glm::vec3 intersection;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
