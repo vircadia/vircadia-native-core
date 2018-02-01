@@ -681,10 +681,10 @@
                 removeOverlays();
                 break;
             case 'sendMoney_sendPublicly':
+                deleteSendMoneyParticleEffect();
                 sendMoneyRecipient = message.recipient;
                 var amount = message.amount;
                 var props = SEND_MONEY_PARTICLE_PROPERTIES;
-                deleteSendMoneyParticleEffect();
                 props.parentID = MyAvatar.sessionUUID;
                 props.position = MyAvatar.position;
                 props.position.y += 0.2;
