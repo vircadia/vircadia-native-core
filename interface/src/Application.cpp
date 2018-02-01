@@ -2296,10 +2296,6 @@ void Application::initializeGL() {
 #endif
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
 
-#ifdef Q_OS_OSX
-    DeadlockWatchdogThread::resume();
-#endif
-
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
