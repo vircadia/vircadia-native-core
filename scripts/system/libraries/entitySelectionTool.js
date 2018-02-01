@@ -94,6 +94,7 @@ SelectionManager = (function() {
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
             that.selections.push(entityID);
+            //Selection.addToSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
         }
 
         that._update(true);
@@ -110,8 +111,10 @@ SelectionManager = (function() {
             }
             if (idx === -1) {
                 that.selections.push(entityID);
+                //Selection.addToSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
             } else if (toggleSelection) {
                 that.selections.splice(idx, 1);
+                //Selection.removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
             }
         }
 
@@ -122,6 +125,7 @@ SelectionManager = (function() {
         var idx = that.selections.indexOf(entityID);
         if (idx >= 0) {
             that.selections.splice(idx, 1);
+            //Selection.removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
         }
         that._update(true);
     };
@@ -145,9 +149,9 @@ SelectionManager = (function() {
             that.localPosition = properties.position;
             that.localRotation = properties.rotation;
             that.localRegistrationPoint = properties.registrationPoint;
-            that.worldDimensions = properties.dimensions; // properties.boundingbox.dimensions;
-            that.worldPosition = properties.position;
-            that.worldRotation = properties.rotation;
+            that.worldDimensions = properties.boundingBox.dimensions;
+            that.worldPosition = properties.boundingBox.center;
+            that.worldRotation = properties.boundingBox.rotation;
             SelectionDisplay.setSpaceMode(SPACE_LOCAL);
         } else {
             that.localRotation = null;
@@ -225,38 +229,42 @@ function getRelativeCenterPosition(dimensions, registrationPoint) {
 SelectionDisplay = (function() {
     var that = {};
 
-    var COLOR_GREEN = { red:0, green:255, blue:0 };
-    var COLOR_BLUE = { red:0, green:0, blue:255 };
-    var COLOR_RED = { red:255, green:0, blue:0 };
+    var COLOR_GREEN = { red:44, green:142, blue:14 };
+    var COLOR_BLUE = { red:0, green:147, blue:197 };
+    var COLOR_RED = { red:183, green:10, blue:55 };
 
-    var GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET = 1.35;
-    var GRABBER_TRANSLATE_ARROW_CYLINDER_DIMENSION_MULTIPLE = 0.05;
+    var GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET = 0.1;
+    var GRABBER_TRANSLATE_ARROW_CYLINDER_CAMERA_DISTANCE_MULTIPLE = 0.005;
     var GRABBER_TRANSLATE_ARROW_CYLINDER_Y_MULTIPLE = 7.5;
-    var GRABBER_TRANSLATE_ARROW_CONE_DIMENSION_MULTIPLE = 0.25;
-    var GRABBER_ROTATE_RINGS_DIMENSION_MULTIPLE = 2.0;
-    var GRABBER_STRETCH_SPHERE_OFFSET = 1.0;
-    var GRABBER_STRETCH_SPHERE_DIMENSION_MULTIPLE = 0.1;
-    var GRABBER_SCALE_CUBE_OFFSET = 1.0;
-    var GRABBER_SCALE_CUBE_DIMENSION_MULTIPLE = 0.15;
+    var GRABBER_TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE = 0.025;
+    var GRABBER_ROTATE_RINGS_CAMERA_DISTANCE_MULTIPLE = 0.15;
+    var GRABBER_STRETCH_SPHERE_OFFSET = 0.06;
+    var GRABBER_STRETCH_SPHERE_CAMERA_DISTANCE_MULTIPLE = 0.01;
+    var GRABBER_SCALE_CUBE_OFFSET = 0.5;
+    var GRABBER_SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.015;
     var GRABBER_CLONER_OFFSET = { x:0.9, y:-0.9, z:0.9 }; 
 
-    var GRABBER_SCALE_CUBE_IDLE_COLOR = { red:120, green:120, blue:120 };
-    var GRABBER_SCALE_CUBE_SELECTED_COLOR = { red:0, green:0, blue:0 };
-    var GRABBER_SCALE_EDGE_COLOR = { red:120, green:120, blue:120 };
+    var GRABBER_SCALE_CUBE_IDLE_COLOR = { red:106, green:106, blue:106 };
+    var GRABBER_SCALE_CUBE_SELECTED_COLOR = { red:18, green:18, blue:18 };
+    var GRABBER_SCALE_EDGE_COLOR = { red:87, green:87, blue:87 };
+    var GRABBER_HOVER_COLOR = { red:227, green:227, blue:227 };
 
     var SCALE_MINIMUM_DIMENSION = 0.02;
     var STRETCH_MINIMUM_DIMENSION = 0.001;
-    var STRETCH_DIRECTION_ALL_FACTOR = 15;
+    var STRETCH_DIRECTION_ALL_FACTOR = 25;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
     var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.0;
-    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.6;
-    var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
-    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.14;
+    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.3;
+    var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.09;
+    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.07;
 
     var ROTATION_CTRL_SNAP_ANGLE = 22.5;
     var ROTATION_DEFAULT_SNAP_ANGLE = 1;
     var ROTATION_DEFAULT_TICK_MARKS_ANGLE = 5;
+
+    var ROTATION_RING_IDLE_INNER_RADIUS = 0.97;
+    var ROTATION_RING_SELECTED_INNER_RADIUS = 0.9;
 
     var TRANSLATE_DIRECTION = {
         X : 0,
@@ -307,6 +315,10 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
+    var previousHandle = null;
+    var previousHandleHelper = null;
+    var previousHandleColor;
+
     var activeTool = null;
     var grabberTools = {};
 
@@ -339,9 +351,10 @@ SelectionDisplay = (function() {
 
     var grabberPropertiesRotateRings = {
         alpha: 1,
-        innerRadius: 0.9,
+        solid: true,
         startAt: 0,
         endAt: 360,
+        innerRadius: ROTATION_RING_IDLE_INNER_RADIUS,
         majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE,
         majorTickMarksLength: 0.1,
         visible: false,
@@ -472,7 +485,7 @@ SelectionDisplay = (function() {
     var selectionBox = Overlays.addOverlay("cube", {
         size: 1,
         color: COLOR_RED,
-        alpha: 1,
+        alpha: 0, // setting to 0 alpha for now to keep this hidden vs using visible false because its used as the translate xz tool overlay
         solid: false,
         visible: false,
         dashed: false
@@ -644,12 +657,13 @@ SelectionDisplay = (function() {
                     pickNormal = { x:0, y:1, z:0 };
                 }
 
-                var rotation = SelectionManager.worldRotation;
+                var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
                 pickNormal = Vec3.multiplyQbyV(rotation, pickNormal);
 
                 lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
     
                 SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
 
                 that.setGrabberTranslateXVisible(direction === TRANSLATE_DIRECTION.X);
                 that.setGrabberTranslateYVisible(direction === TRANSLATE_DIRECTION.Y);
@@ -696,7 +710,7 @@ SelectionDisplay = (function() {
                     projectionVector = { x:0, y:0, z:1 };
                 }
 
-                var rotation = SelectionManager.worldRotation;
+                var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
                 projectionVector = Vec3.multiplyQbyV(rotation, projectionVector);
 
                 var dotVector = Vec3.dot(vector, projectionVector);
@@ -924,6 +938,9 @@ SelectionDisplay = (function() {
             that.setGrabberStretchYVisible(directionEnum === STRETCH_DIRECTION.Y);
             that.setGrabberStretchZVisible(directionEnum === STRETCH_DIRECTION.Z);
             that.setGrabberClonerVisible(false);
+        
+            SelectionManager.saveProperties();
+            that.resetPreviousHandleColor();
 
             if (stretchPanel != null) {
                 Overlays.editOverlay(stretchPanel, { visible: true });
@@ -931,8 +948,6 @@ SelectionDisplay = (function() {
             if (scaleGrabber != null) {
                 Overlays.editOverlay(scaleGrabber, { color: GRABBER_SCALE_CUBE_SELECTED_COLOR });
             }
-        
-            SelectionManager.saveProperties();
         };
 
         var onEnd = function(event, reason) {    
@@ -1122,13 +1137,15 @@ SelectionDisplay = (function() {
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
     function updateRotationDegreesOverlay(angleFromZero, position) {
         var angle = angleFromZero * (Math.PI / 180);
+        var cameraPosition = Camera.getPosition();
+        var entityToCameraDistance = Vec3.length(Vec3.subtract(cameraPosition, position));
         var overlayProps = {
             position: position,
             dimensions: {
-                x: ROTATION_DISPLAY_SIZE_X_MULTIPLIER,
-                y: ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
+                x: entityToCameraDistance * ROTATION_DISPLAY_SIZE_X_MULTIPLIER,
+                y: entityToCameraDistance * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
             },
-            lineHeight: ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
+            lineHeight: entityToCameraDistance * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
             text: normalizeDegrees(-angleFromZero) + "°"
         };
         Overlays.editOverlay(rotationDegreesDisplay, overlayProps);
@@ -1173,6 +1190,7 @@ SelectionDisplay = (function() {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
                 SelectionManager.saveProperties();
+                that.resetPreviousHandleColor();
     
                 that.setGrabberTranslateVisible(false);
                 that.setGrabberRotatePitchVisible(direction === ROTATE_DIRECTION.PITCH);
@@ -1196,9 +1214,13 @@ SelectionDisplay = (function() {
                     selectedGrabber = grabberRotateRollRing;
                 }
 
-                Overlays.editOverlay(selectedGrabber, { hasTickMarks: true });
+                Overlays.editOverlay(selectedGrabber, { 
+                    hasTickMarks: true,
+                    solid: false,
+                    innerRadius: ROTATION_RING_SELECTED_INNER_RADIUS
+                });
 
-                var rotation = SelectionManager.worldRotation;
+                var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
                 rotationNormal = Vec3.multiplyQbyV(rotation, rotationNormal);
 
                 var rotCenter = SelectionManager.worldPosition;
@@ -1221,12 +1243,16 @@ SelectionDisplay = (function() {
 
                 var rotCenterToZero = Vec3.subtract(rotZero, rotCenter);
                 var rotCenterToZeroLength = Vec3.length(rotCenterToZero);
-                rotDegreePos = Vec3.sum(rotCenter, Vec3.multiply(Vec3.normalize(rotCenterToZero), rotCenterToZeroLength * 1.2));
+                rotDegreePos = Vec3.sum(rotCenter, Vec3.multiply(Vec3.normalize(rotCenterToZero), rotCenterToZeroLength * 1.75));
                 updateRotationDegreesOverlay(0, rotDegreePos);
             },
             onEnd: function(event, reason) {
                 Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
-                Overlays.editOverlay(selectedGrabber, { hasTickMarks: false });
+                Overlays.editOverlay(selectedGrabber, { 
+                    hasTickMarks: false,
+                    solid: true,
+                    innerRadius: ROTATION_RING_IDLE_INNER_RADIUS
+                });
                 Overlays.editOverlay(grabberRotateCurrentRing, { visible: false });
                 pushCommandForSelections();
             },
@@ -1266,6 +1292,7 @@ SelectionDisplay = (function() {
                     if (direction === ROTATE_DIRECTION.YAW) {
                         Overlays.editOverlay(grabberRotateCurrentRing, { rotation: worldRotationZ });
                     }
+
                 }
             }
         });
@@ -1307,7 +1334,6 @@ SelectionDisplay = (function() {
     };
 
     that.highlightSelectable = function(entityID) {
-        var properties = Entities.getEntityProperties(entityID);
     };
 
     that.unhighlightSelectable = function(entityID) {
@@ -1370,118 +1396,119 @@ SelectionDisplay = (function() {
         }
 
         if (SelectionManager.hasSelection()) {
-            var worldPosition = SelectionManager.worldPosition;
-            var worldRotation = SelectionManager.worldRotation;
-            var worldRotationInverse = Quat.inverse(worldRotation);
-            var worldDimensions = SelectionManager.worldDimensions;
+            var position = SelectionManager.worldPosition;
+            var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
+            var dimensions = spaceMode === SPACE_LOCAL ? SelectionManager.localDimensions : SelectionManager.worldDimensions;
+            var rotationInverse = Quat.inverse(rotation);
 
-            var worldDimensionsX = worldDimensions.x;
-            var worldDimensionsY = worldDimensions.y;
-            var worldDimensionsZ = worldDimensions.z;
-            var dimensionAverage = (worldDimensionsX + worldDimensionsY + worldDimensionsZ) / 3;
+            var cameraPosition = Camera.getPosition();
+            var entityToCameraDistance = Vec3.length(Vec3.subtract(cameraPosition, position));
 
             var localRotationX = Quat.fromPitchYawRollDegrees(0, 0, -90);
-            worldRotationX = Quat.multiply(worldRotation, localRotationX);
+            rotationX = Quat.multiply(rotation, localRotationX);
+            worldRotationX = rotationX;
             var localRotationY = Quat.fromPitchYawRollDegrees(0, 90, 0);
-            worldRotationY = Quat.multiply(worldRotation, localRotationY);
+            rotationY = Quat.multiply(rotation, localRotationY);
+            worldRotationY = rotationY;
             var localRotationZ = Quat.fromPitchYawRollDegrees(90, 0, 0);
-            worldRotationZ = Quat.multiply(worldRotation, localRotationZ);
+            rotationZ = Quat.multiply(rotation, localRotationZ);
+            worldRotationZ = rotationZ;
 
-            var arrowCylinderDimension = dimensionAverage * GRABBER_TRANSLATE_ARROW_CYLINDER_DIMENSION_MULTIPLE;
+            var arrowCylinderDimension = entityToCameraDistance * GRABBER_TRANSLATE_ARROW_CYLINDER_CAMERA_DISTANCE_MULTIPLE;
             var arrowCylinderDimensions = { x:arrowCylinderDimension, y:arrowCylinderDimension * GRABBER_TRANSLATE_ARROW_CYLINDER_Y_MULTIPLE, z:arrowCylinderDimension };
-            var arrowConeDimension = dimensionAverage * GRABBER_TRANSLATE_ARROW_CONE_DIMENSION_MULTIPLE;
+            var arrowConeDimension = entityToCameraDistance * GRABBER_TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE;
             var arrowConeDimensions = { x:arrowConeDimension, y:arrowConeDimension, z:arrowConeDimension };
-            var cylinderXPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * dimensionAverage, y:0, z:0 }));
+            var cylinderXPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * entityToCameraDistance, y:0, z:0 }));
             Overlays.editOverlay(grabberTranslateXCylinder, { 
                 position: cylinderXPos, 
-                rotation: worldRotationX,
+                rotation: rotationX,
                 dimensions: arrowCylinderDimensions
             });
-            var cylinderXDiff = Vec3.subtract(cylinderXPos, worldPosition);
+            var cylinderXDiff = Vec3.subtract(cylinderXPos, position);
             var coneXPos = Vec3.sum(cylinderXPos, Vec3.multiply(Vec3.normalize(cylinderXDiff), arrowCylinderDimensions.y * 0.83));
             Overlays.editOverlay(grabberTranslateXCone, { 
                 position: coneXPos, 
-                rotation: worldRotationX,
+                rotation: rotationX,
                 dimensions: arrowConeDimensions
             });
-            var cylinderYPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:0, y:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * dimensionAverage, z:0 }));
+            var cylinderYPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * entityToCameraDistance, z:0 }));
             Overlays.editOverlay(grabberTranslateYCylinder, { 
                 position: cylinderYPos, 
-                rotation: worldRotationY,
+                rotation: rotationY,
                 dimensions: arrowCylinderDimensions
             });
-            var cylinderYDiff = Vec3.subtract(cylinderYPos, worldPosition);
+            var cylinderYDiff = Vec3.subtract(cylinderYPos, position);
             var coneYPos = Vec3.sum(cylinderYPos, Vec3.multiply(Vec3.normalize(cylinderYDiff), arrowCylinderDimensions.y * 0.83));
             Overlays.editOverlay(grabberTranslateYCone, { 
                 position: coneYPos, 
-                rotation: worldRotationY,
+                rotation: rotationY,
                 dimensions: arrowConeDimensions
             });
-            var cylinderZPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:0, y:0, z:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * dimensionAverage }));
+            var cylinderZPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:GRABBER_TRANSLATE_ARROW_CYLINDER_OFFSET * entityToCameraDistance }));
             Overlays.editOverlay(grabberTranslateZCylinder, { 
                 position: cylinderZPos, 
-                rotation: worldRotationZ,
+                rotation: rotationZ,
                 dimensions: arrowCylinderDimensions
             });
-            var cylinderZDiff = Vec3.subtract(cylinderZPos, worldPosition);
+            var cylinderZDiff = Vec3.subtract(cylinderZPos, position);
             var coneZPos = Vec3.sum(cylinderZPos, Vec3.multiply(Vec3.normalize(cylinderZDiff), arrowCylinderDimensions.y * 0.83));
             Overlays.editOverlay(grabberTranslateZCone, { 
                 position: coneZPos, 
-                rotation: worldRotationZ,
+                rotation: rotationZ,
                 dimensions: arrowConeDimensions
             });
 
-            var grabberScaleCubeOffsetX = GRABBER_SCALE_CUBE_OFFSET * worldDimensionsX;
-            var grabberScaleCubeOffsetY = GRABBER_SCALE_CUBE_OFFSET * worldDimensionsY;
-            var grabberScaleCubeOffsetZ = GRABBER_SCALE_CUBE_OFFSET * worldDimensionsZ;
-            var scaleDimension = dimensionAverage * GRABBER_SCALE_CUBE_DIMENSION_MULTIPLE;
+            var grabberScaleCubeOffsetX = GRABBER_SCALE_CUBE_OFFSET * dimensions.x;
+            var grabberScaleCubeOffsetY = GRABBER_SCALE_CUBE_OFFSET * dimensions.y;
+            var grabberScaleCubeOffsetZ = GRABBER_SCALE_CUBE_OFFSET * dimensions.z;
+            var scaleDimension = entityToCameraDistance * GRABBER_SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE;
             var scaleDimensions = { x:scaleDimension, y:scaleDimension, z:scaleDimension };
-            var grabberScaleLBNCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:-grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
+            var grabberScaleLBNCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:-grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleLBNCube, { 
                 position: grabberScaleLBNCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleRBNCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:-grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
+            var grabberScaleRBNCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:-grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleRBNCube, { 
                 position: grabberScaleRBNCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleLBFCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
+            var grabberScaleLBFCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleLBFCube, { 
                 position: grabberScaleLBFCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleRBFCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
+            var grabberScaleRBFCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:grabberScaleCubeOffsetX, y:-grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleRBFCube, { 
                 position: grabberScaleRBFCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleLTNCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:-grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
+            var grabberScaleLTNCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:-grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleLTNCube, { 
                 position: grabberScaleLTNCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleRTNCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:-grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
+            var grabberScaleRTNCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:-grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleRTNCube, { 
                 position: grabberScaleRTNCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleLTFCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
+            var grabberScaleLTFCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:-grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleLTFCube, { 
                 position: grabberScaleLTFCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
-            var grabberScaleRTFCubePos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
+            var grabberScaleRTFCubePos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:grabberScaleCubeOffsetX, y:grabberScaleCubeOffsetY, z:grabberScaleCubeOffsetZ }));
             Overlays.editOverlay(grabberScaleRTFCube, { 
                 position: grabberScaleRTFCubePos, 
-                rotation: worldRotation,
+                rotation: rotation,
                 dimensions: scaleDimensions
             });
 
@@ -1498,82 +1525,85 @@ SelectionDisplay = (function() {
             Overlays.editOverlay(grabberScaleFREdge, { start: grabberScaleRTFCubePos, end: grabberScaleRBFCubePos });
             Overlays.editOverlay(grabberScaleFLEdge, { start: grabberScaleLTFCubePos, end: grabberScaleLBFCubePos });
 
-            var stretchSphereDimension = dimensionAverage * GRABBER_STRETCH_SPHERE_DIMENSION_MULTIPLE;
+            var stretchSphereDimension = entityToCameraDistance * GRABBER_STRETCH_SPHERE_CAMERA_DISTANCE_MULTIPLE;
             var stretchSphereDimensions = { x:stretchSphereDimension, y:stretchSphereDimension, z:stretchSphereDimension };
-            var stretchXPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:GRABBER_STRETCH_SPHERE_OFFSET * worldDimensionsX, y:0, z:0 }));
+            var stretchXPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:GRABBER_STRETCH_SPHERE_OFFSET * entityToCameraDistance, y:0, z:0 }));
             Overlays.editOverlay(grabberStretchXSphere, { 
                 position: stretchXPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleLTFCubePos);
-            var grabberScaleRBFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRBFCubePos);
+            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleLTFCubePos);
+            var grabberScaleRBFCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleRBFCubePos);
             var stretchPanelXDimensions = Vec3.subtract(grabberScaleLTFCubePosRot, grabberScaleRBFCubePosRot);
             var tempY = Math.abs(stretchPanelXDimensions.y);
             stretchPanelXDimensions.x = 0.01;
             stretchPanelXDimensions.y = Math.abs(stretchPanelXDimensions.z);
             stretchPanelXDimensions.z = tempY;
+            var stretchPanelXPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:dimensions.x / 2, y:0, z:0 }));
             Overlays.editOverlay(grabberStretchXPanel, { 
-                position: stretchXPos, 
-                rotation: worldRotationZ,
+                position: stretchPanelXPos, 
+                rotation: rotationZ,
                 dimensions: stretchPanelXDimensions
             });
-            var stretchYPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:0, y:GRABBER_STRETCH_SPHERE_OFFSET * worldDimensionsY, z:0 }));
+            var stretchYPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:GRABBER_STRETCH_SPHERE_OFFSET * entityToCameraDistance, z:0 }));
             Overlays.editOverlay(grabberStretchYSphere, { 
                 position: stretchYPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleLTNCubePos);
-            var grabberScaleRTNCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRTFCubePos);
+            var grabberScaleLTFCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleLTNCubePos);
+            var grabberScaleRTNCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleRTFCubePos);
             var stretchPanelYDimensions = Vec3.subtract(grabberScaleLTFCubePosRot, grabberScaleRTNCubePosRot);
             var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
             stretchPanelYDimensions.y = 0.01;
             stretchPanelYDimensions.z = tempX;
+            var stretchPanelYPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:dimensions.y / 2, z:0 }));
             Overlays.editOverlay(grabberStretchYPanel, { 
-                position: stretchYPos, 
-                rotation: worldRotationY,
+                position: stretchPanelYPos, 
+                rotation: rotationY,
                 dimensions: stretchPanelYDimensions
             });
-            var stretchZPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, { x:0, y:0, z:GRABBER_STRETCH_SPHERE_OFFSET * worldDimensionsZ }));
+            var stretchZPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:GRABBER_STRETCH_SPHERE_OFFSET * entityToCameraDistance }));
             Overlays.editOverlay(grabberStretchZSphere, { 
                 position: stretchZPos, 
                 dimensions: stretchSphereDimensions 
             });
-            var grabberScaleRTFCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRTFCubePos);
-            var grabberScaleRBNCubePosRot = Vec3.multiplyQbyV(worldRotationInverse, grabberScaleRBNCubePos);
+            var grabberScaleRTFCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleRTFCubePos);
+            var grabberScaleRBNCubePosRot = Vec3.multiplyQbyV(rotationInverse, grabberScaleRBNCubePos);
             var stretchPanelZDimensions = Vec3.subtract(grabberScaleRTFCubePosRot, grabberScaleRBNCubePosRot);
             var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
             stretchPanelZDimensions.y = tempX;
             stretchPanelZDimensions.z = 0.01;
+            var stretchPanelZPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:dimensions.z / 2 }));
             Overlays.editOverlay(grabberStretchZPanel, { 
-                position: stretchZPos, 
-                rotation: worldRotationX,
+                position: stretchPanelZPos, 
+                rotation: rotationX,
                 dimensions: stretchPanelZDimensions
             });
 
-            var rotateDimension = dimensionAverage * GRABBER_ROTATE_RINGS_DIMENSION_MULTIPLE;
+            var rotateDimension = entityToCameraDistance * GRABBER_ROTATE_RINGS_CAMERA_DISTANCE_MULTIPLE;
             var rotateDimensions = { x:rotateDimension, y:rotateDimension, z:rotateDimension };
             if (!isActiveTool(grabberRotatePitchRing)) {
                 Overlays.editOverlay(grabberRotatePitchRing, { 
-                    position: SelectionManager.worldPosition, 
-                    rotation: worldRotationY,
+                    position: position, 
+                    rotation: rotationY,
                     dimensions: rotateDimensions,
                     majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
             }
             if (!isActiveTool(grabberRotateYawRing)) {
                 Overlays.editOverlay(grabberRotateYawRing, { 
-                    position: SelectionManager.worldPosition, 
-                    rotation: worldRotationZ,
+                    position: position, 
+                    rotation: rotationZ,
                     dimensions: rotateDimensions,
                     majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
             }
             if (!isActiveTool(grabberRotateRollRing)) {
                 Overlays.editOverlay(grabberRotateRollRing, { 
-                    position: SelectionManager.worldPosition, 
-                    rotation: worldRotationX,
+                    position: position, 
+                    rotation: rotationX,
                     dimensions: rotateDimensions,
                     majorTickMarksAngle: ROTATION_DEFAULT_TICK_MARKS_ANGLE
                 });
@@ -1588,18 +1618,18 @@ SelectionDisplay = (function() {
                                   isActiveTool(grabberCloner) || isActiveTool(selectionBox);
 
             Overlays.editOverlay(selectionBox, {
-                position: worldPosition,
-                rotation: worldRotation,
-                dimensions: worldDimensions,
+                position: position,
+                rotation: rotation,
+                dimensions: dimensions,
                 visible: !inModeRotate
             });
 
-            var grabberClonerOffset =  { x:GRABBER_CLONER_OFFSET.x * worldDimensionsX, y:GRABBER_CLONER_OFFSET.y * worldDimensionsY, z:GRABBER_CLONER_OFFSET.z * worldDimensionsZ };
-            var grabberClonerPos = Vec3.sum(worldPosition, Vec3.multiplyQbyV(worldRotation, grabberClonerOffset));
+            var grabberClonerOffset =  { x:GRABBER_CLONER_OFFSET.x * dimensions.x, y:GRABBER_CLONER_OFFSET.y * dimensions.y, z:GRABBER_CLONER_OFFSET.z * dimensions.z };
+            var grabberClonerPos = Vec3.sum(position, Vec3.multiplyQbyV(rotation, grabberClonerOffset));
             Overlays.editOverlay(grabberCloner, {
                 position: grabberClonerPos,
-                rotation: worldRotation,
-                dimensions: scaleDimensions,
+                rotation: rotation,
+                dimensions: scaleDimensions
             });
         }
 
@@ -1615,12 +1645,14 @@ SelectionDisplay = (function() {
         that.setGrabberScaleVisible(!activeTool || isActiveTool(grabberScaleLBNCube) || isActiveTool(grabberScaleRBNCube) || isActiveTool(grabberScaleLBFCube) || isActiveTool(grabberScaleRBFCube)
                                                 || isActiveTool(grabberScaleLTNCube) || isActiveTool(grabberScaleRTNCube) || isActiveTool(grabberScaleLTFCube) || isActiveTool(grabberScaleRTFCube)
                                                 || isActiveTool(grabberStretchXSphere) || isActiveTool(grabberStretchYSphere) || isActiveTool(grabberStretchZSphere));
-        that.setGrabberClonerVisible(!activeTool || isActiveTool(grabberCloner));
+        //keep cloner always hidden for now since you can hold Alt to clone while dragging to translate  - we may bring cloner back for HMD only later
+        //that.setGrabberClonerVisible(!activeTool || isActiveTool(grabberCloner));
 
         if (wantDebug) {
             print("====== Update Grabbers <=======");
         }
     };
+    Script.update.connect(that.updateGrabbers);
 
     that.updateActiveRotateRing = function() {
         var activeRotateRing = null;
@@ -1756,6 +1788,7 @@ SelectionDisplay = (function() {
             }
 
             SelectionManager.saveProperties();
+            that.resetPreviousHandleColor();
 
             that.setGrabberTranslateVisible(false);
             that.setGrabberRotateVisible(false);
@@ -2059,6 +2092,33 @@ SelectionDisplay = (function() {
         return activeTool;
     };
 
+    that.resetPreviousHandleColor = function() {
+        if (previousHandle != null) {
+            Overlays.editOverlay(previousHandle, { color: previousHandleColor });
+            previousHandle = null;
+        }
+        if (previousHandleHelper != null) {
+            Overlays.editOverlay(previousHandleHelper, { color: previousHandleColor });
+            previousHandleHelper = null;
+        }
+    };
+
+    that.getHandleHelper = function(overlay) {
+        if (overlay === grabberTranslateXCone) {
+            return grabberTranslateXCylinder;
+        } else if (overlay === grabberTranslateXCylinder) {
+            return grabberTranslateXCone;
+        } else if (overlay === grabberTranslateYCone) {
+            return grabberTranslateYCylinder;
+        } else if (overlay === grabberTranslateYCylinder) {
+            return grabberTranslateYCone;
+        } else if (overlay === grabberTranslateZCone) {
+            return grabberTranslateZCylinder;
+        } else if (overlay === grabberTranslateZCylinder) {
+            return grabberTranslateZCone;
+        }
+    };
+
     // FUNCTION: MOUSE MOVE EVENT
     that.mouseMoveEvent = function(event) {
         var wantDebug = false;
@@ -2081,6 +2141,66 @@ SelectionDisplay = (function() {
             }
             // EARLY EXIT--(Move handled via active tool)
             return true;
+        }
+
+        // if no tool is active, then just look for handles to highlight...
+        var pickRay = generalComputePickRay(event.x, event.y);
+        var result = Overlays.findRayIntersection(pickRay);
+        var pickedColor;
+        var highlightNeeded = false;
+
+        if (result.intersects) {
+            switch (result.overlayID) {
+                case grabberTranslateXCone:
+                case grabberTranslateXCylinder:
+                case grabberRotatePitchRing:
+                case grabberStretchXSphere:
+                    pickedColor = COLOR_RED;
+                    highlightNeeded = true;
+                    break;
+                case grabberTranslateYCone:
+                case grabberTranslateYCylinder:
+                case grabberRotateYawRing:
+                case grabberStretchYSphere:
+                    pickedColor = COLOR_GREEN;
+                    highlightNeeded = true;
+                    break;
+                case grabberTranslateZCone:
+                case grabberTranslateZCylinder:
+                case grabberRotateRollRing:
+                case grabberStretchZSphere:
+                    pickedColor = COLOR_BLUE;
+                    highlightNeeded = true;
+                    break;
+                case grabberScaleLBNCube:
+                case grabberScaleRBNCube:
+                case grabberScaleLBFCube:
+                case grabberScaleRBFCube:
+                case grabberScaleLTNCube:
+                case grabberScaleRTNCube:
+                case grabberScaleLTFCube:
+                case grabberScaleRTFCube:
+                    pickedColor = GRABBER_SCALE_CUBE_IDLE_COLOR;
+                    highlightNeeded = true;
+                    break;
+                default:
+                    that.resetPreviousHandleColor();
+                    break;
+            }
+
+            if (highlightNeeded) {
+                that.resetPreviousHandleColor();
+                Overlays.editOverlay(result.overlayID, { color: GRABBER_HOVER_COLOR });
+                previousHandle = result.overlayID;
+                previousHandleHelper = that.getHandleHelper(result.overlayID);
+                if (previousHandleHelper != null) {
+                    Overlays.editOverlay(previousHandleHelper, { color: GRABBER_HOVER_COLOR });
+                }
+                previousHandleColor = pickedColor;
+            }
+
+        } else {
+            that.resetPreviousHandleColor();
         }
 
         if (wantDebug) {
