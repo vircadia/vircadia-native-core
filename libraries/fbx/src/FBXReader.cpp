@@ -1481,11 +1481,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     }
     while (!remainingModels.isEmpty()) {
         QString first = *remainingModels.constBegin();
-        foreach (const QString& id, remainingModels) {
-            if (id < first) {
-                first = id;
-            }
-        }
         QString topID = getTopModelID(_connectionParentMap, models, first, url);
         appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
     }
