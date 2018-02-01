@@ -3238,8 +3238,6 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     slamPosition(position);
     setWorldOrientation(orientation);
 
-    _skeletonModel->getRig().setMaxHipsOffsetLength(0.05f);
-
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it == _pinnedJoints.end()) {
         _pinnedJoints.push_back(index);
@@ -3259,12 +3257,6 @@ bool MyAvatar::clearPinOnJoint(int index) {
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it != _pinnedJoints.end()) {
         _pinnedJoints.erase(it);
-
-        auto hipsIndex = getJointIndex("Hips");
-        if (index == hipsIndex) {
-            _skeletonModel->getRig().setMaxHipsOffsetLength(FLT_MAX);
-        }
-
         return true;
     }
     return false;
