@@ -1455,18 +1455,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
         // models with clusters must be parented to the cluster top
-        foreach (const QString& deformerID, _connectionChildMap.values(model.key())) {
-            foreach (const QString& clusterID, _connectionChildMap.values(deformerID)) {
-                if (!clusters.contains(clusterID)) {
-                    continue;
+        // Unless the model is a root node.
+        bool isARootNode = !modelIDs.contains(_connectionParentMap.value(model.key()));
+        if (!isARootNode) {  
+            foreach(const QString& deformerID, _connectionChildMap.values(model.key())) {
+                foreach(const QString& clusterID, _connectionChildMap.values(deformerID)) {
+                    if (!clusters.contains(clusterID)) {
+                        continue;
+                    }
+                    QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
+                    _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
+                    _connectionParentMap.insert(model.key(), topID);
+                    goto outerBreak;
                 }
-                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
-                _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
-                _connectionParentMap.insert(model.key(), topID);
-                goto outerBreak;
             }
+            outerBreak: ;
         }
-        outerBreak:
 
         // make sure the parent is in the child map
         QString parent = _connectionParentMap.value(model.key());
