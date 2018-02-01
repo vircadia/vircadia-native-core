@@ -34,10 +34,9 @@ Rectangle {
     property string certTextColor: hifi.colors.white;
     property string infoTextColor: hifi.colors.blueAccent;
     // 0 means replace none
-    // 1 means replace "Item Name" only
-    // 2 means replace "Item Name" and "Edition" only
+    // 4 means replace all but "Item Edition"
     // 5 means replace all 5 replaceable fields
-    property int certInfoReplaceMode: 0;
+    property int certInfoReplaceMode: 5;
     property bool isLightbox: false;
     property bool isMyCert: false;
     property bool useGoldCert: true;
@@ -56,16 +55,14 @@ Rectangle {
                 root.marketplaceUrl = result.data.marketplace_item_url;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
 
-                if (root.certInfoReplaceMode > 0) {
-                    root.itemName = result.data.marketplace_item_name;
-                    if (root.certInfoReplaceMode > 1) {
-                        root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
-                        if (root.certInfoReplaceMode > 2) {
-                            root.itemOwner = root.isMyCert ? Account.username :
-                            "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-                            root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
-                            root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? result.data.cost : "Undisclosed";
-                        }
+                if (root.certInfoReplaceMode > 3) {
+                    root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
+                    if (root.certInfoReplaceMode > 4) {
+                        root.itemName = result.data.marketplace_item_name;
+                        root.itemOwner = root.isMyCert ? Account.username :
+                        "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+                        root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
+                        root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? result.data.cost : "Undisclosed";
                     }
                 }
 
@@ -166,7 +163,7 @@ Rectangle {
                 titleBarText.text = "Invalid Certificate";
                 popText.text = "";
                 showInMarketplaceButton.visible = true;
-                root.certInfoReplaceMode = 1;
+                root.certInfoReplaceMode = 4;
                 // "Item Name" text will be set in "onCertificateInfoResult()"
                 root.itemEdition = "Uncertified Copy"
                 // "Owner" text will be set in "onCertificateInfoResult()"
@@ -577,7 +574,7 @@ Rectangle {
         if (alsoResetCertID) {
             root.certificateId = "";
         }
-        root.certInfoReplaceMode = 0;
+        root.certInfoReplaceMode = 5;
         root.certificateInfoPending = true;
         root.certificateStatusPending = true;
         root.useGoldCert = true;
