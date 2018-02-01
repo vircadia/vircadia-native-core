@@ -35,9 +35,11 @@ const QString GET_PLACE = "/api/v1/places/%1";
  * The location API provides facilities related to your current location in the metaverse.
  *
  * @namespace location
- * @property {Uuid} domainId - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
+ * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
  *     connected to the domain.
  *     <em>Read-only.</em>
+ * @property {Uuid} domainId - Synonym for <code>domainId</code>. <em>Read-only.</em> <strong>Deprecated:</strong> This property
+ *     is deprecated and will soon be removed.
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
  *     <code>localhost</code>, or an IP address).
  *     <em>Read-only.</em>
@@ -66,7 +68,8 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString hostname READ getHost)
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
-    Q_PROPERTY(QString domainId READ getDomainId)
+    Q_PROPERTY(QString domainID READ getDomainID)
+    Q_PROPERTY(QString domainId READ getDomainID)
 public:
 
     /**jsdoc
@@ -164,7 +167,7 @@ public:
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
-    QString getDomainId() const;
+    QString getDomainID() const;
 
     const QString& getHost() const { return _host; }
 
