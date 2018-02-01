@@ -227,7 +227,7 @@ bool QmlWindowClass::isVisible() {
 glm::vec2 QmlWindowClass::getPosition() {
     if (QThread::currentThread() != thread()) {
         vec2 result;
-        BLOCKING_INVOKE_METHOD(this, "getPosition", Q_RETURN_ARG(vec2, result));
+        BLOCKING_INVOKE_METHOD(this, "getPosition", Q_RETURN_ARG(glm::vec2, result));
         return result;
     }
 
@@ -241,7 +241,7 @@ glm::vec2 QmlWindowClass::getPosition() {
 
 void QmlWindowClass::setPosition(const glm::vec2& position) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPosition", Q_ARG(vec2, position));
+        QMetaObject::invokeMethod(this, "setPosition", Q_ARG(const glm::vec2&, position));
         return;
     }
 
@@ -262,7 +262,7 @@ glm::vec2 toGlm(const QSizeF& size) {
 glm::vec2 QmlWindowClass::getSize() {
     if (QThread::currentThread() != thread()) {
         vec2 result;
-        BLOCKING_INVOKE_METHOD(this, "getSize", Q_RETURN_ARG(vec2, result));
+        BLOCKING_INVOKE_METHOD(this, "getSize", Q_RETURN_ARG(glm::vec2, result));
         return result;
     }
 
@@ -275,7 +275,7 @@ glm::vec2 QmlWindowClass::getSize() {
 
 void QmlWindowClass::setSize(const glm::vec2& size) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setSize", Q_ARG(vec2, size));
+        QMetaObject::invokeMethod(this, "setSize", Q_ARG(const glm::vec2&, size));
         return;
     }
 
