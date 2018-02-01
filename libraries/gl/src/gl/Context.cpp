@@ -24,22 +24,28 @@
 #include <GLMHelpers.h>
 #include "GLLogging.h"
 #include "Config.h"
-
-#ifdef Q_OS_WIN
-
-#if defined(DEBUG) || defined(USE_GLES)
-static bool enableDebugLogger = true;
-#else
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
-static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-#endif
-
-#endif
-
-#include "Config.h"
 #include "GLHelpers.h"
 
 using namespace gl;
+
+
+bool Context::enableDebugLogger() {
+#if defined(DEBUG) || defined(USE_GLES)
+    static bool enableDebugLogger = true;
+#else
+    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
+    static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // If the previous run crashed, force GL debug logging on
+        if (qApp->property(hifi::properties::CRASHED).toBool()) {
+            enableDebugLogger = true;
+        }
+    });
+    return enableDebugLogger;
+}
+
 
 
 std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
@@ -245,10 +251,6 @@ void Context::create() {
     // Create a temporary context to initialize glew
     static std::once_flag once;
     std::call_once(once, [&] {
-        // If the previous run crashed, force GL debug logging on
-        if (qApp->property(hifi::properties::CRASHED).toBool()) {
-            enableDebugLogger = true;
-        }
         auto hdc = GetDC(hwnd);
         setupPixelFormatSimple(hdc);
         auto glrc = wglCreateContext(hdc);
@@ -328,7 +330,7 @@ void Context::create() {
         contextAttribs.push_back(WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
 #endif
         contextAttribs.push_back(WGL_CONTEXT_FLAGS_ARB);
-        if (enableDebugLogger) {
+        if (enableDebugLogger()) {
             contextAttribs.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);
         } else {
             contextAttribs.push_back(0);
@@ -350,7 +352,7 @@ void Context::create() {
     if (!makeCurrent()) {
         throw std::runtime_error("Could not make context current");
     }
-    if (enableDebugLogger) {
+    if (enableDebugLogger()) {
         glDebugMessageCallback(debugMessageCallback, NULL);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
     }

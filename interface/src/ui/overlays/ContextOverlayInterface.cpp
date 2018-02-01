@@ -266,6 +266,93 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
+void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID) {
+
+    setLastInspectedEntity(entityID);
+
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    if (entityProperties.getClientOnly()) {
+        if (entityProperties.verifyStaticCertificateProperties()) {
+            SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
+
+            if (entityServer) {
+                QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+                QNetworkRequest networkRequest;
+                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+                requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+                QJsonObject request;
+                request["certificate_id"] = entityProperties.getCertificateID();
+                networkRequest.setUrl(requestURL);
+
+                QNetworkReply* networkReply = NULL;
+                networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+                connect(networkReply, &QNetworkReply::finished, [=]() {
+                    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                    jsonObject = jsonObject["data"].toObject();
+
+                    if (networkReply->error() == QNetworkReply::NoError) {
+                        if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                            qCDebug(entities) << "invalid_reason not empty";
+                        } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
+                            qCDebug(entities) << "'transfer_status' is 'failed'";
+                        } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
+                            qCDebug(entities) << "'transfer_status' is 'pending'";
+                        } else {
+                            QString ownerKey = jsonObject["transfer_recipient_key"].toString();
+
+                            QByteArray certID = entityProperties.getCertificateID().toUtf8();
+                            QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                            QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
+
+                            int certIDByteArraySize = certID.length();
+                            int textByteArraySize = text.length();
+                            int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
+
+                            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+                                certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                true);
+                            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                            challengeOwnershipPacket->writePrimitive(textByteArraySize);
+                            challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
+                            challengeOwnershipPacket->write(certID);
+                            challengeOwnershipPacket->write(text);
+                            challengeOwnershipPacket->write(nodeToChallengeByteArray);
+                            nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
+
+                            // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
+                            if (thread() != QThread::currentThread()) {
+                                QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                return;
+                            } else {
+                                startChallengeOwnershipTimer();
+                            }
+                        }
+                    } else {
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                            "More info:" << networkReply->readAll();
+                    }
+
+                    networkReply->deleteLater();
+                });
+            } else {
+                qCWarning(context_overlay) << "Couldn't get Entity Server!";
+            }
+        } else {
+            auto ledger = DependencyManager::get<Ledger>();
+            _challengeOwnershipTimeoutTimer.stop();
+            emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+            emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+            qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
+        }
+    }
+}
+
 static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 void ContextOverlayInterface::openInspectionCertificate() {
     // lets open the tablet to the inspection certificate QML
@@ -275,87 +362,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
         _hmdScriptingInterface->openTablet();
 
         setLastInspectedEntity(_currentEntityWithContextOverlay);
-
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
-
-        auto nodeList = DependencyManager::get<NodeList>();
-
-        if (entityProperties.getClientOnly()) {
-            if (entityProperties.verifyStaticCertificateProperties()) {
-                SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
-
-                if (entityServer) {
-                    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-                    QNetworkRequest networkRequest;
-                    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-                    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
-                    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
-                    QJsonObject request;
-                    request["certificate_id"] = entityProperties.getCertificateID();
-                    networkRequest.setUrl(requestURL);
-
-                    QNetworkReply* networkReply = NULL;
-                    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-
-                    connect(networkReply, &QNetworkReply::finished, [=]() {
-                        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-                        jsonObject = jsonObject["data"].toObject();
-
-                        if (networkReply->error() == QNetworkReply::NoError) {
-                            if (!jsonObject["invalid_reason"].toString().isEmpty()) {
-                                qCDebug(entities) << "invalid_reason not empty";
-                            } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
-                                qCDebug(entities) << "'transfer_status' is 'failed'";
-                            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
-                                qCDebug(entities) << "'transfer_status' is 'pending'";
-                            } else {
-                                QString ownerKey = jsonObject["transfer_recipient_key"].toString();
-
-                                QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
-                                QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
-
-                                int certIDByteArraySize = certID.length();
-                                int textByteArraySize = text.length();
-                                int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
-
-                                auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
-                                    true);
-                                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-                                challengeOwnershipPacket->writePrimitive(textByteArraySize);
-                                challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
-                                challengeOwnershipPacket->write(certID);
-                                challengeOwnershipPacket->write(text);
-                                challengeOwnershipPacket->write(nodeToChallengeByteArray);
-                                nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
-
-                                // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
-                                if (thread() != QThread::currentThread()) {
-                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
-                                    return;
-                                } else {
-                                    startChallengeOwnershipTimer();
-                                }
-                            }
-                        } else {
-                            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
-                                "More info:" << networkReply->readAll();
-                        }
-
-                        networkReply->deleteLater();
-                    });
-                } else {
-                    qCWarning(context_overlay) << "Couldn't get Entity Server!";
-                }
-            } else {
-                auto ledger = DependencyManager::get<Ledger>();
-                _challengeOwnershipTimeoutTimer.stop();
-                emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-                qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
-            }
-        }
+        requestOwnershipVerification(_lastInspectedEntity);
     }
 }
 
@@ -397,6 +404,7 @@ void ContextOverlayInterface::startChallengeOwnershipTimer() {
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
         emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -421,7 +429,9 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(_lastInspectedEntity);
     } else {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
     }
 }
