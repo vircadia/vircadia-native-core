@@ -30,7 +30,7 @@ GLShader::~GLShader() {
     }
 }
 
-GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, Shader::CompilationHandler handler) {
+GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, const Shader::CompilationHandler& handler) {
     GLShader* object = Backend::getGPUObject<GLShader>(shader);
 
     // If GPU object already created then good
@@ -56,7 +56,7 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, Shader::Compi
     return object;
 }
 
-bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, Shader::CompilationHandler handler) {
+bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
 
     // First make sure the Shader has been compiled
     GLShader* object = sync(backend, shader, handler);

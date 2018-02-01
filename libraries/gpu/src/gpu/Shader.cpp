@@ -134,7 +134,7 @@ void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers,
     _outputs = outputs;
 }
 
-bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings, CompilationHandler handler) {
+bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const CompilationHandler& handler) {
     if (shader.isProgram()) {
         return Context::makeProgram(shader, bindings, handler);
     }

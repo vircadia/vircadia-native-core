@@ -175,7 +175,14 @@ public:
                      const SlotSet& inputs,
                      const SlotSet& outputs);
 
-    typedef bool(*CompilationHandler)(const Shader& shader, const std::string& src, CompilationLog& log, std::string& newSrc);
+    // Compilation Handler can be passed while compiling a shader (in the makeProgram call) to be able to give the hand to
+    // the caller thread if the comilation fails and to prvide a different version of the source for it
+    // @param0 the Shader object that just failed to compile
+    // @param1 the original source code as submited to the compiler
+    // @param2 the compilation log containing the error message
+    // @param3 a new string ready to be filled with the new version of the source that could be proposed from the handler functor
+    // @return boolean true if the backend should keep trying to compile the shader with the new source returned or false to stop and fail that shader compilation
+    using CompilationHandler = std::function<bool (const Shader&, const std::string&, CompilationLog&, std::string&)>; 
 
     // makeProgram(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
@@ -190,7 +197,7 @@ public:
     // on a gl Context and the driver to compile the glsl shader. 
     // Hoppefully in a few years the shader compilation will be completely abstracted in a separate shader compiler library
     // independant of the graphics api in use underneath (looking at you opengl & vulkan).
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet(), CompilationHandler handler = nullptr);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet(), const CompilationHandler& handler = nullptr);
 
     // Check the compilation state
     bool compilationHasFailed() const { return _compilationHasFailed; }

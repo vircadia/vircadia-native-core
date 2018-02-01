@@ -56,7 +56,7 @@ static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     stereoVersion
 } };
 
-GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::CompilationHandler handler) {
+GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
@@ -108,7 +108,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
     return object;
 }
 
-GLShader* GLBackend::compileBackendProgram(const Shader& program, Shader::CompilationHandler handler) {
+GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler) {
     if (!program.isProgram()) {
         return nullptr;
     }
