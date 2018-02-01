@@ -57,6 +57,7 @@ Rectangle {
 
                 if (root.certInfoReplaceMode > 3) {
                     root.itemName = result.data.marketplace_item_name;
+                    // "\u2022" is the Unicode character 'BULLET' - it's what's used in password fields on the web, etc
                     root.itemOwner = root.isMyCert ? Account.username :
                     "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
                     root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
