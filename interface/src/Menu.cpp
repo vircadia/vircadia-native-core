@@ -282,7 +282,7 @@ Menu::Menu() {
 
     // Navigate > Show Address Bar
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
-        dialogsManager.data(), SLOT(showAddressBar()));
+        dialogsManager.data(), SLOT(toggleAddressBar()));
 
     // Navigate > LocationBookmarks related menus -- Note: the LocationBookmarks class adds its own submenus here.
     auto locationBookmarks = DependencyManager::get<LocationBookmarks>();

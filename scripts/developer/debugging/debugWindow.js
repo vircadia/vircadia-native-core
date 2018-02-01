@@ -22,14 +22,37 @@ if (scripts.length >= 2) {
 // Set up the qml ui
 var qml = Script.resolvePath('debugWindow.qml');
 
+var HMD_DEBUG_WINDOW_GEOMETRY_KEY = 'hmdDebugWindowGeometry';
+var hmdDebugWindowGeometryValue = Settings.getValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY)
+
+var windowWidth = 400;
+var windowHeight = 900;
+
+var hasPosition = false;
+var windowX = 0;
+var windowY = 0;
+
+if (hmdDebugWindowGeometryValue !== '') {
+    var geometry = JSON.parse(hmdDebugWindowGeometryValue);
+
+    windowWidth = geometry.width
+    windowHeight = geometry.height
+    windowX = geometry.x
+    windowY = geometry.y
+    hasPosition = true;
+}
+
 var window = new OverlayWindow({
     title: 'Debug Window',
     source: qml,
-    width: 400, height: 900,
+    width: windowWidth, height: windowHeight,
 });
 
-window.setPosition(25, 50);
-window.closed.connect(function() { Script.stop(); });
+if (hasPosition) {
+    window.setPosition(windowX, windowY);
+}
+
+window.closed.connect(function () { Script.stop(); });
 
 var getFormattedDate = function() {
     var date = new Date();
@@ -65,6 +88,14 @@ ScriptDiscoveryService.clearDebugWindow.connect(function() {
 });
 
 Script.scriptEnding.connect(function () {
+    var geometry = JSON.stringify({
+        x: window.position.x,
+        y: window.position.y,
+        width: window.size.x,
+        height: window.size.y
+    })
+
+    Settings.setValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY, geometry);
     window.close();
 })
 
