@@ -1540,7 +1540,7 @@ Item {
         sendMoneyStep.selectedRecipientProfilePic = "";
         amountTextField.text = "";
         optionalMessage.text = "";
-        sendPubliclyCheckbox.checked = false;
+        sendPubliclyCheckbox.checked = Settings.getValue("sendMoneyNearbyPublicly", true);
         sendMoneyStep.referrer = "";
     }
 
