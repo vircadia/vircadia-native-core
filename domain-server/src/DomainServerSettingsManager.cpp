@@ -406,14 +406,14 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             QVariant* avatarMinScale = _configMap.valueForKeyPath(AVATAR_MIN_SCALE_KEYPATH);
             if (avatarMinScale) {
-                float scale = avatarMinScale->toFloat();
-                _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+                auto newMinScaleVariant = _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, true);
+                *newMinScaleVariant = avatarMinScale->toFloat() * DEFAULT_AVATAR_HEIGHT;
             }
 
             QVariant* avatarMaxScale = _configMap.valueForKeyPath(AVATAR_MAX_SCALE_KEYPATH);
             if (avatarMaxScale) {
-                float scale = avatarMaxScale->toFloat();
-                _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+                auto newMaxScaleVariant = _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, true);
+                *newMaxScaleVariant = avatarMaxScale->toFloat() * DEFAULT_AVATAR_HEIGHT;
             }
         }
 
