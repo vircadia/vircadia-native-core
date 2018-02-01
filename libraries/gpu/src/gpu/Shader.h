@@ -15,6 +15,7 @@
 #include <string>
 #include <memory>
 #include <set>
+#include <map>
 
 #include <QUrl>
  
@@ -22,6 +23,8 @@ namespace gpu {
 
 class Shader {
 public:
+    // unique identifier of a shader
+    using ID = uint32_t;
 
     typedef std::shared_ptr< Shader > Pointer;
     typedef std::vector< Pointer > Shaders;
@@ -38,6 +41,11 @@ public:
         virtual ~Source() {}
  
         virtual const std::string& getCode() const { return _code; }
+
+        class Less {
+        public:
+            bool operator() (const Source& x, const Source& y) const { if (x._lang == y._lang) { return x._code < y._code; } else { return (x._lang < y._lang); } }
+        };
 
     protected:
         std::string _code;
@@ -134,6 +142,8 @@ public:
 
     ~Shader();
 
+    ID getID() const { return _ID; }
+
     Type getType() const { return _type; }
     bool isProgram() const { return getType() > NUM_DOMAINS; }
     bool isDomain() const { return getType() < NUM_DOMAINS; }
@@ -194,14 +204,14 @@ public:
 
 
     const GPUObjectPointer gpuObject {};
-    
+
 protected:
     Shader(Type type, const Source& source);
-    Shader(Type type, const Pointer& vertex, const Pointer& pixel);
     Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
 
     Shader(const Shader& shader); // deep copy of the sysmem shader
     Shader& operator=(const Shader& shader); // deep copy of the sysmem texture
+
 
     // Source contains the actual source code or nothing if the shader is a program
     Source _source;
@@ -221,6 +231,9 @@ protected:
     // The type of the shader, the master key
     Type _type;
 
+    // The unique identifier of a shader in the GPU lib
+    uint32_t _ID{ 0 };
+
     // Number of attempts to compile the shader
     mutable uint32_t _numCompilationAttempts{ 0 };
     // Compilation logs (one for each versions generated)
@@ -228,6 +241,39 @@ protected:
 
     // Whether or not the shader compilation failed
     bool _compilationHasFailed { false };
+
+
+    // Global maps of the shaders 
+    // Unique shader ID
+    static std::atomic<ID> _nextShaderID;
+
+    using ShaderMap =  std::map<Source, std::weak_ptr<Shader>, Source::Less>;
+    using DomainShaderMaps = std::array<ShaderMap, NUM_DOMAINS>;
+    static DomainShaderMaps _domainShaderMaps;
+
+    static ShaderPointer createOrReuseDomainShader(Type type, const Source& source);
+
+    using ProgramMapKey = glm::uvec3; // THe IDs of the shaders in a progrma make its key
+    class ProgramKeyLess {
+    public:
+        bool operator() (const ProgramMapKey& l, const ProgramMapKey& r) const {
+            if (l.x == r.x) {
+                if (l.y == r.y) {
+                    return (l.z < l.z);
+                }
+                else {
+                    return (l.y < l.y);
+                }
+            }
+            else {
+                return (l.x < r.x);
+            }
+        }
+    };
+    using ProgramMap = std::map<ProgramMapKey, std::weak_ptr<Shader>, ProgramKeyLess>;
+    static ProgramMap _programMap;
+
+    static ShaderPointer createOrReuseProgramShader(Type type, const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader);
 };
 
 typedef Shader::Pointer ShaderPointer;
