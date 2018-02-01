@@ -56,14 +56,14 @@ Rectangle {
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
 
                 if (root.certInfoReplaceMode > 3) {
+                    root.itemName = result.data.marketplace_item_name;
+                    root.itemOwner = root.isMyCert ? Account.username :
+                    "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+                    root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
+                    root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? result.data.cost : "Undisclosed";
+                }
+                if (root.certInfoReplaceMode > 4) {
                     root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
-                    if (root.certInfoReplaceMode > 4) {
-                        root.itemName = result.data.marketplace_item_name;
-                        root.itemOwner = root.isMyCert ? Account.username :
-                        "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-                        root.dateOfPurchase = root.isMyCert ? getFormattedDate(result.data.transfer_created_at * 1000) : "Undisclosed";
-                        root.itemCost = (root.isMyCert && result.data.cost !== undefined) ? result.data.cost : "Undisclosed";
-                    }
                 }
 
                 if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
@@ -94,7 +94,7 @@ Rectangle {
                     root.certTitleTextColor = hifi.colors.redHighlight;
                     root.certTextColor = hifi.colors.redHighlight;
                     root.infoTextColor = hifi.colors.redHighlight;
-                    titleBarText.text = "Certificate\nNo Longer Valid";
+                    titleBarText.text = "Certificate Pending";
                     popText.text = "";
                     showInMarketplaceButton.visible = true;
                     // "Edition" text previously set above in this function
@@ -397,7 +397,7 @@ Rectangle {
 
         RalewayRegular {
             id: errorText;
-            visible: text !== "";
+            visible: !root.useGoldCert;
             // Text size
             size: 20;
             // Anchors
