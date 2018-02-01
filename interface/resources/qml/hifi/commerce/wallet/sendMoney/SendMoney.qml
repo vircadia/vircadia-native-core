@@ -106,6 +106,12 @@ Item {
         }
     }
 
+    HifiCommerceCommon.CommerceLightbox {
+        id: lightboxPopup;
+        visible: false;
+        anchors.fill: parent;
+    }
+
     // Send Money Home BEGIN
     Item {
         id: sendMoneyHome;
@@ -972,17 +978,51 @@ Item {
             id: sendPubliclyCheckbox;
             visible: sendMoneyStep.referrer === "nearby";
             checked: Settings.getValue("sendMoneyNearbyPublicly", true);
-            text: "Send Publicly"
+            text: "Show Effect"
             // Anchors
             anchors.top: messageContainer.bottom;
             anchors.topMargin: 16;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
+            width: 110;
             boxSize: 28;
             onCheckedChanged: {
                 Settings.setValue("sendMoneyNearbyPublicly", checked);
+            }
+        }
+        RalewaySemiBold {
+            id: sendPubliclyCheckboxHelp;
+            visible: sendPubliclyCheckbox.visible;
+            text: "[?]";
+            // Anchors
+            anchors.left: sendPubliclyCheckbox.right;
+            anchors.leftMargin: 8;
+            anchors.verticalCenter: sendPubliclyCheckbox.verticalCenter;
+            height: 30;
+            width: paintedWidth;
+            // Text size
+            size: 18;
+            // Style
+            color: hifi.colors.blueAccent;
+            MouseArea {
+                enabled: sendPubliclyCheckboxHelp.visible;
+                anchors.fill: parent;
+                hoverEnabled: true;
+                onEntered: {
+                    parent.color = hifi.colors.blueHighlight;
+                }
+                onExited: {
+                    parent.color = hifi.colors.blueAccent;
+                }
+                onClicked: {
+                    lightboxPopup.titleText = "Send Money Effect";
+                    lightboxPopup.bodyImageSource = "../wallet/sendMoney/images/send-money-effect-sm.jpg"; // Path relative to CommerceLightbox.qml
+                    lightboxPopup.bodyText = "Enabling this option will create a particle effect between you and " +
+                        "your recipient that is visible to everyone nearby.";
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.visible = true;
+                }
             }
         }
 
