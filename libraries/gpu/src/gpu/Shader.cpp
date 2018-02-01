@@ -122,7 +122,6 @@ Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer
 
 Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
     return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
-
 }
 
 void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers, const SlotSet& resourceBuffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {

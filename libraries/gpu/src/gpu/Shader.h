@@ -259,10 +259,10 @@ protected:
         bool operator() (const ProgramMapKey& l, const ProgramMapKey& r) const {
             if (l.x == r.x) {
                 if (l.y == r.y) {
-                    return (l.z < l.z);
+                    return (l.z < r.z);
                 }
                 else {
-                    return (l.y < l.y);
+                    return (l.y < r.y);
                 }
             }
             else {
