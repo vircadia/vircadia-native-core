@@ -97,7 +97,13 @@ var DOMAIN_ID_TYPE_FULL = 2;
 var DOMAIN_ID_TYPE_UNKNOWN = 3;
 
 function domainIDIsSet() {
-  return Settings.data.values.metaverse.id.length > 0;
+  if (typeof Settings.data.values.metaverse !== 'undefined' &&
+    typeof Settings.data.values.metaverse.id !== 'undefined') {
+
+    return Settings.data.values.metaverse.id.length > 0;
+  } else {
+    return false;
+  }
 }
 
 function getCurrentDomainIDType() {

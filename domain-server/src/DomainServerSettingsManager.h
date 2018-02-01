@@ -130,8 +130,9 @@ private:
     QStringList _argumentList;
 
     QJsonArray filteredDescriptionArray(bool isContentSettings);
-    QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false,
-                                      bool includeDomainSettings = true, bool includeContentSettings = true);
+    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
+                                              bool includeDomainSettings = true, bool includeContentSettings = true,
+                                              bool includeDefaults = true);
     bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
@@ -141,6 +142,8 @@ private:
     void persistToFile();
 
     void splitSettingsDescription();
+
+    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
 
     double _descriptionVersion;
 

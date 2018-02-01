@@ -430,3 +430,7 @@ ul.nav li.dropdown ul.dropdown-menu .divider {
 .advanced-settings-section {
   margin-top: 20px;
 }
+
+#restore-settings-button {
+  margin-top: 10px;
+}

@@ -19,6 +19,10 @@ $(document).ready(function(){
     1: {
       html_id: 'places',
       label: 'Places'
+    },
+    "-1": {
+      html_id: 'settings_backup',
+      label: 'Settings Backup'
     }
   }
 
@@ -35,7 +39,9 @@ $(document).ready(function(){
     setupDomainNetworkingSettings();
     // setupDomainLabelSetting();
 
-    if (Settings.data.values.metaverse.id.length > 0) {
+    setupSettingsBackup();
+
+    if (domainIDIsSet()) {
       // now, ask the API for what places, if any, point to this domain
       reloadDomainInfo();
 
@@ -150,7 +156,13 @@ $(document).ready(function(){
   });
 
   function accessTokenIsSet() {
-    return Settings.data.values.metaverse.access_token.length > 0;
+    if (typeof Settings.data.values.metaverse !== 'undefined' &&
+      typeof Settings.data.values.metaverse.access_token !== 'undefined') {
+
+      return Settings.data.values.metaverse.access_token.length > 0;
+    } else {
+      return false;
+    }
   }
 
   function getShareName(callback) {
@@ -182,7 +194,7 @@ $(document).ready(function(){
 
     if (action == "share") {
       // figure out if we already have a stored domain ID
-      if (Settings.data.values.metaverse.id.length > 0) {
+      if (domainIDIsSet()) {
         // we need to ask the API what a shareable name for this domain is
         getShareName(function(success, shareName){
           if (success) {
@@ -674,7 +686,7 @@ $(document).ready(function(){
     $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
 
     // do we have a domain ID?
-    if (Settings.data.values.metaverse.id.length == 0) {
+    if (!domainIDIsSet()) {
       // we don't have a domain ID - add a button to offer the user a chance to get a temporary one
       var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
       $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
@@ -1023,4 +1035,70 @@ $(document).ready(function(){
     });
   }
 
+  var RESTORE_SETTINGS_UPLOAD_ID = 'restore-settings-button';
+  var RESTORE_SETTINGS_FILE_ID = 'restore-settings-file';
+
+  // when the restore button is clicked, AJAX send the settings file to DS
+  // to restore its settings
+  $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
+    e.preventDefault();
+
+    var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+
+    var fileFormData = new FormData();
+    fileFormData.append('restore-file', files[0]);
+
+    showSpinnerAlert("Restoring Settings");
+
+    $.ajax({
+      url: '/settings/restore',
+      type: 'POST',
+      processData: false,
+      contentType: false,
+      dataType: 'json',
+      data: fileFormData
+    }).done(function(data, textStatus, jqXHR) {
+      swal.close();
+      showRestartModal();
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+      showErrorMessage(
+        "Error",
+        "There was a problem restoring domain settings.\n"
+        + "Please ensure that your current domain settings are valid and try again."
+      );
+
+      reloadSettings();
+    });
+  });
+
+  $('body').on('change', '#' + RESTORE_SETTINGS_FILE_ID, function() {
+    if ($(this).val()) {
+        $('#' + RESTORE_SETTINGS_UPLOAD_ID).attr('disabled', false);
+    }
+  });
+
+  function setupSettingsBackup() {
+    // construct the HTML needed for the settings backup panel
+    var html = "<div class='form-group'>";
+
+    html += "<label class='control-label'>Save Your Settings Configuration</label>";
+    html += "<span class='help-block'>Download this domain's settings to quickly configure another domain or to restore them later</span>";
+    html += "<a href='/settings/backup.json' class='btn btn-primary'>Download Domain Settings</a>";
+    html += "</div>";
+
+    html += "<div class='form-group'>";
+    html += "<label class='control-label'>Upload a Settings Configuration</label>";
+    html += "<span class='help-block'>Upload a settings configuration to quickly configure this domain";
+    html += "<br/>Note: Your domain's settings will be replaced by the settings you upload</span>";
+
+    html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
+    html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Domain Settings</button>";
+
+    html += "</div>";
+
+    $('#settings_backup .panel-body').html(html);
+
+    // add an upload button to the footer to kick off the upload form
+
+  }
 });
