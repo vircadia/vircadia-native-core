@@ -1,3 +1,7 @@
+if (typeof Settings === "undefined") {
+  Settings = {};
+}
+
 Object.assign(Settings, {
   DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
