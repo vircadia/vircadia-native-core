@@ -253,7 +253,7 @@ protected:
 
     static ShaderPointer createOrReuseDomainShader(Type type, const Source& source);
 
-    using ProgramMapKey = glm::uvec3; // THe IDs of the shaders in a progrma make its key
+    using ProgramMapKey = glm::uvec3; // The IDs of the shaders in a program make its key
     class ProgramKeyLess {
     public:
         bool operator() (const ProgramMapKey& l, const ProgramMapKey& r) const {

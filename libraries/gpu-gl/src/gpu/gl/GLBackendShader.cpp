@@ -71,6 +71,9 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, Shader::Compilat
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;
+            // When a Handler is specified, we can try multiple times to build the shader and let the handler change the source if the compilation fails.
+            // The retest bool is set to false as soon as the compilation succeed to wexit the while loop.
+            // The handler tells us if we should retry or not while returning a modified version of the source.
             while (retest) {
                 bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
                 compilationLogs[version].compiled = result;
