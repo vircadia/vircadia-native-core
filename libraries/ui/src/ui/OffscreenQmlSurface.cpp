@@ -543,6 +543,7 @@ void OffscreenQmlSurface::cleanup() {
 
 void OffscreenQmlSurface::render() {
 #if !defined(DISABLE_QML)
+
     if (nsightActive()) {
         return;
     }
@@ -569,14 +570,18 @@ void OffscreenQmlSurface::render() {
 
     {
         // If the most recent texture was unused, we can directly recycle it
-        if (_latestTextureAndFence.first) {
-            offscreenTextures.releaseTexture(_latestTextureAndFence);
-            _latestTextureAndFence = { 0, 0 };
-        }
-
-        _latestTextureAndFence = { texture, glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0) };
+        auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         // Fence will be used in another thread / context, so a flush is required
         glFlush();
+
+        {
+            Lock lock(_latestTextureAndFenceMutex);
+            if (_latestTextureAndFence.first) {
+                offscreenTextures.releaseTexture(_latestTextureAndFence);
+                _latestTextureAndFence = { 0, 0 };
+            }
+            _latestTextureAndFence = { texture, fence};
+        }
     }
 
     _quickWindow->resetOpenGLState();
@@ -588,13 +593,21 @@ void OffscreenQmlSurface::render() {
 bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
     textureAndFence = { 0, 0 };
 
+    // Lock free early check
     if (0 == _latestTextureAndFence.first) {
         return false;
     }
 
     // Ensure writes to the latest texture are complete before before returning it for reading
-    textureAndFence = _latestTextureAndFence;
-    _latestTextureAndFence = { 0, 0 };
+    {
+        Lock lock(_latestTextureAndFenceMutex);
+        // Double check inside the lock
+        if (0 == _latestTextureAndFence.first) {
+            return false;
+        }
+        textureAndFence = _latestTextureAndFence;
+        _latestTextureAndFence = { 0, 0 };
+    }
     return true;
 }
 
@@ -813,10 +826,13 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
         // Release hold on the textures of the old size
         if (uvec2() != _size) {
-            // If the most recent texture was unused, we can directly recycle it
-            if (_latestTextureAndFence.first) {
-                offscreenTextures.releaseTexture(_latestTextureAndFence);
-                _latestTextureAndFence = { 0, 0 };
+            {
+                Lock lock(_latestTextureAndFenceMutex);
+                // If the most recent texture was unused, we can directly recycle it
+                if (_latestTextureAndFence.first) {
+                    offscreenTextures.releaseTexture(_latestTextureAndFence);
+                    _latestTextureAndFence = { 0, 0 };
+                }
             }
             offscreenTextures.releaseSize(_size);
         }
