@@ -156,9 +156,9 @@ function loaded() {
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
-          var snapURL = 'qrc:///snapshot/snapshot.fbx';
+          var IMAGE_MODEL_NAME = 'default-image-model.fbx';
 
-          if (url === snapURL) {
+          if (filename === IMAGE_MODEL_NAME) {
               type = "Image";
           }
 

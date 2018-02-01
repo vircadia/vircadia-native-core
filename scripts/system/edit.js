@@ -540,6 +540,8 @@ var toolBar = (function () {
         });
 
         addButton("newImageButton", "web-01.svg", function () {
+            var IMAGE_MODEL = Script.resolvePath("../../interface/resources/meshes/images/default-image-model.fbx");
+            var DEFAULT_IMAGE = Script.resolvePath("../../interface/resources/snapshot/img/no-image.jpg");
             createNewEntity({
                 type: "Model",
                 dimensions: {
@@ -548,8 +550,8 @@ var toolBar = (function () {
                     z: 2.58
                 },
                 shapeType: "box",
-                modelURL: 'qrc:///snapshot/snapshot.fbx',
-                textures: JSON.stringify({ "tex.picture": 'qrc:///snapshot/img/no-image.jpg' })
+                modelURL: IMAGE_MODEL,
+                textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
             });
         });
 

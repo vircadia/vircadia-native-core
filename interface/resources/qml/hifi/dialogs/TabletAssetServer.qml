@@ -184,7 +184,7 @@ Rectangle {
 
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
             var name = assetProxyModel.data(treeView.selection.currentIndex);
-            var modelURL = "qrc:///snapshot/snapshot.fbx";
+            var modelURL = "../../../meshes/images/default-image-model.fbx";
             var textures = JSON.stringify({ "tex.picture": defaultURL});
             var shapeType = "box";
             var dynamic = false;
