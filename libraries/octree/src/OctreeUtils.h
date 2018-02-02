@@ -25,7 +25,8 @@ float calculateRenderAccuracy(const glm::vec3& position,
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
-float getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
+float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
+float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust);
 
 // MIN_ELEMENT_ANGULAR_DIAMETER = angular diameter of 1x1x1m cube at 400m = sqrt(3) / 400 = 0.0043301 radians ~= 0.25 degrees
 const float MIN_ELEMENT_ANGULAR_DIAMETER = 0.0043301f; // radians

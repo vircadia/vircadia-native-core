@@ -53,9 +53,10 @@ namespace render {
         bool _justFrozeFrustum{ false };
         ViewFrustum _frozenFrustum;
         float _lodAngle;
+
     public:
         using Config = FetchSpatialTreeConfig;
-        using Inputs = ItemFilter;
+        using Inputs = render::VaryingSet2<ItemFilter, glm::ivec2>;
         using JobModel = Job::ModelIO<FetchSpatialTree, Inputs, ItemSpatialTree::ItemSelection, Config>;
 
         FetchSpatialTree() {}

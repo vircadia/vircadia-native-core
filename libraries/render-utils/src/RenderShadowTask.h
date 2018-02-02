@@ -71,10 +71,10 @@ public:
     float constantBias1{ 0.15f };
     float constantBias2{ 0.15f };
     float constantBias3{ 0.15f };
-    float slopeBias0{ 0.55f };
-    float slopeBias1{ 0.55f };
-    float slopeBias2{ 0.55f };
-    float slopeBias3{ 0.55f };
+    float slopeBias0{ 0.6f };
+    float slopeBias1{ 0.6f };
+    float slopeBias2{ 0.6f };
+    float slopeBias3{ 0.6f };
 
 signals:
     void dirty();
@@ -82,7 +82,7 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Outputs = render::VaryingSet2<RenderArgs::RenderMode, float>;
+    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, float, glm::ivec2>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelO<RenderShadowSetup, Outputs, Config>;
 

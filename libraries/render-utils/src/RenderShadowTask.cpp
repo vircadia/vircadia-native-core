@@ -214,9 +214,10 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     }
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
     // Fetch and cull the items from the scene
     static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
-    const auto fetchInput = render::Varying(shadowCasterFilter);
+    const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
     const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
     const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
@@ -281,14 +282,15 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 
     output.edit0() = args->_renderMode;
     output.edit1() = args->_sizeScale;
+    output.edit2() = glm::ivec2(0, 0);
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
         globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
-        auto& firstCascadeFrustum = globalShadow->getCascade(0).getFrustum();
+
+        auto& firstCascade = globalShadow->getCascade(0);
+        auto& firstCascadeFrustum = firstCascade.getFrustum();
         unsigned int cascadeIndex;
-        _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
-        _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
 
         // Adjust each cascade frustum
         for (cascadeIndex = 0; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
@@ -297,19 +299,29 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
                                                     SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
                                                     bias._constant, bias._slope);
         }
+
         // Now adjust coarse frustum bounds
-        auto left = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getRight());
-        auto right = glm::dot(firstCascadeFrustum->getFarTopRight(), firstCascadeFrustum->getRight());
-        auto top = glm::dot(firstCascadeFrustum->getFarTopLeft(), firstCascadeFrustum->getUp());
-        auto bottom = glm::dot(firstCascadeFrustum->getFarBottomRight(), firstCascadeFrustum->getUp());
+        auto frustumPosition = firstCascadeFrustum->getPosition();
+        auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
+        auto farBottomRight = firstCascadeFrustum->getFarBottomRight() - frustumPosition;
+
+        auto left = glm::dot(farTopLeft, firstCascadeFrustum->getRight());
+        auto right = glm::dot(farBottomRight, firstCascadeFrustum->getRight());
+        auto top = glm::dot(farTopLeft, firstCascadeFrustum->getUp());
+        auto bottom = glm::dot(farBottomRight, firstCascadeFrustum->getUp());
         auto near = firstCascadeFrustum->getNearClip();
         auto far = firstCascadeFrustum->getFarClip();
+
         for (cascadeIndex = 1; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
             auto& cascadeFrustum = globalShadow->getCascade(cascadeIndex).getFrustum();
-            auto cascadeLeft = glm::dot(cascadeFrustum->getFarTopLeft(), cascadeFrustum->getRight());
-            auto cascadeRight = glm::dot(cascadeFrustum->getFarTopRight(), cascadeFrustum->getRight());
-            auto cascadeTop = glm::dot(cascadeFrustum->getFarTopLeft(), cascadeFrustum->getUp());
-            auto cascadeBottom = glm::dot(cascadeFrustum->getFarBottomRight(), cascadeFrustum->getUp());
+
+            farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
+            farBottomRight = cascadeFrustum->getFarBottomRight() - frustumPosition;
+
+            auto cascadeLeft = glm::dot(farTopLeft, cascadeFrustum->getRight());
+            auto cascadeRight = glm::dot(farBottomRight, cascadeFrustum->getRight());
+            auto cascadeTop = glm::dot(farTopLeft, cascadeFrustum->getUp());
+            auto cascadeBottom = glm::dot(farBottomRight, cascadeFrustum->getUp());
             auto cascadeNear = cascadeFrustum->getNearClip();
             auto cascadeFar = cascadeFrustum->getFarClip();
             left = glm::min(left, cascadeLeft);
@@ -319,6 +331,9 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
             near = glm::min(near, cascadeNear);
             far = glm::max(far, cascadeFar);
         }
+
+        _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
+        _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
         _coarseShadowFrustum->setProjection(glm::ortho<float>(left, right, bottom, top, near, far));
         _coarseShadowFrustum->calculate();
 
@@ -326,10 +341,13 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         args->pushViewFrustum(*_coarseShadowFrustum);
 
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        if (lightStage->getCurrentKeyLight()->getType() == graphics::Light::SUN) {
-            // Set to ridiculously high amount to prevent solid angle culling in octree selection
-            args->_sizeScale = 1e16f;
-        }
+
+        // We want for the octree query enough resolution to catch the details in the lowest cascade. So compute
+        // the desired resolution for the first cascade frustum and extrapolate it to the coarse frustum.
+        glm::ivec2 queryResolution = firstCascade.framebuffer->getSize();
+        queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
+        queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
+        output.edit2() = queryResolution;
     }
 }
 

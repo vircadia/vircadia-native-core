@@ -49,6 +49,7 @@ public:
     // setters for lens attributes
     void setProjection(const glm::mat4 & projection);
     void setFocalLength(float focalLength) { _focalLength = focalLength; }
+    bool isPerspective() const;
 
     // getters for lens attributes
     const glm::mat4& getProjection() const { return _projection; }

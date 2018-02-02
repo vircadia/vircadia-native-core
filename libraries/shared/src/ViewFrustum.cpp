@@ -847,3 +847,7 @@ void ViewFrustum::tesselateSides(const glm::vec3 points[8], Triangle triangles[8
         triangle.v2 = points[vertexIndices[2]];
     }
 }
+
+bool ViewFrustum::isPerspective() const {
+    return _projection[3][2] != 0.0f && _projection[2][3] != 0.0f && _projection[3][3] == 0.0f;
+}

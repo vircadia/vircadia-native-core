@@ -79,15 +79,10 @@ float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, ve
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[2]) +
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[3])
     );
-
     return shadowAttenuation;
 }
 
 float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord, float oneMinusNdotL) {
-    if (!isShadowCascadeProjectedOnPixel(shadowTexcoord)) {
-        // If a point is not in the map, do not attenuate
-        return 1.0;
-    }
     float bias = getShadowFixedBias(cascadeIndex) + getShadowSlopeBias(cascadeIndex) * oneMinusNdotL;
     return evalShadowAttenuationPCF(cascadeIndex, offsets, shadowTexcoord, bias);
 }

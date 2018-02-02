@@ -14,8 +14,8 @@
 #include <algorithm>
 #include <assert.h>
 
-#include <OctreeUtils.h>
 #include <PerfStat.h>
+#include <OctreeUtils.h>
 
 using namespace render;
 
@@ -33,7 +33,7 @@ struct Test {
         _renderDetails(renderDetails) {
         // FIXME: Keep this code here even though we don't use it yet
         /*_eyePos = _args->getViewFrustum().getPosition();
-        float a = glm::degrees(Octree::getAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
+        float a = glm::degrees(Octree::getPerspectiveAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
         auto angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
         angle = std::max(glm::radians(1.0f / 60.0f), a); // no better than 1 minute of degree
         auto tanAlpha = tan(angle);
@@ -130,7 +130,8 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
     // start fresh
     outSelection.clear();
 
-    auto& filter = inputs;
+    auto& filter = inputs.get0();
+    auto frustumResolution = inputs.get1();
 
     if (!filter.selectsNothing()) {
         assert(renderContext->args);
@@ -149,8 +150,19 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
         }
 
         // Octree selection!
-        float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
-        scene->getSpatialTree().selectCellItems(outSelection, filter, queryFrustum, angle);
+        float threshold = 0.0f;
+        if (queryFrustum.isPerspective()) {
+            threshold = getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust);
+            if (frustumResolution.y > 0) {
+                threshold = glm::max(queryFrustum.getFieldOfView() / frustumResolution.y, threshold);
+            }
+        } else {
+            threshold = getOrthographicAccuracySize(args->_sizeScale, args->_boundaryLevelAdjust);
+            glm::vec2 frustumSize = glm::vec2(queryFrustum.getWidth(), queryFrustum.getHeight());
+            const auto pixelResolution = frustumResolution.x > 0 ? frustumResolution : glm::ivec2(2048, 2048);
+            threshold = glm::max(threshold, glm::min(frustumSize.x / pixelResolution.x, frustumSize.y / pixelResolution.y));
+        }
+        scene->getSpatialTree().selectCellItems(outSelection, filter, queryFrustum, threshold);
     }
 }
 
@@ -371,7 +383,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
         // Now get the bound, and
         // filter individually against the _filter
 
-        // inside & fit items: filter only, culling is disabled
+        // inside & fit items: filter only
         {
             PerformanceTimer perfTimer("insideFitItems");
             for (auto id : inSelection.insideItems) {
@@ -383,7 +395,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
             }
         }
 
-        // inside & subcell items: filter only, culling is disabled
+        // inside & subcell items: filter only
         {
             PerformanceTimer perfTimer("insideSmallItems");
             for (auto id : inSelection.insideSubcellItems) {
@@ -395,7 +407,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
             }
         }
 
-        // partial & fit items: filter only, culling is disabled
+        // partial & fit items: filter only
         {
             PerformanceTimer perfTimer("partialFitItems");
             for (auto id : inSelection.partialItems) {
@@ -407,7 +419,7 @@ void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
             }
         }
 
-        // partial & subcell items: filter only, culling is disabled
+        // partial & subcell items: filter only
         {
             PerformanceTimer perfTimer("partialSmallItems");
             for (auto id : inSelection.partialSubcellItems) {
