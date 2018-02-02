@@ -1181,7 +1181,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 
             // create a timestamped filename for the backup
             const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
-            auto backupFilename = "ds-settings-" + QDateTime::currentDateTime().toString(DATETIME_FORMAT) + ".json";
+            auto backupFilename = "domain-settings_" + QDateTime::currentDateTime().toString(DATETIME_FORMAT) + ".json";
 
             downloadHeaders.insert("Content-Disposition",
                                    QString("attachment; filename=\"%1\"").arg(backupFilename).toLocal8Bit());

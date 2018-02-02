@@ -155,7 +155,10 @@ function postSettings(jsonSettings) {
 
 $(document).ready(function(){
 
-  $('.save-button.navbar-btn').show();
+  $(document).on('click', '.save-button', function(e){
+    saveSettings();
+    e.preventDefault();
+  });
 
   $.ajaxSetup({
     timeout: 20000,
@@ -254,7 +257,7 @@ $(document).ready(function(){
     }
   });
 
-  $('#' + Settings.FORM_ID).on('change keyup paste', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
+  $('#' + Settings.FORM_ID).on('change keyup paste', '.' + Settings.TRIGGER_CHANGE_CLASS , function(e){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true);
 
@@ -437,11 +440,6 @@ function saveSettings() {
     }
   }
 }
-
-$('body').on('click', '.save-button', function(e){
-  saveSettings();
-  return false;
-});
 
 function makeTable(setting, keypath, setting_value) {
   var isArray = !_.has(setting, 'key');
@@ -788,8 +786,8 @@ function badgeForDifferences(changedElement) {
     }
   }
 
-  $(".save-button").prop("disabled", !hasChanges);
-  $(".save-button").html(reasonsForRestart.length > 0 ? SAVE_BUTTON_LABEL_RESTART : SAVE_BUTTON_LABEL_SAVE);
+  $('.save-button').prop("disabled", !hasChanges);
+  $('.save-button-text').html(reasonsForRestart.length > 0 ? SAVE_BUTTON_LABEL_RESTART : SAVE_BUTTON_LABEL_SAVE);
 
   // add the badge to the navbar item and the panel header
   $("a[href='" + settingsGroupAnchor(Settings.path, panelParentID) + "'] .badge").html(badgeValue);
@@ -832,7 +830,7 @@ function addTableRow(row) {
     var keyInput = row.children(".key").children("input");
 
     // whenever the keyInput changes, re-badge for differences
-    keyInput.on('change keyup paste', function(){
+    keyInput.on('change keyup paste', function(e){
       // update siblings in the row to have the correct name
       var currentKey = $(this).val();
 
@@ -844,7 +842,7 @@ function addTableRow(row) {
         } else {
           input.removeAttr("name");
         }
-      })
+      });
 
       badgeForDifferences($(this));
     });

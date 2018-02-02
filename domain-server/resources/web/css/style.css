@@ -126,11 +126,6 @@ span.port {
   margin-top: 10px;
 }
 
-#small-save-button {
-  width: 100%;
-  margin-bottom: 15px;
-}
-
 td.buttons {
   width: 30px;
 }
@@ -433,4 +428,9 @@ ul.nav li.dropdown ul.dropdown-menu .divider {
 
 #restore-settings-button {
   margin-top: 10px;
+}
+
+/* fix for https://bugs.webkit.org/show_bug.cgi?id=39620 */
+.save-button-text {
+  pointer-events: none;
 }
