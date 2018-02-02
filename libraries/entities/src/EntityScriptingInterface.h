@@ -62,7 +62,7 @@ public:
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
-    EntityItemPointer entity;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
@@ -139,7 +139,7 @@ public slots:
     Q_INVOKABLE bool canRezTmpCertified();
 
     /**jsdoc
-    * @function Entities.canWriteAsseets
+    * @function Entities.canWriteAssets
     * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
     */
     Q_INVOKABLE bool canWriteAssets();

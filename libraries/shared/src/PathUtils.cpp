@@ -29,7 +29,6 @@
 #include <mach-o/dyld.h>
 #endif
 
-
 #include "shared/GlobalAppProperties.h"
 #include "SharedUtil.h"
 
@@ -38,12 +37,19 @@
 QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+static bool USE_SOURCE_TREE_RESOURCES() {
 #if defined(Q_OS_OSX)
-static bool USE_SOURCE_TREE_RESOURCES = true;
+    return true;
 #else
-static const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
-static bool USE_SOURCE_TREE_RESOURCES = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
+    static bool result = false;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
+        result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
+    });
+    return result;
 #endif
+}
 #endif
 
 #ifdef DEV_BUILD
@@ -77,7 +83,7 @@ const QString& PathUtils::resourcesPath() {
 #endif
         
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
-        if (USE_SOURCE_TREE_RESOURCES) {
+        if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
             staticResourcePath = projectRootPath() + "/interface/resources/";
         }
@@ -100,7 +106,7 @@ const QString& PathUtils::resourcesUrl() {
 #endif
 
 #if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
-        if (USE_SOURCE_TREE_RESOURCES) {
+        if (USE_SOURCE_TREE_RESOURCES()) {
             // For dev builds, optionally load content from the Git source tree
             staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/").toString();
         }

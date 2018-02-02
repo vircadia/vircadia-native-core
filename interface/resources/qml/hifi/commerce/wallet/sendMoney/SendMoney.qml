@@ -43,6 +43,7 @@ Item {
         width: parent.width;
         height: (root.shouldShowTopAndBottomOfWallet || root.shouldShowTopOfWallet) ? parent.height : parent.height - root.parentAppTitleBarHeight - root.parentAppNavBarHeight;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     Connections {
@@ -326,6 +327,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
         
         ListModel {
@@ -477,6 +479,7 @@ Item {
                             enabled: connectionsList.currentIndex !== index;
                             anchors.fill: parent;
                             propagateComposedEvents: false;
+                            hoverEnabled: true;
                             onClicked: {
                                 connectionsList.currentIndex = index;
                             }
@@ -505,6 +508,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
 
         Rectangle {
@@ -1059,6 +1063,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
                 
         AnimatedImage {

@@ -160,7 +160,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const { return true; }
+                         QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -470,6 +470,9 @@ public:
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
 
+    void setCauterized(bool value) { _cauterized = value; }
+    bool getCauterized() const { return _cauterized; }
+
 signals:
     void requestRenderUpdate();
 
@@ -623,6 +626,7 @@ protected:
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
+    bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 };
 
 #endif // hifi_EntityItem_h

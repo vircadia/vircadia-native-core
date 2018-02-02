@@ -321,7 +321,7 @@ protected:
 
     ArrayBufferClass* _arrayBufferClass;
 
-    AssetScriptingInterface _assetScriptingInterface{ this };
+    AssetScriptingInterface* _assetScriptingInterface;
 
     std::function<bool()> _emitScriptUpdates{ []() { return true; }  };
 

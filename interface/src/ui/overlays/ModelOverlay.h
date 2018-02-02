@@ -41,7 +41,7 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) override;
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) override;
 
     virtual ModelOverlay* createClone() const override;
 
@@ -106,7 +106,7 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
 
-    bool _visibleDirty { false };
+    bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
 
