@@ -926,7 +926,7 @@ Item {
                 id: optionalMessage;
                 property int maximumLength: 72;
                 property string previousText: text;
-                placeholderText: "<i>Optional Message (" + maximumLength + " character limit)</i>";
+                placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
                 font.family: firaSansSemiBold.name;
                 font.pixelSize: 20;
                 // Anchors
