@@ -380,8 +380,8 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         auto& cascadeFrustum = cascade.getFrustum();
         args->pushViewFrustum(*cascadeFrustum);
         auto texelSize = glm::min(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
-        // Set the cull threshold to 16 shadow texels.
-        const auto minTexelCount = 16.0f;
+        // Set the cull threshold to 24 shadow texels. This is totally arbitrary
+        const auto minTexelCount = 24.0f;
         // TODO : maybe adapt that with LOD management system?
         texelSize *= minTexelCount;
         _cullFunctor._minSquareSize = texelSize * texelSize;
