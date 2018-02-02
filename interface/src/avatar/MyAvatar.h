@@ -633,6 +633,11 @@ signals:
 private slots:
     void leaveDomain();
 
+
+protected:
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+
 private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
@@ -811,6 +816,8 @@ private:
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
+
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

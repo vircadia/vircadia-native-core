@@ -504,6 +504,16 @@ void MyAvatar::updateEyeContactTarget(float deltaTime) {
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
 extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
 
+void MyAvatar::beParentOfChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::beParentOfChild(newChild);
+}
+
+void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::forgetChild(newChild);
+}
+
 void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object) {
     if (object->getNestableType() == NestableType::Entity) {
         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
@@ -516,16 +526,19 @@ void MyAvatar::simulate(float deltaTime) {
 
     animateScaleChanges(deltaTime);
 
-    const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
-    forEachChild([&](SpatiallyNestablePointer object) {
-        bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
-        if (isChildOfHead) {
-            updateChildCauterization(object);
-            object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                updateChildCauterization(descendant);
-            });
-        }
-    });
+    if (_cauterizationNeedsUpdate) {
+        const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
+        forEachChild([&](SpatiallyNestablePointer object) {
+            bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
+            if (isChildOfHead) {
+                updateChildCauterization(object);
+                object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    updateChildCauterization(descendant);
+                });
+            }
+        });
+        _cauterizationNeedsUpdate = false;
+    }
 
     {
         PerformanceTimer perfTimer("transform");
@@ -1438,6 +1451,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
+    _cauterizationNeedsUpdate = true;
     emit skeletonChanged();
 
 }
@@ -1809,6 +1823,8 @@ void MyAvatar::initHeadBones() {
         }
         q.pop();
     }
+
+    _cauterizationNeedsUpdate = true;
 }
 
 QUrl MyAvatar::getAnimGraphOverrideUrl() const {
@@ -1879,6 +1895,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
         _isAnimatingScale = true;
+        _cauterizationNeedsUpdate = true;
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
@@ -1967,6 +1984,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
+        _cauterizationNeedsUpdate = true;
         _skeletonModel->setEnableCauterization(!shouldDrawHead);
 
         for (int i = 0; i < _attachmentData.size(); i++) {

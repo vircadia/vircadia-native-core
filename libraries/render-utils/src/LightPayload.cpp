@@ -19,7 +19,7 @@ namespace render {
         ItemKey::Builder builder;
         builder.withTypeLight();
         builder.withTagBits(ItemKey::TAG_BITS_ALL);
-        if (!payload) {
+        if (payload) {
             if (!payload->isVisible()) {
                 builder.withInvisible();
             }
