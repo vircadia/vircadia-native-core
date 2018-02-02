@@ -372,18 +372,6 @@ void Rig::clearIKJointLimitHistory() {
     }
 }
 
-void Rig::setMaxHipsOffsetLength(float maxLength) {
-    _maxHipsOffsetLength = maxLength;
-    auto ikNode = getAnimInverseKinematicsNode();
-    if (ikNode) {
-        ikNode->setMaxHipsOffsetLength(_maxHipsOffsetLength);
-    }
-}
-
-float Rig::getMaxHipsOffsetLength() const {
-    return _maxHipsOffsetLength;
-}
-
 float Rig::getIKErrorOnLastSolve() const {
     float result = 0.0f;
 
