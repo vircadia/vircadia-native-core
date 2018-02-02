@@ -470,6 +470,9 @@ public:
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
 
+    void setCauterized(bool value) { _cauterized = value; }
+    bool getCauterized() const { return _cauterized; }
+
 signals:
     void requestRenderUpdate();
 
@@ -623,6 +626,7 @@ protected:
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
+    bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 };
 
 #endif // hifi_EntityItem_h

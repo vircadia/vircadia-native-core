@@ -2294,7 +2294,7 @@ void Application::initializeGL() {
 #ifndef Q_OS_ANDROID
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
 
 #ifdef Q_OS_OSX
     DeadlockWatchdogThread::resume();

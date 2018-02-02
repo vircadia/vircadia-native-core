@@ -18,9 +18,13 @@ namespace render {
     template <> const ItemKey payloadGetKey(const LightPayload::Pointer& payload) {
         ItemKey::Builder builder;
         builder.withTypeLight();
-        if (!payload || !payload->isVisible()) {
-            builder.withInvisible();
+        builder.withTagBits(ItemKey::TAG_BITS_ALL);
+        if (payload) {
+            if (!payload->isVisible()) {
+                builder.withInvisible();
+            }
         }
+
         return builder.build();
     }
 
@@ -87,6 +91,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const KeyLightPayload::Pointer& payload) {
         ItemKey::Builder builder;
         builder.withTypeLight();
+        builder.withTagBits(ItemKey::TAG_BITS_ALL);
         if (!payload || !payload->isVisible()) {
             builder.withInvisible();
         }
