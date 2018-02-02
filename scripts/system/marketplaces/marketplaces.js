@@ -114,9 +114,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        onWalletScreen = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
+        var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
         onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
             || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+
+        if (!onWalletScreenNow && onWalletScreen) { // exiting wallet screen
+            if (isHmdPreviewDisabledBySecurity) {
+                DesktopPreviewProvider.setPreviewDisabledReason("USER");
+                Menu.setIsOptionChecked("Disable Preview", false);
+                isHmdPreviewDisabledBySecurity = false;
+            }
+        }
+
+        onWalletScreen = onWalletScreenNow;
         wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
@@ -480,7 +490,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     // Description:
     //   -Called when a message is received from Checkout.qml. The "message" argument is what is sent from the Checkout QML
     //    in the format "{method, params}", like json-rpc.
-    var isHmdPreviewDisabled = true;
+    var isHmdPreviewDisabledBySecurity = false;
     function fromQml(message) {
         switch (message.method) {
             case 'purchases_openWallet':
@@ -548,11 +558,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 openLoginWindow();
                 break;
             case 'disableHmdPreview':
-                isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
-                Menu.setIsOptionChecked("Disable Preview", true);
+                var isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
+                if (!isHmdPreviewDisabled) {
+                    DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
+                    Menu.setIsOptionChecked("Disable Preview", true);
+                    isHmdPreviewDisabledBySecurity = true;
+                }
                 break;
             case 'maybeEnableHmdPreview':
-                Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
+                if (isHmdPreviewDisabledBySecurity) {
+                    DesktopPreviewProvider.setPreviewDisabledReason("USER");
+                    Menu.setIsOptionChecked("Disable Preview", false);
+                    isHmdPreviewDisabledBySecurity = false;
+                }
                 break;
             case 'purchases_openGoTo':
                 tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
