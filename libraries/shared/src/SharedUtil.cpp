@@ -63,12 +63,12 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include "OctalCode.h"
 #include "SharedLogging.h"
 
+static std::mutex stagedGlobalInstancesMutex;
 static std::unordered_map<std::string, QVariant> stagedGlobalInstances;
 
 
 std::mutex& globalInstancesMutex() {
-    static std::mutex mutex;
-    return mutex;
+    return stagedGlobalInstancesMutex;
 }
 
 static void commitGlobalInstances() {
@@ -78,7 +78,10 @@ static void commitGlobalInstances() {
     }
     stagedGlobalInstances.clear();
 }
-FIXED_Q_COREAPP_STARTUP_FUNCTION(commitGlobalInstances)
+
+void setupGlobalInstances() {
+    qAddPreRoutine(commitGlobalInstances);
+}
 
 QVariant getGlobalInstance(const char* propertyName) {
     if (qApp) {

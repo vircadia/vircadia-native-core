@@ -10,11 +10,17 @@
 
 #include "Oven.h"
 
+#include <BuildInfo.h>
 #include <SettingInterface.h>
+#include <SharedUtil.h>
 
 int main (int argc, char** argv) {
-    QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setApplicationName("Oven");
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
+    setupGlobalInstances();
 
     // init the settings interface so we can save and load settings
     Setting::init();

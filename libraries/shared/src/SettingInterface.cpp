@@ -23,43 +23,53 @@
 #include "SharedUtil.h"
 
 namespace Setting {
-    static QSharedPointer<Manager> globalManager;
-
     // cleans up the settings private instance. Should only be run once at closing down.
     void cleanupPrivateInstance() {
+        auto globalManager = DependencyManager::get<Manager>();
+        Q_ASSERT(qApp && globalManager);
+
         // grab the thread before we nuke the instance
-        QThread* settingsManagerThread = DependencyManager::get<Manager>()->thread();
+        QThread* settingsManagerThread = globalManager->thread();
 
-        // tell the private instance to clean itself up on its thread
-        DependencyManager::destroy<Manager>();
-
-        globalManager.reset();
-
-        // quit the settings manager thread and wait on it to make sure it's gone
+        // quit the settings manager thread
         settingsManagerThread->quit();
         settingsManagerThread->wait();
+
+        // Save all settings
+        globalManager->saveAll();
+
+        qCDebug(shared) << "Settings thread stopped.";
     }
 
     void setupPrivateInstance() {
-        // Ensure Setting::init has already ran and qApp exists
-        if (qApp && globalManager) {
-            // Let's set up the settings Private instance on its own thread
-            QThread* thread = new QThread();
-            Q_CHECK_PTR(thread);
-            thread->setObjectName("Settings Thread");
+        auto globalManager = DependencyManager::get<Manager>();
+        Q_ASSERT(qApp && globalManager);
 
-            QObject::connect(thread, SIGNAL(started()), globalManager.data(), SLOT(startTimer()));
-            QObject::connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-            QObject::connect(thread, SIGNAL(finished()), globalManager.data(), SLOT(deleteLater()));
-            globalManager->moveToThread(thread);
-            thread->start();
-            qCDebug(shared) << "Settings thread started.";
+        // Let's set up the settings private instance on its own thread
+        QThread* thread = new QThread(qApp);
+        Q_CHECK_PTR(thread);
+        thread->setObjectName("Settings Thread");
 
-            // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
-            qAddPostRoutine(cleanupPrivateInstance);
-        }
+        // Setup setting periodical save timer
+        QObject::connect(thread, &QThread::started, globalManager.data(), &Manager::startTimer);
+        QObject::connect(thread, &QThread::finished, globalManager.data(), &Manager::stopTimer);
+
+        // Setup manager threading affinity
+        globalManager->moveToThread(thread);
+        QObject::connect(thread, &QThread::finished, globalManager.data(), [] {
+            auto globalManager = DependencyManager::get<Manager>();
+            Q_ASSERT(qApp && globalManager);
+
+            // Move manager back to the main thread (has to be done on owning thread)
+            globalManager->moveToThread(qApp->thread());
+        });
+        
+        thread->start();
+        qCDebug(shared) << "Settings thread started.";
+
+        // Register cleanupPrivateInstance to run inside QCoreApplication's destructor.
+        qAddPostRoutine(cleanupPrivateInstance);
     }
-    FIXED_Q_COREAPP_STARTUP_FUNCTION(setupPrivateInstance)
 
     // Sets up the settings private instance. Should only be run once at startup. preInit() must be run beforehand,
     void init() {
@@ -68,6 +78,7 @@ namespace Setting {
         QSettings settings;
         qCDebug(shared) << "Settings file:" << settings.fileName();
 
+        // Backward compatibility for old settings file
         if (settings.allKeys().isEmpty()) {
             loadOldINIFile(settings);
         }
@@ -80,11 +91,13 @@ namespace Setting {
             qCDebug(shared) << (deleted ? "Deleted" : "Failed to delete") << "settings lock file" << settingsLockFilename;
         }
 
-        globalManager = DependencyManager::set<Manager>();
+        // Setup settings manager
+        DependencyManager::set<Manager>();
 
-        setupPrivateInstance();
+        // Add pre-routine to setup threading
+        qAddPreRoutine(setupPrivateInstance);
     }
-    
+
     void Interface::init() {
         if (!DependencyManager::isSet<Manager>()) {
             // WARNING: As long as we are using QSettings this should always be triggered for each Setting::Handle

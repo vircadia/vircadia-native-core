@@ -23,8 +23,11 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
+    setupGlobalInstances();
+
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
     qInfo() << "Starting.";
+
 
     AssignmentClientApp app(argc, argv);
     

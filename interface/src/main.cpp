@@ -62,6 +62,8 @@ int main(int argc, const char* argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
+    setupGlobalInstances();
+
     Setting::init();
 
     // Instance UserActivityLogger now that the settings are loaded
