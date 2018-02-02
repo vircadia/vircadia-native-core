@@ -72,7 +72,6 @@
 #include "model_lightmap_normal_specular_map_frag.h"
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
-#include "model_translucent_normal_map_frag.h"
 #include "model_translucent_unlit_frag.h"
 #include "model_translucent_normal_map_frag.h"
 
