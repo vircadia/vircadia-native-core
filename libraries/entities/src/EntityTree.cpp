@@ -1679,14 +1679,17 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-
 void EntityTree::fixupNeedsParentFixups() {
     PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
+    QVector<EntityItemWeakPointer> entitiesToFixup;
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        entitiesToFixup = _needsParentFixup;
+        _needsParentFixup.clear();
+    }
 
-    QWriteLocker locker(&_needsParentFixupLock);
-
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesToFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1748,6 +1751,12 @@ void EntityTree::fixupNeedsParentFixups() {
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
+    }
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        // add back the entities that did not get fixup
+        _needsParentFixup.append(entitiesToFixup);
     }
 }
 
