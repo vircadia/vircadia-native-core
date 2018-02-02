@@ -540,8 +540,8 @@ var toolBar = (function () {
         });
 
         addButton("newImageButton", "web-01.svg", function () {
-            var IMAGE_MODEL = Script.resolvePath("../../interface/resources/meshes/images/default-image-model.fbx");
-            var DEFAULT_IMAGE = Script.resolvePath("../../interface/resources/snapshot/img/no-image.jpg");
+            var IMAGE_MODEL = Script.resourcesPath() + "meshes/images/default-image-model.fbx";
+            var DEFAULT_IMAGE = Script.resourcesPath() + "snapshot/img/no-image.jpg";
             createNewEntity({
                 type: "Model",
                 dimensions: {
