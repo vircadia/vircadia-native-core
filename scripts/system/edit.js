@@ -540,8 +540,8 @@ var toolBar = (function () {
         });
 
         addButton("newImageButton", "web-01.svg", function () {
-            var IMAGE_MODEL = Script.resourcesPath() + "meshes/images/default-image-model.fbx";
-            var DEFAULT_IMAGE = Script.resourcesPath() + "snapshot/img/no-image.jpg";
+            var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+            var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
             createNewEntity({
                 type: "Model",
                 dimensions: {

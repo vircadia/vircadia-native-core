@@ -184,7 +184,7 @@ Rectangle {
 
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
             var name = assetProxyModel.data(treeView.selection.currentIndex);
-            var modelURL = "../../../meshes/images/default-image-model.fbx";
+            var modelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
             var textures = JSON.stringify({ "tex.picture": defaultURL});
             var shapeType = "box";
             var dynamic = false;

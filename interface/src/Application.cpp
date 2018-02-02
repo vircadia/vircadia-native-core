@@ -6525,7 +6525,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
         QJsonObject textures {
             {"tex.picture", QString("atp:" + mapping) }
         };
-        properties.setModelURL("qrc:///snapshot/snapshot.fbx");
+        properties.setModelURL("https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx");
         properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
         properties.setShapeType(SHAPE_TYPE_BOX);
     } else {
