@@ -112,6 +112,13 @@ def packages = [
         versionId: 'UTberAIFraEfF9IVjoV66u1DTPTopgeY',
         checksum: '57fd02baa069176ba18597a29b6b4fc7',
     ],
+    nvtt: [
+        file: 'nvtt_armv8-libcpp.zip',
+        versionId: 'vLqrqThvpq4gp75BHMAqO6HhfTXaa0An',
+        checksum: 'eb46d0b683e66987190ed124aabf8910',
+        sharedLibFolder: 'lib',
+        includeLibs: ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so'],
+    ],
     openssl: [
         file: 'openssl-1.1.0g_armv8.tgz',
         versionId: 'DmahmSGFS4ltpHyTdyQvv35WOeUOiib9',
