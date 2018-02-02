@@ -47,6 +47,7 @@ namespace gl {
         Context(const Context& other);
 
     public:
+        static bool enableDebugLogger();
         Context();
         Context(QWindow* window);
         void release();

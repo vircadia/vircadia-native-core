@@ -2,6 +2,12 @@
 add_subdirectory(scribe)
 set_target_properties(scribe PROPERTIES FOLDER "Tools")
 
+find_npm()
+if (NPM_EXECUTABLE)
+  add_subdirectory(jsdoc)
+  set_target_properties(jsdoc PROPERTIES FOLDER "Tools")
+endif()
+
 if (BUILD_TOOLS)
   add_subdirectory(udt-test)
   set_target_properties(udt-test PROPERTIES FOLDER "Tools")
@@ -27,4 +33,3 @@ if (BUILD_TOOLS)
   add_subdirectory(auto-tester)
   set_target_properties(auto-tester PROPERTIES FOLDER "Tools")
 endif()
-
