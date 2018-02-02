@@ -248,6 +248,7 @@ SelectionDisplay = (function() {
     var TRANSLATE_ARROW_CYLINDER_CAMERA_DISTANCE_MULTIPLE = 0.005;
     var TRANSLATE_ARROW_CYLINDER_Y_MULTIPLE = 7.5;
     var TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE = 0.025;
+    var TRANSLATE_ARROW_CONE_OFFSET_CYLINDER_DIMENSION_MULTIPLE = 0.83;
 
     var ROTATE_RING_CAMERA_DISTANCE_MULTIPLE = 0.15;
     var ROTATE_CTRL_SNAP_ANGLE = 22.5;
@@ -257,7 +258,7 @@ SelectionDisplay = (function() {
     var ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
-    var ROTATE_DISPLAY_DISTANCE_MULTIPLIER = 1.0;
+    var ROTATE_DISPLAY_DISTANCE_MULTIPLIER = 1.75;
     var ROTATE_DISPLAY_SIZE_X_MULTIPLIER = 0.3;
     var ROTATE_DISPLAY_SIZE_Y_MULTIPLIER = 0.09;
     var ROTATE_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.07;
@@ -674,7 +675,8 @@ SelectionDisplay = (function() {
         var results = testRayIntersect(pickRay, interactiveOverlays);
         if (results.intersects) {
             var hitOverlayID = results.overlayID;
-            if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || (hitOverlayID === HMD.homeButtonID)) {
+            if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || 
+                (hitOverlayID === HMD.homeButtonID)) {
                 // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
@@ -1036,6 +1038,7 @@ SelectionDisplay = (function() {
             };
             var arrowConeDimension = toCameraDistance * TRANSLATE_ARROW_CONE_CAMERA_DISTANCE_MULTIPLE;
             var arrowConeDimensions = { x:arrowConeDimension, y:arrowConeDimension, z:arrowConeDimension };
+            var arrowConeOffset = arrowCylinderDimensions.y * TRANSLATE_ARROW_CONE_OFFSET_CYLINDER_DIMENSION_MULTIPLE;
             var cylinderXPosition = { x:TRANSLATE_ARROW_CYLINDER_OFFSET * toCameraDistance, y:0, z:0 };
             cylinderXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, cylinderXPosition));
             Overlays.editOverlay(handleTranslateXCylinder, { 
@@ -1044,7 +1047,7 @@ SelectionDisplay = (function() {
                 dimensions: arrowCylinderDimensions
             });
             var cylinderXDiff = Vec3.subtract(cylinderXPosition, position);
-            var coneXPosition = Vec3.sum(cylinderXPosition, Vec3.multiply(Vec3.normalize(cylinderXDiff), arrowCylinderDimensions.y * 0.83));
+            var coneXPosition = Vec3.sum(cylinderXPosition, Vec3.multiply(Vec3.normalize(cylinderXDiff), arrowConeOffset));
             Overlays.editOverlay(handleTranslateXCone, { 
                 position: coneXPosition, 
                 rotation: rotationX,
@@ -1058,7 +1061,7 @@ SelectionDisplay = (function() {
                 dimensions: arrowCylinderDimensions
             });
             var cylinderYDiff = Vec3.subtract(cylinderYPosition, position);
-            var coneYPosition = Vec3.sum(cylinderYPosition, Vec3.multiply(Vec3.normalize(cylinderYDiff), arrowCylinderDimensions.y * 0.83));
+            var coneYPosition = Vec3.sum(cylinderYPosition, Vec3.multiply(Vec3.normalize(cylinderYDiff), arrowConeOffset));
             Overlays.editOverlay(handleTranslateYCone, { 
                 position: coneYPosition, 
                 rotation: rotationY,
@@ -1072,7 +1075,7 @@ SelectionDisplay = (function() {
                 dimensions: arrowCylinderDimensions
             });
             var cylinderZDiff = Vec3.subtract(cylinderZPosition, position);
-            var coneZPosition = Vec3.sum(cylinderZPosition, Vec3.multiply(Vec3.normalize(cylinderZDiff), arrowCylinderDimensions.y * 0.83));
+            var coneZPosition = Vec3.sum(cylinderZPosition, Vec3.multiply(Vec3.normalize(cylinderZDiff), arrowConeOffset));
             Overlays.editOverlay(handleTranslateZCone, { 
                 position: coneZPosition, 
                 rotation: rotationZ,
@@ -1275,9 +1278,12 @@ SelectionDisplay = (function() {
             });
         }
 
-        that.setHandleTranslateXVisible(!activeTool || isActiveTool(handleTranslateXCone) || isActiveTool(handleTranslateXCylinder));
-        that.setHandleTranslateYVisible(!activeTool || isActiveTool(handleTranslateYCone) || isActiveTool(handleTranslateYCylinder));
-        that.setHandleTranslateZVisible(!activeTool || isActiveTool(handleTranslateZCone) || isActiveTool(handleTranslateZCylinder));
+        that.setHandleTranslateXVisible(!activeTool || isActiveTool(handleTranslateXCone) || 
+                                                       isActiveTool(handleTranslateXCylinder));
+        that.setHandleTranslateYVisible(!activeTool || isActiveTool(handleTranslateYCone) || 
+                                                       isActiveTool(handleTranslateYCylinder));
+        that.setHandleTranslateZVisible(!activeTool || isActiveTool(handleTranslateZCone) || 
+                                                       isActiveTool(handleTranslateZCylinder));
         that.setHandleRotatePitchVisible(!activeTool || isActiveTool(handleRotatePitchRing));
         that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateYawRing));
         that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRollRing));
@@ -1286,10 +1292,14 @@ SelectionDisplay = (function() {
         that.setHandleStretchXVisible(showScaleStretch || isActiveTool(handleStretchXSphere));
         that.setHandleStretchYVisible(showScaleStretch || isActiveTool(handleStretchYSphere));
         that.setHandleStretchZVisible(showScaleStretch || isActiveTool(handleStretchZSphere));
-        that.setHandleScaleCubeVisible(showScaleStretch || isActiveTool(handleScaleLBNCube) || isActiveTool(handleScaleRBNCube) || isActiveTool(handleScaleLBFCube) || isActiveTool(handleScaleRBFCube)
-                                                || isActiveTool(handleScaleLTNCube) || isActiveTool(handleScaleRTNCube) || isActiveTool(handleScaleLTFCube) || isActiveTool(handleScaleRTFCube)
-                                                || isActiveTool(handleStretchXSphere) || isActiveTool(handleStretchYSphere) || isActiveTool(handleStretchZSphere));
-        that.setHandleScaleEdgeVisible(!isActiveTool(handleRotatePitchRing) && !isActiveTool(handleRotateYawRing) && !isActiveTool(handleRotateRollRing));
+        that.setHandleScaleCubeVisible(showScaleStretch || isActiveTool(handleScaleLBNCube) || 
+                                       isActiveTool(handleScaleRBNCube) || isActiveTool(handleScaleLBFCube) || 
+                                       isActiveTool(handleScaleRBFCube) || isActiveTool(handleScaleLTNCube) || 
+                                       isActiveTool(handleScaleRTNCube) || isActiveTool(handleScaleLTFCube) || 
+                                       isActiveTool(handleScaleRTFCube) || isActiveTool(handleStretchXSphere) || 
+                                       isActiveTool(handleStretchYSphere) || isActiveTool(handleStretchZSphere));
+        that.setHandleScaleEdgeVisible(!isActiveTool(handleRotatePitchRing) && !isActiveTool(handleRotateYawRing) && 
+                                       !isActiveTool(handleRotateRollRing));
 
         //keep cloner always hidden for now since you can hold Alt to clone while dragging to translate  - we may bring cloner back for HMD only later
         //that.setHandleClonerVisible(!activeTool || isActiveTool(handleCloner));
@@ -1453,7 +1463,9 @@ SelectionDisplay = (function() {
             startPosition = SelectionManager.worldPosition;
 
             translateXZTool.pickPlanePosition = pickResult.intersection;
-            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
+            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
+                                                                  SelectionManager.worldDimensions.y), 
+                                                                  SelectionManager.worldDimensions.z);
             translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
             translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
             if (wantDebug) {
@@ -2215,7 +2227,8 @@ SelectionDisplay = (function() {
 
                 var rotationCenterToZero = Vec3.subtract(rotationZero, rotationCenter);
                 var rotationCenterToZeroLength = Vec3.length(rotationCenterToZero);
-                rotationDegreesPosition = Vec3.sum(rotationCenter, Vec3.multiply(Vec3.normalize(rotationCenterToZero), rotationCenterToZeroLength * 1.75));
+                rotationDegreesPosition = Vec3.sum(rotationCenter, Vec3.multiply(Vec3.normalize(rotationCenterToZero), 
+                                                   rotationCenterToZeroLength * ROTATE_DISPLAY_DISTANCE_MULTIPLIER));
                 updateRotationDegreesOverlay(0, rotationDegreesPosition);
 
                 if (wantDebug) {
