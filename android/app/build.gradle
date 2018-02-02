@@ -24,7 +24,7 @@ android {
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
                     '-DBUILD_BRANCH=' + BUILD_BRANCH,
                     '-DDISABLE_QML=ON',
-                    '-DDISABLE_KTX_CACHE=ON'
+                    '-DDISABLE_KTX_CACHE=OFF'
             }
         }
     }
