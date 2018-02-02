@@ -27,7 +27,7 @@ in vec2 _texCoord1;
 
 void main(void) {
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
+    BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 

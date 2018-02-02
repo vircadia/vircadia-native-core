@@ -36,7 +36,7 @@ void main(void) {
     applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
-    int matKey = getMaterialKey(mat);
+    BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
     float opacity = getMaterialOpacity(mat) * _alpha;
