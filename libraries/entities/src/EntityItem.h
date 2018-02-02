@@ -358,7 +358,11 @@ public:
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);
-    void clearDirtyFlags(uint32_t mask = 0xffffffff);
+    void clearDirtyFlags(uint32_t mask = 0x0000ffff);
+
+    uint32_t getSpecialFlags() const;
+    void markSpecialFlags(uint32_t mask);
+    void clearSpecialFlags(uint32_t mask = 0xffff0000);
 
     bool isMoving() const;
     bool isMovingRelativeToParent() const;
@@ -385,7 +389,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     void flagForOwnershipBid(uint8_t priority);
-    void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
+    void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
     bool addAction(EntitySimulationPointer simulation, EntityDynamicPointer action);
@@ -575,7 +579,7 @@ protected:
     //
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
-    uint32_t _dirtyFlags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
+    uint32_t _flags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     // these backpointers are only ever set/cleared by friends:
     EntityTreeElementPointer _element; // set by EntityTreeElement
