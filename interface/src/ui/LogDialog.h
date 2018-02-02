@@ -13,6 +13,7 @@
 #define hifi_LogDialog_h
 
 #include "BaseLogDialog.h"
+#include <SettingHandle.h>
 
 class QCheckBox;
 class QPushButton;
@@ -44,6 +45,8 @@ private slots:
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+
     QString getCurrentLog() override;
     void printLogFile();
 
@@ -62,6 +65,7 @@ private:
     QString _filterSelection;
 
     AbstractLoggerInterface* _logger;
+    Setting::Handle<QRect> _windowGeometry;
 };
 
 #endif // hifi_LogDialog_h
