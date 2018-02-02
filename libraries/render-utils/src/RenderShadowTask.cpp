@@ -228,13 +228,26 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", shadowItems);
     const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
 
+    render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
+        ViewFrustumPointer(),
+        ViewFrustumPointer(),
+        ViewFrustumPointer(),
+        ViewFrustumPointer()
+    };
+
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
-        const auto shadowFilter = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor);
+        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor);
+        const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
+        auto antiFrustum = render::Varying(ViewFrustumPointer());
+        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
+        if (i > 1) {
+            antiFrustum = cascadeFrustums[i - 2];
+        }
 
         // CPU jobs: finer grained culling
-        const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowFilter).asVarying();
+        const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
         const auto culledShadowItemsAndBounds = task.addJob<CullShapeBounds>("CullShadowCascade", cullInputs, cullFunctor, RenderDetails::SHADOW);
 
         // GPU jobs: Render to shadow map
@@ -360,7 +373,7 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
         // Set the keylight render args
         auto& cascade = globalShadow->getCascade(_cascadeIndex);
@@ -372,8 +385,11 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         // TODO : maybe adapt that with LOD management system?
         texelSize *= minTexelCount;
         _cullFunctor._minSquareSize = texelSize * texelSize;
+
+        output.edit1() = cascadeFrustum;
     } else {
-        output = ItemFilter::Builder::nothing();
+        output.edit0() = ItemFilter::Builder::nothing();
+        output.edit1() = ViewFrustumPointer();
     }
 }
 

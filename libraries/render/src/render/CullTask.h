@@ -110,7 +110,7 @@ namespace render {
 
     class CullShapeBounds {
     public:
-        using Inputs = render::VaryingSet2<ShapeBounds, ItemFilter>;
+        using Inputs = render::VaryingSet3<ShapeBounds, ItemFilter, ViewFrustumPointer>;
         using Outputs = render::VaryingSet2<ShapeBounds, AABox>;
         using JobModel = Job::ModelIO<CullShapeBounds, Inputs, Outputs>;
 

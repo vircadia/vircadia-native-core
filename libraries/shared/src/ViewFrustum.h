@@ -104,6 +104,7 @@ public:
     bool sphereIntersectsFrustum(const glm::vec3& center, float radius) const;
     bool cubeIntersectsFrustum(const AACube& box) const;
     bool boxIntersectsFrustum(const AABox& box) const;
+    bool boxInsideFrustum(const AABox& box) const;
 
     bool sphereIntersectsKeyhole(const glm::vec3& center, float radius) const;
     bool cubeIntersectsKeyhole(const AACube& cube) const;

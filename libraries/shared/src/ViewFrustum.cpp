@@ -280,6 +280,18 @@ bool ViewFrustum::boxIntersectsFrustum(const AABox& box) const {
     return true;
 }
 
+bool ViewFrustum::boxInsideFrustum(const AABox& box) const {
+    // only check against frustum
+    for (int i = 0; i < NUM_FRUSTUM_PLANES; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        // check distance to nearest box point
+        if (_planes[i].distance(box.getNearestVertex(normal)) < 0.0f) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool ViewFrustum::sphereIntersectsKeyhole(const glm::vec3& center, float radius) const {
     // check positive touch against central sphere
     if (glm::length(center - _position) <= (radius + _centerSphereRadius)) {

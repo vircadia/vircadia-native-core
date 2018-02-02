@@ -24,13 +24,15 @@ struct Test {
     CullFunctor _functor;
     RenderArgs* _args;
     RenderDetails::Item& _renderDetails;
+    ViewFrustumPointer _antiFrustum;
     glm::vec3 _eyePos;
     float _squareTanAlpha;
 
-    Test(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails) :
+    Test(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails, ViewFrustumPointer antiFrustum = nullptr) :
         _functor(functor),
         _args(pargs),
-        _renderDetails(renderDetails) {
+        _renderDetails(renderDetails),
+        _antiFrustum(antiFrustum) {
         // FIXME: Keep this code here even though we don't use it yet
         /*_eyePos = _args->getViewFrustum().getPosition();
         float a = glm::degrees(Octree::getPerspectiveAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
@@ -43,6 +45,15 @@ struct Test {
 
     bool frustumTest(const AABox& bound) {
         if (!_args->getViewFrustum().boxIntersectsFrustum(bound)) {
+            _renderDetails._outOfView++;
+            return false;
+        }
+        return true;
+    }
+
+    bool antiFrustumTest(const AABox& bound) {
+        assert(_antiFrustum);
+        if (_antiFrustum->boxInsideFrustum(bound)) {
             _renderDetails._outOfView++;
             return false;
         }
@@ -331,6 +342,7 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
 
     const auto& inShapes = inputs.get0();
     const auto& filter = inputs.get1();
+    const auto& antiFrustum = inputs.get2();
     auto& outShapes = outputs.edit0();
     auto& outBounds = outputs.edit1();
 
@@ -339,7 +351,7 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
 
     if (!filter.selectsNothing()) {
         auto& details = args->_details.edit(_detailType);
-        Test test(_cullFunctor, args, details);
+        Test test(_cullFunctor, args, details, antiFrustum);
 
         for (auto& inItems : inShapes) {
             auto key = inItems.first;
@@ -351,13 +363,21 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
 
             details._considered += (int)inItems.second.size();
 
-            for (auto& item : inItems.second) {
-                if (test.frustumTest(item.bound) && test.solidAngleTest(item.bound)) {
-                    outItems->second.emplace_back(item);
-                    outBounds += item.bound;
+            if (antiFrustum == nullptr) {
+                for (auto& item : inItems.second) {
+                    if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound)) {
+                        outItems->second.emplace_back(item);
+                        outBounds += item.bound;
+                    }
+                }
+            } else {
+                for (auto& item : inItems.second) {
+                    if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound) && test.antiFrustumTest(item.bound)) {
+                        outItems->second.emplace_back(item);
+                        outBounds += item.bound;
+                    }
                 }
             }
-
             details._rendered += (int)outItems->second.size();
         }
 
