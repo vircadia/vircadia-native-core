@@ -50,9 +50,22 @@ public:
     using JobModel = render::Task::Model<RenderShadowTask, Config>;
 
     RenderShadowTask() {}
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
     void configure(const Config& configuration);
+
+    struct CullFunctor {
+        float _minSquareSize{ 0.0f };
+
+        bool operator()(const RenderArgs* args, const AABox& bounds) const {
+            // Cull only objects that are too small relatively to shadow frustum
+            const auto boundsSquareRadius = glm::dot(bounds.getDimensions(), bounds.getDimensions());
+            return boundsSquareRadius > _minSquareSize;
+        }
+    };
+
+    CullFunctor _cullFunctor;
+
 };
 
 class RenderShadowSetupConfig : public render::Job::Config {
@@ -82,7 +95,7 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, float, glm::ivec2>;
+    using Outputs = render::VaryingSet2<RenderArgs::RenderMode, glm::ivec2>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelO<RenderShadowSetup, Outputs, Config>;
 
@@ -107,12 +120,13 @@ public:
     using Outputs = render::ItemFilter;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
-    RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
+    RenderShadowCascadeSetup(unsigned int cascadeIndex, RenderShadowTask::CullFunctor& cullFunctor) : _cascadeIndex{ cascadeIndex }, _cullFunctor{ cullFunctor } {}
     void run(const render::RenderContextPointer& renderContext, Outputs& output);
 
 private:
 
     unsigned int _cascadeIndex;
+    RenderShadowTask::CullFunctor& _cullFunctor;
 };
 
 class RenderShadowCascadeTeardown {

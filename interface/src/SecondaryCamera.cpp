@@ -19,7 +19,7 @@
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
 void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
-    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    task.addJob<RenderShadowTask>("RenderShadowTask");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     if (!isDeferred) {

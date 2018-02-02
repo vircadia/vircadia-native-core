@@ -200,8 +200,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     });
 }
 
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&) { return true; };
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+    ::CullFunctor cullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
+        return _cullFunctor(args, bounds);
+    };
 
     // Prepare the ShapePipeline
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
@@ -229,7 +231,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
-        const auto shadowFilter = task.addJob<RenderShadowCascadeSetup>(jobName, i);
+        const auto shadowFilter = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor);
 
         // CPU jobs: finer grained culling
         const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowFilter).asVarying();
@@ -281,8 +283,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
     RenderArgs* args = renderContext->args;
 
     output.edit0() = args->_renderMode;
-    output.edit1() = args->_sizeScale;
-    output.edit2() = glm::ivec2(0, 0);
+    output.edit1() = glm::ivec2(0, 0);
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
@@ -347,7 +348,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         glm::ivec2 queryResolution = firstCascade.framebuffer->getSize();
         queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
         queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
-        output.edit2() = queryResolution;
+        output.edit1() = queryResolution;
     }
 }
 
@@ -365,11 +366,12 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         auto& cascade = globalShadow->getCascade(_cascadeIndex);
         auto& cascadeFrustum = cascade.getFrustum();
         args->pushViewFrustum(*cascadeFrustum);
-        // Set the cull threshold to 2 shadow texels.
-        auto texelSize = glm::max(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
-        texelSize *= 2.0f;
-        // SizeScale is used in the shadow cull function defined ine RenderViewTask
-        args->_sizeScale = texelSize * texelSize;
+        auto texelSize = glm::min(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
+        // Set the cull threshold to 16 shadow texels.
+        const auto minTexelCount = 16.0f;
+        // TODO : maybe adapt that with LOD management system?
+        texelSize *= minTexelCount;
+        _cullFunctor._minSquareSize = texelSize * texelSize;
     } else {
         output = ItemFilter::Builder::nothing();
     }
@@ -393,5 +395,4 @@ void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext
     assert(args->hasViewFrustum());
     // Reset the render args
     args->_renderMode = input.get0();
-    args->_sizeScale = input.get1();
 }

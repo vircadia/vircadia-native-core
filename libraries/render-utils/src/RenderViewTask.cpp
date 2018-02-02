@@ -17,13 +17,7 @@
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred) {
    // auto items = input.get<Input>();
 
-    // Shadows use an orthographic projection because they are linked to sunlights
-    // but the cullFunctor passed is probably tailored for perspective projection and culls too much.
-    task.addJob<RenderShadowTask>("RenderShadowTask", [](const RenderArgs* args, const AABox& bounds) {
-        // Cull only objects that are too small relatively to shadow frustum
-        const auto boundsSquareRadius = glm::dot(bounds.getDimensions(), bounds.getDimensions());
-        return boundsSquareRadius > args->_sizeScale;
-    });
+    task.addJob<RenderShadowTask>("RenderShadowTask");
 
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
