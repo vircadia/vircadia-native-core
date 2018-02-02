@@ -208,8 +208,6 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
 
     // Position the keylight frustum
     auto position = viewFrustum.getPosition() - (nearDepth + farDepth)*lightDirection;
-    // Update the buffer
-    auto& schema = _schemaBuffer.edit<Schema>();
     for (auto& cascade : _cascades) {
         cascade._frustum->setOrientation(orientation);
         cascade._frustum->setPosition(position);

@@ -390,7 +390,6 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
 void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
                                const Inputs& inputs, ItemBounds& outItems) {
     assert(renderContext->args);
-    RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
     auto& inSelection = inputs.get0();
 
