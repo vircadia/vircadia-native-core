@@ -300,7 +300,6 @@ QAction* Menu::getActionFromName(const QString& menuName, MenuWrapper* menu) {
     }
 
     foreach (QAction* menuAction, menuActions) {
-        QString actionText = menuAction->text();
         if (menuName == menuAction->text()) {
             return menuAction;
         }
