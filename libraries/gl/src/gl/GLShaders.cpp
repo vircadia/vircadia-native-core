@@ -6,9 +6,9 @@ namespace gl {
 
 
 #ifdef SEPARATE_PROGRAM
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& error) {
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, GLuint &programObject, std::string& message) {
 #else
-    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& error) {
+    bool compileShader(GLenum shaderDomain, const std::string& shaderSource, const std::string& defines, GLuint &shaderObject, std::string& message) {
 #endif
     if (shaderSource.empty()) {
         qCDebug(glLogging) << "GLShader::compileShader - no GLSL shader source code ? so failed to create";
@@ -34,52 +34,57 @@ namespace gl {
     GLint compiled = 0;
     glGetShaderiv(glshader, GL_COMPILE_STATUS, &compiled);
 
-    // if compilation fails
-    if (!compiled) {
+    GLint infoLength = 0;
+    glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
 
-        // save the source code to a temp file so we can debug easily
-        /*
-        std::ofstream filestream;
-        filestream.open("debugshader.glsl");
-        if (filestream.is_open()) {
-        filestream << srcstr[0];
-        filestream << srcstr[1];
-        filestream.close();
-        }
-        */
-
-        GLint infoLength = 0;
-        glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
-
+    if ((infoLength > 0) || !compiled) {
         char* temp = new char[infoLength];
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
+        message = std::string(temp);
 
-        /*
-        filestream.open("debugshader.glsl.info.txt");
-        if (filestream.is_open()) {
-        filestream << std::string(temp);
-        filestream.close();
-        }
-        */
-
-        qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        int lineNumber = 0;
-        for (auto s : srcstr) {
-            QString str(s);
-            QStringList lines = str.split("\n");
-            for (auto& line : lines) {
-                qCCritical(glLogging).noquote() << QString("%1: %2").arg(lineNumber++, 5, 10, QChar('0')).arg(line);
+        // if compilation fails
+        if (!compiled) {
+            // save the source code to a temp file so we can debug easily
+            /*
+            std::ofstream filestream;
+            filestream.open("debugshader.glsl");
+            if (filestream.is_open()) {
+            filestream << srcstr[0];
+            filestream << srcstr[1];
+            filestream.close();
             }
+            */
+
+            /*
+            filestream.open("debugshader.glsl.info.txt");
+            if (filestream.is_open()) {
+            filestream << std::string(temp);
+            filestream.close();
+            }
+            */
+
+            qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+            int lineNumber = 0;
+            for (auto s : srcstr) {
+                QString str(s);
+                QStringList lines = str.split("\n");
+                for (auto& line : lines) {
+                    qCCritical(glLogging).noquote() << QString("%1: %2").arg(lineNumber++, 5, 10, QChar('0')).arg(line);
+                }
+            }
+            qCCritical(glLogging) << "GLShader::compileShader - errors:";
+            qCCritical(glLogging) << temp;
+
+            delete[] temp;
+            glDeleteShader(glshader);
+            return false;
         }
-        qCCritical(glLogging) << "GLShader::compileShader - errors:";
-        qCCritical(glLogging) << temp;
 
-        error = std::string(temp);
+        // Compilation success
+        qCWarning(glLogging) << "GLShader::compileShader - Success:";
+        qCWarning(glLogging) << temp;
         delete[] temp;
-
-        glDeleteShader(glshader);
-        return false;
     }
 
 #ifdef SEPARATE_PROGRAM
@@ -137,7 +142,7 @@ namespace gl {
     return true;
 }
 
-GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error) {
+GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& message, std::vector<GLchar>& binary) {
     // A brand new program:
     GLuint glprogram = glCreateProgram();
     if (!glprogram) {
@@ -157,39 +162,65 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error) 
     GLint linked = 0;
     glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
 
-    if (!linked) {
-        /*
-        // save the source code to a temp file so we can debug easily
-        std::ofstream filestream;
-        filestream.open("debugshader.glsl");
-        if (filestream.is_open()) {
-        filestream << shaderSource->source;
-        filestream.close();
-        }
-        */
+    GLint infoLength = 0;
+    glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
 
-        GLint infoLength = 0;
-        glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
-
+    if ((infoLength > 0) || !linked) {
         char* temp = new char[infoLength];
         glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
 
-        qCDebug(glLogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
-        qCDebug(glLogging) << temp;
+        message = std::string(temp);
 
-        error = std::string(temp);
-        delete[] temp;
+        if (!linked) {
+            /*
+            // save the source code to a temp file so we can debug easily
+            std::ofstream filestream;
+            filestream.open("debugshader.glsl");
+            if (filestream.is_open()) {
+            filestream << shaderSource->source;
+            filestream.close();
+            }
+            */
 
-        /*
-        filestream.open("debugshader.glsl.info.txt");
-        if (filestream.is_open()) {
-        filestream << std::string(temp);
-        filestream.close();
+            qCDebug(glLogging) << "GLShader::compileProgram -  failed to LINK the gl program object :";
+            qCDebug(glLogging) << temp;
+
+            delete[] temp;
+
+            /*
+            filestream.open("debugshader.glsl.info.txt");
+            if (filestream.is_open()) {
+            filestream << std::string(temp);
+            filestream.close();
+            }
+            */
+
+            glDeleteProgram(glprogram);
+            return 0;
+        } else {
+            qCDebug(glLogging) << "GLShader::compileProgram -  success:";
+            qCDebug(glLogging) << temp;
+            delete[] temp;
         }
-        */
+    }
 
-        glDeleteProgram(glprogram);
-        return 0;
+    // If linked get the binaries
+    if (linked) {
+        GLint binaryLength = 0;
+        glGetProgramiv(glprogram, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
+
+        if (binaryLength > 0) {
+            GLint numBinFormats = 0;
+            glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numBinFormats);
+            if (numBinFormats > 0) {
+                binary.resize(binaryLength);
+                std::vector<GLint> binFormats(numBinFormats);
+                glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, binFormats.data());
+
+                GLenum programBinFormat;
+                glGetProgramBinary(glprogram, binaryLength, NULL, &programBinFormat, binary.data());
+            }
+        }
     }
 
     return glprogram;
