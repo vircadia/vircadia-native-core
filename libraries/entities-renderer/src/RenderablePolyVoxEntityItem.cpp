@@ -99,7 +99,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
   decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
-  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  polyVox surface extractor to create _mesh (as well as set Simulation _flags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
 
@@ -1138,7 +1138,7 @@ void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         if (!_collisionless) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
         _mesh = mesh;
         _meshDirty = true;

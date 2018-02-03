@@ -2294,17 +2294,17 @@ void Application::initializeGL() {
 #ifndef Q_OS_ANDROID
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
-
-#ifdef Q_OS_OSX
-    DeadlockWatchdogThread::resume();
-#endif
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
 
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
     // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
     DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+
+#ifdef Q_OS_OSX
+    DeadlockWatchdogThread::resume();
+#endif
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");

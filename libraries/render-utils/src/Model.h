@@ -86,7 +86,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits);
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -104,6 +104,7 @@ public:
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
+    uint8_t getViewTagBits() const { return _viewTagBits; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
     bool isLayeredInHUD() const { return _isLayeredInHUD; }
@@ -396,6 +397,7 @@ protected:
 
     QUrl _url;
     bool _isVisible;
+    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
     gpu::Buffers _blendedVertexBuffers;
 
