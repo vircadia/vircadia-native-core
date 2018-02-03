@@ -1882,8 +1882,7 @@ bool EntityTree::shouldEraseEntity(EntityItemID entityID, const SharedNodePointe
         if (wantEditLogging() || wantTerseEditLogging()) {
             qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityID;
         }
-    }
-    else if (wantEditLogging() || wantTerseEditLogging()) {
+    } else if (wantEditLogging() || wantTerseEditLogging()) {
         qCDebug(entities) << "User [" << sourceNode->getUUID() << "] attempted to deleteentity. ID:" << entityID << " Filter rejected erase.";
     }
 

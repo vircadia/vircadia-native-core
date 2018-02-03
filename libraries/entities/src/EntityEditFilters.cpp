@@ -41,8 +41,8 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     return zones;
 }
 
-bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
-        EntityTree::FilterType filterType, EntityItemID& itemID, EntityItemPointer& existingEntity) {
+bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut,
+        bool& wasChanged, EntityTree::FilterType filterType, EntityItemID& itemID, EntityItemPointer& existingEntity) {
     
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
@@ -115,6 +115,15 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                             zoneValues.setProperty("boundingBox", boundingBox);
                         }
                     }
+
+                    // If this is an add or delete, or original properties weren't requested
+                    // there won't be original properties in the args, but zone properties need
+                    // to be the fourth parameter, so we need to pad the args accordingly
+                    int EXPECTED_ARGS = 3;
+                    if (args.length() < EXPECTED_ARGS) {
+                        args << QScriptValue();
+                    }
+                    assert(args.length() == EXPECTED_ARGS); // we MUST have 3 args by now!
                     args << zoneValues;
                 }
             }
@@ -308,17 +317,8 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                         EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
                     }
                 } else if (wantsOriginalPropertiesValue.isArray()) {
-                    auto length = wantsOriginalPropertiesValue.property("length").toInteger();
-                    for (int i = 0; i < length; i++) {
-                        auto stringValue = wantsOriginalPropertiesValue.property(i).toString();
-                        if (!stringValue.isEmpty()) {
-                            filterData.wantsOriginalProperties = true;
-                            break;
-                        }
-                    }
-                    if (filterData.wantsOriginalProperties) {
-                        EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
-                    }
+                    EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
+                    filterData.wantsOriginalProperties = !filterData.includedOriginalProperties.isEmpty();
                 }
 
                 // check to see if the filterFn has properties asking for Zone props
@@ -336,9 +336,10 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     auto stringValue = wantsZonePropertiesValue.toString();
                     filterData.wantsZoneProperties = !stringValue.isEmpty();
                     if (filterData.wantsZoneProperties) {
-                        EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
                         if (stringValue == "boundingBox") {
                             filterData.wantsZoneBoundingBox = true;
+                        } else {
+                            EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
                         }
                     }
                 } else if (wantsZonePropertiesValue.isArray()) {
