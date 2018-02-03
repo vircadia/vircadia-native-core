@@ -272,6 +272,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
+        if (model.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(model.geometricScaling, model.geometricRotation, model.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
         if (mixamoHack) {
             // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
             return globalTransform;
@@ -323,12 +328,12 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
-        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
+        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
-    int parentIndex = modelIDs.size() - 1;
+    int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
@@ -1450,18 +1455,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
         // models with clusters must be parented to the cluster top
-        foreach (const QString& deformerID, _connectionChildMap.values(model.key())) {
-            foreach (const QString& clusterID, _connectionChildMap.values(deformerID)) {
-                if (!clusters.contains(clusterID)) {
-                    continue;
+        // Unless the model is a root node.
+        bool isARootNode = !modelIDs.contains(_connectionParentMap.value(model.key()));
+        if (!isARootNode) {  
+            foreach(const QString& deformerID, _connectionChildMap.values(model.key())) {
+                foreach(const QString& clusterID, _connectionChildMap.values(deformerID)) {
+                    if (!clusters.contains(clusterID)) {
+                        continue;
+                    }
+                    QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
+                    _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
+                    _connectionParentMap.insert(model.key(), topID);
+                    goto outerBreak;
                 }
-                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
-                _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
-                _connectionParentMap.insert(model.key(), topID);
-                goto outerBreak;
             }
+            outerBreak: ;
         }
-        outerBreak:
 
         // make sure the parent is in the child map
         QString parent = _connectionParentMap.value(model.key());
@@ -1472,13 +1481,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     }
     while (!remainingModels.isEmpty()) {
         QString first = *remainingModels.constBegin();
-        foreach (const QString& id, remainingModels) {
-            if (id < first) {
-                first = id;
-            }
-        }
         QString topID = getTopModelID(_connectionParentMap, models, first, url);
-        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
     }
 
     // figure the number of animation frames from the curves
@@ -1533,7 +1537,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
-           joint.distanceToParent = 0.0f;
+            joint.distanceToParent = 0.0f;
 
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
@@ -1733,8 +1737,18 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
+
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+
+                // slam bottom row to (0, 0, 0, 1), we KNOW this is not a perspective matrix and
+                // sometimes floating point fuzz can be introduced after the inverse.
+                fbxCluster.inverseBindMatrix[0][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[1][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[2][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[3][3] = 1.0f;
+
                 fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
+
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
@@ -1836,13 +1850,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
 
             // now that we've accumulated the most relevant weights for each vertex
-            // normalize and compress to 8-bits
+            // normalize and compress to 16-bits
             extracted.mesh.clusterWeights.fill(0, numClusterIndices);
             int numVertices = extracted.mesh.vertices.size();
             for (int i = 0; i < numVertices; ++i) {
                 int j = i * WEIGHTS_PER_VERTEX;
 
-                // normalize weights into uint8_t
+                // normalize weights into uint16_t
                 float totalWeight = weightAccumulators[j];
                 for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
                     totalWeight += weightAccumulators[k];
@@ -1881,6 +1895,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
+        if (extracted.mesh._mesh) {
+            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex);
+        }
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
@@ -1949,7 +1966,19 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-
+    {
+        int i = 0;
+        for (const auto& mesh : geometry.meshes) {
+            auto name = geometry.getModelNameOfMesh(i++);
+            if (!name.isEmpty()) {
+                if (mesh._mesh) {
+                    mesh._mesh->displayName += "#" + name;
+                } else {
+                    qDebug() << "modelName but no mesh._mesh" << name;
+                }
+            }
+        }
+    }
     return geometryPtr;
 }
 
@@ -1965,7 +1994,7 @@ FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
-    qDebug() << "Reading FBX: " << url;
+    qCDebug(modelformat) << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

@@ -22,6 +22,9 @@ class QWindow;
 class QOpenGLContext;
 class QThread;
 
+#if defined(Q_OS_WIN) 
+#define GL_CUSTOM_CONTEXT
+#endif
 namespace gl {
 
     class Context {
@@ -29,7 +32,7 @@ namespace gl {
         QWindow* _window { nullptr };
         static Context* PRIMARY;
         static void destroyContext(QOpenGLContext* context);
-#if defined(Q_OS_WIN)
+#if defined(GL_CUSTOM_CONTEXT)
         uint32_t _version { 0x0401 };
         HWND _hwnd { 0 };
         HDC _hdc { 0 };
@@ -44,6 +47,7 @@ namespace gl {
         Context(const Context& other);
 
     public:
+        static bool enableDebugLogger();
         Context();
         Context(QWindow* window);
         void release();

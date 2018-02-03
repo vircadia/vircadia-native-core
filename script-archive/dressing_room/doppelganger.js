@@ -15,7 +15,7 @@ var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/a
 
 var MIRROR_JOINT_DATA = true;
 var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
-var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
+var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000));
 var THROTTLE = false;
 var THROTTLE_RATE = 100;
 var doppelgangers = [];
@@ -24,8 +24,7 @@ function Doppelganger(avatar) {
     this.initialProperties = {
         name: 'Hifi-Doppelganger',
         type: 'Model',
-        modelURL: TEST_MODEL_URL,
-        // dimensions: getAvatarDimensions(avatar),
+        modelURL: MyAvatar.skeletonModelURL,
         position: putDoppelgangerAcrossFromAvatar(this, avatar),
         rotation: rotateDoppelgangerTowardAvatar(this, avatar),
         collisionsWillMove: false,
@@ -48,7 +47,7 @@ function getJointData(avatar) {
     var jointNames = MyAvatar.jointNames;
     jointNames.forEach(function(joint, index) {
         var translation = MyAvatar.getJointTranslation(index);
-        var rotation = MyAvatar.getJointRotation(index)
+        var rotation = MyAvatar.getJointRotation(index);
         allJointData.push({
             joint: joint,
             index: index,
@@ -66,8 +65,8 @@ function setJointData(doppelganger, relativeXforms) {
     for (i = 0; i < l; i++) {
         jointRotations.push(relativeXforms[i].rot);
     }
-    Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
 
+    Entities.setLocalJointRotations(doppelganger.id, jointRotations);
     return true;
 }
 
@@ -127,7 +126,7 @@ var JOINT_MIRROR_NAME_MAP = {
     LeftHandPinky2: "RightHandPinky2",
     LeftHandPinky3: "RightHandPinky3",
     LeftHandPinky4: "RightHandPinky4",
-    LeftHandPinky: "RightHandPinky",
+    LeftHandPinky: "RightHandPinky"
 };
 
 // maps joint names to parent joint names.
@@ -192,7 +191,7 @@ var JOINT_PARENT_NAME_MAP = {
     LeftHandPinky1: "LeftHand",
     LeftHandPinky2: "LeftHandPinky1",
     LeftHandPinky3: "LeftHandPinky2",
-    LeftHandPinky: "LeftHandPinky3",
+    LeftHandPinky: "LeftHandPinky3"
 };
 
 // maps joint indices to parent joint indices.
@@ -206,7 +205,7 @@ function Xform(rot, pos) {
 };
 Xform.ident = function () {
     return new Xform({x: 0, y: 0, z: 0, w: 1}, {x: 0, y: 0, z: 0});
-}
+};
 Xform.mul = function (lhs, rhs) {
     var rot = Quat.multiply(lhs.rot, rhs.rot);
     var pos = Vec3.sum(lhs.pos, Vec3.multiplyQbyV(lhs.rot, rhs.pos));
@@ -354,12 +353,12 @@ function getAvatarFootOffset() {
         if (jointName === "RightToe_End") {
             toeTop = d.translation.y
         }
-    })
+    });
 
     var myPosition = MyAvatar.position;
     var offset = upperLeg + lowerLeg + foot + toe + toeTop;
     offset = offset / 100;
-    return offset
+    return offset;
 }
 
 
@@ -395,7 +394,7 @@ function connectDoppelgangerUpdates() {
 }
 
 function disconnectDoppelgangerUpdates() {
-    print('SHOULD DISCONNECT')
+    print('SHOULD DISCONNECT');
     if (isConnected === true) {
         Script.update.disconnect(updateDoppelganger);
     }
@@ -465,13 +464,13 @@ function handleFreezeMessages(channel, message, sender) {
     } catch (e) {
         print('error parsing wearable message');
     }
-    print('MESSAGE ACTION::' + parsedMessage.action)
+    print('MESSAGE ACTION::' + parsedMessage.action);
     if (parsedMessage.action === 'freeze') {
-        print('ACTUAL FREEZE')
+        print('ACTUAL FREEZE');
         disconnectDoppelgangerUpdates();
     }
     if (parsedMessage.action === 'unfreeze') {
-        print('ACTUAL UNFREEZE')
+        print('ACTUAL UNFREEZE');
 
         connectDoppelgangerUpdates();
     }
@@ -496,7 +495,7 @@ function handleWearableMessages(channel, message, sender) {
     } catch (e) {
         print('error parsing wearable message');
     }
-    print('parsed message!!!')
+    print('parsed message!!!');
 
     if (channel === 'Hifi-Doppelganger-Wearable') {
         mirrorEntitiesForDoppelganger(doppelgangers[0], parsedMessage);
@@ -511,13 +510,13 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
     var doppelgangerProps = Entities.getEntityProperties(doppelganger.id);
 
     var action = parsedMessage.action;
-    print('IN MIRROR ENTITIES CALL' + action)
+    print('IN MIRROR ENTITIES CALL' + action);
 
     var baseEntity = parsedMessage.baseEntity;
 
     var wearableProps = Entities.getEntityProperties(baseEntity);
 
-    print('WEARABLE PROPS::')
+    print('WEARABLE PROPS::');
     delete wearableProps.id;
     delete wearableProps.created;
     delete wearableProps.age;
@@ -545,15 +544,15 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
                 baseEntity: baseEntity,
                 doppelganger: doppelganger.id
             }
-        })
+        });
         var mirrorEntity = Entities.addEntity(wearableProps);
 
-        var mirrorEntityProps = Entities.getEntityProperties(mirrorEntity)
-        print('MIRROR PROPS::' + JSON.stringify(mirrorEntityProps))
+        var mirrorEntityProps = Entities.getEntityProperties(mirrorEntity);
+        print('MIRROR PROPS::' + JSON.stringify(mirrorEntityProps));
         var wearablePair = {
             baseEntity: baseEntity,
             mirrorEntity: mirrorEntity
-        }
+        };
 
         wearablePairs.push(wearablePair);
     }
@@ -563,11 +562,11 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
 
         var mirrorEntity = getMirrorEntityForBaseEntity(baseEntity);
         //   print('MIRROR ENTITY, newPosition' + mirrorEntity + ":::" + JSON.stringify(newPosition))
-        Entities.editEntity(mirrorEntity, wearableProps)
+        Entities.editEntity(mirrorEntity, wearableProps);
     }
 
     if (action === 'remove') {
-        Entities.deleteEntity(getMirrorEntityForBaseEntity(baseEntity))
+        Entities.deleteEntity(getMirrorEntityForBaseEntity(baseEntity));
         wearablePairs = wearablePairs.filter(function(obj) {
             return obj.baseEntity !== baseEntity;
         });
@@ -575,7 +574,7 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
 
     if (action === 'updateBase') {
         //this gets called when the mirrored entity gets grabbed.  now we move the 
-        var mirrorEntityProperties = Entities.getEntityProperties(message.mirrorEntity)
+        var mirrorEntityProperties = Entities.getEntityProperties(message.mirrorEntity);
         var doppelgangerToMirrorEntity = Vec3.subtract(doppelgangerProps.position, mirrorEntityProperties.position);
         var newPosition = Vec3.sum(MyAvatar.position, doppelgangerToMirrorEntity);
 
@@ -596,7 +595,7 @@ function getMirrorEntityForBaseEntity(baseEntity) {
     if (result.length === 0) {
         return false;
     } else {
-        return result[0].mirrorEntity
+        return result[0].mirrorEntity;
     }
 }
 
@@ -607,13 +606,12 @@ function getBaseEntityForMirrorEntity(mirrorEntity) {
     if (result.length === 0) {
         return false;
     } else {
-        return result[0].baseEntity
+        return result[0].baseEntity;
     }
 }
 
 makeDoppelgangerForMyAvatar();
 subscribeToWearableMessages();
-subscribeToWearableMessagesForAvatar();
 subscribeToFreezeMessages();
 
 function cleanup() {
@@ -622,7 +620,7 @@ function cleanup() {
     }
 
     doppelgangers.forEach(function(doppelganger) {
-        print('DOPPELGANGER' + doppelganger.id)
+        print('DOPPELGANGER' + doppelganger.id);
         Entities.deleteEntity(doppelganger.id);
     });
 }

@@ -13,18 +13,8 @@
 
 #include <RegisteredMetaTypes.h>
 
-#include "OverlayPanel.h"
-
 bool PanelAttachable::getParentVisible() const {
-#if OVERLAY_PANELS
-    if (getParentPanel()) {
-        return getParentPanel()->getVisible() && getParentPanel()->getParentVisible();
-    } else {
-        return true;
-    }
-#else
     return true;
-#endif
 }
 
 // JSDoc for copying to @typedefs of overlay types that inherit PanelAttachable.
@@ -67,15 +57,6 @@ bool PanelAttachable::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         const quint64 TRANSFORM_UPDATE_PERIOD = 100000; // frequency is 10 Hz
         _transformExpiry = usecTimestampNow() + TRANSFORM_UPDATE_PERIOD;
-#if OVERLAY_PANELS
-        if (getParentPanel()) {
-            getParentPanel()->applyTransformTo(transform, true);
-            transform.postTranslate(getOffsetPosition());
-            transform.postRotate(getOffsetRotation());
-            transform.postScale(getOffsetScale());
-            return true;
-        }
-#endif
     }
     return false;
 }

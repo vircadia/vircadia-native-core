@@ -669,15 +669,16 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
-    if (rayPickResult.intersects && rayPickResult.entity) {
-        auto properties = rayPickResult.entity->getProperties();
+    EntityItemPointer entity;
+    if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
+        auto properties = entity->getProperties();
         QString urlString = properties.getHref();
         QUrl url = QUrl(urlString, QUrl::StrictMode);
         if (url.isValid() && !url.isEmpty()){
             DependencyManager::get<AddressManager>()->handleLookupString(urlString);
         }
 
-        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
@@ -708,8 +709,9 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
-    if (rayPickResult.intersects && rayPickResult.entity) {
-        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+    EntityItemPointer entity;
+    if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
             pos2D, rayPickResult.intersection,
             rayPickResult.surfaceNormal, ray.direction,
@@ -738,10 +740,11 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
-    if (rayPickResult.intersects && rayPickResult.entity) {
+    EntityItemPointer entity;
+    if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
         // qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
 
-        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
@@ -757,7 +760,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickReleaseOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
@@ -782,8 +785,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
-    if (rayPickResult.intersects && rayPickResult.entity) {
-        glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+    EntityItemPointer entity;
+    if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
+        glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
@@ -797,7 +801,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
-            glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+            glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
             PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                       pos2D, rayPickResult.intersection,
                                       rayPickResult.surfaceNormal, ray.direction,
@@ -828,7 +832,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
-            glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
+            glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
             PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,

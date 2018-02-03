@@ -172,36 +172,6 @@ public:
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
 
-    // legacy
-    void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
-                           const QVector<int>& freeLineage, glm::mat4 rootTransform);
-
-    // legacy
-    bool restoreJointPosition(int jointIndex, float fraction, float priority, const QVector<int>& freeLineage);
-
-    // legacy
-    float getLimbLength(int jointIndex, const QVector<int>& freeLineage,
-                        const glm::vec3 scale, const QVector<FBXJoint>& fbxJoints) const;
-
-    // legacy
-    glm::quat setJointRotationInBindFrame(int jointIndex, const glm::quat& rotation, float priority);
-
-    // legacy
-    glm::vec3 getJointDefaultTranslationInConstrainedFrame(int jointIndex);
-
-    // legacy
-    glm::quat setJointRotationInConstrainedFrame(int jointIndex, glm::quat targetRotation,
-                                                 float priority, float mix = 1.0f);
-
-    // legacy
-    bool getJointRotationInConstrainedFrame(int jointIndex, glm::quat& rotOut) const;
-
-    // legacy
-    glm::quat getJointDefaultRotationInParentFrame(int jointIndex);
-
-    // legacy
-    void clearJointStatePriorities();
-
     void updateFromControllerParameters(const ControllerParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
 
@@ -345,7 +315,7 @@ protected:
         float firstFrame;
         float lastFrame;
     };
-    
+
     struct RoleAnimState {
        RoleAnimState() {}
        RoleAnimState(const QString& roleId, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
@@ -376,7 +346,6 @@ protected:
     bool _enabledAnimations { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
-    float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };

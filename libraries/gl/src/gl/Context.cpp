@@ -23,22 +23,29 @@
 #include <shared/GlobalAppProperties.h>
 #include <GLMHelpers.h>
 #include "GLLogging.h"
-
-#ifdef Q_OS_WIN
-
-#ifdef DEBUG
-static bool enableDebugLogger = true;
-#else
-static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
-static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-#endif
-
-#endif
-
 #include "Config.h"
 #include "GLHelpers.h"
 
 using namespace gl;
+
+
+bool Context::enableDebugLogger() {
+#if defined(DEBUG) || defined(USE_GLES)
+    static bool enableDebugLogger = true;
+#else
+    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
+    static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // If the previous run crashed, force GL debug logging on
+        if (qApp->property(hifi::properties::CRASHED).toBool()) {
+            enableDebugLogger = true;
+        }
+    });
+    return enableDebugLogger;
+}
+
 
 
 std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
@@ -69,15 +76,9 @@ Context::Context(QWindow* window) {
     setWindow(window);
 }
 
-#ifdef Q_OS_WIN
-void Context::destroyWin32Context(HGLRC hglrc) {
-    wglDeleteContext(hglrc);
-}
-#endif
-
 void Context::release() {
     doneCurrent();
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
     if (_wrappedContext) {
         destroyContext(_wrappedContext);
         _wrappedContext = nullptr;
@@ -123,14 +124,68 @@ void Context::setWindow(QWindow* window) {
     release();
     _window = window;
 
-#ifdef Q_OS_WIN
+#ifdef GL_CUSTOM_CONTEXT
     _hwnd = (HWND)window->winId();
 #endif
 
     updateSwapchainMemoryCounter();
 }
 
-#ifdef Q_OS_WIN
+void Context::clear() {
+    glClearColor(0, 0, 0, 1);
+    QSize windowSize = _window->size() * _window->devicePixelRatio();
+    glViewport(0, 0, windowSize.width(), windowSize.height());
+    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    swapBuffers();
+}
+
+#if defined(GL_CUSTOM_CONTEXT)
+
+static void debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+    if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
+        return;
+    }
+    // FIXME For high severity errors, force a sync to the log, since we might crash
+    // before the log file was flushed otherwise.  Performance hit here
+    qCDebug(glLogging) << "OpenGL: " << message;
+}
+
+static void setupPixelFormatSimple(HDC hdc) {
+    // FIXME build the PFD based on the 
+    static const PIXELFORMATDESCRIPTOR pfd =    // pfd Tells Windows How We Want Things To Be
+    {
+        sizeof(PIXELFORMATDESCRIPTOR),         // Size Of This Pixel Format Descriptor
+        1,                                      // Version Number
+        PFD_DRAW_TO_WINDOW |                    // Format Must Support Window
+        PFD_SUPPORT_OPENGL |                    // Format Must Support OpenGL
+        PFD_DOUBLEBUFFER,                       // Must Support Double Buffering
+        PFD_TYPE_RGBA,                          // Request An RGBA Format
+        24,                                     // Select Our Color Depth
+        0, 0, 0, 0, 0, 0,                       // Color Bits Ignored
+        1,                                      // Alpha Buffer
+        0,                                      // Shift Bit Ignored
+        0,                                      // No Accumulation Buffer
+        0, 0, 0, 0,                             // Accumulation Bits Ignored
+        24,                                     // 24 Bit Z-Buffer (Depth Buffer)  
+        8,                                      // 8 Bit Stencil Buffer
+        0,                                      // No Auxiliary Buffer
+        PFD_MAIN_PLANE,                         // Main Drawing Layer
+        0,                                      // Reserved
+        0, 0, 0                                 // Layer Masks Ignored
+    };
+    auto pixelFormat = ChoosePixelFormat(hdc, &pfd);
+    if (pixelFormat == 0) {
+        throw std::runtime_error("Unable to create initial context");
+    }
+
+    if (SetPixelFormat(hdc, pixelFormat, &pfd) == FALSE) {
+        throw std::runtime_error("Unable to create initial context");
+    }
+}
+
+void Context::destroyWin32Context(HGLRC hglrc) {
+    wglDeleteContext(hglrc);
+}
 
 bool Context::makeCurrent() {
     BOOL result = wglMakeCurrent(_hdc, _hglrc);
@@ -148,56 +203,38 @@ void Context::doneCurrent() {
     wglMakeCurrent(0, 0);
 }
 
-void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-    if (GL_DEBUG_SEVERITY_NOTIFICATION == severity) {
-        return;
-    }
-    qCDebug(glLogging) << "OpenGL: " << message;
-    
-    // For high severity errors, force a sync to the log, since we might crash 
-    // before the log file was flushed otherwise.  Performance hit here
-    if (GL_DEBUG_SEVERITY_HIGH == severity) {
-        AbstractLoggerInterface* logger = AbstractLoggerInterface::get();
-        if (logger) {
-            // FIXME find a way to force the log file to sync that doesn't lead to a deadlock
-            // logger->sync();
-        }
-    }
-}
+// Pixel format arguments
+#define WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB 0x20A9
+#define WGL_DRAW_TO_WINDOW_ARB 0x2001
+#define WGL_COLOR_BITS_ARB 0x2014
+#define WGL_DEPTH_BITS_ARB 0x2022
+#define WGL_PIXEL_TYPE_ARB 0x2013
+#define WGL_STENCIL_BITS_ARB 0x2023
+#define WGL_TYPE_RGBA_ARB 0x202B
+#define WGL_SUPPORT_OPENGL_ARB 0x2010
+#define WGL_DOUBLE_BUFFER_ARB 0x2011
 
-// FIXME build the PFD based on the 
-static const PIXELFORMATDESCRIPTOR pfd =    // pfd Tells Windows How We Want Things To Be
-{
-    sizeof(PIXELFORMATDESCRIPTOR),         // Size Of This Pixel Format Descriptor
-    1,                                      // Version Number
-    PFD_DRAW_TO_WINDOW |                    // Format Must Support Window
-    PFD_SUPPORT_OPENGL |                    // Format Must Support OpenGL
-    PFD_DOUBLEBUFFER,                       // Must Support Double Buffering
-    PFD_TYPE_RGBA,                          // Request An RGBA Format
-    24,                                     // Select Our Color Depth
-    0, 0, 0, 0, 0, 0,                       // Color Bits Ignored
-    1,                                      // Alpha Buffer
-    0,                                      // Shift Bit Ignored
-    0,                                      // No Accumulation Buffer
-    0, 0, 0, 0,                             // Accumulation Bits Ignored
-    24,                                     // 24 Bit Z-Buffer (Depth Buffer)  
-    8,                                      // 8 Bit Stencil Buffer
-    0,                                      // No Auxiliary Buffer
-    PFD_MAIN_PLANE,                         // Main Drawing Layer
-    0,                                      // Reserved
-    0, 0, 0                                 // Layer Masks Ignored
-};
+// Context create arguments
+#define WGL_CONTEXT_FLAGS_ARB 0x2094
+#define WGL_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define WGL_CONTEXT_PROFILE_MASK_ARB 0x9126
 
-void setupPixelFormatSimple(HDC hdc) {
-    auto pixelFormat = ChoosePixelFormat(hdc, &pfd);
-    if (pixelFormat == 0) {
-        throw std::runtime_error("Unable to create initial context");
-    }
+// Context create flag bits
+#define WGL_CONTEXT_DEBUG_BIT_ARB 0x00000001
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+#define WGL_CONTEXT_ES2_PROFILE_BIT_EXT 0x00000004
 
-    if (SetPixelFormat(hdc, pixelFormat, &pfd) == FALSE) {
-        throw std::runtime_error("Unable to create initial context");
-    }
-}
+#if !defined(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB)
+#define GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB 0x8242
+#endif
+
+typedef BOOL(APIENTRYP PFNWGLCHOOSEPIXELFORMATARBPROC)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC, HGLRC hShareContext, const int *attribList);
+
+GLAPI PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+
 
 void Context::create() {
     if (!PRIMARY) {
@@ -214,11 +251,6 @@ void Context::create() {
     // Create a temporary context to initialize glew
     static std::once_flag once;
     std::call_once(once, [&] {
-        // If the previous run crashed, force GL debug logging on
-        if (qApp->property(hifi::properties::CRASHED).toBool()) {
-            enableDebugLogger = true;
-        }
-
         auto hdc = GetDC(hwnd);
         setupPixelFormatSimple(hdc);
         auto glrc = wglCreateContext(hdc);
@@ -227,20 +259,25 @@ void Context::create() {
         if (!makeCurrentResult) {
             throw std::runtime_error("Unable to create initial context");
         }
-        glewExperimental = true;
-        glewInit();
-        if (glewIsSupported("GL_VERSION_4_5")) {
-            _version = 0x0405;
-        } else if (glewIsSupported("GL_VERSION_4_3")) {
-            _version = 0x0403;
-        }
-        glGetError();
+        gl::initModuleGl();
         wglMakeCurrent(0, 0);
         wglDeleteContext(glrc);
         ReleaseDC(hwnd, hdc);
     });
 
     _hdc = GetDC(_hwnd);
+#if defined(USE_GLES)
+    _version = 0x0200;
+#else
+    if (GLAD_GL_VERSION_4_5) {
+        _version = 0x0405;
+    } else if (GLAD_GL_VERSION_4_3) {
+        _version = 0x0403;
+    } else {
+        _version = 0x0401;
+    }
+#endif
+
     static int pixelFormat = 0;
     static PIXELFORMATDESCRIPTOR pfd;
     if (!pixelFormat) {
@@ -261,6 +298,7 @@ void Context::create() {
         formatAttribs.push_back(24);
         formatAttribs.push_back(WGL_STENCIL_BITS_ARB);
         formatAttribs.push_back(8);
+
 #ifdef NATIVE_SRGB_FRAMEBUFFER
      //   formatAttribs.push_back(WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB);
      //   formatAttribs.push_back(GL_TRUE);
@@ -286,9 +324,13 @@ void Context::create() {
         contextAttribs.push_back(WGL_CONTEXT_MINOR_VERSION_ARB);
         contextAttribs.push_back(minorVersion);
         contextAttribs.push_back(WGL_CONTEXT_PROFILE_MASK_ARB);
+#if defined(USE_GLES)
+        contextAttribs.push_back(WGL_CONTEXT_ES2_PROFILE_BIT_EXT);
+#else
         contextAttribs.push_back(WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
+#endif
         contextAttribs.push_back(WGL_CONTEXT_FLAGS_ARB);
-        if (enableDebugLogger) {
+        if (enableDebugLogger()) {
             contextAttribs.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);
         } else {
             contextAttribs.push_back(0);
@@ -307,22 +349,17 @@ void Context::create() {
         qApp->setProperty(hifi::properties::gl::PRIMARY_CONTEXT, QVariant::fromValue((void*)PRIMARY));
     }
 
-    if (enableDebugLogger) {
-        makeCurrent();
+    if (!makeCurrent()) {
+        throw std::runtime_error("Could not make context current");
+    }
+    if (enableDebugLogger()) {
         glDebugMessageCallback(debugMessageCallback, NULL);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-        doneCurrent();
     }
+    doneCurrent();
 }
-#endif
 
-void Context::clear() {
-    glClearColor(0, 0, 0, 1);
-    QSize windowSize = _window->size() * _window->devicePixelRatio();
-    glViewport(0, 0, windowSize.width(), windowSize.height());
-    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    swapBuffers();
-}
+#endif
 
 
 OffscreenContext::~OffscreenContext() {

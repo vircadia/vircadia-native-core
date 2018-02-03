@@ -197,18 +197,19 @@ public slots:
 
     /**jsdoc
      * Prompt the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
-     * {@link Window.openFileChanged|openFileChanged} signal is emitted when a file is chosen; no signal is emitted if the user
+     * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
+     * @deprecated A deprecated {@link Window.openFileChanged|openFileChanged} signal is also emitted when a file is chosen.
      * @function Window.browseAsync
      * @param {string} title="" - The title to display at the top of the dialog.
      * @param {string} directory="" - The initial directory to start browsing at.
      * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to choose an image file without waiting for the answer.</caption>
-     * function onOpenFileChanged(filename) {
+     * function onBrowseChanged(filename) {
      *     print("File: " + filename);
      * }
-     * Window.openFileChanged.connect(onOpenFileChanged);
+     * Window.browseChanged.connect(onBrowseChanged);
      *
      * Window.browseAsync("Select Image File", Paths.resources, "Images (*.png *.jpg *.svg)");
      * print("Script continues without waiting");
@@ -304,6 +305,13 @@ public slots:
      * @returns {string} Interface's build number.
      */
     QString checkVersion();
+
+    /**jsdoc
+     * Get the signature for Interface's protocol version.
+     * @function Window.protocolSignature
+     * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
+     */
+    QString protocolSignature();
 
     /**jsdoc
      * Copies text to the operating system's clipboard.
@@ -654,7 +662,16 @@ signals:
 
     /**jsdoc
      * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
+     * @function Window.browseChanged
+     * @param {string} filename - The path and name of the file the user chose in the dialog.
+     * @returns {Signal}
+     */
+    void browseChanged(QString filename);
+
+    /**jsdoc
+     * Triggered when the user chooses a file in a {@link Window.browseAsync|browseAsync} dialog.
      * @function Window.openFileChanged
+     * @deprecated This signal is being replaced with {@link Window.browseChanged|browseChanged} and will be removed.
      * @param {string} filename - The path and name of the file the user chose in the dialog.
      * @returns {Signal}
      */

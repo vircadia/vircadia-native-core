@@ -27,7 +27,7 @@
 vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness, float opacity) {
 
     // Need the light now
-    Light light = getLight();
+    Light light = getKeyLight();
     vec3 lightDirection = getLightDirection(light);
     vec3 lightIrradiance = getLightIrradiance(light);
 

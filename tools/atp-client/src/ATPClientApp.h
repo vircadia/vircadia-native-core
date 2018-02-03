@@ -45,7 +45,7 @@ private:
     void setMapping(QString hash);
     void lookupAsset();
     void listAssets();
-    void download(AssetHash hash);
+    void download(AssetUtils::AssetHash hash);
     void finish(int exitCode);
     bool _verbose;
 

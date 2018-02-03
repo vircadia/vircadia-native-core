@@ -100,7 +100,7 @@
             button.editProperties({isActive: shouldActivateButton});
             wireEventBridge(true);
             messagesWaiting(false);
-            tablet.sendToQml({ method: 'refreshFeeds' })
+            tablet.sendToQml({ method: 'refreshFeeds', protocolSignature: Window.protocolSignature() })
 
         } else {
             shouldActivateButton = false;
@@ -136,7 +136,7 @@
             'include_actions=' + actions,
             'restriction=' + (Account.isLoggedIn() ? 'open,hifi' : 'open'),
             'require_online=true',
-            'protocol=' + encodeURIComponent(location.protocolVersion()),
+            'protocol=' + encodeURIComponent(Window.protocolSignature()),
             'per_page=' + count
         ];
         var url = Account.metaverseServerURL + '/api/v1/user_stories?' + options.join('&');

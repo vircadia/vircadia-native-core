@@ -10,16 +10,14 @@
 #include <condition_variable>
 #include <queue>
 
+#include <gl/Config.h>
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-#include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
-#include <QOpenGLFramebufferObject>
-#if defined(Q_OS_MAC)
-#include <OpenGL/CGLCurrent.h>
-#endif
+#include <QtGui/QOpenGLFramebufferObject>
 
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -27,7 +25,6 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWidget.h>
-#include <gl/Config.h>
 #include <gl/GLEscrow.h>
 #include <gl/Context.h>
 
@@ -130,6 +127,8 @@ public:
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
         _context->makeCurrent();
+        CHECK_GL_ERROR();
+        _context->doneCurrent();
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {
                 PROFILE_RANGE(render, "MainThreadOp")
@@ -171,20 +170,15 @@ public:
                             QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
                             _context->makeCurrent();
-#if defined(Q_OS_WIN)
-                            wglSwapIntervalEXT(wantVsync ? 1 : 0);
-                            hasVsync = wglGetSwapIntervalEXT() != 0;
-#elif defined(Q_OS_MAC)
-                            GLint interval = wantVsync ? 1 : 0;
+                            CHECK_GL_ERROR();
+#if defined(Q_OS_MAC)
                             newPlugin->swapBuffers();
-                            CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
-                            newPlugin->swapBuffers();
-                            CGLGetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
-                            hasVsync = interval != 0;
-#else
-                            // TODO: Fill in for linux
-                            Q_UNUSED(wantVsync);
 #endif
+                            gl::setSwapInterval(wantVsync ? 1 : 0);
+#if defined(Q_OS_MAC)
+                            newPlugin->swapBuffers();
+#endif
+                            hasVsync = gl::getSwapInterval() != 0;
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
                             CHECK_GL_ERROR();
@@ -284,6 +278,12 @@ bool OpenGLDisplayPlugin::activate() {
         DependencyManager::set<PresentThread>();
         presentThread = DependencyManager::get<PresentThread>();
         presentThread->setObjectName("Presentation Thread");
+        if (!widget->context()->makeCurrent()) {
+            throw std::runtime_error("Failed to make context current");
+        }
+        CHECK_GL_ERROR();
+        widget->context()->doneCurrent();
+
         presentThread->setContext(widget->context());
         // Start execution
         presentThread->start();
@@ -884,6 +884,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
 }
 
 void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
+#if !defined(USE_GLES)
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     withMainThreadContext([&] {
         GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
@@ -924,11 +925,13 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         } else {
             newY = (target->height() - newHeight) / 2;
         }
+
         glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         // don't delete the textures!
         glDeleteFramebuffers(2, fbo);
         *fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     });
+#endif
 }
 

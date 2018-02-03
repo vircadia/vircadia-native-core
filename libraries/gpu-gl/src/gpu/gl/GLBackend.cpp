@@ -68,8 +68,8 @@ GLBackend& getBackend() {
     return *INSTANCE;
 }
 
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings);
+bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
+    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
 }
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
@@ -153,30 +153,7 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
-
-        glewExperimental = true;
-        GLenum err = glewInit();
-        glGetError(); // clear the potential error from glewExperimental
-        if (GLEW_OK != err) {
-            // glewInit failed, something is seriously wrong.
-            qCDebug(gpugllogging, "Error: %s\n", glewGetErrorString(err));
-        }
-        qCDebug(gpugllogging, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-#if defined(Q_OS_WIN)
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }
-#endif
-
-#if defined(Q_OS_LINUX)
-        // TODO: Write the correct  code for Linux...
-        /* if (wglewGetExtension("WGL_EXT_swap_control")) {
-            int swapInterval = wglGetSwapIntervalEXT();
-            qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        }*/
-#endif
+        qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #if THREADED_TEXTURE_BUFFERING
         // This has to happen on the main thread in order to give the thread 
         // pool a reasonable parent object

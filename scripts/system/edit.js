@@ -476,7 +476,7 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
@@ -497,7 +497,7 @@ var toolBar = (function () {
 
             // tablet version of new-model dialog
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.pushOntoStack("NewModelDialog.qml");
+            tablet.pushOntoStack("hifi/tablet/NewModelDialog.qml");
         });
 
         addButton("newCubeButton", "cube-01.svg", function () {
@@ -1383,7 +1383,7 @@ function recursiveDelete(entities, childrenList, deletedIDs) {
         var entityID = entities[i];
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList);
+        recursiveDelete(children, grandchildrenList, deletedIDs);
         var initialProperties = Entities.getEntityProperties(entityID);
         childrenList.push({
             entityID: entityID,
@@ -1536,7 +1536,7 @@ function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
     try {
         // Not all calls to onFileOpenChanged() connect an event.
-        Window.openFileChanged.disconnect(onFileOpenChanged);
+        Window.browseChanged.disconnect(onFileOpenChanged);
     } catch (e) {
         // Ignore.
     }
@@ -1588,7 +1588,7 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
         if (menuItem === "Import Entities") {
-            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
             Window.promptTextChanged.connect(onPromptTextChanged);

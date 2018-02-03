@@ -81,7 +81,7 @@ class MyAvatar : public Avatar {
      *   and MyAvatar.customListenOrientation properties.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
+     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
      *   of the audio spatialization listener.
      * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
      *   around the avatar's head.
@@ -162,6 +162,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
+
+    Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -510,6 +512,9 @@ public:
 
     bool hasDriveInput() const;
 
+    QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
+
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
@@ -557,6 +562,9 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setWalkSpeed(float value);
+    float getWalkSpeed() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -594,7 +602,6 @@ public slots:
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
@@ -625,6 +632,11 @@ signals:
 
 private slots:
     void leaveDomain();
+
+
+protected:
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
 
 private:
 
@@ -805,6 +817,8 @@ private:
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
 
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
+
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
@@ -841,6 +855,11 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    void updateChildCauterization(SpatiallyNestablePointer object);
+
+    // max unscaled forward movement speed
+    ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

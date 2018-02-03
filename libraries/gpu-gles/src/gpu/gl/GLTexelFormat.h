@@ -18,6 +18,11 @@ public:
     GLenum format;
     GLenum type;
 
+    GLTexelFormat(GLenum glinternalFormat, GLenum glformat, GLenum gltype) : internalFormat(glinternalFormat), format(glformat), type(gltype) {}
+    GLTexelFormat(GLenum glinternalFormat) : internalFormat(glinternalFormat) {}
+
+    bool isCompressed() const;
+
     static GLTexelFormat evalGLTexelFormat(const Element& dstFormat) {
         return evalGLTexelFormat(dstFormat, dstFormat);
     }
