@@ -67,7 +67,7 @@ public:
 typedef render::Payload<AnimDebugDrawData> AnimDebugDrawPayload;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()); }
+    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()).withTagBits(ItemKey::TAG_BITS_ALL); }
     template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return data->_bound; }
     template <> void payloadRender(const AnimDebugDrawData::Pointer& data, RenderArgs* args) {
         data->render(args);

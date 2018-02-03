@@ -269,7 +269,7 @@ void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
 
 
 ItemKey ZoneEntityRenderer::getKey() {
-    return ItemKey::Builder().withTypeMeta().build();
+    return ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).build();
 }
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {

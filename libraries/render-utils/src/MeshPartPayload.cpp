@@ -71,9 +71,19 @@ void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
-ItemKey MeshPartPayload::getKey() const {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits) {
     ItemKey::Builder builder;
     builder.withTypeShape();
+
+    if (!isVisible) {
+        builder.withInvisible();
+    }
+
+    builder.withTagBits(tagBits);
+
+    if (isLayered) {
+        builder.withLayered();
+    }
 
     if (_drawMaterial) {
         auto matKey = _drawMaterial->getKey();
@@ -82,7 +92,11 @@ ItemKey MeshPartPayload::getKey() const {
         }
     }
 
-    return builder.build();
+    _itemKey = builder.build();
+}
+
+ItemKey MeshPartPayload::getKey() const {
+    return _itemKey;
 }
 
 Item::Bound MeshPartPayload::getBound() const {
@@ -389,13 +403,15 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
+void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
     if (!isVisible) {
         builder.withInvisible();
     }
+
+    builder.withTagBits(tagBits);
 
     if (isLayered) {
         builder.withLayered();
@@ -413,10 +429,6 @@ void ModelMeshPartPayload::setKey(bool isVisible, bool isLayered) {
     }
 
     _itemKey = builder.build();
-}
-
-ItemKey ModelMeshPartPayload::getKey() const {
-    return _itemKey;
 }
 
 void ModelMeshPartPayload::setLayer(bool isLayeredInFront, bool isLayeredInHUD) {

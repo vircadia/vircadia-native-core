@@ -268,6 +268,7 @@ void Model::updateRenderItems() {
 
         bool isWireframe = self->isWireframe();
         bool isVisible = self->isVisible();
+        uint8_t viewTagBits = self->getViewTagBits();
         bool isLayeredInFront = self->isLayeredInFront();
         bool isLayeredInHUD = self->isLayeredInHUD();
 
@@ -280,8 +281,10 @@ void Model::updateRenderItems() {
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms, invalidatePayloadShapeKey,
-                    isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms,
+                                                                  invalidatePayloadShapeKey, isWireframe, isVisible,
+                                                                  viewTagBits, isLayeredInFront,
+                                                                  isLayeredInHUD](ModelMeshPartPayload& data) {
                 data.updateClusterBuffer(clusterTransforms);
 
                 Transform renderTransform = modelTransform;
@@ -297,7 +300,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
@@ -681,22 +684,25 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
-    if (_isVisible != isVisible) {
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits) {
+    if (_isVisible != isVisible || _viewTagBits != viewTagBits) {
         _isVisible = isVisible;
+        _viewTagBits = viewTagBits;
 
         bool isLayeredInFront = _isLayeredInFront;
         bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
             });
         }
         scene->enqueueTransaction(transaction);
@@ -709,18 +715,21 @@ void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer&
         _isLayeredInFront = isLayeredInFront;
 
         bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -733,18 +742,21 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         _isLayeredInHUD = isLayeredInHUD;
 
         bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInFront = _isLayeredInFront;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }

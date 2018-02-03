@@ -203,6 +203,12 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
 
     return color;
 }
+<@endfunc@>
+
+<@func declareEvalGlobalLightingAlphaBlendedWithHaze()@>
+
+<$declareLightingAmbient(1, 1, 1)$>
+<$declareLightingDirectional()$>
 
 vec3 evalGlobalLightingAlphaBlendedWithHaze(
     mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, 

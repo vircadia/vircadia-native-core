@@ -249,7 +249,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::TAG_BITS_ALL);
                     data.setLayer(isLayeredInFront, isLayeredInHUD);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
                 });
