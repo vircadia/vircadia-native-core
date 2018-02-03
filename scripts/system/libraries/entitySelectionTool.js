@@ -2296,7 +2296,11 @@ SelectionDisplay = (function() {
 
                     // not sure why but this seems to be needed to fix an reverse rotation for yaw ring only
                     if (direction === ROTATE_DIRECTION.YAW) {
-                        Overlays.editOverlay(handleRotateCurrentRing, { rotation: worldRotationZ });
+                        if (spaceMode === SPACE_LOCAL) {
+                            Overlays.editOverlay(handleRotateCurrentRing, { rotation: worldRotationZ });
+                        } else {
+                            Overlays.editOverlay(handleRotateCurrentRing, { rotation: Quat.fromPitchYawRollDegrees(-90, 0, 0) });
+                        }
                     }
                 }
 
