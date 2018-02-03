@@ -182,7 +182,7 @@ SelectionManager = (function() {
             var brn = properties.boundingBox.brn;
             var tfl = properties.boundingBox.tfl;
 
-            for (var i = 0; i < that.selections.length; i++) {
+            for (var i = 1; i < that.selections.length; i++) {
                 properties = Entities.getEntityProperties(that.selections[i]);
                 var bb = properties.boundingBox;
                 brn.x = Math.min(bb.brn.x, brn.x);
