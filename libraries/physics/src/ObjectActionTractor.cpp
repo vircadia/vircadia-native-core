@@ -126,7 +126,6 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
         withWriteLock([&]{
             if (linearValid && linearTractorCount > 0) {
                 position /= linearTractorCount;
-                _lastPositionTarget = _positionalTarget;
                 if (_positionalTargetSet) {
                     _lastPositionTarget = _positionalTarget;
                     _positionalTarget = position;
