@@ -126,17 +126,16 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
         withWriteLock([&]{
             if (linearValid && linearTractorCount > 0) {
                 position /= linearTractorCount;
+                _lastPositionTarget = _positionalTarget;
                 if (_positionalTargetSet) {
                     _lastPositionTarget = _positionalTarget;
-                } else {
-                    _lastPositionTarget = position;
-                }
-                _positionalTarget = position;
-                if (deltaTimeStep > EPSILON) {
-                    // blend the new velocity with the old (low-pass filter)
-                    glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (position - _lastPositionTarget);
-                    const float blend = 0.25f;
-                    _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                    _positionalTarget = position;
+                    if (deltaTimeStep > EPSILON) {
+                        // blend the new velocity with the old (low-pass filter)
+                        glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (_positionalTarget - _lastPositionTarget);
+                        const float blend = 0.25f;
+                        _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                    }
                 }
                 _positionalTargetSet = true;
                 _active = true;
