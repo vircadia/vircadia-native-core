@@ -24,7 +24,7 @@ static const int OVEN_STATUS_CODE_ABORT { 2 };
 
 std::once_flag registerMetaTypesFlag;
 
-BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) :
+BakeAssetTask::BakeAssetTask(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) :
     _assetHash(assetHash),
     _assetPath(assetPath),
     _filePath(filePath)

@@ -52,7 +52,7 @@ void AssetRequest::start() {
     }
 
     // in case we haven't parsed a valid hash, return an error now
-    if (!isValidHash(_hash)) {
+    if (!AssetUtils::isValidHash(_hash)) {
         _error = InvalidHash;
         _state = Finished;
 
@@ -61,7 +61,7 @@ void AssetRequest::start() {
     }
     
     // Try to load from cache
-    _data = loadFromCache(getUrl());
+    _data = AssetUtils::loadFromCache(getUrl());
     if (!_data.isNull()) {
         _error = NoError;
 
@@ -80,7 +80,7 @@ void AssetRequest::start() {
     auto hash = _hash;
 
     _assetRequestID = assetClient->getAsset(_hash, _byteRange.fromInclusive, _byteRange.toExclusive,
-        [this, that, hash](bool responseReceived, AssetServerError serverError, const QByteArray& data) {
+        [this, that, hash](bool responseReceived, AssetUtils::AssetServerError serverError, const QByteArray& data) {
 
         if (!that) {
             qCWarning(asset_client) << "Got reply for dead asset request " << hash << "- error code" << _error;
@@ -91,12 +91,12 @@ void AssetRequest::start() {
 
         if (!responseReceived) {
             _error = NetworkError;
-        } else if (serverError != AssetServerError::NoError) {
+        } else if (serverError != AssetUtils::AssetServerError::NoError) {
             switch (serverError) {
-                case AssetServerError::AssetNotFound:
+                case AssetUtils::AssetServerError::AssetNotFound:
                     _error = NotFound;
                     break;
-                case AssetServerError::InvalidByteRange:
+                case AssetUtils::AssetServerError::InvalidByteRange:
                     _error = InvalidByteRange;
                     break;
                 default:
@@ -104,7 +104,7 @@ void AssetRequest::start() {
                     break;
             }
         } else {
-            if (!_byteRange.isSet() && hashData(data).toHex() != _hash) {
+            if (!_byteRange.isSet() && AssetUtils::hashData(data).toHex() != _hash) {
                 // the hash of the received data does not match what we expect, so we return an error
                 _error = HashVerificationFailed;
             }
@@ -115,7 +115,7 @@ void AssetRequest::start() {
                 emit progress(_totalReceived, data.size());
 
                 if (!_byteRange.isSet()) {
-                    saveToCache(getUrl(), data);
+                    AssetUtils::saveToCache(getUrl(), data);
                 }
             }
         }
@@ -133,4 +133,15 @@ void AssetRequest::start() {
         }
         emit progress(totalReceived, total);
     });
+}
+
+
+const QString AssetRequest::getErrorString() const {
+    QString result;
+    if (_error != Error::NoError) {
+        QVariant v;
+        v.setValue(_error); 
+        result = v.toString(); // courtesy of Q_ENUM
+    }
+    return result;
 }

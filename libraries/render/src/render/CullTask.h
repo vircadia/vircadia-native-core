@@ -24,8 +24,8 @@ namespace render {
 
     class FetchNonspatialItems {
     public:
-        using JobModel = Job::ModelO<FetchNonspatialItems, ItemBounds>;
-        void run(const RenderContextPointer& renderContext, ItemBounds& outItems);
+        using JobModel = Job::ModelIO<FetchNonspatialItems, ItemFilter, ItemBounds>;
+        void run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemBounds& outItems);
     };
 
     class FetchSpatialTreeConfig : public Job::Config {

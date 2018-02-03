@@ -56,32 +56,50 @@ static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     stereoVersion
 } };
 
-GLShader* GLBackend::compileBackendShader(const Shader& shader) {
+GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler) {
     // Any GLSLprogram ? normally yes...
     const std::string& shaderSource = shader.getSource().getCode();
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
+    Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
 
         std::string shaderDefines = getBackendShaderHeader() + "\n" + DOMAIN_DEFINES[shader.getType()] + "\n" + VERSION_DEFINES[version]
-        + "\n#extension GL_EXT_texture_buffer : enable"
-        + "\nprecision lowp float; // check precision 2"
-        + "\nprecision lowp samplerBuffer;"
-        + "\nprecision lowp sampler2DShadow;";
-        std::string error;
+            + "\n#extension GL_EXT_texture_buffer : enable"
+            + "\nprecision lowp float; // check precision 2"
+            + "\nprecision lowp samplerBuffer;"
+            + "\nprecision lowp sampler2DShadow;";
+        if (handler) {
+            bool retest = true;
+            std::string currentSrc = shaderSource;
+            // When a Handler is specified, we can try multiple times to build the shader and let the handler change the source if the compilation fails.
+            // The retest bool is set to false as soon as the compilation succeed to wexit the while loop.
+            // The handler tells us if we should retry or not while returning a modified version of the source.
+            while (retest) {
+                bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
+                compilationLogs[version].compiled = result;
+                if (!result) {
+                    std::string newSrc;
+                    retest = handler(shader, currentSrc, compilationLogs[version], newSrc);
+                    currentSrc = newSrc;
+                } else {
+                    retest = false;
+                }
+            }
+        } else {
+            compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
+        }
 
-#ifdef SEPARATE_PROGRAM
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, shaderObject.glprogram, error);
-#else
-        bool result = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, error);
-#endif
-        if (!result) {
-            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << error.c_str();
+         if (!compilationLogs[version].compiled) {
+            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Shader didn't compile:\n" << compilationLogs[version].message.c_str();
+            shader.setCompilationLogs(compilationLogs);
             return nullptr;
         }
     }
+    // Compilation feedback
+    shader.setCompilationLogs(compilationLogs);
 
     // So far so good, the shader is created successfully
     GLShader* object = new GLShader(this->shared_from_this());
@@ -90,32 +108,35 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader) {
     return object;
 }
 
-GLShader* GLBackend::compileBackendProgram(const Shader& program) {
+GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler) {
     if (!program.isProgram()) {
         return nullptr;
     }
 
     GLShader::ShaderObjects programObjects;
 
+    Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
+
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& programObject = programObjects[version];
 
         // Let's go through every shaders and make sure they are ready to go
-        std::vector<GLuint> shaderGLObjects;
+        std::vector< GLuint > shaderGLObjects;
         for (auto subShader : program.getShaders()) {
-            auto object = GLShader::sync((*this), *subShader);
+            auto object = GLShader::sync((*this), *subShader, handler);
             if (object) {
                 shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
             } else {
                 qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - One of the shaders of the program is not compiled?";
+                program.setCompilationLogs(compilationLogs);
                 return nullptr;
             }
         }
 
-        std::string error;
-        GLuint glprogram = ::gl::compileProgram(shaderGLObjects, error);
+        GLuint glprogram = ::gl::compileProgram(shaderGLObjects, compilationLogs[version].message, compilationLogs[version].binary);
         if (glprogram == 0) {
-            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << error.c_str();
+            qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[version].message.c_str(); 
+            program.setCompilationLogs(compilationLogs);
             return nullptr;
         }
 
@@ -123,6 +144,8 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program) {
 
         makeProgramBindings(programObject);
     }
+    // Compilation feedback
+    program.setCompilationLogs(compilationLogs);
 
     // So far so good, the program versions have all been created successfully
     GLShader* object = new GLShader(this->shared_from_this());

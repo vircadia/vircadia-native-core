@@ -14,12 +14,12 @@
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
 
-void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred) {
+void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits, uint8_t tagMask) {
    // auto items = input.get<Input>();
 
-    task.addJob<RenderShadowTask>("RenderShadowTask");
+    task.addJob<RenderShadowTask>("RenderShadowTask", tagBits, tagMask);
 
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
+    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, tagBits, tagMask);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
 
     if (isDeferred) {

@@ -17,59 +17,111 @@
 
 using namespace gpu;
 
-Shader::Shader(Type type, const Source& source):
+std::atomic<uint32_t> Shader::_nextShaderID( 1 );
+Shader::DomainShaderMaps Shader::_domainShaderMaps;
+Shader::ProgramMap Shader::_programMap;
+
+
+Shader::Shader(Type type, const Source& source) :
     _source(source),
-    _type(type)
+    _type(type),
+    _ID(_nextShaderID++)
 {
 }
 
-Shader::Shader(Type type, const Pointer& vertex, const Pointer& pixel):
-    _type(type)
+Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel):
+    _type(type),
+    _ID(_nextShaderID++)
 {
-    _shaders.resize(2);
-    _shaders[VERTEX] = vertex;
-    _shaders[PIXEL] = pixel;
-}
-
-Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel) :
-_type(type) {
-    _shaders.resize(3);
-    _shaders[VERTEX] = vertex;
-    _shaders[GEOMETRY] = geometry;
-    _shaders[PIXEL] = pixel;
+    if (geometry) {
+        _shaders.resize(3);
+        _shaders[VERTEX] = vertex;
+        _shaders[GEOMETRY] = geometry;
+        _shaders[PIXEL] = pixel;
+    } else {
+        _shaders.resize(2);
+        _shaders[VERTEX] = vertex;
+        _shaders[PIXEL] = pixel;
+    }
 }
 
 Shader::~Shader()
 {
 }
 
+Shader::Pointer Shader::createOrReuseDomainShader(Type type, const Source& source) {
+    auto found = _domainShaderMaps[type].find(source);
+    if (found != _domainShaderMaps[type].end()) {
+        auto sharedShader = (*found).second.lock();
+        if (sharedShader) {
+            return sharedShader;
+        }
+    }
+    auto shader = Pointer(new Shader(type, source));
+    _domainShaderMaps[type].emplace(source, std::weak_ptr<Shader>(shader));
+    return shader;
+}
+
 Shader::Pointer Shader::createVertex(const Source& source) {
-    return Pointer(new Shader(VERTEX, source));
+    return createOrReuseDomainShader(VERTEX, source);
 }
 
 Shader::Pointer Shader::createPixel(const Source& source) {
-    return Pointer(new Shader(PIXEL, source));
+    return createOrReuseDomainShader(PIXEL, source);
 }
 
 Shader::Pointer Shader::createGeometry(const Source& source) {
-    return Pointer(new Shader(GEOMETRY, source));
+    return createOrReuseDomainShader(GEOMETRY, source);
 }
 
-Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
-    if (vertexShader && vertexShader->getType() == VERTEX &&
-        pixelShader && pixelShader->getType() == PIXEL) {
-        return Pointer(new Shader(PROGRAM, vertexShader, pixelShader));
+ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
+    ProgramMapKey key(0);
+
+    if (vertexShader && vertexShader->getType() == VERTEX) {
+        key.x = vertexShader->getID();
+    } else {
+        // Shader is not valid, exit
+        return Pointer();
     }
-    return Pointer();
+
+    if (pixelShader && pixelShader->getType() == PIXEL) {
+        key.y = pixelShader->getID();
+    } else {
+        // Shader is not valid, exit
+        return Pointer();
+    }
+
+    if (geometryShader) {
+        if (geometryShader->getType() == GEOMETRY) {
+            key.z = geometryShader->getID();
+        } else {
+            // Shader is not valid, exit
+            return Pointer();
+        }
+    }
+
+    // program key is defined, now try to reuse
+    auto found = _programMap.find(key);
+    if (found != _programMap.end()) {
+        auto sharedShader = (*found).second.lock();
+        if (sharedShader) {
+            return sharedShader;
+        }
+    }
+
+    // Program is a new one, let's create it
+    auto program = Pointer(new Shader(type, vertexShader, geometryShader, pixelShader));
+    _programMap.emplace(key, std::weak_ptr<Shader>(program));
+    return program;
+}
+
+
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
+    return createOrReuseProgramShader(PROGRAM, vertexShader, nullptr, pixelShader);
 }
 
 Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& geometryShader, const Pointer& pixelShader) {
-    if (vertexShader && vertexShader->getType() == VERTEX &&
-        geometryShader && geometryShader->getType() == GEOMETRY &&
-        pixelShader && pixelShader->getType() == PIXEL) {
-        return Pointer(new Shader(PROGRAM, vertexShader, geometryShader, pixelShader));
-    }
-    return Pointer();
+    return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
 }
 
 void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers, const SlotSet& resourceBuffers, const SlotSet& textures, const SlotSet& samplers, const SlotSet& inputs, const SlotSet& outputs) {
@@ -82,9 +134,21 @@ void Shader::defineSlots(const SlotSet& uniforms, const SlotSet& uniformBuffers,
     _outputs = outputs;
 }
 
-bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+bool Shader::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const CompilationHandler& handler) {
     if (shader.isProgram()) {
-        return Context::makeProgram(shader, bindings);
+        return Context::makeProgram(shader, bindings, handler);
     }
     return false;
 }
+
+void Shader::setCompilationLogs(const CompilationLogs& logs) const {
+    _compilationLogs.clear();
+    for (const auto& log : logs) {
+        _compilationLogs.emplace_back(CompilationLog(log));
+    }
+}
+
+void Shader::incrementCompilationAttempt() const {
+    _numCompilationAttempts++;
+}
+
