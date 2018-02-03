@@ -1518,6 +1518,8 @@ AABox EntityItem::getAABox(bool& success) const {
     } else {
         success = true;
     }
+    if (_cachedAABox.getCorner().x > -85.0f || _cachedAABox.getCorner().x < -86.0f)
+        qDebug() << "_cachedAABox corner " << _cachedAABox.getCorner().x << " " << _cachedAABox.getCorner().y << " " << _cachedAABox.getCorner().z;
     return _cachedAABox;
 }
 

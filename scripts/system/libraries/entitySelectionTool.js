@@ -240,6 +240,7 @@ SelectionDisplay = (function() {
     var COLOR_BLUE = { red:0, green:147, blue:197 };
     var COLOR_RED = { red:183, green:10, blue:55 };
     var COLOR_HOVER = { red:227, green:227, blue:227 };
+    var COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
     var COLOR_SCALE_EDGE = { red:87, green:87, blue:87 };
     var COLOR_SCALE_CUBE = { red:106, green:106, blue:106 };
     var COLOR_SCALE_CUBE_SELECTED = { red:18, green:18, blue:18 };
@@ -254,7 +255,7 @@ SelectionDisplay = (function() {
     var ROTATE_CTRL_SNAP_ANGLE = 22.5;
     var ROTATE_DEFAULT_SNAP_ANGLE = 1;
     var ROTATE_DEFAULT_TICK_MARKS_ANGLE = 5;
-    var ROTATE_RING_IDLE_INNER_RADIUS = 0.97;
+    var ROTATE_RING_IDLE_INNER_RADIUS = 0.95;
     var ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
@@ -384,7 +385,7 @@ SelectionDisplay = (function() {
 
     var handleRotateCurrentRing = Overlays.addOverlay("circle3d", {
         alpha: 1,
-        color: { red: 255, green: 99, blue: 9 },
+        color: COLOR_ROTATE_CURRENT_RING,
         solid: true,
         innerRadius: 0.9,
         visible: false,
@@ -2122,14 +2123,14 @@ SelectionDisplay = (function() {
 
     // FUNCTION DEF: updateSelectionsRotation
     //    Helper func used by rotation handle tools 
-    function updateSelectionsRotation(rotationChange) {
+    function updateSelectionsRotation(rotationChange, initialPosition) {
         if (!rotationChange) {
             print("ERROR: entitySelectionTool.updateSelectionsRotation - Invalid arg specified!!");
 
             // EARLY EXIT
             return;
         }
-        
+
         // Entities should only reposition if we are rotating multiple selections around
         // the selections center point.  Otherwise, the rotation will be around the entities
         // registration point which does not need repositioning.
@@ -2142,18 +2143,10 @@ SelectionDisplay = (function() {
                 rotation: Quat.multiply(rotationChange, initialProperties.rotation)
             };
 
-            Quat.print("OldRotation ", initialProperties.rotation);
-            Quat.print("NewRotation ", newProperties.rotation);
-
             if (reposition) {
-                var dPos = Vec3.subtract(initialProperties.position, SelectionManager.worldPosition);
-                Vec3.print("SelectionManager.worldPosition ", SelectionManager.worldPosition);
-                Vec3.print("initialProperties.position ", initialProperties.position);
-                Vec3.print("dPos 1 ", dPos);
+                var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                 dPos = Vec3.multiplyQbyV(rotationChange, dPos);
-                Vec3.print("dPos 2 ", dPos);
-                newProperties.position = Vec3.sum(SelectionManager.worldPosition, dPos);
-                Vec3.print("newProperties.position ", newProperties.position);
+                newProperties.position = Vec3.sum(initialPosition, dPos);
             }
 
             Entities.editEntity(entityID, newProperties);
@@ -2260,7 +2253,7 @@ SelectionDisplay = (function() {
                     return;
                 }
                 
-                var wantDebug = true;
+                var wantDebug = false;
                 if (wantDebug) {
                     print("================== "+ getMode() + "(addHandleRotateTool onMove) -> =======================");
                     Vec3.print("    rotationZero: ", rotationZero);
@@ -2286,12 +2279,8 @@ SelectionDisplay = (function() {
                     var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);        
                     var snapAngle = ctrlPressed ? ROTATE_CTRL_SNAP_ANGLE : ROTATE_DEFAULT_SNAP_ANGLE;
                     angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-                    var rotChange = Quat.angleAxis(angleFromZero, rotationNormal);
-                    if (wantDebug) {
-                        Quat.print("    rotChange: ", rotChange)
-                        print("    angleFromZero: ", angleFromZero);
-                    }
-                    updateSelectionsRotation(rotChange);
+                    var rotationChange = Quat.angleAxis(angleFromZero, rotationNormal);
+                    updateSelectionsRotation(rotationChange, rotationCenter);
                     updateRotationDegreesOverlay(-angleFromZero, rotationDegreesPosition);
 
                     var startAtCurrent = 0;
