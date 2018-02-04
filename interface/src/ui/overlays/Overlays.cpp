@@ -388,21 +388,6 @@ QString Overlays::getOverlayType(OverlayID overlayId) {
     return "";
 }
 
-QObject* Overlays::getOverlayObject(OverlayID id) {
-    if (QThread::currentThread() != thread()) {
-        QObject* result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(OverlayID, id));
-        return result;
-    }
-
-    Overlay::Pointer thisOverlay = getOverlay(id);
-    if (thisOverlay) {
-        return qobject_cast<QObject*>(&(*thisOverlay));
-    }
-    return nullptr;
-}
-
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     if (!_enabled) {
         return UNKNOWN_OVERLAY_ID;
