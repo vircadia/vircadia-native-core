@@ -539,24 +539,6 @@ void Menu::setGroupingIsVisible(const QString& grouping, bool isVisible) {
     QMenuBar::repaint();
 }
 
-void Menu::addActionGroup(const QString& groupName, const QStringList& actionList, const QString& selected, QObject* receiver, const char* slot) {
-    auto menu = addMenu(groupName);
-
-    QActionGroup* actionGroup = new QActionGroup(menu);
-    actionGroup->setExclusive(true);
-
-    for (auto action : actionList) {
-        auto item = addCheckableActionToQMenuAndActionHash(menu, action, 0, action == selected, receiver, slot);
-        actionGroup->addAction(item);
-    }
-
-    QMenuBar::repaint();
-}
-
-void Menu::removeActionGroup(const QString& groupName) {
-    removeMenu(groupName);
-}
-
 MenuWrapper::MenuWrapper(ui::Menu& rootMenu, QMenu* menu) : _rootMenu(rootMenu), _realMenu(menu) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->addMenuInitializer([=](VrMenu* vrMenu) {

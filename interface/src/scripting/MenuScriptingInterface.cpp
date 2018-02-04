@@ -94,22 +94,6 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
     return result;
 }
 
-void MenuScriptingInterface::addActionGroup(const QString& groupName, const QStringList& actionList,
-                                            const QString& selected) {
-    static const char* slot = SLOT(menuItemTriggered());
-    QMetaObject::invokeMethod(Menu::getInstance(), "addActionGroup",
-                              Q_ARG(const QString&, groupName),
-                              Q_ARG(const QStringList&, actionList),
-                              Q_ARG(const QString&, selected),
-                              Q_ARG(QObject*, this),
-                              Q_ARG(const char*, slot));
-}
-
-void MenuScriptingInterface::removeActionGroup(const QString& groupName) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "removeActionGroup",
-                              Q_ARG(const QString&, groupName));
-}
-
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
     if (QThread::currentThread() == qApp->thread()) {
         return Menu::getInstance()->isOptionChecked(menuOption);

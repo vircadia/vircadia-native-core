@@ -210,6 +210,7 @@ Menu::Menu() {
     auto avatarEntitiesBookmarks = DependencyManager::get<AvatarEntitiesBookmarks>();
     avatarEntitiesBookmarks->setupMenus(this, avatarMenu);
 
+
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
     // menus for "2D"/"3D" - we need to add support for detecting the appropriate
