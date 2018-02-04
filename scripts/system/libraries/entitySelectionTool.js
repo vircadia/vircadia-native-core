@@ -339,8 +339,7 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        drawInFront: true,
-        borderSize: 1.4
+        drawInFront: true
     };
 
     var grabberPropertiesEdge = {
@@ -351,8 +350,7 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        drawInFront: true,
-        borderSize: 1.4
+        drawInFront: true
     };
 
     var grabberPropertiesFace = {
@@ -363,8 +361,7 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        drawInFront: true,
-        borderSize: 1.4
+        drawInFront: true
     };
 
     var grabberPropertiesCloner = {
@@ -375,8 +372,7 @@ SelectionDisplay = (function() {
         solid: grabberSolid,
         visible: false,
         dashed: false,
-        drawInFront: true,
-        borderSize: 1.4
+        drawInFront: true
     };
 
     var spotLightLineProperties = {

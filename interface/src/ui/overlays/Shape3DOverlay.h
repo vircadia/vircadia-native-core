@@ -30,10 +30,6 @@ public:
 
     virtual Shape3DOverlay* createClone() const override;
 
-    float getBorderSize() const { return _borderSize; }
-
-    void setBorderSize(float value) { _borderSize = value; }
-
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
@@ -41,7 +37,6 @@ protected:
     Transform evalRenderTransform() override;
 
 private:
-    float _borderSize;
     GeometryCache::Shape _shape { GeometryCache::Hexagon };
 };
 
