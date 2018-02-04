@@ -131,19 +131,3 @@ void MenuScriptingInterface::setMenuEnabled(const QString& menuOption, bool isCh
 void MenuScriptingInterface::triggerOption(const QString& menuOption) {
     QMetaObject::invokeMethod(Menu::getInstance(), "triggerOption", Q_ARG(const QString&, menuOption));    
 }
-
-void MenuScriptingInterface::closeInfoView(const QString& path) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "closeInfoView", Q_ARG(const QString&, path));
-}
-
-bool MenuScriptingInterface::isInfoViewVisible(const QString& path) {
-    if (QThread::currentThread() == qApp->thread()) {
-        return Menu::getInstance()->isInfoViewVisible(path);
-    }
-        
-    bool result;
-    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isInfoViewVisible",
-        Q_RETURN_ARG(bool, result), Q_ARG(const QString&, path));
-    return result;
-}
-

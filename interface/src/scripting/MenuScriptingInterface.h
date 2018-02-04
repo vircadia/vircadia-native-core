@@ -215,12 +215,6 @@ public slots:
      */
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
-    /**
-    * TODO: Not used or useful; will not document until used.
-    */
-    void closeInfoView(const QString& path);
-    bool isInfoViewVisible(const QString& path);
-
 signals:
     /**jsdoc
      * Triggered when a menu item is clicked (or triggered by {@link Menu.triggerOption}).
