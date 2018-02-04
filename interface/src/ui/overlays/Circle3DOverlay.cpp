@@ -425,10 +425,10 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     <em>Write-only.</em>
  * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Color} innerStartcolor - The color at the inner start point of the overlay. <em>Write-only.</em>
- * @property {Color} innerEndColor - The color at the inner end point of the overlay. <em>Write-only.</em>
- * @property {Color} outerStartColor - The color at the outer start point of the overlay. <em>Write-only.</em>
- * @property {Color} outerEndColor - The color at the outer end point of the overlay. <em>Write-only.</em>
+ * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
+ * @property {Color} innerEndColor - The color at the inner end point of the overlay.
+ * @property {Color} outerStartColor - The color at the outer start point of the overlay.
+ * @property {Color} outerEndColor - The color at the outer end point of the overlay.
  * @property {number} alpha=0.5 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. Setting this value also sets
  *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and 
  *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write-only</em>.
@@ -440,10 +440,10 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     <em>Write-only.</em>
  * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha</code> and <code>outerEndAlpha</code>.
  *     <em>Write-only.</em>
- * @property {number} innerStartAlpha=0 - The alpha at the inner start point of the overlay. <em>Write-only.</em>
- * @property {number} innerEndAlpha=0 - The alpha at the inner end point of the overlay. <em>Write-only.</em>
- * @property {number} outerStartAlpha=0 - The alpha at the outer start point of the overlay. <em>Write-only.</em>
- * @property {number} outerEndAlpha=0 - The alpha at the outer end point of the overlay. <em>Write-only.</em>
+ * @property {number} innerStartAlpha=0 - The alpha at the inner start point of the overlay.
+ * @property {number} innerEndAlpha=0 - The alpha at the inner end point of the overlay.
+ * @property {number} outerStartAlpha=0 - The alpha at the outer start point of the overlay.
+ * @property {number} outerEndAlpha=0 - The alpha at the outer end point of the overlay.
 
  * @property {boolean} hasTickMarks=false - If <code>true</code>, tick marks are drawn.
  * @property {number} majorTickMarksAngle=0 - The angle between major tick marks, in degrees.
