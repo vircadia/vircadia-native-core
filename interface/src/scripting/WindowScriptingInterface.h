@@ -22,17 +22,6 @@
 
 #include <DependencyManager.h>
 
-class CustomPromptResult {
-public:
-    QVariant value;
-};
-
-Q_DECLARE_METATYPE(CustomPromptResult);
-
-QScriptValue CustomPromptResultToScriptValue(QScriptEngine* engine, const CustomPromptResult& result);
-void CustomPromptResultFromScriptValue(const QScriptValue& object, CustomPromptResult& result);
-
-
 /**jsdoc
  * The Window API provides various facilities not covered elsewhere: window dimensions, window focus, normal or entity camera
  * view, clipboard, announcements, user connections, common dialog boxes, snapshots, file import, domain changes, domain 
@@ -141,15 +130,6 @@ public slots:
      * print("Script continues without waiting");
      */
     void promptAsync(const QString& message = "", const QString& defaultText = "");
-
-    /**jsdoc
-     * Prompt the user for input in a custom, modal dialog.
-     * @deprecated This function is deprecated and will soon be removed.
-     * @function Window.customPrompt
-     * @param {object} config - Configures the modal dialog.
-     * @returns {object} The user's response.
-     */
-    CustomPromptResult customPrompt(const QVariant& config);
 
     /**jsdoc
      * Prompt the user to choose a directory. Displays a modal dialog that navigates the directory tree.
