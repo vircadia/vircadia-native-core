@@ -8,169 +8,176 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
-import "configSlider"
+import QtQuick.Layouts 1.3
+
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
+import  "configSlider"
 import "../lib/plotperf"
 
-Column {
+Rectangle {
+    HifiConstants { id: hifi;}
     id: root
+    anchors.margins: hifi.dimensions.contentMargin.x
+    
+    color: hifi.colors.baseGray;
+
     property var config: Render.getConfig("RenderMainView.Fade");
     property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
-    spacing: 8
 
-    Row {
-        spacing: 8
+    Column {
+        spacing: 5
+        anchors.left: parent.left
+        anchors.right: parent.right       
+        anchors.margins: hifi.dimensions.contentMargin.x  
+        HifiControls.Label {
+            text: "Fade"       
+        }
 
-        CheckBox {
-            text: "Edit Fade"
-            checked: root.configEdit["editFade"]
-            onCheckedChanged: {
-                root.configEdit["editFade"] = checked;
-                Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = checked;
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            spacing: 20
+
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Edit"
+                checked: root.configEdit["editFade"]
+                onCheckedChanged: {
+                    root.configEdit["editFade"] = checked;
+                    Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = checked;
+                }
+            }
+            HifiControls.ComboBox {
+                id: categoryBox
+                width: 260
+                model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
+                Timer {
+                    id: postpone
+                    interval: 100; running: false; repeat: false
+                    onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
+                }
+                onCurrentIndexChanged: {
+                    root.config["editedCategory"] = currentIndex;
+                    // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                    // by setting the loader source to Null and then recreate it 100ms later
+                    paramWidgetLoader.sourceComponent = undefined;
+                    postpone.interval = 100
+                    postpone.start()
+                }
+            }
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Manual"
+                checked: root.config["manualFade"]
+                onCheckedChanged: {
+                    root.config["manualFade"] = checked;
+                }
             }
         }
-        ComboBox {
-            id: categoryBox
-            width: 400
-            model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
-            Timer {
-                id: postpone
-                interval: 100; running: false; repeat: false
-                onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
-            }
-            onCurrentIndexChanged: {
-                root.config["editedCategory"] = currentIndex;
-                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
-                // by setting the loader source to Null and then recreate it 100ms later
-                paramWidgetLoader.sourceComponent = undefined;
-                postpone.interval = 100
-                postpone.start()
-            }
-        }
-    }
-    Row {
-        spacing: 8
 
-        CheckBox {
-            text: "Manual"
-            checked: root.config["manualFade"]
-            onCheckedChanged: {
-                root.config["manualFade"] = checked;
-            }
-        }
         ConfigSlider {
+            height: 35
             label: "Threshold"
             integral: false
             config: root.config
             property: "manualThreshold"
             max: 1.0
             min: 0.0
-            width: 400
+            anchors.left: parent.left
+            anchors.right: parent.right
         }
-    }
-
-    Action {
-        id: saveAction
-        text: "Save"
-        onTriggered: {
-            root.config.save()
-        }
-    }
-    Action {
-        id: loadAction
-        text: "Load"
-        onTriggered: {
-            root.config.load()
-            // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
-            // by setting the loader source to Null and then recreate it 500ms later
-            paramWidgetLoader.sourceComponent = undefined;
-            postpone.interval = 500
-            postpone.start()
-        }
-    }
-
-    Component {
-        id: paramWidgets
-
-        Column {
-            spacing: 8
-
-            CheckBox {
-                text: "Invert"
-                checked: root.config["isInverted"]
-                onCheckedChanged: { root.config["isInverted"] = checked }
+        
+        Action {
+            id: saveAction
+            text: "Save"
+            onTriggered: {
+                root.config.save()
             }
-            Row {
-                spacing: 8
+        }
+        Action {
+            id: loadAction
+            text: "Load"
+            onTriggered: {
+                root.config.load()
+                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                // by setting the loader source to Null and then recreate it 500ms later
+                paramWidgetLoader.sourceComponent = undefined;
+                postpone.interval = 500
+                postpone.start()
+            }
+        }
 
+              
+        Component {
+            id: paramWidgets
+
+            Column {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                spacing: 10
+
+                HifiControls.CheckBox {
+                    text: "Invert"
+                    checked: root.config["isInverted"]
+                    onCheckedChanged: { root.config["isInverted"] = checked }
+                }
                 GroupBox {
                     title: "Base Gradient"
-                    width: 450
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+
                     Column {
                         spacing: 8
+                        anchors.left: parent.left
+                        anchors.right: parent.right
 
-                        ConfigSlider {
-                            label: "Size X"
-                            integral: false
-                            config: root.config
-                            property: "baseSizeX"
-                            max: 1.0
-                            min: 0.0
-                            width: 400
-                        }
-                        ConfigSlider {
-                            label: "Size Y"
-                            integral: false
-                            config: root.config
-                            property: "baseSizeY"
-                            max: 1.0
-                            min: 0.0
-                            width: 400
-                        }
-                        ConfigSlider {
-                            label: "Size Z"
-                            integral: false
-                            config: root.config
-                            property: "baseSizeZ"
-                            max: 1.0
-                            min: 0.0
-                            width: 400
-                        }
-                        ConfigSlider {
-                            label: "Level"
-                            integral: false
-                            config: root.config
-                            property: "baseLevel"
-                            max: 1.0
-                            min: 0.0
-                            width: 400
+                        Repeater {
+                            model: [
+                            "Size X:baseSizeX", 
+                            "Size Y:baseSizeY", 
+                            "Size Z:baseSizeZ",
+                            "Level:baseLevel" ]                  
+
+                            ConfigSlider {
+                                height: 35
+                                label:  modelData.split(":")[0]
+                                integral: false
+                                config: root.config
+                                property:  modelData.split(":")[1]
+                                max: 1.0
+                                min: 0.0
+                            }
                         }
                     }
                 }
                 GroupBox {
                     title: "Noise Gradient"
-                    width: 450
+                    
                     Column {
                         spacing: 8
+                        anchors.left: parent.left
+                        anchors.right: parent.right
 
                         ConfigSlider {
+                            height: 35
                             label: "Size X"
                             integral: false
                             config: root.config
                             property: "noiseSizeX"
                             max: 1.0
                             min: 0.0
-                            width: 400
                         }
                         ConfigSlider {
+                            height: 35
                             label: "Size Y"
                             integral: false
                             config: root.config
                             property: "noiseSizeY"
                             max: 1.0
                             min: 0.0
-                            width: 400
                         }
                         ConfigSlider {
                             label: "Size Z"
@@ -179,7 +186,6 @@ Column {
                             property: "noiseSizeZ"
                             max: 1.0
                             min: 0.0
-                            width: 400
                         }
                         ConfigSlider {
                             label: "Level"
@@ -188,19 +194,15 @@ Column {
                             property: "noiseLevel"
                             max: 1.0
                             min: 0.0
-                            width: 400
                         }
                     }
                 }
-            }
-            Row {
-                spacing: 8
-
                 GroupBox {
                     title: "Edge"
-                    width: 450
+
                     Column {
-                        spacing: 8
+                        anchors.left: parent.left
+                        anchors.right: parent.right
 
                         ConfigSlider {
                             label: "Width"
@@ -209,12 +211,13 @@ Column {
                             property: "edgeWidth"
                             max: 1.0
                             min: 0.0
-                            width: 400
                         }
                         GroupBox {
                             title: "Inner color"
                             Column {
-                                spacing: 8
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+
                                 ConfigSlider {
                                     label: "Color R"
                                     integral: false
@@ -222,7 +225,6 @@ Column {
                                     property: "edgeInnerColorR"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color G"
@@ -231,7 +233,6 @@ Column {
                                     property: "edgeInnerColorG"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color B"
@@ -240,7 +241,6 @@ Column {
                                     property: "edgeInnerColorB"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color intensity"
@@ -249,14 +249,15 @@ Column {
                                     property: "edgeInnerIntensity"
                                     max: 5.0
                                     min: 0.0
-                                    width: 400
                                 }
                             }
                         }
                         GroupBox {
                             title: "Outer color"
                             Column {
-                                spacing: 8
+                                anchors.left: parent.left
+                                anchors.right: parent.right 
+
                                 ConfigSlider {
                                     label: "Color R"
                                     integral: false
@@ -264,7 +265,6 @@ Column {
                                     property: "edgeOuterColorR"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color G"
@@ -273,7 +273,6 @@ Column {
                                     property: "edgeOuterColorG"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color B"
@@ -282,7 +281,6 @@ Column {
                                     property: "edgeOuterColorB"
                                     max: 1.0
                                     min: 0.0
-                                    width: 400
                                 }
                                 ConfigSlider {
                                     label: "Color intensity"
@@ -291,107 +289,111 @@ Column {
                                     property: "edgeOuterIntensity"
                                     max: 5.0
                                     min: 0.0
-                                    width: 400
                                 }
                             }
                         }
                     }
                 }
 
-                Column {
-                    GroupBox {
-                        title: "Timing"
-                        width: 450
-                        Column {
-                            spacing: 8
+                GroupBox {
+                    title: "Timing"
 
-                            ConfigSlider {
-                                label: "Duration"
-                                integral: false
-                                config: root.config
-                                property: "duration"
-                                max: 10.0
-                                min: 0.1
-                                width: 400
+                    Column {
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+
+                        ConfigSlider {
+                            label: "Duration"
+                            integral: false
+                            config: root.config
+                            property: "duration"
+                            max: 10.0
+                            min: 0.1
+                        }
+                        HifiControls.ComboBox {
+                            width: 200
+                            model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
+                            currentIndex: root.config["timing"]
+                            onCurrentIndexChanged: {
+                                root.config["timing"] = currentIndex;
                             }
-                            ComboBox {
-                                width: 400
-                                model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
-                                currentIndex: root.config["timing"]
-                                onCurrentIndexChanged: {
-                                    root.config["timing"] = currentIndex;
+                        }
+                        GroupBox {
+                            title: "Noise Animation"
+                            Column {
+                                anchors.left: parent.left
+                                anchors.right: parent.right 
+
+                                ConfigSlider {
+                                    label: "Speed X"
+                                    integral: false
+                                    config: root.config
+                                    property: "noiseSpeedX"
+                                    max: 1.0
+                                    min: -1.0
+                                }
+                                ConfigSlider {
+                                    label: "Speed Y"
+                                    integral: false
+                                    config: root.config
+                                    property: "noiseSpeedY"
+                                    max: 1.0
+                                    min: -1.0
+                                }
+                                ConfigSlider {
+                                    label: "Speed Z"
+                                    integral: false
+                                    config: root.config
+                                    property: "noiseSpeedZ"
+                                    max: 1.0
+                                    min: -1.0
                                 }
                             }
-                            GroupBox {
-                                title: "Noise Animation"
-                                Column {
-                                    spacing: 8
-                                    ConfigSlider {
-                                        label: "Speed X"
-                                        integral: false
-                                        config: root.config
-                                        property: "noiseSpeedX"
-                                        max: 1.0
-                                        min: -1.0
-                                        width: 400
-                                    }
-                                    ConfigSlider {
-                                        label: "Speed Y"
-                                        integral: false
-                                        config: root.config
-                                        property: "noiseSpeedY"
-                                        max: 1.0
-                                        min: -1.0
-                                        width: 400
-                                    }
-                                    ConfigSlider {
-                                        label: "Speed Z"
-                                        integral: false
-                                        config: root.config
-                                        property: "noiseSpeedZ"
-                                        max: 1.0
-                                        min: -1.0
-                                        width: 400
-                                    }
+                        }
+
+                        PlotPerf {
+                            title: "Threshold"
+                            height: parent.evalEvenHeight()
+                            object:  config
+                            valueUnit: "%"
+                            valueScale: 0.01
+                            valueNumDigits: "1"
+                            plots: [
+                                {
+                                    prop: "threshold",
+                                    label: "Threshold",
+                                    color: "#FFBB77"
                                 }
-                            }
-
-                            PlotPerf {
-                                title: "Threshold"
-                                height: parent.evalEvenHeight()
-                                object:  config
-                                valueUnit: "%"
-                                valueScale: 0.01
-                                valueNumDigits: "1"
-                                plots: [
-                                    {
-                                        prop: "threshold",
-                                        label: "Threshold",
-                                        color: "#FFBB77"
-                                    }
-                                ]
-                            }
-
+                            ]
                         }
+
                     }
-
-                    Row {
-                        spacing: 8
-                        Button {
-                            action: saveAction
-                        }
-                        Button {
-                            action: loadAction
-                        }
-                    }
-
                 }
+
             }
         }
-    }
 
-    Loader {
-        id: paramWidgetLoader
-        sourceComponent: paramWidgets
+
+
+
+        Loader {
+            id: paramWidgetLoader
+            sourceComponent: paramWidgets
+        }
+
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+
+            Button {
+                action: saveAction
+            }
+            Button {
+                action: loadAction
+            }
+        }
+
+
+        
     }
 }
