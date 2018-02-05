@@ -28,7 +28,7 @@ class Backend : public gpu::Backend {
     friend class gpu::Context;
     static void init() {}
     static gpu::Backend* createBackend() { return new Backend(); }
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) { return true; }
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) { return true; }
 
 protected:
     explicit Backend(bool syncCache) : Parent() { }

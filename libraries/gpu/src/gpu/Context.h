@@ -143,7 +143,7 @@ class Context {
 public:
     using Size = Resource::Size;
     typedef BackendPointer (*CreateBackend)();
-    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings);
+    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
 
 
     // This one call must happen before any context is created or used (Shader::MakeProgram) in order to setup the Backend and any singleton data needed
@@ -262,7 +262,7 @@ protected:
     // makeProgramShader(...) make a program shader ready to be used in a Batch.
     // It compiles the sub shaders, link them and defines the Slots and their bindings.
     // If the shader passed is not a program, nothing happens. 
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings);
+    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
 
     static CreateBackend _createBackendCallback;
     static MakeProgram _makeProgramCallback;

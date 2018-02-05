@@ -46,7 +46,7 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface) {
             float levels = getLightAmbientMapNumMips(ambient);
             float m = 12.0 / (1.0+11.0*surface.roughness);
             float lod = levels - m;
-            lod = max(lod, 0);
+            lod = max(lod, 0.0);
             specularLight = evalSkyboxLight(lightDir, lod).xyz;
         }
     <@endif@>

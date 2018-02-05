@@ -159,10 +159,10 @@ Item::Bound EntityRenderer::getBound() {
 
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta();
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 
-    return ItemKey::Builder::opaqueShape().withTypeMeta();
+    return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
@@ -185,7 +185,12 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    if (_visible) {
+    auto& renderMode = args->_renderMode;
+    bool cauterized = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE &&
+                       renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE &&
+                       _cauterized);
+
+    if (_visible && !cauterized) {
         doRender(args);
     }
 }
@@ -366,6 +371,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
+        _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;
     });
 }

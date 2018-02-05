@@ -85,7 +85,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
 
     if (somethingChangedInAnimations) {
-        _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+        _flags |= Simulation::DIRTY_UPDATEABLE;
     }
     somethingChanged = somethingChanged || somethingChangedInAnimations;
 
@@ -132,7 +132,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
     if (animationPropertiesChanged) {
-        _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+        _flags |= Simulation::DIRTY_UPDATEABLE;
         somethingChanged = true;
     }
 
@@ -305,10 +305,10 @@ void ModelEntityItem::setShapeType(ShapeType type) {
                 // dynamic and STATIC_MESH are incompatible
                 // since the shape is being set here we clear the dynamic bit
                 _dynamic = false;
-                _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+                _flags |= Simulation::DIRTY_MOTION_TYPE;
             }
             _shapeType = type;
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
     });
 }
@@ -336,7 +336,7 @@ void ModelEntityItem::setModelURL(const QString& url) {
         if (_modelURL != url) {
             _modelURL = url;
             if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
-                _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+                _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
             }
         }
     });
@@ -348,14 +348,14 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
             ShapeType oldType = computeTrueShapeType();
             _compoundShapeURL.set(url);
             if (oldType != computeTrueShapeType()) {
-                _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+                _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
             }
         }
     });
 }
 
 void ModelEntityItem::setAnimationURL(const QString& url) {
-    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+    _flags |= Simulation::DIRTY_UPDATEABLE;
     withWriteLock([&] {
         _animationProperties.setURL(url);
     });
@@ -422,16 +422,16 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         bool allowTranslation = settingsMap["allowTranslation"].toBool();
         setAnimationAllowTranslation(allowTranslation);
     }
-    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+    _flags |= Simulation::DIRTY_UPDATEABLE;
 }
 
 void ModelEntityItem::setAnimationIsPlaying(bool value) {
-    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+    _flags |= Simulation::DIRTY_UPDATEABLE;
     _animationProperties.setRunning(value);
 }
 
 void ModelEntityItem::setAnimationFPS(float value) {
-    _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
+    _flags |= Simulation::DIRTY_UPDATEABLE;
     _animationProperties.setFPS(value);
 }
 

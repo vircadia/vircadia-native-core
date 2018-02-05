@@ -106,7 +106,7 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
 
-    bool _visibleDirty { false };
+    bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
 
