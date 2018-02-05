@@ -14,8 +14,10 @@
 var bottombar;
 var bottomHudOptionsBar;
 var gotoBtn;
+var avatarBtn;
 
 var gotoScript = Script.require('./goto.js');
+var avatarSelection = Script.require('./avatarSelection.js');
 
 var logEnabled = false;
 
@@ -34,6 +36,8 @@ function init() {
             hideAddressBar();
         }
     });
+    avatarSelection.init();
+    App.fullAvatarURLChanged.connect(processedNewAvatar);
 
 	setupBottomBar();
 	setupBottomHudOptionsBar();
@@ -43,6 +47,7 @@ function init() {
 }
 
 function shutdown() {
+    App.fullAvatarURLChanged.disconnect(processedNewAvatar);
 }
 
 function setupBottomBar() {
@@ -60,6 +65,32 @@ function setupBottomBar() {
         }
     });
 
+    avatarBtn = bottombar.addButton({
+        icon: "icons/avatar-i.svg",
+        activeIcon: "icons/avatar-a.svg",
+        bgOpacity: 0,
+        height: 240,
+        width: 294,
+        hoverBgOpacity: 0,
+        activeBgOpacity: 0,
+        activeHoverBgOpacity: 0,
+        iconSize: 108,
+        textSize: 45,
+        text: "AVATAR"
+    });
+    avatarBtn.clicked.connect(function() {
+        printd("Avatar button clicked");
+        if (!avatarSelection.isVisible()) {
+            showAvatarSelection();
+        } else {
+            hideAvatarSelection();
+        }
+    });
+    avatarSelection.onHidden = function() {
+        if (avatarBtn) {
+            avatarBtn.isActive = false;
+        }
+    };
 
     gotoBtn = bottombar.addButton({
         icon: "icons/goto-i.svg",
@@ -69,7 +100,7 @@ function setupBottomBar() {
         activeBgOpacity: 0,
         activeHoverBgOpacity: 0,
         height: 240,
-        width: 300,
+        width: 294,
         iconSize: 108,
         textSize: 45,
         text: "GO TO"
@@ -148,7 +179,21 @@ function hideAddressBar() {
     gotoBtn.isActive = false;
 }
 
+function showAvatarSelection() {
+    avatarSelection.show();
+    avatarBtn.isActive = true;
+}
 
+function hideAvatarSelection() {
+    avatarSelection.hide();
+    avatarBtn.isActive = false;
+}
+
+// TODO: Move to avatarSelection.js and make it possible to hide the window from there AND switch the button state here too
+function processedNewAvatar(url, modelName) {
+    avatarSelection.refreshSelectedAvatar(url);
+    hideAvatarSelection();
+}
 
 Script.scriptEnding.connect(function () {
 	shutdown();

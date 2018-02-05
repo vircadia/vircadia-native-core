@@ -20,8 +20,8 @@ Item {
 
     Item {
         id: dimen
-        readonly property real windowLessWidth: 126
-        readonly property real windowLessHeight: 64
+        readonly property real windowLessWidth: 126*3
+        readonly property real windowLessHeight: 64*3
 
         readonly property real windowZ: 100
 
