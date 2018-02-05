@@ -83,7 +83,7 @@ enum DeferredShader_BufferSlot {
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
 };
 
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+static void loadLightProgram(const std::string& vertSource, const std::string& fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
@@ -171,9 +171,9 @@ void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int cluste
     }
 }
 
-static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
-    auto VS = gpu::Shader::createVertex(std::string(vertSource));
-    auto PS = gpu::Shader::createPixel(std::string(fragSource));
+static gpu::ShaderPointer makeLightProgram(const std::string& vertSource, const std::string& fragSource, LightLocationsPtr& locations) {
+    auto VS = gpu::Shader::createVertex(vertSource);
+    auto PS = gpu::Shader::createPixel(fragSource);
     
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
@@ -224,7 +224,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     return program;
 }
 
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+static void loadLightProgram(const std::string& vertSource, const std::string& fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
 
     gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
 

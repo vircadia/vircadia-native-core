@@ -135,7 +135,7 @@ const std::string PIXEL_SHADER_DEFINES{ R"GLSL(
 #define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
 )GLSL" };
 
-void testShaderBuild(const char* vs_src, const char * fs_src) {
+void testShaderBuild(const std::string& vs_src, const std::string& fs_src) {
     std::string error;
     std::vector<char> binary;
     GLuint vs, fs;
