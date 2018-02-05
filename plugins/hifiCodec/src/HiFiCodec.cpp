@@ -9,12 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qapplication.h>
+#include "HiFiCodec.h"
 
 #include <AudioCodec.h>
 #include <AudioConstants.h>
 
-#include "HiFiCodec.h"
 
 const char* HiFiCodec::NAME { "hifiAC" };
 
