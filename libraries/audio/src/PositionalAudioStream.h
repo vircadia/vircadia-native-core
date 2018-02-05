@@ -43,12 +43,15 @@ public:
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
+
     PositionalAudioStream::Type getType() const { return _type; }
+
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getAvatarBoundingBoxCorner() const { return _avatarBoundingBoxCorner; }
     const glm::vec3& getAvatarBoundingBoxScale() const { return _avatarBoundingBoxScale; }
 
+    bool hasValidPosition() const { return _hasValidPosition; }
 
 protected:
     // disallow copying of PositionalAudioStream objects
@@ -75,6 +78,8 @@ protected:
     float _quietestTrailingFrameLoudness;
     float _quietestFrameLoudness;
     int _frameCounter;
+
+    bool _hasValidPosition { false };
 };
 
 #endif // hifi_PositionalAudioStream_h
