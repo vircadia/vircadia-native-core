@@ -1448,6 +1448,10 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    if (skeletonModelURL != _skeletonModelURL) {
+        _shouldInitHeadBones = true;
+    }
+
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
@@ -1893,14 +1897,12 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
 
-    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode() && _initHeadBones) {
+    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode() && _shouldInitHeadBones) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
-        _initHeadBones = false;
-    } else if (!_skeletonModel->isLoaded()) {
-        _initHeadBones = true;
+        _shouldInitHeadBones = false;
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
