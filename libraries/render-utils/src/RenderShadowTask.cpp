@@ -218,7 +218,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
     // Fetch and cull the items from the scene
-    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
     const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
     const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
