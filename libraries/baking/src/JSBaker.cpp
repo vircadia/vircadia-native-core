@@ -190,7 +190,7 @@ bool JSBaker::handleMultiLineComments(QTextStream& in) {
     while (!in.atEnd()) {
         in >> character;
         if (character == '*') {
-            if (in.read(1) == '/') {
+            if (in.read(1)[0] == '/') {
                 return true;
             }
         }
@@ -228,7 +228,7 @@ bool JSBaker::isSpecialCharacter(QChar c) {
 // If previous character is a special character, maybe don't omit new line (depends on next character as well)
 bool JSBaker::isSpecialCharacterPrevious(QChar c) {
     return (c == '\'' || c == '$' || c == '_' || c == '}' || c == ']' || c == ')' || c == '+' || c == '-'
-            || c == '"' || c == "'");
+            || c == '"' || c == '\'');
 }
 
 // If next character is a special character, maybe don't omit new line (depends on previous character as well)
@@ -243,5 +243,5 @@ bool JSBaker::isSpaceOrTab(QChar c) {
 
 // Check If the currentCharacter is " or ' or `
 bool JSBaker::isQuote(QChar c) {
-    return (c == '"' || c == "'" || c == '`');
+    return (c == '"' || c == '\'' || c == '`');
 }
