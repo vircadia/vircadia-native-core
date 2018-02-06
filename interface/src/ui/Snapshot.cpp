@@ -108,7 +108,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
 	// 'jpg" is appended, as the image is saved in jpg format.  This is the case for all snapshots
 	//       (see definition of FILENAME_PATH_FORMAT)
     QString filename;
-    if (userSelectedFilename != "") {
+    if (!userSelectedFilename.isNull()) {
         filename = userSelectedFilename + ".jpg";
     } else {
         filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
