@@ -65,11 +65,11 @@ function init() {
         print("[avatarSelection.js] There is no window object for init()");
         return;
     }
-    var DEFAULT_AVATAR_URL = "http://mpassets.highfidelity.com/f14bf7c9-49a1-4249-988a-0a577ed78957-v1/beingOfLight.fst";
+    var DEFAULT_AVATAR_URL = "http://mpassets.highfidelity.com/7fe80a1e-f445-4800-9e89-40e677b03bee-v3/mannequin.fst";
     sendToQml({
         type: "addAvatar",
-        name: "Being of Light Avatar",
-        thumbnailUrl: "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/f14bf7c9-49a1-4249-988a-0a577ed78957/thumbnail/hifi-mp-f14bf7c9-49a1-4249-988a-0a577ed78957.jpg",
+        name: "Wooden Mannequin",
+        thumbnailUrl: "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/7fe80a1e-f445-4800-9e89-40e677b03bee/thumbnail/hifi-mp-7fe80a1e-f445-4800-9e89-40e677b03bee.jpg",
         avatarUrl: DEFAULT_AVATAR_URL
     });
     sendToQml({
