@@ -139,8 +139,7 @@
         }
 
         function setMappingCallback(status) {
-            // FIXME: "" is for RC < 63, null is for RC >= 63. Remove the former when RC63 is no longer used.
-            if (status !== "" && status !== null) {
+            if (status !== null) {
                 error("Error mapping recording to " + mappingPath + " on Asset Server!", status);
                 return;
             }
