@@ -40,6 +40,39 @@ BackupSupervisor::BackupSupervisor() {
     }
 
     loadAllBackups();
+
+    static constexpr int MAPPINGS_REFRESH_INTERVAL = 30 * 1000;
+    _mappingsRefreshTimer.setInterval(MAPPINGS_REFRESH_INTERVAL);
+    _mappingsRefreshTimer.setTimerType(Qt::CoarseTimer);
+    _mappingsRefreshTimer.setSingleShot(false);
+    QObject::connect(&_mappingsRefreshTimer, &QTimer::timeout, this, &BackupSupervisor::refreshMappings);
+    _mappingsRefreshTimer.start();
+}
+
+void BackupSupervisor::refreshMappings() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createGetAllMappingsRequest();
+
+    QObject::connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) {
+        if (request->getError() == MappingRequest::NoError) {
+            const auto& mappings = request->getMappings();
+
+            qDebug() << "Refreshed" << mappings.size() << "asset mappings!";
+
+            _currentMappings.clear();
+            for (const auto& mapping : mappings) {
+                _currentMappings.insert({ mapping.first, mapping.second.hash });
+            }
+            _lastMappingsRefresh = usecTimestampNow();
+        } else {
+            qCritical() << "Could not refresh asset server mappings.";
+            qCritical() << "    Error:" << request->getErrorString();
+        }
+
+        request->deleteLater();
+    });
+
+    request->start();
 }
 
 void BackupSupervisor::loadAllBackups() {
@@ -138,35 +171,26 @@ void BackupSupervisor::backupAssetServer() {
         return;
     }
 
-    auto assetClient = DependencyManager::get<AssetClient>();
-    auto request = assetClient->createGetAllMappingsRequest();
+    if (_lastMappingsRefresh == 0) {
+        qWarning() << "Current mappings not yet loaded, ";
+        return;
+    }
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) {
-        qDebug() << "Got" << request->getMappings().size() << "mappings!";
-
-        if (request->getError() != MappingRequest::NoError) {
-            qCritical() << "Could not complete backup.";
-            qCritical() << "    Error:" << request->getErrorString();
-            finishBackup();
-            request->deleteLater();
-            return;
-        }
-
-        if (!writeBackupFile(request->getMappings())) {
-            finishBackup();
-            request->deleteLater();
-            return;
-        }
-
-        assert(!_backups.empty());
-        const auto& mappings = _backups.back().mappings;
-        backupMissingFiles(mappings);
-
-        request->deleteLater();
-    });
+    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
+    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
+        qWarning() << "Backing up asset mappings that appear old.";
+    }
 
     startBackup();
-    request->start();
+
+    if (!writeBackupFile(_currentMappings)) {
+        finishBackup();
+        return;
+    }
+
+    assert(!_backups.empty());
+    const auto& mappings = _backups.back().mappings;
+    backupMissingFiles(mappings);
 }
 
 void BackupSupervisor::backupMissingFiles(const AssetUtils::Mappings& mappings) {
@@ -193,7 +217,7 @@ void BackupSupervisor::backupNextMissingFile() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = assetClient->createRequest(hash);
 
-    connect(assetRequest, &AssetRequest::finished, this, [this](AssetRequest* request) {
+    QObject::connect(assetRequest, &AssetRequest::finished, this, [this](AssetRequest* request) {
         if (request->getError() == AssetRequest::NoError) {
             qDebug() << "Got" << request->getHash();
 
@@ -213,7 +237,7 @@ void BackupSupervisor::backupNextMissingFile() {
     assetRequest->start();
 }
 
-bool BackupSupervisor::writeBackupFile(const AssetUtils::AssetMappings& mappings) {
+bool BackupSupervisor::writeBackupFile(const AssetUtils::Mappings& mappings) {
     auto filename = MAPPINGS_PREFIX + QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + ".json";
     QFile file { PathUtils::getAppDataPath() + BACKUPS_DIR + filename };
     if (!file.open(QFile::WriteOnly)) {
@@ -224,9 +248,9 @@ bool BackupSupervisor::writeBackupFile(const AssetUtils::AssetMappings& mappings
     AssetServerBackup backup;
     QJsonObject jsonObject;
     for (auto& mapping : mappings) {
-        backup.mappings[mapping.first] = mapping.second.hash;
-        _assetsInBackups.insert(mapping.second.hash);
-        jsonObject.insert(mapping.first, mapping.second.hash);
+        backup.mappings[mapping.first] = mapping.second;
+        _assetsInBackups.insert(mapping.second);
+        jsonObject.insert(mapping.first, mapping.second);
     }
 
     QJsonDocument document(jsonObject);
@@ -262,7 +286,7 @@ void BackupSupervisor::restoreAssetServer(int backupIndex) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this, backupIndex](GetAllMappingsRequest* request) {
+    QObject::connect(request, &GetAllMappingsRequest::finished, this, [this, backupIndex](GetAllMappingsRequest* request) {
         if (request->getError() == MappingRequest::NoError) {
             const auto& newMappings = _backups.at(backupIndex).mappings;
             computeServerStateDifference(request->getMappings(), newMappings);
@@ -332,7 +356,7 @@ void BackupSupervisor::restoreNextAsset() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createUpload(assetFilename);
 
-    connect(request, &AssetUpload::finished, this, [this](AssetUpload* request) {
+    QObject::connect(request, &AssetUpload::finished, this, [this](AssetUpload* request) {
         if (request->getError() != AssetUpload::NoError) {
             qCritical() << "Failed to restore asset:" << request->getFilename();
             qCritical() << "    Error:" << request->getErrorString();
@@ -350,7 +374,7 @@ void BackupSupervisor::updateMappings() {
     auto assetClient = DependencyManager::get<AssetClient>();
     for (const auto& mapping : _mappingsLeftToSet) {
         auto request = assetClient->createSetMappingRequest(mapping.first, mapping.second);
-        connect(request, &SetMappingRequest::finished, this, [this](SetMappingRequest* request) {
+        QObject::connect(request, &SetMappingRequest::finished, this, [this](SetMappingRequest* request) {
             if (request->getError() != MappingRequest::NoError) {
                 qCritical() << "Failed to set mapping:" << request->getPath();
                 qCritical() << "    Error:" << request->getErrorString();
@@ -369,7 +393,7 @@ void BackupSupervisor::updateMappings() {
     _mappingsLeftToSet.clear();
 
     auto request = assetClient->createDeleteMappingsRequest(_mappingsLeftToDelete);
-    connect(request, &DeleteMappingsRequest::finished, this, [this](DeleteMappingsRequest* request) {
+    QObject::connect(request, &DeleteMappingsRequest::finished, this, [this](DeleteMappingsRequest* request) {
         if (request->getError() != MappingRequest::NoError) {
             qCritical() << "Failed to delete mappings";
             qCritical() << "    Error:" << request->getErrorString();

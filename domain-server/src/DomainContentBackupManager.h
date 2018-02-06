@@ -15,17 +15,11 @@
 #define hifi_DomainContentBackupManager_h
 
 #include <QString>
-#include <GenericThread.h>
 #include <QVector>
 
-#include <quazip5/quazip.h>
-#include <quazip5/quazipfile.h>
+#include <GenericThread.h>
 
-#include <functional>
-
-using BackupResult = std::vector<QString>;
-using CreateBackupHandler = std::function<void(QuaZip* quazip)>;
-using RecoverBackupHandler = std::function<void()>;
+#include "BackupHandler.h"
 
 class DomainContentBackupManager : public GenericThread {
     Q_OBJECT
@@ -46,9 +40,8 @@ public:
                                int persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
-    void addCreateBackupHandler(CreateBackupHandler handler);
+    void addBackupHandler(BackupHandler handler);
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
-    int64_t getLoadElapsedTime() const { return _loadTimeUSecs; }
 
     void aboutToFinish();  /// call this to inform the persist thread that the owner is about to finish to support final persist
 
@@ -70,11 +63,9 @@ protected:
 
 private:
     QString _backupDirectory;
-    std::vector<CreateBackupHandler> _backupHandlers;
+    std::vector<BackupHandler> _backupHandlers;
     int _persistInterval;
     bool _initialLoadComplete;
-
-    int64_t _loadTimeUSecs;
 
     time_t _lastPersistTime;
     int64_t _lastCheck;

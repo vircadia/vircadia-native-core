@@ -37,8 +37,8 @@ const int DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL = 1000 * 30;  // 
 const static QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
 const static QString DATETIME_FORMAT_RE("\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}");
 
-void DomainContentBackupManager::addCreateBackupHandler(CreateBackupHandler handler) {
-    _backupHandlers.push_back(handler);
+void DomainContentBackupManager::addBackupHandler(BackupHandler handler) {
+    _backupHandlers.push_back(std::move(handler));
 }
 
 DomainContentBackupManager::DomainContentBackupManager(const QString& backupDirectory,
@@ -48,7 +48,6 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     : _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
     _initialLoadComplete(false),
-    _loadTimeUSecs(0),
     _lastCheck(0),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0) {
@@ -268,14 +267,14 @@ void DomainContentBackupManager::backup() {
 
             auto timestamp = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
             auto fileName = "backup-" + rule.extensionFormat + timestamp + ".zip";
-            auto zip = new QuaZip(_backupDirectory + "/" + fileName);
-            zip->open(QuaZip::mdAdd);
+            QuaZip zip(_backupDirectory + "/" + fileName);
+            zip.open(QuaZip::mdAdd);
 
-            for (auto& handler : _backupHandlers) {
-                handler(zip);
+            for (const auto& handler : _backupHandlers) {
+                handler.createBackup(zip);
             }
 
-            zip->close();
+            zip.close();
 
             qDebug() << "Created backup: " << fileName;
 

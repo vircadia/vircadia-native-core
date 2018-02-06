@@ -275,6 +275,8 @@ private:
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
 
     QThread _assetClientThread;
+
+    BackupSupervisor _backupSupervisor;
 };
 
 
