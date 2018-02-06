@@ -28,8 +28,9 @@ Rectangle {
     property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
 
     ColumnLayout {
-        spacing: 5
-        anchors.fill: parent      
+        spacing: 3
+        anchors.left: parent.left
+        anchors.right: parent.right      
         anchors.margins: hifi.dimensions.contentMargin.x  
         HifiControls.Label {
             text: "Transition"       
@@ -75,7 +76,7 @@ Rectangle {
 
         RowLayout {
             spacing: 20
-            height: 38
+            height: 36
             HifiControls.CheckBox {
                 boxSize: 20
                 anchors.verticalCenter: parent.verticalCenter
@@ -88,7 +89,7 @@ Rectangle {
             ConfigSlider {
                 anchors.left: undefined
                 anchors.verticalCenter: parent.verticalCenter
-                height: 38
+                height: 36
                 width: 320
                 label: "Threshold"
                 integral: false
@@ -125,7 +126,7 @@ Rectangle {
             id: paramWidgets
 
             ColumnLayout {
-                spacing: 10
+                spacing: 3
                 width: root_col.width
 
                 HifiControls.CheckBox {
@@ -142,7 +143,7 @@ Rectangle {
                         Layout.fillWidth: true
 
                         Column {
-                            spacing: 8
+                            spacing: 3
                             anchors.left: parent.left
                             anchors.right: parent.right
 
@@ -154,7 +155,7 @@ Rectangle {
                                 "Level:baseLevel" ]                  
 
                                 ConfigSlider {
-                                    height: 38
+                                    height: 36
                                     label:  modelData.split(":")[0]
                                     integral: false
                                     config: root.config
@@ -170,7 +171,7 @@ Rectangle {
                         Layout.fillWidth: true
                         
                         Column {
-                            spacing: 8
+                            spacing: 3
                             anchors.left: parent.left
                             anchors.right: parent.right
 
@@ -182,7 +183,7 @@ Rectangle {
                                 "Level:noiseLevel" ]                  
 
                                 ConfigSlider {
-                                    height: 38
+                                    height: 36
                                     label:  modelData.split(":")[0]
                                     integral: false
                                     config: root.config
@@ -194,58 +195,118 @@ Rectangle {
                         }
                     }
                 }
-                GroupBox {
-                    title: "Edge"
+
+
+                ConfigSlider {
+                    height: 36
+                    label: "Edge Width"
+                    integral: false
+                    config: root.config
+                    property: "edgeWidth"
+                    max: 1.0
+                    min: 0.0
+                }
+                RowLayout {
                     Layout.fillWidth: true
 
-                    Column {
-                        spacing: 8
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                    GroupBox {
+                        title: "Edge Inner color"
+                        Layout.fillWidth: true
 
-                        ConfigSlider {
-                            height: 38
-                            label: "Width"
-                            integral: false
-                            config: root.config
-                            property: "edgeWidth"
-                            max: 1.0
-                            min: 0.0
-                        }
-                        Row {
-                            spacing: 8
+                        Column {
                             anchors.left: parent.left
                             anchors.right: parent.right
 
-                            GroupBox {
-                                title: "Inner color"
-                                Layout.fillWidth: true
-
-                                Column {
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-
-                                    Repeater {
-                                        model: [
-                                        "Color R:edgeInnerColorR", 
-                                        "Color G:edgeInnerColorG", 
-                                        "Color B:edgeInnerColorB",
-                                        "Color intensity:edgeInnerIntensity" ]                  
-
-                                        ConfigSlider {
-                                            height: 38
-                                            label:  modelData.split(":")[0]
-                                            integral: false
-                                            config: root.config
-                                            property:  modelData.split(":")[1]
-                                            max: 1.0
-                                            min: 0.0
-                                        }
-                                    }
+                            Color {
+                                height: 30
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                _color: Qt.rgba(root.config.edgeInnerColorR, root.config.edgeInnerColorG, root.config.edgeInnerColorB, 1.0)
+                                onNewColor: {
+                                    root.config.edgeInnerColorR = _color.red
+                                    root.config.edgeInnerColorG = _color.green
+                                    root.config.edgeInnerColorB = _color.blue
                                 }
                             }
+                            ConfigSlider {
+                                height: 36
+                                label: "Intensity"
+                                integral: false
+                                config: root.config
+                                property: "edgeInnerIntensity"
+                                max: 1.0
+                                min: 0.0
+                            }
+                        }
+                    }
+                    GroupBox {
+                        title: "Edge Outer color"
+                        Layout.fillWidth: true
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: parent.right 
+
+                            Color {
+                                height: 30
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                _color: Qt.rgba(root.config.edgeOuterColorR, root.config.edgeOuterColorG, root.config.edgeOuterColorB, 1.0)
+                                onNewColor: {
+                                    root.config.edgeOuterColorR = _color.red
+                                    root.config.edgeOuterColorG = _color.green
+                                    root.config.edgeOuterColorB = _color.blue
+                                }
+                            }
+                            ConfigSlider {
+                                height: 36
+                                label: "Intensity"
+                                integral: false
+                                config: root.config
+                                property: "edgeOuterIntensity"
+                                max: 1.0
+                                min: 0.0
+                            }
+                        }
+                    }
+                }
+                GroupBox {
+                    title: "Timing"
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            ConfigSlider {
+                                anchors.left: undefined
+                                anchors.right: undefined
+                                Layout.fillWidth: true
+                                height: 36
+                                label: "Duration"
+                                integral: false
+                                config: root.config
+                                property: "duration"
+                                max: 10.0
+                                min: 0.1
+                            }
+                            HifiControls.ComboBox {
+                                Layout.fillWidth: true
+                                model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
+                                currentIndex: root.config["timing"]
+                                onCurrentIndexChanged: {
+                                    root.config["timing"] = currentIndex;
+                                }
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+
                             GroupBox {
-                                title: "Outer color"
+                                title: "Noise Animation"
                                 Layout.fillWidth: true
 
                                 Column {
@@ -254,99 +315,40 @@ Rectangle {
 
                                     Repeater {
                                         model: [
-                                        "Color R:edgeOuterColorR", 
-                                        "Color G:edgeOuterColorG", 
-                                        "Color B:edgeOuterColorB",
-                                        "Color intensity:edgeOuterIntensity" ]                  
+                                        "Speed X:noiseSpeedX", 
+                                        "Speed Y:noiseSpeedY", 
+                                        "Speed Z:noiseSpeedZ" ]                  
 
                                         ConfigSlider {
-                                            height: 38
+                                            height: 36
                                             label:  modelData.split(":")[0]
                                             integral: false
                                             config: root.config
                                             property:  modelData.split(":")[1]
                                             max: 1.0
-                                            min: 0.0
+                                            min: -1.0
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
-                }
 
-                GroupBox {
-                    title: "Timing"
-
-                    Column {
-                        anchors.left: parent.left
-                        anchors.right: parent.right 
-
-                        ConfigSlider {
-                            label: "Duration"
-                            integral: false
-                            config: root.config
-                            property: "duration"
-                            max: 10.0
-                            min: 0.1
-                        }
-                        HifiControls.ComboBox {
-                            width: 200
-                            model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
-                            currentIndex: root.config["timing"]
-                            onCurrentIndexChanged: {
-                                root.config["timing"] = currentIndex;
+                            PlotPerf {
+                                title: "Threshold"
+                                Layout.fillWidth: true
+                                height: parent.evalEvenHeight()
+                                object:  config
+                                valueUnit: "%"
+                                valueScale: 0.01
+                                valueNumDigits: "1"
+                                plots: [
+                                    {
+                                        prop: "threshold",
+                                        label: "Threshold",
+                                        color: "#FFBB77"
+                                    }
+                                ]
                             }
                         }
-                        GroupBox {
-                            title: "Noise Animation"
-                            Column {
-                                anchors.left: parent.left
-                                anchors.right: parent.right 
-
-                                ConfigSlider {
-                                    label: "Speed X"
-                                    integral: false
-                                    config: root.config
-                                    property: "noiseSpeedX"
-                                    max: 1.0
-                                    min: -1.0
-                                }
-                                ConfigSlider {
-                                    label: "Speed Y"
-                                    integral: false
-                                    config: root.config
-                                    property: "noiseSpeedY"
-                                    max: 1.0
-                                    min: -1.0
-                                }
-                                ConfigSlider {
-                                    label: "Speed Z"
-                                    integral: false
-                                    config: root.config
-                                    property: "noiseSpeedZ"
-                                    max: 1.0
-                                    min: -1.0
-                                }
-                            }
-                        }
-
-                        PlotPerf {
-                            title: "Threshold"
-                            height: parent.evalEvenHeight()
-                            object:  config
-                            valueUnit: "%"
-                            valueScale: 0.01
-                            valueNumDigits: "1"
-                            plots: [
-                                {
-                                    prop: "threshold",
-                                    label: "Threshold",
-                                    color: "#FFBB77"
-                                }
-                            ]
-                        }
-
                     }
                 }
 
