@@ -12,7 +12,7 @@
 #ifndef hifi_SkeletonDumpApp_h
 #define hifi_SkeletonDumpApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 
 class SkeletonDumpApp : public QCoreApplication {
     Q_OBJECT
