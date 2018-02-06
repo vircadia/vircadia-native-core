@@ -1,5 +1,5 @@
 //
-//  fade.qml
+//  transition.qml
 //  developer/utilities/render
 //
 //  Olivier Prat, created on 30/04/2017.
@@ -27,21 +27,21 @@ Rectangle {
     property var config: Render.getConfig("RenderMainView.Fade");
     property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
 
-    Column {
+    ColumnLayout {
         spacing: 5
-        anchors.left: parent.left
-        anchors.right: parent.right       
+        anchors.fill: parent      
         anchors.margins: hifi.dimensions.contentMargin.x  
         HifiControls.Label {
-            text: "Fade"       
+            text: "Transition"       
         }
 
-        Row {
-            anchors.left: parent.left
-            anchors.right: parent.right 
+        RowLayout {
             spacing: 20
+            Layout.fillWidth: true
+            id: root_col
 
             HifiControls.CheckBox {
+                anchors.verticalCenter: parent.verticalCenter
                 boxSize: 20
                 text: "Edit"
                 checked: root.configEdit["editFade"]
@@ -51,13 +51,16 @@ Rectangle {
                 }
             }
             HifiControls.ComboBox {
+                anchors.verticalCenter: parent.verticalCenter
+                Layout.fillWidth: true
                 id: categoryBox
-                width: 260
                 model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
                 Timer {
                     id: postpone
                     interval: 100; running: false; repeat: false
-                    onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
+                    onTriggered: { 
+                        paramWidgetLoader.sourceComponent = paramWidgets
+                    }
                 }
                 onCurrentIndexChanged: {
                     root.config["editedCategory"] = currentIndex;
@@ -68,26 +71,32 @@ Rectangle {
                     postpone.start()
                 }
             }
+        }
+
+        RowLayout {
+            spacing: 20
+            height: 38
             HifiControls.CheckBox {
                 boxSize: 20
+                anchors.verticalCenter: parent.verticalCenter
                 text: "Manual"
                 checked: root.config["manualFade"]
                 onCheckedChanged: {
                     root.config["manualFade"] = checked;
                 }
             }
-        }
-
-        ConfigSlider {
-            height: 35
-            label: "Threshold"
-            integral: false
-            config: root.config
-            property: "manualThreshold"
-            max: 1.0
-            min: 0.0
-            anchors.left: parent.left
-            anchors.right: parent.right
+            ConfigSlider {
+                anchors.left: undefined
+                anchors.verticalCenter: parent.verticalCenter
+                height: 38
+                width: 320
+                label: "Threshold"
+                integral: false
+                config: root.config
+                property: "manualThreshold"
+                max: 1.0
+                min: 0.0
+            }
         }
         
         Action {
@@ -110,101 +119,92 @@ Rectangle {
             }
         }
 
+        Separator {}  
               
         Component {
             id: paramWidgets
 
-            Column {
-                anchors.left: parent.left
-                anchors.right: parent.right
+            ColumnLayout {
                 spacing: 10
+                width: root_col.width
 
                 HifiControls.CheckBox {
                     text: "Invert"
+                    boxSize: 20
                     checked: root.config["isInverted"]
                     onCheckedChanged: { root.config["isInverted"] = checked }
                 }
-                GroupBox {
-                    title: "Base Gradient"
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                RowLayout {
+                    Layout.fillWidth: true
 
-                    Column {
-                        spacing: 8
-                        anchors.left: parent.left
-                        anchors.right: parent.right
+                    GroupBox {
+                        title: "Base Gradient"
+                        Layout.fillWidth: true
 
-                        Repeater {
-                            model: [
-                            "Size X:baseSizeX", 
-                            "Size Y:baseSizeY", 
-                            "Size Z:baseSizeZ",
-                            "Level:baseLevel" ]                  
+                        Column {
+                            spacing: 8
+                            anchors.left: parent.left
+                            anchors.right: parent.right
 
-                            ConfigSlider {
-                                height: 35
-                                label:  modelData.split(":")[0]
-                                integral: false
-                                config: root.config
-                                property:  modelData.split(":")[1]
-                                max: 1.0
-                                min: 0.0
+                            Repeater {
+                                model: [
+                                "Size X:baseSizeX", 
+                                "Size Y:baseSizeY", 
+                                "Size Z:baseSizeZ",
+                                "Level:baseLevel" ]                  
+
+                                ConfigSlider {
+                                    height: 38
+                                    label:  modelData.split(":")[0]
+                                    integral: false
+                                    config: root.config
+                                    property:  modelData.split(":")[1]
+                                    max: 1.0
+                                    min: 0.0
+                                }
+                            }
+                        }
+                    }
+                    GroupBox {
+                        title: "Noise Gradient"
+                        Layout.fillWidth: true
+                        
+                        Column {
+                            spacing: 8
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+
+                            Repeater {
+                                model: [
+                                "Size X:noiseSizeX", 
+                                "Size Y:noiseSizeY", 
+                                "Size Z:noiseSizeZ",
+                                "Level:noiseLevel" ]                  
+
+                                ConfigSlider {
+                                    height: 38
+                                    label:  modelData.split(":")[0]
+                                    integral: false
+                                    config: root.config
+                                    property:  modelData.split(":")[1]
+                                    max: 1.0
+                                    min: 0.0
+                                }
                             }
                         }
                     }
                 }
                 GroupBox {
-                    title: "Noise Gradient"
-                    
+                    title: "Edge"
+                    Layout.fillWidth: true
+
                     Column {
                         spacing: 8
                         anchors.left: parent.left
                         anchors.right: parent.right
 
                         ConfigSlider {
-                            height: 35
-                            label: "Size X"
-                            integral: false
-                            config: root.config
-                            property: "noiseSizeX"
-                            max: 1.0
-                            min: 0.0
-                        }
-                        ConfigSlider {
-                            height: 35
-                            label: "Size Y"
-                            integral: false
-                            config: root.config
-                            property: "noiseSizeY"
-                            max: 1.0
-                            min: 0.0
-                        }
-                        ConfigSlider {
-                            label: "Size Z"
-                            integral: false
-                            config: root.config
-                            property: "noiseSizeZ"
-                            max: 1.0
-                            min: 0.0
-                        }
-                        ConfigSlider {
-                            label: "Level"
-                            integral: false
-                            config: root.config
-                            property: "noiseLevel"
-                            max: 1.0
-                            min: 0.0
-                        }
-                    }
-                }
-                GroupBox {
-                    title: "Edge"
-
-                    Column {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-
-                        ConfigSlider {
+                            height: 38
                             label: "Width"
                             integral: false
                             config: root.config
@@ -212,83 +212,63 @@ Rectangle {
                             max: 1.0
                             min: 0.0
                         }
-                        GroupBox {
-                            title: "Inner color"
-                            Column {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
+                        Row {
+                            spacing: 8
+                            anchors.left: parent.left
+                            anchors.right: parent.right
 
-                                ConfigSlider {
-                                    label: "Color R"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeInnerColorR"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color G"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeInnerColorG"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color B"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeInnerColorB"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color intensity"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeInnerIntensity"
-                                    max: 5.0
-                                    min: 0.0
+                            GroupBox {
+                                title: "Inner color"
+                                Layout.fillWidth: true
+
+                                Column {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+
+                                    Repeater {
+                                        model: [
+                                        "Color R:edgeInnerColorR", 
+                                        "Color G:edgeInnerColorG", 
+                                        "Color B:edgeInnerColorB",
+                                        "Color intensity:edgeInnerIntensity" ]                  
+
+                                        ConfigSlider {
+                                            height: 38
+                                            label:  modelData.split(":")[0]
+                                            integral: false
+                                            config: root.config
+                                            property:  modelData.split(":")[1]
+                                            max: 1.0
+                                            min: 0.0
+                                        }
+                                    }
                                 }
                             }
-                        }
-                        GroupBox {
-                            title: "Outer color"
-                            Column {
-                                anchors.left: parent.left
-                                anchors.right: parent.right 
+                            GroupBox {
+                                title: "Outer color"
+                                Layout.fillWidth: true
 
-                                ConfigSlider {
-                                    label: "Color R"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeOuterColorR"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color G"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeOuterColorG"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color B"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeOuterColorB"
-                                    max: 1.0
-                                    min: 0.0
-                                }
-                                ConfigSlider {
-                                    label: "Color intensity"
-                                    integral: false
-                                    config: root.config
-                                    property: "edgeOuterIntensity"
-                                    max: 5.0
-                                    min: 0.0
+                                Column {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right 
+
+                                    Repeater {
+                                        model: [
+                                        "Color R:edgeOuterColorR", 
+                                        "Color G:edgeOuterColorG", 
+                                        "Color B:edgeOuterColorB",
+                                        "Color intensity:edgeOuterIntensity" ]                  
+
+                                        ConfigSlider {
+                                            height: 38
+                                            label:  modelData.split(":")[0]
+                                            integral: false
+                                            config: root.config
+                                            property:  modelData.split(":")[1]
+                                            max: 1.0
+                                            min: 0.0
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -372,7 +352,6 @@ Rectangle {
 
             }
         }
-
 
 
 

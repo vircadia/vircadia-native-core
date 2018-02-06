@@ -1,7 +1,7 @@
 "use strict";
 
 //
-//  debugFade.js
+//  debugTransition.js
 //  developer/utilities/render
 //
 //  Olivier Prat, created on 30/04/2017.
@@ -12,10 +12,10 @@
 //
 
 (function() {
-    var TABLET_BUTTON_NAME = "Fade";
-    var QMLAPP_URL = Script.resolvePath("./fade.qml");
-    var ICON_URL = Script.resolvePath("../../../system/assets/images/fade-i.svg");
-    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/fade-a.svg");
+    var TABLET_BUTTON_NAME = "Transition";
+    var QMLAPP_URL = Script.resolvePath("./transition.qml");
+    var ICON_URL = Script.resolvePath("../../../system/assets/images/transition-i.svg");
+    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/transition-a.svg");
 
    
     var onScreen = false;
