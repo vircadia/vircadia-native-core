@@ -389,6 +389,32 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
     }
 }
 
+void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+    auto& inItems = inputs.get0();
+    auto& outItems = outputs;
+    auto inputFrustum = inputs.get1();
+
+    if (inputFrustum != nullptr) {
+        args->pushViewFrustum(*inputFrustum);
+    }
+
+    outItems.clear();
+    outItems.reserve(inItems.size());
+
+    for (auto& item : inItems) {
+        if (_cullFunctor(args, item.bound)) {
+            outItems.emplace_back(item);
+        }
+    }
+
+    if (inputFrustum != nullptr) {
+        args->popViewFrustum();
+    }
+}
+
 void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
                                const Inputs& inputs, ItemBounds& outItems) {
     assert(renderContext->args);

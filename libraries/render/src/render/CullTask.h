@@ -140,6 +140,19 @@ namespace render {
         void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
+    class ApplyCullFunctorOnItemBounds {
+    public:
+        using Inputs = render::VaryingSet2<ItemBounds, ViewFrustumPointer>;
+        using Outputs = ItemBounds;
+        using JobModel = Job::ModelIO<ApplyCullFunctorOnItemBounds, Inputs, Outputs>;
+
+        ApplyCullFunctorOnItemBounds(render::CullFunctor cullFunctor) : _cullFunctor(cullFunctor) {}
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+
+    private:
+
+        render::CullFunctor _cullFunctor;
+    };
 }
 
 #endif // hifi_render_CullTask_h;

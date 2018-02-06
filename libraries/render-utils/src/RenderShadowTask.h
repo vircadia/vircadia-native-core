@@ -50,7 +50,7 @@ public:
     using JobModel = render::Task::Model<RenderShadowTask, Config>;
 
     RenderShadowTask() {}
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cameraCullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
 
     void configure(const Config& configuration);
 
@@ -95,7 +95,7 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Outputs = render::VaryingSet2<RenderArgs::RenderMode, glm::ivec2>;
+    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelO<RenderShadowSetup, Outputs, Config>;
 
@@ -105,6 +105,7 @@ public:
 
 private:
 
+    ViewFrustumPointer _cameraFrustum;
     ViewFrustumPointer _coarseShadowFrustum;
     struct {
         float _constant;

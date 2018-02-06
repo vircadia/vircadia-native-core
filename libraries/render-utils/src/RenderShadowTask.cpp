@@ -200,8 +200,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     });
 }
 
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, uint8_t tagBits, uint8_t tagMask) {
-    ::CullFunctor cullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cameraCullFunctor, uint8_t tagBits, uint8_t tagMask) {
+    ::CullFunctor shadowCullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
         return _cullFunctor(args, bounds);
     };
 
@@ -224,8 +224,14 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
     const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
 
+    // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
+    // frustum culling or this will make shadow casters out of the camera frustum disappear.
+    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    const auto applyFunctorInputs = ApplyCullFunctorOnItemBounds::Inputs(shadowItems, cameraFrustum).asVarying();
+    const auto culledShadowItems = task.addJob<ApplyCullFunctorOnItemBounds>("ShadowCullCamera", applyFunctorInputs, cameraCullFunctor);
+
     // Sort
-    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", shadowItems);
+    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", culledShadowItems);
     const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
 
     render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
@@ -248,7 +254,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
         // CPU jobs: finer grained culling
         const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
-        const auto culledShadowItemsAndBounds = task.addJob<CullShapeBounds>("CullShadowCascade", cullInputs, cullFunctor, RenderDetails::SHADOW);
+        const auto culledShadowItemsAndBounds = task.addJob<CullShapeBounds>("CullShadowCascade", cullInputs, shadowCullFunctor, RenderDetails::SHADOW);
 
         // GPU jobs: Render to shadow map
         sprintf(jobName, "RenderShadowMap%d", i);
@@ -266,6 +272,7 @@ void RenderShadowTask::configure(const Config& configuration) {
 }
 
 RenderShadowSetup::RenderShadowSetup() :
+    _cameraFrustum{ std::make_shared<ViewFrustum>() },
     _coarseShadowFrustum{ std::make_shared<ViewFrustum>() } {
 
 }
@@ -297,6 +304,9 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 
     output.edit0() = args->_renderMode;
     output.edit1() = glm::ivec2(0, 0);
+    // Save main camera frustum
+    *_cameraFrustum = args->getViewFrustum();
+    output.edit2() = _cameraFrustum;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
