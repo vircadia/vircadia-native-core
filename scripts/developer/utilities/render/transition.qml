@@ -221,11 +221,9 @@ Rectangle {
                                 height: 30
                                 anchors.left: parent.left
                                 anchors.right: parent.right
-                                _color: Qt.rgba(root.config.edgeInnerColorR, root.config.edgeInnerColorG, root.config.edgeInnerColorB, 1.0)
+                                _color: root.config.edgeInnerColor
                                 onNewColor: {
-                                    root.config.edgeInnerColorR = _color.red
-                                    root.config.edgeInnerColorG = _color.green
-                                    root.config.edgeInnerColorB = _color.blue
+                                    root.config.edgeInnerColor = _color
                                 }
                             }
                             ConfigSlider {
@@ -251,11 +249,9 @@ Rectangle {
                                 height: 30
                                 anchors.left: parent.left
                                 anchors.right: parent.right
-                                _color: Qt.rgba(root.config.edgeOuterColorR, root.config.edgeOuterColorG, root.config.edgeOuterColorB, 1.0)
+                                _color: root.config.edgeOuterColor
                                 onNewColor: {
-                                    root.config.edgeOuterColorR = _color.red
-                                    root.config.edgeOuterColorG = _color.green
-                                    root.config.edgeOuterColorB = _color.blue
+                                    root.config.edgeOuterColor = _color
                                 }
                             }
                             ConfigSlider {
