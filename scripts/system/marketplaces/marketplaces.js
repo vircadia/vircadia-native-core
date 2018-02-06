@@ -112,6 +112,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     var referrerURL; // Used for updating Purchases QML
     var filterText; // Used for updating Purchases QML
+
+    var onWalletScreen = false;
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
