@@ -305,9 +305,15 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
 
+                            function evalEvenHeight() {
+                                // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
+                                return (height - spacing * (children.length - 1)) / children.length
+                            }
+
                             GroupBox {
                                 title: "Noise Animation"
                                 Layout.fillWidth: true
+                                id: animBox
 
                                 Column {
                                     anchors.left: parent.left
@@ -334,9 +340,10 @@ Rectangle {
 
                             PlotPerf {
                                 title: "Threshold"
-                                Layout.fillWidth: true
-                                height: parent.evalEvenHeight()
-                                object:  config
+                                width: 200
+                                anchors.top: animBox.top
+                                anchors.bottom : animBox.bottom
+                                object: root.config
                                 valueUnit: "%"
                                 valueScale: 0.01
                                 valueNumDigits: "1"
