@@ -50,43 +50,25 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
   set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
   set(SHADER_TARGET_HEADER ${SHADER_TARGET}.h)
   set(SHADER_TARGET_SOURCE ${SHADER_TARGET}.cpp)
+  set(SCRIBE_COMMAND scribe)
 
   # Target dependant Custom rule on the SHADER_FILE
   if (APPLE)
     set(GLPROFILE MAC_GL)
-    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
-
-    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   elseif (ANDROID)
     set(GLPROFILE LINUX_GL)
-    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
-
-    # for an android build, we can't use the scribe that cmake would normally produce as a target,
-    # since it's unrunnable by the cross-compiling build machine
-
-    # so, we require the compiling user to point us at a compiled executable version for their native toolchain
-    if (NOT NATIVE_SCRIBE)
-        find_program(NATIVE_SCRIBE scribe PATHS ${SCRIBE_PATH} ENV SCRIBE_PATH)
-    endif()
-
-    if (NOT NATIVE_SCRIBE)
-      message(FATAL_ERROR "The High Fidelity scribe tool is required for shader pre-processing. \
-        Please compile scribe using your native toolchain and set SCRIBE_PATH to the path containing the scribe executable in your ENV.\
-      ")
-    endif ()
-
-    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND ${NATIVE_SCRIBE} ${SCRIBE_ARGS} DEPENDS ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    set(SCRIBE_COMMAND ${NATIVE_SCRIBE})
   elseif (UNIX)
     set(GLPROFILE LINUX_GL)
-    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
-
-    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   else ()
     set(GLPROFILE PC_GL)
-    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
-
-    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   endif()
+  set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+  add_custom_command(
+    OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} 
+    COMMAND ${SCRIBE_COMMAND} ${SCRIBE_ARGS} 
+    DEPENDS ${SCRIBE_COMMAND} ${SHADER_INCLUDE_FILES} ${SHADER_FILE}
+  )
 
   #output the generated file name
   set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} PARENT_SCOPE)
