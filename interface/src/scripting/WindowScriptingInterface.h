@@ -357,13 +357,13 @@ public slots:
      * var aspect = 1920 / 1080;
      * Window.takeSnapshot(notify, animated, aspect);
      */
-    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = "");
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * @function Window.takeSecondaryCameraSnapshot
      */
-    void takeSecondaryCameraSnapshot();
+    void takeSecondaryCameraSnapshot(const QString& filename = "");
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that

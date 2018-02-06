@@ -6934,10 +6934,10 @@ void Application::loadAvatarBrowser() const {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }
 
-void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
+void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
+    postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
         // Get a screenshot and save it
-        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
+        QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename);
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
             // Tell the dependency manager that the capture of the still snapshot has taken place.
@@ -6949,9 +6949,9 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot() {
-    postLambdaEvent([this] {
-        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
+void Application::takeSecondaryCameraSnapshot(const QString& filename) {
+    postLambdaEvent([filename, this] {
+        QString snapshotPath = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename);
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
     });
 }
