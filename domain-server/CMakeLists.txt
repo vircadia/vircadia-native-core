@@ -24,6 +24,8 @@ symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CU
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared avatars octree)
 
+target_zlib()
+
 add_dependency_external_projects(quazip)
 
 find_package(QuaZip REQUIRED)
