@@ -91,6 +91,9 @@ public:
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
 
+    virtual void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    virtual void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
+
 protected:
     float updatePulse();
 
@@ -116,6 +119,9 @@ protected:
 
     static const xColor DEFAULT_OVERLAY_COLOR;
     static const float DEFAULT_ALPHA;
+
+    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 private:
     OverlayID _overlayID; // only used for non-3d overlays

@@ -146,6 +146,9 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
     });
+    _materials = entity->getMaterials();
+    connect(entity.get(), &EntityItem::addMaterialToRenderItem, this, &EntityRenderer::addMaterial);
+    connect(entity.get(), &EntityItem::removeMaterialFromRenderItem, this, &EntityRenderer::removeMaterial);
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -399,4 +402,14 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
 void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) { 
     entity->deregisterChangeHandler(_changeHandlerId);
     QObject::disconnect(this, &EntityRenderer::requestRenderUpdate, this, nullptr);
+}
+
+void EntityRenderer::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[shapeID].push(material);
+}
+
+void EntityRenderer::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[shapeID].remove(material);
 }

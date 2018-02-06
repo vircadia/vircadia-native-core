@@ -85,6 +85,7 @@ EntityItemPointer ShapeEntityItem::sphereFactory(const EntityItemID& entityID, c
 ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Shape;
     _volumeMultiplier *= PI / 6.0f;
+    _material = std::make_shared<graphics::Material>();
 }
 
 EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -184,6 +185,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 void ShapeEntityItem::setColor(const rgbColor& value) {
     memcpy(_color, value, sizeof(rgbColor));
+    _material->setAlbedo(glm::vec3(_color[0], _color[1], _color[2]) / 255.0f);
 }
 
 xColor ShapeEntityItem::getXColor() const {
@@ -202,6 +204,11 @@ QColor ShapeEntityItem::getQColor() const {
 void ShapeEntityItem::setColor(const QColor& value) {
     setColor(rgbColor { (uint8_t)value.red(), (uint8_t)value.green(), (uint8_t)value.blue() });
     setAlpha(value.alpha());
+}
+
+void ShapeEntityItem::setAlpha(float alpha) {
+    _alpha = alpha;
+    _material->setOpacity(alpha);
 }
 
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {

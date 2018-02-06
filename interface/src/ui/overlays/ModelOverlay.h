@@ -59,6 +59,9 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
 
+    void addMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
+    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
+
 protected:
     Transform evalRenderTransform() override;
 
@@ -109,6 +112,8 @@ private:
     bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+
+    void processMaterials();
 
 };
 

@@ -225,9 +225,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_MATERIAL_URL, MaterialURL, materialURL, QString, "");
     DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode, UV);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_BLEND_FACTOR, BlendFactor, blendFactor, float, 1.0f);
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, uint32_t, 0);
-    DEFINE_PROPERTY_REF(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, uint32_t, 0);
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_BOUNDS, MaterialBounds, materialBounds, glmVec4, glm::vec4(0, 0, 1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, quint16, 0);
+    DEFINE_PROPERTY_REF(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, quint16, 0);
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_POS, MaterialPos, materialPos, glmVec2, glm::vec2(0, 0));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_SCALE, MaterialScale, materialScale, glmVec2, glm::vec2(1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_ROT, MaterialRot, materialRot, float, 0);
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);

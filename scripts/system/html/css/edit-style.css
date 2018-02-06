@@ -645,14 +645,14 @@ hr {
     margin-left: 10px;
 }
 
-.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
+.text label, .url label, .number label, .textarea label, .xy label, .wh label, .rgb label, .xyz label,.pyr label, .dropdown label, .gen label {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
     margin-top: -2px;
 }
 
-.text legend, .url legend, .number legend, .textarea legend, .rgb legend, .xyz legend, .pyr legend, .dropdown legend, .gen legend {
+.text legend, .url legend, .number legend, .textarea legend, .xy legend, .wh legend, .rgb legend, .xyz legend, .pyr legend, .dropdown legend, .gen legend {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
@@ -667,7 +667,7 @@ hr {
     clear: both;
     float: left;
 }
-.xyz > div, .pyr > div, .gen > div {
+.xy > div, .wh > div, .xyz > div, .pyr > div, .gen > div {
     clear: both;
 }
 
@@ -841,6 +841,12 @@ div.refresh input[type="button"] {
     margin-right: -6px;
 }
 
+.xy .tuple input {
+    padding-left: 25px;
+}
+.wh .tuple input {
+    padding-left: 45px;
+}
 .rgb .tuple input {
     padding-left: 65px;
 }

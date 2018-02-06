@@ -549,7 +549,6 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, im
         auto map = std::make_shared<graphics::TextureMap>();
         if (texture) {
             map->setTextureSource(texture->_textureSource);
-            emit textureFinished();
         }
 
         return map;
@@ -728,6 +727,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!occlusionName.isEmpty()) {
         auto url = textureMap.contains(occlusionName) ? textureMap[occlusionName].toUrl() : QUrl();
+        // FIXME: we need to handle the occlusion map transform here
         auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
         setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }

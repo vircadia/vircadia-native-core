@@ -232,7 +232,9 @@ enum EntityPropertyList {
     PROP_MATERIAL_BLEND_FACTOR,
     PROP_MATERIAL_PRIORITY,
     PROP_PARENT_SHAPE_ID,
-    PROP_MATERIAL_BOUNDS,
+    PROP_MATERIAL_POS,
+    PROP_MATERIAL_SCALE,
+    PROP_MATERIAL_ROT,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

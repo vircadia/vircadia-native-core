@@ -31,6 +31,9 @@ private:
     ItemKey getKey() override;
     ShapeKey getShapeKey() override;
 
+    QUuid _parentID;
+    bool _clientOnly;
+    QUuid _owningAvatarID;
     Transform _renderTransform;
 
     std::shared_ptr<NetworkMaterial> _drawMaterial;
@@ -47,7 +50,7 @@ private:
     static void addVertex(std::vector<float>& buffer, const glm::vec3& pos, const glm::vec3& tan, const glm::vec2 uv);
     const int SLICES = 15;
     const int STACKS = 9;
-    const float M_PI_TIMES_2 = 2.0f * M_PI;
+    const float M_PI_TIMES_2 = 2.0f * (float)M_PI;
 };
 
 } } 

@@ -47,7 +47,7 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
-    updateMaterial(material);
+    addMaterial(material);
 }
 
 void MeshPartPayload::updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex) {
@@ -67,8 +67,12 @@ void MeshPartPayload::updateTransform(const Transform& transform, const Transfor
     _worldBound.transform(_drawTransform);
 }
 
-void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
-    _drawMaterial = drawMaterial;
+void MeshPartPayload::addMaterial(graphics::MaterialPointer material) {
+    _drawMaterials.push(material);
+}
+
+void MeshPartPayload::removeMaterial(graphics::MaterialPointer material) {
+    _drawMaterials.remove(material);
 }
 
 void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits) {
@@ -85,8 +89,8 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits)
         builder.withLayered();
     }
 
-    if (_drawMaterial) {
-        auto matKey = _drawMaterial->getKey();
+    if (_drawMaterials.top()) {
+        auto matKey = _drawMaterials.top()->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
@@ -105,8 +109,8 @@ Item::Bound MeshPartPayload::getBound() const {
 
 ShapeKey MeshPartPayload::getShapeKey() const {
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterial) {
-        drawMaterialKey = _drawMaterial->getKey();
+    if (_drawMaterials.top()) {
+        drawMaterialKey = _drawMaterials.top()->getKey();
     }
 
     ShapeKey::Builder builder;
@@ -160,7 +164,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    args->_shapePipeline->bindMaterial(_drawMaterial, batch, args->_enableTexturing);
+    args->_shapePipeline->bindMaterial(_drawMaterials.top(), batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!
@@ -252,7 +256,7 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
 
     auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
-        _drawMaterial = networkMaterial;
+        addMaterial(networkMaterial);
     }
 }
 
@@ -298,8 +302,8 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
         builder.withDeformed();
     }
 
-    if (_drawMaterial) {
-        auto matKey = _drawMaterial->getKey();
+    if (_drawMaterials.top()) {
+        auto matKey = _drawMaterials.top()->getKey();
         if (matKey.isTranslucent()) {
             builder.withTransparent();
         }
@@ -329,8 +333,8 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     }
 
     graphics::MaterialKey drawMaterialKey;
-    if (_drawMaterial) {
-        drawMaterialKey = _drawMaterial->getKey();
+    if (_drawMaterials.top()) {
+        drawMaterialKey = _drawMaterials.top()->getKey();
     }
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
@@ -411,7 +415,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    args->_shapePipeline->bindMaterial(_drawMaterial, batch, args->_enableTexturing);
+    args->_shapePipeline->bindMaterial(_drawMaterials.top(), batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!

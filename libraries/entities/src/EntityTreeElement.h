@@ -210,8 +210,7 @@ public:
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
-    bool removeEntityWithEntityItemID(const EntityItemID& id);
-    bool removeEntityItem(EntityItemPointer entity);
+    bool removeEntityItem(EntityItemPointer entity, bool deletion = false);
 
     bool containsEntityBounds(EntityItemPointer entity) const;
     bool bestFitEntityBounds(EntityItemPointer entity) const;

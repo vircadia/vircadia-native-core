@@ -101,6 +101,10 @@ protected:
         return result;
     }
 
+public slots:
+    virtual void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    virtual void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
+
 signals:
     void requestRenderUpdate();
 
@@ -129,6 +133,8 @@ protected:
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
 
+    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 private:
     // The base class relies on comparing the model transform to the entity transform in order 

@@ -318,6 +318,9 @@ public:
 
     void scaleToFit();
 
+    void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
+
 public slots:
     void loadURLFinished(bool success);
 

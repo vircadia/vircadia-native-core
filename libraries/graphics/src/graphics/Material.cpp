@@ -12,8 +12,12 @@
 
 #include "TextureMap.h"
 
+#include <Transform.h>
+
 using namespace graphics;
 using namespace gpu;
+
+int materialPointerMetaID = qRegisterMetaType<MaterialPointer>("graphics::MaterialPointer");
 
 Material::Material() :
     _key(0),
@@ -221,4 +225,15 @@ bool Material::calculateMaterialInfo() const {
         _hasCalculatedTextureInfo = allTextures;
     }
     return _hasCalculatedTextureInfo;
+}
+
+void Material::setTextureTransforms(const Transform& transform) {
+    for (auto &textureMapItem : _textureMaps) {
+        if (textureMapItem.second) {
+            textureMapItem.second->setTextureTransform(transform);
+        }
+    }
+    for (int i = 0; i < NUM_TEXCOORD_TRANSFORMS; i++) {
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[i] = transform.getMatrix();
+    }
 }

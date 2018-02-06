@@ -22,6 +22,8 @@ setup_memory_debugger()
 symlink_or_copy_directory_beside_target(${_SHOULD_SYMLINK_RESOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/resources" "resources")
 
 # link the shared hifi libraries
+include_hifi_library_headers(gpu)
+include_hifi_library_headers(graphics)
 link_hifi_libraries(embedded-webserver networking shared avatars)
 
 # find OpenSSL

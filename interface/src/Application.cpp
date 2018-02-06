@@ -1580,6 +1580,42 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
+    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto avatar = avatarManager->getAvatarBySessionID(avatarID);
+        if (avatar) {
+            avatar->addMaterial(material, shapeID);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto avatar = avatarManager->getAvatarBySessionID(avatarID);
+        if (avatar) {
+            avatar->removeMaterial(material, shapeID);
+            return true;
+        }
+        return false;
+    });
+
+    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+        auto overlay = _overlays.getOverlay(overlayID);
+        if (overlay) {
+            overlay->addMaterial(material, shapeID);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+        auto overlay = _overlays.getOverlay(overlayID);
+        if (overlay) {
+            overlay->removeMaterial(material, shapeID);
+            return true;
+        }
+        return false;
+    });
+
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {

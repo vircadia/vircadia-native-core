@@ -1732,15 +1732,19 @@ void EntityTree::fixupNeedsParentFixups() {
                 }
             });
             entity->locationChanged(true);
-        } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
-            // this is a child of an avatar, which the entity server will never have
-            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-            if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+            entity->postParentFixup();
+        } else if (_avatarIDs.contains(entity->getParentID())) {
+            if (getIsServer()) {
+                // this is a child of an avatar, which the entity server will never have
+                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+                if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
+                }
+                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
             }
-            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
             doMove = true;
             iter.remove(); // and pull it out of the list
+            entity->postParentFixup();
         }
 
         if (queryAACubeSuccess && doMove) {
@@ -2378,3 +2382,35 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
+std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_addMaterialToAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_addMaterialToOverlayOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+
+bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+    if (_addMaterialToAvatarOperator) {
+        return _addMaterialToAvatarOperator(avatarID, material, shapeID);
+    }
+    return false;
+}
+
+bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+    if (_removeMaterialFromAvatarOperator) {
+        return _removeMaterialFromAvatarOperator(avatarID, material, shapeID);
+    }
+    return false;
+}
+
+bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+    if (_addMaterialToOverlayOperator) {
+        return _addMaterialToOverlayOperator(overlayID, material, shapeID);
+    }
+    return false;
+}
+
+bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+    if (_removeMaterialFromOverlayOperator) {
+        return _removeMaterialFromOverlayOperator(overlayID, material, shapeID);
+    }
+    return false;
+}

@@ -156,8 +156,7 @@ private:
     virtual ~ModelCache() = default;
 };
 
-class NetworkMaterial : public QObject, public graphics::Material {
-    Q_OBJECT
+class NetworkMaterial : public graphics::Material {
 public:
     using MapChannel = graphics::Material::MapChannel;
 
@@ -173,9 +172,6 @@ public:
     void setEmissiveMap(const QString& url);
     void setScatteringMap(const QString& url);
     void setLightmapMap(const QString& url);
-
-signals:
-    void textureFinished();
 
 protected:
     friend class Geometry;

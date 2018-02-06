@@ -787,7 +787,7 @@
 
                 <div class="material-group material-section property number">
                     <label>Priority </label>
-                    <input type="number" id="property-priority">
+                    <input type="number" id="property-priority" min="0">
                 </div>
 
                 <div class="material-group material-section property number">
@@ -795,13 +795,26 @@
                     <input type="number" id="property-shape-id" min="0">
                 </div>
 
-                <div class="material-group material-section property tuple">
-                    <label>Material Bounds </label>
-                    <div><input type="number" class="x" id="property-material-bounds-x" min="0" max="1" step="0.1"><label for="property-material-bounds-x">Left:</label></div>
-                    <div><input type="number" class="y" id="property-material-bounds-y" min="0" max="1" step="0.1"><label for="property-material-bounds-y">Top:</label></div>
-                    <div><input type="number" class="z" id="property-material-bounds-z" min="0" max="1" step="0.1"><label for="property-material-bounds-z">Right:</label></div>
-                    <div><input type="number" class="w" id="property-material-bounds-w" min="0" max="1" step="0.1"><label for="property-material-bounds-w">Bottom:</label></div>
-                </div>
+                <fieldset>
+                    <div class="material-group material-section property xy fstuple">
+                        <label>Material Position </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-pos-x" min="0" max="1" step="0.1"><label for="property-material-pos-x">X:</label></div>
+                            <div><input type="number" class="y" id="property-material-pos-y" min="0" max="1" step="0.1"><label for="property-material-pos-y">Y:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property wh fstuple">
+                        <label>Material Scale </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-scale-x" min="0" step="0.1"><label for="property-material-scale-x">Width:</label></div>
+                            <div><input type="number" class="y" id="property-material-scale-y" min="0" step="0.1"><label for="property-material-scale-y">Height:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property number">
+                        <label>Material Rotation <span class="unit">deg</span></label>
+                        <input type="number" id="property-material-rot" step="0.1">
+                    </div>
+                </fieldset>
 
             </fieldset>
         </fieldset>

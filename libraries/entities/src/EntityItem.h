@@ -36,6 +36,8 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
+#include "graphics/Material.h"
+
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -47,7 +49,6 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
-
 
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -443,10 +444,10 @@ public:
     void scriptHasUnloaded() { _loadedScript = ""; _loadedScriptTimestamp = 0; }
 
     bool getClientOnly() const { return _clientOnly; }
-    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
     // if this entity is client-only, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+    virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }
@@ -477,8 +478,18 @@ public:
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
 
+    virtual void postAdd() {}
+    virtual void preDelete();
+    virtual void postParentFixup() {}
+
+    void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    std::unordered_map<quint16, graphics::MultiMaterial> getMaterials();
+
 signals:
     void requestRenderUpdate();
+    void addMaterialToRenderItem(graphics::MaterialPointer material, quint16 shapeID);
+    void removeMaterialFromRenderItem(graphics::MaterialPointer material, quint16 shapeID);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -631,6 +642,11 @@ protected:
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+private:
+    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
 };
 
 #endif // hifi_EntityItem_h

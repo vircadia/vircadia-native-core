@@ -39,8 +39,6 @@ public:
     virtual void notifyLocationChanged() {}
     void updateTransform(const Transform& transform, const Transform& offsetTransform);
 
-    virtual void updateMaterial(graphics::MaterialPointer drawMaterial);
-
     // Render Item interface
     virtual render::ItemKey getKey() const;
     virtual render::Item::Bound getBound() const;
@@ -63,13 +61,16 @@ public:
     mutable graphics::Box _worldBound;
     std::shared_ptr<const graphics::Mesh> _drawMesh;
 
-    std::shared_ptr<graphics::Material> _drawMaterial;
+    graphics::MultiMaterial _drawMaterials;
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return _drawMaterial ? _drawMaterial->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return _drawMaterial ? _drawMaterial->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return _drawMaterials.top() ? _drawMaterials.top()->getTextureSize() : 0; }
+    int getMaterialTextureCount() { return _drawMaterials.top() ? _drawMaterials.top()->getTextureCount() : 0; }
+    bool hasTextureInfo() const { return _drawMaterials.top() ? _drawMaterials.top()->hasTextureInfo() : false; }
+
+    void addMaterial(graphics::MaterialPointer material);
+    void removeMaterial(graphics::MaterialPointer material);
 
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };

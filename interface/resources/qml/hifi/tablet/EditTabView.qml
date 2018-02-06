@@ -135,7 +135,7 @@ TabView {
                 }
 
                 NewEntityButton {
-                    icon: "icons/create-icons/94-model-01.svg"
+                    icon: "icons/create-icons/126-material-01.svg"
                     text: "MATERIAL"
                     onClicked: {
                         editRoot.sendToScript({

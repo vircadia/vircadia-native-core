@@ -15,12 +15,18 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
     if (entity->getMaterial() != _drawMaterial) {
         return true;
     }
+    if (entity->getParentID() != _parentID || entity->getClientOnly() != _clientOnly || entity->getOwningAvatarID() != _owningAvatarID) {
+        return true;
+    }
     return false;
 }
 
 void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     withWriteLock([&] {
         _drawMaterial = entity->getMaterial();
+        _parentID = entity->getParentID();
+        _clientOnly = entity->getClientOnly();
+        _owningAvatarID = entity->getOwningAvatarID();
         _renderTransform = getModelTransform();
         const float MATERIAL_ENTITY_SCALE = 0.5f;
         _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
@@ -30,7 +36,7 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 ItemKey MaterialEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape();
+    builder.withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
 
     if (!_visible) {
         builder.withInvisible();
@@ -215,13 +221,25 @@ void MaterialEntityRenderer::generateMesh() {
 void MaterialEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableMaterialEntityItem::render");
     Q_ASSERT(args->_batch);
-
     gpu::Batch& batch = *args->_batch;
 
-    batch.setModelTransform(_renderTransform);
+    // Don't render if our parent is set or our material is null
+    QUuid parentID;
+    Transform renderTransform;
+    graphics::MaterialPointer drawMaterial;
+    withReadLock([&] {
+        parentID = _clientOnly ? _owningAvatarID : _parentID;
+        renderTransform = _renderTransform;
+        drawMaterial = _drawMaterial;
+    });
+    if (!parentID.isNull() || !drawMaterial) {
+        return;
+    }
+
+    batch.setModelTransform(renderTransform);
 
     // bind the material
-    args->_shapePipeline->bindMaterial(_drawMaterial, batch, args->_enableTexturing);
+    args->_shapePipeline->bindMaterial(drawMaterial, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!

@@ -138,9 +138,14 @@ namespace render { namespace entities {
 class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem> {
     using Parent = TypedEntityRenderer<RenderableModelEntityItem>;
     friend class EntityRenderer;
+    Q_OBJECT
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
+
+public slots:
+    void addMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
+    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
@@ -194,6 +199,8 @@ private:
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
+
+    void processMaterials();
 };
 
 } } // namespace 

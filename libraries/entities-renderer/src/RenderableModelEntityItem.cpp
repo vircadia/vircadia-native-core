@@ -1380,6 +1380,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
             });
+            processMaterials();
         }
     }
 
@@ -1466,3 +1467,28 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
+void ModelEntityRenderer::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+    Parent::addMaterial(material, shapeID);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->addMaterial(material, shapeID);
+    }
+}
+
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+    Parent::removeMaterial(material, shapeID);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->removeMaterial(material, shapeID);
+    }
+}
+
+void ModelEntityRenderer::processMaterials() {
+    assert(_model);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _model->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}

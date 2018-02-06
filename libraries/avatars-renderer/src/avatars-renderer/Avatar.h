@@ -272,6 +272,9 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+    void addMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
+    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID) override;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -397,6 +400,11 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+
+    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
+    void processMaterials();
 };
 
 #endif // hifi_Avatar_h

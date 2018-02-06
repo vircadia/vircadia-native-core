@@ -360,7 +360,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
     CHECK_PROPERTY_CHANGE(PROP_PARENT_SHAPE_ID, shapeID);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BOUNDS, materialBounds);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_POS, materialPos);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_SCALE, materialScale);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_ROT, materialRot);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -664,7 +666,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_SHAPE_ID, shapeID);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BOUNDS, materialBounds);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_POS, materialPos);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_SCALE, materialScale);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_ROT, materialRot);
     }
 
     if (!skipDefaults && !strictSemantics) {
@@ -801,11 +805,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(materialMode, MaterialMode, setMaterialMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMode, MaterialMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(blendFactor, float, setBlendFactor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, int, setPriority);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(shapeID, int, setShapeID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialBounds, glmVec4, setMaterialBounds);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(shapeID, quint16, setShapeID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialPos, glmVec2, setMaterialPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialScale, glmVec2, setMaterialScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRot, float, setMaterialRot);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1163,9 +1169,11 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_BLEND_FACTOR, BlendFactor, blendFactor, float);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, uint32_t);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, uint32_t);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_BOUNDS, MaterialBounds, materialBounds, glmVec4);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_POS, MaterialPos, materialPos, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_SCALE, MaterialScale, materialScale, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_ROT, MaterialRot, materialRot, float);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -1557,7 +1565,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BLEND_FACTOR, properties.getBlendFactor());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, properties.getPriority());
                 APPEND_ENTITY_PROPERTY(PROP_PARENT_SHAPE_ID, properties.getShapeID());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BOUNDS, properties.getMaterialBounds());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_POS, properties.getMaterialPos());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_SCALE, properties.getMaterialScale());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_ROT, properties.getMaterialRot());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -1921,9 +1931,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_URL, QString, setMaterialURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_TYPE, MaterialMode, setMaterialMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_BLEND_FACTOR, float, setBlendFactor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, uint32_t, setPriority);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_SHAPE_ID, uint32_t, setShapeID);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_BOUNDS, glmVec4, setMaterialBounds);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_SHAPE_ID, quint16, setShapeID);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_POS, glmVec2, setMaterialPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_SCALE, glmVec2, setMaterialScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_ROT, float, setMaterialRot);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -2104,7 +2116,9 @@ void EntityItemProperties::markAllChanged() {
     _blendFactorChanged = true;
     _priorityChanged = true;
     _shapeIDChanged = true;
-    _materialBoundsChanged = true;
+    _materialPosChanged = true;
+    _materialScaleChanged = true;
+    _materialRotChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -2444,8 +2458,14 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (shapeIDChanged()) {
         out += "shapeID";
     }
-    if (materialBoundsChanged()) {
-        out += "materialBounds";
+    if (materialPosChanged()) {
+        out += "materialPos";
+    }
+    if (materialScaleChanged()) {
+        out += "materialScale";
+    }
+    if (materialRotChanged()) {
+        out += "materialRot";
     }
 
     // Certifiable Properties

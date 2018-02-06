@@ -15,10 +15,13 @@
 
 #include <bitset>
 #include <map>
+#include <queue>
 
 #include <ColorUtils.h>
 
 #include <gpu/Resource.h>
+
+class Transform;
 
 namespace graphics {
 
@@ -351,6 +354,14 @@ public:
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
 
+    void setBlendFactor(float blendFactor) { _blendFactor = blendFactor; }
+    float getBlendFactor() { return _blendFactor; }
+
+    void setPriority(quint16 priority) { _priority = priority; }
+    quint16 getPriority() { return _priority; }
+
+    void setTextureTransforms(const Transform& transform);
+
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;
@@ -364,9 +375,34 @@ private:
     mutable bool _hasCalculatedTextureInfo { false };
     bool calculateMaterialInfo() const;
 
+    float _blendFactor { 1.0f };
+    quint16 _priority { 0 };
 
 };
 typedef std::shared_ptr< Material > MaterialPointer;
+
+Q_DECLARE_METATYPE(MaterialPointer)
+
+class MaterialCompare {
+public:
+    bool operator() (MaterialPointer left, MaterialPointer right) {
+        return left->getPriority() < right->getPriority();
+    }
+};
+
+class MultiMaterial : public std::priority_queue<MaterialPointer, std::vector<MaterialPointer>, MaterialCompare> {
+public:
+    bool remove(const MaterialPointer& value) {
+        auto it = std::find(c.begin(), c.end(), value);
+        if (it != c.end()) {
+            c.erase(it);
+            std::make_heap(c.begin(), c.end(), comp);
+            return true;
+        } else {
+            return false;
+        }
+    }
+};
 
 };
 

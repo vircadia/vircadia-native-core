@@ -342,7 +342,7 @@ var toolBar = (function () {
 
     var buttonHandlers = {}; // only used to tablet mode
 
-    function addButton(name, image, handler) {
+    function addButton(name, handler) {
         buttonHandlers[name] = handler;
     }
 
@@ -399,7 +399,7 @@ var toolBar = (function () {
 
     function handleNewMaterialDialogResult(result) {
         if (result) {
-            var json = result.textInput;
+            var materialURL = result.textInput;
             var materialMode;
             switch (result.comboBox) {
                 case MATERIAL_MODE_PROJECTED:
@@ -409,11 +409,13 @@ var toolBar = (function () {
                     shapeType = "uv";
             }
 
-            if (json) {
+            var DEFAULT_LAYERED_MATERIAL_PRIORITY = 1;
+            if (materialURL) {
                 createNewEntity({
                     type: "Material",
-                    materialURL: json,
-                    materialMode: materialMode
+                    materialURL: materialURL,
+                    materialMode: materialMode,
+                    priority: DEFAULT_LAYERED_MATERIAL_PRIORITY
                 });
             }
         }
@@ -475,32 +477,22 @@ var toolBar = (function () {
             that.toggle();
         });
 
-        addButton("importEntitiesButton", "assets-01.svg", function() {
+        addButton("importEntitiesButton", function() {
             Window.browseChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
-        addButton("openAssetBrowserButton", "assets-01.svg", function() {
+        addButton("openAssetBrowserButton", function() {
             Window.showAssetServer();
         });
 
-        addButton("newModelButton", "model-01.svg", function () {
-
-            var SHAPE_TYPES = [];
-            SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
-            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
-            SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
-            SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
-            SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
-            SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
-            var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
-
+        addButton("newModelButton", function () {
             // tablet version of new-model dialog
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.pushOntoStack("hifi/tablet/NewModelDialog.qml");
         });
 
-        addButton("newCubeButton", "cube-01.svg", function () {
+        addButton("newCubeButton", function () {
             createNewEntity({
                 type: "Box",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -512,7 +504,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newSphereButton", "sphere-01.svg", function () {
+        addButton("newSphereButton", function () {
             createNewEntity({
                 type: "Sphere",
                 dimensions: DEFAULT_DIMENSIONS,
@@ -524,7 +516,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newLightButton", "light-01.svg", function () {
+        addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
                 dimensions: DEFAULT_LIGHT_DIMENSIONS,
@@ -543,7 +535,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newTextButton", "text-01.svg", function () {
+        addButton("newTextButton", function () {
             createNewEntity({
                 type: "Text",
                 dimensions: {
@@ -566,7 +558,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newWebButton", "web-01.svg", function () {
+        addButton("newWebButton", function () {
             createNewEntity({
                 type: "Web",
                 dimensions: {
@@ -578,7 +570,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newZoneButton", "zone-01.svg", function () {
+        addButton("newZoneButton", function () {
             createNewEntity({
                 type: "Zone",
                 dimensions: {
@@ -589,7 +581,7 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newParticleButton", "particle-01.svg", function () {
+        addButton("newParticleButton", function () {
             createNewEntity({
                 type: "ParticleEffect",
                 isEmitting: true,
@@ -642,15 +634,10 @@ var toolBar = (function () {
             });
         });
 
-        addButton("newMaterialButton", "model-01.svg", function () {
-            var MATERIAL_MODES = [];
-            MATERIAL_MODES[MATERIAL_MODE_UV] = "UV space material";
-            MATERIAL_MODES[MATERIAL_MODE_PROJECTED] = "3D projected material";
-            var MATERIAL_MODE_DEFAULT = MATERIAL_MODE_UV;
-
+        addButton("newMaterialButton", function () {
             // tablet version of new material dialog
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.pushOntoStack("NewMaterialDialog.qml");
+            tablet.pushOntoStack("hifi/tablet/NewMaterialDialog.qml");
         });
 
         that.setActive(false);
