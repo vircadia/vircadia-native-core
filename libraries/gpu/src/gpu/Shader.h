@@ -16,7 +16,7 @@
 #include <memory>
 #include <set>
 #include <map>
-
+#include <functional>
 #include <QUrl>
  
 namespace gpu {
