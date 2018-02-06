@@ -39,24 +39,27 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
   get_filename_component(SHADER_TARGET ${SHADER_FILE} NAME_WE)
   get_filename_component(SHADER_EXT ${SHADER_FILE} EXT)
   if(SHADER_EXT STREQUAL .slv)
-    set(SHADER_TARGET ${SHADER_TARGET}_vert.h)
+    set(SHADER_TYPE vert)
   elseif(${SHADER_EXT} STREQUAL .slf)
-    set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
+    set(SHADER_TYPE frag)
   elseif(${SHADER_EXT} STREQUAL .slg)
-    set(SHADER_TARGET ${SHADER_TARGET}_geom.h)
+    set(SHADER_TYPE geom)
   endif()
+  set(SHADER_TARGET ${SHADER_TARGET}_${SHADER_TYPE})
 
   set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
+  set(SHADER_TARGET_HEADER ${SHADER_TARGET}.h)
+  set(SHADER_TARGET_SOURCE ${SHADER_TARGET}.cpp)
 
   # Target dependant Custom rule on the SHADER_FILE
   if (APPLE)
     set(GLPROFILE MAC_GL)
-    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
-    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   elseif (ANDROID)
     set(GLPROFILE LINUX_GL)
-    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
     # for an android build, we can't use the scribe that cmake would normally produce as a target,
     # since it's unrunnable by the cross-compiling build machine
@@ -72,23 +75,23 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
       ")
     endif ()
 
-    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND ${NATIVE_SCRIBE} ${SCRIBE_ARGS} DEPENDS ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND ${NATIVE_SCRIBE} ${SCRIBE_ARGS} DEPENDS ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   elseif (UNIX)
     set(GLPROFILE LINUX_GL)
-    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
-    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   else ()
     set(GLPROFILE PC_GL)
-    set(SCRIBE_ARGS -c++ -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
+    set(SCRIBE_ARGS -c++ -T ${SHADER_TYPE} -D GLPROFILE ${GLPROFILE} ${SCRIBE_INCLUDES} -o ${SHADER_TARGET} ${SHADER_FILE})
 
-    add_custom_command(OUTPUT ${SHADER_TARGET} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
+    add_custom_command(OUTPUT ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} COMMAND scribe ${SCRIBE_ARGS} DEPENDS scribe ${SHADER_INCLUDE_FILES} ${SHADER_FILE})
   endif()
 
   #output the generated file name
-  set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET} PARENT_SCOPE)
+  set(AUTOSCRIBE_SHADER_RETURN ${SHADER_TARGET_HEADER} ${SHADER_TARGET_SOURCE} PARENT_SCOPE)
 
-  file(GLOB INCLUDE_FILES ${SHADER_TARGET})
+  file(GLOB INCLUDE_FILES ${SHADER_TARGET_HEADER})
 
 endfunction()
 
@@ -126,7 +129,7 @@ macro(AUTOSCRIBE_SHADER_LIB)
   if (WIN32)
     source_group("Shaders" FILES ${SHADER_INCLUDE_FILES})
     source_group("Shaders" FILES ${SHADER_SOURCE_FILES})
-    source_group("Shaders" FILES ${AUTOSCRIBE_SHADER_SRC})
+    source_group("Shaders\\generated" FILES ${AUTOSCRIBE_SHADER_SRC})
   endif()
 
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${SHADER_INCLUDE_FILES})
@@ -135,5 +138,8 @@ macro(AUTOSCRIBE_SHADER_LIB)
 
   # Link library shaders, if they exist
   include_directories("${SHADERS_DIR}")
+
+  # Add search directory to find gpu/Shader.h
+  include_directories("${HIFI_LIBRARY_DIR}/gpu/src")
 
 endmacro()
