@@ -10,7 +10,7 @@ if (WIN32 AND (NOT USE_GLES))
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
     set(TARGET_NAME openvr)
-    setup_hifi_plugin(OpenGL Script Qml Widgets Multimedia)
+    setup_hifi_plugin(Gui Qml Multimedia)
     link_hifi_libraries(shared gl networking controllers ui 
         plugins display-plugins ui-plugins input-plugins script-engine
         audio-client render-utils graphics gpu render model-networking fbx ktx image procedural ${PLATFORM_GL_BACKEND})
