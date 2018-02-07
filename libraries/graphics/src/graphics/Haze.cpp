@@ -182,11 +182,11 @@ void Haze::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
     }
 }
 
-void Haze::setZoneTransform(const glm::mat4& zoneTransform) {
+void Haze::setTransform(const glm::mat4& transform) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.zoneTransform == zoneTransform) {
-        _hazeParametersBuffer.edit<Parameters>().zoneTransform = zoneTransform;
+    if (params.transform != transform) {
+        _hazeParametersBuffer.edit<Parameters>().transform = transform;
     }
 }
 
