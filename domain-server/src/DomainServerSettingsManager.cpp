@@ -40,6 +40,7 @@ const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
 const QString DESCRIPTION_GROUP_LABEL_KEY = "label";
+const QString DESCRIPTION_BACKUP_FLAG_KEY = "backup";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
 const QString CONTENT_SETTING_FLAG_KEY = "content_setting";
@@ -1173,7 +1174,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         } else if (url.path() == SETTINGS_BACKUP_PATH) {
             // grab the settings backup as an authenticated user
             // for the domain settings type only, excluding hidden and default values
-            auto currentDomainSettingsJSON = settingsResponseObjectForType("", true, true, false, false);
+            auto currentDomainSettingsJSON = settingsResponseObjectForType("", true, true, false, false, true);
 
             // setup headers that tell the client to download the file wth a special name
             Headers downloadHeaders;
@@ -1240,13 +1241,15 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
         }
 
         foreach(const QJsonValue& descriptionSettingValue, descriptionGroupSettings) {
-            const QString VALUE_HIDDEN_FLAG_KEY = "value-hidden";
 
             QJsonObject descriptionSettingObject = descriptionSettingValue.toObject();
 
-            // we'll override this setting with the default or what is in the restore as long as it isn't hidden
-            if (!descriptionSettingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
+            // we'll override this setting with the default or what is in the restore as long as
+            // it isn't specifically excluded from backups
+            bool isBackedUpSetting = !descriptionSettingObject.contains(DESCRIPTION_BACKUP_FLAG_KEY)
+                || descriptionSettingObject[DESCRIPTION_BACKUP_FLAG_KEY].toBool();
 
+            if (isBackedUpSetting) {
                 QString settingName = descriptionSettingObject[DESCRIPTION_NAME_KEY].toString();
 
                 // check if we have a matching setting for this in the restore
@@ -1315,7 +1318,7 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
 QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated,
                                                                        bool includeDomainSettings,
                                                                        bool includeContentSettings,
-                                                                       bool includeDefaults) {
+                                                                       bool includeDefaults, bool isForBackup) {
     QJsonObject responseObject;
 
     if (!typeValue.isEmpty() || isAuthenticated) {
@@ -1347,7 +1350,11 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                 QJsonObject settingObject = settingValue.toObject();
 
                 // consider this setting as long as it isn't hidden
-                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
+                // and either this isn't for a backup or it's a value included in backups
+                bool includedInBackups = !settingObject.contains(DESCRIPTION_BACKUP_FLAG_KEY)
+                    || settingObject[DESCRIPTION_BACKUP_FLAG_KEY].toBool();
+
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && (!isForBackup || includedInBackups)) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
                         affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
@@ -1370,8 +1377,8 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                             variantValue = _configMap.value(settingName);
                         }
 
-                        // final check for inclusion, either we include default values
-                        // or we don't but this isn't a default value
+                        // final check for inclusion
+                        // either we include default values or we don't but this isn't a default value
                         if (includeDefaults || !variantValue.isNull()) {
                             QJsonValue result;
 
@@ -1406,7 +1413,6 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
             }
         }
     }
-
 
     return responseObject;
 }

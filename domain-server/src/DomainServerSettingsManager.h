@@ -132,7 +132,7 @@ private:
     QJsonArray filteredDescriptionArray(bool isContentSettings);
     QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
                                               bool includeDomainSettings = true, bool includeContentSettings = true,
-                                              bool includeDefaults = true);
+                                              bool includeDefaults = true, bool isForBackup = false);
     bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
