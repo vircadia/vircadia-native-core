@@ -1802,7 +1802,7 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
             qCDebug(domain_server) << "ES has sufficient octree data, not sending data";
             reply->writePrimitive(false);
         } else {
-            qCDebug(domain_server) << "Sending newer octree data to ES";
+            qCDebug(domain_server) << "Sending newer octree data to ES: ID(" << data.id << ") DataVersion(" << data.version << ")";
             QFile file(entityFilePath);
             if (file.open(QIODevice::ReadOnly)) {
                 reply->writePrimitive(true);
@@ -3312,6 +3312,9 @@ void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<Rece
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(modelsURL);
         QNetworkReply* reply = networkAccessManager.get(request);
+
+        qDebug() << "Downloading JSON from: " << modelsURL;
+
         connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
             QNetworkReply::NetworkError networkError = reply->error();
             if (networkError == QNetworkReply::NoError) {

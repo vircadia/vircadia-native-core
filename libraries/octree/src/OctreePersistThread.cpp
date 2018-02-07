@@ -171,15 +171,13 @@ bool OctreePersistThread::process() {
         quint64 loadStarted = usecTimestampNow();
         qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
 
-        if (_replacementData.isNull()) {
-            sendLatestEntityDataToDS();
-        } else {
+        if (!_replacementData.isNull()) {
             replaceData(_replacementData);
-            _replacementData.clear();
         }
 
         OctreeUtils::RawOctreeData data;
         if (OctreeUtils::readOctreeDataInfoFromFile(_filename, &data)) {
+            qDebug() << "Setting entity version info to: " << data.id << data.version;
             _tree->setEntityVersionInfo(data.id, data.version);
         }
 
@@ -243,6 +241,11 @@ bool OctreePersistThread::process() {
         // used in formatting the backup filename in cases of non-rolling backup names. However, we don't
         // want an uninitialized value for this, so we set it to the current time (startup of the server)
         time(&_lastPersistTime);
+
+        if (_replacementData.isNull()) {
+            sendLatestEntityDataToDS();
+        }
+        _replacementData.clear();
 
         emit loadCompleted();
     }
