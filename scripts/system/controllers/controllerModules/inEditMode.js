@@ -32,7 +32,7 @@ Script.include("/~/system/libraries/utils.js");
 
         this.nearTablet = function(overlays) {
             for (var i = 0; i < overlays.length; i++) {
-                if (overlays[i] === HMD.tabletID) {
+                if (HMD.tabletID && overlays[i] === HMD.tabletID) {
                     return true;
                 }
             }
@@ -44,7 +44,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            return objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID;
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         this.sendPickData = function(controllerData) {
@@ -106,7 +107,7 @@ Script.include("/~/system/libraries/utils.js");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
 
-                if (nearOverlayReady.active && nearOverlay.grabbedThingID === HMD.tabletID) {
+                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
                     return this.exitModule();
                 }
             }

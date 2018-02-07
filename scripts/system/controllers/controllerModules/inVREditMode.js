@@ -31,7 +31,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         );
 
         this.pointingAtTablet = function (objectID) {
-            return objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID;
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
+                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         this.isReady = function (controllerData) {
@@ -76,7 +77,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 : "LeftNearParentingGrabOverlay");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && nearOverlay.grabbedThingID === HMD.tabletID) {
+                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
                     return makeRunningValues(false, [], []);
                 }
             }

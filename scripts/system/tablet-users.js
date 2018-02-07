@@ -48,9 +48,8 @@
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
-            var tabletEntity = HMD.tabletID;
-            if (tabletEntity) {
-                Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
             }
             shouldActivateButton = true;
             tablet.gotoWebScreen(USERS_URL);

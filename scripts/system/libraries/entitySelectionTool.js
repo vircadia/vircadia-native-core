@@ -19,7 +19,10 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
 
-Script.include("./controllers.js");
+Script.include([
+    "./controllers.js",
+    "./utils.js"
+]);
 
 function objectTranslationPlanePoint(position, dimensions) {
     var newPosition = { x: position.x, y: position.y, z: position.z };
@@ -3650,7 +3653,8 @@ SelectionDisplay = (function() {
 
         var pickRay = generalComputePickRay(event.x, event.y);
         // TODO_Case6491:  Move this out to setup just to make it once
-        var interactiveOverlays = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, selectionBox];
+        var interactiveOverlays = getMainTabletIDs();
+        interactiveOverlays.push(selectionBox);
         for (var key in grabberTools) {
             if (grabberTools.hasOwnProperty(key)) {
                 interactiveOverlays.push(key);
@@ -3663,7 +3667,8 @@ SelectionDisplay = (function() {
         var results = testRayIntersect(pickRay, interactiveOverlays);
         if (results.intersects) {
             var hitOverlayID = results.overlayID;
-            if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || (hitOverlayID === HMD.homeButtonID)) {
+            if ((HMD.tabletID && hitOverlayID === HMD.tabletID) || (HMD.tabletScreenID && hitOverlayID === HMD.tabletScreenID)
+                    || (HMD.homeButtonID && hitOverlayID === HMD.homeButtonID)) {
                 // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }

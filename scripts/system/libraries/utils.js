@@ -428,3 +428,17 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };
+
+getMainTabletIDs = function () {
+    var tabletIDs = [];
+    if (HMD.tabletID) {
+        tabletIDs.push(HMD.tabletID);
+    }
+    if (HMD.tabletScreenID) {
+        tabletIDs.push(HMD.tabletScreenID);
+    }
+    if (HMD.homeButtonID) {
+        tabletIDs.push(HMD.homeButtonID);
+    }
+    return tabletIDs;
+};

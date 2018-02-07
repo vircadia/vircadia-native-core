@@ -263,7 +263,10 @@ function Grabber() {
         filter: Picks.PICK_OVERLAYS,
         enabled: true
     });
-    RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var tabletItems = getMainTabletIDs();
+    if (tabletItems.length > 0) {
+        RayPick.setIncludeItems(this.mouseRayOverlays, tabletItems);
+    }
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
