@@ -55,7 +55,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const override;
+                        QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setVoxelData(const QByteArray& voxelData) override;
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
@@ -165,7 +165,7 @@ public:
     PolyVoxEntityRenderer(const EntityItemPointer& entity);
     
 protected:
-    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape(); }
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1); }
     virtual ShapeKey getShapeKey() override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;

@@ -105,14 +105,14 @@ void WindowScriptingInterface::raiseMainWindow() {
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
 void WindowScriptingInterface::alert(const QString& message) {
-    OffscreenUi::asyncWarning("", message);
+    OffscreenUi::asyncWarning("", message, QMessageBox::Ok, QMessageBox::Ok);
 }
 
 /// Display a confirmation box with the options 'Yes' and 'No'
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No)));
+    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes)));
 }
 
 /// Display a prompt with a text box
@@ -354,7 +354,7 @@ QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const 
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
 
-/// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid 
+/// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid
 /// directory the browser will start at the root directory.
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the asset browser at
@@ -396,11 +396,11 @@ QString WindowScriptingInterface::protocolSignature() {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return qApp->getDeviceSize().x;
+    return qApp->getWindow()->geometry().width();
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return qApp->getDeviceSize().y;
+    return qApp->getWindow()->geometry().height() - qApp->getPrimaryMenu()->geometry().height();
 }
 
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {

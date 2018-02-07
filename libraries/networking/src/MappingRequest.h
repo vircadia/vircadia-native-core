@@ -50,10 +50,10 @@ private:
 class GetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
-    GetMappingRequest(const AssetPath& path);
+    GetMappingRequest(const AssetUtils::AssetPath& path);
 
-    AssetHash getHash() const { return _hash;  }
-    AssetPath getRedirectedPath() const { return _redirectedPath; }
+    AssetUtils::AssetHash getHash() const { return _hash;  }
+    AssetUtils::AssetPath getRedirectedPath() const { return _redirectedPath; }
     bool wasRedirected() const { return _wasRedirected; }
 
 signals:
@@ -62,21 +62,21 @@ signals:
 private:
     virtual void doStart() override;
 
-    AssetPath _path;
-    AssetHash _hash;
+    AssetUtils::AssetPath _path;
+    AssetUtils::AssetHash _hash;
 
 
-    AssetPath _redirectedPath;
+    AssetUtils::AssetPath _redirectedPath;
     bool _wasRedirected { false };
 };
 
 class SetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
-    SetMappingRequest(const AssetPath& path, const AssetHash& hash);
+    SetMappingRequest(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash);
 
-    AssetPath getPath() const { return _path;  }
-    AssetHash getHash() const { return _hash;  }
+    AssetUtils::AssetPath getPath() const { return _path;  }
+    AssetUtils::AssetHash getHash() const { return _hash;  }
 
 signals:
     void finished(SetMappingRequest* thisRequest);
@@ -84,14 +84,14 @@ signals:
 private:
     virtual void doStart() override;
 
-    AssetPath _path;
-    AssetHash _hash;
+    AssetUtils::AssetPath _path;
+    AssetUtils::AssetHash _hash;
 };
 
 class DeleteMappingsRequest : public MappingRequest {
     Q_OBJECT
 public:
-    DeleteMappingsRequest(const AssetPathList& path);
+    DeleteMappingsRequest(const AssetUtils::AssetPathList& path);
 
 signals:
     void finished(DeleteMappingsRequest* thisRequest);
@@ -99,13 +99,13 @@ signals:
 private:
     virtual void doStart() override;
 
-    AssetPathList _paths;
+    AssetUtils::AssetPathList _paths;
 };
 
 class RenameMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
-    RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
+    RenameMappingRequest(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath);
 
 signals:
     void finished(RenameMappingRequest* thisRequest);
@@ -113,8 +113,8 @@ signals:
 private:
     virtual void doStart() override;
 
-    AssetPath _oldPath;
-    AssetPath _newPath;
+    AssetUtils::AssetPath _oldPath;
+    AssetUtils::AssetPath _newPath;
 };
 
 class GetAllMappingsRequest : public MappingRequest {
@@ -122,7 +122,7 @@ class GetAllMappingsRequest : public MappingRequest {
 public:
     GetAllMappingsRequest();
 
-    AssetMapping getMappings() const { return _mappings;  }
+    AssetUtils::AssetMapping getMappings() const { return _mappings;  }
 
 signals:
     void finished(GetAllMappingsRequest* thisRequest);
@@ -130,13 +130,13 @@ signals:
 private:
     virtual void doStart() override;
     
-    AssetMapping _mappings;
+    AssetUtils::AssetMapping _mappings;
 };
 
 class SetBakingEnabledRequest : public MappingRequest {
     Q_OBJECT
 public:
-    SetBakingEnabledRequest(const AssetPathList& path, bool enabled);
+    SetBakingEnabledRequest(const AssetUtils::AssetPathList& path, bool enabled);
 
 signals:
     void finished(SetBakingEnabledRequest* thisRequest);
@@ -144,7 +144,7 @@ signals:
 private:
     virtual void doStart() override;
 
-    AssetPathList _paths;
+    AssetUtils::AssetPathList _paths;
     bool _enabled;
 };
 

@@ -1,5 +1,5 @@
 set(TARGET_NAME gpu-gles)
-setup_hifi_library(Concurrent)
+setup_hifi_library(Gui Concurrent)
 link_hifi_libraries(shared gl gpu)
 GroupSources("src")
 target_opengl()

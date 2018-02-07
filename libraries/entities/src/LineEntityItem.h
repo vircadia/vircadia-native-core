@@ -63,7 +63,7 @@ class LineEntityItem : public EntityItem {
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                              bool& keepSearching, OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
-                                             void** intersectedObject,
+                                             QVariantMap& extraInfo,
                                              bool precisionPicking) const override { return false; }
     bool pointsChanged() const { return _pointsChanged; }
     void resetPointsChanged();

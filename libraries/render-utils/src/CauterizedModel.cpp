@@ -115,6 +115,7 @@ void CauterizedModel::updateClusterMatrices() {
             Transform clusterTransform;
             Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
             state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+            state.clusterTransforms[j].setCauterizationParameters(0.0f, jointPose.trans());
 #else
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
@@ -151,6 +152,7 @@ void CauterizedModel::updateClusterMatrices() {
                     Transform clusterTransform;
                     Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
                     state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+                    state.clusterTransforms[j].setCauterizationParameters(1.0f, cauterizePose.trans());
 #else
                     glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
 #endif
@@ -236,9 +238,9 @@ void CauterizedModel::updateRenderItems() {
                     renderTransform = modelTransform;
                     if (clusterTransformsCauterized.size() == 1) {
 #if defined(SKIN_DQ)
-                        Transform transform(clusterTransforms[0].getRotation(),
-                                            clusterTransforms[0].getScale(),
-                                            clusterTransforms[0].getTranslation());
+                        Transform transform(clusterTransformsCauterized[0].getRotation(),
+                                            clusterTransformsCauterized[0].getScale(),
+                                            clusterTransformsCauterized[0].getTranslation());
                         renderTransform = modelTransform.worldTransform(Transform(transform));
 #else
                         renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0]));
@@ -247,7 +249,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::TAG_BITS_ALL);
                     data.setLayer(isLayeredInFront, isLayeredInHUD);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
                 });

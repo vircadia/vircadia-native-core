@@ -11,7 +11,9 @@
 
 #include <QDebug>
 #include <GLMHelpers.h>
+#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
 #include "Mat4.h"
@@ -30,6 +32,14 @@ glm::mat4 Mat4::createFromScaleRotAndTrans(const glm::vec3& scale, const glm::qu
 
 glm::mat4 Mat4::createFromColumns(const glm::vec4& col0, const glm::vec4& col1, const glm::vec4& col2, const glm::vec4& col3) const {
     return glm::mat4(col0, col1, col2, col3);
+}
+
+glm::mat4 Mat4::createFromArray(const QVector<float>& floats) const {
+    if (floats.size() != 16 && floats.size() != 9) {
+        context()->throwError("createFromVector requires 16 floats for mat4 (or 9 if providing a mat3)");
+        return glm::mat4();
+    }
+    return floats.size() == 9 ? glm::mat4(glm::make_mat3(floats.constData())) : glm::make_mat4(floats.constData());
 }
 
 glm::vec3 Mat4::extractTranslation(const glm::mat4& m) const {
