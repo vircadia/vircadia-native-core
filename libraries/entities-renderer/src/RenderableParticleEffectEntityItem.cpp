@@ -36,8 +36,8 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         PrepareStencil::testMask(*state);
 
-        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
-        auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
+        auto vertShader = textured_particle_vert::getShader();
+        auto fragShader = textured_particle_frag::getShader();
 
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
