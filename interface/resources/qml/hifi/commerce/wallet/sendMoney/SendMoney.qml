@@ -1115,7 +1115,7 @@ Item {
                 
         AnimatedImage {
             id: sendingMoneyImage;
-            source: "../../common/images/loader.gif"
+            source: "./images/loader.gif"
             width: 96;
             height: width;
             anchors.verticalCenter: parent.verticalCenter;
