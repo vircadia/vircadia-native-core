@@ -1162,7 +1162,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
             // and exclude default values
             rootObject[SETTINGS_RESPONSE_VALUE_KEY] = settingsResponseObjectForType("", true,
                                                                                     forDomainSettings, forContentSettings,
-                                                                                    false);
+                                                                                    true);
 
             connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
 

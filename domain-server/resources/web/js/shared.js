@@ -164,11 +164,12 @@ function getDomainFromAPI(callback) {
   if (callback === undefined) {
     callback = function() {};
   }
-
-  var domainID = Settings.data.values.metaverse.id;
-  if (domainID === null || domainID === undefined || domainID === '') {
+  
+  if (!domainIDIsSet()) {
     callback({ status: 'fail' });
     return null;
+  } else {
+    var domainID = Settings.data.values.metaverse.id;
   }
 
   pendingDomainRequest = $.ajax({
