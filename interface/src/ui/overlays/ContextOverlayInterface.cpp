@@ -221,13 +221,13 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        emit contextOverlayClicked(_currentEntityWithContextOverlay);
         Setting::Handle<bool> _settingSwitch{ "commerce", true };
         if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {
             openMarketplace();
         }
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
         _contextOverlayJustClicked = true;
     }
 }
@@ -352,8 +352,8 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
         }
     } else {
         // We don't currently verify ownership of entities that aren't Avatar Entities,
-        //     so they always pass Ownership Verification. It's necessary to emit this signal
-        //     so that the Inspection Certificate can continue its information-grabbing process.
+        // so they always pass Ownership Verification. It's necessary to emit this signal
+        // so that the Inspection Certificate can continue its information-grabbing process.
         auto ledger = DependencyManager::get<Ledger>();
         emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
     }
