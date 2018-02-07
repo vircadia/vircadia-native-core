@@ -583,6 +583,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'inspectionCertificate_closeClicked':
                 tablet.gotoHomeScreen();
                 break;
+            case 'inspectionCertificate_requestOwnershipVerification':
+                ContextOverlay.requestOwnershipVerification(message.certificateId);
+                break;
             case 'inspectionCertificate_showInMarketplaceClicked':
                 tablet.gotoWebScreen(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;

@@ -256,6 +256,7 @@ Rectangle {
             
     // "Close" button
     HiFiGlyphs {
+        z: 999; 
         id: closeGlyphButton;
         text: hifi.glyphs.close;
         color: hifi.colors.white;
@@ -562,6 +563,7 @@ Rectangle {
             case 'inspectionCertificate_setCertificateId':
                 resetCert(false);
                 root.certificateId = message.certificateId;
+                sendToScript({method: 'inspectionCertificate_requestOwnershipVerification', certificateId: root.certificateId});
             break;
             case 'inspectionCertificate_resetCert':
                 resetCert(true);
