@@ -1702,7 +1702,7 @@ function loaded() {
 
     for (var collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
         var curCollapsibleElement = elCollapsible[collapseIndex];
-        curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
+        curCollapsibleElement.getElementsByTagName('span')[0].addEventListener("click", toggleCollapsedEvent, true);
     }
 
 
