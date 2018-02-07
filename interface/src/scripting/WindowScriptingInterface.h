@@ -365,7 +365,7 @@ public slots:
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * @function Window.takeSecondaryCameraSnapshot
-     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ",jpg"
+     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ".jpg"
      *
      * var filename = QString();
      */
