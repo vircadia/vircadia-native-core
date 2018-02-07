@@ -1100,6 +1100,8 @@ function startRadar() {
     Camera.orientation = Quat.fromPitchYawRollDegrees(-90,0,0);
     radar = true;
 
+    Controller.setVPadEnabled(false); // this was done before in CompositeExtra in the DisplayPlugin (Checking for camera not independent, not radar mode)
+
     connectRadarModeEvents();
 }
 
@@ -1107,6 +1109,8 @@ function endRadar() {
     printd("-- endRadar");
     Camera.mode = "first person";
     radar = false;
+
+    Controller.setVPadEnabled(true);
 
     disconnectRadarModeEvents();
     hideAllEntitiesIcons();
