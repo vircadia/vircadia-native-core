@@ -221,13 +221,13 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
         Setting::Handle<bool> _settingSwitch{ "commerce", true };
         if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {
             openMarketplace();
         }
-        emit contextOverlayClicked(_currentEntityWithContextOverlay);
         _contextOverlayJustClicked = true;
     }
 }
@@ -350,6 +350,12 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
             emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
             qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
         }
+    } else {
+        // We don't currently verify ownership of entities that aren't Avatar Entities,
+        //     so they always pass Ownership Verification. It's necessary to emit this signal
+        //     so that the Inspection Certificate can continue its information-grabbing process.
+        auto ledger = DependencyManager::get<Ledger>();
+        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
     }
 }
 
@@ -357,12 +363,10 @@ static const QString INSPECTION_CERTIFICATE_QML_PATH = "hifi/commerce/inspection
 void ContextOverlayInterface::openInspectionCertificate() {
     // lets open the tablet to the inspection certificate QML
     if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
+        setLastInspectedEntity(_currentEntityWithContextOverlay);
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
         _hmdScriptingInterface->openTablet();
-
-        setLastInspectedEntity(_currentEntityWithContextOverlay);
-        requestOwnershipVerification(_lastInspectedEntity);
     }
 }
 
