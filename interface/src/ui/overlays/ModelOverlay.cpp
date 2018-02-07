@@ -86,7 +86,8 @@ void ModelOverlay::update(float deltatime) {
     }
     if (_visibleDirty) {
         _visibleDirty = false;
-        _model->setVisibleInScene(getVisible(), scene);
+        // don't show overlays in mirrors
+        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::TAG_BITS_0);
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
@@ -120,8 +121,10 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
 }
 
 void ModelOverlay::setVisible(bool visible) {
-    Overlay::setVisible(visible);
-    _visibleDirty = true;
+    if (visible != getVisible()) {
+        Overlay::setVisible(visible);
+        _visibleDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {
@@ -306,8 +309,6 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
  *     used.)
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
- * @property {string} anchor="" - If set to <code>"MyAvatar"</code> then the overlay is attached to your avatar, moving and
- *     rotating as you move your avatar.
  *
  * @property {string} name="" - A friendly name for the overlay.
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
@@ -448,12 +449,12 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
 
-    QString subMeshNameTemp;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, subMeshNameTemp);
+    QVariantMap extraInfo;
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
+                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
 
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
 }
@@ -566,9 +567,9 @@ void ModelOverlay::animate() {
                 rotationMat * fbxJoints[index].postTransform);
             auto& jointData = jointsData[j];
             jointData.translation = extractTranslation(finalMat);
-            jointData.translationSet = true;
+            jointData.translationIsDefaultPose = false;
             jointData.rotation = glmExtractRotation(finalMat);
-            jointData.rotationSet = true;
+            jointData.rotationIsDefaultPose = false;
         }
     }
     // Set the data in the model

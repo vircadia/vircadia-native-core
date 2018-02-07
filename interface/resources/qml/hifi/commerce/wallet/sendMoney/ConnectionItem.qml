@@ -29,13 +29,13 @@ Item {
     property string userName;
     property string profilePicUrl;
 
-    height: 65;
+    height: 75;
     width: parent.width;
 
     Rectangle {
         id: mainContainer;
         // Style
-        color: root.isSelected ? hifi.colors.faintGray : hifi.colors.white;
+        color: root.isSelected ? hifi.colors.faintGray80 : hifi.colors.white;
         // Size
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -49,7 +49,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter;
             anchors.left: parent.left;
             anchors.leftMargin: 36;
-            height: root.height - 15;
+            height: 50;
             width: visible ? height : 0;
             clip: true;
             Image {
@@ -83,15 +83,15 @@ Item {
         RalewaySemiBold {
             id: userName;
             anchors.left: avatarImage.right;
-            anchors.leftMargin: 16;
+            anchors.leftMargin: 12;
             anchors.top: parent.top;
             anchors.bottom: parent.bottom;
             anchors.right: chooseButton.visible ? chooseButton.left : parent.right;
             anchors.rightMargin: chooseButton.visible ? 10 : 0;
             // Text size
-            size: 20;
+            size: 18;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.blueAccent;
             text: root.userName;
             elide: Text.ElideRight;
             // Alignment
@@ -107,9 +107,9 @@ Item {
             colorScheme: hifi.colorSchemes.dark;
             anchors.verticalCenter: parent.verticalCenter;
             anchors.right: parent.right;
-            anchors.rightMargin: 24;
-            height: root.height - 20;
-            width: 110;
+            anchors.rightMargin: 28;
+            height: 35;
+            width: 100;
             text: "CHOOSE";
             onClicked: {
                 var msg = { method: 'chooseConnection', userName: root.userName, profilePicUrl: root.profilePicUrl };

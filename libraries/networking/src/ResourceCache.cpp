@@ -340,14 +340,6 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         return resource;
     }
 
-    if (QThread::currentThread() != thread()) {
-        qCDebug(networking) << "Fetching asynchronously:" << url;
-        QMetaObject::invokeMethod(this, "getResource",
-            Q_ARG(QUrl, url), Q_ARG(QUrl, fallback));
-            // Cannot use extra parameter as it might be freed before the invocation
-        return QSharedPointer<Resource>();
-    }
-
     if (!url.isValid() && !url.isEmpty() && fallback.isValid()) {
         return getResource(fallback, QUrl());
     }
@@ -358,6 +350,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         extra);
     resource->setSelf(resource);
     resource->setCache(this);
+    resource->moveToThread(qApp->thread());
     connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
     {
         QWriteLocker locker(&_resourcesLock);

@@ -10,7 +10,15 @@
 
 #include "Oven.h"
 
+#include <SettingInterface.h>
+
 int main (int argc, char** argv) {
+    QCoreApplication::setOrganizationName("High Fidelity");
+    QCoreApplication::setApplicationName("Oven");
+
+    // init the settings interface so we can save and load settings
+    Setting::init();
+
     Oven app(argc, argv);
     return app.exec();
 }

@@ -10,7 +10,7 @@
    getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE
+   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE, Uuid
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -269,6 +269,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.grabEntityProps = null;
         this.shouldSendStart = false;
         this.equipedWithSecondary = false;
+        this.handHasBeenRightsideUp = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -486,15 +487,17 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.
-            var offsets = getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
-            if (offsets) {
-                this.offsetPosition = offsets[0];
-                this.offsetRotation = offsets[1];
-            } else {
-                var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-                if (this.grabbedHotspot.joints[handJointName]) {
-                    this.offsetPosition = this.grabbedHotspot.joints[handJointName][0];
-                    this.offsetRotation = this.grabbedHotspot.joints[handJointName][1];
+            if (this.grabbedHotspot) {
+                var offsets = getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
+                if (offsets) {
+                    this.offsetPosition = offsets[0];
+                    this.offsetRotation = offsets[1];
+                } else {
+                    var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+                    if (this.grabbedHotspot.joints[handJointName]) {
+                        this.offsetPosition = this.grabbedHotspot.joints[handJointName][0];
+                        this.offsetRotation = this.grabbedHotspot.joints[handJointName][1];
+                    }
                 }
             }
 
@@ -549,7 +552,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
                 Script.setTimeout(grabEquipCheck, 100);
             }
-
         };
 
         this.endEquipEntity = function () {
@@ -624,7 +626,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
-                this.messageGrabEnity = false;
+                this.messageGrabEntity = false;
                 this.equipedWithSecondary = this.secondarySmoothedSqueezed();
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
@@ -640,6 +642,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.isReady = function (controllerData, deltaTime) {
             var timestamp = Date.now();
             this.updateInputs(controllerData);
+            this.handHasBeenRightsideUp = false;
             return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
         };
 
@@ -671,7 +674,14 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 return makeRunningValues(false, [], []);
             }
 
-            var dropDetected = this.dropGestureProcess(deltaTime);
+            var handIsUpsideDown = this.dropGestureProcess(deltaTime);
+            var dropDetected = false;
+            if (this.handHasBeenRightsideUp) {
+                dropDetected = handIsUpsideDown;
+            }
+            if (!handIsUpsideDown) {
+                this.handHasBeenRightsideUp = true;
+            }
 
             if (this.triggerSmoothedReleased() || this.secondaryReleased()) {
                 if (this.shouldSendStart) {
@@ -692,7 +702,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             // highlight the grabbed hotspot when the dropGesture is detected.
-            if (dropDetected) {
+            if (dropDetected && this.grabbedHotspot) {
                 equipHotspotBuddy.updateHotspot(this.grabbedHotspot, timestamp);
                 equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
             }

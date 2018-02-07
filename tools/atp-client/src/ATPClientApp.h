@@ -13,7 +13,7 @@
 #ifndef hifi_ATPClientApp_h
 #define hifi_ATPClientApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <udt/Constants.h>
 #include <udt/Socket.h>
 #include <ReceivedMessage.h>
@@ -45,7 +45,7 @@ private:
     void setMapping(QString hash);
     void lookupAsset();
     void listAssets();
-    void download(AssetHash hash);
+    void download(AssetUtils::AssetHash hash);
     void finish(int exitCode);
     bool _verbose;
 

@@ -193,7 +193,7 @@ Item {
                 color: hifi.colors.white;
             }
 
-            // "Change Passphrase" button
+            // "Change Security Pic" button
             HifiControlsUit.Button {
                 id: changeSecurityImageButton;
                 color: hifi.buttons.blue;
@@ -306,6 +306,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent;
                     propagateComposedEvents: false;
+                    hoverEnabled: true;
                 }
 
                 RalewayBold {

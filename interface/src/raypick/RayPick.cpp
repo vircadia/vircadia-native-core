@@ -19,7 +19,7 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
         DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
             getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (entityRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal);
+        return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }
@@ -30,7 +30,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
         qApp->getOverlays().findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
             getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (overlayRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal);
+        return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }
@@ -39,7 +39,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
 PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
     RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
     if (avatarRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick);
+        return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick, glm::vec3(NAN), avatarRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }

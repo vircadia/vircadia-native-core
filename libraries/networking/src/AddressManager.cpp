@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
 #include <QJsonDocument>
@@ -29,14 +29,10 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#ifdef Q_OS_ANDROID
-const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
-#else
 #if USE_STABLE_GLOBAL_SERVICES
 const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
 const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -768,7 +764,7 @@ void AddressManager::copyAddress() {
     }
 
     // assume that the address is being copied because the user wants a shareable address
-    QApplication::clipboard()->setText(currentShareableAddress().toString());
+    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
@@ -777,10 +773,10 @@ void AddressManager::copyPath() {
         return;
     }
 
-    QApplication::clipboard()->setText(currentPath());
+    QGuiApplication::clipboard()->setText(currentPath());
 }
 
-QString AddressManager::getDomainId() const {
+QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 

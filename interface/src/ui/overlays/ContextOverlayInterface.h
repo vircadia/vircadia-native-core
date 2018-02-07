@@ -26,6 +26,7 @@
 #include "ui/overlays/Overlays.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
+#include "scripting/WalletScriptingInterface.h"
 
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
@@ -33,12 +34,13 @@
 /**jsdoc
 * @namespace ContextOverlay
 */
-class ContextOverlayInterface : public QObject, public Dependency  {
+class ContextOverlayInterface : public QObject, public Dependency {
     Q_OBJECT
 
     Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
     Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled)
     Q_PROPERTY(bool isInMarketplaceInspectionMode READ getIsInMarketplaceInspectionMode WRITE setIsInMarketplaceInspectionMode)
+
     QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
@@ -47,9 +49,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
-
     ContextOverlayInterface();
-
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
     void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
@@ -57,6 +57,8 @@ public:
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
     void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
+    void requestOwnershipVerification(const QUuid& entityID);
+    EntityPropertyFlags getEntityPropertyFlags() { return _entityPropertyFlags; }
 
 signals:
     void contextOverlayClicked(const QUuid& currentEntityWithContextOverlay);
@@ -80,8 +82,7 @@ private:
     enum {
         MAX_SELECTION_COUNT = 16
     };
-
-    bool _verboseLogging { true };
+    bool _verboseLogging{ true };
     bool _enabled { true };
     EntityItemID _currentEntityWithContextOverlay{};
     EntityItemID _lastInspectedEntity{};

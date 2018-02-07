@@ -578,6 +578,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'refreshConnections':
             case 'enable_ChooseRecipientNearbyMode':
             case 'disable_ChooseRecipientNearbyMode':
+            case 'sendMoney_sendPublicly':
                 // NOP
                 break;
             default:

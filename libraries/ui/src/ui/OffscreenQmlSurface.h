@@ -167,11 +167,17 @@ public slots:
     bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
 
 private:
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<std::mutex>;
+
     QQuickWindow* _quickWindow { nullptr };
-    QMyQuickRenderControl* _renderControl{ nullptr };
     QQmlContext* _qmlContext { nullptr };
     QQuickItem* _rootItem { nullptr };
+
+#if !defined(DISABLE_QML)
+    QMyQuickRenderControl* _renderControl{ nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
+#endif
 
     QTimer _updateTimer;
     uint32_t _fbo { 0 };
@@ -185,6 +191,7 @@ private:
 #endif
     
     // Texture management
+    Mutex _latestTextureAndFenceMutex;
     TextureAndFence _latestTextureAndFence { 0, 0 };
 
     bool _render { false };

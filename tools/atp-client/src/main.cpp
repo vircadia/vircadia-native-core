@@ -25,6 +25,8 @@ int main(int argc, char * argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
+    Setting::init();
+
     ATPClientApp app(argc, argv);
 
     return app.exec();

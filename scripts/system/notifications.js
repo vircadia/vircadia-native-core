@@ -539,8 +539,14 @@
         return startingUp;
     }
 
-    function onDomainConnectionRefused(reason) {
-        createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
+    function onDomainConnectionRefused(reason, reasonCode) {
+        // the "login error" reason means that the DS couldn't decrypt the username signature
+        // since this eventually resolves itself for good actors we don't need to show a notification for it
+        var LOGIN_ERROR_REASON_CODE = 2;
+
+        if (reasonCode != LOGIN_ERROR_REASON_CODE) {
+            createNotification("Connection refused: " + reason, NotificationType.CONNECTION_REFUSED);
+        }
     }
 
     function onEditError(msg) {

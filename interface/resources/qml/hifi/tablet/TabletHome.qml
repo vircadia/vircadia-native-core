@@ -127,7 +127,7 @@ Item {
 
                     GridView {
                         id: gridView
-
+                        flickableDirection: Flickable.AutoFlickIfNeeded
                         keyNavigationEnabled: false
                         highlightFollowsCurrentItem: false
 
@@ -144,23 +144,20 @@ Item {
                             bottomMargin: 0
                         }
 
-                        function setButtonState(buttonIndex, buttonstate) {
-                            if (buttonIndex < 0 || gridView.contentItem === undefined
-                                    || gridView.contentItem.children.length - 1 < buttonIndex) {
-                                return;
-                            }
-                            var itemat = gridView.contentItem.children[buttonIndex].children[0];
-                            if (itemat.isActive) {
-                                itemat.state = "active state";
-                            } else {
-                                itemat.state = buttonstate;
-                            }
+                        onCurrentIndexChanged: {
+                            previousGridIndex = currentIndex
                         }
 
-                        onCurrentIndexChanged: {
-                            setButtonState(previousGridIndex, "base state");
-                            setButtonState(currentIndex, "hover state");
-                            previousGridIndex = currentIndex
+                        onMovementStarted: {
+                            if (currentIndex < 0 || gridView.currentItem === undefined || gridView.contentItem.children.length - 1 < currentIndex) {
+                                return;
+                            }
+                            var button = gridView.contentItem.children[currentIndex].children[0];
+                            if (button.isActive) {
+                                button.state = "active state";
+                            } else {
+                                button.state = "base state";
+                            }
                         }
 
                         cellWidth: width/3

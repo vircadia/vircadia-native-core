@@ -12,10 +12,17 @@
 
 namespace gpu { namespace gl {
 
+struct ShaderObject {
+    GLuint glshader { 0 };
+    GLuint glprogram { 0 };
+    GLint transformCameraSlot { -1 };
+    GLint transformObjectSlot { -1 };
+};
+
 class GLShader : public GPUObject {
 public:
-    static GLShader* sync(GLBackend& backend, const Shader& shader);
-    static bool makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings);
+    static GLShader* sync(GLBackend& backend, const Shader& shader, const Shader::CompilationHandler& handler = nullptr);
+    static bool makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler = nullptr);
 
     enum Version {
         Mono = 0,

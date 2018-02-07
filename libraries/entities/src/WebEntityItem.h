@@ -49,7 +49,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const override;
+                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setSourceUrl(const QString& value);
     QString getSourceUrl() const;
