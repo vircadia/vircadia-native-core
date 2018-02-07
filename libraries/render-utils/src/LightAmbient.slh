@@ -5,9 +5,6 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
-
 
 <@func declareSkyboxMap()@>
 // declareSkyboxMap
@@ -15,7 +12,6 @@ uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
     // textureQueryLevels is not available until #430, so we require explicit lod
-    // float mipmapLevel = lod * textureQueryLevels(skyboxMap);
     float filterLod = textureQueryLod(skyboxMap, direction).x;
     // Keep texture filtering LOD as limit to prevent aliasing on specular reflection
     lod = max(lod, filterLod);
@@ -28,15 +24,13 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 vec3 fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float gloss) {
     float f = pow(1.0 - ndotd, 5.0);
     return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * f;
-//    return fresnelColor + (vec3(1.0) - fresnelColor) * f;
 }
 
 <@if supportAmbientMap@>
 <$declareSkyboxMap()$>
 <@endif@>
 
-vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface) {
-    vec3 lightDir = -reflect(surface.eyeDir, surface.normal);
+vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface, vec3 lightDir) {
     vec3 specularLight;
     <@if supportIfAmbientMapElseAmbientSphere@>
         if (getLightHasAmbientMap(ambient))
@@ -80,14 +74,21 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
 <@endif@>
     ) {
 
-    // Fresnel
+    // Rotate surface normal and eye direction
+    vec3 ambientSpaceSurfaceNormal = (ambient.transform * vec4(surface.normal,   0.0)).xyz;
+    vec3 ambientSpaceSurfaceEyeDir = (ambient.transform * vec4(surface.eyeDir,   0.0)).xyz;
+<@if supportScattering@>
+    vec3 ambientSpaceLowNormalCurvature = (ambient.transform * lowNormalCurvature).xyz;
+<@endif@>
+
     vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface.ndotv, 1.0-surface.roughness);
 
-    // Diffuse from ambient
-    diffuse = (1.0 - metallic) * (vec3(1.0) - ambientFresnel) * sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), surface.normal).xyz;
+    diffuse = (1.0 - metallic) * (vec3(1.0) - ambientFresnel) * 
+              sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), ambientSpaceSurfaceNormal).xyz;
 
     // Specular highlight from ambient
-    specular = evalAmbientSpecularIrradiance(ambient, surface)  * ambientFresnel;
+    vec3 ambientSpaceLightDir = -reflect(ambientSpaceSurfaceEyeDir, ambientSpaceSurfaceNormal);
+    specular = evalAmbientSpecularIrradiance(ambient, surface, ambientSpaceLightDir)  * ambientFresnel;
 
 <@if supportScattering@>
     if (scattering * isScatteringEnabled() > 0.0) {
@@ -98,7 +99,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
         obscurance = min(obscurance, ambientOcclusion);
 
         // Diffuse from ambient
-        diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), lowNormalCurvature.xyz).xyz;
+        diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), ambientSpaceLowNormalCurvature).xyz;
 
         // Scattering ambient specular is the same as non scattering for now
         // TODO: we should use the same specular answer as for direct lighting
