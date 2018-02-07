@@ -2,7 +2,7 @@
 set(TARGET_NAME shaders-test)
  
 # This is not a testcase -- just set it up as a regular hifi project
-setup_hifi_project(Quick Gui OpenGL)
+setup_hifi_project(Quick Gui)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 setup_memory_debugger()

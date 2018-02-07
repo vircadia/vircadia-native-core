@@ -1,5 +1,5 @@
 set(TARGET_NAME vhacd-util)
-setup_hifi_project(Core Widgets)
+setup_hifi_project(Core)
 link_hifi_libraries(shared fbx graphics gpu gl)
 
 add_dependency_external_projects(vhacd)
