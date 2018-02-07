@@ -138,12 +138,15 @@ def scribeLocalFile='scribe' + EXEC_SUFFIX
 
 def scribeFile='scribe_linux_x86_64'
 def scribeChecksum='c98678d9726bd8bbf1bab792acf3ff6c'
+def scribeVersion='onfeBkJWcJiTwiGOyZPVBjlyhoYQ4Axn'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     scribeFile = 'scribe_osx_x86_64'
     scribeChecksum='a137ad62c1bf7cca739da219544a9a16'
+    scribeVersion='kU.Aq512HVe65uRnkFEWQEqeQfaYF2c0'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     scribeFile = 'scribe_win32_x86_64.exe'
     scribeChecksum='75c2ce9ed45d17de375e3988bfaba816'
+    scribeVersion='24TfWFh1FBY.t6i_LdzAXZYeQOtmQNZp'
 }
 
 def options = [
@@ -398,7 +401,7 @@ task copyDependencies(dependsOn: [ extractDependencies ]) {
 }
 
 task downloadScribe(type: Download) {
-    src baseUrl + scribeFile
+    src baseUrl + scribeFile + '?versionId=' + scribeVersion
     dest new File(baseFolder, scribeLocalFile)
     onlyIfNewer true
 }

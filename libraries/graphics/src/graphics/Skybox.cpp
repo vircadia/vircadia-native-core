@@ -37,6 +37,12 @@ void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     }
 }
 
+void Skybox::setOrientation(const glm::quat& orientation) {
+    // The zone rotations need to be negated
+    _orientation = orientation;
+    _orientation.w = -_orientation.w;
+}
+
 void Skybox::updateSchemaBuffer() const {
     auto blend = 0.0f;
     if (getCubemap() && getCubemap()->isDefined()) {
@@ -115,6 +121,10 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
     Transform viewTransform;
     viewFrustum.evalViewTransform(viewTransform);
+
+    // Orientate view transform to be relative to zone
+    viewTransform.setRotation(skybox.getOrientation() * viewTransform.getRotation());
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewTransform);
     batch.setModelTransform(Transform()); // only for Mac
