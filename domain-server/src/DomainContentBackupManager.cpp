@@ -216,10 +216,35 @@ bool DomainContentBackupManager::getMostRecentBackup(const QString& format,
     return bestBackupFound;
 }
 
+bool DomainContentBackupManager::recoverFromBackup(const QString& backupName) {
+    qDebug() << "Recoving from" << backupName;
+
+    QDir backupDir { _backupDirectory };
+    QFile backupFile { backupDir.filePath(backupName) };
+    if (backupFile.open(QIODevice::ReadOnly)) {
+        QuaZip zip { &backupFile };
+        if (!zip.open(QuaZip::Mode::mdUnzip)) {
+            qWarning() << "Failed to unzip file: " << backupName;
+            backupFile.close();
+            return false;
+        }
+
+        for (auto& handler : _backupHandlers) {
+            handler.recoverBackup(zip);
+        }
+        
+        backupFile.close();
+    }
+
+    qDebug() << "Successfully recovered from " << backupName;
+
+    return true;
+}
+
 void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule) {
     QDir backupDir { _backupDirectory };
     if (backupDir.exists() && rule.maxBackupVersions > 0) {
-        qCDebug(domain_server) << "Rolling old backup versions for rule" << rule.name << "...";
+        qCDebug(domain_server) << "Rolling old backup versions for rule" << rule.name;
 
         auto matchingFiles =
                 backupDir.entryInfoList({ rule.extensionFormat + "*.zip" }, QDir::Files | QDir::NoSymLinks, QDir::Name);
@@ -235,11 +260,11 @@ void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule)
             }
         }
 
-        qCDebug(domain_server) << "Done rolling old backup versions...";
+        qCDebug(domain_server) << "Done removing old backup versions";
     } else {
         qCDebug(domain_server) << "Rolling backups for rule" << rule.name << "."
                                 << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
-                                << " No need to roll backups...";
+                                << " No need to roll backups";
     }
 }
 

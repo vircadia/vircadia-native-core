@@ -46,6 +46,11 @@ public:
 
     void replaceData(QByteArray data);
 
+    bool recoverFromBackup(const QString& backupName);
+
+signals:
+    void loadCompleted();
+
 protected:
     /// Implements generic processing behavior for this thread.
     virtual void setup() override;

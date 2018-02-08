@@ -299,6 +299,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath()));
     _contentManager->addBackupHandler(new BackupSupervisor(getContentBackupDir()));
     _contentManager->initialize(true);
+
+    _contentManager->recoverFromBackup("backup-daily_rolling-2018-02-06_15-13-50.zip");
 }
 
 void DomainServer::parseCommandLine() {

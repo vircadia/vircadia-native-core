@@ -83,7 +83,10 @@ public:
 
     void loadBackup(QuaZip& zip) {}
 
-    void createBackup(QuaZip& zip) const {
+    // Create a skeleton backup
+    void createBackup(QuaZip& zip) {
+        qDebug() << "Creating a backup from handler";
+
         QFile entitiesFile { _entitiesFilePath };
 
         if (entitiesFile.open(QIODevice::ReadOnly)) {
@@ -97,9 +100,32 @@ public:
         }
     }
 
-    void recoverBackup(QuaZip& zip) const {}
-    void deleteBackup(QuaZip& zip) {}
-    void consolidateBackup(QuaZip& zip) const {}
+    // Recover from a full backup
+    void recoverBackup(QuaZip& zip) {
+        if (!zip.setCurrentFile("models.json.gz")) {
+            qWarning() << "Failed to find models.json.gz while recovering backup";
+            return;
+        }
+        QuaZipFile zipFile { &zip };
+        zipFile.open(QIODevice::ReadOnly);
+        auto data = zipFile.readAll();
+
+        QFile entitiesFile { _entitiesFilePath };
+
+        if (entitiesFile.open(QIODevice::WriteOnly)) {
+            entitiesFile.write(data);
+        }
+
+        zipFile.close();
+    }
+
+    // Delete a skeleton backup
+    void deleteBackup(QuaZip& zip) {
+    }
+
+    // Create a full backup
+    void consolidateBackup(QuaZip& zip) {
+    }
 
 private:
     QString _entitiesFilePath;
