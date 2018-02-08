@@ -15,6 +15,7 @@
 #include "OBJReader.h"
 
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
+#include <sstream> 
 
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
@@ -345,115 +346,86 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
     }
 } 
 
-bool OBJReader::parseTextureLineFloat(QString& parser, float& result) {
-    if (parser.length() == 0) {
-        return false;
-    }
-    auto firstChar = parser[0];
-    if ((firstChar < '0' || firstChar > '9') && firstChar != '-') {
-        return false;
-    }
-    int floatEnd = parser.indexOf(' ');
-    if (floatEnd < 0) {
-        floatEnd = parser.length();
-    }
-    QString floatStr = parser.left(floatEnd);
-    try
-    {
-        result = std::stof(floatStr.toStdString());
-        parser.remove(0, floatStr.length() + 1);
-        return true;
-    }
-    catch (const std::exception& /*e*/)
-    {
-        return false;
-    }
-}
-
-bool OBJReader::parseTextureLineString(QString& parser, QByteArray& result) {
-    if (parser.length() == 0) {
-        return false;
-    }
-    int stringEnd = parser.indexOf(' ');
-    if (stringEnd < 0) {
-        stringEnd = parser.length();
-    }
-    result = parser.left(stringEnd).toUtf8();
-    parser.remove(0, result.length() + 1);
-    return true;
-}
-
 void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
     // Texture options reference http://paulbourke.net/dataformats/mtl/
     // and https://wikivisually.com/wiki/Material_Template_Library
-    QString parser = textureLine;
-    while (parser.length() > 0) {
-        if (parser.startsWith("-blend")) { // -blendu/-blendv
-            int removeLength = parser[10] == 'f' ? 12 : 11;
-            parser.remove(0, removeLength); // remove through "-blendu on " or "-blendu off"
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -blendu/-blendv";
-            #endif
-        } else if (parser.startsWith("-bm")) {
-            parser.remove(0, 4); // remove through "-bm "
-            parseTextureLineFloat(parser, textureOptions.bumpMultiplier);
-        } else if (parser.startsWith("-boost")) {
-            parser.remove(0, 7); // remove through "-boost "
-            float ignore;
-            parseTextureLineFloat(parser, ignore);
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -boost";
-            #endif
-        } else if (parser.startsWith("-cc")) {
-            int removeLength = parser[6] == 'f' ? 8 : 7;
-            parser.remove(0, removeLength); // remove through "-cc on " or "-cc off"
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -cc";
-            #endif
-        } else if (parser.startsWith("-clamp")) {
-            int removeLength = parser[9] == 'f' ? 11 : 10;
-            parser.remove(0, removeLength); // remove through "-clamp on " or "-clamp off"
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -clamp";
-            #endif
-        } else if (parser.startsWith("-imfchan")) {
-            parser.remove(0, 11); // remove through "-imfchan X "
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -imfchan";
-            #endif
-        } else if (parser.startsWith("-mm")) {
-            parser.remove(0, 4); // remove through "-mm "
-            float ignore, ignore2;
-            parseTextureLineFloat(parser, ignore);
-            parseTextureLineFloat(parser, ignore2);
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -mm";
-            #endif
-        } else if (parser.startsWith("-o ") || parser.startsWith("-s ") || parser.startsWith("-t ")) {
-            parser.remove(0, 3); // remove through "-o/-s/-t "
-            float ignore, ignore2, ignore3;
-            parseTextureLineFloat(parser, ignore);
-            parseTextureLineFloat(parser, ignore2);
-            parseTextureLineFloat(parser, ignore3);
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -o/-s/-t";
-            #endif
-        } else if (parser.startsWith("-texres")) {
-            parser.remove(0, 8); // remove through "-texres "
-            float ignore;
-            parseTextureLineFloat(parser, ignore);
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -texres";
-            #endif
-        } else if (parser.startsWith("-type")) {
-            parser.remove(0, 6); // remove through "-type "
-            QByteArray ignore;
-            parseTextureLineString(parser, ignore);
-            #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option -type";
-            #endif
-        } else { // assume filename
-            parseTextureLineString(parser, filename);
+
+    std::istringstream iss(textureLine.toStdString());
+    const std::vector<std::string> parser(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+
+    int i = 0;
+    while (i < parser.size()) {
+        if (i + 1 < parser.size()) {
+            const std::string& option = parser[i++];
+            if (option == "-blendu" || option == "-blendv") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-bm") {
+                const std::string& bm = parser[i++];
+                textureOptions.bumpMultiplier = std::stof(bm);
+            } else if (option == "-boost") {
+                #ifdef WANT_DEBUG
+                const std::string& boost = parser[i++];
+                float boostFloat = std::stof(boost);
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << boost.c_str();
+                #endif
+            } else if (option == "-cc") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-clamp") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-imfchan") {
+                #ifdef WANT_DEBUG
+                const std::string& imfchan = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << imfchan.c_str();
+                #endif
+            } else if (option == "-mm") {
+                if (i + 1 < parser.size()) {
+                    #ifdef WANT_DEBUG
+                    const std::string& mmBase = parser[i++];
+                    const std::string& mmGain = parser[i++];
+                    float mmBaseFloat = std::stof(mmBase);
+                    float mmGainFloat = std::stof(mmGain);
+                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << mmBase.c_str() << mmGain.c_str();
+                    #endif
+                }
+            } else if (option == "-o" || option == "-s" || option == "-t") {
+                if (i + 2 < parser.size()) {
+                    #ifdef WANT_DEBUG
+                    const std::string& u = parser[i++];
+                    const std::string& v = parser[i++];
+                    const std::string& w = parser[i++];
+                    float uFloat = std::stof(u);
+                    float vFloat = std::stof(v);
+                    float wFloat = std::stof(w);
+                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << u.c_str() << v.c_str() << w.c_str();
+                    #endif
+                }
+            } else if (option == "-texres") {
+                #ifdef WANT_DEBUG
+                const std::string& texres = parser[i++];
+                float texresFloat = std::stof(texres);
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << texres.c_str();
+                #endif
+            } else if (option == "-type") {
+                #ifdef WANT_DEBUG
+                const std::string& type = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << type.c_str();
+                #endif
+            } else if (option[0] == '-') {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring unsupported texture option" << option.c_str();
+                #endif
+            }
+        } else { // assume filename at end
+            filename = parser[i++].c_str();
         }
     }
 }

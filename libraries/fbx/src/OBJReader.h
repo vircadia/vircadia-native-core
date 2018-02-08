@@ -94,8 +94,6 @@ private:
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
-    bool parseTextureLineFloat(QString& parser, float& result);
-    bool parseTextureLineString(QString& parser, QByteArray& result);
     void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
     bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 
