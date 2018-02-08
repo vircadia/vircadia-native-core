@@ -14,9 +14,10 @@
 
 #include <SettingHandle.h>
 
-#include "Scene.h"
-#include "../task/Task.h"
 #include <gpu/Batch.h>
+#include <task/Task.h>
+
+#include "Scene.h"
 
 namespace render {
 

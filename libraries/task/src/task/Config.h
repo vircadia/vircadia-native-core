@@ -20,7 +20,7 @@
 
 #include "SettingHandle.h"
 
-#include "Logging.h"
+//#include "Logging.h"
 
 namespace task {
 
