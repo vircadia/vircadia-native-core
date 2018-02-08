@@ -1005,7 +1005,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
 
     if (changed) {
         forEachChild([&](SpatiallyNestablePointer object) {
-            object->locationChanged(tellPhysics);
+            object->locationChanged(false);
         });
     }
 }
