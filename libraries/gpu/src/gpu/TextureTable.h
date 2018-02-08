@@ -18,7 +18,6 @@ class TextureTable {
 public:
     static const size_t COUNT = 8;
     using Array = std::array<TexturePointer, COUNT>;
-    using Array = std::array<TexturePointer, COUNT>;
     TextureTable();
     TextureTable(const std::initializer_list<TexturePointer>& textures);
     TextureTable(const std::array<TexturePointer, COUNT>& textures);

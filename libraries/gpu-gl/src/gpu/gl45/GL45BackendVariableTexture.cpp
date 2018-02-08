@@ -27,6 +27,7 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
+using GL45Texture = GL45Backend::GL45Texture;
 using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture;
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
@@ -38,6 +39,12 @@ GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
     Backend::textureResourceCount.decrement();
     Backend::textureResourceGPUMemSize.update(_size, 0);
     Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
+}
+
+const GL45Texture::Bindless& GL45VariableAllocationTexture::getBindless() const {
+    auto& result = Parent::getBindless();
+    _bindless.minMip = _populatedMip - _allocatedMip;
+    return result;
 }
 
 Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
@@ -127,7 +134,9 @@ Size GL45ResourceTexture::copyMipsFromTexture() {
 
 void GL45ResourceTexture::syncSampler() const {
     Parent::syncSampler();
-    glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
+    if (!isBindless()) {
+    	glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, _populatedMip - _allocatedMip);
+    }
 }
 
 void GL45ResourceTexture::promote() {
@@ -136,6 +145,10 @@ void GL45ResourceTexture::promote() {
 
     uint16_t targetAllocatedMip = _allocatedMip - std::min<uint16_t>(_allocatedMip, 2);
     targetAllocatedMip = std::max<uint16_t>(_minAllocatedMip, targetAllocatedMip);
+
+    if (isBindless()) {
+        releaseBindless();
+    }
 
     GLuint oldId = _id;
     auto oldSize = _size;
@@ -169,6 +182,10 @@ void GL45ResourceTexture::demote() {
     auto oldId = _id;
     auto oldSize = _size;
     auto oldPopulatedMip = _populatedMip;
+
+    if (isBindless()) {
+        releaseBindless();
+    }
 
     // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);

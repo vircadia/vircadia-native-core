@@ -25,7 +25,4 @@ struct GPUTextureTable {
 
 #endif
 
-
-
-
 <@endif@>

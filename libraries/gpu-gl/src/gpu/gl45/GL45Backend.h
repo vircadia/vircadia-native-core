@@ -19,6 +19,7 @@
 
 #define INCREMENTAL_TRANSFER 0
 #define GPU_SSBO_TRANSFORM_OBJECT 1
+#define GPU_BINDLESS_TEXTURES 1
 
 namespace gpu { namespace gl45 {
     
@@ -49,21 +50,6 @@ public:
     static const std::string GL45_VERSION;
     const std::string& getVersion() const override { return GL45_VERSION; }
 
-    class GL45TextureTable : public GLObject<TextureTable>  {
-        static GLuint allocate();
-        using Parent = GLObject<TextureTable>;
-    public:
-        using HandlesArray = std::array<uvec4, TextureTable::COUNT>;
-        GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& texture, const HandlesArray& newHandles, bool complete);
-        ~GL45TextureTable();
-
-        // FIXME instead of making a buffer for each table, there should be a global buffer of all materials
-        // and we should store an offset into that buffer
-        const uint32_t _stamp { 0 };
-        const HandlesArray _handles;
-        const bool _complete { false };
-    };
-
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL45Backend;
@@ -73,7 +59,71 @@ public:
         void generateMips() const override;
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void syncSampler() const override;
+
+        bool isBindless() const {
+#if GPU_BINDLESS_TEXTURES
+            return _bindless.operator bool();
+#else
+            return false;
+#endif
+        }
+
+#if GPU_BINDLESS_TEXTURES
+        struct Bindless {
+            uint64_t handle{ 0 };
+            uint32_t minMip{ 0 };
+            uint32_t sampler{ 0 };
+
+            operator bool() const {
+                return handle != 0;
+            }
+        };
+
+        virtual const Bindless& getBindless() const;
+        void releaseBindless() const;
+        void recreateBindless() const;
+        virtual uint16 getMinMip() const = 0;
+
+
+    private:
+        class InvalidSampler : public Sampler {
+        public:
+            InvalidSampler() {
+                _desc._borderColor = vec4(-1.0f);
+            }
+
+            operator const Sampler&() const {
+                return *this;
+            }
+        };
+
+        static const Sampler INVALID_SAMPLER;
+        // This stores the texture handle (64 bits) in xy, the min mip available in z, and the sampler ID in w
+        mutable Sampler _cachedSampler{ INVALID_SAMPLER };
+
+        mutable Bindless _bindless;
+
+#endif
     };
+
+#if GPU_BINDLESS_TEXTURES 
+    class GL45TextureTable : public GLObject<TextureTable> {
+        static GLuint allocate();
+        using Parent = GLObject<TextureTable>;
+    public:
+        using BindlessArray = std::array<GL45Texture::Bindless, TextureTable::COUNT>;
+
+        GL45TextureTable(const std::weak_ptr<GLBackend>& backend, const TextureTable& texture);
+        ~GL45TextureTable();
+
+        void update(const BindlessArray& newHandles);
+
+        // FIXME instead of making a buffer for each table, there should be a global buffer of all materials
+        // and we should store an offset into that buffer
+        BindlessArray _handles;
+    };
+#endif
+
 
     //
     // Textures that have fixed allocation sizes and cannot be managed at runtime
@@ -89,6 +139,8 @@ public:
 
     protected:
         Size size() const override { return _size; }
+        uint16 getMinMip() const override { return 0; }
+
         void allocateStorage() const;
         void syncSampler() const override;
         const Size _size { 0 };
@@ -125,6 +177,8 @@ public:
         ~GL45VariableAllocationTexture();
 
         Size size() const override { return _size; }
+        uint16 getMinMip() const override { return _populatedMip; }
+        virtual const Bindless& getBindless() const override;
 
         Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
         void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
