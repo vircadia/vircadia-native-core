@@ -77,13 +77,18 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
         return false;
     }
 
+    bool doLinearTraction = _positionalTargetSet && (_linearTimeScale < MAX_TRACTOR_TIMESCALE);
+    bool doAngularTraction = _rotationalTargetSet && (_angularTimeScale < MAX_TRACTOR_TIMESCALE);
+    if (!doLinearTraction && !doAngularTraction) {
+        // nothing to do
+        return false;
+    }
+
     glm::quat rotation;
     glm::vec3 position;
     glm::vec3 angularVelocity;
 
-    bool linearValid = false;
     int linearTractorCount = 0;
-    bool angularValid = false;
     int angularTractorCount = 0;
 
     QList<EntityDynamicPointer> tractorDerivedActions;
@@ -105,7 +110,6 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
                                                linearTimeScale, angularTimeScale);
         if (success) {
             if (angularTimeScale < MAX_TRACTOR_TIMESCALE) {
-                angularValid = true;
                 angularTractorCount++;
                 angularVelocity += angularVelocityForAction;
                 if (tractorAction.get() == this) {
@@ -115,41 +119,40 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
             }
 
             if (linearTimeScale < MAX_TRACTOR_TIMESCALE) {
-                linearValid = true;
                 linearTractorCount++;
                 position += positionForAction;
             }
         }
     }
 
-    if ((angularValid && angularTractorCount > 0) || (linearValid && linearTractorCount > 0)) {
+    if (angularTractorCount > 0 || linearTractorCount > 0) {
         withWriteLock([&]{
-            if (linearValid && linearTractorCount > 0) {
+            if (doLinearTraction && linearTractorCount > 0) {
                 position /= linearTractorCount;
-                if (_positionalTargetSet) {
-                    _lastPositionTarget = _positionalTarget;
-                    _positionalTarget = position;
-                    if (deltaTimeStep > EPSILON) {
+                _lastPositionTarget = _positionalTarget;
+                _positionalTarget = position;
+                if (deltaTimeStep > EPSILON) {
+                    if (_havePositionTargetHistory) {
                         // blend the new velocity with the old (low-pass filter)
                         glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (_positionalTarget - _lastPositionTarget);
                         const float blend = 0.25f;
                         _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                    } else {
+                        _havePositionTargetHistory = true;
                     }
                 }
-                _positionalTargetSet = true;
                 _active = true;
             }
-            if (angularValid && angularTractorCount > 0) {
+            if (doAngularTraction && angularTractorCount > 0) {
                 angularVelocity /= angularTractorCount;
                 _rotationalTarget = rotation;
                 _angularVelocityTarget = angularVelocity;
-                _rotationalTargetSet = true;
                 _active = true;
             }
         });
     }
 
-    return linearValid || angularValid;
+    return true;
 }
 
 
@@ -239,7 +242,9 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
         // targets are required, tractor-constants are optional
         bool ok = true;
         positionalTarget = EntityDynamicInterface::extractVec3Argument("tractor action", arguments, "targetPosition", ok, false);
-        if (!ok) {
+        if (ok) {
+            _positionalTargetSet = true;
+        } else {
             positionalTarget = _desiredPositionalTarget;
         }
         ok = true;
@@ -250,7 +255,9 @@ bool ObjectActionTractor::updateArguments(QVariantMap arguments) {
 
         ok = true;
         rotationalTarget = EntityDynamicInterface::extractQuatArgument("tractor action", arguments, "targetRotation", ok, false);
-        if (!ok) {
+        if (ok) {
+            _rotationalTargetSet = true;
+        } else {
             rotationalTarget = _desiredRotationalTarget;
         }
 
