@@ -37,7 +37,7 @@ QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as uni
 const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default material name";
 
 const float ILLUMINATION_MODEL_MIN_OPACITY = 0.1f;
-const float ILLUMINATION_MODEL_APPLY_SHININESS = 0.25f;
+const float ILLUMINATION_MODEL_APPLY_SHININESS = 0.5f;
 const float ILLUMINATION_MODEL_APPLY_ROUGHNESS = 1.0f;
 const float ILLUMINATION_MODEL_APPLY_NON_METALLIC = 0.0f;
 
