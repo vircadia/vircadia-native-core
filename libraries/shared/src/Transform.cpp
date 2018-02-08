@@ -19,7 +19,7 @@
 #include "shared/JSONHelpers.h"
 
 void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix) {
-    const float ACCURACY_THREASHOLD = 0.00001f;
+    const float ACCURACY_THREASHOLD = 0.000001f;
 
     // Following technique taken from:
     // http://callumhay.blogspot.com/2010/10/decomposing-affine-transforms.html

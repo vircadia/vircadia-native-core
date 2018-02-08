@@ -256,7 +256,13 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << currentMaterial.specularColor << " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" << currentMaterial.specularTextureFilename;
+                qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << 
+                                     currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << 
+                                     " specular color:" << currentMaterial.specularColor << " emissive color:" << 
+                                     currentMaterial.emissiveColor << " diffuse texture:" << 
+                                     currentMaterial.diffuseTextureFilename << " specular texture:" << 
+                                     currentMaterial.specularTextureFilename << " emissive texture:" << 
+                                     currentMaterial.emissiveTextureFilename;
                 #endif
                 return;
         }
@@ -272,20 +278,30 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
             currentMaterial.diffuseTextureFilename = "";
+            currentMaterial.emissiveTextureFilename = "";
+            currentMaterial.specularTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
-        } else if ((token == "d") || (token == "Tr")) {
+        } else if (token == "Ni") {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            #endif
+        } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
+        } else if (token == "Tr") {
+            currentMaterial.opacity = 1.0f - tokenizer.getFloat();
         } else if (token == "Ka") {
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
             #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
+        } else if (token == "Ke") {
+            currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Kd") || (token == "map_Ks")) {
-            QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks")) {
+            QByteArray filename = QString(tokenizer.getLineAsDatum()).toUtf8();
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
@@ -294,6 +310,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             }
             if (token == "map_Kd") {
                 currentMaterial.diffuseTextureFilename = filename;
+            } else if (token == "map_Ke") {
+                currentMaterial.emissiveTextureFilename = filename;
             } else if( token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
             }
@@ -745,7 +763,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
-                                                     glm::vec3(0.0f),
+                                                     objMaterial.emissiveColor,
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];
@@ -758,6 +776,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         if (!objMaterial.specularTextureFilename.isEmpty()) {
             fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
+        }
+        if (!objMaterial.emissiveTextureFilename.isEmpty()) {
+            fbxMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
