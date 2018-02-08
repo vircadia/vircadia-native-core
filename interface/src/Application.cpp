@@ -2404,7 +2404,9 @@ void Application::initializeUi() {
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    DeadlockWatchdogThread::pause();
     offscreenUi->create();
+    DeadlockWatchdogThread::resume();
 
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
