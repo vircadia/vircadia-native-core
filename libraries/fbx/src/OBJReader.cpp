@@ -355,7 +355,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
 
     int i = 0;
     while (i < parser.size()) {
-        if (i + 1 < parser.size()) {
+        if (i + 1 < parser.size() && parser[i][0] == '-') {
             const std::string& option = parser[i++];
             if (option == "-blendu" || option == "-blendv") {
                 #ifdef WANT_DEBUG
@@ -424,8 +424,12 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
                 qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring unsupported texture option" << option.c_str();
                 #endif
             }
-        } else { // assume filename at end
-            filename = parser[i++].c_str();
+        } else { // assume filename at end when no more options
+            std::string filenameString = parser[i++];
+            while (i < parser.size()) { // filename has space in it
+                filenameString += " " + parser[i++];
+            }
+            filename = filenameString.c_str();
         }
     }
 }
