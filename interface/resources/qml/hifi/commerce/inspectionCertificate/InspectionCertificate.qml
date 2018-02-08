@@ -24,6 +24,7 @@ Rectangle {
 
     id: root;
     property string marketplaceUrl: "";
+    property string entityId: "";
     property string certificateId: "";
     property string itemName: "--";
     property string itemOwner: "--";
@@ -110,75 +111,79 @@ Rectangle {
         }
 
         onUpdateCertificateStatus: {
-            root.certificateStatus = certStatus;
-            if (root.certificateStatus === 1) { // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
-                root.useGoldCert = true;
-                root.certTitleTextColor = hifi.colors.darkGray;
-                root.certTextColor = hifi.colors.white;
-                root.infoTextColor = hifi.colors.blueAccent;
-                titleBarText.text = "Certificate";
-                popText.text = "PROOF OF PROVENANCE";
-                showInMarketplaceButton.visible = true;
-                root.certInfoReplaceMode = 5;
-                // "Item Name" text will be set in "onCertificateInfoResult()"
-                // "Edition" text will be set in "onCertificateInfoResult()"
-                // "Owner" text will be set in "onCertificateInfoResult()"
-                // "Purchase Date" text will be set in "onCertificateInfoResult()"
-                // "Purchase Price" text will be set in "onCertificateInfoResult()"
-                errorText.text = "";
-            } else if (root.certificateStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
-                root.useGoldCert = false;
-                root.certTitleTextColor = hifi.colors.redHighlight;
-                root.certTextColor = hifi.colors.redHighlight;
-                root.infoTextColor = hifi.colors.redHighlight;
-                titleBarText.text = "Request Timed Out";
-                popText.text = "";
-                showInMarketplaceButton.visible = false;
-                root.certInfoReplaceMode = 0;
-                root.itemName = "";
-                root.itemEdition = "";
-                root.itemOwner = "";
-                root.dateOfPurchase = "";
-                root.itemCost = "";
-                errorText.text = "Your request to inspect this item timed out. Please try again later.";
-            } else if (root.certificateStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
-                root.useGoldCert = false;
-                root.certTitleTextColor = hifi.colors.redHighlight;
-                root.certTextColor = hifi.colors.redHighlight;
-                root.infoTextColor = hifi.colors.redHighlight;
-                titleBarText.text = "Certificate\nNo Longer Valid";
-                popText.text = "";
-                showInMarketplaceButton.visible = true;
-                root.certInfoReplaceMode = 5;
-                // "Item Name" text will be set in "onCertificateInfoResult()"
-                // "Edition" text will be set in "onCertificateInfoResult()"
-                // "Owner" text will be set in "onCertificateInfoResult()"
-                // "Purchase Date" text will be set in "onCertificateInfoResult()"
-                // "Purchase Price" text will be set in "onCertificateInfoResult()"
-                errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
-            } else if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
-                root.useGoldCert = false;
-                root.certTitleTextColor = hifi.colors.redHighlight;
-                root.certTextColor = hifi.colors.redHighlight;
-                root.infoTextColor = hifi.colors.redHighlight;
-                titleBarText.text = "Invalid Certificate";
-                popText.text = "";
-                showInMarketplaceButton.visible = true;
-                root.certInfoReplaceMode = 4;
-                // "Item Name" text will be set in "onCertificateInfoResult()"
-                root.itemEdition = "Uncertified Copy"
-                // "Owner" text will be set in "onCertificateInfoResult()"
-                // "Purchase Date" text will be set in "onCertificateInfoResult()"
-                // "Purchase Price" text will be set in "onCertificateInfoResult()"
-                // "Error Text" text will be set in "onCertificateInfoResult()"
-            } else {
-                console.log("Unknown certificate status received from ledger signal!");
-            }
-            
-            root.certificateStatusPending = false;
-            // We've gotten cert status - we are GO on getting the cert info
-            Commerce.certificateInfo(root.certificateId);
+            updateCertificateStatus(certStatus);
         }
+    }
+
+    function updateCertificateStatus(status) {
+        root.certificateStatus = status;
+        if (root.certificateStatus === 1) { // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
+            root.useGoldCert = true;
+            root.certTitleTextColor = hifi.colors.darkGray;
+            root.certTextColor = hifi.colors.white;
+            root.infoTextColor = hifi.colors.blueAccent;
+            titleBarText.text = "Certificate";
+            popText.text = "PROOF OF PROVENANCE";
+            showInMarketplaceButton.visible = true;
+            root.certInfoReplaceMode = 5;
+            // "Item Name" text will be set in "onCertificateInfoResult()"
+            // "Edition" text will be set in "onCertificateInfoResult()"
+            // "Owner" text will be set in "onCertificateInfoResult()"
+            // "Purchase Date" text will be set in "onCertificateInfoResult()"
+            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            errorText.text = "";
+        } else if (root.certificateStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
+            root.useGoldCert = false;
+            root.certTitleTextColor = hifi.colors.redHighlight;
+            root.certTextColor = hifi.colors.redHighlight;
+            root.infoTextColor = hifi.colors.redHighlight;
+            titleBarText.text = "Request Timed Out";
+            popText.text = "";
+            showInMarketplaceButton.visible = false;
+            root.certInfoReplaceMode = 0;
+            root.itemName = "";
+            root.itemEdition = "";
+            root.itemOwner = "";
+            root.dateOfPurchase = "";
+            root.itemCost = "";
+            errorText.text = "Your request to inspect this item timed out. Please try again later.";
+        } else if (root.certificateStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
+            root.useGoldCert = false;
+            root.certTitleTextColor = hifi.colors.redHighlight;
+            root.certTextColor = hifi.colors.redHighlight;
+            root.infoTextColor = hifi.colors.redHighlight;
+            titleBarText.text = "Certificate\nNo Longer Valid";
+            popText.text = "";
+            showInMarketplaceButton.visible = true;
+            root.certInfoReplaceMode = 5;
+            // "Item Name" text will be set in "onCertificateInfoResult()"
+            // "Edition" text will be set in "onCertificateInfoResult()"
+            // "Owner" text will be set in "onCertificateInfoResult()"
+            // "Purchase Date" text will be set in "onCertificateInfoResult()"
+            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
+        } else if (root.certificateStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
+            root.useGoldCert = false;
+            root.certTitleTextColor = hifi.colors.redHighlight;
+            root.certTextColor = hifi.colors.redHighlight;
+            root.infoTextColor = hifi.colors.redHighlight;
+            titleBarText.text = "Invalid Certificate";
+            popText.text = "";
+            showInMarketplaceButton.visible = true;
+            root.certInfoReplaceMode = 4;
+            // "Item Name" text will be set in "onCertificateInfoResult()"
+            root.itemEdition = "Uncertified Copy"
+            // "Owner" text will be set in "onCertificateInfoResult()"
+            // "Purchase Date" text will be set in "onCertificateInfoResult()"
+            // "Purchase Price" text will be set in "onCertificateInfoResult()"
+            // "Error Text" text will be set in "onCertificateInfoResult()"
+        } else {
+            console.log("Unknown certificate status received from ledger signal!");
+        }
+            
+        root.certificateStatusPending = false;
+        // We've gotten cert status - we are GO on getting the cert info
+        Commerce.certificateInfo(root.certificateId);
     }
 
     // This object is always used in a popup.
@@ -563,7 +568,12 @@ Rectangle {
             case 'inspectionCertificate_setCertificateId':
                 resetCert(false);
                 root.certificateId = message.certificateId;
-                sendToScript({method: 'inspectionCertificate_requestOwnershipVerification', certificateId: root.certificateId});
+                if (message.entityId === "") {
+                    updateCertificateStatus(1); // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
+                } else {
+                    root.entityId = message.entityId;
+                    sendToScript({method: 'inspectionCertificate_requestOwnershipVerification', entity: root.entityId});
+                }
             break;
             case 'inspectionCertificate_resetCert':
                 resetCert(true);
@@ -576,6 +586,7 @@ Rectangle {
 
     function resetCert(alsoResetCertID) {
         if (alsoResetCertID) {
+            root.entityId = "";
             root.certificateId = "";
         }
         root.certInfoReplaceMode = 5;
