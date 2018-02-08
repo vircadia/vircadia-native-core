@@ -47,7 +47,7 @@ void SpaceTests::testOverlaps() {
         QVERIFY(space.getNumObjects() == 1);
 
         Changes changes;
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 0);
     }
 
@@ -57,7 +57,7 @@ void SpaceTests::testOverlaps() {
         workload::Space::Sphere newSphere(newPosition, newRadius);
         space.updateProxy(proxyId, newSphere);
         Changes changes;
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
         QVERIFY(changes[0].proxyId == proxyId);
         QVERIFY(changes[0].region == workload::Space::REGION_FAR);
@@ -70,7 +70,7 @@ void SpaceTests::testOverlaps() {
         workload::Space::Sphere newSphere(newPosition, newRadius);
         space.updateProxy(proxyId, newSphere);
         Changes changes;
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
         QVERIFY(changes[0].proxyId == proxyId);
         QVERIFY(changes[0].region == workload::Space::REGION_MIDDLE);
@@ -83,7 +83,7 @@ void SpaceTests::testOverlaps() {
         workload::Space::Sphere newSphere(newPosition, newRadius);
         space.updateProxy(proxyId, newSphere);
         Changes changes;
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
         QVERIFY(changes[0].proxyId == proxyId);
         QVERIFY(changes[0].region == workload::Space::REGION_NEAR);
@@ -94,7 +94,7 @@ void SpaceTests::testOverlaps() {
         // NOTE: atm deleting a proxy doesn't result in a "Change"
         space.deleteProxy(proxyId);
         Changes changes;
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 0);
         QVERIFY(space.getNumObjects() == 0);
     }
@@ -195,10 +195,10 @@ void SpaceTests::benchmark() {
             space.setViews(views);
         }
 
-        // measure time to recategorize everything
+        // measure time to categorizeAndGetChanges everything
         std::vector<workload::Space::Change> changes;
         startTime = usecTimestampNow();
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         usec = usecTimestampNow() - startTime;
         timeToMoveView.push_back(usec);
 
@@ -227,7 +227,7 @@ void SpaceTests::benchmark() {
             space.updateProxy(proxyKeys[j], newSpheres[k++]);
         }
         changes.clear();
-        space.recategorizeProxiesAndGetChanges(changes);
+        space.categorizeAndGetChanges(changes);
         usec = usecTimestampNow() - startTime;
         timeToMoveProxies.push_back(usec);
 

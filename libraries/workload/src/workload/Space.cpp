@@ -60,15 +60,13 @@ void Space::updateProxy(int32_t proxyId, const Space::Sphere& newSphere) {
         return;
     }
     _proxies[proxyId].sphere = newSphere;
-    // TODO: when view is not changing it would be faster to recategorize each Proxy that changes.
-    // Otherwise, we would want to just update all changed objects, adjust the view, and then comute changes.
 }
 
 void Space::setViews(const std::vector<Space::View>& views) {
     _views = views;
 }
 
-void Space::recategorizeProxiesAndGetChanges(std::vector<Space::Change>& changes) {
+void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     uint32_t numProxies = _proxies.size();
     uint32_t numViews = _views.size();
     for (uint32_t i = 0; i < numProxies; ++i) {

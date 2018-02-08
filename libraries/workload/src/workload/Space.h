@@ -45,8 +45,8 @@ public:
             radiuses[1] = midRadius;
             radiuses[2] = farRadius;
         }
-        glm::vec3 center { 0.0f, 0.0f, 0.0f }; // these init values are not important
-        float radiuses[3] { 1.0f, 2.0f, 3.0f }; // these init values are not important
+        glm::vec3 center { 0.0f, 0.0f, 0.0f };
+        float radiuses[3] { 0.0f, 0.0f, 0.0f };
     };
 
     class Change {
@@ -66,11 +66,9 @@ public:
 
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
 
-    void recategorizeProxiesAndGetChanges(std::vector<Change>& changes);
+    void categorizeAndGetChanges(std::vector<Change>& changes);
 
 private:
-    // NOTE: double-buffering proxy.category and .prevRegion in their own arrays is NOT faster
-    // (performance is within the noise) than leaving them as data members of Proxy.
     std::vector<Proxy> _proxies;
     std::vector<View> _views;
     std::vector<int32_t> _freeIndices;
