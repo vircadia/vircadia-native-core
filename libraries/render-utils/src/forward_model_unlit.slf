@@ -38,8 +38,8 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    packForwardFragmentUnlit(
-        normalize(_normal), 
-        opacity,
-        albedo * isUnlitEnabled());
+     if (opacity != 1.0) {
+        discard;
+    }
+    _fragColor0 = vec4(albedo * isUnlitEnabled(), 1.0);
 }

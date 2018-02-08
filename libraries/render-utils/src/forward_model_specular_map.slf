@@ -63,36 +63,24 @@ void main(void) {
     else {
         fresnel = albedo;
         metallic = 1.0;
-    }/*
-    float scattering = getMaterialScattering(mat);
-
-    packForwardFragment(
-        normalize(_normal), 
-        opacity,
-        albedo,
-        roughness,
-        metallic,
-        emissive,
-        occlusionTex,
-        scattering);
-        */
+    }
     vec3 fragPosition = _position.xyz;
 
     TransformCamera cam = getTransformCamera();
     vec3 fragNormal;
-    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
+    fragNormal = normalize(_normal);
 
-        vec4 color = vec4(evalSkyboxGlobalColor(
-            cam._viewInverse,
-            1.0,
-            1.0,
-            fragPosition,
-            fragNormal,
-            albedo,
-            fresnel,
-            metallic,
-            roughness),
-            opacity);
+    vec4 color = vec4(evalSkyboxGlobalColor(
+        cam._viewInverse,
+        1.0,
+        1.0,
+        fragPosition,
+        fragNormal,
+        albedo,
+        fresnel,
+        metallic,
+        roughness),
+        opacity);
     color.rgb += emissive * isEmissiveEnabled();
 
     //    _fragColor = vec4(albedo, opacity);

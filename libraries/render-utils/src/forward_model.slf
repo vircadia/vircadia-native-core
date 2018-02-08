@@ -66,9 +66,8 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
     vec3 fragNormal;
-    <$transformEyeToWorldDir(cam, _normal, fragNormal)$>
-    fragNormal = normalize(fragNormal);
-    
+    fragNormal = normalize(_normal);
+
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
