@@ -38,7 +38,7 @@ class RenderShadowTaskConfig : public render::Task::Config::Persistent {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
 public:
-    RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", false) {}
+    RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", true) {}
 
 signals:
     void dirty();

@@ -652,6 +652,8 @@ function loaded() {
         var elZoneKeyLightDirectionX = document.getElementById("property-zone-key-light-direction-x");
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
+        var elZoneKeyLightCastShadows = document.getElementById("property-zone-key-light-cast-shadows");
+
         // Skybox
         var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
         var elZoneSkyboxModeDisabled = document.getElementById("property-zone-skybox-mode-disabled");
@@ -1025,6 +1027,8 @@ function loaded() {
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
+
+                            elZoneKeyLightCastShadows.checked = properties.keyLight.castShadows;
 
                             // Skybox
                             elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
@@ -1462,6 +1466,9 @@ function loaded() {
 
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        elZoneKeyLightCastShadows.addEventListener('change',
+            createEmitGroupCheckedPropertyUpdateFunction('keyLight', 'castShadows'));
 
         // Skybox
         var skyboxModeChanged = createZoneComponentModeChangedFunction('skyboxMode',
