@@ -104,9 +104,6 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-  /*  if (drawMaterialKey.isMetallicMap()) {
-        builder.withSpecular();
-    }*/
     if (drawMaterialKey.isLightmapMap()) {
         builder.withLightmap();
     }
