@@ -2427,10 +2427,6 @@ void Application::initializeUi() {
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    DeadlockWatchdogThread::withPause([&] {
-        offscreenUi->create();
-    });
-
     connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootContextCreated,
         this, &Application::onDesktopRootContextCreated);
     connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootItemCreated,
@@ -2439,7 +2435,9 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(PathUtils::qmlUrl("hifi/Desktop.qml"));
+    DeadlockWatchdogThread::withPause([&] {
+        offscreenUi->createDesktop(PathUtils::qmlUrl("hifi/Desktop.qml"));
+    });
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
