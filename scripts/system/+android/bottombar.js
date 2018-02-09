@@ -15,6 +15,7 @@ var bottombar;
 var bottomHudOptionsBar;
 var gotoBtn;
 var avatarBtn;
+var loginBtn;
 
 var gotoScript = Script.require('./goto.js');
 var avatarSelection = Script.require('./avatarSelection.js');
@@ -44,6 +45,8 @@ function init() {
 
     raiseBottomBar();
 
+    GlobalServices.connected.connect(handleLogin);
+    GlobalServices.disconnected.connect(handleLogout);
 }
 
 function shutdown() {
@@ -111,6 +114,23 @@ function setupBottomBar() {
             showAddressBar();
         } else {
             hideAddressBar();
+        }
+    });
+
+    loginBtn = bottombar.addButton({
+        icon: "icons/login-i.svg",
+        activeIcon: "icons/login-a.svg",
+        height: 240,
+        width: 294,
+        iconSize: 108,
+        textSize: 45,
+        text: Account.isLoggedIn() ? "LOG OUT" : "LOG IN"
+    });
+    loginBtn.clicked.connect(function() {
+        if (!Account.isLoggedIn()) {
+            Account.checkAndSignalForAccessToken();
+        } else {
+            Menu.triggerOption("Login / Sign Up");
         }
     });
 
@@ -195,8 +215,27 @@ function processedNewAvatar(url, modelName) {
     hideAvatarSelection();
 }
 
+function handleLogin() {
+    Script.setTimeout(function() {
+        if (Account.isLoggedIn()) {
+            MyAvatar.displayName=Account.getUsername();
+        }
+    }, 2000);
+    if (loginBtn) {
+        loginBtn.editProperties({text: "LOG OUT"});
+    }
+}
+function handleLogout() {
+    MyAvatar.displayName="";
+    if (loginBtn) {
+        loginBtn.editProperties({text: "LOG IN"});
+    }
+}
+
 Script.scriptEnding.connect(function () {
 	shutdown();
+    GlobalServices.connected.disconnect(handleLogin);
+    GlobalServices.disconnected.disconnect(handleLogout);
 });
 
 init();
