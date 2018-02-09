@@ -519,11 +519,11 @@ For usage and examples: colpick.com/plugin
         var max = Math.max(rgb.r, rgb.g, rgb.b);
         var delta = max - min;
         hsb.b = max;
-        hsb.s = max != 0 ? 255 * delta / max : 0;
-        if (hsb.s != 0) {
-            if (rgb.r == max) {
+        hsb.s = max != 0 ? 255 * delta / max : 0; // eslint-disable-line eqeqeq
+        if (hsb.s != 0) { // eslint-disable-line eqeqeq
+            if (rgb.r == max) { // eslint-disable-line eqeqeq
                 hsb.h = (rgb.g - rgb.b) / delta;
-            } else if (rgb.g == max) {
+            } else if (rgb.g == max) { // eslint-disable-line eqeqeq
                 hsb.h = 2 + (rgb.b - rgb.r) / delta;
             } else {
                 hsb.h = 4 + (rgb.r - rgb.g) / delta;
@@ -544,13 +544,13 @@ For usage and examples: colpick.com/plugin
         var h = hsb.h;
         var s = hsb.s*255/100;
         var v = hsb.b*255/100;
-        if (s == 0) {
+        if (s == 0) { // eslint-disable-line eqeqeq
             rgb.r = rgb.g = rgb.b = v;
         } else {
             var t1 = v;
             var t2 = (255-s)*v/255;
             var t3 = (t1-t2)*(h%60)/60;
-            if (h==360) {
+            if (h==360) { // eslint-disable-line eqeqeq
                 h = 0;
             }
             if (h<60) {
@@ -578,7 +578,7 @@ For usage and examples: colpick.com/plugin
             rgb.b.toString(16)
         ];
         $.each(hex, function (nr, val) {
-            if (val.length == 1) {
+            if (val.length == 1) { // eslint-disable-line eqeqeq
                 hex[nr] = '0' + val;
             }
         });
