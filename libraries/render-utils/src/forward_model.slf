@@ -62,7 +62,7 @@ void main(void) {
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
-        1.0,
+        occlusionTex,
         fragPosition,
         fragNormal,
         albedo,
