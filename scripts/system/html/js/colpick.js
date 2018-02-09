@@ -211,7 +211,7 @@ For usage and examples: colpick.com/plugin
                 $(document).on('mouseup touchend',current,upSelector);
                 $(document).on('mousemove touchmove',current,moveSelector);
 
-                var payeX,pageY;
+                var pageX,pageY;
                 if (ev.type == 'touchstart') {
                     pageX = ev.originalEvent.changedTouches[0].pageX,
                     pageY = ev.originalEvent.changedTouches[0].pageY;
@@ -231,7 +231,7 @@ For usage and examples: colpick.com/plugin
                 return false;
             },
             moveSelector = function (ev) {
-                var payeX,pageY;
+                var pageX,pageY;
                 if (ev.type == 'touchmove') {
                     pageX = ev.originalEvent.changedTouches[0].pageX,
                     pageY = ev.originalEvent.changedTouches[0].pageY;
@@ -388,7 +388,7 @@ For usage and examples: colpick.com/plugin
                         // Store parts of the plugin
                         options.el = this;
                         options.hue = cal.find('div.colpick_hue_arrs');
-                        huebar = options.hue.parent();
+                        var huebar = options.hue.parent();
                         // Paint the hue bar
                         var UA = navigator.userAgent.toLowerCase();
                         var isIE = navigator.appName === 'Microsoft Internet Explorer';
@@ -408,7 +408,7 @@ For usage and examples: colpick.com/plugin
                                 huebar.append(div);
                             }
                         } else {
-                            stopList = stops.join(',');
+                            var stopList = stops.join(',');
                             huebar.attr('style', 'background:-webkit-linear-gradient(top,' + stopList +
                                 '); background: -o-linear-gradient(top,' + stopList +
                                 '); background: -ms-linear-gradient(top,' + stopList +
