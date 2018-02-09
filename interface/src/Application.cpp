@@ -415,18 +415,28 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void withPause(const std::function<void()>& lambda) {
+        pause();
+        lambda();
+        resume();
+    }
     static void pause() {
         _paused = true;
     }
 
     static void resume() {
-        _paused = false;
+        // Update the heartbeat BEFORE resuming the checks
         updateHeartbeat();
+        _paused = false;
     }
 
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
+            // Don't do heartbeat detection under nsight
+            if (_paused) {
+                continue;
+            }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -2300,29 +2310,22 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
-#ifdef Q_OS_OSX
-    // FIXME: on mac os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
-    DeadlockWatchdogThread::pause();
-#endif
-
-    // Set up the render engine
-    render::CullFunctor cullFunctor = LODManager::shouldRender;
-    static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
+    // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
+    DeadlockWatchdogThread::withPause([&] {
+        // Set up the render engine
+        render::CullFunctor cullFunctor = LODManager::shouldRender;
+        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+        _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
+        _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+        _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+        _renderEngine->load();
+        _renderEngine->registerScene(_main3DScene);
 
-    _renderEngine->load();
-    _renderEngine->registerScene(_main3DScene);
-
-    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
-
-#ifdef Q_OS_OSX
-    DeadlockWatchdogThread::resume();
-#endif
+        // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+        DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+    });
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
@@ -2422,7 +2425,11 @@ void Application::initializeUi() {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    DeadlockWatchdogThread::withPause([&] {
+        offscreenUi->create();
+    });
 
     connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootContextCreated,
         this, &Application::onDesktopRootContextCreated);

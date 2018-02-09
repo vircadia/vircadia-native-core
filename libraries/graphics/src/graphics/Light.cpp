@@ -158,3 +158,9 @@ void Light::setAmbientMapNumMips(uint16_t numMips) {
     _ambientSchemaBuffer.edit().mapNumMips = (float)numMips;
 }
 
+void Light::setTransform(const glm::mat4& transform) {
+    if (_ambientSchemaBuffer.edit().transform != transform) {
+        _ambientSchemaBuffer.edit().transform = transform;
+    }
+}
+
