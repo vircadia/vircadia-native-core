@@ -170,7 +170,7 @@ For usage and examples: colpick.com/plugin
                 $(document).on('mouseup touchend',current,upHue);
                 $(document).on('mousemove touchmove',current,moveHue);
                 
-                var pageY = ((ev.type == 'touchstart') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
+                var pageY = ((ev.type === 'touchstart') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
                 change.apply(
                     current.cal.data('colpick')
                         .fields.eq(4).val(parseInt(360 * (current.cal.data('colpick').height -
@@ -181,7 +181,7 @@ For usage and examples: colpick.com/plugin
                 return false;
             },
             moveHue = function (ev) {
-                var pageY = ((ev.type == 'touchmove') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
+                var pageY = ((ev.type === 'touchmove') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
                 change.apply(
                     ev.data.cal.data('colpick')
                         .fields.eq(4).val(parseInt(360 * (ev.data.cal.data('colpick').height -
@@ -212,7 +212,7 @@ For usage and examples: colpick.com/plugin
                 $(document).on('mousemove touchmove',current,moveSelector);
 
                 var pageX,pageY;
-                if (ev.type == 'touchstart') {
+                if (ev.type === 'touchstart') {
                     pageX = ev.originalEvent.changedTouches[0].pageX,
                     pageY = ev.originalEvent.changedTouches[0].pageY;
                 } else {
@@ -232,7 +232,7 @@ For usage and examples: colpick.com/plugin
             },
             moveSelector = function (ev) {
                 var pageX,pageY;
-                if (ev.type == 'touchmove') {
+                if (ev.type === 'touchmove') {
                     pageX = ev.originalEvent.changedTouches[0].pageX,
                     pageY = ev.originalEvent.changedTouches[0].pageY;
                 } else {
@@ -282,7 +282,7 @@ For usage and examples: colpick.com/plugin
                     left -= calW;
                 }
                 cal.css({left: left + 'px', top: top + 'px'});
-                if (cal.data('colpick').onShow.apply(this, [cal.get(0)]) != false) {
+                if (cal.data('colpick').onShow.apply(this, [cal.get(0)]) !== false) {
                     cal.show();
                 }
                 // Hide when user clicks outside
@@ -292,13 +292,13 @@ For usage and examples: colpick.com/plugin
                 });
             },
             hide = function (ev) {
-                if (ev.data.cal.data('colpick').onHide.apply(this, [ev.data.cal.get(0)]) != false) {
+                if (ev.data.cal.data('colpick').onHide.apply(this, [ev.data.cal.get(0)]) !== false) {
                     ev.data.cal.hide();
                 }
                 $('html').off('mousedown', hide);
             },
             getViewport = function () {
-                var m = document.compatMode == 'CSS1Compat';
+                var m = document.compatMode === 'CSS1Compat';
                 return {
                     l : window.pageXOffset || (m ? document.documentElement.scrollLeft : document.body.scrollLeft),
                     w : window.innerWidth || (m ? document.documentElement.clientWidth : document.body.clientWidth)
@@ -351,9 +351,9 @@ For usage and examples: colpick.com/plugin
                 // Set color
                 if (typeof opt.color === 'string') {
                     opt.color = hexToHsb(opt.color);
-                } else if (opt.color.r != undefined && opt.color.g != undefined && opt.color.b != undefined) {
+                } else if (opt.color.r !== undefined && opt.color.g !== undefined && opt.color.b !== undefined) {
                     opt.color = rgbToHsb(opt.color);
-                } else if (opt.color.h != undefined && opt.color.s != undefined && opt.color.b != undefined) {
+                } else if (opt.color.h !== undefined && opt.color.s !== undefined && opt.color.b !== undefined) {
                     opt.color = fixHSB(opt.color);
                 } else {
                     return this;
@@ -373,7 +373,7 @@ For usage and examples: colpick.com/plugin
                         // Add class according to layout
                         cal.addClass('colpick_'+options.layout+(options.submit?'':' colpick_'+options.layout+'_ns'));
                         // Add class if the color scheme is not default
-                        if (options.colorScheme != 'light') {
+                        if (options.colorScheme !== 'light') {
                             cal.addClass('colpick_'+options.colorScheme);
                         }
                         // Setup submit button
@@ -466,9 +466,9 @@ For usage and examples: colpick.com/plugin
                 setCurrent = (typeof setCurrent === "undefined") ? 1 : setCurrent;
                 if (typeof col === 'string') {
                     col = hexToHsb(col);
-                } else if (col.r != undefined && col.g != undefined && col.b != undefined) {
+                } else if (col.r !== undefined && col.g !== undefined && col.b !== undefined) {
                     col = rgbToHsb(col);
-                } else if (col.h != undefined && col.s != undefined && col.b != undefined) {
+                } else if (col.h !== undefined && col.s !== undefined && col.b !== undefined) {
                     col = fixHSB(col);
                 } else {
                     return this;
