@@ -311,4 +311,14 @@ void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
     specular = shading.xyz;
 }
 
+
+<@if not GETFRESNEL0@>
+<@def GETFRESNEL0@>
+vec3 getFresnelF0(float metallic, vec3 metalF0) {
+    // Enable continuous metallness value by lerping between dielectric
+    // and metal fresnel F0 value based on the "metallic" parameter
+    return mix(vec3(0.03), metalF0, metallic);
+}
+<@endif@>
+
 <@endif@>
