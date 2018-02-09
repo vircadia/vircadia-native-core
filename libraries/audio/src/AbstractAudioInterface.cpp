@@ -49,6 +49,9 @@ void AbstractAudioInterface::emitAudioPacket(const void* audioData, size_t bytes
             audioPacket->writePrimitive(channelFlag);
         }
 
+        // at this point we'd better be sending the mixer a valid position, or it won't consider us for mixing
+        assert(!isNaN(transform.getTranslation()));
+
         // pack the three float positions
         audioPacket->writePrimitive(transform.getTranslation());
         // pack the orientation

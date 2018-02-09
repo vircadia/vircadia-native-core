@@ -712,7 +712,11 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }

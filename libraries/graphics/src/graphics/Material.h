@@ -381,8 +381,6 @@ private:
 };
 typedef std::shared_ptr< Material > MaterialPointer;
 
-Q_DECLARE_METATYPE(MaterialPointer)
-
 class MaterialCompare {
 public:
     bool operator() (MaterialPointer left, MaterialPointer right) {
@@ -405,5 +403,7 @@ public:
 };
 
 };
+
+Q_DECLARE_METATYPE(graphics::MaterialPointer)
 
 #endif
