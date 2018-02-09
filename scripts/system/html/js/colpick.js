@@ -496,12 +496,22 @@ For usage and examples: colpick.com/plugin
         };
     }();
     // Color space convertions
-    var hexToRgb = function (hex) {
-        var hex = parseInt(((hex.indexOf('#') > -1) ? hex.substring(1) : hex), 16);
-        return {r: hex >> 16, g: (hex & 0x00FF00) >> 8, b: (hex & 0x0000FF)};
+    var hexToRgb = function (hexString) {
+        if (typeof hexString !== "string") {
+            print("Error - ColPick.js::hexToRgb expects string object.");
+            return;
+        }
+
+        var hexNumber = parseInt(((hexString.indexOf('#') > -1) ? hexString.substring(1) : hexString), 16);
+        return { r: hexNumber >> 16, g: (hexNumber & 0x00FF00) >> 8, b: (hexNumber & 0x0000FF)};
     };
-    var hexToHsb = function (hex) {
-        return rgbToHsb(hexToRgb(hex));
+    var hexToHsb = function (hexString) {
+        if (typeof hexString !== "string") {
+            print("Error - ColPick.js::hexToHsb expects string object.");
+            return;
+        }
+
+        return rgbToHsb(hexToRgb(hexString));
     };
     var rgbToHsb = function (rgb) {
         var hsb = {h: 0, s: 0, b: 0};
