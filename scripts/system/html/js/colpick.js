@@ -1,6 +1,7 @@
 /*
 colpick Color Picker
-Copyright 2013 Jose Vargas. Licensed under GPL license. Based on Stefan Petre's Color Picker www.eyecon.ro, dual licensed under the MIT and GPL licenses
+Copyright 2013 Jose Vargas. Licensed under GPL license. Based on Stefan Petre's Color Picker www.eyecon.ro, dual licensed 
+under the MIT and GPL licenses
 
 For usage and examples: colpick.com/plugin
  */
@@ -8,7 +9,31 @@ For usage and examples: colpick.com/plugin
 (function ($) {
     var colpick = function () {
         var
-            tpl = '<div class="colpick"><div class="colpick_color"><div class="colpick_color_overlay1"><div class="colpick_color_overlay2"><div class="colpick_selector_outer"><div class="colpick_selector_inner"></div></div></div></div></div><div class="colpick_hue"><div class="colpick_hue_arrs"><div class="colpick_hue_larr"></div><div class="colpick_hue_rarr"></div></div></div><div class="colpick_new_color"></div><div class="colpick_current_color"></div><div class="colpick_hex_field"><div class="colpick_field_letter">#</div><input type="text" maxlength="6" size="6" /></div><div class="colpick_rgb_r colpick_field"><div class="colpick_field_letter">R</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_rgb_g colpick_field"><div class="colpick_field_letter">G</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_rgb_b colpick_field"><div class="colpick_field_letter">B</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_hsb_h colpick_field"><div class="colpick_field_letter">H</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_hsb_s colpick_field"><div class="colpick_field_letter">S</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_hsb_b colpick_field"><div class="colpick_field_letter">B</div><input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div><div class="colpick_submit"></div></div>',
+            tpl = '<div class="colpick"><div class="colpick_color"><div class="colpick_color_overlay1">' +
+                '<div class="colpick_color_overlay2"><div class="colpick_selector_outer"><div class="colpick_selector_inner">' +
+                '</div></div></div></div></div><div class="colpick_hue"><div class="colpick_hue_arrs">' +
+                '<div class="colpick_hue_larr"></div><div class="colpick_hue_rarr"></div></div></div>' +
+                '<div class="colpick_new_color"></div><div class="colpick_current_color"></div>' +
+                '<div class="colpick_hex_field"><div class="colpick_field_letter">#</div>' +
+                '<input type="text" maxlength="6" size="6" /></div><div class="colpick_rgb_r colpick_field">' +
+                '<div class="colpick_field_letter">R</div><input type="text" maxlength="3" size="3" />' +
+                '<div class="colpick_field_arrs"><div class="colpick_field_uarr"></div>' +
+                '<div class="colpick_field_darr"></div></div></div><div class="colpick_rgb_g colpick_field">' +
+                '<div class="colpick_field_letter">G</div><input type="text" maxlength="3" size="3" />' +
+                '<div class="colpick_field_arrs"><div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div>' +
+                '</div></div><div class="colpick_rgb_b colpick_field"><div class="colpick_field_letter">B</div>' +
+                '<input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs">' +
+                '<div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div>' +
+                '<div class="colpick_hsb_h colpick_field"><div class="colpick_field_letter">H</div>' +
+                '<input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs">' +
+                '<div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div>' +
+                '<div class="colpick_hsb_s colpick_field"><div class="colpick_field_letter">S</div>' +
+                '<input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs">' +
+                '<div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div>' +
+                '<div class="colpick_hsb_b colpick_field"><div class="colpick_field_letter">B</div>' +
+                '<input type="text" maxlength="3" size="3" /><div class="colpick_field_arrs">' +
+                '<div class="colpick_field_uarr"></div><div class="colpick_field_darr"></div></div></div>' +
+                '<div class="colpick_submit"></div></div>',
             defaults = {
                 showEvent: 'click',
                 onShow: function () {},
@@ -52,7 +77,8 @@ For usage and examples: colpick.com/plugin
             },
             // Set the hue selector position
             setHue = function (hsb, cal) {
-                $(cal).data('colpick').hue.css('top', parseInt($(cal).data('colpick').height - $(cal).data('colpick').height * hsb.h/360, 10));
+                $(cal).data('colpick').hue.css('top',
+                    parseInt($(cal).data('colpick').height - $(cal).data('colpick').height * hsb.h / 360, 10));
             },
             // Set current and new colors
             setCurrentColor = function (hsb, cal) {
@@ -91,7 +117,8 @@ For usage and examples: colpick.com/plugin
                 setSelector(col, cal.get(0));
                 setHue(col, cal.get(0));
                 setNewColor(col, cal.get(0));
-                cal.data('colpick').onChange.apply(cal.parent(), [col, hsbToHex(col), hsbToRgb(col), cal.data('colpick').el, 0]);
+                cal.data('colpick').onChange.apply(cal.parent(),
+                    [col, hsbToHex(col), hsbToRgb(col), cal.data('colpick').el, 0]);
             },
             // Change style on blur and on focus of inputs
             blur = function (ev) {
@@ -107,7 +134,8 @@ For usage and examples: colpick.com/plugin
                 var field = $(this).parent().find('input').focus();
                 var current = {
                     el: $(this).parent().addClass('colpick_slider'),
-                    max: this.parentNode.className.indexOf('_hsb_h') > 0 ? 360 : (this.parentNode.className.indexOf('_hsb') > 0 ? 100 : 255),
+                    max: this.parentNode.className.indexOf('_hsb_h') > 0 ? 360 :
+                        (this.parentNode.className.indexOf('_hsb') > 0 ? 100 : 255),
                     y: ev.pageY,
                     field: field,
                     val: parseInt(field.val(), 10),
@@ -143,7 +171,8 @@ For usage and examples: colpick.com/plugin
                 var pageY = ((ev.type == 'touchstart') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
                 change.apply(
                     current.cal.data('colpick')
-                        .fields.eq(4).val(parseInt(360*(current.cal.data('colpick').height - (pageY - current.y))/current.cal.data('colpick').height, 10))
+                        .fields.eq(4).val(parseInt(360 * (current.cal.data('colpick').height -
+                            (pageY - current.y)) / current.cal.data('colpick').height, 10))
                         .get(0),
                     [current.cal.data('colpick').livePreview]
                 );
@@ -153,7 +182,9 @@ For usage and examples: colpick.com/plugin
                 var pageY = ((ev.type == 'touchmove') ? ev.originalEvent.changedTouches[0].pageY : ev.pageY );
                 change.apply(
                     ev.data.cal.data('colpick')
-                        .fields.eq(4).val(parseInt(360*(ev.data.cal.data('colpick').height - Math.max(0,Math.min(ev.data.cal.data('colpick').height,(pageY - ev.data.y))))/ev.data.cal.data('colpick').height, 10))
+                        .fields.eq(4).val(parseInt(360 * (ev.data.cal.data('colpick').height -
+                            Math.max(0, Math.min(ev.data.cal.data('colpick').height, (pageY - ev.data.y)))) /
+                            ev.data.cal.data('colpick').height, 10))
                         .get(0),
                     [ev.data.preview]
                 );
@@ -189,7 +220,8 @@ For usage and examples: colpick.com/plugin
 
                 change.apply(
                     current.cal.data('colpick').fields
-                        .eq(6).val(parseInt(100*(current.cal.data('colpick').height - (pageY - current.pos.top))/current.cal.data('colpick').height, 10)).end()
+                        .eq(6).val(parseInt(100 * (current.cal.data('colpick').height - (pageY - current.pos.top)) /
+                            current.cal.data('colpick').height, 10)).end()
                         .eq(5).val(parseInt(100*(pageX - current.pos.left)/current.cal.data('colpick').height, 10))
                         .get(0),
                     [current.preview]
@@ -208,8 +240,11 @@ For usage and examples: colpick.com/plugin
 
                 change.apply(
                     ev.data.cal.data('colpick').fields
-                        .eq(6).val(parseInt(100*(ev.data.cal.data('colpick').height - Math.max(0,Math.min(ev.data.cal.data('colpick').height,(pageY - ev.data.pos.top))))/ev.data.cal.data('colpick').height, 10)).end()
-                        .eq(5).val(parseInt(100*(Math.max(0,Math.min(ev.data.cal.data('colpick').height,(pageX - ev.data.pos.left))))/ev.data.cal.data('colpick').height, 10))
+                        .eq(6).val(parseInt(100 * (ev.data.cal.data('colpick').height -
+                            Math.max(0, Math.min(ev.data.cal.data('colpick').height, (pageY - ev.data.pos.top)))) /
+                            ev.data.cal.data('colpick').height, 10)).end()
+                        .eq(5).val(parseInt(100 * (Math.max(0, Math.min(ev.data.cal.data('colpick').height,
+                            (pageX - ev.data.pos.left)))) / ev.data.cal.data('colpick').height, 10))
                         .get(0),
                     [ev.data.preview]
                 );
@@ -343,7 +378,8 @@ For usage and examples: colpick.com/plugin
                         cal.find('div.colpick_submit').html(options.submitText).click(clickSubmit);
                         // Setup input fields
                         options.fields = cal.find('input').change(change).blur(blur).focus(focus);
-                        cal.find('div.colpick_field_arrs').mousedown(downIncrement).end().find('div.colpick_current_color').click(restoreOriginal);
+                        cal.find('div.colpick_field_arrs').mousedown(downIncrement);
+                        cal.find('div.colpick_current_color').click(restoreOriginal);
                         // Setup hue selector
                         options.selector = cal.find('div.colpick_color').on('mousedown touchstart',downSelector);
                         options.selectorIndic = options.selector.find('div.colpick_selector_outer');
@@ -356,16 +392,27 @@ For usage and examples: colpick.com/plugin
                         var isIE = navigator.appName === 'Microsoft Internet Explorer';
                         var IEver = isIE ? parseFloat( UA.match( /msie ([0-9]{1,}[\.0-9]{0,})/ )[1] ) : 0;
                         var ngIE = ( isIE && IEver < 10 );
-                        var stops = ['#ff0000','#ff0080','#ff00ff','#8000ff','#0000ff','#0080ff','#00ffff','#00ff80','#00ff00','#80ff00','#ffff00','#ff8000','#ff0000'];
+                        var stops = ['#ff0000', '#ff0080', '#ff00ff', '#8000ff', '#0000ff', '#0080ff', '#00ffff', '#00ff80',
+                            '#00ff00', '#80ff00', '#ffff00', '#ff8000', '#ff0000'];
                         if (ngIE) {
                             var i, div;
                             for (i=0; i<=11; i++) {
-                                div = $('<div></div>').attr('style','height:8.333333%; filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='+stops[i]+', endColorstr='+stops[i+1]+'); -ms-filter: "progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr='+stops[i]+', endColorstr='+stops[i+1]+')";');
+                                div = $('<div></div>').attr('style',
+                                    'height:8.333333%; filter:progid:' +
+                                    'DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr=' + stops[i] +
+                                    ', endColorstr=' + stops[i + 1] +
+                                    '); -ms-filter: "progid:DXImageTransform.Microsoft.gradient(GradientType=0,startColorstr=' +
+                                    stops[i] + ', endColorstr=' + stops[i + 1] + ')";');
                                 huebar.append(div);
                             }
                         } else {
                             stopList = stops.join(',');
-                            huebar.attr('style','background:-webkit-linear-gradient(top,'+stopList+'); background: -o-linear-gradient(top,'+stopList+'); background: -ms-linear-gradient(top,'+stopList+'); background:-moz-linear-gradient(top,'+stopList+'); -webkit-linear-gradient(top,'+stopList+'); background:linear-gradient(to bottom,'+stopList+'); ');
+                            huebar.attr('style', 'background:-webkit-linear-gradient(top,' + stopList +
+                                '); background: -o-linear-gradient(top,' + stopList +
+                                '); background: -ms-linear-gradient(top,' + stopList +
+                                '); background:-moz-linear-gradient(top,' + stopList +
+                                '); -webkit-linear-gradient(top,' + stopList +
+                                '); background:linear-gradient(to bottom,' + stopList + '); ');
                         }
                         cal.find('div.colpick_hue').on('mousedown touchstart',downHue);
                         options.newColor = cal.find('div.colpick_new_color');
@@ -436,7 +483,8 @@ For usage and examples: colpick.com/plugin
                         setSelector(col, cal.get(0));
                         
                         setNewColor(col, cal.get(0));
-                        cal.data('colpick').onChange.apply(cal.parent(), [col, hsbToHex(col), hsbToRgb(col), cal.data('colpick').el, 1]);
+                        cal.data('colpick').onChange.apply(cal.parent(),
+                            [col, hsbToHex(col), hsbToRgb(col), cal.data('colpick').el, 1]);
                         if (setCurrent) {
                             setCurrentColor(col, cal.get(0));
                         }
