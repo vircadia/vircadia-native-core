@@ -9,7 +9,6 @@
 #include "EyeTracker.h"
 
 #include <QFuture>
-#include <QMessageBox>
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <SharedUtil.h>

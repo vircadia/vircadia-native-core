@@ -9,7 +9,7 @@
 find_package(LEAPMOTION)
 if (LEAPMOTION_FOUND) 
     set(TARGET_NAME hifiLeapMotion)
-    setup_hifi_plugin(Script Qml Widgets)
+    setup_hifi_plugin(Qml)
     link_hifi_libraries(shared controllers ui plugins input-plugins)
     target_leapmotion()
 endif()

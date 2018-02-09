@@ -263,7 +263,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
     if (!_occlusionPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(ssao_makeOcclusion_frag));
+        auto ps = ssao_makeOcclusion_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -288,7 +288,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
     if (!_hBlurPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(ssao_makeHorizontalBlur_frag));
+        auto ps = ssao_makeHorizontalBlur_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
@@ -311,7 +311,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
 const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
     if (!_vBlurPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(ssao_makeVerticalBlur_frag));
+        auto ps = ssao_makeVerticalBlur_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
@@ -458,7 +458,7 @@ void DebugAmbientOcclusion::configure(const Config& config) {
 const gpu::PipelinePointer& DebugAmbientOcclusion::getDebugPipeline() {
     if (!_debugPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(ssao_debugOcclusion_frag));
+        auto ps = ssao_debugOcclusion_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

@@ -31,6 +31,9 @@ AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntit
         myAvatar->addHoldAction(this);
     }
 
+    _positionalTargetSet = true;
+    _rotationalTargetSet = true;
+
 #if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold" << (void*)this;
 #endif

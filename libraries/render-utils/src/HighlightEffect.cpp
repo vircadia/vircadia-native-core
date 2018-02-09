@@ -130,8 +130,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         fillState->setColorWriteMask(false, false, false, false);
         fillState->setCullMode(gpu::State::CULL_FRONT);
 
-        auto vs = gpu::Shader::createVertex(std::string(Highlight_aabox_vert));
-        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        auto vs = Highlight_aabox_vert::getShader();
+        auto ps = nop_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -313,7 +313,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
         state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(Highlight_frag));
+        auto ps = Highlight_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -325,7 +325,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
 
         _pipeline = gpu::Pipeline::create(program, state);
 
-        ps = gpu::Shader::createPixel(std::string(Highlight_filled_frag));
+        ps = Highlight_filled_frag::getShader();
         program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
@@ -385,8 +385,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const std::string VERTEX_SHADER{ debug_deferred_buffer_vert };
-    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag };
+    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag::getSource() };
     static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
     static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
     Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
@@ -396,7 +395,7 @@ void DebugHighlight::initializePipelines() {
     state->setDepthTest(gpu::State::DepthTest(false, false));
     state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
-    const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
+    const auto vs = debug_deferred_buffer_vert::getShader();
 
     // Depth shader
     {
@@ -553,14 +552,14 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
 #include "model_shadow_frag.h"
 
 void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-    auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    auto modelVertex = model_shadow_vert::getShader();
+    auto modelPixel = model_shadow_frag::getShader();
     gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned(),
         modelProgram, state);
 
-    auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
+    auto skinVertex = skin_model_shadow_vert::getShader();
     gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned(),

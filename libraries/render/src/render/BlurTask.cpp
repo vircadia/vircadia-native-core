@@ -210,7 +210,7 @@ BlurGaussian::BlurGaussian(bool generateOutputFramebuffer, unsigned int downsamp
 gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
     if (!_blurVPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianV_frag));
+        auto ps = blurGaussianV_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -232,7 +232,7 @@ gpu::PipelinePointer BlurGaussian::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
     if (!_blurHPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianH_frag));
+        auto ps = blurGaussianH_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -324,7 +324,7 @@ BlurGaussianDepthAware::BlurGaussianDepthAware(bool generateOutputFramebuffer, c
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
     if (!_blurVPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianDepthAwareV_frag));
+        auto ps = blurGaussianDepthAwareV_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -347,7 +347,7 @@ gpu::PipelinePointer BlurGaussianDepthAware::getBlurVPipeline() {
 gpu::PipelinePointer BlurGaussianDepthAware::getBlurHPipeline() {
     if (!_blurHPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(blurGaussianDepthAwareH_frag));
+        auto ps = blurGaussianDepthAwareH_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

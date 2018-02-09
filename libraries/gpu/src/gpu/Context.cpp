@@ -127,7 +127,7 @@ void Context::executeFrame(const FramePointer& frame) const {
     _frameStats.evalDelta(beginStats, endStats);
 }
 
-bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
+bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler) {
     // If we're running in another DLL context, we need to fetch the program callback out of the application
     // FIXME find a way to do this without reliance on Qt app properties
     if (!_makeProgramCallback) {
@@ -135,7 +135,7 @@ bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings) {
         _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
     }
     if (shader.isProgram() && _makeProgramCallback) {
-        return _makeProgramCallback(shader, bindings);
+        return _makeProgramCallback(shader, bindings, handler);
     }
     return false;
 }
