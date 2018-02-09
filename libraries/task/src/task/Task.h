@@ -32,7 +32,7 @@ class JobNoIO {};
 class JobContext {
 public:
     JobContext(const QLoggingCategory& category) : profileCategory(category) {
-        assert(category);
+        assert(&category);
     }
     virtual ~JobContext() {}
 
@@ -167,8 +167,7 @@ public:
 
     virtual void run(const ContextPointer& jobContext) {
         PerformanceTimer perfTimer(_name.c_str());
-        //PROFILE_RANGE(foo, _name);
-        //Duration profileRangeThis(trace_foo(), name);
+        // NOTE: rather than use the PROFILE_RANGE macro, we create a Duration manually
         Duration profileRange(jobContext->profileCategory, _name.c_str());
         auto start = usecTimestampNow();
 
@@ -189,7 +188,7 @@ protected:
 // It can be created on any type T by aliasing the type JobModel in the class T
 // using JobModel = Task::Model<T>
 // The class T is expected to have a "build" method acting as a constructor.
-// The build method is where child Jobs can be added internally to the task 
+// The build method is where child Jobs can be added internally to the task
 // where the input of the task can be setup to feed the child jobs
 // and where the output of the task is defined
 template <class JC>
