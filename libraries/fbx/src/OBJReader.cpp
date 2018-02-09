@@ -353,7 +353,7 @@ void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& file
     std::istringstream iss(textureLine.toStdString());
     const std::vector<std::string> parser(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-    int i = 0;
+    uint i = 0;
     while (i < parser.size()) {
         if (i + 1 < parser.size() && parser[i][0] == '-') {
             const std::string& option = parser[i++];
