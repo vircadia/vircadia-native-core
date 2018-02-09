@@ -59,6 +59,7 @@ static float framesToSec(float secs) {
 }
 
 void AnimTests::testClipEvaulate() {
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
     QString id = "myClipNode";
     QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
@@ -73,12 +74,12 @@ void AnimTests::testClipEvaulate() {
     AnimClip clip(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     AnimNode::Triggers triggers;
-    clip.evaluate(vars, framesToSec(10.0f), triggers);
+    clip.evaluate(vars, context, framesToSec(10.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 12.0f, EPSILON);
 
     // does it loop?
     triggers.clear();
-    clip.evaluate(vars, framesToSec(12.0f), triggers);
+    clip.evaluate(vars, context, framesToSec(12.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 3.0f, EPSILON);  // Note: frame 3 and not 4, because extra frame between start and end.
 
     // did we receive a loop trigger?
@@ -87,7 +88,7 @@ void AnimTests::testClipEvaulate() {
     // does it pause at end?
     triggers.clear();
     clip.setLoopFlagVar("FalseVar");
-    clip.evaluate(vars, framesToSec(20.0f), triggers);
+    clip.evaluate(vars, context, framesToSec(20.0f), triggers);
     QCOMPARE_WITH_ABS_ERROR(clip._frame, 22.0f, EPSILON);
 
     // did we receive a done trigger?
@@ -95,6 +96,7 @@ void AnimTests::testClipEvaulate() {
 }
 
 void AnimTests::testClipEvaulateWithVars() {
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
     QString id = "myClipNode";
     QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
@@ -121,7 +123,7 @@ void AnimTests::testClipEvaulateWithVars() {
     clip.setLoopFlagVar("loopFlag2");
 
     AnimNode::Triggers triggers;
-    clip.evaluate(vars, framesToSec(0.1f), triggers);
+    clip.evaluate(vars, context, framesToSec(0.1f), triggers);
 
     // verify that the values from the AnimVariantMap made it into the clipNode's
     // internal state

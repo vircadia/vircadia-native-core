@@ -49,21 +49,21 @@
 
 static void reportJoint(const Rig& rig, int index) { // Handy for debugging
     std::cout << "\n";
-    std::cout << index << " " << rig->getAnimSkeleton()->getJointName(index).toUtf8().data() << "\n";
+    std::cout << index << " " << rig.getAnimSkeleton()->getJointName(index).toUtf8().data() << "\n";
     glm::vec3 pos;
-    rig->getJointPosition(index, pos);
+    rig.getJointPosition(index, pos);
     glm::quat rot;
-    rig->getJointRotation(index, rot);
+    rig.getJointRotation(index, rot);
     std::cout << " pos:" << pos << "\n";
     std::cout << " rot:" << safeEulerAngles(rot) << "\n";
     std::cout << "\n";
 }
 static void reportByName(const Rig& rig, const QString& name) {
-    int jointIndex = rig->indexOfJoint(name);
+    int jointIndex = rig.indexOfJoint(name);
     reportJoint(rig, jointIndex);
 }
 static void reportAll(const Rig& rig) {
-    for (int i = 0; i < rig->getJointStateCount(); i++) {
+    for (int i = 0; i < rig.getJointStateCount(); i++) {
         reportJoint(rig, i);
     }
 }
@@ -77,18 +77,14 @@ static void reportSome(const Rig& rig) {
 QTEST_MAIN(RigTests)
 
 void RigTests::initTestCase() {
-//#define FROM_FILE "/Users/howardstearns/howardHiFi/Zack.fbx"
-#ifdef FROM_FILE
-    QFile file(FROM_FILE);
+
+    // TODO: include this fbx in the test case assets, we are not testing networking here.
+    QString fileName("/Users/howardstearns/howardHiFi/Zack.fbx");
+
+    QFile file(fileName);
     QCOMPARE(file.open(QIODevice::ReadOnly), true);
     FBXGeometry* geometry = readFBX(file.readAll(), QVariantHash());
-#else
-    QUrl fbxUrl("https://s3.amazonaws.com/hifi-public/models/skeletons/Zack/Zack.fbx");
-    QNetworkReply* reply = OBJReader().request(fbxUrl, false);  // Just a convenience hack for synchronoud http request
-    auto fbxHttpCode = !reply->isFinished() ? -1 : reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QCOMPARE(fbxHttpCode, 200);
-    FBXGeometry* geometry = readFBX(reply->readAll(), QVariantHash());
-#endif
+
     QVERIFY((bool)geometry);
 
     _rig.initJointStates(*geometry, glm::mat4());
