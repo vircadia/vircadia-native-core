@@ -1,6 +1,6 @@
 //
 //  BackupSupervisor.cpp
-//  assignment-client/src
+//  domain-server/src
 //
 //  Created by Clement Brisset on 1/12/18.
 //  Copyright 2018 High Fidelity, Inc.
@@ -106,28 +106,22 @@ bool BackupSupervisor::loadBackup(const QString& backupFile) {
     }
     QJsonParseError error;
     auto document = QJsonDocument::fromJson(file.readAll(), &error);
-    if (document.isNull()) {
-        qCritical() << "Could not parse backup file:" << backupFile;
-        qCritical() << "    Error:" << error.errorString();
-        backup.corruptedBackup = true;
-        return false;
-    }
-
-    if (!document.isObject()) {
-        qCritical() << "Backup file corrupted" << backupFile;
+    if (document.isNull() || !document.isObject()) {
+        qCritical() << "Could not parse backup file to JSON object:" << backupFile;
         backup.corruptedBackup = true;
         return false;
     }
 
     auto jsonObject = document.object();
     for (auto it = begin(jsonObject); it != end(jsonObject); ++it) {
-        if (!it.value().isString()) {
+        const auto& assetPath = it.key();
+        const auto& assetHash = it.value().toString();
+
+        if (!AssetUtils::isValidHash(assetHash)) {
             qCritical() << "Corrupted mapping in backup file" << backupFile << ":" << it.key();
             backup.corruptedBackup = true;
             return false;
         }
-        const auto& assetPath = it.key();
-        const auto& assetHash = it.value().toString();
 
         backup.mappings[assetPath] = assetHash;
         _assetsInBackups.insert(assetHash);
