@@ -139,8 +139,6 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
   //      color = computeHazeColorKeyLightAttenuation(color, lightDirection, position);    
   //  }
 
-  //  return normal;
-   // return pow(color, vec3(1.0/2.2));
     return color;
 }
 

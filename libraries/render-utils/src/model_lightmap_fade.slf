@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_lightmap_fade.frag
+//  model_lightmap_specular_map_fade.frag
 //  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.
@@ -17,7 +17,7 @@
 <@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
 <@include Fade.slh@>
@@ -39,16 +39,15 @@ void main(void) {
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
-
 
     packDeferredFragmentLightmap(
         normalize(_normal), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat),
-        getMaterialFresnel(mat),
+        getMaterialMetallic(mat) * metallicTex,
+        /*metallicTex, // no use of */getMaterialFresnel(mat),
         lightmapVal+fadeEmissive);
 }

@@ -24,6 +24,7 @@
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "ToneMappingEffect.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -82,6 +83,10 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
+
+    // Lighting Buffer ready for tone mapping
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, framebuffer).asVarying();
+    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
