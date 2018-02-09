@@ -163,6 +163,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
+            entityId: currentEntityWithContextOverlay,
             certificateId: certificateId
         });
     }
@@ -582,6 +583,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'inspectionCertificate_closeClicked':
                 tablet.gotoHomeScreen();
+                break;
+            case 'inspectionCertificate_requestOwnershipVerification':
+                ContextOverlay.requestOwnershipVerification(message.entity);
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
                 tablet.gotoWebScreen(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
