@@ -392,7 +392,7 @@ For usage and examples: colpick.com/plugin
                         // Paint the hue bar
                         var UA = navigator.userAgent.toLowerCase();
                         var isIE = navigator.appName === 'Microsoft Internet Explorer';
-                        var IEver = isIE ? parseFloat( UA.match( /msie ([0-9]{1,}[\.0-9]{0,})/ )[1] ) : 0;
+                        var IEver = isIE ? parseFloat( UA.match( /msie ([0-9]{1,}[.0-9]{0,})/ )[1] ) : 0;
                         var ngIE = ( isIE && IEver < 10 );
                         var stops = ['#ff0000', '#ff0080', '#ff00ff', '#8000ff', '#0000ff', '#0080ff', '#00ffff', '#00ff80',
                             '#00ff00', '#80ff00', '#ffff00', '#ff8000', '#ff0000'];
