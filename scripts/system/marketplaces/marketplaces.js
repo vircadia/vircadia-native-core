@@ -231,7 +231,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
         return position;
     }
 
-    function rezEntity(itemHref, isWearable) {
+    function rezEntity(itemHref, itemType) {
+        var isWearable = itemType === "wearable";
         var success = Clipboard.importEntities(itemHref);
         var wearableLocalPosition = null;
         var wearableLocalRotation = null;
@@ -543,7 +544,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
-                rezEntity(message.itemHref, message.isWearable);
+                rezEntity(message.itemHref, message.itemType);
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':

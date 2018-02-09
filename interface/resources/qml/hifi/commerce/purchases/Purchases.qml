@@ -308,11 +308,11 @@ Rectangle {
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 10;
                 anchors.left: parent.left;
-                anchors.leftMargin: 4;
+                anchors.leftMargin: 16;
                 width: paintedWidth;
                 text: isShowingMyItems ? "My Items" : "My Purchases";
                 color: hifi.colors.baseGray;
-                size: 28;
+                size: 22;
             }
 
             HifiControlsUit.TextField {
@@ -323,8 +323,8 @@ Rectangle {
                 hasRoundedBorder: true;
                 anchors.left: myText.right;
                 anchors.leftMargin: 16;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
+                height: 39;
+                anchors.verticalCenter: parent.verticalCenter;
                 anchors.right: parent.right;
                 placeholderText: "filter items";
 
@@ -454,16 +454,24 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
-                isWearable: model.categories.indexOf("Wearables") > -1;
-                anchors.topMargin: 12;
-                anchors.bottomMargin: 12;
+                itemType: {
+                    if (model.download_url.indexOf(".fst") > -1) {
+                        "avatar";
+                    } else if (model.categories.indexOf("Wearables") > -1) {
+                        "wearable";
+                    } else {
+                        "entity";
+                    }
+                }
+                anchors.topMargin: 10;
+                anchors.bottomMargin: 10;
 
                 Connections {
                     onSendToPurchases: {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
                         } else if (msg.method === "purchases_rezClicked") {
-                            sendToScript({method: 'purchases_rezClicked', itemHref: itemHref, isWearable: isWearable});
+                            sendToScript({method: 'purchases_rezClicked', itemHref: itemHref, itemType: itemType});
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
                             inspectionCertificate.visible = true;
                             inspectionCertificate.isLightbox = true;

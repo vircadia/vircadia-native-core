@@ -39,7 +39,10 @@ Item {
     property int itemEdition;
     property int numberSold;
     property int limitedRun;
-    property bool isWearable;
+    property string itemType;
+    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
+    property var buttonTextNormal: ["REZ", "WEAR", "SWAP", "INSTALL", "WEAR"];
+    property var buttonTextClicked: ["REZZED", "WORN", "SWAPPED", "INSTALLED", "WORN"]
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -73,10 +76,10 @@ Item {
         color: hifi.colors.white;
         // Size
         anchors.left: parent.left;
-        anchors.leftMargin: 8;
+        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 8;
-        anchors.top: parent.top;
+        anchors.rightMargin: 16;
+        anchors.verticalCenter: parent.verticalCenter;
         height: root.height - 10;
 
         Image {
@@ -311,7 +314,7 @@ Item {
             id: rezzedNotifContainer;
             z: 998;
             visible: false;
-            color: hifi.colors.blueHighlight;
+            color: "#1FC6A6";
             anchors.fill: buttonContainer;
             MouseArea {
                 anchors.fill: parent;
@@ -321,7 +324,7 @@ Item {
 
             RalewayBold {
                 anchors.fill: parent;
-                text: "REZZED";
+                text: (root.buttonTextClicked)[itemTypesArray.indexOf(root.itemType)];
                 size: 18;
                 color: hifi.colors.white;
                 verticalAlignment: Text.AlignVCenter;
@@ -337,25 +340,28 @@ Item {
 
         Button {
             id: buttonContainer;
-            property int color: hifi.buttons.red;
+            property int color: hifi.buttons.blue;
             property int colorScheme: hifi.colorSchemes.light;
 
             anchors.top: parent.top;
+            anchors.topMargin: 4;
             anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 4;
             anchors.right: parent.right;
+            anchors.rightMargin: 4;
             width: height;
-            enabled: (root.canRezCertifiedItems || root.isWearable) && root.purchaseStatus !== "invalidated";
+            enabled: (root.canRezCertifiedItems || root.itemType === "wearable") && root.purchaseStatus !== "invalidated";
             
             onClicked: {
-                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
+                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
-                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.isWearable ? "rez" : "wear");
+                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.itemType === "wearable" ? "rez" : "wear");
             }
 
             style: ButtonStyle {
-
                 background: Rectangle {
+                    radius: 4;
                     gradient: Gradient {
                         GradientStop {
                             position: 0.2
@@ -413,10 +419,10 @@ Item {
                         font.capitalization: Font.AllUppercase
                         color: enabled ? hifi.buttons.textColor[control.color]
                                        : hifi.buttons.disabledTextColor[control.colorScheme]
-                        size: 16;
+                        size: 15;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: root.isWearable ? "Wear It" : "Rez It"
+                        text: (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)]
                     }
                 }
             }
@@ -425,11 +431,11 @@ Item {
 
     DropShadow {
         anchors.fill: mainContainer;
-        horizontalOffset: 3;
-        verticalOffset: 3;
-        radius: 8.0;
-        samples: 17;
-        color: "#80000000";
+        horizontalOffset: 0;
+        verticalOffset: 4;
+        radius: 4.0;
+        samples: 9
+        color: Qt.rgba(0, 0, 0, 0.25);
         source: mainContainer;
     }
 
