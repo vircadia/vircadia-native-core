@@ -482,14 +482,14 @@ public:
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
-    void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
-    std::unordered_map<quint16, graphics::MultiMaterial> getMaterials();
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    std::unordered_map<QString, graphics::MultiMaterial> getMaterials();
 
 signals:
     void requestRenderUpdate();
-    void addMaterialToRenderItem(graphics::MaterialPointer material, quint16 shapeID);
-    void removeMaterialFromRenderItem(graphics::MaterialPointer material, quint16 shapeID);
+    void addMaterialToRenderItem(graphics::MaterialPointer material, const QString& parentMaterialID);
+    void removeMaterialFromRenderItem(graphics::MaterialPointer material, const QString& parentMaterialID);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -644,7 +644,7 @@ protected:
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
 private:
-    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::unordered_map<QString, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
 
 };

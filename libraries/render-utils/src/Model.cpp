@@ -1524,48 +1524,62 @@ bool Model::isRenderable() const {
     return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
-void Model::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    if (shapeID < _modelMeshRenderItemIDs.size()) {
-        render::Transaction transaction;
-        auto itemID = _modelMeshRenderItemIDs[shapeID];
-        bool visible = isVisible();
-        uint8_t viewTagBits = getViewTagBits();
-        bool layeredInFront = isLayeredInFront();
-        bool layeredInHUD = isLayeredInHUD();
-        bool wireframe = isWireframe();
-        auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-        bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-        transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-            invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
-            data.addMaterial(material);
-            // if the material changed, we might need to update our item key or shape key
-            data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-            data.setShapeKey(invalidatePayloadShapeKey, wireframe);
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
-    }
+std::vector<unsigned int> Model::getMeshIDsFromMaterialID(const QString& parentMaterialID) {
+    std::vector<unsigned int> toReturn;
+    // TODO: first, try to find all meshes with materials that match parentMaterialID as a string
+    // if none, return parentMaterialID as a uint
+    toReturn.push_back(parentMaterialID.toUInt());
+    return toReturn;
 }
 
-void Model::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    if (shapeID < _modelMeshRenderItemIDs.size()) {
-        render::Transaction transaction;
-        auto itemID = _modelMeshRenderItemIDs[shapeID];
-        bool visible = isVisible();
-        uint8_t viewTagBits = getViewTagBits();
-        bool layeredInFront = isLayeredInFront();
-        bool layeredInHUD = isLayeredInHUD();
-        bool wireframe = isWireframe();
-        auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-        bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-        transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-            invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
-            data.removeMaterial(material);
-            // if the material changed, we might need to update our item key or shape key
-            data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
-            data.setShapeKey(invalidatePayloadShapeKey, wireframe);
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+void Model::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(parentMaterialID);
+    render::Transaction transaction;
+    for (auto shapeID : shapeIDs) {
+        if (shapeID < _modelMeshRenderItemIDs.size()) {
+            auto itemID = _modelMeshRenderItemIDs[shapeID];
+            bool visible = isVisible();
+            uint8_t viewTagBits = getViewTagBits();
+            bool layeredInFront = isLayeredInFront();
+            bool layeredInHUD = isLayeredInHUD();
+            bool wireframe = isWireframe();
+            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
+                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                data.addMaterial(material);
+                // if the material changed, we might need to update our item key or shape key
+                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+            });
+        }
     }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
+void Model::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(parentMaterialID);
+    render::Transaction transaction;
+    for (auto shapeID : shapeIDs) {
+        if (shapeID < _modelMeshRenderItemIDs.size()) {
+            auto itemID = _modelMeshRenderItemIDs[shapeID];
+            bool visible = isVisible();
+            uint8_t viewTagBits = getViewTagBits();
+            bool layeredInFront = isLayeredInFront();
+            bool layeredInHUD = isLayeredInHUD();
+            bool wireframe = isWireframe();
+            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
+                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                data.removeMaterial(material);
+                // if the material changed, we might need to update our item key or shape key
+                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+            });
+        }
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 class CollisionRenderGeometry : public Geometry {

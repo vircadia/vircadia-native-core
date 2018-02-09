@@ -256,6 +256,13 @@ namespace std {
             return result;
         }
     };
+
+    template <>
+    struct hash<QString> {
+        size_t operator()(const QString& a) const {
+            return qHash(a);
+        }
+    };
 }
 
 enum ContactEventType {

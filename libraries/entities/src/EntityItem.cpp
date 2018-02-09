@@ -2940,20 +2940,20 @@ void EntityItem::preDelete() {
     }
 }
 
-void EntityItem::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+void EntityItem::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
     std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[shapeID].push(material);
-    emit addMaterialToRenderItem(material, shapeID);
+    _materials[parentMaterialID].push(material);
+    emit addMaterialToRenderItem(material, parentMaterialID);
 }
 
-void EntityItem::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
+void EntityItem::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
     std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[shapeID].remove(material);
-    emit removeMaterialFromRenderItem(material, shapeID);
+    _materials[parentMaterialID].remove(material);
+    emit removeMaterialFromRenderItem(material, parentMaterialID);
 }
 
-std::unordered_map<quint16, graphics::MultiMaterial> EntityItem::getMaterials() {
-    std::unordered_map<quint16, graphics::MultiMaterial> toReturn;
+std::unordered_map<QString, graphics::MultiMaterial> EntityItem::getMaterials() {
+    std::unordered_map<QString, graphics::MultiMaterial> toReturn;
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
         toReturn = _materials;

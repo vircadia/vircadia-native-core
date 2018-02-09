@@ -102,8 +102,8 @@ protected:
     }
 
 public slots:
-    virtual void addMaterial(graphics::MaterialPointer material, quint16 shapeID);
-    virtual void removeMaterial(graphics::MaterialPointer material, quint16 shapeID);
+    virtual void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    virtual void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
 
 signals:
     void requestRenderUpdate();
@@ -133,7 +133,7 @@ protected:
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
 
-    std::unordered_map<quint16, graphics::MultiMaterial> _materials;
+    std::unordered_map<QString, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
 
 private:

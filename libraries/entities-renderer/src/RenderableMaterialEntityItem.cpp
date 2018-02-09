@@ -102,10 +102,10 @@ void MaterialEntityRenderer::addVertex(std::vector<float>& buffer, const glm::ve
 
 void MaterialEntityRenderer::addTriangleFan(std::vector<float>& buffer, int stack, int step) {
     float v1 = ((float)stack) / STACKS;
-    float theta1 = v1 * M_PI;
+    float theta1 = v1 * (float)M_PI;
     glm::vec3 tip = getVertexPos(0, theta1);
     float v2 = ((float)(stack + step)) / STACKS;
-    float theta2 = v2 * M_PI;
+    float theta2 = v2 * (float)M_PI;
     for (int i = 0; i < SLICES; i++) {
         float u1 = ((float)i) / SLICES;
         float u2 = ((float)(i + step)) / SLICES;
@@ -169,8 +169,8 @@ void MaterialEntityRenderer::generateMesh() {
     for (int j = 1; j < STACKS - 1; j++) {
         float v1 = ((float)j) / STACKS;
         float v2 = ((float)(j + 1)) / STACKS;
-        float theta1 = v1 * M_PI;
-        float theta2 = v2 * M_PI;
+        float theta1 = v1 * (float)M_PI;
+        float theta2 = v2 * (float)M_PI;
         for (int i = 0; i < SLICES; i++) {
             float u1 = ((float)i) / SLICES;
             float u2 = ((float)(i + 1)) / SLICES;

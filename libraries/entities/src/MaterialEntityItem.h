@@ -13,6 +13,7 @@
 
 #include "MaterialMode.h"
 #include <model-networking/ModelCache.h>
+#include <model-networking/MaterialCache.h>
 
 class MaterialEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<MaterialEntityItem>;
@@ -60,14 +61,11 @@ public:
     MaterialMode getMaterialMode() const { return _materialMode; }
     void setMaterialMode(MaterialMode mode) { _materialMode = mode; }
 
-    float getBlendFactor() const { return _blendFactor; }
-    void setBlendFactor(float blendFactor);
-
     quint16 getPriority() const { return _priority; }
     void setPriority(quint16 priority);
 
-    quint16 getShapeID() const { return _shapeID; }
-    void setShapeID(quint16 shapeID);
+    QString getParentMaterialID() const { return _parentMaterialID; }
+    void setParentMaterialID(const QString& parentMaterialID);
 
     glm::vec2 getMaterialPos() const { return _materialPos; }
     void setMaterialPos(const glm::vec2& materialPos);
@@ -93,21 +91,18 @@ public:
 private:
     QString _materialURL;
     MaterialMode _materialMode { UV };
-    float _blendFactor { 1.0f };
     quint16 _priority { 0 };
-    quint16 _shapeID { 0 };
+    QString _parentMaterialID { "0" };
     glm::vec2 _materialPos { 0, 0 };
     glm::vec2 _materialScale { 1, 1 };
     float _materialRot { 0 };
     
+    NetworkMaterialResourcePointer _networkMaterial;
     QHash<QString, std::shared_ptr<NetworkMaterial>> _materials;
     std::vector<QString> _materialNames;
     QString _currentMaterialName;
 
     bool _retryApply { false };
-
-    void parseJSONMaterial(const QJsonObject& materialJSON);
-    static bool parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB);
 
 };
 

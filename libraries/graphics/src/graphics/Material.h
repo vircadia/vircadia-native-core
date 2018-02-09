@@ -354,9 +354,6 @@ public:
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
 
-    void setBlendFactor(float blendFactor) { _blendFactor = blendFactor; }
-    float getBlendFactor() { return _blendFactor; }
-
     void setPriority(quint16 priority) { _priority = priority; }
     quint16 getPriority() { return _priority; }
 
@@ -375,7 +372,6 @@ private:
     mutable bool _hasCalculatedTextureInfo { false };
     bool calculateMaterialInfo() const;
 
-    float _blendFactor { 1.0f };
     quint16 _priority { 0 };
 
 };

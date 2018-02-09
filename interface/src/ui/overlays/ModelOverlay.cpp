@@ -633,17 +633,17 @@ uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
     return 0;
 }
 
-void ModelOverlay::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    Overlay::addMaterial(material, shapeID);
+void ModelOverlay::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    Overlay::addMaterial(material, parentMaterialID);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->addMaterial(material, shapeID);
+        _model->addMaterial(material, parentMaterialID);
     }
 }
 
-void ModelOverlay::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    Overlay::removeMaterial(material, shapeID);
+void ModelOverlay::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    Overlay::removeMaterial(material, parentMaterialID);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->removeMaterial(material, shapeID);
+        _model->removeMaterial(material, parentMaterialID);
     }
 }
 

@@ -1467,17 +1467,17 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
-void ModelEntityRenderer::addMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    Parent::addMaterial(material, shapeID);
+void ModelEntityRenderer::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    Parent::addMaterial(material, parentMaterialID);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->addMaterial(material, shapeID);
+        _model->addMaterial(material, parentMaterialID);
     }
 }
 
-void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, quint16 shapeID) {
-    Parent::removeMaterial(material, shapeID);
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+    Parent::removeMaterial(material, parentMaterialID);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->removeMaterial(material, shapeID);
+        _model->removeMaterial(material, parentMaterialID);
     }
 }
 

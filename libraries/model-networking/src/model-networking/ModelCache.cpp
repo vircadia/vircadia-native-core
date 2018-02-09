@@ -495,8 +495,8 @@ NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :
     Material(m),
     _textures(m._textures),
     _albedoTransform(m._albedoTransform),
-    _lightmapParams(m._lightmapParams),
     _lightmapTransform(m._lightmapTransform),
+    _lightmapParams(m._lightmapParams),
     _isOriginal(m._isOriginal)
 {}
 

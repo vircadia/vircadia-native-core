@@ -280,15 +280,15 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
-    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
-    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
-    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID);
-    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID);
+    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
+    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID);
 
-    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
-    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
-    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID);
-    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID);
+    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
+    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
+    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID);
+    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -398,10 +398,10 @@ private:
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> _addMaterialToAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> _removeMaterialFromAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> _addMaterialToOverlayOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> _removeMaterialFromOverlayOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> _addMaterialToAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> _removeMaterialFromAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> _addMaterialToOverlayOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> _removeMaterialFromOverlayOperator;
 };
 
 #endif // hifi_EntityTree_h

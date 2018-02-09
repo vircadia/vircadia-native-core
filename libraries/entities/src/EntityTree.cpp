@@ -2382,35 +2382,35 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
-std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_addMaterialToAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_addMaterialToOverlayOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, quint16)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> EntityTree::_addMaterialToOverlayOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
 
-bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID) {
     if (_addMaterialToAvatarOperator) {
-        return _addMaterialToAvatarOperator(avatarID, material, shapeID);
+        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialID);
     }
     return false;
 }
 
-bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, quint16 shapeID) {
+bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID) {
     if (_removeMaterialFromAvatarOperator) {
-        return _removeMaterialFromAvatarOperator(avatarID, material, shapeID);
+        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialID);
     }
     return false;
 }
 
-bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID) {
     if (_addMaterialToOverlayOperator) {
-        return _addMaterialToOverlayOperator(overlayID, material, shapeID);
+        return _addMaterialToOverlayOperator(overlayID, material, parentMaterialID);
     }
     return false;
 }
 
-bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, quint16 shapeID) {
+bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID) {
     if (_removeMaterialFromOverlayOperator) {
-        return _removeMaterialFromOverlayOperator(overlayID, material, shapeID);
+        return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialID);
     }
     return false;
 }

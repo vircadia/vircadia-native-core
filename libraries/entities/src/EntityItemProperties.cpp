@@ -357,9 +357,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_TYPE, materialMode);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
-    CHECK_PROPERTY_CHANGE(PROP_PARENT_SHAPE_ID, shapeID);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_ID, parentMaterialID);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_POS, materialPos);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_SCALE, materialScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_ROT, materialRot);
@@ -663,9 +662,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Material) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_URL, materialURL);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_MATERIAL_TYPE, materialMode, getMaterialModeAsString());
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_BLEND_FACTOR, blendFactor);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_SHAPE_ID, shapeID);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_MATERIAL_ID, parentMaterialID);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_POS, materialPos);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_SCALE, materialScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_ROT, materialRot);
@@ -806,9 +804,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMode, MaterialMode);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(blendFactor, float, setBlendFactor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(shapeID, quint16, setShapeID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialID, QString, setParentMaterialID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialPos, glmVec2, setMaterialPos);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialScale, glmVec2, setMaterialScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRot, float, setMaterialRot);
@@ -1168,9 +1165,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_BLEND_FACTOR, BlendFactor, blendFactor, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_SHAPE_ID, ShapeID, shapeID, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_ID, ParentMaterialID, parentMaterialID, QString);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_POS, MaterialPos, materialPos, glmVec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_SCALE, MaterialScale, materialScale, glmVec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_ROT, MaterialRot, materialRot, float);
@@ -1562,9 +1558,8 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Material) {
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_URL, properties.getMaterialURL());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_TYPE, (uint32_t)properties.getMaterialMode());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BLEND_FACTOR, properties.getBlendFactor());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, properties.getPriority());
-                APPEND_ENTITY_PROPERTY(PROP_PARENT_SHAPE_ID, properties.getShapeID());
+                APPEND_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_ID, properties.getParentMaterialID());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_POS, properties.getMaterialPos());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_SCALE, properties.getMaterialScale());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_ROT, properties.getMaterialRot());
@@ -1930,9 +1925,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Material) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_URL, QString, setMaterialURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_TYPE, MaterialMode, setMaterialMode);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_BLEND_FACTOR, float, setBlendFactor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_SHAPE_ID, quint16, setShapeID);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_ID, QString, setParentMaterialID);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_POS, glmVec2, setMaterialPos);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_SCALE, glmVec2, setMaterialScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_ROT, float, setMaterialRot);
@@ -2113,9 +2107,8 @@ void EntityItemProperties::markAllChanged() {
 
     _materialURLChanged = true;
     _materialModeChanged = true;
-    _blendFactorChanged = true;
     _priorityChanged = true;
-    _shapeIDChanged = true;
+    _parentMaterialIDChanged = true;
     _materialPosChanged = true;
     _materialScaleChanged = true;
     _materialRotChanged = true;
@@ -2449,14 +2442,11 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (materialModeChanged()) {
         out += "materialMode";
     }
-    if (blendFactorChanged()) {
-        out += "blendFactor";
-    }
     if (priorityChanged()) {
         out += "priority";
     }
-    if (shapeIDChanged()) {
-        out += "shapeID";
+    if (parentMaterialIDChanged()) {
+        out += "parentMaterialID";
     }
     if (materialPosChanged()) {
         out += "materialPos";

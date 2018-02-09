@@ -633,9 +633,8 @@ function loaded() {
 
         var elMaterialURL = document.getElementById("property-material-url");
         var elMaterialMode = document.getElementById("property-material-mode");
-        var elBlendFactor = document.getElementById("property-blend-factor");
         var elPriority = document.getElementById("property-priority");
-        var elShapeID = document.getElementById("property-shape-id");
+        var elParentMaterialID = document.getElementById("property-parent-material-id");
         var elMaterialPosX = document.getElementById("property-material-pos-x");
         var elMaterialPosY = document.getElementById("property-material-pos-y");
         var elMaterialScaleX = document.getElementById("property-material-scale-x");
@@ -1130,9 +1129,8 @@ function loaded() {
                             elMaterialURL.value = properties.materialURL;
                             elMaterialMode.value = properties.materialMode;
                             setDropdownText(elMaterialMode);
-                            elBlendFactor.value = properties.blendFactor.toFixed(2);
                             elPriority.value = properties.priority;
-                            elShapeID.value = properties.shapeID;
+                            elParentMaterialID.value = properties.parentMaterialID;
                             elMaterialPosX.value = properties.materialPos.x.toFixed(4);
                             elMaterialPosY.value = properties.materialPos.y.toFixed(4);
                             elMaterialScaleX.value = properties.materialScale.x.toFixed(4);
@@ -1410,9 +1408,8 @@ function loaded() {
 
         elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
         elMaterialMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMode'));
-        elBlendFactor.addEventListener('change', createEmitNumberPropertyUpdateFunction('blendFactor', 2));
         elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority', 0));
-        elShapeID.addEventListener('change', createEmitNumberPropertyUpdateFunction('shapeID', 0));
+        elParentMaterialID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentMaterialID'));
 
         var materialPosChangeFunction = createEmitVec2PropertyUpdateFunction('materialPos', elMaterialPosX, elMaterialPosY);
         elMaterialPosX.addEventListener('change', materialPosChangeFunction);

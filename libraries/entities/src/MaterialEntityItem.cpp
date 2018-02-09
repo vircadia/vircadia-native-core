@@ -31,9 +31,8 @@ EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desir
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMode, getMaterialMode);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(blendFactor, getBlendFactor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(priority, getPriority);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeID, getShapeID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentMaterialID, getParentMaterialID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialPos, getMaterialPos);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialScale, getMaterialScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialRot, getMaterialRot);
@@ -45,9 +44,8 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialURL, setMaterialURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMode, setMaterialMode);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(blendFactor, setBlendFactor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(priority, setPriority);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeID, setShapeID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentMaterialID, setParentMaterialID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialPos, setMaterialPos);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialScale, setMaterialScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialRot, setMaterialRot);
@@ -65,139 +63,6 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-bool MaterialEntityItem::parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB) {
-    if (array.isArray()) {
-        QJsonArray colorArray = array.toArray();
-        if (colorArray.size() >= 3 && colorArray[0].isDouble() && colorArray[1].isDouble() && colorArray[2].isDouble()) {
-            isSRGB = true;
-            if (colorArray.size() >= 4) {
-                if (colorArray[3].isBool()) {
-                    isSRGB = colorArray[3].toBool();
-                }
-            }
-            color = glm::vec3(colorArray[0].toDouble(), colorArray[1].toDouble(), colorArray[2].toDouble());
-            return true;
-        }
-    }
-    return false;
-}
-
-void MaterialEntityItem::parseJSONMaterial(const QJsonObject& materialJSON) {
-    QString name = "";
-    std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
-    for (auto& key : materialJSON.keys()) {
-        if (key == "name") {
-            auto nameJSON = materialJSON.value(key);
-            if (nameJSON.isString()) {
-                name = nameJSON.toString();
-            }
-        } else if (key == "emissive") {
-            glm::vec3 color;
-            bool isSRGB;
-            bool valid = parseJSONColor(materialJSON.value(key), color, isSRGB);
-            if (valid) {
-                material->setEmissive(color, isSRGB);
-            }
-        } else if (key == "opacity") {
-            auto value = materialJSON.value(key);
-            if (value.isDouble()) {
-                material->setOpacity(value.toDouble());
-            }
-        } else if (key == "albedo") {
-            glm::vec3 color;
-            bool isSRGB;
-            bool valid = parseJSONColor(materialJSON.value(key), color, isSRGB);
-            if (valid) {
-                material->setAlbedo(color, isSRGB);
-            }
-        } else if (key == "roughness") {
-            auto value = materialJSON.value(key);
-            if (value.isDouble()) {
-                material->setRoughness(value.toDouble());
-            }
-        } else if (key == "fresnel") {
-            glm::vec3 color;
-            bool isSRGB;
-            bool valid = parseJSONColor(materialJSON.value(key), color, isSRGB);
-            if (valid) {
-                material->setFresnel(color, isSRGB);
-            }
-        } else if (key == "metallic") {
-            auto value = materialJSON.value(key);
-            if (value.isDouble()) {
-                material->setMetallic(value.toDouble());
-            }
-        } else if (key == "scattering") {
-            auto value = materialJSON.value(key);
-            if (value.isDouble()) {
-                material->setScattering(value.toDouble());
-            }
-        } else if (key == "emissiveMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setEmissiveMap(value.toString());
-            }
-        } else if (key == "albedoMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                bool useAlphaChannel = false;
-                auto opacityMap = materialJSON.find("opacityMap");
-                if (opacityMap != materialJSON.end() && opacityMap->isString() && opacityMap->toString() == value.toString()) {
-                    useAlphaChannel = true;
-                }
-                material->setAlbedoMap(value.toString(), useAlphaChannel);
-            }
-        } else if (key == "roughnessMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setRoughnessMap(value.toString(), false);
-            }
-        } else if (key == "glossMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setRoughnessMap(value.toString(), true);
-            }
-        } else if (key == "metallicMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setMetallicMap(value.toString(), false);
-            }
-        } else if (key == "specularMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setMetallicMap(value.toString(), true);
-            }
-        } else if (key == "normalMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setNormalMap(value.toString(), false);
-            }
-        } else if (key == "bumpMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setNormalMap(value.toString(), true);
-            }
-        } else if (key == "occlusionMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setOcclusionMap(value.toString());
-            }
-        } else if (key == "scatteringMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setScatteringMap(value.toString());
-            }
-        } else if (key == "lightMap") {
-            auto value = materialJSON.value(key);
-            if (value.isString()) {
-                material->setLightmapMap(value.toString());
-            }
-        }
-    }
-    _materials[name] = material;
-    _materialNames.push_back(name);
-}
-
 int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
@@ -208,9 +73,8 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
 
     READ_ENTITY_PROPERTY(PROP_MATERIAL_URL, QString, setMaterialURL);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_TYPE, MaterialMode, setMaterialMode);
-    READ_ENTITY_PROPERTY(PROP_MATERIAL_BLEND_FACTOR, float, setBlendFactor);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, quint16, setPriority);
-    READ_ENTITY_PROPERTY(PROP_PARENT_SHAPE_ID, quint16, setShapeID);
+    READ_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_ID, QString, setParentMaterialID);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_POS, glm::vec2, setMaterialPos);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_SCALE, glm::vec2, setMaterialScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_ROT, float, setMaterialRot);
@@ -224,9 +88,8 @@ EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParam
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_MATERIAL_URL;
     requestedProperties += PROP_MATERIAL_TYPE;
-    requestedProperties += PROP_MATERIAL_BLEND_FACTOR;
     requestedProperties += PROP_MATERIAL_PRIORITY;
-    requestedProperties += PROP_PARENT_SHAPE_ID;
+    requestedProperties += PROP_PARENT_MATERIAL_ID;
     requestedProperties += PROP_MATERIAL_POS;
     requestedProperties += PROP_MATERIAL_SCALE;
     requestedProperties += PROP_MATERIAL_ROT;
@@ -244,9 +107,8 @@ void MaterialEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_URL, getMaterialURL());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_TYPE, (uint32_t)getMaterialMode());
-    APPEND_ENTITY_PROPERTY(PROP_MATERIAL_BLEND_FACTOR, getBlendFactor());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, getPriority());
-    APPEND_ENTITY_PROPERTY(PROP_PARENT_SHAPE_ID, getShapeID());
+    APPEND_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_ID, getParentMaterialID());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_POS, getMaterialPos());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_SCALE, getMaterialScale());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_ROT, getMaterialRot());
@@ -259,9 +121,8 @@ void MaterialEntityItem::debugDump() const {
     qCDebug(entities) << "          material json:" << _materialURL;
     qCDebug(entities) << "  current material name:" << _currentMaterialName;
     qCDebug(entities) << "          material type:" << _materialMode;
-    qCDebug(entities) << "           blend factor:" << _blendFactor;
     qCDebug(entities) << "               priority:" << _priority;
-    qCDebug(entities) << "        parent shape ID:" << _shapeID;
+    qCDebug(entities) << "     parent material ID:" << _parentMaterialID;
     qCDebug(entities) << "           material pos:" << _materialPos;
     qCDebug(entities) << "         material scale:" << _materialRot;
     qCDebug(entities) << "           material rot:" << _materialScale;
@@ -290,6 +151,8 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
         removeMaterial();
         _materialURL = materialURLString;
 
+        // TODO: if URL ends with ?string, try to set _currentMaterialName = string
+
         if (usingUserData) {
             QJsonDocument materialJSON = QJsonDocument::fromJson(getUserData().toUtf8());
             _materials.clear();
@@ -299,22 +162,39 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
                     QJsonArray materials = materialJSON.array();
                     for (auto material : materials) {
                         if (!material.isNull() && material.isObject()) {
-                            parseJSONMaterial(material.toObject());
+                            auto networkMaterial = NetworkMaterialResource::parseJSONMaterial(material.toObject());
+                            _materials[networkMaterial.first] = networkMaterial.second;
+                            _materialNames.push_back(networkMaterial.first);
                         }
                     }
                 } else if (materialJSON.isObject()) {
-                    parseJSONMaterial(materialJSON.object());
+                    auto networkMaterial = NetworkMaterialResource::parseJSONMaterial(materialJSON.object());
+                    _materials[networkMaterial.first] = networkMaterial.second;
+                    _materialNames.push_back(networkMaterial.first);
                 }
             }
+            // Since our material changed, the current name might not be valid anymore, so we need to update
+            setCurrentMaterialName(_currentMaterialName);
+            applyMaterial();
         } else {
-            // get material via network request
+            _networkMaterial = MaterialCache::instance().getMaterial(materialURLString);
+            auto onMaterialRequestFinished = [&](bool success) {
+                if (success) {
+                    _materials[_networkMaterial->name] = _networkMaterial->networkMaterial;
+                    _materialNames.push_back(_networkMaterial->name);
+
+                    setCurrentMaterialName(_currentMaterialName);
+                    applyMaterial();
+                }
+            };
+            if (_networkMaterial) {
+                if (_networkMaterial->isLoaded()) {
+                    onMaterialRequestFinished(!_networkMaterial->isFailed());
+                } else {
+                    connect(_networkMaterial.data(), &Resource::finished, this, onMaterialRequestFinished);
+                }
+            }
         }
-
-        // TODO: if URL ends with ?string, try to set _currentMaterialName = string
-
-        // Since our JSON changed, the current name might not be valid anymore, so we need to update
-        setCurrentMaterialName(_currentMaterialName);
-        applyMaterial();
     }
 }
 
@@ -361,14 +241,6 @@ void MaterialEntityItem::setMaterialRot(const float& materialRot) {
     }
 }
 
-void MaterialEntityItem::setBlendFactor(float blendFactor) {
-    if (_blendFactor != blendFactor) {
-        removeMaterial();
-        _blendFactor = blendFactor;
-        applyMaterial();
-    }
-}
-
 void MaterialEntityItem::setPriority(quint16 priority) {
     if (_priority != priority) {
         removeMaterial();
@@ -377,10 +249,10 @@ void MaterialEntityItem::setPriority(quint16 priority) {
     }
 }
 
-void MaterialEntityItem::setShapeID(quint16 shapeID) {
-    if (_shapeID != shapeID) {
+void MaterialEntityItem::setParentMaterialID(const QString& parentMaterialID) {
+    if (_parentMaterialID != parentMaterialID) {
         removeMaterial();
-        _shapeID = shapeID;
+        _parentMaterialID = parentMaterialID;
         applyMaterial();
     }
 }
@@ -421,16 +293,16 @@ void MaterialEntityItem::removeMaterial() {
     if (tree) {
         EntityItemPointer entity = tree->findEntityByEntityItemID(parentID);
         if (entity) {
-            entity->removeMaterial(material, getShapeID());
+            entity->removeMaterial(material, getParentMaterialID());
             return;
         }
     }
 
-    if (EntityTree::removeMaterialFromAvatar(parentID, material, getShapeID())) {
+    if (EntityTree::removeMaterialFromAvatar(parentID, material, getParentMaterialID())) {
         return;
     }
 
-    if (EntityTree::removeMaterialFromOverlay(parentID, material, getShapeID())) {
+    if (EntityTree::removeMaterialFromOverlay(parentID, material, getParentMaterialID())) {
         return;
     }
 
@@ -449,7 +321,6 @@ void MaterialEntityItem::applyMaterial() {
     textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialRot)));
     textureTransform.setScale(glm::vec3(_materialScale, 1));
     material->setTextureTransforms(textureTransform);
-    material->setBlendFactor(getBlendFactor());
     material->setPriority(getPriority());
 
     // Our parent could be an entity, an avatar, or an overlay
@@ -457,16 +328,16 @@ void MaterialEntityItem::applyMaterial() {
     if (tree) {
         EntityItemPointer entity = tree->findEntityByEntityItemID(parentID);
         if (entity) {
-            entity->addMaterial(material, getShapeID());
+            entity->addMaterial(material, getParentMaterialID());
             return;
         }
     }
 
-    if (EntityTree::addMaterialToAvatar(parentID, material, getShapeID())) {
+    if (EntityTree::addMaterialToAvatar(parentID, material, getParentMaterialID())) {
         return;
     }
 
-    if (EntityTree::addMaterialToOverlay(parentID, material, getShapeID())) {
+    if (EntityTree::addMaterialToOverlay(parentID, material, getParentMaterialID())) {
         return;
     }
 
