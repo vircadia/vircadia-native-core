@@ -579,38 +579,9 @@ scriptable::ScriptableModel Model::getScriptableModel(bool* ok) {
 
     if (!isLoaded()) {
         qDebug() << "Model::getScriptableModel -- !isLoaded";
-        if (ok) {
-            *ok = false;
-        }
-        return result;
+        return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
-// TODO: remove -- this was an earlier approach using renderGeometry instead of FBXGeometry
-#if 0 // renderGeometry approach
-    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
-    Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
-    glm::mat4 offsetMat = offset.getMatrix();
-
-    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
-        if (!mesh) {
-            continue;
-        }
-        qDebug() << "Model::getScriptableModel #" << i++ << mesh->displayName;
-        auto newmesh = mesh->map(
-            [=](glm::vec3 position) {
-                return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
-            },
-            [=](glm::vec3 color) { return color; },
-            [=](glm::vec3 normal) {
-                return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
-            },
-            [&](uint32_t index) { return index; });
-        newmesh->displayName = mesh->displayName;
-        result << newmesh;
-    }
-#endif
     const FBXGeometry& geometry = getFBXGeometry();
     auto mat4toVariant = [](const glm::mat4& mat4) -> QVariant {
         QVector<float> floats;
@@ -659,6 +630,33 @@ scriptable::ScriptableModel Model::getScriptableModel(bool* ok) {
     qDebug() << "//Model::getScriptableModel -- #" << result.meshes.size();
     result.metadata["submeshes"] = submeshes;
     return result;
+
+// TODO: remove -- this was an earlier approach using renderGeometry instead of FBXGeometry
+#if 0 // renderGeometry approach
+    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+    glm::mat4 offsetMat = offset.getMatrix();
+
+    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
+        if (!mesh) {
+            continue;
+        }
+        qDebug() << "Model::getScriptableModel #" << i++ << mesh->displayName;
+        auto newmesh = mesh->map(
+            [=](glm::vec3 position) {
+                return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
+            },
+            [=](glm::vec3 color) { return color; },
+            [=](glm::vec3 normal) {
+                return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
+            },
+            [&](uint32_t index) { return index; });
+        newmesh->displayName = mesh->displayName;
+        result << newmesh;
+    }
+#endif
 }
 
 void Model::calculateTriangleSets() {

@@ -8,9 +8,15 @@
 #include <gpu/Stream.h>
 
 #include <glm/gtc/packing.hpp>
+namespace glm {
+    using hvec2 = glm::tvec2<glm::detail::hdata>;
+    using hvec4 = glm::tvec4<glm::detail::hdata>;
+}
 
+//#define DEBUG_BUFFERVIEW_SCRIPTING
 #ifdef DEBUG_BUFFERVIEW_SCRIPTING
     #include "DebugNames.h"
+    QLoggingCategory bufferview_helpers{"hifi.bufferview"};
 #endif
 
 namespace {
@@ -61,6 +67,9 @@ bool bufferViewElementFromVariant(const gpu::BufferView& view, quint32 index, co
     const auto dataType = element.getType();
     const auto byteLength = element.getSize();
     const auto BYTES_PER_ELEMENT = byteLength / vecN;
+#ifdef DEBUG_BUFFERVIEW_SCRIPTING
+    qCDebug(bufferview_helpers) << "bufferViewElementFromVariant" << index << DebugNames::stringFrom(dataType) << BYTES_PER_ELEMENT << vecN;
+#endif
     if (BYTES_PER_ELEMENT == 1) {
         switch(vecN) {
         case 2: setBufferViewElement<glm::u8vec2>(view, index, v); return true;
@@ -71,16 +80,25 @@ bool bufferViewElementFromVariant(const gpu::BufferView& view, quint32 index, co
                 glm::uint32 unused;
                 packNormalAndTangent(glmVecFromVariant<glm::vec3>(v), glm::vec3(), rawColor, unused);
                 view.edit<glm::uint32>(index) = rawColor;
+                return true;
             } else if (element == gpu::Element::VEC4F_NORMALIZED_XYZ10W2) {
                 glm::uint32 packedNormal;// = glm::packSnorm3x10_1x2(glm::vec4(glmVecFromVariant<glm::vec3>(v), 0.0f));
                 glm::uint32 unused;
                 packNormalAndTangent(glm::vec3(), glmVecFromVariant<glm::vec3>(v), unused, packedNormal);
                 view.edit<glm::uint32>(index) = packedNormal;
+                return true;
             }
             setBufferViewElement<glm::u8vec4>(view, index, v); return true;
         }
         }
     } else if (BYTES_PER_ELEMENT == 2) {
+        if (dataType == gpu::HALF) {
+            switch(vecN) {
+            case 2: view.edit<glm::int16>(index) = glm::packSnorm2x8(glmVecFromVariant<glm::vec2>(v)); return true;
+            case 4: view.edit<glm::int32>(index) = glm::packSnorm4x8(glmVecFromVariant<glm::vec4>(v)); return true;
+            default: return false;
+            }
+        }
         switch(vecN) {
         case 2: setBufferViewElement<glm::u16vec2>(view, index, v); return true;
         case 3: setBufferViewElement<glm::u16vec3>(view, index, v); return true;
@@ -112,6 +130,9 @@ QVariant bufferViewElementToVariant(const gpu::BufferView& view, quint32 index, 
     const auto BYTES_PER_ELEMENT = byteLength / vecN;
     Q_ASSERT(index < view.getNumElements());
     Q_ASSERT(index * vecN * BYTES_PER_ELEMENT < (view._size - vecN * BYTES_PER_ELEMENT));
+#ifdef DEBUG_BUFFERVIEW_SCRIPTING
+    qCDebug(bufferview_helpers) << "bufferViewElementToVariant" << index << DebugNames::stringFrom(dataType) << BYTES_PER_ELEMENT << vecN;
+#endif
     if (BYTES_PER_ELEMENT == 1) {
         switch(vecN) {
         case 2: return getBufferViewElement<glm::u8vec2>(view, index, asArray);
@@ -129,6 +150,12 @@ QVariant bufferViewElementToVariant(const gpu::BufferView& view, quint32 index, 
         }
         }
     } else if (BYTES_PER_ELEMENT == 2) {
+        if (dataType == gpu::HALF) {
+            switch(vecN) {
+            case 2: return glmVecToVariant(glm::vec2(glm::unpackSnorm2x8(view.get<glm::int16>(index))));
+            case 4: return glmVecToVariant(glm::vec4(glm::unpackSnorm4x8(view.get<glm::int32>(index))));
+            }
+        }
         switch(vecN) {
         case 2: return getBufferViewElement<glm::u16vec2>(view, index, asArray);
         case 3: return getBufferViewElement<glm::u16vec3>(view, index, asArray);
@@ -193,3 +220,31 @@ const T glmVecFromVariant(const QVariant& v) {
     return result;
 }
 
+template <typename T>
+gpu::BufferView bufferViewFromVector(QVector<T> elements, gpu::Element elementType) {
+    auto vertexBuffer = std::make_shared<gpu::Buffer>(elements.size() * sizeof(T), (gpu::Byte*)elements.data());
+    return { vertexBuffer, 0, vertexBuffer->getSize(),sizeof(T), elementType };
+}
+
+template<> gpu::BufferView bufferViewFromVector<unsigned int>(QVector<unsigned int> elements, gpu::Element elementType) { return bufferViewFromVector(elements, elementType); }
+template<> gpu::BufferView bufferViewFromVector<glm::vec3>(QVector<glm::vec3> elements, gpu::Element elementType) { return bufferViewFromVector(elements, elementType); }
+
+gpu::BufferView cloneBufferView(const gpu::BufferView& input) {
+    return gpu::BufferView(
+        std::make_shared<gpu::Buffer>(input._buffer->getSize(), input._buffer->getData()),
+        input._offset, input._size, input._stride, input._element
+        );
+}
+
+gpu::BufferView resizedBufferView(const gpu::BufferView& input, quint32 numElements) {
+    auto effectiveSize = input._buffer->getSize() / input.getNumElements();
+    qDebug() << "resize input" << input.getNumElements() << input._buffer->getSize() << "effectiveSize" << effectiveSize;
+    auto vsize = input._element.getSize() * numElements;
+    gpu::Byte *data = new gpu::Byte[vsize];
+    memset(data, 0, vsize);
+    auto buffer = new gpu::Buffer(vsize, (gpu::Byte*)data);
+    delete[] data;
+    auto output = gpu::BufferView(buffer, input._element);
+    qDebug() << "resized output" << output.getNumElements() << output._buffer->getSize();
+    return output;
+}

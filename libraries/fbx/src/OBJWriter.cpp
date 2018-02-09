@@ -15,6 +15,9 @@
 #include "OBJWriter.h"
 #include "ModelFormatLogging.h"
 
+// FIXME: should this live in shared? (it depends on gpu/)
+#include <../graphics-scripting/src/graphics-scripting/BufferViewHelpers.h>
+
 static QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.
     QString s = QString::number(n, 'f', 6);
@@ -91,7 +94,8 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(gpu::Stream::InputSlot::NORMAL);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
         for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
-            glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
+            glm::vec3 normal = glmVecFromVariant<glm::vec3>(bufferViewElementToVariant(normalsBufferView, i));
+            //glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
             out << "vn ";
             out << formatFloat(normal[0]) << " ";
             out << formatFloat(normal[1]) << " ";

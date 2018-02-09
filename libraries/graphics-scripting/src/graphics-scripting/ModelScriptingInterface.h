@@ -38,30 +38,20 @@ public slots:
      */
     void getMeshes(QUuid uuid, QScriptValue scopeOrCallback, QScriptValue methodOrName = QScriptValue());
 
-    bool dedupeVertices(scriptable::ScriptableMeshPointer meshProxy, float epsilon = 1e-6);
-    bool recalculateNormals(scriptable::ScriptableMeshPointer meshProxy);
-    QScriptValue cloneMesh(scriptable::ScriptableMeshPointer meshProxy, bool recalcNormals = true);
-    QScriptValue unrollVertices(scriptable::ScriptableMeshPointer meshProxy, bool recalcNormals = true);
-    QScriptValue mapAttributeValues(QScriptValue in,
-                                                QScriptValue scopeOrCallback,
-                                                QScriptValue methodOrName = QScriptValue());
-    QScriptValue mapMeshAttributeValues(scriptable::ScriptableMeshPointer meshProxy,
-                                                QScriptValue scopeOrCallback,
-                                                QScriptValue methodOrName = QScriptValue());
-
     QString meshToOBJ(const scriptable::ScriptableModel& in);
 
-    bool replaceMeshData(scriptable::ScriptableMeshPointer dest, scriptable::ScriptableMeshPointer source, const QVector<QString>& attributeNames = QVector<QString>());
     QScriptValue appendMeshes(scriptable::ScriptableModel in);
     QScriptValue transformMesh(scriptable::ScriptableMeshPointer meshProxy, glm::mat4 transform);
     QScriptValue newMesh(const QVector<glm::vec3>& vertices,
                                      const QVector<glm::vec3>& normals,
                                      const QVector<mesh::MeshFace>& faces);
     QScriptValue getVertexCount(scriptable::ScriptableMeshPointer meshProxy);
-    QScriptValue getVertex(scriptable::ScriptableMeshPointer meshProxy, mesh::uint32 vertexIndex);
+    QScriptValue getVertex(scriptable::ScriptableMeshPointer meshProxy, quint32 vertexIndex);
 
 private:
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMeshPointer meshProxy);
+    scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMesh& meshProxy);
+    scriptable::MeshPointer getMeshPointer(const scriptable::ScriptableMesh& meshProxy);
 
 };
 
