@@ -30,6 +30,20 @@ QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
     return _avatarHash.keys().toVector();
 }
 
+QVector<QUuid> AvatarHashMap::getAvatarsInRange(const glm::vec3& position, float rangeMeters) const {
+    auto hashCopy = getHashCopy();
+    QVector<QUuid> avatarsInRange;
+    auto rangeMeters2 = rangeMeters * rangeMeters;
+    for (const AvatarSharedPointer& sharedAvatar : hashCopy) {
+        glm::vec3 avatarPosition = sharedAvatar->getWorldPosition();
+        auto distance2 = glm::distance2(avatarPosition, position);
+        if (distance2 < rangeMeters2) {
+            avatarsInRange.push_back(sharedAvatar->getSessionUUID());
+        }
+    }
+    return avatarsInRange;
+}
+
 bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range) {
     auto hashCopy = getHashCopy();
     foreach(const AvatarSharedPointer& sharedAvatar, hashCopy) {
