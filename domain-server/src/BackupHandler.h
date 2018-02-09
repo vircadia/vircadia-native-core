@@ -95,7 +95,7 @@ public:
             zipFile.write(entitiesFile.readAll());
             zipFile.close();
             if (zipFile.getZipError() != UNZ_OK) {
-                qDebug() << "testCreate(): outFile.close(): " << zipFile.getZipError();
+                qDebug() << "Failed to zip models.json.gz: " << zipFile.getZipError();
             }
         }
     }
@@ -107,7 +107,10 @@ public:
             return;
         }
         QuaZipFile zipFile { &zip };
-        zipFile.open(QIODevice::ReadOnly);
+        if (!zipFile.open(QIODevice::ReadOnly)) {
+            qWarning() << "Failed to open models.json.gz in backup";
+            return;
+        }
         auto data = zipFile.readAll();
 
         QFile entitiesFile { _entitiesFilePath };
@@ -117,6 +120,10 @@ public:
         }
 
         zipFile.close();
+
+        if (zipFile.getZipError() != UNZ_OK) {
+            qDebug() << "Failed to zip models.json.gz: " << zipFile.getZipError();
+        }
     }
 
     // Delete a skeleton backup
