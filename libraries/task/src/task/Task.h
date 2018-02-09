@@ -31,9 +31,13 @@ class JobNoIO {};
 
 class JobContext {
 public:
+    JobContext(const QLoggingCategory& category) : profileCategory(category) {
+        assert(category);
+    }
     virtual ~JobContext() {}
 
     std::shared_ptr<JobConfig> jobConfig { nullptr };
+    const QLoggingCategory& profileCategory;
 };
 using JobContextPointer = std::shared_ptr<JobContext>;
 
@@ -163,7 +167,9 @@ public:
 
     virtual void run(const ContextPointer& jobContext) {
         PerformanceTimer perfTimer(_name.c_str());
-        //PROFILE_RANGE(render, _name.c_str());
+        //PROFILE_RANGE(foo, _name);
+        //Duration profileRangeThis(trace_foo(), name);
+        Duration profileRange(jobContext->profileCategory, _name.c_str());
         auto start = usecTimestampNow();
 
         _concept->run(jobContext);
