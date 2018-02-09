@@ -64,6 +64,7 @@ vec3 colorToLinearRGB(vec3 srgb) {
 void main(void) {
     outFragColor.a = 1.0;
     outFragColor.rgb = colorToLinearRGB(texture(colorMap, varTexCoord0).rgb);
+  //  outFragColor.rgb = texture(colorMap, varTexCoord0).rgb;
 }
 
 )SCRIBE";

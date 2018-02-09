@@ -16,7 +16,7 @@
 <@include graphics/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
 in vec4 _position;
 in vec3 _normal;
@@ -45,14 +45,18 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+
     float scattering = getMaterialScattering(mat);
+    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
     packDeferredFragment(
         normalize(_normal.xyz), 
         opacity,
         albedo,
         roughness,
-        getMaterialMetallic(mat),
+        metallic,
         emissive,
         occlusionTex,
         scattering);

@@ -12,9 +12,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-<!<@include ForwardBufferWrite.slh@> !>
-
 <@include ForwardGlobalLight.slh@>
 <$declareEvalSkyboxGlobalColor()$>
 
@@ -55,29 +52,22 @@ void main(void) {
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 viewNormal;
-    <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
-
     float metallic = getMaterialMetallic(mat);
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
-    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
-    if (metallic <= 0.5) {
-        metallic = 0.0;
-    }
-    else {
-        fresnel = albedo;
-        metallic = 1.0;
-    }
+    vec3 fresnel = getFresnelF0(metallic, albedo);
+
     vec3 fragPosition = _position.xyz;
+    vec3 fragNormal;
+    <$tangentToViewSpace(normalTex, _normal, _tangent, fragNormal)$>
 
     TransformCamera cam = getTransformCamera();
 
     vec4 color = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
-        1.0,
+        occlusionTex,
         fragPosition,
-        viewNormal,
+        fragNormal,
         albedo,
         fresnel,
         metallic,

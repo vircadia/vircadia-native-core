@@ -53,6 +53,7 @@ void main(void) {
     <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     float scattering = getMaterialScattering(mat);
+    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
     packDeferredFragment(
         normalize(viewNormal.xyz), 
