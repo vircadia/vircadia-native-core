@@ -25,7 +25,7 @@ const float DEFAULT_DESKTOP_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_
 const float DEFAULT_HMD_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_HMD_LOD_DOWN_FPS; // msec
 const float MAX_LIKELY_DESKTOP_FPS = 59.0f; // this is essentially, V-synch - 1 fps
 const float MAX_LIKELY_HMD_FPS = 74.0f; // this is essentially, V-synch - 1 fps
-const float INCREASE_LOD_GAP_FPS = 15.0f; // fps
+const float INCREASE_LOD_GAP_FPS = 10.0f; // fps
 
 // The default value DEFAULT_OCTREE_SIZE_SCALE means you can be 400 meters away from a 1 meter object in order to see it (which is ~20:20 vision).
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;

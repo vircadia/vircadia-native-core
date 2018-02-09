@@ -636,14 +636,9 @@
                 openLoginWindow();
                 break;
             case 'disableHmdPreview':
-                isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
-                DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
-                Menu.setIsOptionChecked("Disable Preview", true);
-                break;
+                break; // do nothing here, handled in marketplaces.js
             case 'maybeEnableHmdPreview':
-                DesktopPreviewProvider.setPreviewDisabledReason("USER");
-                Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
-                break;
+                break; // do nothing here, handled in marketplaces.js
             case 'passphraseReset':
                 onButtonClicked();
                 onButtonClicked();
@@ -731,11 +726,7 @@
     //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     function onTabletScreenChanged(type, url) {
-        var onWalletScreenNow = (type === "QML" && url === WALLET_QML_SOURCE);
-        if (!onWalletScreenNow && onWalletScreen) {
-            DesktopPreviewProvider.setPreviewDisabledReason("USER");
-        }
-        onWalletScreen = onWalletScreenNow;
+        onWalletScreen = (type === "QML" && url === WALLET_QML_SOURCE);
         wireEventBridge(onWalletScreen);
         // Change button to active when window is first openend, false otherwise.
         if (button) {
