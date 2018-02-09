@@ -15,7 +15,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QPlainTextEdit>
-#include <Qlabel>
+#include <QLabel>
 
 #include <shared/AbstractLoggerInterface.h>
 
