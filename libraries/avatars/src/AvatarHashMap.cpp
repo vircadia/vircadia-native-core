@@ -33,11 +33,11 @@ QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
 QVector<QUuid> AvatarHashMap::getAvatarsInRange(const glm::vec3& position, float rangeMeters) const {
     auto hashCopy = getHashCopy();
     QVector<QUuid> avatarsInRange;
-    auto rangeMeters2 = rangeMeters * rangeMeters;
+    auto rangeMetersSquared = rangeMeters * rangeMeters;
     for (const AvatarSharedPointer& sharedAvatar : hashCopy) {
         glm::vec3 avatarPosition = sharedAvatar->getWorldPosition();
-        auto distance2 = glm::distance2(avatarPosition, position);
-        if (distance2 < rangeMeters2) {
+        auto distanceSquared = glm::distance2(avatarPosition, position);
+        if (distanceSquared < rangeMetersSquared) {
             avatarsInRange.push_back(sharedAvatar->getSessionUUID());
         }
     }
