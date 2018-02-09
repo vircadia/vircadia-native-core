@@ -6,6 +6,8 @@ under the MIT and GPL licenses
 For usage and examples: colpick.com/plugin
  */
 
+/* global console, document, Element, EventBridge, jQuery, navigator, window, _ $ */
+
 (function ($) {
     var colpick = function () {
         var
