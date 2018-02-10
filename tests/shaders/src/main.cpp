@@ -101,6 +101,7 @@ public:
 
         show();
         makeCurrent();
+        gl::initModuleGl();
         gpu::Context::init<gpu::gl::GLBackend>();
         makeCurrent();
         resize(QSize(800, 600));
@@ -135,7 +136,7 @@ const std::string PIXEL_SHADER_DEFINES{ R"GLSL(
 #define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
 )GLSL" };
 
-void testShaderBuild(const char* vs_src, const char * fs_src) {
+void testShaderBuild(const std::string& vs_src, const std::string& fs_src) {
     std::string error;
     std::vector<char> binary;
     GLuint vs, fs;
@@ -160,54 +161,54 @@ void QTestWindow::draw() {
 
     static std::once_flag once;
     std::call_once(once, [&]{
-        testShaderBuild(sdf_text3D_vert, sdf_text3D_frag);
+        testShaderBuild(sdf_text3D_vert::getSource(), sdf_text3D_frag::getSource());
 
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawTexture_frag);
-        testShaderBuild(DrawTexcoordRectTransformUnitQuad_vert, DrawTexture_frag);
-        testShaderBuild(DrawViewportQuadTransformTexcoord_vert, DrawTexture_frag);
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawTextureOpaque_frag);
-        testShaderBuild(DrawTransformUnitQuad_vert, DrawColoredTexture_frag);
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawTexcoordRectTransformUnitQuad_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawViewportQuadTransformTexcoord_vert::getSource(), DrawTexture_frag::getSource());
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawTextureOpaque_frag::getSource());
+        testShaderBuild(DrawTransformUnitQuad_vert::getSource(), DrawColoredTexture_frag::getSource());
 
-        testShaderBuild(skybox_vert, skybox_frag);
-        testShaderBuild(simple_vert, simple_frag);
-        testShaderBuild(simple_vert, simple_textured_frag);
-        testShaderBuild(simple_vert, simple_textured_unlit_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
-        testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
-        testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag);
+        testShaderBuild(skybox_vert::getSource(), skybox_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_textured_frag::getSource());
+        testShaderBuild(simple_vert::getSource(), simple_textured_unlit_frag::getSource());
+        testShaderBuild(deferred_light_vert::getSource(), directional_ambient_light_frag::getSource());
+        testShaderBuild(deferred_light_vert::getSource(), directional_skybox_light_frag::getSource());
+        testShaderBuild(standardTransformPNTC_vert::getSource(), standardDrawTexture_frag::getSource());
+        testShaderBuild(standardTransformPNTC_vert::getSource(), DrawTextureOpaque_frag::getSource());
 
-        testShaderBuild(model_vert, model_frag);
-        testShaderBuild(model_normal_map_vert, model_normal_map_frag);
-        testShaderBuild(model_vert, model_specular_map_frag);
-        testShaderBuild(model_normal_map_vert, model_normal_specular_map_frag);
-        testShaderBuild(model_vert, model_translucent_frag);
-        testShaderBuild(model_normal_map_vert, model_translucent_frag);
-        testShaderBuild(model_lightmap_vert, model_lightmap_frag);
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_map_frag);
-        testShaderBuild(model_lightmap_vert, model_lightmap_specular_map_frag);
-        testShaderBuild(model_lightmap_normal_map_vert, model_lightmap_normal_specular_map_frag);
+        testShaderBuild(model_vert::getSource(), model_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
+        testShaderBuild(model_vert::getSource(), model_specular_map_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
+        testShaderBuild(model_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(model_normal_map_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_frag::getSource());
+        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_map_frag::getSource());
+        testShaderBuild(model_lightmap_vert::getSource(), model_lightmap_specular_map_frag::getSource());
+        testShaderBuild(model_lightmap_normal_map_vert::getSource(), model_lightmap_normal_specular_map_frag::getSource());
 
-        testShaderBuild(skin_model_vert, model_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_normal_map_frag);
-        testShaderBuild(skin_model_vert, model_specular_map_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_normal_specular_map_frag);
-        testShaderBuild(skin_model_vert, model_translucent_frag);
-        testShaderBuild(skin_model_normal_map_vert, model_translucent_frag);
+        testShaderBuild(skin_model_vert::getSource(), model_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_map_frag::getSource());
+        testShaderBuild(skin_model_vert::getSource(), model_specular_map_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_normal_specular_map_frag::getSource());
+        testShaderBuild(skin_model_vert::getSource(), model_translucent_frag::getSource());
+        testShaderBuild(skin_model_normal_map_vert::getSource(), model_translucent_frag::getSource());
 
-        testShaderBuild(model_shadow_vert, model_shadow_frag);
-        testShaderBuild(textured_particle_vert, textured_particle_frag);
+        testShaderBuild(model_shadow_vert::getSource(), model_shadow_frag::getSource());
+        testShaderBuild(textured_particle_vert::getSource(), textured_particle_frag::getSource());
 /* FIXME: Bring back the ssao shader tests
-        testShaderBuild(gaussian_blur_vertical_vert, gaussian_blur_frag);
-        testShaderBuild(gaussian_blur_horizontal_vert, gaussian_blur_frag);
-        testShaderBuild(ambient_occlusion_vert, ambient_occlusion_frag);
-        testShaderBuild(ambient_occlusion_vert, occlusion_blend_frag);
+        testShaderBuild(gaussian_blur_vert::getSource()ical_vert::getSource(), gaussian_blur_frag::getSource());
+        testShaderBuild(gaussian_blur_horizontal_vert::getSource(), gaussian_blur_frag::getSource());
+        testShaderBuild(ambient_occlusion_vert::getSource(), ambient_occlusion_frag::getSource());
+        testShaderBuild(ambient_occlusion_vert::getSource(), occlusion_blend_frag::getSource());
 */
 
-        testShaderBuild(overlay3D_vert, overlay3D_frag);
+        testShaderBuild(overlay3D_vert::getSource(), overlay3D_frag::getSource());
 
-        testShaderBuild(paintStroke_vert,paintStroke_frag);
-        testShaderBuild(polyvox_vert, polyvox_frag);
+        testShaderBuild(paintStroke_vert::getSource(),paintStroke_frag::getSource());
+        testShaderBuild(polyvox_vert::getSource(), polyvox_frag::getSource());
 
     });
     _context.swapBuffers(this);

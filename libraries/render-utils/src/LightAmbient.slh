@@ -75,10 +75,10 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     ) {
 
     // Rotate surface normal and eye direction
-    vec3 ambientSpaceSurfaceNormal = (ambient.transform * vec4(surface.normal,   0.0)).xyz;
-    vec3 ambientSpaceSurfaceEyeDir = (ambient.transform * vec4(surface.eyeDir,   0.0)).xyz;
+    vec3 ambientSpaceSurfaceNormal = (ambient.transform * vec4(surface.normal, 0.0)).xyz;
+    vec3 ambientSpaceSurfaceEyeDir = (ambient.transform * vec4(surface.eyeDir, 0.0)).xyz;
 <@if supportScattering@>
-    vec3 ambientSpaceLowNormalCurvature = (ambient.transform * lowNormalCurvature).xyz;
+    vec3 ambientSpaceLowNormal = (ambient.transform * vec4(lowNormalCurvature.xyz, 0.0)).xyz;
 <@endif@>
 
     vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface.ndotv, 1.0-surface.roughness);
@@ -99,7 +99,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
         obscurance = min(obscurance, ambientOcclusion);
 
         // Diffuse from ambient
-        diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), ambientSpaceLowNormalCurvature).xyz;
+        diffuse = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), ambientSpaceLowNormal).xyz;
 
         // Scattering ambient specular is the same as non scattering for now
         // TODO: we should use the same specular answer as for direct lighting

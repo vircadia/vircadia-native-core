@@ -605,8 +605,8 @@ void DebugLightClusters::configure(const Config& config) {
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterGridPipeline() {
     if (!_drawClusterGrid) {
-        auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawGrid_vert));
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawGrid_frag));
+        auto vs = lightClusters_drawGrid_vert::getShader();
+        auto ps = lightClusters_drawGrid_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -635,7 +635,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
     if (!_drawClusterFromDepth) {
        // auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawGrid_vert));
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawClusterFromDepth_frag));
+        auto ps = lightClusters_drawClusterFromDepth_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -665,7 +665,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
     if (!_drawClusterContent) {
       //  auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawClusterContent_vert));
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawClusterContent_frag));
+        auto ps = lightClusters_drawClusterContent_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
