@@ -1448,10 +1448,20 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    if (skeletonModelURL != _skeletonModelURL) {
-        _shouldInitHeadBones = true;
-    }
-
+    _skeletonModelChangeCount++;
+     int skeletonModelChangeCount = _skeletonModelChangeCount;
+     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
+     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
+            qDebug() << "checkingCount " << skeletonModelChangeCount << " -- " << _skeletonModelChangeCount;
+            if (skeletonModelChangeCount == _skeletonModelChangeCount && _skeletonModel->isLoaded()) {
+                qDebug() << "count is the same";
+                initHeadBones();
+                _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+                _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+                initAnimGraph();
+            }
+            QObject::disconnect(*skeletonConnection);
+    });
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
@@ -1878,6 +1888,7 @@ void MyAvatar::initAnimGraph() {
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
+    qDebug() << "init anim graph";
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
@@ -1896,15 +1907,6 @@ void MyAvatar::animGraphLoaded() {
 void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
-
-    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode() && _shouldInitHeadBones) {
-        initHeadBones();
-        _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-        _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-        initAnimGraph();
-        _shouldInitHeadBones = false;
-    }
-
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
 
         auto animSkeleton = _skeletonModel->getRig().getAnimSkeleton();

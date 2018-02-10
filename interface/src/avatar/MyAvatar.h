@@ -654,6 +654,7 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+    int _skeletonModelChangeCount { 0 };
 
     void saveAvatarScale();
 
