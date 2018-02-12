@@ -15,6 +15,7 @@ var bottombar;
 var bottomHudOptionsBar;
 var gotoBtn;
 var avatarBtn;
+var bubbleBtn;
 var loginBtn;
 
 var gotoScript = Script.require('./goto.js');
@@ -115,6 +116,25 @@ function setupBottomBar() {
         } else {
             hideAddressBar();
         }
+    });
+
+    bubbleBtn = bottombar.addButton({
+        icon: "icons/bubble-i.svg",
+        activeIcon: "icons/bubble-a.svg",
+        bgOpacity: 0,
+        hoverBgOpacity: 0,
+        activeBgOpacity: 0,
+        activeHoverBgOpacity: 0,
+        height: 240,
+        width: 294,
+        iconSize: 108,
+        textSize: 45,
+        text: "BUBBLE"
+    });
+
+    bubbleBtn.clicked.connect(function() {
+        Users.toggleIgnoreRadius();
+        bubbleBtn.editProperties({isActive: Users.getIgnoreRadiusEnabled()});
     });
 
     loginBtn = bottombar.addButton({
