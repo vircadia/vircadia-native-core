@@ -61,7 +61,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(BloomThreshold_frag));
+        auto ps = BloomThreshold_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -113,7 +113,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(BloomApply_frag));
+        auto ps = BloomApply_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

@@ -13,7 +13,7 @@
 #ifndef hifi_ACClientApp_h
 #define hifi_ACClientApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <udt/Constants.h>
 #include <udt/Socket.h>
 #include <ReceivedMessage.h>
