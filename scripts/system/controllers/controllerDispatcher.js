@@ -479,7 +479,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
     }
     function mouseReleaseOnOverlay(overlayID, event) {
-        if (overlayID === HMD.homeButtonID && event.button === "Primary") {
+        if (HMD.homeButtonID && overlayID === HMD.homeButtonID && event.button === "Primary") {
             Messages.sendLocalMessage("home", overlayID);
         }
     }
