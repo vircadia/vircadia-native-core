@@ -959,6 +959,18 @@ void MyAvatar::restoreRoleAnimation(const QString& role) {
     _skeletonModel->getRig().restoreRoleAnimation(role);
 }
 
+void MyAvatar::saveAvatarUrl() {
+    Settings settings;
+    settings.beginGroup("Avatar");
+    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
+        settings.setValue("fullAvatarURL",
+                          _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                          "" :
+                          _fullAvatarURLFromPreferences.toString());
+    }
+    settings.endGroup();
+}
+
 void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
@@ -1452,6 +1464,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
+    saveAvatarUrl();
     emit skeletonChanged();
 
 }
