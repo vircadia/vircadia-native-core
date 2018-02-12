@@ -148,7 +148,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
         }
         // Draw the LOD Reticle
         {
-            float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+            float angle = glm::degrees(getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
             Transform crosshairModel;
             crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1000.0));
             crosshairModel.setScale(1000.0f * tanf(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
