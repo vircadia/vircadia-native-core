@@ -253,7 +253,6 @@ private:
     bool _sendICEServerAddressToMetaverseAPIRedo { false };
 
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
-    BackupSupervisor _backupSupervisor;
 
     QThread _assetClientThread;
 };

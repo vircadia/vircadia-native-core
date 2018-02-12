@@ -53,7 +53,6 @@ private:
     bool writeBackupFile(const AssetUtils::AssetMappings& mappings);
     bool writeAssetFile(const AssetUtils::AssetHash& hash, const QByteArray& data);
 
-
     void startRestore() { _restoreInProgress = true; }
     void finishRestore() { _restoreInProgress = false; }
     void computeServerStateDifference(const AssetUtils::AssetMappings& currentMappings,
@@ -75,7 +74,7 @@ private:
     bool _backupInProgress { false };
     std::vector<AssetUtils::AssetHash> _assetsLeftToRequest;
 
-    // Internal storage for restor in progress
+    // Internal storage for restore in progress
     bool _restoreInProgress { false };
     std::vector<AssetUtils::AssetHash> _assetsLeftToUpload;
     std::vector<std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash>> _mappingsLeftToSet;

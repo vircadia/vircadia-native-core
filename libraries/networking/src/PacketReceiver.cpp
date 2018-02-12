@@ -315,7 +315,7 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
             }
         } else {
             qCDebug(networking).nospace() << "Listener for packet " << receivedMessage->getType()
-            << " has been destroyed. Removing from listener map.";
+                << " has been destroyed. Removing from listener map.";
             it = _messageListenerMap.erase(it);
 
             // if it exists, remove the listener from _directlyConnectedObjects

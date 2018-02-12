@@ -108,6 +108,7 @@ bool BackupSupervisor::loadBackup(const QString& backupFile) {
     auto document = QJsonDocument::fromJson(file.readAll(), &error);
     if (document.isNull() || !document.isObject()) {
         qCritical() << "Could not parse backup file to JSON object:" << backupFile;
+        qCritical() << "    Error:" << error.errorString();
         backup.corruptedBackup = true;
         return false;
     }
@@ -165,7 +166,6 @@ void BackupSupervisor::backupAssetServer() {
     });
 
     startBackup();
-    qDebug() << "Requesting mappings for backup!";
     request->start();
 }
 
@@ -197,7 +197,7 @@ void BackupSupervisor::backupNextMissingFile() {
         if (request->getError() == AssetRequest::NoError) {
             qDebug() << "Got" << request->getHash();
 
-            bool success = writeAssetFile(request->getHash(),request->getData());
+            bool success = writeAssetFile(request->getHash(), request->getData());
             if (!success) {
                 qCritical() << "Failed to write asset file" << request->getHash();
             }
@@ -263,8 +263,6 @@ void BackupSupervisor::restoreAssetServer(int backupIndex) {
     auto request = assetClient->createGetAllMappingsRequest();
 
     connect(request, &GetAllMappingsRequest::finished, this, [this, backupIndex](GetAllMappingsRequest* request) {
-        qDebug() << "Got" << request->getMappings().size() << "mappings!";
-
         if (request->getError() == MappingRequest::NoError) {
             const auto& newMappings = _backups.at(backupIndex).mappings;
             computeServerStateDifference(request->getMappings(), newMappings);
@@ -278,7 +276,6 @@ void BackupSupervisor::restoreAssetServer(int backupIndex) {
     });
 
     startRestore();
-    qDebug() << "Requesting mappings for restore!";
     request->start();
 }
 
