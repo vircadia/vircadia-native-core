@@ -1469,13 +1469,13 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
-            if (skeletonModelChangeCount == _skeletonModelChangeCount) {
-                initHeadBones();
-                _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-                _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-                initAnimGraph();
-            }
-            QObject::disconnect(*skeletonConnection);
+       if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+           initHeadBones();
+           _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+           _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+           initAnimGraph();
+       }
+       QObject::disconnect(*skeletonConnection);
     });
     saveAvatarUrl();
     emit skeletonChanged();
