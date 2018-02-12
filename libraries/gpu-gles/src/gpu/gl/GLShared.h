@@ -9,10 +9,13 @@
 #define hifi_gpu_GLShared_h
 
 #include <gl/Config.h>
+#include <gl/GLHelpers.h>
+
 #include <gpu/Forward.h>
 #include <gpu/Format.h>
 #include <gpu/Context.h>
 #include <QLoggingCategory>
+
 
 Q_DECLARE_LOGGING_CATEGORY(gpugllogging)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu_gl)
@@ -142,8 +145,6 @@ class GLTexture;
 struct ShaderObject;
 
 } } // namespace gpu::gl 
-
-#define CHECK_GL_ERROR() gpu::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif
 

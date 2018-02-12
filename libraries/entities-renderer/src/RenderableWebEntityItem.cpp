@@ -221,19 +221,17 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
         });
     };
 
-    {
-    	// FIXME use the surface cache instead of explicit creation
-        _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
-        _webSurface->create();
-    }
-
+    // FIXME use the surface cache instead of explicit creation
+    _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), deleter);
     // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
     // and the current rendering load)
     _webSurface->setMaxFps(DEFAULT_MAX_FPS);
-    // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
-    _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
-    // Let us interact with the keyboard
-    _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+        // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
+        surfaceContext->setContextProperty("desktop", QVariant());
+        // Let us interact with the keyboard
+        surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
+    });
     _fadeStartTime = usecTimestampNow();
     loadSourceURL();
     _webSurface->resume();

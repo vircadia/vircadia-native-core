@@ -13,6 +13,8 @@
 #include <functional>
 #include <QJsonObject>
 
+#include "GLLogging.h"
+
 // 16 bits of depth precision
 #define DEFAULT_GL_DEPTH_BUFFER_BITS 16
 // 8 bits of stencil buffer (typically you really only need 1 bit for functionality
@@ -43,6 +45,13 @@ bool isRenderThread();
 
 namespace gl {
     void withSavedContext(const std::function<void()>& f);
-}
+
+    bool checkGLError(const char* name);
+
+    bool checkGLErrorDebug(const char* name);
+
+} // namespace gl
+
+#define CHECK_GL_ERROR() ::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif

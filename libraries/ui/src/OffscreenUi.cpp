@@ -127,13 +127,17 @@ void OffscreenUi::removeModalDialog(QObject* modal) {
     }
 }
 
-void OffscreenUi::create() {
-    OffscreenQmlSurface::create();
-    auto myContext = getSurfaceContext();
+void OffscreenUi::onRootContextCreated(QQmlContext* qmlContext) {
+    OffscreenQmlSurface::onRootContextCreated(qmlContext);
+    qmlContext->setContextProperty("OffscreenUi", this);
+    qmlContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    qmlContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+#ifdef DEBUG
+    qmlContext->setContextProperty("DebugQML", QVariant(true));
+#else 
+    qmlContext->setContextProperty("DebugQML", QVariant(false));
+#endif
 
-    myContext->setContextProperty("OffscreenUi", this);
-    myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -655,12 +659,6 @@ void OffscreenUi::createDesktop(const QUrl& url) {
         qCDebug(uiLogging) << "Desktop already created";
         return;
     }
-
-#ifdef DEBUG
-    getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
-#else 
-    getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
-#endif
 
     load(url, [=](QQmlContext* context, QObject* newObject) {
         Q_UNUSED(context)
