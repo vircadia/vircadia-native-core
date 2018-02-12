@@ -138,6 +138,7 @@
 #include <recording/Recorder.h>
 #include <shared/StringHelpers.h>
 #include <QmlWebWindowClass.h>
+#include <QmlFragmentClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 #include <trackers/EyeTracker.h>
@@ -2825,7 +2826,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
         // If this is a first run we short-circuit the address passed in
         if (firstRun.get()) {
+#if !defined(Q_OS_ANDROID)
             showHelp();
+#endif            
             if (sandboxIsRunning) {
                 qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                 DependencyManager::get<AddressManager>()->goToLocalSandbox();
@@ -5863,6 +5866,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
 #endif
     scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
+    scriptEngine->registerFunction("QmlFragment", QmlFragmentClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());
