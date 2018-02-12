@@ -430,12 +430,12 @@ bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
     return  qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
 }
 
-void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
+void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
+    qApp->takeSnapshot(notify, includeAnimated, aspectRatio, filename);
 }
 
-void WindowScriptingInterface::takeSecondaryCameraSnapshot() {
-    qApp->takeSecondaryCameraSnapshot();
+void WindowScriptingInterface::takeSecondaryCameraSnapshot(const QString& filename) {
+    qApp->takeSecondaryCameraSnapshot(filename);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
