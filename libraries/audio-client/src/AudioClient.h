@@ -182,10 +182,8 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleMicAudioInput();
-#if defined(Q_OS_ANDROID)
     void audioInputStateChanged(QAudio::State state);
     void checkInputTimeout();
-#endif
     void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();

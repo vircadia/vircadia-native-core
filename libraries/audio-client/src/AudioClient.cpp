@@ -1587,8 +1587,8 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
     return supportedFormat;
 }
 
-#if defined(Q_OS_ANDROID)
 void AudioClient::audioInputStateChanged(QAudio::State state) {
+#if defined(Q_OS_ANDROID)
     switch (state) {
         case QAudio::StoppedState:
             if (!_audioInput) {
@@ -1609,16 +1609,18 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
         default:
             break;
     }
+#endif
 }
 
 void AudioClient::checkInputTimeout() {
+#if defined(Q_OS_ANDROID)
     if (_audioInput && _inputReadsSinceLastCheck < MIN_READS_TO_CONSIDER_INPUT_ALIVE) {
         _audioInput->stop();
     } else {
         _inputReadsSinceLastCheck = 0;
     }
-}
 #endif
+}
 
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
