@@ -989,7 +989,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             }
 
             sendPacket(std::move(setAvatarGainPacket), *audioMixer);
-            QWriteLocker{ &_avatarGainMapLock };
+            QWriteLocker lock{ &_avatarGainMapLock };
             _avatarGainMap[nodeID] = gain;
 
         } else {
@@ -1001,7 +1001,7 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
 }
 
 float NodeList::getAvatarGain(const QUuid& nodeID) {
-    QReadLocker{ &_avatarGainMapLock };
+    QReadLocker lock{ &_avatarGainMapLock };
     auto it = _avatarGainMap.find(nodeID);
     if (it != _avatarGainMap.cend()) {
         return it->second;

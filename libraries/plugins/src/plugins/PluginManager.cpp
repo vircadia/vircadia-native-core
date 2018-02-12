@@ -214,9 +214,10 @@ const DisplayPluginList& PluginManager::getDisplayPlugins() {
 }
 
 void PluginManager::disableDisplayPlugin(const QString& name) {
-    std::remove_if(_displayPlugins.begin(), _displayPlugins.end(), [&](const DisplayPluginPointer& plugin){
+    auto it = std::remove_if(_displayPlugins.begin(), _displayPlugins.end(), [&](const DisplayPluginPointer& plugin){
         return plugin->getName() == name;
     });
+    _displayPlugins.erase(it, _displayPlugins.end());
 }
 
 
