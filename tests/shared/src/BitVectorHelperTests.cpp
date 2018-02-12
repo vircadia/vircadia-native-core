@@ -20,8 +20,6 @@
 
 QTEST_MAIN(BitVectorHelperTests)
 
-const int BITS_IN_BYTE = 8;
-
 void BitVectorHelperTests::sizeTest() {
     std::vector<int> sizes = {0, 6, 7, 8, 30, 31, 32, 33, 87, 88, 89, 90, 90, 91, 92, 93};
     for (auto& size : sizes) {

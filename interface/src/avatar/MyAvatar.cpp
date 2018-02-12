@@ -959,6 +959,18 @@ void MyAvatar::restoreRoleAnimation(const QString& role) {
     _skeletonModel->getRig().restoreRoleAnimation(role);
 }
 
+void MyAvatar::saveAvatarUrl() {
+    Settings settings;
+    settings.beginGroup("Avatar");
+    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
+        settings.setValue("fullAvatarURL",
+                          _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                          "" :
+                          _fullAvatarURLFromPreferences.toString());
+    }
+    settings.endGroup();
+}
+
 void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
@@ -1455,8 +1467,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
 
-     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
-     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
+    std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
+    *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
             if (skeletonModelChangeCount == _skeletonModelChangeCount) {
                 initHeadBones();
                 _skeletonModel->setCauterizeBoneSet(_headBoneSet);
@@ -1465,6 +1477,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
             }
             QObject::disconnect(*skeletonConnection);
     });
+    saveAvatarUrl();
     emit skeletonChanged();
 
 }

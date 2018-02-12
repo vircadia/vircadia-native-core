@@ -208,7 +208,7 @@ Script.include("/~/system/libraries/Xform.js");
             var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
             var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
 
-            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, ["position"]);
+            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, GRABBABLE_PROPERTIES);
             var now = Date.now();
             var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
             this.currentObjectTime = now;
@@ -369,6 +369,14 @@ Script.include("/~/system/libraries/Xform.js");
             }
         };
 
+        this.targetIsNull = function() {
+            var properties = Entities.getEntityProperties(this.grabbedThingID);
+            if (Object.keys(properties).length === 0 && this.distanceHolding) {
+                return true;
+            }
+            return false;
+        }
+
         this.isReady = function (controllerData) {
             if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
@@ -391,7 +399,7 @@ Script.include("/~/system/libraries/Xform.js");
 
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData)) {
+                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
                 this.endNearGrabAction();
                 return makeRunningValues(false, [], []);
             }
