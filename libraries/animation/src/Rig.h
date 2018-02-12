@@ -283,7 +283,6 @@ protected:
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
-    bool _animLoading { false };
     AnimVariantMap _animVars;
     enum class RigRole {
         Idle = 0,

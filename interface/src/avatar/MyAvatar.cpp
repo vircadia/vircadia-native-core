@@ -1450,11 +1450,14 @@ void MyAvatar::clearJointsData() {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
      int skeletonModelChangeCount = _skeletonModelChangeCount;
+    Avatar::setSkeletonModelURL(skeletonModelURL);
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
+    _headBoneSet.clear();
+    _cauterizationNeedsUpdate = true;
+
      std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
      *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
-            qDebug() << "checkingCount " << skeletonModelChangeCount << " -- " << _skeletonModelChangeCount;
-            if (skeletonModelChangeCount == _skeletonModelChangeCount && _skeletonModel->isLoaded()) {
-                qDebug() << "count is the same";
+            if (skeletonModelChangeCount == _skeletonModelChangeCount) {
                 initHeadBones();
                 _skeletonModel->setCauterizeBoneSet(_headBoneSet);
                 _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
@@ -1462,10 +1465,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
             }
             QObject::disconnect(*skeletonConnection);
     });
-    Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
-    _headBoneSet.clear();
-    _cauterizationNeedsUpdate = true;
     emit skeletonChanged();
 
 }
@@ -1888,7 +1887,6 @@ void MyAvatar::initAnimGraph() {
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
-    qDebug() << "init anim graph";
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
