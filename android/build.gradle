@@ -77,8 +77,8 @@ if (Os.isFamily(Os.FAMILY_MAC)) {
     qtVersionId='HygCmtMLPYioyil0DfXckGVzhw2SXZA9'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp_openssl.tgz'
-    qtChecksum='40c77160dcc583b44a61f40ab2ad2174'
-    qtVersionId='Z7qRRW46qyWbzUA0nVE0ZPQJCvl9Y0EP'
+    qtChecksum='c3e25db64002d0f43cf565e0ef708911'
+    qtVersionId='HeVObSVLCBoc7yY7He1oBMvPIH0VkClT'
 }
 
 def packages = [
