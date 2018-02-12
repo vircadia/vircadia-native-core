@@ -18,6 +18,9 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
     if (entity->getParentID() != _parentID || entity->getClientOnly() != _clientOnly || entity->getOwningAvatarID() != _owningAvatarID) {
         return true;
     }
+    if (entity->getMaterialPos() != _materialPos || entity->getMaterialScale() != _materialScale || entity->getMaterialRot() != _materialRot) {
+        return true;
+    }
     return false;
 }
 
@@ -27,6 +30,9 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
         _parentID = entity->getParentID();
         _clientOnly = entity->getClientOnly();
         _owningAvatarID = entity->getOwningAvatarID();
+        _materialPos = entity->getMaterialPos();
+        _materialScale = entity->getMaterialScale();
+        _materialRot = entity->getMaterialRot();
         _renderTransform = getModelTransform();
         const float MATERIAL_ENTITY_SCALE = 0.5f;
         _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
@@ -91,7 +97,7 @@ glm::vec3 MaterialEntityRenderer::getVertexPos(float phi, float theta) {
 }
 
 glm::vec3 MaterialEntityRenderer::getTangent(float phi, float theta) {
-    return glm::vec3(-glm::cos(theta) * glm::cos(phi), 0, -glm::cos(theta) * glm::sin(phi));
+    return glm::vec3(-glm::cos(theta) * glm::cos(phi), glm::sin(theta), -glm::cos(theta) * glm::sin(phi));
 }
 
 void MaterialEntityRenderer::addVertex(std::vector<float>& buffer, const glm::vec3& pos, const glm::vec3& tan, const glm::vec2 uv) {
@@ -227,16 +233,21 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     QUuid parentID;
     Transform renderTransform;
     graphics::MaterialPointer drawMaterial;
+    Transform textureTransform;
     withReadLock([&] {
         parentID = _clientOnly ? _owningAvatarID : _parentID;
         renderTransform = _renderTransform;
         drawMaterial = _drawMaterial;
+        textureTransform.setTranslation(glm::vec3(_materialPos, 0));
+        textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialRot)));
+        textureTransform.setScale(glm::vec3(_materialScale, 1));
     });
     if (!parentID.isNull() || !drawMaterial) {
         return;
     }
 
     batch.setModelTransform(renderTransform);
+    drawMaterial->setTextureTransforms(textureTransform);
 
     // bind the material
     args->_shapePipeline->bindMaterial(drawMaterial, batch, args->_enableTexturing);
