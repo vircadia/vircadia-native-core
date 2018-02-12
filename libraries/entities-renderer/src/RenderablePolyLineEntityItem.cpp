@@ -48,8 +48,8 @@ struct PolyLineUniforms {
 
 static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
     if (!polylinePipeline) {
-        auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
-        auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+        auto VS = paintStroke_vert::getShader();
+        auto PS = paintStroke_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
         auto fadeVS = gpu::Shader::createVertex(std::string(paintStroke_fade_vert));

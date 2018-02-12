@@ -15,6 +15,7 @@
 #include "OBJReader.h"
 
 #include <ctype.h>  // .obj files are not locale-specific. The C/ASCII charset applies.
+#include <sstream> 
 
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
@@ -34,6 +35,11 @@ QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as uni
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
 
 const QString SMART_DEFAULT_MATERIAL_NAME = "High Fidelity smart default material name";
+
+const float ILLUMINATION_MODEL_MIN_OPACITY = 0.1f;
+const float ILLUMINATION_MODEL_APPLY_SHININESS = 0.5f;
+const float ILLUMINATION_MODEL_APPLY_ROUGHNESS = 1.0f;
+const float ILLUMINATION_MODEL_APPLY_NON_METALLIC = 0.0f;
 
 namespace {
 template<class T>
@@ -70,6 +76,7 @@ int OBJTokenizer::nextToken(bool allowSpaceChar /*= false*/) {
         }
         switch (ch) {
             case '#': {
+                _datum = "";
                 _comment = _device->readLine(); // stash comment for a future call to getComment
                 return COMMENT_TOKEN;
             }
@@ -256,7 +263,14 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader Last material shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity << " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << currentMaterial.specularColor << " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" << currentMaterial.specularTextureFilename;
+                qCDebug(modelformat) << "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
+                                     " shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity <<
+                                     " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << 
+                                     currentMaterial.specularColor << " emissive color:" << currentMaterial.emissiveColor << 
+                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" <<
+                                     currentMaterial.specularTextureFilename << " emissive texture:" <<
+                                     currentMaterial.emissiveTextureFilename << " bump texture:" <<
+                                     currentMaterial.bumpTextureFilename;
                 #endif
                 return;
         }
@@ -272,20 +286,46 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
             currentMaterial.diffuseTextureFilename = "";
+            currentMaterial.emissiveTextureFilename = "";
+            currentMaterial.specularTextureFilename = "";
+            currentMaterial.bumpTextureFilename = "";
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
-        } else if ((token == "d") || (token == "Tr")) {
+        } else if (token == "Ni") {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ni " << tokenizer.getFloat();
+            #else
+            tokenizer.getFloat();
+            #endif
+        } else if (token == "d") {
             currentMaterial.opacity = tokenizer.getFloat();
+        } else if (token == "Tr") {
+            currentMaterial.opacity = 1.0f - tokenizer.getFloat();
+        } else if (token == "illum") {
+            currentMaterial.illuminationModel = tokenizer.getFloat();
+        } else if (token == "Tf") {
+            #ifdef WANT_DEBUG
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Tf " << tokenizer.getVec3();
+            #else
+            tokenizer.getVec3();
+            #endif
         } else if (token == "Ka") {
             #ifdef WANT_DEBUG
-            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();
+            qCDebug(modelformat) << "OBJ Reader Ignoring material Ka " << tokenizer.getVec3();;
+            #else
+            tokenizer.getVec3();
             #endif
         } else if (token == "Kd") {
             currentMaterial.diffuseColor = tokenizer.getVec3();
+        } else if (token == "Ke") {
+            currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Kd") || (token == "map_Ks")) {
-            QByteArray filename = QUrl(tokenizer.getLineAsDatum()).fileName().toUtf8();
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump")) {
+            const QByteArray textureLine = tokenizer.getLineAsDatum();
+            QByteArray filename;
+            OBJMaterialTextureOptions textureOptions;
+            parseTextureLine(textureLine, filename, textureOptions);
             if (filename.endsWith(".tga")) {
                 #ifdef WANT_DEBUG
                 qCDebug(modelformat) << "OBJ Reader WARNING: currently ignoring tga texture " << filename << " in " << _url;
@@ -294,9 +334,102 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             }
             if (token == "map_Kd") {
                 currentMaterial.diffuseTextureFilename = filename;
-            } else if( token == "map_Ks" ) {
+            } else if (token == "map_Ke") {
+                currentMaterial.emissiveTextureFilename = filename;
+            } else if (token == "map_Ks" ) {
                 currentMaterial.specularTextureFilename = filename;
+            } else if ((token == "map_bump") || (token == "bump")) {
+                currentMaterial.bumpTextureFilename = filename;
+                currentMaterial.bumpTextureOptions = textureOptions;
             }
+        }
+    }
+} 
+
+void OBJReader::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
+    // Texture options reference http://paulbourke.net/dataformats/mtl/
+    // and https://wikivisually.com/wiki/Material_Template_Library
+
+    std::istringstream iss(textureLine.toStdString());
+    const std::vector<std::string> parser(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+
+    uint i = 0;
+    while (i < parser.size()) {
+        if (i + 1 < parser.size() && parser[i][0] == '-') {
+            const std::string& option = parser[i++];
+            if (option == "-blendu" || option == "-blendv") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-bm") {
+                const std::string& bm = parser[i++];
+                textureOptions.bumpMultiplier = std::stof(bm);
+            } else if (option == "-boost") {
+                #ifdef WANT_DEBUG
+                const std::string& boost = parser[i++];
+                float boostFloat = std::stof(boost);
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << boost.c_str();
+                #endif
+            } else if (option == "-cc") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-clamp") {
+                #ifdef WANT_DEBUG
+                const std::string& onoff = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << onoff.c_str();
+                #endif
+            } else if (option == "-imfchan") {
+                #ifdef WANT_DEBUG
+                const std::string& imfchan = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << imfchan.c_str();
+                #endif
+            } else if (option == "-mm") {
+                if (i + 1 < parser.size()) {
+                    #ifdef WANT_DEBUG
+                    const std::string& mmBase = parser[i++];
+                    const std::string& mmGain = parser[i++];
+                    float mmBaseFloat = std::stof(mmBase);
+                    float mmGainFloat = std::stof(mmGain);
+                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << mmBase.c_str() << mmGain.c_str();
+                    #endif
+                }
+            } else if (option == "-o" || option == "-s" || option == "-t") {
+                if (i + 2 < parser.size()) {
+                    #ifdef WANT_DEBUG
+                    const std::string& u = parser[i++];
+                    const std::string& v = parser[i++];
+                    const std::string& w = parser[i++];
+                    float uFloat = std::stof(u);
+                    float vFloat = std::stof(v);
+                    float wFloat = std::stof(w);
+                    qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << u.c_str() << v.c_str() << w.c_str();
+                    #endif
+                }
+            } else if (option == "-texres") {
+                #ifdef WANT_DEBUG
+                const std::string& texres = parser[i++];
+                float texresFloat = std::stof(texres);
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << texres.c_str();
+                #endif
+            } else if (option == "-type") {
+                #ifdef WANT_DEBUG
+                const std::string& type = parser[i++];
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring texture option" << option.c_str() << type.c_str();
+                #endif
+            } else if (option[0] == '-') {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader WARNING: Ignoring unsupported texture option" << option.c_str();
+                #endif
+            }
+        } else { // assume filename at end when no more options
+            std::string filenameString = parser[i++];
+            while (i < parser.size()) { // filename has space in it
+                filenameString += " " + parser[i++];
+            }
+            filename = filenameString.c_str();
         }
     }
 }
@@ -745,7 +878,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         }
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
-                                                     glm::vec3(0.0f),
+                                                     objMaterial.emissiveColor,
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];
@@ -759,17 +892,88 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         if (!objMaterial.specularTextureFilename.isEmpty()) {
             fbxMaterial.specularTexture.filename = objMaterial.specularTextureFilename;
         }
+        if (!objMaterial.emissiveTextureFilename.isEmpty()) {
+            fbxMaterial.emissiveTexture.filename = objMaterial.emissiveTextureFilename;
+        }
+        if (!objMaterial.bumpTextureFilename.isEmpty()) {
+            fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
+            fbxMaterial.normalTexture.isBumpmap = true;
+            fbxMaterial.bumpMultiplier = objMaterial.bumpTextureOptions.bumpMultiplier;
+        }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
         modelMaterial->setRoughness(graphics::Material::shininessToRoughness(fbxMaterial.shininess));
 
-        if (fbxMaterial.opacity <= 0.0f) {
-            modelMaterial->setOpacity(1.0f);
-        } else {
-            modelMaterial->setOpacity(fbxMaterial.opacity);
+        bool applyTransparency = false;
+        bool applyShininess = false;
+        bool applyRoughness = false;
+        bool applyNonMetallic = false;
+        bool fresnelOn = false;
+
+        // Illumination model reference http://paulbourke.net/dataformats/mtl/ 
+        switch (objMaterial.illuminationModel) {
+            case 0: // Color on and Ambient off
+                // We don't support ambient = do nothing?
+                break;
+            case 1: // Color on and Ambient on
+                // We don't support ambient = do nothing?
+                break;
+            case 2: // Highlight on
+                // Change specular intensity = do nothing for now?
+                break;
+            case 3: // Reflection on and Ray trace on
+                applyShininess = true;
+                break;
+            case 4: // Transparency: Glass on and Reflection: Ray trace on
+                applyTransparency = true;
+                applyShininess = true;
+                break;
+            case 5: // Reflection: Fresnel on and Ray trace on
+                applyShininess = true;
+                fresnelOn = true;
+                break;
+            case 6: // Transparency: Refraction on and Reflection: Fresnel off and Ray trace on
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyShininess = true;
+                break;
+            case 7: // Transparency: Refraction on and Reflection: Fresnel on and Ray trace on
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyShininess = true;
+                fresnelOn = true;
+                break;
+            case 8: // Reflection on and Ray trace off
+                applyShininess = true;
+                break;
+            case 9: // Transparency: Glass on and Reflection: Ray trace off
+                applyTransparency = true;
+                applyNonMetallic = true;
+                applyRoughness = true;
+                break;
+            case 10: // Casts shadows onto invisible surfaces
+                // Do nothing?
+                break;
+        }      
+
+        if (applyTransparency) {
+            fbxMaterial.opacity = std::max(fbxMaterial.opacity, ILLUMINATION_MODEL_MIN_OPACITY);
         }
+        if (applyShininess) {
+            modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_SHININESS);
+        } else if (applyRoughness) {
+            modelMaterial->setRoughness(ILLUMINATION_MODEL_APPLY_ROUGHNESS);
+        }
+        if (applyNonMetallic) {
+            modelMaterial->setMetallic(ILLUMINATION_MODEL_APPLY_NON_METALLIC);
+        }
+        if (fresnelOn) {
+            modelMaterial->setFresnel(glm::vec3(1.0f));
+        }
+
+        modelMaterial->setOpacity(fbxMaterial.opacity);
     }
 
     return geometryPtr;

@@ -1250,7 +1250,6 @@ var lastPosition = null;
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
-    selectionDisplay.checkMove();
     selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
