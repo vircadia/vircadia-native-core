@@ -17,8 +17,6 @@
 
 #include "SettingHandle.h"
 
-//#include "Logging.h"
-
 #include <Profile.h>
 #include <PerfStat.h>
 
