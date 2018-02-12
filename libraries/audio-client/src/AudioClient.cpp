@@ -53,9 +53,15 @@
 #include "AudioClient.h"
 
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
+
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
+
+#if defined(Q_OS_ANDROID)
+static const int CHECK_INPUT_READS_MSECS = 2000;
+static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 100;
+#endif
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
 static const auto DEFAULT_ORIENTATION_GETTER = [] { return Quaternions::IDENTITY; };
@@ -197,6 +203,9 @@ AudioClient::AudioClient() :
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
     _stats(&_receivedAudioStream),
     _positionGetter(DEFAULT_POSITION_GETTER),
+#if defined(Q_OS_ANDROID)
+    _checkInputTimer(this),
+#endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
@@ -278,6 +287,9 @@ void AudioClient::cleanupBeforeQuit() {
         return;
     }
 
+#if defined(Q_OS_ANDROID)
+    _shouldRestartInputSetup = false;
+#endif
     stop();
     _checkDevicesTimer->stop();
     _checkPeakValuesTimer->stop();
@@ -622,6 +634,12 @@ void AudioClient::start() {
         qCDebug(audioclient) << "Unable to set up audio output because of a problem with output format.";
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
+#if defined(Q_OS_ANDROID)
+    connect(&_checkInputTimer, &QTimer::timeout, [this] {
+        checkInputTimeout();
+    });
+    _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
+#endif
 }
 
 void AudioClient::stop() {
@@ -631,6 +649,9 @@ void AudioClient::stop() {
 
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
+#if defined(Q_OS_ANDROID)
+    _checkInputTimer.stop();
+#endif
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -1090,6 +1111,10 @@ void AudioClient::handleMicAudioInput() {
         return;
     }
 
+#if defined(Q_OS_ANDROID)
+    _inputReadsSinceLastCheck++;
+#endif
+
     // input samples required to produce exactly NETWORK_FRAME_SAMPLES of output
     const int inputSamplesRequired = (_inputToNetworkResampler ?
                                       _inputToNetworkResampler->getMinInput(AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL) :
@@ -1434,6 +1459,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
     // NOTE: device start() uses the Qt internal device list
     Lock lock(_deviceMutex);
 
+#if defined(Q_OS_ANDROID)
+    _shouldRestartInputSetup = false; // avoid a double call to _audioInput->start() from audioInputStateChanged
+#endif
+
     // cleanup any previously initialized device
     if (_audioInput) {
         // The call to stop() causes _inputDevice to be destructed.
@@ -1514,7 +1543,10 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
 
 #if defined(Q_OS_ANDROID)
                 if (_audioInput) {
-                    connect(_audioInput, SIGNAL(stateChanged(QAudio::State)), this, SLOT(audioInputStateChanged(QAudio::State)));
+                    _shouldRestartInputSetup = true;
+                    connect(_audioInput, &QAudioInput::stateChanged, [this](QAudio::State state) {
+                        audioInputStateChanged(state);
+                    });
                 }
 #endif
                 _inputDevice = _audioInput->start();
@@ -1555,14 +1587,14 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
     return supportedFormat;
 }
 
-#if defined(Q_OS_ANDROID)
 void AudioClient::audioInputStateChanged(QAudio::State state) {
+#if defined(Q_OS_ANDROID)
     switch (state) {
         case QAudio::StoppedState:
             if (!_audioInput) {
                 break;
             }
-                // Stopped on purpose
+            // Stopped on purpose
             if (_shouldRestartInputSetup) {
                 Lock lock(_deviceMutex);
                 _inputDevice = _audioInput->start();
@@ -1577,8 +1609,18 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
         default:
             break;
     }
-}
 #endif
+}
+
+void AudioClient::checkInputTimeout() {
+#if defined(Q_OS_ANDROID)
+    if (_audioInput && _inputReadsSinceLastCheck < MIN_READS_TO_CONSIDER_INPUT_ALIVE) {
+        _audioInput->stop();
+    } else {
+        _inputReadsSinceLastCheck = 0;
+    }
+#endif
+}
 
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
