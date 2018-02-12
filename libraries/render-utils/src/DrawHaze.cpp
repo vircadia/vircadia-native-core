@@ -133,7 +133,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
     RenderArgs* args = renderContext->args;
 
     if (!_hazePipeline) {
-        gpu::ShaderPointer ps = gpu::Shader::createPixel(std::string(Haze_frag));
+        gpu::ShaderPointer ps = Haze_frag::getShader();
         gpu::ShaderPointer vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
 
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
@@ -147,7 +147,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), HazeEffect_ColorMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), HazeEffect_LightingMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), HazeEffect_LightingMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _hazePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));

@@ -78,12 +78,12 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawKeyLight_frag));
+        auto ps = zone_drawKeyLight_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ZONE_KEYLIGHT_BUFFER));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ZONE_KEYLIGHT_BUFFER));
 
         gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -99,7 +99,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
     if (!_ambientPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawAmbient_frag));
+        auto ps = zone_drawAmbient_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -120,7 +120,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = gpu::Shader::createPixel(std::string(zone_drawSkybox_frag));
+        auto ps = zone_drawSkybox_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

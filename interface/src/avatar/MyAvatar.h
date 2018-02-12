@@ -81,7 +81,7 @@ class MyAvatar : public Avatar {
      *   and MyAvatar.customListenOrientation properties.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
+     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
      *   of the audio spatialization listener.
      * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
      *   around the avatar's head.
@@ -512,6 +512,9 @@ public:
 
     bool hasDriveInput() const;
 
+    QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
+
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
@@ -630,6 +633,11 @@ signals:
 private slots:
     void leaveDomain();
 
+
+protected:
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+
 private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
@@ -638,6 +646,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
+    void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
@@ -809,6 +818,8 @@ private:
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
 
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
+
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
@@ -845,6 +856,8 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    void updateChildCauterization(SpatiallyNestablePointer object);
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };

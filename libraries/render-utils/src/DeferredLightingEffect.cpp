@@ -45,6 +45,7 @@ using namespace render;
 
 struct LightLocations {
     int radius{ -1 };
+    int keyLightBufferUnit{ -1 };
     int lightBufferUnit{ -1 };
     int ambientBufferUnit { -1 };
     int lightIndexBufferUnit { -1 };
@@ -82,7 +83,7 @@ enum DeferredShader_BufferSlot {
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
 };
 
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
@@ -94,14 +95,14 @@ void DeferredLightingEffect::init() {
     _localLightLocations = std::make_shared<LightLocations>();
     _localLightOutlineLocations = std::make_shared<LightLocations>();
 
-    loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-    loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_frag::getShader(), false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
+    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_frag::getShader(), false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
 
-    loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
-    loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
+    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_shadow_frag::getShader(), false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
+    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_shadow_frag::getShader(), false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
-    loadLightProgram(deferred_light_vert, local_lights_shading_frag, true, _localLight, _localLightLocations);
-    loadLightProgram(deferred_light_vert, local_lights_drawOutline_frag, true, _localLightOutline, _localLightOutlineLocations);
+    loadLightProgram(deferred_light_vert::getShader(), local_lights_shading_frag::getShader(), true, _localLight, _localLightLocations);
+    loadLightProgram(deferred_light_vert::getShader(), local_lights_drawOutline_frag::getShader(), true, _localLightOutline, _localLightOutlineLocations);
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
@@ -147,12 +148,31 @@ void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBuff
     }
 }
 
-static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* fragSource, LightLocationsPtr& locations) {
-    auto VS = gpu::Shader::createVertex(std::string(vertSource));
-    auto PS = gpu::Shader::createPixel(std::string(fragSource));
-    
-    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
+void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch,
+                                                   int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
+                                                   const LightClustersPointer& lightClusters) {
+    // Bind the global list of lights and the visible lights this frame
+    batch.setUniformBuffer(_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
 
+    batch.setUniformBuffer(frustumGridBufferUnit, lightClusters->_frustumGridBuffer);
+    batch.setUniformBuffer(clusterGridBufferUnit, lightClusters->_clusterGridBuffer);
+    batch.setUniformBuffer(clusterContentBufferUnit, lightClusters->_clusterContentBuffer);
+}
+
+void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
+    if (clusterGridBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterGridBufferUnit, nullptr);
+    }
+    if (clusterContentBufferUnit >= 0) {
+        batch.setUniformBuffer(clusterContentBufferUnit, nullptr);
+    }
+    if (frustumGridBufferUnit >= 0) {
+        batch.setUniformBuffer(frustumGridBufferUnit, nullptr);
+    }
+}
+
+static gpu::ShaderPointer makeLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, LightLocationsPtr& locations) {
+    gpu::ShaderPointer program = gpu::Shader::createProgram(vertShader, fragShader);
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
@@ -189,6 +209,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
 
     locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
 
+    locations->keyLightBufferUnit = program->getUniformBuffers().findLocation("keyLightBuffer");
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
@@ -199,9 +220,9 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     return program;
 }
 
-static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
 
-    gpu::ShaderPointer program = makeLightProgram(vertSource, fragSource, locations);
+    gpu::ShaderPointer program = makeLightProgram(vertShader, fragShader, locations);
 
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
@@ -561,7 +582,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->setupKeyLightBatch(args, batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         // Haze
         if (haze) {
@@ -570,7 +591,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->unsetKeyLightBatch(batch, locations->keyLightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
             batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
@@ -625,12 +646,8 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-            // Bind the global list of lights and the visible lights this frame
-            batch.setUniformBuffer(deferredLightingEffect->_localLightLocations->lightBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
-
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
-            batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
+            deferredLightingEffect->setupLocalLightsBatch(batch, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+                                                          lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
@@ -732,8 +749,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             auto textureCache = DependencyManager::get<TextureCache>();
             {
                 PROFILE_RANGE(render, "Process Default Skybox");
-                auto textureCache = DependencyManager::get<TextureCache>();
-
                 QFileSelector fileSelector;
                 fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
                 auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");

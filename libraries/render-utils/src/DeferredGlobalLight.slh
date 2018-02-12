@@ -21,21 +21,25 @@
 <@include LightDirectional.slh@>
 
 
-<@func prepareGlobalLight(isScattering)@>
-    // prepareGlobalLight
-    // Transform directions to worldspace
-    vec3 fragNormal = vec3((normal));
-    vec3 fragEyeVector = vec3(invViewMat * vec4(-1.0*position, 0.0));
-    vec3 fragEyeDir = normalize(fragEyeVector);
-
+<@func fetchGlobalLight()@>
     // Get light
-    Light light = getLight();
+    Light light = getKeyLight();
     LightAmbient lightAmbient = getLightAmbient();
     
     vec3 lightDirection = getLightDirection(light);
     vec3 lightIrradiance = getLightIrradiance(light);
 
     vec3 color = vec3(0.0);
+<@endfunc@>
+
+<@func prepareGlobalLight(isScattering)@>
+    // prepareGlobalLight
+    // Transform directions to worldspace
+    vec3 fragNormal = vec3((normal));
+    vec3 fragEyeVector = vec3(invViewMat * vec4(-position, 0.0));
+    vec3 fragEyeDir = normalize(fragEyeVector);
+
+    <$fetchGlobalLight()$>
 
 <@endfunc@>
 
@@ -147,7 +151,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
 <@func declareEvalLightmappedColor()@>
 vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 albedo, vec3 lightmap) {
-    Light light = getLight();
+    Light light = getKeyLight();
     LightAmbient ambient = getLightAmbient();
 
     // Catch normals perpendicular to the projection plane, hence the magic number for the threshold
@@ -175,11 +179,12 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareLightingAmbient(1, 1, 1)$>
 <$declareLightingDirectional()$>
 
-vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) {
+vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity, vec3 prevLighting) {
     <$prepareGlobalLight()$>
     
     SurfaceData surface = initSurfaceData(roughness, fragNormal, fragEyeDir);
 
+    color = prevLighting;
     color += emissive * isEmissiveEnabled();
 
     // Ambient
@@ -198,6 +203,12 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
 
     return color;
 }
+<@endfunc@>
+
+<@func declareEvalGlobalLightingAlphaBlendedWithHaze()@>
+
+<$declareLightingAmbient(1, 1, 1)$>
+<$declareLightingDirectional()$>
 
 vec3 evalGlobalLightingAlphaBlendedWithHaze(
     mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, 
@@ -229,6 +240,44 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
             vec4(color, 1.0),               // fragment original color
             position,                       // fragment position in eye   coordinates
             fragEyeVector,                  // fragment position in world coordinates
+            invViewMat[3].y,                // eye      height   in world coordinates
+            lightDirection                  // keylight direction vector
+        );
+
+        color = colorV4.rgb;
+    }
+
+    return color;
+}
+
+vec3 evalGlobalLightingAlphaBlendedWithHaze(
+    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, 
+    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, SurfaceData surface, float opacity, vec3 prevLighting) 
+{
+    <$fetchGlobalLight()$>
+    
+    color = prevLighting;
+    color += emissive * isEmissiveEnabled();
+
+    // Ambient
+    vec3 ambientDiffuse;
+    vec3 ambientSpecular;
+    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, surface, metallic, fresnel, albedo, obscurance);
+
+    // Directional
+    vec3 directionalDiffuse;
+    vec3 directionalSpecular;
+    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surface, metallic, fresnel, albedo, shadowAttenuation);
+
+    color += ambientDiffuse + directionalDiffuse;
+    color += (ambientSpecular + directionalSpecular) / opacity;
+
+    // Haze
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+        vec4 colorV4 = computeHazeColor(
+            vec4(color, 1.0),               // fragment original color
+            position,                       // fragment position in eye   coordinates
+            surface.eyeDir,                 // fragment eye vector in world coordinates
             invViewMat[3].y,                // eye      height   in world coordinates
             lightDirection                  // keylight direction vector
         );

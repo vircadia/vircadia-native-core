@@ -12,12 +12,11 @@
 #ifndef hifi_JSConsole_h
 #define hifi_JSConsole_h
 
-#include <QDialog>
-#include <QEvent>
 #include <QFutureWatcher>
 #include <QObject>
-#include <QWidget>
 #include <QSharedPointer>
+#include <QCompleter>
+#include <QtCore/QJsonArray>
 
 #include "ui_console.h"
 #include "ScriptEngine.h"
@@ -54,11 +53,19 @@ protected slots:
     void handleError(const QString& message, const QString& scriptName);
     void commandFinished();
 
+private slots:
+    void insertCompletion(const QModelIndex& completion);
+    void highlightedCompletion(const QModelIndex& completion);
+
 private:
     void appendMessage(const QString& gutter, const QString& message);
     void setToNextCommandInHistory();
     void setToPreviousCommandInHistory();
     void resetCurrentCommandHistory();
+
+    void readAPI();
+
+    QStandardItemModel* getAutoCompleteModel(const QString& memberOf = nullptr);
 
     QFutureWatcher<QScriptValue> _executeWatcher;
     Ui::Console* _ui;
@@ -68,6 +75,9 @@ private:
     QString _rootCommand;
     ScriptEnginePointer _scriptEngine;
     static const QString _consoleFileName;
+    QJsonArray _apiDocs;
+    QCompleter* _completer;
+    QString _completerModule {""};
 };
 
 

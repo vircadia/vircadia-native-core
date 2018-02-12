@@ -12,6 +12,8 @@
 
 #include "RenderDeferredTask.h"
 
+#include <DependencyManager.h>
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
@@ -168,7 +170,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, lightClusters).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // Light Cluster Grid Debuging job
@@ -298,6 +300,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+    const auto& lightClusters = inputs.get2();
+    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
     RenderArgs* args = renderContext->args;
 
@@ -319,7 +323,13 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        // Setup haze iff current zone has haze
+        deferredLightingEffect->setupLocalLightsBatch(batch, 
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
+                                                      lightClusters);
+
+        // Setup haze if current zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
@@ -341,6 +351,11 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
+
+        deferredLightingEffect->unsetLocalLightsBatch(batch,
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
+                                                      render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
     });
 
     config->setNumDrawn((int)inItems.size());

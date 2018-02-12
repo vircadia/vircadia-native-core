@@ -29,6 +29,8 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
+    Setting::init();
+
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif

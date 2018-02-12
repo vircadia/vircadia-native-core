@@ -44,6 +44,13 @@ namespace render {
         } else {
             builder.withViewSpace();
         }
+
+        if (!overlay->getVisible()) {
+            builder.withInvisible();
+        }
+
+        builder.withTagBits(render::ItemKey::TAG_BITS_0); // Only draw overlays in main view
+
         return builder.build();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {

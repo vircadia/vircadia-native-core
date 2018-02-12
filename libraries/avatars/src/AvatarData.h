@@ -707,7 +707,11 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }
@@ -982,6 +986,7 @@ RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
     QUuid avatarID;
     float distance;
     glm::vec3 intersection;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)

@@ -308,7 +308,7 @@ void diffuseProfileGPU(gpu::TexturePointer& profileMap, RenderArgs* args) {
     gpu::PipelinePointer makePipeline;
     {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeProfile_frag));
+        auto ps = subsurfaceScattering_makeProfile_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -344,7 +344,7 @@ void diffuseScatterGPU(const gpu::TexturePointer& profileMap, gpu::TexturePointe
     gpu::PipelinePointer makePipeline;
     {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeLUT_frag));
+        auto ps = subsurfaceScattering_makeLUT_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -382,7 +382,7 @@ void computeSpecularBeckmannGPU(gpu::TexturePointer& beckmannMap, RenderArgs* ar
     gpu::PipelinePointer makePipeline;
     {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_makeSpecularBeckmann_frag));
+        auto ps = subsurfaceScattering_makeSpecularBeckmann_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -457,13 +457,13 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
 gpu::PipelinePointer DebugSubsurfaceScattering::getScatteringPipeline() {
     if (!_scatteringPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(subsurfaceScattering_drawScattering_frag));
+        auto ps = subsurfaceScattering_drawScattering_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ScatteringTask_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringParamsBuffer"), ScatteringTask_ParamSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), ScatteringTask_LightSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ScatteringTask_LightSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), ScatteringTask_ScatteringTableSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), ScatteringTask_CurvatureMapSlot));

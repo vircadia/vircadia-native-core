@@ -348,6 +348,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.activeView = "step_1";
                 }
             }
@@ -393,6 +394,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
 
         Image {
@@ -516,6 +518,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.lastPage = "step_3";
                     root.activeView = "step_2";
                 }

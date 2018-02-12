@@ -469,7 +469,7 @@ var toolBar = (function () {
 
             // tablet version of new-model dialog
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.pushOntoStack("NewModelDialog.qml");
+            tablet.pushOntoStack("hifi/tablet/NewModelDialog.qml");
         });
 
         addButton("newCubeButton", "cube-01.svg", function () {
@@ -1250,7 +1250,6 @@ var lastPosition = null;
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
-    selectionDisplay.checkMove();
     selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
@@ -1344,7 +1343,7 @@ function recursiveDelete(entities, childrenList, deletedIDs) {
         var entityID = entities[i];
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList);
+        recursiveDelete(children, grandchildrenList, deletedIDs);
         var initialProperties = Entities.getEntityProperties(entityID);
         childrenList.push({
             entityID: entityID,
