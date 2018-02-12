@@ -152,3 +152,15 @@ QByteArray OctreeUtils::RawOctreeData::toByteArray() {
 
     return doc.toJson();
 }
+
+QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
+    auto data = toByteArray();
+    QByteArray gzData;
+
+    if (!gzip(data, gzData, -1)) {
+        qCritical("Unable to gzip data while converting json.");
+        return QByteArray();
+    }
+
+    return gzData;
+}

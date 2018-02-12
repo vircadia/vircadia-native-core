@@ -31,6 +31,7 @@ public:
     QJsonArray octreeData;
 
     QByteArray toByteArray();
+    QByteArray toGzippedByteArray();
 };
 
 bool readOctreeFile(QString path, QJsonDocument* doc);

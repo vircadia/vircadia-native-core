@@ -1193,7 +1193,7 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
 
                 QFile file(_persistAbsoluteFilePath);
                 if (file.open(QIODevice::WriteOnly)) {
-                    auto entityData = data.toByteArray();
+                    auto entityData = data.toGzippedByteArray();
                     file.write(entityData);
                     file.close();
                 } else {
