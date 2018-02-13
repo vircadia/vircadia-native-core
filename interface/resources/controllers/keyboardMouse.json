@@ -88,8 +88,8 @@
             ]
         },
 
-        { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
-        { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
+        { "from": "Keyboard.W", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_FORWARD" },
+        { "from": "Keyboard.S", "when": "!Keyboard.Control", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
         { "from": "Keyboard.Left", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
