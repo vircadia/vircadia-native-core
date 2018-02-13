@@ -48,6 +48,8 @@ signals:
     void transferHfcToNodeResult(QJsonObject result);
     void transferHfcToUsernameResult(QJsonObject result);
 
+    void contentSetChanged(const QString& contentSetMarketplaceID);
+
 protected:
     Q_INVOKABLE void getWalletStatus();
 
@@ -71,6 +73,8 @@ protected:
 
     Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
+
+    Q_INVOKABLE void replaceContentSet(const QString& id, const QString& url);
 };
 
 #endif // hifi_QmlCommerce_h

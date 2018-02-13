@@ -15,6 +15,8 @@
 #include "Ledger.h"
 #include "Wallet.h"
 #include <AccountManager.h>
+#include <Application.h>
+#include <UserActivityLogger.h>
 
 QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
@@ -162,4 +164,15 @@ void QmlCommerce::transferHfcToUsername(const QString& username, const int& amou
     }
     QString key = keys[0];
     ledger->transferHfcToUsername(key, username, amount, optionalMessage);
+}
+
+void QmlCommerce::replaceContentSet(const QString& id, const QString& url) {
+    qApp->replaceDomainContent(url);
+    QJsonObject messageProperties = {
+        { "status", "SuccessfulRequestToReplaceContent" },
+        { "content_set_url", url }
+    };
+    UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
+
+    emit contentSetChanged(id);
 }

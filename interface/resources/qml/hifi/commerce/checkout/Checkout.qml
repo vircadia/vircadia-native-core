@@ -37,11 +37,14 @@ Rectangle {
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
     property int itemPrice: -1;
-    property bool itemIsJson: true;
+    property bool isCertified;
+    property string itemType;
+    property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
+    property var buttonTextNormal: ["REZ IT", "WEAR IT", "SWAP CONTENT SET", "INSTALL IT", "WEAR IT"];
+    property var buttonTextClicked: ["REZZED", "WORN", "SWAPPED", "INSTALLED", "WORN"]
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
-    property bool isWearable;
     property string referrer;
     // Style
     color: hifi.colors.white;
@@ -85,7 +88,9 @@ Rectangle {
                 UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
             } else {
                 root.itemHref = result.data.download_url;
-                root.isWearable = result.data.categories.indexOf("Wearables") > -1;
+                if (result.data.categories.indexOf("Wearables") > -1) {
+                    root.itemType = "wearable";
+                }
                 root.activeView = "checkoutSuccess";
                 UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
@@ -122,7 +127,25 @@ Rectangle {
     }
 
     onItemHrefChanged: {
-        itemIsJson = root.itemHref.endsWith('.json');
+        if (root.itemHref.indexOf(".fst") > -1) {
+            root.itemType = "avatar";
+        } else if (root.itemHref.endsWith('.json.gz')) {
+            root.itemType = "contentSet";
+        } else if (root.itemHref.endsWith('.json')) {
+            root.itemType = "entity"; // "wearable" type handled later
+        } else if (root.itemHref.endsWith('.js')) {
+            root.itemType = "app";
+        } else {
+            root.itemType = "entity";
+        }
+    }
+
+    onItemTypeChanged: {
+        if (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet") {
+            root.isCertified = true;
+        } else {
+            root.isCertified = false;
+        }
     }
 
     onItemPriceChanged: {
@@ -464,7 +487,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || !itemIsJson;
+                enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || (!root.isCertified);
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: checkoutActionButtonsContainer.top;
@@ -472,9 +495,9 @@ Rectangle {
                 height: 40;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: (itemIsJson ? ((purchasesReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
+                text: ((root.isCertified) ? ((purchasesReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
                 onClicked: {
-                    if (itemIsJson) {
+                    if (root.isCertified) {
                         buyButton.enabled = false;
                         if (!root.shouldBuyWithControlledFailure) {
                             Commerce.buy(itemId, itemPrice);
@@ -576,7 +599,7 @@ Rectangle {
 
             RalewayBold {
                 anchors.fill: parent;
-                text: "REZZED";
+                text: (root.buttonTextClicked)[itemTypesArray.indexOf(root.itemType)];
                 size: 18;
                 color: hifi.colors.white;
                 verticalAlignment: Text.AlignVCenter;
@@ -592,7 +615,7 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems || root.isWearable;
+            enabled: root.canRezCertifiedItems || root.itemType === "wearable";
             buttonGlyph: hifi.glyphs.lightning;
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -601,17 +624,27 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: root.isWearable ? "Wear It" : "Rez It"
+            text: (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
             onClicked: {
-                sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, isWearable: root.isWearable});
-                rezzedNotifContainer.visible = true;
-                rezzedNotifContainerTimer.start();
-                UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.isWearable ? "rez" : "wear");
+                if (root.itemType === "contentSet") {
+                    lightboxPopup.titleText = "Replace Content";
+                    lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain.";
+                    lightboxPopup.button1text = "CANCEL";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "CONFIRM";
+                    lightboxPopup.button2method = "sendToScript({method: 'checkout_rezClicked', itemHref: " + root.itemHref + ", itemType: " + root.itemType + "});";
+                    lightboxPopup.visible = true;
+                } else {
+                    sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
+                    rezzedNotifContainer.visible = true;
+                    rezzedNotifContainerTimer.start();
+                    UserActivityLogger.commerceEntityRezzed(root.itemId, "checkout", root.itemType);
+                }
             }
         }
         RalewaySemiBold {
             id: noPermissionText;
-            visible: !root.canRezCertifiedItems && !root.isWearable;
+            visible: !root.canRezCertifiedItems && root.itemType !== "wearable";
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">You do not have Certified Rez permissions in this domain.</a></font>'
             // Text size
             size: 16;
@@ -640,7 +673,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: explainRezText;
-            visible: !root.isWearable;
+            visible: root.itemType === "entity";
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
             // Text size
             size: 16;
@@ -851,7 +884,7 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (itemIsJson ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
+                buyButton.text = (root.isCertified ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
                 buyButton.color = hifi.buttons.blue;
                 root.shouldBuyWithControlledFailure = false;
             }
@@ -901,7 +934,7 @@ Rectangle {
     }
 
     function setBuyText() {
-        if (root.itemIsJson) {
+        if (root.isCertified) {
             if (root.purchasesReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {

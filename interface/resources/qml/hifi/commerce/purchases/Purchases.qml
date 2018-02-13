@@ -455,10 +455,16 @@ Rectangle {
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
                 itemType: {
-                    if (model.download_url.indexOf(".fst") > -1) {
+                    if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
                     } else if (model.categories.indexOf("Wearables") > -1) {
                         "wearable";
+                    } else if (model.root_file_url.endsWith('.json.gz')) {
+                        "contentSet";
+                    } else if (model.root_file_url.endsWith('.json')) {
+                        "entity";
+                    } else if (model.root_file_url.endsWith('.js')) {
+                        "app";
                     } else {
                         "entity";
                     }
@@ -489,6 +495,14 @@ Rectangle {
                             "Usually, purchases take about 90 seconds to confirm.";
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showReplaceContentLightbox") {
+                            lightboxPopup.titleText = "Replace Content";
+                            lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain.";
+                            lightboxPopup.button1text = "CANCEL";
+                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button2text = "CONFIRM";
+                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemId + "', '" + msg.itemHref + "'); root.visible = false;";
                             lightboxPopup.visible = true;
                         } else if (msg.method === "setFilterText") {
                             filterBar.text = msg.filterText;

@@ -354,5 +354,9 @@ Item {
         readonly property string wallet: "\ue027"
         readonly property string paperPlane: "\ue028"
         readonly property string passphrase: "\ue029"
+        readonly property string globe: "\ue02c"
+        readonly property string wand: "\ue02d"
+        readonly property string hat: "\ue02e"
+        readonly property string install: "\ue02f"
     }
 }

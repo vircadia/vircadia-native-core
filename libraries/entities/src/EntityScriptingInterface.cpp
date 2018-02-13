@@ -101,6 +101,11 @@ bool EntityScriptingInterface::canWriteAssets() {
     return nodeList->getThisNodeCanWriteAssets();
 }
 
+bool EntityScriptingInterface::canReplaceContent() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanReplaceContent();
+}
+
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
         disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);

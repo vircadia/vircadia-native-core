@@ -65,7 +65,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var onMarketplaceScreen = false;
     var onCommerceScreen = false;
 
-    var debugCheckout = false;
+    var debugCheckout = true;
     var debugError = false;
     function showMarketplace() {
         if (!debugCheckout) {
@@ -75,11 +75,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
             tablet.sendToQml({
                 method: 'updateCheckoutQML', params: {
-                    itemId: '0d90d21c-ce7a-4990-ad18-e9d2cf991027',
-                    itemName: 'Test Flaregun',
-                    itemPrice: (debugError ? 10 : 17),
-                    itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
-                    categories: ["Wearables", "Miscellaneous"]
+                    itemId: 'e197e3d7-eafc-4aa5-9341-acee57174fe9',
+                    itemName: 'Oasis',
+                    itemPrice: (debugError ? 10 : 11),
+                    itemHref: 'http://mpassets-staging.highfidelity.com/e197e3d7-eafc-4aa5-9341-acee57174fe9-v1/oasis_Aug15.json.gz',
+                    categories: ["Miscellaneous"]
                 }
             });
         }
@@ -239,6 +239,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
         var wearableLocalRotation = null;
         var wearableLocalDimensions = null;
         var wearableDimensions = null;
+
+        if (itemType === "contentSet") {
+            console.log("Item is a content set; codepath shouldn't go here.")
+            return;
+        }
 
         if (isWearable) {
             var wearableTransforms = Settings.getValue("io.highfidelity.avatarStore.checkOut.transforms");

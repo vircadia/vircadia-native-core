@@ -41,14 +41,34 @@ Item {
     property int limitedRun;
     property string itemType;
     property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
-    property var buttonTextNormal: ["REZ", "WEAR", "SWAP", "INSTALL", "WEAR"];
-    property var buttonTextClicked: ["REZZED", "WORN", "SWAPPED", "INSTALLED", "WORN"]
+    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE", "INSTALL", "WEAR"];
+    property var buttonTextClicked: ["REZZED", "WORN", "REPLACED", "INSTALLED", "WORN"]
+    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
+    property bool showConfirmation: false;
+    property bool hasPermissionToRezThis;
 
     property string originalStatusText;
     property string originalStatusColor;
 
     height: 110;
     width: parent.width;
+
+    Connections {
+        target: Commerce;
+        
+        onContentSetChanged: {
+            if (contentSetMarketplaceID === root.itemId) {
+                showConfirmation = true;
+            }
+        }
+    }
+
+    onItemTypeChanged: {
+        if ((itemType === "entity" && (!Entities.canRezCertified() && !Entities.canRezTmpCertified())) ||
+            (itemType === "contentSet" && !Entities.canReplaceContent())) {
+            root.hasPermissionToRezThis = false;
+        }
+    }
 
     onPurchaseStatusChangedChanged: {
         if (root.purchaseStatusChanged === true && root.purchaseStatus === "confirmed") {
@@ -57,6 +77,15 @@ Item {
             statusText.text = "CONFIRMED!";
             statusText.color = hifi.colors.blueAccent;
             confirmedTimer.start();
+        }
+    }
+
+    onShowConfirmationChanged: {
+        if (root.showConfirmation) {
+            rezzedNotifContainer.visible = true;
+            rezzedNotifContainerTimer.start();
+            UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.itemType);
+            root.showConfirmation = false;
         }
     }
 
@@ -325,7 +354,7 @@ Item {
             RalewayBold {
                 anchors.fill: parent;
                 text: (root.buttonTextClicked)[itemTypesArray.indexOf(root.itemType)];
-                size: 18;
+                size: 15;
                 color: hifi.colors.white;
                 verticalAlignment: Text.AlignVCenter;
                 horizontalAlignment: Text.AlignHCenter;
@@ -353,10 +382,12 @@ Item {
             enabled: (root.canRezCertifiedItems || root.itemType === "wearable") && root.purchaseStatus !== "invalidated";
             
             onClicked: {
-                sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
-                rezzedNotifContainer.visible = true;
-                rezzedNotifContainerTimer.start();
-                UserActivityLogger.commerceEntityRezzed(root.itemId, "purchases", root.itemType === "wearable" ? "rez" : "wear");
+                if (root.itemType === "contentSet") {
+                    sendToPurchases({method: 'showReplaceContentLightbox', itemId: root.itemId, itemHref: root.itemHref});
+                } else {
+                    sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
+                    root.showConfirmation = true;
+                }
             }
 
             style: ButtonStyle {
@@ -396,13 +427,13 @@ Item {
 
                 label: Item {
                     HiFiGlyphs {
-                        id: lightningIcon;
-                        text: hifi.glyphs.lightning;
+                        id: rezIcon;
+                        text: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
                         // Size
-                        size: 32;
+                        size: 60;
                         // Anchors
                         anchors.top: parent.top;
-                        anchors.topMargin: 12;
+                        anchors.topMargin: 0;
                         anchors.left: parent.left;
                         anchors.right: parent.right;
                         horizontalAlignment: Text.AlignHCenter;
@@ -411,8 +442,8 @@ Item {
                                        : hifi.buttons.disabledTextColor[control.colorScheme]
                     }
                     RalewayBold {
-                        anchors.top: lightningIcon.bottom;
-                        anchors.topMargin: -20;
+                        anchors.top: rezIcon.bottom;
+                        anchors.topMargin: -4;
                         anchors.right: parent.right;
                         anchors.left: parent.left;
                         anchors.bottom: parent.bottom;
