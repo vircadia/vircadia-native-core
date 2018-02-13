@@ -34,6 +34,7 @@ Material::Material() :
 }
 
 Material::Material(const Material& material) :
+    _name(material._name),
     _key(material._key),
     _textureMaps(material._textureMaps)
 {
@@ -49,6 +50,8 @@ Material::Material(const Material& material) :
 
 Material& Material::operator= (const Material& material) {
     QMutexLocker locker(&_textureMapsMutex);
+
+    _name = material._name;
 
     _key = (material._key);
     _textureMaps = (material._textureMaps);

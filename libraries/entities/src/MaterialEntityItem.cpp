@@ -346,8 +346,12 @@ void MaterialEntityItem::applyMaterial() {
 }
 
 void MaterialEntityItem::postAdd() {
-    removeMaterial();
-    applyMaterial();
+    // postAdd is called every time we are added to a new octree cell, but we only need to update the material the first time
+    if (!_hasBeenAddedToOctree) {
+        removeMaterial();
+        applyMaterial();
+        _hasBeenAddedToOctree = true;
+    }
 }
 
 void MaterialEntityItem::preDelete() {

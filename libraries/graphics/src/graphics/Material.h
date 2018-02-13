@@ -359,6 +359,11 @@ public:
 
     void setTextureTransforms(const Transform& transform);
 
+    const QString& getName() { return _name; }
+
+protected:
+    QString _name { "" };
+
 private:
     mutable MaterialKey _key;
     mutable UniformBufferView _schemaBuffer;

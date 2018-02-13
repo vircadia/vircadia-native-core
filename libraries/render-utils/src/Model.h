@@ -438,6 +438,7 @@ protected:
     render::ItemIDs _modelMeshRenderItemIDs;
     using ShapeInfo = struct { int meshIndex; };
     std::vector<ShapeInfo> _modelMeshRenderItemShapes;
+    std::vector<QString> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
@@ -472,7 +473,7 @@ private:
 
     void calculateTextureInfo();
 
-    std::vector<unsigned int> getMeshIDsFromMaterialID(const QString& parentMaterialID);
+    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialID);
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

@@ -772,12 +772,19 @@
                 </div>
             </fieldset>
             <fieldset class="minor">
-                <div class="material-group material-section property dropdown">
-                    <label>Material mode </label>
-                    <select name="SelectMaterialMode" id="property-material-mode">
-                        <option value="uv">UV space material</option>
-                        <option value="projected">3D projected material</option>
-                    </select>
+                <div class="material-group material-section property text" id="property-parent-material-id-string-container">
+                    <label for="property-parent-material-id-string">Material Name to Replace </label>
+                    <input type="text" id="property-parent-material-id-string">
+                </div>
+
+                <div class="material-group material-section property number" id="property-parent-material-id-number-container">
+                    <label for="property-parent-material-id-number">Submesh to Replace </label>
+                    <input type="number" min="0" step="1" value="0" id="property-parent-material-id-number">
+                </div>
+
+                <div class="material-group material-section property checkbox">
+                    <input type="checkbox" id="property-parent-material-id-checkbox">
+                    <label for="property-parent-material-id-checkbox">Select Submesh</label>
                 </div>
 
                 <div class="material-group material-section property number">
@@ -785,12 +792,17 @@
                     <input type="number" id="property-priority" min="0">
                 </div>
 
-                <div class="material-group material-section property text">
-                    <label>Parent Material ID </label>
-                    <input type="text" id="property-parent-material-id">
-                </div>
-
                 <fieldset>
+                    <!-- TODO: support 3D projected materials
+                    <div class="material-group material-section property dropdown">
+                        <label>Material mode </label>
+                        <select name="SelectMaterialMode" id="property-material-mode">
+                            <option value="uv">UV space material</option>
+                            <option value="projected">3D projected material</option>
+                        </select>
+                    </div>
+                    -->
+
                     <div class="material-group material-section property xy fstuple">
                         <label>Material Position </label>
                         <div class="tuple">

@@ -33,6 +33,8 @@ var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
 
+var MATERIAL_PREFIX_STRING = "mat::";
+
 function debugPrint(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -509,6 +511,18 @@ function clearSelection() {
     }
 }
 
+function showParentMaterialIDBox(number, elNumber, elString) {
+    if (number) {
+        $('#property-parent-material-id-number-container').show();
+        $('#property-parent-material-id-string-container').hide();
+        elString.value = "";
+    } else {
+        $('#property-parent-material-id-string-container').show();
+        $('#property-parent-material-id-number-container').hide();
+        elNumber.value = 0;
+    }
+}
+
 function loaded() {
     openEventBridge(function() {
 
@@ -632,9 +646,11 @@ function loaded() {
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
         var elMaterialURL = document.getElementById("property-material-url");
-        var elMaterialMode = document.getElementById("property-material-mode");
+        //var elMaterialMode = document.getElementById("property-material-mode");
         var elPriority = document.getElementById("property-priority");
-        var elParentMaterialID = document.getElementById("property-parent-material-id");
+        var elParentMaterialIDString = document.getElementById("property-parent-material-id-string");
+        var elParentMaterialIDNumber = document.getElementById("property-parent-material-id-number");
+        var elParentMaterialIDCheckbox = document.getElementById("property-parent-material-id-checkbox");
         var elMaterialPosX = document.getElementById("property-material-pos-x");
         var elMaterialPosY = document.getElementById("property-material-pos-y");
         var elMaterialScaleX = document.getElementById("property-material-scale-x");
@@ -1127,10 +1143,18 @@ function loaded() {
                             elZTextureURL.value = properties.zTextureURL;
                         } else if (properties.type === "Material") {
                             elMaterialURL.value = properties.materialURL;
-                            elMaterialMode.value = properties.materialMode;
-                            setDropdownText(elMaterialMode);
+                            //elMaterialMode.value = properties.materialMode;
+                            //setDropdownText(elMaterialMode);
                             elPriority.value = properties.priority;
-                            elParentMaterialID.value = properties.parentMaterialID;
+                            if (properties.parentMaterialID.startsWith(MATERIAL_PREFIX_STRING)) {
+                                elParentMaterialIDString.value = properties.parentMaterialID.replace(MATERIAL_PREFIX_STRING, "");
+                                showParentMaterialIDBox(false, elParentMaterialIDNumber, elParentMaterialIDString);
+                                elParentMaterialIDCheckbox.checked = false;
+                            } else {
+                                elParentMaterialIDNumber.value = parseInt(properties.parentMaterialID);
+                                showParentMaterialIDBox(true, elParentMaterialIDNumber, elParentMaterialIDString);
+                                elParentMaterialIDCheckbox.checked = true;
+                            }
                             elMaterialPosX.value = properties.materialPos.x.toFixed(4);
                             elMaterialPosY.value = properties.materialPos.y.toFixed(4);
                             elMaterialScaleX.value = properties.materialScale.x.toFixed(4);
@@ -1407,9 +1431,20 @@ function loaded() {
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
         elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
-        elMaterialMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMode'));
+        //elMaterialMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMode'));
         elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority', 0));
-        elParentMaterialID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentMaterialID'));
+
+        elParentMaterialIDString.addEventListener('change', function () { updateProperty("parentMaterialID", MATERIAL_PREFIX_STRING + this.value); });
+        elParentMaterialIDNumber.addEventListener('change', function () { updateProperty("parentMaterialID", this.value); });
+        elParentMaterialIDCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                updateProperty("parentMaterialID", elParentMaterialIDNumber.value);
+                showParentMaterialIDBox(true, elParentMaterialIDNumber, elParentMaterialIDString);
+            } else {
+                updateProperty("parentMaterialID", MATERIAL_PREFIX_STRING + elParentMaterialIDString.value);
+                showParentMaterialIDBox(false, elParentMaterialIDNumber, elParentMaterialIDString);
+            }
+        });
 
         var materialPosChangeFunction = createEmitVec2PropertyUpdateFunction('materialPos', elMaterialPosX, elMaterialPosY);
         elMaterialPosX.addEventListener('change', materialPosChangeFunction);

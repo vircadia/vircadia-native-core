@@ -19,7 +19,7 @@ class MaterialEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<MaterialEntityItem>;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    
+
     MaterialEntityItem(const EntityItemID& entityItemID);
 
     ALLOW_INSTANTIATION // This class can be instantiated
@@ -44,9 +44,9 @@ public:
 
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-                                                ReadBitstreamToTreeParams& args,
-                                                EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                bool& somethingChanged) override;
+                                                 ReadBitstreamToTreeParams& args,
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                 bool& somethingChanged) override;
 
     void debugDump() const override;
 
@@ -89,20 +89,39 @@ public:
     void postParentFixup() override;
 
 private:
+    // URL for this material.  Currently, only JSON format is supported.  Set to "userData" to use the user data to live edit a material.
+    // The following fields are supported in the JSON:
+    // strings:
+    //   name (NOT YET USED)
+    // floats:
+    //   opacity, roughness, metallic, scattering
+    // colors (arrays of 3 floats 0-1.  Optional fourth value in array can be a boolean isSRGB):
+    //   emissive, albedo, fresnel
+    // urls to textures:
+    //   emissiveMap, albedoMap, metallicMap, roughnessMap, normalMap, occlusionMap, lightmapMap, scatteringMap
     QString _materialURL;
+    // Type of material.  "uv" or "projected".  NOT YET IMPLEMENTED, only UV is used
     MaterialMode _materialMode { UV };
+    // Priority for this material when applying it to its parent.  Only the highest priority material will be used.  Materials with the same priority are (essentially) randomly sorted.
+    // Base materials that come with models always have priority 0.
     quint16 _priority { 0 };
+    // An identifier for choosing a submesh or submeshes within a parent.  If in the format "mat::<string>", all submeshes with material name "<string>" will be replaced.  Otherwise,
+    // parentMaterialID will be parsed as an unsigned int (strings not starting with "mat::" will parse to 0), representing the mesh index to modify.
     QString _parentMaterialID { "0" };
+    // Offset position in UV-space of top left of material, (0, 0) to (1, 1)
     glm::vec2 _materialPos { 0, 0 };
+    // How much to scale this material within its parent's UV-space
     glm::vec2 _materialScale { 1, 1 };
+    // How much to rotate this material within its parent's UV-space (degrees)
     float _materialRot { 0 };
-    
+
     NetworkMaterialResourcePointer _networkMaterial;
     QHash<QString, std::shared_ptr<NetworkMaterial>> _materials;
     std::vector<QString> _materialNames;
     QString _currentMaterialName;
 
     bool _retryApply { false };
+    bool _hasBeenAddedToOctree { false };
 
 };
 

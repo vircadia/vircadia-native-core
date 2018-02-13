@@ -828,6 +828,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
     foreach(auto item, _collisionRenderItemsMap.keys()) {
@@ -1456,6 +1457,7 @@ void Model::createVisibleRenderItemSet() {
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
+    _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
     Transform transform;
@@ -1479,6 +1481,7 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
@@ -1524,11 +1527,24 @@ bool Model::isRenderable() const {
     return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
-std::vector<unsigned int> Model::getMeshIDsFromMaterialID(const QString& parentMaterialID) {
-    std::vector<unsigned int> toReturn;
-    // TODO: first, try to find all meshes with materials that match parentMaterialID as a string
+std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialID) {
+    // try to find all meshes with materials that match parentMaterialID as a string
     // if none, return parentMaterialID as a uint
-    toReturn.push_back(parentMaterialID.toUInt());
+    std::vector<unsigned int> toReturn;
+    const QString MATERIAL_NAME_PREFIX = "mat::";
+    if (parentMaterialID.startsWith(MATERIAL_NAME_PREFIX)) {
+        parentMaterialID.replace(0, MATERIAL_NAME_PREFIX.size(), QString(""));
+        for (int i = 0; i < _modelMeshMaterialNames.size(); i++) {
+            if (_modelMeshMaterialNames[i] == parentMaterialID) {
+                toReturn.push_back(i);
+            }
+        }
+    }
+
+    if (toReturn.empty()) {
+        toReturn.push_back(parentMaterialID.toUInt());
+    }
+
     return toReturn;
 }
 
