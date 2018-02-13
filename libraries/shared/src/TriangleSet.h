@@ -85,7 +85,7 @@ public:
 protected:
 
     bool _isBalanced{ false };
-    TriangleOctreeCell _triangleOctree;
     std::vector<Triangle> _triangles;
+    TriangleOctreeCell _triangleOctree;
     AABox _bounds;
 };

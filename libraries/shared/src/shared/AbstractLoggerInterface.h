@@ -50,8 +50,8 @@ signals:
 
 private:
     bool _extraDebugging{ false };
-    bool _debugPrint{ false };
-    bool _infoPrint{ false };
+    bool _debugPrint{ true };
+    bool _infoPrint{ true };
     bool _criticalPrint{ true };
     bool _warningPrint{ true };
     bool _suppressPrint{ true };

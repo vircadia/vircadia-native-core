@@ -67,7 +67,7 @@ QPushButton#revealLogButton {
     font-size: 11px;
 }
 
-QPushButton#showAllButton {
+QPushButton#allLogsButton {
     font-family: Helvetica, Arial, sans-serif;
     background-color: #333333;
     color: #BBBBBB;
@@ -112,4 +112,11 @@ QComboBox::drop-down {
 QComboBox::down-arrow {
     image: url(:/styles/filter.png);
     border-width: 0px;
+}
+
+QLabel#messageCount {
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    color: #3d3d3d;
+    font-size: 11px;
 }

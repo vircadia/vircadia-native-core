@@ -400,21 +400,21 @@ var toolBar = (function () {
     function handleNewMaterialDialogResult(result) {
         if (result) {
             var materialURL = result.textInput;
-            var materialMode;
-            switch (result.comboBox) {
-                case MATERIAL_MODE_PROJECTED:
-                    materialMode = "projected";
-                    break;
-                default:
-                    shapeType = "uv";
-            }
+            //var materialMode;
+            //switch (result.comboBox) {
+            //    case MATERIAL_MODE_PROJECTED:
+            //        materialMode = "projected";
+            //        break;
+            //    default:
+            //        shapeType = "uv";
+            //}
 
             var DEFAULT_LAYERED_MATERIAL_PRIORITY = 1;
             if (materialURL) {
                 createNewEntity({
                     type: "Material",
                     materialURL: materialURL,
-                    materialMode: materialMode,
+                    //materialMode: materialMode,
                     priority: DEFAULT_LAYERED_MATERIAL_PRIORITY
                 });
             }
@@ -555,6 +555,22 @@ var toolBar = (function () {
                 },
                 text: "some text",
                 lineHeight: 0.06
+            });
+        });
+
+        addButton("newImageButton", function () {
+            var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+            var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+            createNewEntity({
+                type: "Model",
+                dimensions: {
+                    x: 4.16,
+                    y: 0.02,
+                    z: 2.58
+                },
+                shapeType: "box",
+                modelURL: IMAGE_MODEL,
+                textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
             });
         });
 
@@ -1276,7 +1292,6 @@ var lastPosition = null;
 // Do some stuff regularly, like check for placement of various overlays
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
-    selectionDisplay.checkMove();
     selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);

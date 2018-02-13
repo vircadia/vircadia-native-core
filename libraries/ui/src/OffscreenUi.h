@@ -57,7 +57,6 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     friend class VrMenu;
 public:
     OffscreenUi();
-    virtual void create() override;
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void hide(const QString& name);
@@ -252,6 +251,9 @@ private slots:
     void hoverBeginEvent(const PointerEvent& event);
     void hoverEndEvent(const PointerEvent& event);
     void handlePointerEvent(const PointerEvent& event);
+
+protected:
+    void onRootContextCreated(QQmlContext* qmlContext) override;
 
 private:
     QString fileDialog(const QVariantMap& properties);

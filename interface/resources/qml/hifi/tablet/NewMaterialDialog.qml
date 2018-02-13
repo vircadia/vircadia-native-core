@@ -106,7 +106,7 @@ Rectangle {
                 height: 400
                 spacing: 10
 
-                Text {
+                /*Text {
                     id: text3
                     text: qsTr("Material Mode")
                     color: "#ffffff"
@@ -122,7 +122,7 @@ Rectangle {
                     z: 100
                     transformOrigin: Item.Center
                     model: materialArray
-                }
+                }*/
 
                 Row {
                     id: row3
@@ -142,7 +142,7 @@ Rectangle {
                                 method: "newMaterialDialogAdd",
                                 params: {
                                     textInput: materialURL.text,
-                                    comboBox: materialMode.currentIndex
+                                    //comboBox: materialMode.currentIndex
                                 }
                             });
                         }

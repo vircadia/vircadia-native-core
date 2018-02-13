@@ -78,7 +78,7 @@
         </fieldset>
 
         <fieldset id="collision-info" class="major">
-            <legend class="section-header"> Collision<span>M</span> </legend>
+            <legend class="section-header"> Collision<span class=".collapse-icon">M</span> </legend>
             <fieldset class="minor">
                 <div class="behavior-group property checkbox">
                     <input type="checkbox" id="property-collisionless">
@@ -168,7 +168,7 @@
 
         <fieldset id="physical" class="major">
             <legend class="section-header physical-group">
-                Physical<span>M</span>
+                Physical<span class=".collapse-icon"> M</span>
             </legend>
             <fieldset class="minor">
                 <fieldset class="physical-group property xyz fstuple">
@@ -228,7 +228,7 @@
 
         <fieldset id="spatial" class="major">
             <legend class="section-header spatial-group">
-                Spatial<span>M</span>
+                Spatial<span class=".collapse-icon" >M</span>
             </legend>
             <fieldset class="spatial-group property xyz fstuple">
                 <legend>Position <span class="unit">m</span></legend>
@@ -296,7 +296,7 @@
 
         <fieldset id="behavior" class="major">
             <legend class="section-header behavior-group">
-                Behavior<span>M</span>
+                Behavior<span class=".collapse-icon">M</span>
             </legend>
             <div class="property textarea">
                 <label for="property-user-data">User data</label>
@@ -357,7 +357,7 @@
 
         <fieldset id="hyperlink" class="major">
             <legend class="section-header hyperlink-group hyperlink-section">
-                Hyperlink<span>M</span>
+                Hyperlink<span class=".collapse-icon">M</span>
             </legend>
             <div class="hyperlink-group hyperlink-section property url">
                 <label for="property-hyperlink-href">Href - hifi://address</label>
@@ -369,7 +369,7 @@
 
         <fieldset id="light" class="major">
             <legend class="section-header light-group light-section">
-                Light<span>M</span>
+                Light<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="light-group light-section property rgb fstuple">
                 <div class="color-picker" id="property-light-color"></div>
@@ -403,7 +403,7 @@
 
         <fieldset id="model" class="major">
             <legend class="section-header model-group model-section zone-section">
-                Model<span>M</span>
+                Model<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="minor">
                 <div class="model-group model-section property url ">
@@ -487,7 +487,7 @@
 
         <fieldset id="zone" class="major">
             <legend class="section-header zone-group zone-section">
-                Zone<span>M</span>
+                Zone<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="minor">
                 <div class="zone-group zone-section property checkbox">
@@ -680,7 +680,7 @@
         </fieldset>
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
-                Text<span>M</span>
+                Text<span class=".collapse-icon">M</span>
             </legend>
             <div class="text-group text-section property text">
                 <label for="property-text-text">Text content</label>
@@ -714,10 +714,19 @@
             </fieldset>
         </fieldset>
 
+        <fieldset id="image" class="major">
+            <legend class="section-header image-group image-section">
+                Image<span>M</span>
+            </legend>
+            <div class="image-group image-section property url ">
+                <label for="property-image-url">Image URL</label>
+                <input type="text" id="property-image-url">
+            </div>
+        </fieldset>
 
         <fieldset id="web" class="major">
             <legend class="section-header web-group web-section">
-                Web<span>M</span>
+                Web<span class=".collapse-icon">M</span>
             </legend>
             <div class="web-group web-section property url ">
                 <label for="property-web-source-url">Source URL</label>

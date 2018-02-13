@@ -15,11 +15,12 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QPlainTextEdit>
+#include <QLabel>
 
 #include <shared/AbstractLoggerInterface.h>
 
 const int REVEAL_BUTTON_WIDTH = 122;
-const int CLEAR_FILTER_BUTTON_WIDTH = 80;
+const int ALL_LOGS_BUTTON_WIDTH = 90;
 const int MARGIN_LEFT = 25;
 const int DEBUG_CHECKBOX_WIDTH = 70;
 const int INFO_CHECKBOX_WIDTH = 65;
@@ -142,6 +143,11 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _filterDropdown->addItem("qml");
     connect(_filterDropdown, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &LogDialog::handleFilterDropdownChanged);
 
+    _leftPad += COMBOBOX_WIDTH + MARGIN_LEFT + MARGIN_LEFT;
+    _messageCount = new QLabel("", this);
+    _messageCount->setObjectName("messageCount");
+    _messageCount->show();
+
     _extraDebuggingBox = new QCheckBox("Extra debugging", this);
     if (_logger->extraDebugging()) {
         _extraDebuggingBox->setCheckState(Qt::Checked);
@@ -149,12 +155,13 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _extraDebuggingBox->show();
     connect(_extraDebuggingBox, &QCheckBox::stateChanged, this, &LogDialog::handleExtraDebuggingCheckbox);
 
-    _clearFilterButton = new QPushButton("Clear Filters", this);
+    _allLogsButton = new QPushButton("All Messages", this);
     // set object name for css styling
-    _clearFilterButton->setObjectName("showAllButton");
-    _clearFilterButton->show();
-    connect(_clearFilterButton, &QPushButton::clicked, this, &LogDialog::handleClearFilterButton);
-    handleClearFilterButton();
+
+    _allLogsButton->setObjectName("allLogsButton");
+    _allLogsButton->show();
+    connect(_allLogsButton, &QPushButton::clicked, this, &LogDialog::handleAllLogsButton);
+    handleAllLogsButton();
 
     auto windowGeometry = _windowGeometry.get();
     if (windowGeometry.isValid()) {
@@ -168,11 +175,15 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         ELEMENT_MARGIN,
         REVEAL_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _clearFilterButton->setGeometry(width() - ELEMENT_MARGIN - CLEAR_FILTER_BUTTON_WIDTH,
+    _allLogsButton->setGeometry(width() - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH,
         THIRD_ROW,
-        CLEAR_FILTER_BUTTON_WIDTH,
+        ALL_LOGS_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
-    _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - CLEAR_FILTER_BUTTON_WIDTH,
+    _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH,
+        THIRD_ROW,
+        COMBOBOX_WIDTH,
+        ELEMENT_HEIGHT);
+    _messageCount->setGeometry(_leftPad,
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
@@ -187,13 +198,13 @@ void LogDialog::handleRevealButton() {
     _logger->locateLog();
 }
 
-void LogDialog::handleClearFilterButton() {
+void LogDialog::handleAllLogsButton() {
     _logger->setExtraDebugging(false);
     _extraDebuggingBox->setCheckState(Qt::Unchecked);
-    _logger->setDebugPrint(false);
-    _debugPrintBox->setCheckState(Qt::Unchecked);
-    _logger->setInfoPrint(false);
-    _infoPrintBox->setCheckState(Qt::Unchecked);
+    _logger->setDebugPrint(true);
+    _debugPrintBox->setCheckState(Qt::Checked);
+    _logger->setInfoPrint(true);
+    _infoPrintBox->setCheckState(Qt::Checked);
     _logger->setCriticalPrint(true);
     _criticalPrintBox->setCheckState(Qt::Checked);
     _logger->setWarningPrint(true);
@@ -270,40 +281,67 @@ void LogDialog::appendLogLine(QString logLine) {
         if (logLine.contains(DEBUG_TEXT, Qt::CaseSensitive)) {
             if (_logger->debugPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         } else if (logLine.contains(INFO_TEXT, Qt::CaseSensitive)) {
             if (_logger->infoPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             } 
         } else if (logLine.contains(CRITICAL_TEXT, Qt::CaseSensitive)) {
             if (_logger->criticalPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         } else if (logLine.contains(WARNING_TEXT, Qt::CaseSensitive)) {
             if (_logger->warningPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         } else if (logLine.contains(SUPPRESS_TEXT, Qt::CaseSensitive)) {
             if (_logger->suppressPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         } else if (logLine.contains(FATAL_TEXT, Qt::CaseSensitive)) {
             if (_logger->fatalPrint()) {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         } else {
-            if (_logger->unknownPrint()) {
+            if (_logger->unknownPrint() && logLine.trimmed() != "") {
                 _logTextBox->appendPlainText(logLine.trimmed());
+                _count++;
+                updateMessageCount();
             }
         }
     }
 }
 
 void LogDialog::printLogFile() {
+    _count = 0;
     _logTextBox->clear();
     QString log = getCurrentLog();
     QStringList logList = log.split('\n');
     for (const auto& message : logList) {
         appendLogLine(message);
     }
+    updateMessageCount();
+}
+
+void LogDialog::updateMessageCount() {
+    _countLabel = QString::number(_count);
+    if (_count != 1) {
+        _countLabel.append("  log messages");
+    }
+    else {
+        _countLabel.append("  log message");
+    }
+    _messageCount->setText(_countLabel);
 }

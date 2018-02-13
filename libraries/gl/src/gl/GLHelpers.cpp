@@ -81,6 +81,10 @@ bool isRenderThread() {
     return QThread::currentThread() == RENDER_THREAD;
 }
 
+#if defined(Q_OS_ANDROID)
+#define USE_GLES 1
+#endif
+
 namespace gl {
     void withSavedContext(const std::function<void()>& f) {
         // Save the original GL context, because creating a QML surface will create a new context
@@ -90,5 +94,48 @@ namespace gl {
         if (savedContext) {
             savedContext->makeCurrent(savedSurface);
         }
+    }
+
+    bool checkGLError(const char* name) {
+        GLenum error = glGetError();
+        if (!error) {
+            return false;
+        } 
+        switch (error) {
+            case GL_INVALID_ENUM:
+                qCWarning(glLogging) << "GLBackend" << name << ": An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
+                break;
+            case GL_INVALID_VALUE:
+                qCWarning(glLogging) << "GLBackend" << name << ": A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
+                break;
+            case GL_INVALID_OPERATION:
+                qCWarning(glLogging) << "GLBackend" << name << ": The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
+                break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION:
+                qCWarning(glLogging) << "GLBackend" << name << ": The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
+                break;
+            case GL_OUT_OF_MEMORY:
+                qCWarning(glLogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
+                break;
+#if !defined(USE_GLES)
+            case GL_STACK_UNDERFLOW:
+                qCWarning(glLogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
+                break;
+            case GL_STACK_OVERFLOW:
+                qCWarning(glLogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to overflow.";
+                break;
+#endif
+        }
+        return true;
+    }
+
+
+    bool checkGLErrorDebug(const char* name) {
+#ifdef DEBUG
+        return checkGLError(name);
+#else
+        Q_UNUSED(name);
+        return false;
+#endif
     }
 }

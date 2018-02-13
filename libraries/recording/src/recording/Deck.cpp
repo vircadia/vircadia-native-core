@@ -187,14 +187,14 @@ void Deck::processFrames() {
 
 void Deck::removeClip(const ClipConstPointer& clip) {
     Locker lock(_mutex);
-    std::remove_if(_clips.begin(), _clips.end(), [&](const Clip::ConstPointer& testClip)->bool {
+    _clips.remove_if([&](const Clip::ConstPointer& testClip)->bool {
         return (clip == testClip);
     });
 }
 
 void Deck::removeClip(const QString& clipName) {
     Locker lock(_mutex);
-    std::remove_if(_clips.begin(), _clips.end(), [&](const Clip::ConstPointer& clip)->bool {
+    _clips.remove_if([&](const Clip::ConstPointer& clip)->bool {
         return (clip->getName() == clipName);
     });
 }
