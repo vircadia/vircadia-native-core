@@ -241,7 +241,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     }
 #endif
 
-    updateKeyZoneItemFromEntity();
+    updateKeyZoneItemFromEntity(entity);
 
     if (keyLightChanged) {
         updateKeySunFromEntity(entity);
@@ -329,7 +329,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     // Set the keylight
     sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
     sunLight->setIntensity(_keyLightProperties.getIntensity());
-    sunLight->setDirection(_keyLightProperties.getDirection());
+    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection());
     sunLight->setCastShadows(_keyLightProperties.getCastShadows());
 }
 
@@ -350,6 +350,8 @@ void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& 
     } else {
         setAmbientURL(_ambientLightProperties.getAmbientURL());
     }
+
+    ambientLight->setTransform(entity->getTransform().getInverseMatrix());
 }
 
 void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
@@ -379,7 +381,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
     haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 
-    haze->setZoneTransform(entity->getTransform().getMatrix());
+    haze->setTransform(entity->getTransform().getMatrix());
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
@@ -391,7 +393,10 @@ void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer&
     setSkyboxURL(_skyboxProperties.getURL());
 }
 
-void ZoneEntityRenderer::updateKeyZoneItemFromEntity() {
+void ZoneEntityRenderer::updateKeyZoneItemFromEntity(const TypedEntityPointer& entity) {
+    // Update rotation values
+    editSkybox()->setOrientation(entity->getTransform().getRotation());
+
     /* TODO: Implement the sun model behavior / Keep this code here for reference, this is how we
     {
     // Set the stage

@@ -121,16 +121,16 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 
 void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
-    auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
-    auto vertexModel = gpu::Shader::createVertex(std::string(model_vert));
-    auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
-    auto pixelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_translucent_frag));
-    auto pixelUnlit = gpu::Shader::createPixel(std::string(overlay3D_unlit_frag));
-    auto pixelTranslucentUnlit = gpu::Shader::createPixel(std::string(overlay3D_translucent_unlit_frag));
-    auto pixelModel = gpu::Shader::createPixel(std::string(overlay3D_model_frag));
-    auto pixelModelTranslucent = gpu::Shader::createPixel(std::string(overlay3D_model_translucent_frag));
-    auto pixelModelUnlit = gpu::Shader::createPixel(std::string(overlay3D_model_unlit_frag));
-    auto pixelModelTranslucentUnlit = gpu::Shader::createPixel(std::string(overlay3D_model_translucent_unlit_frag));
+    auto vertex = overlay3D_vert::getShader();
+    auto vertexModel = model_vert::getShader();
+    auto pixel = overlay3D_frag::getShader();
+    auto pixelTranslucent = overlay3D_translucent_frag::getShader();
+    auto pixelUnlit = overlay3D_unlit_frag::getShader();
+    auto pixelTranslucentUnlit = overlay3D_translucent_unlit_frag::getShader();
+    auto pixelModel = overlay3D_model_frag::getShader();
+    auto pixelModelTranslucent = overlay3D_model_translucent_frag::getShader();
+    auto pixelModelUnlit = overlay3D_model_unlit_frag::getShader();
+    auto pixelModelTranslucentUnlit = overlay3D_model_translucent_unlit_frag::getShader();
 
     auto opaqueProgram = gpu::Shader::createProgram(vertex, pixel);
     auto translucentProgram = gpu::Shader::createProgram(vertex, pixelTranslucent);
@@ -187,66 +187,66 @@ void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
 
 void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
-    auto simpleVertex = gpu::Shader::createVertex(std::string(simple_vert));
-    auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
-    auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
-    auto modelLightmapVertex = gpu::Shader::createVertex(std::string(model_lightmap_vert));
-    auto modelLightmapNormalMapVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert));
-    auto modelTranslucentVertex = gpu::Shader::createVertex(std::string(model_translucent_vert));
-    auto modelTranslucentNormalMapVertex = gpu::Shader::createVertex(std::string(model_translucent_normal_map_vert));
-    auto modelShadowVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-    auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
-    auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
-    auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
-    auto modelLightmapFadeVertex = gpu::Shader::createVertex(std::string(model_lightmap_fade_vert));
-    auto modelLightmapNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_fade_vert));
-    auto skinModelFadeVertex = gpu::Shader::createVertex(std::string(skin_model_fade_vert));
-    auto skinModelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_fade_vert));
+    auto simpleVertex = simple_vert::getShader();
+    auto modelVertex = model_vert::getShader();
+    auto modelNormalMapVertex = model_normal_map_vert::getShader();
+    auto modelLightmapVertex = model_lightmap_vert::getShader();
+    auto modelLightmapNormalMapVertex = model_lightmap_normal_map_vert::getShader();
+    auto modelTranslucentVertex = model_translucent_vert::getShader();
+    auto modelTranslucentNormalMapVertex = model_translucent_normal_map_vert::getShader();
+    auto modelShadowVertex = model_shadow_vert::getShader();
+    auto skinModelVertex = skin_model_vert::getShader();
+    auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
+    auto skinModelShadowVertex = skin_model_shadow_vert::getShader();
+    auto modelLightmapFadeVertex = model_lightmap_fade_vert::getShader();
+    auto modelLightmapNormalMapFadeVertex = model_lightmap_normal_map_fade_vert::getShader();
+    auto skinModelFadeVertex = skin_model_fade_vert::getShader();
+    auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
     auto skinModelTranslucentVertex = skinModelFadeVertex;  // We use the same because it ouputs world position per vertex
     auto skinModelNormalMapTranslucentVertex = skinModelNormalMapFadeVertex;  // We use the same because it ouputs world position per vertex
 
-    auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
-    auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
-    auto simpleFadeVertex = gpu::Shader::createVertex(std::string(simple_fade_vert));
-    auto modelShadowFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
-    auto skinModelShadowFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
+    auto modelFadeVertex = model_fade_vert::getShader();
+    auto modelNormalMapFadeVertex = model_normal_map_fade_vert::getShader();
+    auto simpleFadeVertex = simple_fade_vert::getShader();
+    auto modelShadowFadeVertex = model_shadow_fade_vert::getShader();
+    auto skinModelShadowFadeVertex = skin_model_shadow_fade_vert::getShader();
 
     // Pixel shaders
-    auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
-    auto simpleUnlitPixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
-    auto simpleTranslucentPixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_frag));
-    auto simpleTranslucentUnlitPixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_unlit_frag));
-    auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
-    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(model_unlit_frag));
-    auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
-    auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
-    auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
-    auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(model_translucent_frag));
-    auto modelTranslucentNormalMapPixel = gpu::Shader::createPixel(std::string(model_translucent_normal_map_frag));
-    auto modelTranslucentUnlitPixel = gpu::Shader::createPixel(std::string(model_translucent_unlit_frag));
-    auto modelShadowPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
-    auto modelLightmapPixel = gpu::Shader::createPixel(std::string(model_lightmap_frag));
-    auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
-    auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
-    auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
-    auto modelLightmapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_fade_frag));
-    auto modelLightmapNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_fade_frag));
-    auto modelLightmapSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_fade_frag));
-    auto modelLightmapNormalSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_fade_frag));
+    auto simplePixel = simple_textured_frag::getShader();
+    auto simpleUnlitPixel = simple_textured_unlit_frag::getShader();
+    auto simpleTranslucentPixel = simple_transparent_textured_frag::getShader();
+    auto simpleTranslucentUnlitPixel = simple_transparent_textured_unlit_frag::getShader();
+    auto modelPixel = model_frag::getShader();
+    auto modelUnlitPixel = model_unlit_frag::getShader();
+    auto modelNormalMapPixel = model_normal_map_frag::getShader();
+    auto modelSpecularMapPixel = model_specular_map_frag::getShader();
+    auto modelNormalSpecularMapPixel = model_normal_specular_map_frag::getShader();
+    auto modelTranslucentPixel = model_translucent_frag::getShader();
+    auto modelTranslucentNormalMapPixel = model_translucent_normal_map_frag::getShader();
+    auto modelTranslucentUnlitPixel = model_translucent_unlit_frag::getShader();
+    auto modelShadowPixel = model_shadow_frag::getShader();
+    auto modelLightmapPixel = model_lightmap_frag::getShader();
+    auto modelLightmapNormalMapPixel = model_lightmap_normal_map_frag::getShader();
+    auto modelLightmapSpecularMapPixel = model_lightmap_specular_map_frag::getShader();
+    auto modelLightmapNormalSpecularMapPixel = model_lightmap_normal_specular_map_frag::getShader();
+    auto modelLightmapFadePixel = model_lightmap_fade_frag::getShader();
+    auto modelLightmapNormalMapFadePixel = model_lightmap_normal_map_fade_frag::getShader();
+    auto modelLightmapSpecularMapFadePixel = model_lightmap_specular_map_fade_frag::getShader();
+    auto modelLightmapNormalSpecularMapFadePixel = model_lightmap_normal_specular_map_fade_frag::getShader();
 
-    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_fade_frag));
-    auto modelUnlitFadePixel = gpu::Shader::createPixel(std::string(model_unlit_fade_frag));
-    auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
-    auto modelSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_specular_map_fade_frag));
-    auto modelNormalSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_fade_frag));
-    auto modelShadowFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
-    auto modelTranslucentFadePixel = gpu::Shader::createPixel(std::string(model_translucent_fade_frag));
-    auto modelTranslucentNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_translucent_normal_map_fade_frag));
-    auto modelTranslucentUnlitFadePixel = gpu::Shader::createPixel(std::string(model_translucent_unlit_fade_frag));
-    auto simpleFadePixel = gpu::Shader::createPixel(std::string(simple_textured_fade_frag));
-    auto simpleUnlitFadePixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_fade_frag));
-    auto simpleTranslucentFadePixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_fade_frag));
-    auto simpleTranslucentUnlitFadePixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_unlit_fade_frag));
+    auto modelFadePixel = model_fade_frag::getShader();
+    auto modelUnlitFadePixel = model_unlit_fade_frag::getShader();
+    auto modelNormalMapFadePixel = model_normal_map_fade_frag::getShader();
+    auto modelSpecularMapFadePixel = model_specular_map_fade_frag::getShader();
+    auto modelNormalSpecularMapFadePixel = model_normal_specular_map_fade_frag::getShader();
+    auto modelShadowFadePixel = model_shadow_fade_frag::getShader();
+    auto modelTranslucentFadePixel = model_translucent_fade_frag::getShader();
+    auto modelTranslucentNormalMapFadePixel = model_translucent_normal_map_fade_frag::getShader();
+    auto modelTranslucentUnlitFadePixel = model_translucent_unlit_fade_frag::getShader();
+    auto simpleFadePixel = simple_textured_fade_frag::getShader();
+    auto simpleUnlitFadePixel = simple_textured_unlit_fade_frag::getShader();
+    auto simpleTranslucentFadePixel = simple_transparent_textured_fade_frag::getShader();
+    auto simpleTranslucentUnlitFadePixel = simple_transparent_textured_unlit_fade_frag::getShader();
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
@@ -448,19 +448,19 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
 
 void initForwardPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
-    auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
-    auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
-    auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
-    auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
-    auto skinModelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_fade_vert));
+    auto modelVertex = model_vert::getShader();
+    auto modelNormalMapVertex = model_normal_map_vert::getShader();
+    auto skinModelVertex = skin_model_vert::getShader();
+    auto skinModelNormalMapVertex = skin_model_normal_map_vert::getShader();
+    auto skinModelNormalMapFadeVertex = skin_model_normal_map_fade_vert::getShader();
 
     // Pixel shaders
-    auto modelPixel = gpu::Shader::createPixel(std::string(forward_model_frag));
-    auto modelUnlitPixel = gpu::Shader::createPixel(std::string(forward_model_unlit_frag));
-    auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_map_frag));
-    auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_specular_map_frag));
-    auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_specular_map_frag));
-    auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
+    auto modelPixel = forward_model_frag::getShader();
+    auto modelUnlitPixel = forward_model_unlit_frag::getShader();
+    auto modelNormalMapPixel = forward_model_normal_map_frag::getShader();
+    auto modelSpecularMapPixel = forward_model_specular_map_frag::getShader();
+    auto modelNormalSpecularMapPixel = forward_model_normal_specular_map_frag::getShader();
+    auto modelNormalMapFadePixel = model_normal_map_fade_frag::getShader();
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
@@ -590,29 +590,29 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderAr
 }
 
 void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-    auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    auto modelVertex = model_shadow_vert::getShader();
+    auto modelPixel = model_shadow_frag::getShader();
     gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned().withoutFade(),
         modelProgram, state);
 
-    auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
-    auto skinPixel = gpu::Shader::createPixel(std::string(skin_model_shadow_frag));
+    auto skinVertex = skin_model_shadow_vert::getShader();
+    auto skinPixel = skin_model_shadow_frag::getShader();
     gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, skinPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withoutFade(),
         skinProgram, state);
 
-    auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
-    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
+    auto modelFadeVertex = model_shadow_fade_vert::getShader();
+    auto modelFadePixel = model_shadow_fade_frag::getShader();
     gpu::ShaderPointer modelFadeProgram = gpu::Shader::createProgram(modelFadeVertex, modelFadePixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned().withFade(),
         modelFadeProgram, state);
 
-    auto skinFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
-    auto skinFadePixel = gpu::Shader::createPixel(std::string(skin_model_shadow_fade_frag));
+    auto skinFadeVertex = skin_model_shadow_fade_vert::getShader();
+    auto skinFadePixel = skin_model_shadow_fade_frag::getShader();
     gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(skinFadeVertex, skinFadePixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withFade(),

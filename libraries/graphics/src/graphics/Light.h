@@ -152,6 +152,8 @@ public:
     void setAmbientMapNumMips(uint16_t numMips);
     uint16_t getAmbientMapNumMips() const { return (uint16_t) _ambientSchemaBuffer->mapNumMips; }
 
+    void setTransform(const glm::mat4& transform);
+
     // Light Schema
     class LightSchema {
     public:
@@ -165,7 +167,9 @@ public:
         float mapNumMips { 0.0f };
         float spare1;
         float spare2;
+
         gpu::SphericalHarmonics ambientSphere;
+        glm::mat4 transform;
     };
 
     using LightSchemaBuffer = gpu::StructBuffer<LightSchema>;
