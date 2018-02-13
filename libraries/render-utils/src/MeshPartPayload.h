@@ -93,14 +93,14 @@ public:
 
     void notifyLocationChanged() override;
 
-#if defined(SKIN_DQ)
-    using TransformType = Model::TransformDualQuaternion;
-#else
-    using TransformType = glm::mat4;
-#endif
-
     void updateKey(bool isVisible, bool isLayered, uint8_t tagBits) override;
-    void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
+
+    // matrix palette skinning
+    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
+
+    // dual quaternion skinning
+    void updateClusterBuffer(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
+
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
@@ -115,7 +115,11 @@ public:
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
 
-    void computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms);
+    // matrix palette skinning
+    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
+
+    // dual quaternion skinning
+    void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
 
     gpu::BufferPointer _clusterBuffer;
 
