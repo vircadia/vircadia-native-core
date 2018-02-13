@@ -35,6 +35,7 @@ public:
     void certificateInfo(const QString& certificateId);
     void transferHfcToNode(const QString& hfc_key, const QString& nodeID, const int& amount, const QString& optionalMessage);
     void transferHfcToUsername(const QString& hfc_key, const QString& username, const int& amount, const QString& optionalMessage);
+    void alreadyOwned(const QString& marketplaceId);
 
     enum CertificateStatus {
         CERTIFICATE_STATUS_UNKNOWN = 0,
@@ -55,6 +56,7 @@ signals:
     void certificateInfoResult(QJsonObject result);
     void transferHfcToNodeResult(QJsonObject result);
     void transferHfcToUsernameResult(QJsonObject result);
+    void alreadyOwnedResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -79,6 +81,8 @@ public slots:
     void transferHfcToNodeFailure(QNetworkReply& reply);
     void transferHfcToUsernameSuccess(QNetworkReply& reply);
     void transferHfcToUsernameFailure(QNetworkReply& reply);
+    void alreadyOwnedSuccess(QNetworkReply& reply);
+    void alreadyOwnedFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
