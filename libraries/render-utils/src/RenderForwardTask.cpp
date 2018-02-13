@@ -85,8 +85,10 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
 
     // Lighting Buffer ready for tone mapping
+#if !defined (Q_OS_ANDROID)
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, framebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+#endif
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
@@ -140,7 +142,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
         batch.setFramebuffer(_framebuffer);
         batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0, 1.0, 0.0), 0), 1.0, 0, true);
+            vec4(vec3(0), 0), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
