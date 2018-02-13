@@ -297,19 +297,20 @@ float FadeConfig::getEdgeWidth() const {
     return sqrtf(events[editedCategory].edgeWidth);
 }
 
-void FadeConfig::setEdgeInnerColorR(float value) {
-    events[editedCategory].edgeInnerColor.r = value;
+void FadeConfig::setEdgeInnerColor(const QColor& value) {
+    events[editedCategory].edgeInnerColor.r = value.redF();
+    events[editedCategory].edgeInnerColor.g = value.greenF();
+    events[editedCategory].edgeInnerColor.b = value.blueF();
     emit dirty();
 }
 
-void FadeConfig::setEdgeInnerColorG(float value) {
-    events[editedCategory].edgeInnerColor.g = value;
-    emit dirty();
-}
-
-void FadeConfig::setEdgeInnerColorB(float value) {
-    events[editedCategory].edgeInnerColor.b = value;
-    emit dirty();
+QColor FadeConfig::getEdgeInnerColor() const {
+    QColor color;
+    color.setRedF(events[editedCategory].edgeInnerColor.r);
+    color.setGreenF(events[editedCategory].edgeInnerColor.g);
+    color.setBlueF(events[editedCategory].edgeInnerColor.b);
+    color.setAlphaF(1.0f);
+    return color;
 }
 
 void FadeConfig::setEdgeInnerIntensity(float value) {
@@ -317,19 +318,20 @@ void FadeConfig::setEdgeInnerIntensity(float value) {
     emit dirty();
 }
 
-void FadeConfig::setEdgeOuterColorR(float value) {
-    events[editedCategory].edgeOuterColor.r = value;
+void FadeConfig::setEdgeOuterColor(const QColor& value) {
+    events[editedCategory].edgeOuterColor.r = value.redF();
+    events[editedCategory].edgeOuterColor.g = value.greenF();
+    events[editedCategory].edgeOuterColor.b = value.blueF();
     emit dirty();
 }
 
-void FadeConfig::setEdgeOuterColorG(float value) {
-    events[editedCategory].edgeOuterColor.g = value;
-    emit dirty();
-}
-
-void FadeConfig::setEdgeOuterColorB(float value) {
-    events[editedCategory].edgeOuterColor.b = value;
-    emit dirty();
+QColor FadeConfig::getEdgeOuterColor() const {
+    QColor color;
+    color.setRedF(events[editedCategory].edgeOuterColor.r);
+    color.setGreenF(events[editedCategory].edgeOuterColor.g);
+    color.setBlueF(events[editedCategory].edgeOuterColor.b);
+    color.setAlphaF(1.0f);
+    return color;
 }
 
 void FadeConfig::setEdgeOuterIntensity(float value) {
@@ -352,13 +354,13 @@ QString FadeConfig::eventNames[FADE_CATEGORY_COUNT] = {
 };
 
 void FadeConfig::save() const {
+    // Save will only work if the HIFI_USE_SOURCE_TREE_RESOURCES environment variable is set
     assert(editedCategory < FADE_CATEGORY_COUNT);
     QJsonObject lProperties;
-    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
-    QUrl path(PathUtils::resourcesPath() + configFile);
-    QFile file(path.toString());
+    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
+    QFile file(configFilePath);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
-        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+        qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
     }
     else {
         const auto& event = events[editedCategory];
@@ -381,15 +383,13 @@ void FadeConfig::save() const {
 }
 
 void FadeConfig::load() {
-    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
-
-    QUrl path(PathUtils::resourcesPath() + configFile);
-    QFile file(path.toString());
+    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
+    QFile file(configFilePath);
     if (!file.exists()) {
-        qWarning() << "Fade event configuration file " << path << " does not exist";
+        qWarning() << "Fade event configuration file " << configFilePath << " does not exist";
     }
     else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+        qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
     }
     else {
         QString fileData = file.readAll();
@@ -401,14 +401,14 @@ void FadeConfig::load() {
             QJsonValue value;
             auto& event = events[editedCategory];
 
-            qCDebug(renderlogging) << "Fade event configuration file" << path << "loaded";
+            qCDebug(renderlogging) << "Fade event configuration file" << configFilePath << "loaded";
 
             value = jsonObject["edgeInnerColor"];
             if (value.isArray()) {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 4) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
                 }
                 else {
                     event.edgeInnerColor.r = (float)data.at(0).toDouble();
@@ -418,7 +418,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
             }
 
             value = jsonObject["edgeOuterColor"];
@@ -426,7 +426,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 4) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
                 }
                 else {
                     event.edgeOuterColor.r = (float)data.at(0).toDouble();
@@ -436,7 +436,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
             }
 
             value = jsonObject["noiseSize"];
@@ -444,7 +444,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSize' field. Expected array of size 3";
                 }
                 else {
                     event.noiseSize.x = (float)data.at(0).toDouble();
@@ -453,7 +453,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSize' field. Expected array of size 3";
             }
 
             value = jsonObject["noiseSpeed"];
@@ -461,7 +461,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
                 }
                 else {
                     event.noiseSpeed.x = (float)data.at(0).toDouble();
@@ -470,7 +470,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
             }
 
             value = jsonObject["baseSize"];
@@ -478,7 +478,7 @@ void FadeConfig::load() {
                 QJsonArray data = value.toArray();
 
                 if (data.size() < 3) {
-                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+                    qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseSize' field. Expected array of size 3";
                 }
                 else {
                     event.baseSize.x = (float)data.at(0).toDouble();
@@ -487,7 +487,7 @@ void FadeConfig::load() {
                 }
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseSize' field. Expected array of size 3";
             }
 
             value = jsonObject["noiseLevel"];
@@ -495,7 +495,7 @@ void FadeConfig::load() {
                 event.noiseLevel = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseLevel' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'noiseLevel' field. Expected float value";
             }
 
             value = jsonObject["baseLevel"];
@@ -503,7 +503,7 @@ void FadeConfig::load() {
                 event.baseLevel = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseLevel' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'baseLevel' field. Expected float value";
             }
 
             value = jsonObject["duration"];
@@ -511,7 +511,7 @@ void FadeConfig::load() {
                 event.duration = (float)value.toDouble();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'duration' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'duration' field. Expected float value";
             }
 
             value = jsonObject["edgeWidth"];
@@ -519,7 +519,7 @@ void FadeConfig::load() {
                 event.edgeWidth = std::min(1.f, std::max(0.f, (float)value.toDouble()));
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeWidth' field. Expected float value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'edgeWidth' field. Expected float value";
             }
 
             value = jsonObject["timing"];
@@ -527,7 +527,7 @@ void FadeConfig::load() {
                 event.timing = std::max(0, std::min(TIMING_COUNT - 1, value.toInt()));
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'timing' field. Expected integer value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'timing' field. Expected integer value";
             }
 
             value = jsonObject["isInverted"];
@@ -535,13 +535,13 @@ void FadeConfig::load() {
                 event.isInverted = value.toBool();
             }
             else {
-                qWarning() << "Fade event configuration file " << path << " contains an invalid 'isInverted' field. Expected boolean value";
+                qWarning() << "Fade event configuration file " << configFilePath << " contains an invalid 'isInverted' field. Expected boolean value";
             }
 
             emit dirty();
         }
         else {
-            qWarning() << "Fade event configuration file" << path << "failed to load:" <<
+            qWarning() << "Fade event configuration file" << configFilePath << "failed to load:" <<
                 error.errorString() << "at offset" << error.offset;
         }
     }

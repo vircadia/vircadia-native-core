@@ -312,23 +312,27 @@ namespace render {
         class FrustumSelector {
         public:
             Coord4f frustum[6];
+            
+            virtual ~FrustumSelector() {}
+            virtual float testThreshold(const Coord3f& point, float size) const = 0;
+        };
+
+        class PerspectiveSelector : public FrustumSelector {
+        public:
             Coord3f eyePos;
             float   angle;
             float   squareTanAlpha;
 
-            const float MAX_LOD_ANGLE = glm::radians(45.0f);
-            const float MIN_LOD_ANGLE = glm::radians(1.0f / 60.0f);
+            void setAngle(float a);
+            float testThreshold(const Coord3f& point, float size) const override;
+        };
 
-            void setAngle(float a) {
-                angle = std::max(MIN_LOD_ANGLE, std::min(MAX_LOD_ANGLE, a));
-                auto tanAlpha = tan(angle);
-                squareTanAlpha = (float)(tanAlpha * tanAlpha);
-            }
+        class OrthographicSelector : public FrustumSelector {
+        public:
+            float   squareMinSize;
 
-            float testSolidAngle(const Coord3f& point, float size) const {
-                auto eyeToPoint = point - eyePos;
-                return (size * size / glm::dot(eyeToPoint, eyeToPoint)) - squareTanAlpha;
-            }
+            void setSize(float a) { squareMinSize = a * a; }
+            float testThreshold(const Coord3f& point, float size) const override;
         };
 
         int select(CellSelection& selection, const FrustumSelector& selector) const;
@@ -443,7 +447,7 @@ namespace render {
         Index resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey);
 
         // Selection and traverse
-        int selectCells(CellSelection& selection, const ViewFrustum& frustum, float lodAngle) const;
+        int selectCells(CellSelection& selection, const ViewFrustum& frustum, float threshold) const;
 
         class ItemSelection {
         public:
@@ -469,7 +473,8 @@ namespace render {
             }
         };
 
-        int selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, float lodAngle) const;
+        int selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, 
+                            float threshold) const;
     };
 }
 

@@ -48,7 +48,6 @@ QString getTextureMemoryPressureModeString();
 Stats* Stats::getInstance() {
     if (!INSTANCE) {
         Stats::registerType();
-        Stats::show();
         Q_ASSERT(INSTANCE);
     }
     return INSTANCE;

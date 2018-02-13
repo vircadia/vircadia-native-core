@@ -5,7 +5,7 @@ setup_hifi_project(Quick Gui Script)
 setup_memory_debugger()
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 link_hifi_libraries(
-    shared networking gl 
+    shared task networking gl 
     ktx gpu procedural octree image 
     graphics model-networking fbx animation 
     script-engine render render-utils 
