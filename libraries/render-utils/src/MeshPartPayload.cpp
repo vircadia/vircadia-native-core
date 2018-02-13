@@ -335,6 +335,9 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
+
+    _useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
+
     _blendedVertexBuffer = model->_blendedVertexBuffers[_meshIndex];
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);

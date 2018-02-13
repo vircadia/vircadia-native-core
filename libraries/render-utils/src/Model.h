@@ -311,6 +311,7 @@ public:
     Q_INVOKABLE MeshProxyList getMeshes() const;
 
     void scaleToFit();
+    bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
 
 public slots:
     void loadURLFinished(bool success);
@@ -414,7 +415,7 @@ protected:
     virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
-    bool _useDualQuaternionSkinning { false };
+    bool _useDualQuaternionSkinning { true };
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;

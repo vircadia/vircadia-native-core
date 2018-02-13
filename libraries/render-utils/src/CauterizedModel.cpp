@@ -228,10 +228,11 @@ void CauterizedModel::updateRenderItems() {
                 const auto& cauterizedMeshState = self->getCauterizeMeshState(meshIndex);
 
                 bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+                bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, cauterizedMeshState, invalidatePayloadShapeKey,
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
                         isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, enableCauterization](CauterizedMeshPartPayload& data) {
-                    if (_useDualQuaternionSkinning) {
+                    if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
                     } else {
@@ -240,7 +241,7 @@ void CauterizedModel::updateRenderItems() {
                     }
 
                     Transform renderTransform = modelTransform;
-                    if (_useDualQuaternionSkinning) {
+                    if (useDualQuaternionSkinning) {
                         if (meshState.clusterDualQuaternions.size() == 1) {
                             const auto& dq = meshState.clusterDualQuaternions[0];
                             Transform transform(dq.getRotation(),
@@ -256,7 +257,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                     renderTransform = modelTransform;
-                    if (_useDualQuaternionSkinning) {
+                    if (useDualQuaternionSkinning) {
                         if (cauterizedMeshState.clusterDualQuaternions.size() == 1) {
                             const auto& dq = cauterizedMeshState.clusterDualQuaternions[0];
                             Transform transform(dq.getRotation(),

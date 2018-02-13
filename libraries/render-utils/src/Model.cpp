@@ -281,12 +281,13 @@ void Model::updateRenderItems() {
             const auto& meshState = self->getMeshState(meshIndex);
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
                                                                   viewTagBits, isLayeredInFront,
                                                                   isLayeredInHUD](ModelMeshPartPayload& data) {
-                if (_useDualQuaternions) {
+                if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
                     data.updateClusterBuffer(meshState.clusterMatrices);
@@ -294,7 +295,7 @@ void Model::updateRenderItems() {
 
                 Transform renderTransform = modelTransform;
 
-                if (_useDualQuaternions) {
+                if (useDualQuaternionSkinning) {
                     if (meshState.clusterDualQuaternions.size() == 1) {
                         const auto& dq = meshState.clusterDualQuaternions[0];
                         Transform transform(dq.getRotation(),
@@ -386,7 +387,7 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            if (_useDualQuaternions) {
+            if (_useDualQuaternionSkinning) {
                 state.clusterDualQuaternions.resize(mesh.clusters.size());
             } else {
                 state.clusterMatrices.resize(mesh.clusters.size());
@@ -1275,7 +1276,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternions) {
+        if (_useDualQuaternionSkinning) {
             part->computeAdjustedLocalBound(state.clusterDualQuaternions);
         } else {
             part->computeAdjustedLocalBound(state.clusterMatrices);

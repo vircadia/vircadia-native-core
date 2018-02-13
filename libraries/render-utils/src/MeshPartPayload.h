@@ -136,6 +136,7 @@ private:
     gpu::BufferPointer _blendedVertexBuffer;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
     int _layer { render::Item::LAYER_3D };
+    bool _useDualQuaternionSkinning { false };
 };
 
 namespace render {
