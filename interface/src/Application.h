@@ -69,6 +69,7 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
+#include "workload/Engine.h"
 
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
@@ -612,6 +613,7 @@ private:
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+    workload::EnginePointer _infinityEngine{ new workload::Engine() };
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {
