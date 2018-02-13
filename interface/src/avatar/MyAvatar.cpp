@@ -1461,7 +1461,7 @@ void MyAvatar::clearJointsData() {
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
-     int skeletonModelChangeCount = _skeletonModelChangeCount;
+    int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
