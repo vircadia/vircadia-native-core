@@ -78,11 +78,13 @@ public:
         INVISIBLE,        // Visible or not in the scene?
         SHADOW_CASTER,    // Item cast shadows
         LAYERED,          // Item belongs to one of the layers different from the default layer
+        CULL_GROUP,       // As a meta item, the culling of my sub items is based solely on my bounding box and my visibility in the
 
         FIRST_TAG_BIT, // 8 Tags available to organize the items and filter them against
         LAST_TAG_BIT = FIRST_TAG_BIT + NUM_TAGS,
 
         __SMALLER,        // Reserved bit for spatialized item to indicate that it is smaller than expected in the cell in which it belongs (probably because it overlaps over several smaller cells)
+        __META_CULLED,    // Reserved bit for sub item of a meta render item to indicate that the culling is tied to the culling of the meta render item, not this one
 
         NUM_FLAGS,      // Not a valid flag
     };
@@ -122,6 +124,7 @@ public:
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
+        Builder& withCullGroup() { _flags.set(CULL_GROUP); return (*this); }
 
         Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
         // Set ALL the tags in one call using the Tag bits
@@ -132,6 +135,9 @@ public:
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent(); }
         static Builder light() { return Builder().withTypeLight(); }
         static Builder background() { return Builder().withViewSpace().withLayered(); }
+
+        // Not meant to be public, part of the inner item / key  / filter system
+        Builder& __withMetaCulled() { _flags.set(__META_CULLED); return (*this); }
     };
     ItemKey(const Builder& builder) : ItemKey(builder._flags) {}
 
@@ -159,12 +165,18 @@ public:
     bool isLayered() const { return _flags[LAYERED]; }
     bool isSpatial() const { return !isLayered(); }
 
+    bool isCullGroup() const { return _flags[CULL_GROUP]; }
+    void setCullGroup(bool cullGroup) { (cullGroup ? _flags.set(CULL_GROUP) : _flags.reset(CULL_GROUP)); }
+
     bool isTag(Tag tag) const { return _flags[FIRST_TAG_BIT + tag]; }
     uint8_t getTagBits() const { return ((_flags.to_ulong() & KEY_TAG_BITS_MASK) >> FIRST_TAG_BIT); }
 
     // Probably not public, flags used by the scene
     bool isSmall() const { return _flags[__SMALLER]; }
     void setSmaller(bool smaller) { (smaller ? _flags.set(__SMALLER) : _flags.reset(__SMALLER)); }
+
+    bool isMetaCulled() const { return _flags[__META_CULLED]; }
+    void setMetaCulled(bool metaCulled) { (metaCulled ? _flags.set(__META_CULLED) : _flags.reset(__META_CULLED)); }
 
     bool operator==(const ItemKey& key) { return (_flags == key._flags); }
     bool operator!=(const ItemKey& key) { return (_flags != key._flags); }
@@ -220,6 +232,12 @@ public:
 
         Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
+
+        Builder& withoutCullGroup() { _value.reset(ItemKey::CULL_GROUP); _mask.set(ItemKey::CULL_GROUP); return (*this); }
+        Builder& withCullGroup() { _value.set(ItemKey::CULL_GROUP);  _mask.set(ItemKey::CULL_GROUP); return (*this); }
+
+        Builder& withoutMetaCulled() { _value.reset(ItemKey::__META_CULLED); _mask.set(ItemKey::__META_CULLED); return (*this); }
+        Builder& withMetaCulled() { _value.set(ItemKey::__META_CULLED);  _mask.set(ItemKey::__META_CULLED); return (*this); }
 
         Builder& withoutTag(ItemKey::Tag tagIndex)    { _value.reset(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
         Builder& withTag(ItemKey::Tag tagIndex)       { _value.set(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
@@ -420,6 +438,7 @@ public:
 
     // Meta Type Interface
     uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
+    uint32_t fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const;
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
