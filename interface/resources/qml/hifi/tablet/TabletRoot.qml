@@ -18,7 +18,7 @@ Item {
     signal showDesktop();
     property bool shown: true
     property int currentApp: -1;
-    property alias tabletApps: tabletApps 
+    property alias tabletApps: tabletApps
 
     function setOption(value) {
         option = value;
@@ -44,7 +44,7 @@ Item {
     Component { id: fileDialogBuilder; TabletFileDialog { } }
     function fileDialog(properties) {
         openModal = fileDialogBuilder.createObject(tabletRoot, properties);
-        return openModal; 
+        return openModal;
     }
 
     Component { id: assetDialogBuilder; TabletAssetDialog { } }
@@ -66,6 +66,16 @@ Item {
         return false;
     }
 
+    function isUrlLoaded(url) {
+        if (currentApp >= 0) {
+            var currentAppUrl = tabletApps.get(currentApp).appUrl;
+            if (currentAppUrl === url) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function loadSource(url) {
         tabletApps.clear();
         tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
@@ -73,23 +83,27 @@ Item {
     }
 
     function loadQMLOnTop(url) {
-        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
-        loader.load(tabletApps.get(currentApp).appUrl, function(){
-	        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
-	            loader.item.gotoPreviousApp = true;
-	        }
-        }) 
+        if (!isUrlLoaded(url)) {
+            tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+            loader.load(tabletApps.get(currentApp).appUrl, function(){
+	            if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+	                loader.item.gotoPreviousApp = true;
+	            }
+            });
+        }
     }
 
     function loadWebContent(source, url, injectJavaScriptUrl) {
-        tabletApps.append({"appUrl": source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
-        loader.load(source, function() {
-            loader.item.scriptURL = injectJavaScriptUrl;
-            loader.item.url = url;
-            if (loader.item.hasOwnProperty("gotoPreviousApp")) {
-                loader.item.gotoPreviousApp = true;
-            }
-        });
+        if (!isUrlLoaded(url)) {
+            tabletApps.append({"appUrl": source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
+            loader.load(source, function() {
+                loader.item.scriptURL = injectJavaScriptUrl;
+                loader.item.url = url;
+                if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+                    loader.item.gotoPreviousApp = true;
+                }
+            });
+        }
     }
 
     function loadWebBase(url, injectJavaScriptUrl) {
@@ -99,7 +113,7 @@ Item {
     function loadTabletWebBase(url, injectJavaScriptUrl) {
         loadWebContent("hifi/tablet/BlocksWebView.qml", url, injectJavaScriptUrl);
     }
-        
+
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
         var isWebPage = tabletApps.get(currentApp).isWebUrl;
@@ -190,19 +204,19 @@ Item {
     	property string source: "";
     	property var item: null;
     	signal loaded;
-    	
+
 		onWidthChanged: {
     		if (loader.item) {
 	        	loader.item.width = loader.width;
     		}
 		}
-    	
+
     	onHeightChanged: {
     		if (loader.item) {
 	        	loader.item.height = loader.height;
     		}
 		}
-    	
+
     	function load(newSource, callback) {
             if (loader.source == newSource) {
                 loader.loaded();
@@ -226,18 +240,18 @@ Item {
 	                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
 	            }
 	            loader.item.forceActiveFocus();
-	
+
 	            if (openModal) {
 	                openModal.canceled();
 	                openModal.destroy();
 	                openModal = null;
 	            }
-	
+
 	            if (openBrowser) {
 	                openBrowser.destroy();
 	                openBrowser = null;
 	            }
-	            
+
 	            if (callback) {
 	            	callback();
 	            }
