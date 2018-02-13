@@ -147,7 +147,11 @@ Rectangle {
 
         Connections {
             onSendToParent: {
-                sendToScript(msg);
+                if (msg.method === 'commerceLightboxLinkClicked') {
+                    Qt.openUrlExternally(msg.linkUrl);
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }
@@ -433,7 +437,11 @@ Rectangle {
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showReplaceContentLightbox") {
                             lightboxPopup.titleText = "Replace Content";
-                            lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain.";
+                            lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
+                                "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
+                                "For more information about backing up and restoring content, " +
+                                "<a href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content'>" +
+                                "click here to open info on your desktop browser.";
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.button2text = "CONFIRM";
