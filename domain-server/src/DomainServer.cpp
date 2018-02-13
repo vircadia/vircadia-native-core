@@ -289,7 +289,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         }
     }
 
-    qDebug() << "Starting persist thread";
     if (QDir(getEntitiesDirPath()).mkpath(".")) {
         qCDebug(domain_server) << "Created entities data directory";
     }
@@ -1785,7 +1784,8 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
     int version;
     message->readPrimitive(&remoteHasExistingData);
     if (remoteHasExistingData) {
-        auto idData = message->read(16);
+        constexpr size_t UUID_SIZE_BYTES = 16;
+        auto idData = message->read(UUID_SIZE_BYTES);
         id = QUuid::fromRfc4122(idData);
         message->readPrimitive(&version);
         qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << version << ")";
@@ -1794,7 +1794,6 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
     }
     auto entityFilePath = getEntitiesFilePath();
 
-    //QFile file(entityFilePath);
     auto reply = NLPacketList::create(PacketType::OctreeDataFileReply, QByteArray(), true, true);
     OctreeUtils::RawOctreeData data;
     if (OctreeUtils::readOctreeDataInfoFromFile(entityFilePath, &data)) {
@@ -3228,21 +3227,22 @@ void DomainServer::setupGroupCacheRefresh() {
 }
 
 void DomainServer::maybeHandleReplacementEntityFile() {
-    QFile replacementFile(getEntitiesReplacementFilePath());
-    if (replacementFile.exists()) {
+    const auto replacementFilePath = getEntitiesReplacementFilePath();
+    OctreeUtils::RawOctreeData data;
+    if (!OctreeUtils::readOctreeDataInfoFromFile(replacementFilePath, &data)) {
+        qCWarning(domain_server) << "Replacement file could not be read, it either doesn't exist or is invalid.";
+    } else {
         qCDebug(domain_server) << "Replacing existing entity date with replacement file";
+
+        data.resetIdAndVersion();
+        auto gzippedData = data.toGzippedByteArray();
+
         QFile currentFile(getEntitiesFilePath());
-        if (currentFile.exists()) {
-            if (currentFile.remove()) {
-                qCDebug(domain_server) << "Removed existing entity file";
-            } else {
-                qCWarning(domain_server) << "Failled to remove existing entity file";
-            }
-        }
-        if (replacementFile.rename(getEntitiesFilePath())) {
-            qCDebug(domain_server) << "Successfully updated entities data file with replacement file";
+        if (!currentFile.open(QIODevice::WriteOnly)) {
+            qCWarning(domain_server)
+                << "Failed to update entities data file with replacement file, unable to open entities file for writing";
         } else {
-            qCWarning(domain_server) << "Failed to update entities data file with replacement file";
+            currentFile.write(gzippedData);
         }
     }
 }
@@ -3262,8 +3262,7 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
 
     OctreeUtils::RawOctreeData data;
     if (OctreeUtils::readOctreeDataInfoFromData(jsonOctree, &data)) {
-        data.id = QUuid::createUuid();
-        data.version = 0;
+        data.resetIdAndVersion();
 
         gzip(data.toByteArray(), compressedOctree);
 
@@ -3282,21 +3281,6 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
     } else {
         qDebug() << "Received replacement octree file that is invalid - refusing to process";
     }
-
-
-    return;
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&octreeFile, limitedNodeList](const SharedNodePointer& octreeNode) {
-        // setup a packet to send to this octree server with the new octree file data
-        auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacement, QByteArray(), true, true);
-        octreeFilePacketList->write(octreeFile);
-
-        qDebug() << "Sending an octree file replacement of" << octreeFile.size() << "bytes to" << octreeNode;
-
-        limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
-    });
 }
 
 void DomainServer::handleOctreeFileReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {

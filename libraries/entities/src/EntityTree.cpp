@@ -2244,7 +2244,7 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
     }
-    entityDescription["DataVersion"] = ++_persistDataVersion;
+    entityDescription["DataVersion"] = _persistDataVersion;
     entityDescription["Id"] = _persistID;
     QScriptEngine scriptEngine;
     RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues,

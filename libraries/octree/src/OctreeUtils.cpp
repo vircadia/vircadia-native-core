@@ -80,6 +80,9 @@ float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust
     return (smallestSize * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT) / boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale);
 }
 
+// Reads octree file and parses it into a QJsonDocument. Handles both gzipped and non-gzipped files.
+// Returns true if the file was successfully opened and parsed, otherwise false.
+// Example failures: file does not exist, gzipped file cannot be unzipped, invalid JSON.
 bool OctreeUtils::readOctreeFile(QString path, QJsonDocument* doc) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -129,6 +132,8 @@ bool OctreeUtils::readOctreeDataInfoFromData(QByteArray data, OctreeUtils::RawOc
     return readOctreeDataInfoFromJSON(root, octreeData);
 }
 
+// Reads octree file and parses it into a RawOctreeData object.
+// Returns false if readOctreeFile fails.
 bool OctreeUtils::readOctreeDataInfoFromFile(QString path, OctreeUtils::RawOctreeData* octreeData) {
     QJsonDocument doc;
     if (!OctreeUtils::readOctreeFile(path, &doc)) {
@@ -163,4 +168,9 @@ QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
     }
 
     return gzData;
+}
+
+void OctreeUtils::RawOctreeData::resetIdAndVersion() {
+    id = QUuid::createUuid();
+    version = OctreeUtils::INITIAL_VERSION;
 }

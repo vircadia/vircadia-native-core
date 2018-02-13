@@ -341,6 +341,8 @@ public:
     virtual quint64 getAverageLoggingTime() const { return 0;  }
     virtual quint64 getAverageFilterTime() const { return 0; }
 
+    void incrementPersistDataVersion() { _persistDataVersion++; }
+
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);

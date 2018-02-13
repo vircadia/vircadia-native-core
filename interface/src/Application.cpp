@@ -6247,7 +6247,6 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                         }, [&urlData, limitedNodeList, &domainHandler](const SharedNodePointer& octreeNode) {
                             auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
                             octreeFilePacket->write(urlData);
-                            qDebug() << "WRiting url data: " << urlData;
                             limitedNodeList->sendPacket(std::move(octreeFilePacket), domainHandler.getSockAddr());
                         });
                     auto addressManager = DependencyManager::get<AddressManager>();

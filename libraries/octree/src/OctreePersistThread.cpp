@@ -311,6 +311,7 @@ void OctreePersistThread::persist() {
         backup(); // handle backup if requested        
         qCDebug(octree) << "persist operation DONE with backup...";
 
+        _tree->incrementPersistDataVersion();
 
         // create our "lock" file to indicate we're saving.
         QString lockFileName = _filename + ".lock";

@@ -1757,19 +1757,6 @@ bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream,
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     bool success = readFromMap(asMap);
-    /*
-    if (success) {
-        if (asMap.contains("DataVersion") && asMap.contains("Id")) {
-            bool versionOk;
-            auto dataVersion = asMap["DataVersion"].toLongLong(&versionOk);
-            if (versionOk) {
-                auto id = asMap["Id"].toUuid();
-                _persistDataVersion = dataVersion;
-                _persistID = id;
-            }
-        }
-    }
-    */
     delete[] rawData;
     return success;
 }

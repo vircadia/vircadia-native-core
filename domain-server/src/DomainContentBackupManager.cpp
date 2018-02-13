@@ -279,23 +279,9 @@ void DomainContentBackupManager::backup() {
 
             qDebug() << "Created backup: " << fileName;
 
-            removeOldBackupVersions(rule);
+            rule.lastBackupSeconds = nowSeconds;
 
-            if (rule.maxBackupVersions > 0) {
-                // Execute backup
-                auto result = true;
-                if (result) {
-                    qCDebug(domain_server) << "DONE backing up persist file...";
-                    rule.lastBackupSeconds = nowSeconds;
-                } else {
-                    qCDebug(domain_server) << "ERROR in backing up persist file...";
-                    perror("ERROR in backing up persist file");
-                }
-            } else {
-                qCDebug(domain_server) << "This backup rule" << rule.name << " has Max Rolled Backup Versions less than 1 ["
-                                        << rule.maxBackupVersions << "]."
-                                        << " There are no backups to be done...";
-            }
+            removeOldBackupVersions(rule);
         } else {
             qCDebug(domain_server) << "Backup not needed for this rule [" << rule.name << "]...";
         }

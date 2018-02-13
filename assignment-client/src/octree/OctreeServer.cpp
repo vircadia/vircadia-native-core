@@ -1044,12 +1044,13 @@ void OctreeServer::readConfiguration() {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
-        _persistAbsoluteFilePath = persistPath.absolutePath();
 
         if (persistPath.isRelative()) {
             // if the domain settings passed us a relative path, make an absolute path that is relative to the
             // default data directory
             _persistAbsoluteFilePath = QDir(PathUtils::getAppDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+        } else {
+            _persistAbsoluteFilePath = persistPath.absolutePath();
         }
 
         qDebug() << "persistFilePath=" << _persistFilePath;
@@ -1174,6 +1175,11 @@ void OctreeServer::domainSettingsRequestComplete() {
 } 
 
 void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message) {
+    if (_state != OctreeServerState::WaitingForOctreeDataNegotation) {
+        qCWarning(octree_server) << "Server received ocree data file reply but is not currently negotiating.";
+        return;
+    }
+
     bool includesNewData;
     message->readPrimitive(&includesNewData);
     QByteArray replaceData;
@@ -1188,8 +1194,7 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
         if (OctreeUtils::readOctreeDataInfoFromFile(_persistAbsoluteFilePath, &data)) {
             if (data.id.isNull()) {
                 qCDebug(octree_server) << "Current octree data has a null id, updating";
-                data.id = QUuid::createUuid();
-                data.version = 0;
+                data.resetIdAndVersion();
 
                 QFile file(_persistAbsoluteFilePath);
                 if (file.open(QIODevice::WriteOnly)) {
@@ -1202,16 +1207,16 @@ void OctreeServer::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> mes
             }
         }
     }
+
+    _state = OctreeServerState::Running;
     beginRunning(replaceData);
 }
 
 void OctreeServer::beginRunning(QByteArray replaceData) {
-    if (_state == OctreeServerState::Running) {
-        qCWarning(octree_server) << "Server is already running";
+    if (_state != OctreeServerState::Running) {
+        qCWarning(octree_server) << "Server is not running";
         return;
     }
-
-    _state = OctreeServerState::Running;
 
     auto nodeList = DependencyManager::get<NodeList>();
 

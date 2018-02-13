@@ -22,14 +22,18 @@ class QJsonDocument;
 
 namespace OctreeUtils {
 
+using Version = int64_t;
+constexpr Version INITIAL_VERSION = 0;
+
 // RawOctreeData is an intermediate format between JSON and a fully deserialized Octree.
 class RawOctreeData {
 public:
     QUuid id { QUuid() };
-    int64_t version { -1 };
+    Version version { -1 };
 
     QJsonArray octreeData;
 
+    void resetIdAndVersion();
     QByteArray toByteArray();
     QByteArray toGzippedByteArray();
 };
