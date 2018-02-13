@@ -28,7 +28,7 @@
 class QuaZip;
 
 struct AssetServerBackup {
-    std::string filePath;
+    QString filePath;
     AssetUtils::Mappings mappings;
     bool corruptedBackup;
 };

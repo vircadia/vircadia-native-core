@@ -308,3 +308,31 @@ void DomainContentBackupManager::backup() {
         }
     }
 }
+
+void DomainContentBackupManager::consolidate(QString fileName) {
+    QDir backupDir { _backupDirectory };
+    if (backupDir.exists()) {
+        auto filePath = backupDir.absoluteFilePath(fileName);
+
+        auto copyFilePath = QDir::tempPath() + "/" + fileName;
+
+        auto copySuccess = QFile::copy(filePath, copyFilePath);
+        if (!copySuccess) {
+            qCritical() << "Failed to create full backup.";
+            return;
+        }
+
+        QuaZip zip(copyFilePath);
+        if (!zip.open(QuaZip::mdAdd)) {
+            qCritical() << "Could not open backup archive:" << filePath;
+            qCritical() << "    ERROR:" << zip.getZipError();
+            return;
+        }
+
+        for (auto& handler : _backupHandlers) {
+            handler.consolidateBackup(zip);
+        }
+
+        zip.close();
+    }
+}

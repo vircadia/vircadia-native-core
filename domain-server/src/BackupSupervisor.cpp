@@ -104,7 +104,7 @@ void BackupSupervisor::checkForAssetsToDelete() {
 }
 
 void BackupSupervisor::loadBackup(QuaZip& zip) {
-    _backups.push_back({ zip.getZipName().toStdString(), {}, false });
+    _backups.push_back({ zip.getZipName(), {}, false });
     auto& backup = _backups.back();
 
     if (!zip.setCurrentFile(MAPPINGS_FILE)) {
@@ -171,7 +171,7 @@ void BackupSupervisor::createBackup(QuaZip& zip) {
     }
 
     AssetServerBackup backup;
-    backup.filePath = zip.getZipName().toStdString();
+    backup.filePath = zip.getZipName();
 
     QJsonObject jsonObject;
     for (const auto& mapping : _currentMappings) {
@@ -214,7 +214,7 @@ void BackupSupervisor::recoverBackup(QuaZip& zip) {
     startOperation();
 
     auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == zip.getZipName().toStdString();
+        return value.filePath == zip.getZipName();
     });
     if (it == end(_backups)) {
         qCDebug(backup_supervisor) << "Could not find backup";
@@ -235,7 +235,7 @@ void BackupSupervisor::deleteBackup(QuaZip& zip) {
     }
 
     auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == zip.getZipName().toStdString();
+        return value.filePath == zip.getZipName();
     });
     if (it == end(_backups)) {
         qCDebug(backup_supervisor) << "Could not find backup";
@@ -247,6 +247,44 @@ void BackupSupervisor::deleteBackup(QuaZip& zip) {
 }
 
 void BackupSupervisor::consolidateBackup(QuaZip& zip) {
+    if (operationInProgress()) {
+        qCWarning(backup_supervisor) << "There is a backup/restore in progress.";
+        return;
+    }
+    QFileInfo zipInfo(zip.getZipName());
+
+    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+        QFileInfo info(value.filePath);
+        return info.fileName() == zipInfo.fileName();
+    });
+    if (it == end(_backups)) {
+        qCDebug(backup_supervisor) << "Could not find backup" << zip.getZipName();
+        return;
+    }
+
+    for (const auto& mapping : it->mappings) {
+        const auto& hash = mapping.second;
+
+        QDir assetsDir { _assetsDirectory };
+        QFile file { assetsDir.filePath(hash) };
+        if (!file.open(QFile::ReadOnly)) {
+            qCCritical(backup_supervisor) << "Could not open asset file" << file.fileName();
+            continue;
+        }
+
+        QuaZipFile zipFile { &zip };
+        static const QString ZIP_ASSETS_FOLDER = "files/";
+        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ZIP_ASSETS_FOLDER + hash))) {
+            qCDebug(backup_supervisor) << "testCreate(): outFile.open()";
+            continue;
+        }
+        zipFile.write(file.readAll());
+        zipFile.close();
+        if (zipFile.getZipError() != UNZ_OK) {
+            qCDebug(backup_supervisor) << "testCreate(): outFile.close(): " << zipFile.getZipError();
+            continue;
+        }
+    }
 
 }
 
