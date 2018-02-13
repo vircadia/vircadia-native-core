@@ -335,15 +335,17 @@ static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 // we will never drop below the 'min' value
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 
-static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString SVO_EXTENSION  = ".svo";
+static const QString SNAPSHOT_EXTENSION = ".jpg";
+static const QString JPG_EXTENSION = ".jpg";
+static const QString PNG_EXTENSION = ".png";
+static const QString SVO_EXTENSION = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
 static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
-static const QString JS_EXTENSION  = ".js";
-static const QString FST_EXTENSION  = ".fst";
-static const QString FBX_EXTENSION  = ".fbx";
-static const QString OBJ_EXTENSION  = ".obj";
+static const QString JS_EXTENSION = ".js";
+static const QString FST_EXTENSION = ".fst";
+static const QString FBX_EXTENSION = ".fbx";
+static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
@@ -386,7 +388,9 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
     { ZIP_EXTENSION, &Application::importFromZIP },
     { SERVERLESS_DOMAIN_EXTENSION, &Application::visitServerlessDomain },
-    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain }
+    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain },
+    { JPG_EXTENSION, &Application::importImage },
+    { PNG_EXTENSION, &Application::importImage }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2939,12 +2943,18 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
-
 bool Application::visitServerlessDomain(const QString& urlString) {
     qDebug() << "QQQQ visit serverless domain" << urlString;
     setServerlessMode(true);
 }
 
+bool Application::importImage(const QString& urlString) {
+    qCDebug(interfaceapp) << "An image file has been dropped in";
+    QString filepath(urlString);
+    filepath.remove("file:///");
+    addAssetToWorld(filepath, "", false, false);
+    return true;
+}
 
 // thread-safe
 void Application::onPresent(quint32 frameCount) {
@@ -6540,7 +6550,8 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
             // to prevent files that aren't models from being loaded into world automatically
-            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+            if (filePath.endsWith(OBJ_EXTENSION) || filePath.endsWith(FBX_EXTENSION) || 
+                filePath.endsWith(JPG_EXTENSION) || filePath.endsWith(PNG_EXTENSION)) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
                 qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
@@ -6557,8 +6568,17 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
-    properties.setModelURL("atp:" + mapping);
-    properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    if (filePath.endsWith(PNG_EXTENSION) || filePath.endsWith(JPG_EXTENSION)) {
+        QJsonObject textures {
+            {"tex.picture", QString("atp:" + mapping) }
+        };
+        properties.setModelURL("https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx");
+        properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
+        properties.setShapeType(SHAPE_TYPE_BOX);
+    } else {
+        properties.setModelURL("atp:" + mapping);
+        properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
+    }
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
     glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));

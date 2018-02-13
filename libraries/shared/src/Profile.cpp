@@ -27,6 +27,7 @@ Q_LOGGING_CATEGORY(trace_simulation_animation, "trace.simulation.animation")
 Q_LOGGING_CATEGORY(trace_simulation_animation_detail, "trace.simulation.animation.detail")
 Q_LOGGING_CATEGORY(trace_simulation_physics, "trace.simulation.physics")
 Q_LOGGING_CATEGORY(trace_simulation_physics_detail, "trace.simulation.physics.detail")
+Q_LOGGING_CATEGORY(trace_workload, "trace.workload")
 
 #if defined(NSIGHT_FOUND)
 #include "nvToolsExt.h"

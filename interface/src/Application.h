@@ -477,6 +477,7 @@ private:
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
     bool visitServerlessDomain(const QString& urlString);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
