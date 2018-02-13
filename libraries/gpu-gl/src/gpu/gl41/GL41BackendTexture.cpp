@@ -413,7 +413,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
         sourceMip._size = (GLint)faceTargets.size() * sourceMip._faceSize;
         sourceMip._offset = bufferOffset;
         bufferOffset += sourceMip._size;
-        gpu::gl::checkGLError();
+        ::gl::checkGLError(__FUNCTION__);
     }
     (void)CHECK_GL_ERROR();
 
@@ -458,7 +458,7 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
 #endif
             glCompressedTexSubImage2D(faceTargets[f], destLevel, 0, 0, sourceMip._width, sourceMip._height, internalFormat,
                 sourceMip._faceSize, BUFFER_OFFSET(sourceMip._offset + f * sourceMip._faceSize));
-            gpu::gl::checkGLError();
+            ::gl::checkGLError(__FUNCTION__);
         }
     }
 

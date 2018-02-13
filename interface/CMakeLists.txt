@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
-add_custom_target(qml SOURCES ${QML_SRC})
+add_custom_target(qmls SOURCES ${QML_SRC})
 GroupSources("resources/qml")
 
 function(JOIN VALUES GLUE OUTPUT)
@@ -78,7 +78,7 @@ endif ()
 
 find_package(
   Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script Svg
+  Gui Widgets Multimedia Network Qml Quick Script Svg
   ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
@@ -208,7 +208,7 @@ link_hifi_libraries(
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
-  render-utils entities-renderer avatars-renderer ui auto-updater midi
+  render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
   ${PLATFORM_GL_BACKEND}
@@ -269,7 +269,7 @@ endif ()
 
 target_link_libraries(
   ${TARGET_NAME}
-  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::Widgets
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
   Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}

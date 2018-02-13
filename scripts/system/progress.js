@@ -300,7 +300,7 @@
 
         if (visible) {
             x = ((Date.now() / 1000) % ANIMATION_SECONDS_PER_REPEAT) / ANIMATION_SECONDS_PER_REPEAT;
-            if (isHMD) {
+            if (!isHMD) {
                 x = x * barDesktop.repeat;
             } else {
                 x = x * BAR_HMD_REPEAT;
@@ -309,9 +309,9 @@
             // Update progress bar
             Overlays.editOverlay(barDesktop.overlay, {
                 visible: !isHMD,
-                subImage: {
+                bounds: {
                     x: barDesktop.repeat - x,
-                    y: 0,
+                    y: windowHeight - barDesktop.height,
                     width: barDesktop.width - barDesktop.repeat,
                     height: barDesktop.height
                 }
@@ -319,9 +319,9 @@
 
             Overlays.editOverlay(barHMD.overlay, {
                 visible: isHMD,
-                subImage: {
+                bounds: {
                     x: BAR_HMD_REPEAT - x,
-                    y: 0,
+                    y: windowHeight - BAR_HMD_HEIGHT,
                     width: BAR_HMD_WIDTH - BAR_HMD_REPEAT,
                     height: BAR_HMD_HEIGHT
                 }

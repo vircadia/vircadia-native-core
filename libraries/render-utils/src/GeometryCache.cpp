@@ -1946,8 +1946,8 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
     static std::once_flag once;
     std::call_once(once, [&] {
         auto state = std::make_shared<gpu::State>();
-        auto VS = gpu::Shader::createVertex(std::string(glowLine_vert));
-        auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
+        auto VS = glowLine_vert::getShader();
+        auto PS = glowLine_frag::getShader();
         auto program = gpu::Shader::createProgram(VS, PS);
         state->setCullMode(gpu::State::CULL_NONE);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -2003,8 +2003,8 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
-        auto ps = gpu::Shader::createPixel(std::string(standardDrawTexture_frag));
+        auto vs = standardTransformPNTC_vert::getShader();
+        auto ps = standardDrawTexture_frag::getShader();
         auto program = gpu::Shader::createProgram(vs, ps);
 
         auto state = std::make_shared<gpu::State>();
@@ -2039,8 +2039,8 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered) {
     if (!_gridPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
-        auto ps = gpu::Shader::createPixel(std::string(grid_frag));
+        auto vs = standardTransformPNTC_vert::getShader();
+        auto ps = grid_frag::getShader();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
         _gridSlot = program->getUniformBuffers().findLocation("gridBuffer");
@@ -2123,12 +2123,9 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-static void buildWebShader(const std::string& vertShaderText, const std::string& fragShaderText, bool blendEnable,
+static void buildWebShader(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool blendEnable,
                            gpu::ShaderPointer& shaderPointerOut, gpu::PipelinePointer& pipelinePointerOut) {
-    auto VS = gpu::Shader::createVertex(vertShaderText);
-    auto PS = gpu::Shader::createPixel(fragShaderText);
-
-    shaderPointerOut = gpu::Shader::createProgram(VS, PS);
+    shaderPointerOut = gpu::Shader::createProgram(vertShader, fragShader);
 
     gpu::Shader::BindingSet slotBindings;
     gpu::Shader::makeProgram(*shaderPointerOut, slotBindings);
@@ -2151,8 +2148,8 @@ void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
 gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        buildWebShader(simple_vert, simple_opaque_web_browser_frag, false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipelineNoAA);
-        buildWebShader(simple_vert, simple_transparent_web_browser_frag, true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipelineNoAA);
+        buildWebShader(simple_vert::getShader(), simple_opaque_web_browser_frag::getShader(), false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipelineNoAA);
+        buildWebShader(simple_vert::getShader(), simple_transparent_web_browser_frag::getShader(), true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipelineNoAA);
     });
 
     return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
@@ -2181,9 +2178,9 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     if (!fading) {
         static std::once_flag once;
         std::call_once(once, [&]() {
-            auto VS = gpu::Shader::createVertex(std::string(simple_vert));
-            auto PS = gpu::Shader::createPixel(std::string(simple_textured_frag));
-            auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
+            auto VS = simple_vert::getShader();
+            auto PS = simple_textured_frag::getShader();
+            auto PSUnlit = simple_textured_unlit_frag::getShader();
 
             _simpleShader = gpu::Shader::createProgram(VS, PS);
             _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
@@ -2196,9 +2193,9 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     } else {
         static std::once_flag once;
         std::call_once(once, [&]() {
-            auto VS = gpu::Shader::createVertex(std::string(simple_fade_vert));
-            auto PS = gpu::Shader::createPixel(std::string(simple_textured_fade_frag));
-            auto PSUnlit = gpu::Shader::createPixel(std::string(simple_textured_unlit_fade_frag));
+            auto VS = simple_fade_vert::getShader();
+            auto PS = simple_textured_fade_frag::getShader();
+            auto PSUnlit = simple_textured_unlit_fade_frag::getShader();
 
             _simpleFadeShader = gpu::Shader::createProgram(VS, PS);
             _unlitFadeShader = gpu::Shader::createProgram(VS, PSUnlit);

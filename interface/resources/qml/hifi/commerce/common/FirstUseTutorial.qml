@@ -43,6 +43,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     Item {

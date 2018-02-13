@@ -12,7 +12,7 @@
 # the msvcr100 runtime support, the plugin will not load.
 if (NOT ANDROID)
   set(TARGET_NAME hifiSixense)
-  setup_hifi_plugin(Script Qml Widgets)
+  setup_hifi_plugin(Qml)
   link_hifi_libraries(shared controllers ui plugins ui-plugins input-plugins)
   target_sixense()
     if (WIN32)

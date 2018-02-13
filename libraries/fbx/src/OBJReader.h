@@ -48,6 +48,11 @@ private:
     void addFrom(const OBJFace* face, int index);
 };
 
+class OBJMaterialTextureOptions {
+public:
+    float bumpMultiplier { 1.0f };
+}
+;
 // Materials and references to material names can come in any order, and different mesh parts can refer to the same material.
 // Therefore it would get pretty hacky to try to use FBXMeshPart to store these as we traverse the files.
 class OBJMaterial {
@@ -56,11 +61,16 @@ public:
     float opacity;
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
+    glm::vec3 emissiveColor;
     QByteArray diffuseTextureFilename;
     QByteArray specularTextureFilename;
+    QByteArray emissiveTextureFilename;
+    QByteArray bumpTextureFilename;
+    OBJMaterialTextureOptions bumpTextureOptions;
+    int illuminationModel;
     bool used { false };
     bool userSpecifiesUV { false };
-    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f) {}
+    OBJMaterial() : shininess(0.0f), opacity(1.0f), diffuseColor(0.9f), specularColor(0.9f), emissiveColor(0.0f), illuminationModel(-1) {}
 };
 
 class OBJReader: public QObject { // QObject so we can make network requests.
@@ -84,6 +94,7 @@ private:
     bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, FBXGeometry& geometry,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
+    void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
     bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 
     int _partCounter { 0 };

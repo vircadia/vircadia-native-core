@@ -48,6 +48,7 @@
 #include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
 #include <trackers/FaceTracker.h>
+#include <RenderableModelEntityItem.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -503,10 +504,41 @@ void MyAvatar::updateEyeContactTarget(float deltaTime) {
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
 extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
 
+void MyAvatar::beParentOfChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::beParentOfChild(newChild);
+}
+
+void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::forgetChild(newChild);
+}
+
+void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object) {
+    if (object->getNestableType() == NestableType::Entity) {
+        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+        entity->setCauterized(!_prevShouldDrawHead);
+    }
+}
+
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
     animateScaleChanges(deltaTime);
+
+    if (_cauterizationNeedsUpdate) {
+        const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
+        forEachChild([&](SpatiallyNestablePointer object) {
+            bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
+            if (isChildOfHead) {
+                updateChildCauterization(object);
+                object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    updateChildCauterization(descendant);
+                });
+            }
+        });
+        _cauterizationNeedsUpdate = false;
+    }
 
     {
         PerformanceTimer perfTimer("transform");
@@ -927,6 +959,18 @@ void MyAvatar::restoreRoleAnimation(const QString& role) {
     _skeletonModel->getRig().restoreRoleAnimation(role);
 }
 
+void MyAvatar::saveAvatarUrl() {
+    Settings settings;
+    settings.beginGroup("Avatar");
+    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
+        settings.setValue("fullAvatarURL",
+                          _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
+                          "" :
+                          _fullAvatarURLFromPreferences.toString());
+    }
+    settings.endGroup();
+}
+
 void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
@@ -1067,7 +1111,7 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1417,8 +1461,10 @@ void MyAvatar::clearJointsData() {
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
+    _cauterizationNeedsUpdate = true;
+    saveAvatarUrl();
     emit skeletonChanged();
 
 }
@@ -1762,7 +1808,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
-        model->setVisibleInScene(visible, scene);
+        model->setVisibleInScene(visible, scene, render::ItemKey::TAG_BITS_NONE);
     }
 }
 
@@ -1790,6 +1836,8 @@ void MyAvatar::initHeadBones() {
         }
         q.pop();
     }
+
+    _cauterizationNeedsUpdate = true;
 }
 
 QUrl MyAvatar::getAnimGraphOverrideUrl() const {
@@ -1860,6 +1908,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
         _isAnimatingScale = true;
+        _cauterizationNeedsUpdate = true;
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
@@ -1948,6 +1997,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
+        _cauterizationNeedsUpdate = true;
         _skeletonModel->setEnableCauterization(!shouldDrawHead);
 
         for (int i = 0; i < _attachmentData.size(); i++) {
@@ -1957,7 +2007,8 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene());
+                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
+                                                        render::ItemKey::TAG_BITS_NONE);
             }
         }
     }
@@ -3238,8 +3289,6 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     slamPosition(position);
     setWorldOrientation(orientation);
 
-    _skeletonModel->getRig().setMaxHipsOffsetLength(0.05f);
-
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it == _pinnedJoints.end()) {
         _pinnedJoints.push_back(index);
@@ -3259,12 +3308,6 @@ bool MyAvatar::clearPinOnJoint(int index) {
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it != _pinnedJoints.end()) {
         _pinnedJoints.erase(it);
-
-        auto hipsIndex = getJointIndex("Hips");
-        if (index == hipsIndex) {
-            _skeletonModel->getRig().setMaxHipsOffsetLength(FLT_MAX);
-        }
-
         return true;
     }
     return false;

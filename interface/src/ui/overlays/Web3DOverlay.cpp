@@ -80,7 +80,6 @@ Web3DOverlay::Web3DOverlay() {
     _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
     _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
     _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -135,7 +134,11 @@ void Web3DOverlay::destroyWebSurface() {
 
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
+    auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+    if (offscreenCache) {
+        offscreenCache->release(QML, _webSurface);
+    }
     _webSurface.reset();
 }
 
@@ -201,6 +204,11 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
         // in Qt 5.10.0 there is already an "Audio" object in the QML context
         // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
         _webSurface->getSurfaceContext()->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());

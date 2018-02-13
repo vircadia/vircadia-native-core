@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
 #include <QJsonDocument>
@@ -666,7 +666,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             }
             
             emit locationChangeRequired(newPosition, orientationChanged, 
-                LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
+                trigger == LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
                 shouldFace
             );
 
@@ -764,7 +764,7 @@ void AddressManager::copyAddress() {
     }
 
     // assume that the address is being copied because the user wants a shareable address
-    QApplication::clipboard()->setText(currentShareableAddress().toString());
+    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
@@ -773,7 +773,7 @@ void AddressManager::copyPath() {
         return;
     }
 
-    QApplication::clipboard()->setText(currentPath());
+    QGuiApplication::clipboard()->setText(currentPath());
 }
 
 QString AddressManager::getDomainID() const {

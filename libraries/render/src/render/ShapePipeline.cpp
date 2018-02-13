@@ -73,8 +73,9 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
 
     ShapeKey key{ filter._flags };
 
+
     // don't call makeProgram on shaders that are already made.
-    if (program->getUniformBuffers().empty()) {
+    if (program->getNumCompilationAttempts() < 1) {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
         slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
