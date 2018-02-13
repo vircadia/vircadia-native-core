@@ -96,7 +96,7 @@ public:
     JobConfig() = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
-    bool isEnabled() { return alwaysEnabled || enabled; }
+    bool isEnabled() const { return alwaysEnabled || enabled; }
     void setEnabled(bool enable) { enabled = alwaysEnabled || enable; emit dirtyEnabled(); }
 
     bool alwaysEnabled{ true };
