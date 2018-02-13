@@ -1697,12 +1697,12 @@ function loaded() {
         var isCollapsed = element.dataset.collapsed !== "true";
         element.dataset.collapsed = isCollapsed ? "true" : false;
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-        element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
+        element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
     };
 
     for (var collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
         var curCollapsibleElement = elCollapsible[collapseIndex];
-        curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
+        curCollapsibleElement.getElementsByTagName('span')[0].addEventListener("click", toggleCollapsedEvent, true);
     }
 
 
