@@ -32,7 +32,6 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
@@ -365,69 +364,6 @@ Rectangle {
             id: filteredPurchasesModel;
         }
 
-        Rectangle {
-            id: cantRezCertified;
-            visible: !root.canRezCertifiedItems;
-            color: "#FFC3CD";
-            radius: 4;
-            border.color: hifi.colors.redAccent;
-            border.width: 1;
-            anchors.top: separator.bottom;
-            anchors.topMargin: 12;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            height: 80;
-
-            HiFiGlyphs {
-                id: lightningIcon;
-                text: hifi.glyphs.lightning;
-                // Size
-                size: 36;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 18;
-                anchors.left: parent.left;
-                anchors.leftMargin: 12;
-                horizontalAlignment: Text.AlignHCenter;
-                // Style
-                color: hifi.colors.lightGray;
-            }
-
-            RalewayRegular {
-                text: "You don't have permission to rez certified items in this domain. " +
-                '<b><font color="' + hifi.colors.blueAccent + '"><a href="#">Learn More</a></font></b>';
-                // Text size
-                size: 18;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 4;
-                anchors.left: lightningIcon.right;
-                anchors.leftMargin: 8;
-                anchors.right: parent.right;
-                anchors.rightMargin: 8;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 4;
-                // Style
-                color: hifi.colors.baseGray;
-                wrapMode: Text.WordWrap;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
-                
-                onLinkActivated: {
-                    lightboxPopup.titleText = "Rez Permission Required";
-                    lightboxPopup.bodyText = "You don't have permission to rez certified items in this domain.<br><br>" +
-                        "Use the <b>GOTO app</b> to visit another domain or <b>go to your own sandbox.</b>";
-                    lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
-                    lightboxPopup.button2text = "OPEN GOTO";
-                    lightboxPopup.button2method = "sendToParent({method: 'purchases_openGoTo'});";
-                    lightboxPopup.visible = true;
-                }
-            }
-        }
-
         ListView {
             id: purchasesContentsList;
             visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
@@ -436,13 +372,12 @@ Rectangle {
             snapMode: ListView.SnapToItem;
             highlightRangeMode: ListView.StrictlyEnforceRange;
             // Anchors
-            anchors.top: root.canRezCertifiedItems ? separator.bottom : cantRezCertified.bottom;
+            anchors.top: separator.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width;
             delegate: PurchasedItem {
-                canRezCertifiedItems: root.canRezCertifiedItems;
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
@@ -466,7 +401,7 @@ Rectangle {
                     } else if (model.root_file_url.endsWith('.js')) {
                         "app";
                     } else {
-                        "entity";
+                        "unknown";
                     }
                 }
                 anchors.topMargin: 10;
@@ -503,6 +438,21 @@ Rectangle {
                             lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.button2text = "CONFIRM";
                             lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemId + "', '" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showPermissionsExplanation") {
+                            if (msg.itemType === "entity") {
+                                lightboxPopup.titleText = "Rez Certified Permission";
+                                lightboxPopup.bodyText = "You don't have permission to rez certified items in this domain.<br><br>" +
+                                    "Use the <b>GOTO app</b> to visit another domain or <b>go to your own sandbox.</b>";
+                                lightboxPopup.button2text = "OPEN GOTO";
+                                lightboxPopup.button2method = "sendToParent({method: 'purchases_openGoTo'});";
+                            } else if (msg.itemType === "contentSet") {
+                                lightboxPopup.titleText = "Replace Content Permission";
+                                lightboxPopup.bodyText = "You do not have the permission 'Replace Content' in this <b>domain's server settings</b>. The domain owner " +
+                                    "must enable it for you before you can replace content sets in this domain.";
+                            }
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.visible = true;
                         } else if (msg.method === "setFilterText") {
                             filterBar.text = msg.filterText;

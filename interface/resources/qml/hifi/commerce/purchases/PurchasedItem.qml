@@ -29,7 +29,6 @@ Item {
     id: root;
     property string purchaseStatus;
     property bool purchaseStatusChanged;
-    property bool canRezCertifiedItems: false;
     property string itemName;
     property string itemId;
     property string itemPreviewImageUrl;
@@ -67,6 +66,8 @@ Item {
         if ((itemType === "entity" && (!Entities.canRezCertified() && !Entities.canRezTmpCertified())) ||
             (itemType === "contentSet" && !Entities.canReplaceContent())) {
             root.hasPermissionToRezThis = false;
+        } else {
+            root.hasPermissionToRezThis = true;
         }
     }
 
@@ -128,15 +129,19 @@ Item {
             }
         }
 
-    
+        TextMetrics {
+            id:     itemNameTextMetrics;
+            font:   itemName.font;
+            text:   itemName.text;
+        }
         RalewaySemiBold {
             id: itemName;
             anchors.top: itemPreviewImage.top;
             anchors.topMargin: 4;
             anchors.left: itemPreviewImage.right;
             anchors.leftMargin: 8;
-            anchors.right: buttonContainer.left;
-            anchors.rightMargin: 8;
+            width: root.hasPermissionToRezThis ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width) :
+                Math.min(itemNameTextMetrics.tightBoundingRect.width + 2, buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - noPermissionGlyph.width + 2);
             height: paintedHeight;
             // Text size
             size: 24;
@@ -159,6 +164,91 @@ Item {
                 }
                 onExited: {
                     itemName.color = hifi.colors.blueAccent;
+                }
+            }
+        }
+        HiFiGlyphs {
+            id: noPermissionGlyph;
+            visible: !root.hasPermissionToRezThis;
+            anchors.verticalCenter: itemName.verticalCenter;
+            anchors.left: itemName.right;
+            anchors.leftMargin: itemName.truncated ? -14 : -2;
+            text: hifi.glyphs.info;
+            // Size
+            size: 40;
+            width: 32;
+            // Style
+            color: hifi.colors.redAccent;
+            
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: true;
+
+                onEntered: {
+                    noPermissionGlyph.color = hifi.colors.redHighlight;
+                }
+                onExited: {
+                    noPermissionGlyph.color = hifi.colors.redAccent;
+                }
+                onClicked: {
+                    permissionExplanationCard.visible = true;
+                }
+            }
+        }
+        Rectangle {
+            id: permissionExplanationCard;
+            z: 995;
+            visible: false;
+            anchors.fill: parent;
+            color: hifi.colors.white;
+
+            RalewayRegular {
+                id: permissionExplanationText;
+                text: {
+                    if (root.itemType === "contentSet") {
+                        "You do not have 'Replace Content' permissions in this domain. <a href='#replaceContentPermission'>Learn more</a>";
+                    } else if (root.itemType === "entity") {
+                        "You do not have 'Rez Certified' permissions in this domain. <a href='#rezCertifiedPermission'>Learn more</a>";
+                    }
+                }
+                size: 16;
+                anchors.left: parent.left;
+                anchors.leftMargin: 30;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: permissionExplanationGlyph.left;
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                verticalAlignment: Text.AlignVCenter;
+
+                onLinkActivated: {
+                    sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                }
+            }
+            // "Close" button
+            HiFiGlyphs {
+                id: permissionExplanationGlyph;
+                text: hifi.glyphs.close;
+                color: hifi.colors.baseGray;
+                size: 26;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                width: 77;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.text = hifi.glyphs.closeInverted;
+                    }
+                    onExited: {
+                        parent.text = hifi.glyphs.close;
+                    }
+                    onClicked: {
+                        permissionExplanationCard.visible = false;
+                    }
                 }
             }
         }
@@ -379,7 +469,7 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: 4;
             width: height;
-            enabled: (root.canRezCertifiedItems || root.itemType === "wearable") && root.purchaseStatus !== "invalidated";
+            enabled: root.hasPermissionToRezThis && root.purchaseStatus !== "invalidated";
             
             onClicked: {
                 if (root.itemType === "contentSet") {

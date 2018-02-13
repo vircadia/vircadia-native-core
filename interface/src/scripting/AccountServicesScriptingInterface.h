@@ -38,7 +38,7 @@ class AccountServicesScriptingInterface : public QObject {
     Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
-    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
+    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL CONSTANT)
     
 public:
     static AccountServicesScriptingInterface* getInstance();
