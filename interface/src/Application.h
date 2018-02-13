@@ -286,6 +286,9 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
+    bool isServerlessMode() { return _serverlessMode; }
+    void setServerlessMode(bool serverlessMode) { _serverlessMode = serverlessMode; }
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -473,6 +476,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool visitServerlessDomain(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -711,5 +715,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
+
+    bool _serverlessMode { false };
 };
 #endif // hifi_Application_h

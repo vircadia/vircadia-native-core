@@ -347,6 +347,8 @@ static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
+static const QString SERVERLESS_DOMAIN_EXTENSION = ".domain.json";
+static const QString SERVERLESS_DOMAIN_GZ_EXTENSION = ".domain.json.gz";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -382,7 +384,9 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
-    { ZIP_EXTENSION, &Application::importFromZIP }
+    { ZIP_EXTENSION, &Application::importFromZIP },
+    { SERVERLESS_DOMAIN_EXTENSION, &Application::visitServerlessDomain },
+    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -952,7 +956,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
+    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeList] {
+        if (!isServerlessMode()) {
+            nodeList->sendDomainServerCheckIn();
+        }
+    });
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
         domainCheckInTimer->stop();
@@ -2931,6 +2939,13 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
+
+bool Application::visitServerlessDomain(const QString& urlString) {
+    qDebug() << "QQQQ visit serverless domain" << urlString;
+    setServerlessMode(true);
+}
+
+
 // thread-safe
 void Application::onPresent(quint32 frameCount) {
     bool expected = false;
@@ -4437,7 +4452,9 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     // fire off an immediate domain-server check in now that settings are loaded
-    DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
+    if (!isServerlessMode()) {
+        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
+    }
 
     // This allows collision to be set up properly for shape entities supported by GeometryCache.
     // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.
