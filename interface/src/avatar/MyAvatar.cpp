@@ -1460,10 +1460,23 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _skeletonModelChangeCount++;
+    int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
+
+    std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
+    *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
+       if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+           initHeadBones();
+           _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+           _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+           initAnimGraph();
+       }
+       QObject::disconnect(*skeletonConnection);
+    });
     saveAvatarUrl();
     emit skeletonChanged();
 
@@ -1872,9 +1885,7 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
 
     _currentAnimGraphUrl.set(url);
     _skeletonModel->getRig().initAnimGraph(url);
-
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
 void MyAvatar::initAnimGraph() {
@@ -1889,28 +1900,24 @@ void MyAvatar::initAnimGraph() {
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
-
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
 void MyAvatar::destroyAnimGraph() {
     _skeletonModel->getRig().destroyAnimGraph();
 }
 
+void MyAvatar::animGraphLoaded() {
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    _isAnimatingScale = true;
+    _cauterizationNeedsUpdate = true;
+    disconnect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
+}
+
 void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
-
-    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode()) {
-        initHeadBones();
-        _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-        _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-        initAnimGraph();
-        _isAnimatingScale = true;
-        _cauterizationNeedsUpdate = true;
-    }
-
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
 
         auto animSkeleton = _skeletonModel->getRig().getAnimSkeleton();
