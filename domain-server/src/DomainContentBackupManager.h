@@ -41,20 +41,18 @@ public:
                                bool debugTimestampNow = false);
 
     void addBackupHandler(BackupHandler handler);
-    bool isInitialLoadComplete() const { return _initialLoadComplete; }
 
     void aboutToFinish();  /// call this to inform the persist thread that the owner is about to finish to support final persist
 
     void replaceData(QByteArray data);
 
-signals:
-    void loadCompleted();
-
 protected:
     /// Implements generic processing behavior for this thread.
-    bool process() override;
+    virtual void setup() override;
+    virtual bool process() override;
 
     void persist();
+    void load();
     void backup();
     void removeOldBackupVersions(const BackupRule& rule);
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
@@ -64,16 +62,10 @@ protected:
 private:
     QString _backupDirectory;
     std::vector<BackupHandler> _backupHandlers;
-    int _persistInterval;
-    bool _initialLoadComplete;
+    int _persistInterval { 0 };
 
-    time_t _lastPersistTime;
-    int64_t _lastCheck;
-    bool _wantBackup{ true };
-    QVector<BackupRule> _backupRules;
-
-    bool _debugTimestampNow;
-    int64_t _lastTimeDebug;
+    int64_t _lastCheck { 0 };
+    std::vector<BackupRule> _backupRules;
 };
 
 #endif  // hifi_DomainContentBackupManager_h

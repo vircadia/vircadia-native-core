@@ -47,10 +47,7 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
                                                        bool debugTimestampNow)
     : _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
-    _initialLoadComplete(false),
-    _lastCheck(0),
-    _debugTimestampNow(debugTimestampNow),
-    _lastTimeDebug(0) {
+    _lastCheck(usecTimestampNow()) {
     parseSettings(settings);
 }
 
@@ -101,7 +98,7 @@ void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
                 qCDebug(domain_server) << "        lastBackup: NEVER";
             }
 
-            _backupRules << newRule;
+            _backupRules.push_back(newRule);
         }
     } else {
         qCDebug(domain_server) << "BACKUP RULES: NONE";
@@ -123,6 +120,10 @@ int64_t DomainContentBackupManager::getMostRecentBackupTimeInSecs(const QString&
     return mostRecentBackupInSecs;
 }
 
+void DomainContentBackupManager::setup() {
+    load();
+}
+
 bool DomainContentBackupManager::process() {
     if (isStillRunning()) {
         constexpr int64_t MSECS_TO_USECS = 1000;
@@ -136,18 +137,6 @@ bool DomainContentBackupManager::process() {
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
             persist();
-        }
-    }
-
-    // if we were asked to debugTimestampNow do that now...
-    if (_debugTimestampNow) {
-
-        quint64 now = usecTimestampNow();
-        quint64 sinceLastDebug = now - _lastTimeDebug;
-        quint64 DEBUG_TIMESTAMP_INTERVAL = 600000000;  // every 10 minutes
-
-        if (sinceLastDebug > DEBUG_TIMESTAMP_INTERVAL) {
-            _lastTimeDebug = usecTimestampNow(true);  // ask for debug output
         }
     }
 
@@ -250,6 +239,36 @@ void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule)
     }
 }
 
+void DomainContentBackupManager::load() {
+    QDir backupDir { _backupDirectory };
+    if (backupDir.exists()) {
+
+        auto matchingFiles = backupDir.entryInfoList({ "backup-*.zip" }, QDir::Files | QDir::NoSymLinks, QDir::Name);
+
+        for (const auto& file : matchingFiles) {
+            QFile backupFile { file.absoluteFilePath() };
+            if (!backupFile.open(QIODevice::ReadOnly)) {
+                qCritical() << "Could not open file:" << file.absoluteFilePath();
+                qCritical() << "    ERROR:" << backupFile.errorString();
+                continue;
+            }
+
+            QuaZip zip { &backupFile };
+            if (!zip.open(QuaZip::mdUnzip)) {
+                qCritical() << "Could not open backup archive:" << file.absoluteFilePath();
+                qCritical() << "    ERROR:" << zip.getZipError();
+                continue;
+            }
+
+            for (auto& handler : _backupHandlers) {
+                handler.loadBackup(zip);
+            }
+
+            zip.close();
+        }
+    }
+}
+
 void DomainContentBackupManager::backup() {
     auto nowDateTime = QDateTime::currentDateTime();
     auto nowSeconds = nowDateTime.toSecsSinceEpoch();
@@ -268,9 +287,12 @@ void DomainContentBackupManager::backup() {
             auto timestamp = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
             auto fileName = "backup-" + rule.extensionFormat + timestamp + ".zip";
             QuaZip zip(_backupDirectory + "/" + fileName);
-            zip.open(QuaZip::mdAdd);
+            if (!zip.open(QuaZip::mdAdd)) {
+                qDebug() << "Could not open archive";
+            }
 
-            for (const auto& handler : _backupHandlers) {
+            for (auto& handler : _backupHandlers) {
+                qDebug() << "Backup handler";
                 handler.createBackup(zip);
             }
 

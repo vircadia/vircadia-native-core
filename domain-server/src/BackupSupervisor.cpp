@@ -13,6 +13,9 @@
 
 #include <QJsonDocument>
 #include <QDate>
+#include <QtCore/QLoggingCategory>
+
+#include <quazip5/quazipfile.h>
 
 #include <AssetClient.h>
 #include <AssetRequest.h>
@@ -20,33 +23,231 @@
 #include <MappingRequest.h>
 #include <PathUtils.h>
 
-const QString BACKUPS_DIR = "backups/";
-const QString ASSETS_DIR = "files/";
-const QString MAPPINGS_PREFIX = "mappings-";
+const QString ASSETS_DIR = "/assets/";
+const QString MAPPINGS_FILE = "mappings.json";
 
 using namespace std;
 
-BackupSupervisor::BackupSupervisor() {
-    _backupsDirectory = PathUtils::getAppDataPath() + BACKUPS_DIR;
-    QDir backupDir { _backupsDirectory };
-    if (!backupDir.exists()) {
-        backupDir.mkpath(".");
-    }
+Q_DECLARE_LOGGING_CATEGORY(backup_supervisor)
+Q_LOGGING_CATEGORY(backup_supervisor, "hifi.backup-supervisor");
 
-    _assetsDirectory = PathUtils::getAppDataPath() + BACKUPS_DIR + ASSETS_DIR;
+BackupSupervisor::BackupSupervisor(const QString& backupDirectory) {
+    _assetsDirectory = backupDirectory + ASSETS_DIR;
     QDir assetsDir { _assetsDirectory };
     if (!assetsDir.exists()) {
         assetsDir.mkpath(".");
     }
 
-    loadAllBackups();
+    refreshAssetsOnDisk();
 
-    static constexpr int MAPPINGS_REFRESH_INTERVAL = 30 * 1000;
-    _mappingsRefreshTimer.setInterval(MAPPINGS_REFRESH_INTERVAL);
     _mappingsRefreshTimer.setTimerType(Qt::CoarseTimer);
-    _mappingsRefreshTimer.setSingleShot(false);
+    _mappingsRefreshTimer.setSingleShot(true);
     QObject::connect(&_mappingsRefreshTimer, &QTimer::timeout, this, &BackupSupervisor::refreshMappings);
-    _mappingsRefreshTimer.start();
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    QObject::connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AssetServer) {
+            // Give the Asset Server some time to bootup.
+            static constexpr int ASSET_SERVER_BOOTUP_MARGIN = 1 * 1000;
+            _mappingsRefreshTimer.start(ASSET_SERVER_BOOTUP_MARGIN);
+        }
+    });
+}
+
+
+void BackupSupervisor::refreshAssetsOnDisk() {
+    QDir assetsDir { _assetsDirectory };
+    auto assetNames = assetsDir.entryList(QDir::Files);
+
+    // store all valid hashes
+    copy_if(begin(assetNames), end(assetNames),
+            inserter(_assetsOnDisk, begin(_assetsOnDisk)),
+            AssetUtils::isValidHash);
+
+}
+
+void BackupSupervisor::refreshAssetsInBackups() {
+    _assetsInBackups.clear();
+    for (const auto& backup : _backups) {
+        for (const auto& mapping : backup.mappings) {
+            _assetsInBackups.insert(mapping.second);
+        }
+    }
+}
+
+void BackupSupervisor::checkForMissingAssets() {
+    vector<AssetUtils::AssetHash> missingAssets;
+    set_difference(begin(_assetsInBackups), end(_assetsInBackups),
+                   begin(_assetsOnDisk), end(_assetsOnDisk),
+                   back_inserter(missingAssets));
+    if (missingAssets.size() > 0) {
+        qCWarning(backup_supervisor) << "Found" << missingAssets.size() << "assets missing.";
+    }
+}
+
+void BackupSupervisor::checkForAssetsToDelete() {
+    vector<AssetUtils::AssetHash> deprecatedAssets;
+    set_difference(begin(_assetsOnDisk), end(_assetsOnDisk),
+                   begin(_assetsInBackups), end(_assetsInBackups),
+                   back_inserter(deprecatedAssets));
+
+    if (deprecatedAssets.size() > 0) {
+        qCDebug(backup_supervisor) << "Found" << deprecatedAssets.size() << "assets to delete.";
+        if (_allBackupsLoadedSuccessfully) {
+            for (const auto& hash : deprecatedAssets) {
+                QFile::remove(_assetsDirectory + hash);
+            }
+        } else {
+            qCWarning(backup_supervisor) << "Some backups did not load properly, aborting deleting for safety.";
+        }
+    }
+}
+
+void BackupSupervisor::loadBackup(QuaZip& zip) {
+    _backups.push_back({ zip.getZipName().toStdString(), {}, false });
+    auto& backup = _backups.back();
+
+    if (!zip.setCurrentFile(MAPPINGS_FILE)) {
+        qCCritical(backup_supervisor) << "Failed to find" << MAPPINGS_FILE << "while recovering backup";
+        qCCritical(backup_supervisor) << "    Error:" << zip.getZipError();
+        backup.corruptedBackup = true;
+        _allBackupsLoadedSuccessfully = false;
+        return;
+    }
+
+    QuaZipFile zipFile { &zip };
+    if (!zipFile.open(QFile::ReadOnly)) {
+        qCCritical(backup_supervisor) << "Could not open backup file:" << zip.getZipName();
+        qCCritical(backup_supervisor) << "    Error:" << zip.getZipError();
+        backup.corruptedBackup = true;
+        _allBackupsLoadedSuccessfully = false;
+        return;
+    }
+
+    QJsonParseError error;
+    auto document = QJsonDocument::fromJson(zipFile.readAll(), &error);
+    if (document.isNull() || !document.isObject()) {
+        qCCritical(backup_supervisor) << "Could not parse backup file to JSON object:" << zip.getZipName();
+        qCCritical(backup_supervisor) << "    Error:" << error.errorString();
+        backup.corruptedBackup = true;
+        _allBackupsLoadedSuccessfully = false;
+        return;
+    }
+
+    auto jsonObject = document.object();
+    for (auto it = begin(jsonObject); it != end(jsonObject); ++it) {
+        const auto& assetPath = it.key();
+        const auto& assetHash = it.value().toString();
+
+        if (!AssetUtils::isValidHash(assetHash)) {
+            qCCritical(backup_supervisor) << "Corrupted mapping in backup file" << zip.getZipName() << ":" << it.key();
+            backup.corruptedBackup = true;
+            _allBackupsLoadedSuccessfully = false;
+            return;
+        }
+
+        backup.mappings[assetPath] = assetHash;
+        _assetsInBackups.insert(assetHash);
+    }
+
+    return;
+}
+
+void BackupSupervisor::createBackup(QuaZip& zip) {
+    qDebug() << Q_FUNC_INFO;
+    if (operationInProgress()) {
+        qCWarning(backup_supervisor) << "There is already an operation in progress.";
+        return;
+    }
+
+    if (_lastMappingsRefresh == 0) {
+        qCWarning(backup_supervisor) << "Current mappings not yet loaded.";
+        return;
+    }
+
+    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
+    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
+        qCWarning(backup_supervisor) << "Backing up asset mappings that appear old.";
+    }
+
+    AssetServerBackup backup;
+    backup.filePath = zip.getZipName().toStdString();
+
+    QJsonObject jsonObject;
+    for (const auto& mapping : _currentMappings) {
+        backup.mappings[mapping.first] = mapping.second;
+        _assetsInBackups.insert(mapping.second);
+        jsonObject.insert(mapping.first, mapping.second);
+    }
+    QJsonDocument document(jsonObject);
+
+    QuaZipFile zipFile { &zip };
+    if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(MAPPINGS_FILE))) {
+        qCDebug(backup_supervisor) << "testCreate(): outFile.open()";
+        return;
+    }
+    zipFile.write(document.toJson());
+    zipFile.close();
+    if (zipFile.getZipError() != UNZ_OK) {
+        qCDebug(backup_supervisor) << "testCreate(): outFile.close(): " << zipFile.getZipError();
+        return;
+    }
+    _backups.push_back(backup);
+}
+
+void BackupSupervisor::recoverBackup(QuaZip& zip) {
+    if (operationInProgress()) {
+        qCWarning(backup_supervisor) << "There is already a backup/restore in progress.";
+        return;
+    }
+
+    if (_lastMappingsRefresh == 0) {
+        qCWarning(backup_supervisor) << "Current mappings not yet loaded.";
+        return;
+    }
+
+    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
+    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
+        qCWarning(backup_supervisor) << "Backing up asset mappings that appear old.";
+    }
+
+    startOperation();
+
+    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+        return value.filePath == zip.getZipName().toStdString();
+    });
+    if (it == end(_backups)) {
+        qCDebug(backup_supervisor) << "Could not find backup";
+        stopOperation();
+        return;
+    }
+
+    const auto& newMappings = it->mappings;
+    computeServerStateDifference(_currentMappings, newMappings);
+
+    restoreAllAssets();
+}
+
+void BackupSupervisor::deleteBackup(QuaZip& zip) {
+    if (operationInProgress()) {
+        qCWarning(backup_supervisor) << "There is a backup/restore in progress.";
+        return;
+    }
+
+    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+        return value.filePath == zip.getZipName().toStdString();
+    });
+    if (it == end(_backups)) {
+        qCDebug(backup_supervisor) << "Could not find backup";
+        return;
+    }
+
+    refreshAssetsInBackups();
+    checkForAssetsToDelete();
+}
+
+void BackupSupervisor::consolidateBackup(QuaZip& zip) {
+
 }
 
 void BackupSupervisor::refreshMappings() {
@@ -57,179 +258,69 @@ void BackupSupervisor::refreshMappings() {
         if (request->getError() == MappingRequest::NoError) {
             const auto& mappings = request->getMappings();
 
-            qDebug() << "Refreshed" << mappings.size() << "asset mappings!";
+            qCDebug(backup_supervisor) << "Refreshed" << mappings.size() << "asset mappings!";
 
             _currentMappings.clear();
             for (const auto& mapping : mappings) {
                 _currentMappings.insert({ mapping.first, mapping.second.hash });
             }
             _lastMappingsRefresh = usecTimestampNow();
+
+            downloadMissingFiles(_currentMappings);
         } else {
-            qCritical() << "Could not refresh asset server mappings.";
-            qCritical() << "    Error:" << request->getErrorString();
+            qCCritical(backup_supervisor) << "Could not refresh asset server mappings.";
+            qCCritical(backup_supervisor) << "    Error:" << request->getErrorString();
         }
 
         request->deleteLater();
+
+        // Launch next mappings request
+        static constexpr int MAPPINGS_REFRESH_INTERVAL = 30 * 1000;
+        _mappingsRefreshTimer.start(MAPPINGS_REFRESH_INTERVAL);
     });
 
     request->start();
 }
 
-void BackupSupervisor::loadAllBackups() {
-    _backups.clear();
-    _assetsInBackups.clear();
-    _assetsOnDisk.clear();
-    _allBackupsLoadedSuccessfully = true;
+void BackupSupervisor::downloadMissingFiles(const AssetUtils::Mappings& mappings) {
+    auto wasEmpty = _assetsLeftToRequest.empty();
 
-    QDir assetsDir { _assetsDirectory };
-    auto assetNames = assetsDir.entryList(QDir::Files);
-    qDebug() << "Loading" << assetNames.size() << "assets.";
-
-    // store all valid hashes
-    copy_if(begin(assetNames), end(assetNames),
-            inserter(_assetsOnDisk, begin(_assetsOnDisk)), AssetUtils::isValidHash);
-
-    QDir backupsDir { _backupsDirectory };
-    auto files = backupsDir.entryList({ MAPPINGS_PREFIX + "*.json" }, QDir::Files);
-    qDebug() << "Loading" << files.size() << "backups.";
-
-    for (const auto& fileName : files) {
-        auto filePath = backupsDir.filePath(fileName);
-        auto success = loadBackup(filePath);
-        if (!success) {
-            qCritical() << "Failed to load backup file" << filePath;
-            _allBackupsLoadedSuccessfully = false;
-        }
-    }
-
-    vector<AssetUtils::AssetHash> missingAssets;
-    set_difference(begin(_assetsInBackups), end(_assetsInBackups),
-                   begin(_assetsOnDisk), end(_assetsOnDisk),
-                   back_inserter(missingAssets));
-    if (missingAssets.size() > 0) {
-        qWarning() << "Found" << missingAssets.size() << "assets missing.";
-    }
-
-    vector<AssetUtils::AssetHash> deprecatedAssets;
-    set_difference(begin(_assetsOnDisk), end(_assetsOnDisk),
-                   begin(_assetsInBackups), end(_assetsInBackups),
-                   back_inserter(deprecatedAssets));
-
-    if (deprecatedAssets.size() > 0) {
-        qDebug() << "Found" << deprecatedAssets.size() << "assets to delete.";
-        if (_allBackupsLoadedSuccessfully) {
-            for (const auto& hash : deprecatedAssets) {
-                QFile::remove(_assetsDirectory + hash);
-            }
-        } else {
-            qWarning() << "Some backups did not load properly, aborting deleting for safety.";
-        }
-    }
-}
-
-bool BackupSupervisor::loadBackup(const QString& backupFile) {
-    _backups.push_back({ backupFile.toStdString(), {}, false });
-    auto& backup = _backups.back();
-
-    QFile file { backupFile };
-    if (!file.open(QFile::ReadOnly)) {
-        qCritical() << "Could not open backup file:" << backupFile;
-        backup.corruptedBackup = true;
-        return false;
-    }
-    QJsonParseError error;
-    auto document = QJsonDocument::fromJson(file.readAll(), &error);
-    if (document.isNull() || !document.isObject()) {
-        qCritical() << "Could not parse backup file to JSON object:" << backupFile;
-        qCritical() << "    Error:" << error.errorString();
-        backup.corruptedBackup = true;
-        return false;
-    }
-
-    auto jsonObject = document.object();
-    for (auto it = begin(jsonObject); it != end(jsonObject); ++it) {
-        const auto& assetPath = it.key();
-        const auto& assetHash = it.value().toString();
-
-        if (!AssetUtils::isValidHash(assetHash)) {
-            qCritical() << "Corrupted mapping in backup file" << backupFile << ":" << it.key();
-            backup.corruptedBackup = true;
-            return false;
-        }
-
-        backup.mappings[assetPath] = assetHash;
-        _assetsInBackups.insert(assetHash);
-    }
-
-    _backups.push_back(backup);
-    return true;
-}
-
-void BackupSupervisor::backupAssetServer() {
-    if (backupInProgress() || restoreInProgress()) {
-        qWarning() << "There is already a backup/restore in progress.";
-        return;
-    }
-
-    if (_lastMappingsRefresh == 0) {
-        qWarning() << "Current mappings not yet loaded, ";
-        return;
-    }
-
-    static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
-    if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
-        qWarning() << "Backing up asset mappings that appear old.";
-    }
-
-    startBackup();
-
-    if (!writeBackupFile(_currentMappings)) {
-        finishBackup();
-        return;
-    }
-
-    assert(!_backups.empty());
-    const auto& mappings = _backups.back().mappings;
-    backupMissingFiles(mappings);
-}
-
-void BackupSupervisor::backupMissingFiles(const AssetUtils::Mappings& mappings) {
-    _assetsLeftToRequest.reserve(mappings.size());
-    for (auto& mapping : mappings) {
+    for (const auto& mapping : mappings) {
         const auto& hash = mapping.second;
         if (_assetsOnDisk.find(hash) == end(_assetsOnDisk)) {
-            _assetsLeftToRequest.push_back(hash);
+            _assetsLeftToRequest.insert(hash);
         }
     }
 
-    backupNextMissingFile();
+    // If we were empty, that means no download chain was already going, start one.
+    if (wasEmpty) {
+        downloadNextMissingFile();
+    }
 }
 
-void BackupSupervisor::backupNextMissingFile() {
+void BackupSupervisor::downloadNextMissingFile() {
     if (_assetsLeftToRequest.empty()) {
-        finishBackup();
         return;
     }
-
-    auto hash = _assetsLeftToRequest.back();
-    _assetsLeftToRequest.pop_back();
+    auto hash = *begin(_assetsLeftToRequest);
 
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = assetClient->createRequest(hash);
 
     QObject::connect(assetRequest, &AssetRequest::finished, this, [this](AssetRequest* request) {
         if (request->getError() == AssetRequest::NoError) {
-            qDebug() << "Got" << request->getHash();
+            qCDebug(backup_supervisor) << "Backing up asset" << request->getHash();
 
             bool success = writeAssetFile(request->getHash(), request->getData());
             if (!success) {
-                qCritical() << "Failed to write asset file" << request->getHash();
+                qCCritical(backup_supervisor) << "Failed to write asset file" << request->getHash();
             }
         } else {
-            qCritical() << "Failed to backup asset" << request->getHash();
+            qCCritical(backup_supervisor) << "Failed to backup asset" << request->getHash();
         }
 
-        backupNextMissingFile();
+        _assetsLeftToRequest.erase(request->getHash());
+        downloadNextMissingFile();
 
         request->deleteLater();
     });
@@ -237,73 +328,27 @@ void BackupSupervisor::backupNextMissingFile() {
     assetRequest->start();
 }
 
-bool BackupSupervisor::writeBackupFile(const AssetUtils::Mappings& mappings) {
-    auto filename = MAPPINGS_PREFIX + QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + ".json";
-    QFile file { PathUtils::getAppDataPath() + BACKUPS_DIR + filename };
-    if (!file.open(QFile::WriteOnly)) {
-        qCritical() << "Could not open backup file" << file.fileName();
-        return false;
-    }
-
-    AssetServerBackup backup;
-    QJsonObject jsonObject;
-    for (auto& mapping : mappings) {
-        backup.mappings[mapping.first] = mapping.second;
-        _assetsInBackups.insert(mapping.second);
-        jsonObject.insert(mapping.first, mapping.second);
-    }
-
-    QJsonDocument document(jsonObject);
-    file.write(document.toJson());
-
-    backup.filePath = file.fileName().toStdString();
-    _backups.push_back(backup);
-
-    return true;
-}
-
 bool BackupSupervisor::writeAssetFile(const AssetUtils::AssetHash& hash, const QByteArray& data) {
     QDir assetsDir { _assetsDirectory };
     QFile file { assetsDir.filePath(hash) };
     if (!file.open(QFile::WriteOnly)) {
-        qCritical() << "Could not open backup file" << file.fileName();
+        qCCritical(backup_supervisor) << "Could not open backup file" << file.fileName();
         return false;
     }
 
-    file.write(data);
+    auto bytesWritten = file.write(data);
+    if (bytesWritten != data.size()) {
+        qCCritical(backup_supervisor) << "Could not write data to file" << file.fileName();
+        file.remove();
+        return false;
+    }
 
     _assetsOnDisk.insert(hash);
 
     return true;
 }
 
-void BackupSupervisor::restoreAssetServer(int backupIndex) {
-    if (backupInProgress() || restoreInProgress()) {
-        qWarning() << "There is already a backup/restore in progress.";
-        return;
-    }
-
-    auto assetClient = DependencyManager::get<AssetClient>();
-    auto request = assetClient->createGetAllMappingsRequest();
-
-    QObject::connect(request, &GetAllMappingsRequest::finished, this, [this, backupIndex](GetAllMappingsRequest* request) {
-        if (request->getError() == MappingRequest::NoError) {
-            const auto& newMappings = _backups.at(backupIndex).mappings;
-            computeServerStateDifference(request->getMappings(), newMappings);
-
-            restoreAllAssets();
-        } else {
-            finishRestore();
-        }
-
-        request->deleteLater();
-    });
-
-    startRestore();
-    request->start();
-}
-
-void BackupSupervisor::computeServerStateDifference(const AssetUtils::AssetMappings& currentMappings,
+void BackupSupervisor::computeServerStateDifference(const AssetUtils::Mappings& currentMappings,
                                                     const AssetUtils::Mappings& newMappings) {
     _mappingsLeftToSet.reserve((int)newMappings.size());
     _assetsLeftToUpload.reserve((int)newMappings.size());
@@ -312,7 +357,7 @@ void BackupSupervisor::computeServerStateDifference(const AssetUtils::AssetMappi
     set<AssetUtils::AssetHash> currentAssets;
     for (const auto& currentMapping : currentMappings) {
         const auto& currentPath = currentMapping.first;
-        const auto& currentHash = currentMapping.second.hash;
+        const auto& currentHash = currentMapping.second;
 
         if (newMappings.find(currentPath) == end(newMappings)) {
             _mappingsLeftToDelete.push_back(currentPath);
@@ -325,7 +370,7 @@ void BackupSupervisor::computeServerStateDifference(const AssetUtils::AssetMappi
         const auto& newHash = newMapping.second;
 
         auto it = currentMappings.find(newPath);
-        if (it == end(currentMappings) || it->second.hash != newHash) {
+        if (it == end(currentMappings) || it->second != newHash) {
             _mappingsLeftToSet.push_back({ newPath, newHash });
         }
         if (currentAssets.find(newHash) == end(currentAssets)) {
@@ -333,9 +378,9 @@ void BackupSupervisor::computeServerStateDifference(const AssetUtils::AssetMappi
         }
     }
 
-    qDebug() << "Mappings to set:" << _mappingsLeftToSet.size();
-    qDebug() << "Mappings to del:" << _mappingsLeftToDelete.size();
-    qDebug() << "Assets to upload:" << _assetsLeftToUpload.size();
+    qCDebug(backup_supervisor) << "Mappings to set:" << _mappingsLeftToSet.size();
+    qCDebug(backup_supervisor) << "Mappings to del:" << _mappingsLeftToDelete.size();
+    qCDebug(backup_supervisor) << "Assets to upload:" << _assetsLeftToUpload.size();
 }
 
 void BackupSupervisor::restoreAllAssets() {
@@ -358,8 +403,8 @@ void BackupSupervisor::restoreNextAsset() {
 
     QObject::connect(request, &AssetUpload::finished, this, [this](AssetUpload* request) {
         if (request->getError() != AssetUpload::NoError) {
-            qCritical() << "Failed to restore asset:" << request->getFilename();
-            qCritical() << "    Error:" << request->getErrorString();
+            qCCritical(backup_supervisor) << "Failed to restore asset:" << request->getFilename();
+            qCCritical(backup_supervisor) << "    Error:" << request->getErrorString();
         }
 
         restoreNextAsset();
@@ -376,12 +421,12 @@ void BackupSupervisor::updateMappings() {
         auto request = assetClient->createSetMappingRequest(mapping.first, mapping.second);
         QObject::connect(request, &SetMappingRequest::finished, this, [this](SetMappingRequest* request) {
             if (request->getError() != MappingRequest::NoError) {
-                qCritical() << "Failed to set mapping:" << request->getPath();
-                qCritical() << "    Error:" << request->getErrorString();
+                qCCritical(backup_supervisor) << "Failed to set mapping:" << request->getPath();
+                qCCritical(backup_supervisor) << "    Error:" << request->getErrorString();
             }
 
             if (--_mappingRequestsInFlight == 0) {
-                finishRestore();
+                stopOperation();
             }
 
             request->deleteLater();
@@ -395,12 +440,12 @@ void BackupSupervisor::updateMappings() {
     auto request = assetClient->createDeleteMappingsRequest(_mappingsLeftToDelete);
     QObject::connect(request, &DeleteMappingsRequest::finished, this, [this](DeleteMappingsRequest* request) {
         if (request->getError() != MappingRequest::NoError) {
-            qCritical() << "Failed to delete mappings";
-            qCritical() << "    Error:" << request->getErrorString();
+            qCCritical(backup_supervisor) << "Failed to delete mappings";
+            qCCritical(backup_supervisor) << "    Error:" << request->getErrorString();
         }
 
         if (--_mappingRequestsInFlight == 0) {
-            finishRestore();
+            stopOperation();
         }
 
         request->deleteLater();
@@ -409,16 +454,4 @@ void BackupSupervisor::updateMappings() {
 
     request->start();
     ++_mappingRequestsInFlight;
-}
-bool BackupSupervisor::deleteBackup(int backupIndex) {
-    if (backupInProgress() || restoreInProgress()) {
-        qWarning() << "There is a backup/restore in progress.";
-        return false;
-    }
-    const auto& filePath = _backups.at(backupIndex).filePath;
-    auto success = QFile::remove(filePath.c_str());
-
-    loadAllBackups();
-
-    return success;
 }
