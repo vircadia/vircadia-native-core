@@ -42,7 +42,9 @@ Object.assign(Settings, {
   ADD_PLACE_BTN_ID: 'add-place-btn',
   FORM_ID: 'settings-form',
   INVALID_ROW_CLASS: 'invalid-input',
-  DATA_ROW_INDEX: 'data-row-index'
+  DATA_ROW_INDEX: 'data-row-index',
+  CONTENT_ARCHIVES_PANEL_ID: 'content_archives',
+  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content'
 });
 
 var URLs = {
@@ -164,7 +166,7 @@ function getDomainFromAPI(callback) {
   if (callback === undefined) {
     callback = function() {};
   }
-  
+
   if (!domainIDIsSet()) {
     callback({ status: 'fail' });
     return null;

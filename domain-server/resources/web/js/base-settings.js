@@ -106,8 +106,12 @@ function reloadSettings(callback) {
   $.getJSON(Settings.endpoint, function(data){
     _.extend(data, viewHelpers);
 
-    for (var spliceIndex in Settings.extraGroups) {
-      data.descriptions.splice(spliceIndex, 0, Settings.extraGroups[spliceIndex]);
+    for (var spliceIndex in Settings.extraGroupsAtIndex) {
+      data.descriptions.splice(spliceIndex, 0, Settings.extraGroupsAtIndex[spliceIndex]);
+    }
+
+    for (var endGroupIndex in Settings.extraGroupsAtEnd) {
+      data.descriptions.push(Settings.extraGroupsAtEnd[endGroupIndex]);
     }
 
     $('#panels').html(Settings.panelsTemplate(data));

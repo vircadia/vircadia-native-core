@@ -14,17 +14,9 @@ $(document).ready(function(){
       return b;
   })(window.location.search.substr(1).split('&'));
 
-  // define extra groups to add to description, with their splice index
-  Settings.extraGroups = {
-    1: {
-      html_id: 'places',
-      label: 'Places'
-    },
-    "-1": {
-      html_id: 'settings_backup',
-      label: 'Settings Backup'
-    }
-  }
+  Settings.extraGroupsAtEnd = Settings.extraDomainGroupsAtEnd;
+  Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
+
 
   Settings.afterReloadActions = function() {
     // append the domain selection modal
@@ -643,7 +635,6 @@ $(document).ready(function(){
     autoNetworkingEl.after(form);
   }
 
-
   function setupPlacesTable() {
     // create a dummy table using our view helper
     var placesTableSetting = {
@@ -1097,8 +1088,5 @@ $(document).ready(function(){
     html += "</div>";
 
     $('#settings_backup .panel-body').html(html);
-
-    // add an upload button to the footer to kick off the upload form
-
   }
 });
