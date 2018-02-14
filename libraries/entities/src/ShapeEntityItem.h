@@ -115,7 +115,7 @@ protected:
     //! ellipsoids.
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
 
-    bool _canCastShadow { ENTITY_ITEM_DEFAULT_DONT_CAST_SHADOW };
+    bool _canCastShadow { ENTITY_ITEM_DEFAULT_CAST_SHADOW };
 };
 
 #endif // hifi_ShapeEntityItem_h

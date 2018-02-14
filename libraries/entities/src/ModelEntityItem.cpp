@@ -116,7 +116,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
     bool animationPropertiesChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_DONT_CAST_SHADOW, bool, setCanCastShadow);
+    READ_ENTITY_PROPERTY(PROP_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
@@ -153,7 +153,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
-    requestedProperties += PROP_DONT_CAST_SHADOW;
+    requestedProperties += PROP_CAST_SHADOW;
     requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_TEXTURES;
@@ -178,7 +178,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_DONT_CAST_SHADOW, getCanCastShadow());
+    APPEND_ENTITY_PROPERTY(PROP_CAST_SHADOW, getCanCastShadow());
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
