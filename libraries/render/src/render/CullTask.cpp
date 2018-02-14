@@ -213,7 +213,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
 
     const auto srcFilter = inputs.get1();
     if (!srcFilter.selectsNothing()) {
-        auto filter = render::ItemFilter::Builder(srcFilter).withoutMetaCulled().build();
+        auto filter = render::ItemFilter::Builder(srcFilter).withoutSubMetaCulled().build();
 
             // Now get the bound, and
         // filter individually against the _filter
@@ -228,7 +228,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                     if (filter.test(item.getKey())) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
-                        if (item.getKey().isCullGroup()) {
+                        if (item.getKey().isMetaCullGroup()) {
                             item.fetchMetaSubItemBounds(outItems, (*scene));
                         }
                     }
@@ -243,7 +243,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                     if (filter.test(item.getKey())) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
-                        if (item.getKey().isCullGroup()) {
+                        if (item.getKey().isMetaCullGroup()) {
                             item.fetchMetaSubItemBounds(outItems, (*scene));
                         }
                     }
@@ -258,7 +258,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                     if (filter.test(item.getKey())) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
-                        if (item.getKey().isCullGroup()) {
+                        if (item.getKey().isMetaCullGroup()) {
                             item.fetchMetaSubItemBounds(outItems, (*scene));
                         }
                     }
@@ -273,7 +273,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                     if (filter.test(item.getKey())) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
-                        if (item.getKey().isCullGroup()) {
+                        if (item.getKey().isMetaCullGroup()) {
                             item.fetchMetaSubItemBounds(outItems, (*scene));
                         }
                     }
@@ -290,7 +290,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                     if (filter.test(item.getKey())) {
                         ItemBound itemBound(id, item.getBound());
                         outItems.emplace_back(itemBound);
-                        if (item.getKey().isCullGroup()) {
+                        if (item.getKey().isMetaCullGroup()) {
                             item.fetchMetaSubItemBounds(outItems, (*scene));
                         }
                     }
@@ -306,7 +306,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                         ItemBound itemBound(id, item.getBound());
                         if (test.solidAngleTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
-                            if (item.getKey().isCullGroup()) {
+                            if (item.getKey().isMetaCullGroup()) {
                                 item.fetchMetaSubItemBounds(outItems, (*scene));
                             }
                         }
@@ -323,7 +323,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                         ItemBound itemBound(id, item.getBound());
                         if (test.frustumTest(itemBound.bound)) {
                             outItems.emplace_back(itemBound);
-                            if (item.getKey().isCullGroup()) {
+                            if (item.getKey().isMetaCullGroup()) {
                                 item.fetchMetaSubItemBounds(outItems, (*scene));
                             }
                         }
@@ -341,7 +341,7 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
                         if (test.frustumTest(itemBound.bound)) {
                             if (test.solidAngleTest(itemBound.bound)) {
                                 outItems.emplace_back(itemBound);
-                                if (item.getKey().isCullGroup()) {
+                                if (item.getKey().isMetaCullGroup()) {
                                     item.fetchMetaSubItemBounds(outItems, (*scene));
                                 }
                             }

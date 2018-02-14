@@ -86,7 +86,7 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits,
     }
 
     if (isGroupCulled) {
-        builder.withMetaCulled();
+        builder.withSubMetaCulled();
     }
 
     if (_drawMaterial) {
@@ -422,7 +422,7 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
     }
 
     if (isGroupCulled) {
-        builder.withMetaCulled();
+        builder.withSubMetaCulled();
     }
 
     if (_isBlendShaped || _isSkinned) {
