@@ -28,7 +28,7 @@ Rectangle {
     id: root;
     objectName: "checkout"
     property string activeView: "initialize";
-    property bool purchasesReceived: false;
+    property bool ownershipStatusReceived: false;
     property bool balanceReceived: false;
     property string itemName;
     property string itemId;
@@ -106,14 +106,15 @@ Rectangle {
             }
         }
 
-        onInventoryResult: {
+        onAlreadyOwnedResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get purchases", result.data.message);
+                console.log("Failed to get Already Owned status", result.data.message);
             } else {
-                root.purchasesReceived = true;
-                if (purchasesContains(result.data.assets, itemId)) {
-                    root.alreadyOwned = true;
+                root.ownershipStatusReceived = true;
+                if (result.data.marketplace_item_id === root.itemId) {
+                    root.alreadyOwned = result.data.already_owned;
                 } else {
+                    console.log("WARNING - Received 'Already Owned' status about different Marketplace ID!");
                     root.alreadyOwned = false;
                 }
                 root.setBuyText();
@@ -122,7 +123,8 @@ Rectangle {
     }
 
     onItemIdChanged: {
-        Commerce.inventory();
+        root.ownershipStatusReceived = false;
+        Commerce.alreadyOwned(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
     }
 
@@ -136,6 +138,7 @@ Rectangle {
         } else if (root.itemHref.endsWith('.js')) {
             root.itemType = "app";
         } else {
+            console.log("WARNING - Item type is UNKNOWN!");
             root.itemType = "entity";
         }
     }
@@ -226,7 +229,7 @@ Rectangle {
         color: hifi.colors.white;
 
         Component.onCompleted: {
-            purchasesReceived = false;
+            ownershipStatusReceived = false;
             balanceReceived = false;
             Commerce.getWalletStatus();
         }
@@ -487,7 +490,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                enabled: (root.balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || (!root.isCertified);
+                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived) || (!root.isCertified);
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: checkoutActionButtonsContainer.top;
@@ -495,7 +498,7 @@ Rectangle {
                 height: 40;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: ((root.isCertified) ? ((purchasesReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
+                text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
                 onClicked: {
                     if (root.isCertified) {
                         buyButton.enabled = false;
@@ -884,7 +887,7 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (root.isCertified ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
+                buyButton.text = (root.isCertified ? ((ownershipStatusReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
                 buyButton.color = hifi.buttons.blue;
                 root.shouldBuyWithControlledFailure = false;
             }
@@ -924,18 +927,9 @@ Rectangle {
     }
     signal sendToScript(var message);
 
-    function purchasesContains(purchasesJson, id) {
-        for (var idx = 0; idx < purchasesJson.length; idx++) {
-            if(purchasesJson[idx].id === id) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     function setBuyText() {
         if (root.isCertified) {
-            if (root.purchasesReceived && root.balanceReceived) {
+            if (root.ownershipStatusReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
                         buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.<br>" +
@@ -978,7 +972,7 @@ Rectangle {
             root.activeView = "checkoutSuccess";
         }
         root.balanceReceived = false;
-        root.purchasesReceived = false;
+        root.ownershipStatusReceived = false;
         Commerce.inventory();
         Commerce.balance();
     }

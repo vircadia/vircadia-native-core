@@ -42,6 +42,7 @@ signals:
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
+    void alreadyOwnedResult(QJsonObject result);
 
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
@@ -70,9 +71,11 @@ protected:
     Q_INVOKABLE void account();
 
     Q_INVOKABLE void certificateInfo(const QString& certificateId);
+    Q_INVOKABLE void alreadyOwned(const QString& marketplaceId);
 
     Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
+
 
     Q_INVOKABLE void replaceContentSet(const QString& id, const QString& url);
 };
