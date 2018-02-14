@@ -212,54 +212,58 @@ bool DomainContentBackupManager::getMostRecentBackup(const QString& format,
     return bestBackupFound;
 }
 
-bool DomainContentBackupManager::deleteBackup(const QString& backupName) {
+void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, const QString& backupName) {
     if (QThread::currentThread() != thread()) {
-        bool result{ false };
-        BLOCKING_INVOKE_METHOD(this, "deleteBackup",
-                               Q_RETURN_ARG(bool, result),
-                               Q_ARG(const QString&, backupName));
-        return result;
+        QMetaObject::invokeMethod(this, "deleteBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(const QString&, backupName));
+        return;
     }
 
+    bool success { false };
     QDir backupDir { _backupDirectory };
     QFile backupFile { backupDir.filePath(backupName) };
     if (backupFile.remove()) {
-        return true;
+        success = true;
     }
-    return false;
+    promise->resolve({
+        { "success", success }
+    });
 }
 
-bool DomainContentBackupManager::recoverFromBackup(const QString& backupName) {
+void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise, const QString& backupName) {
     if (QThread::currentThread() != thread()) {
-        bool result{ false };
-        BLOCKING_INVOKE_METHOD(this, "recoverFromBackup",
-                               Q_RETURN_ARG(bool, result),
-                               Q_ARG(const QString&, backupName));
-        return result;
+        QMetaObject::invokeMethod(this, "recoverFromBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(const QString&, backupName));
+        return;
     }
 
     qDebug() << "Recoving from" << backupName;
 
+    bool success { false };
     QDir backupDir { _backupDirectory };
     QFile backupFile { backupDir.filePath(backupName) };
     if (backupFile.open(QIODevice::ReadOnly)) {
         QuaZip zip { &backupFile };
         if (!zip.open(QuaZip::Mode::mdUnzip)) {
             qWarning() << "Failed to unzip file: " << backupName;
-            backupFile.close();
+            success = false;
+        } else {
+            for (auto& handler : _backupHandlers) {
+                handler.recoverBackup(zip);
+            }
+            
+            qDebug() << "Successfully recovered from " << backupName;
+            success = true;
         }
-
-        for (auto& handler : _backupHandlers) {
-            handler.recoverBackup(zip);
-        }
-        
         backupFile.close();
-        qDebug() << "Successfully recovered from " << backupName;
-        return true;
     } else {
+        success = false;
         qWarning() << "Invalid id: " << backupName;
-        return false;
     }
+
+    promise->resolve({
+        { "success", success }
+    });
 }
 
 std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {

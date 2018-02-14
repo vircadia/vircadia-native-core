@@ -2124,11 +2124,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
-            _contentManager->recoverFromBackup(id);
-            QJsonObject rootJSON;
-            rootJSON["success"] = true;
-            QJsonDocument docJSON(rootJSON);
-            connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            auto deferred = makePromise("recoverFromBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                rootJSON["success"] = result["success"].toBool();
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->recoverFromBackup(deferred, id);
             return true;
         } else if (url.path() == URI_API_BACKUPS) {
             QJsonObject rootJSON;
@@ -2368,11 +2371,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
-            auto success = _contentManager->deleteBackup(id);
-            QJsonObject rootJSON;
-            rootJSON["success"] = success;
-            QJsonDocument docJSON(rootJSON);
-            connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            auto deferred = makePromise("deleteBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                rootJSON["success"] = result["success"].toBool();
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->deleteBackup(deferred, id);
+
             return true;
 
         } else if (nodeDeleteRegex.indexIn(url.path()) != -1) {
@@ -3310,8 +3317,6 @@ void DomainServer::maybeHandleReplacementEntityFile() {
 }
 
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
-    // enumerate the nodes and find any octree type servers with active sockets
-
     //Assume we have compressed data
     auto compressedOctree = octreeFile;
     QByteArray jsonOctree;

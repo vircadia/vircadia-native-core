@@ -21,6 +21,8 @@
 
 #include "BackupHandler.h"
 
+#include <shared/MiniPromises.h>
+
 struct BackupItemInfo {
     QString id;
     QString name;
@@ -59,8 +61,8 @@ public:
     void createManualBackup(const QString& name);
 
 public slots:
-    bool recoverFromBackup(const QString& backupName);
-    bool deleteBackup(const QString& backupName);
+    void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
+    void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 
 signals:
     void loadCompleted();
