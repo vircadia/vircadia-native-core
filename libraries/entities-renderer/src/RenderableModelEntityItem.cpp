@@ -1352,7 +1352,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene, viewTaskBits);
+        model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
 
