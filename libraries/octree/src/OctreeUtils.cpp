@@ -93,12 +93,7 @@ bool OctreeUtils::readOctreeFile(QString path, QJsonDocument* doc) {
     QByteArray data = file.readAll();
     QByteArray jsonData;
 
-    if (path.endsWith(".json.gz")) {
-        if (!gunzip(data, jsonData)) {
-            qCritical() << "json File not in gzip format: " << path;
-            return false;
-        }
-    } else {
+    if (!gunzip(data, jsonData)) {
         jsonData = data;
     }
 
@@ -173,4 +168,5 @@ QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
 void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     id = QUuid::createUuid();
     version = OctreeUtils::INITIAL_VERSION;
+    qDebug() << "Reset octree data to: " << id << version;
 }

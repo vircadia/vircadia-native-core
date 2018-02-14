@@ -3234,15 +3234,23 @@ void DomainServer::maybeHandleReplacementEntityFile() {
     } else {
         qCDebug(domain_server) << "Replacing existing entity date with replacement file";
 
-        data.resetIdAndVersion();
-        auto gzippedData = data.toGzippedByteArray();
-
-        QFile currentFile(getEntitiesFilePath());
-        if (!currentFile.open(QIODevice::WriteOnly)) {
+        QFile replacementFile(replacementFilePath);
+        if (!replacementFile.remove()) {
+            // If we can't remove the replacement file, we are at risk of getting into a state where
+            // we continually replace the primary entity file with the replacement entity file.
             qCWarning(domain_server)
-                << "Failed to update entities data file with replacement file, unable to open entities file for writing";
+                << "Unable to remove replacement file, bailing";
         } else {
-            currentFile.write(gzippedData);
+            data.resetIdAndVersion();
+            auto gzippedData = data.toGzippedByteArray();
+
+            QFile currentFile(getEntitiesFilePath());
+            if (!currentFile.open(QIODevice::WriteOnly)) {
+                qCWarning(domain_server)
+                    << "Failed to update entities data file with replacement file, unable to open entities file for writing";
+            } else {
+                currentFile.write(gzippedData);
+            }
         }
     }
 }
