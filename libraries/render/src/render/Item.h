@@ -125,6 +125,7 @@ public:
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
         Builder& withCullGroup() { _flags.set(CULL_GROUP); return (*this); }
+        Builder& withMetaCulled() { _flags.set(__META_CULLED); return (*this); }
 
         Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
         // Set ALL the tags in one call using the Tag bits
@@ -135,9 +136,6 @@ public:
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent(); }
         static Builder light() { return Builder().withTypeLight(); }
         static Builder background() { return Builder().withViewSpace().withLayered(); }
-
-        // Not meant to be public, part of the inner item / key  / filter system
-        Builder& __withMetaCulled() { _flags.set(__META_CULLED); return (*this); }
     };
     ItemKey(const Builder& builder) : ItemKey(builder._flags) {}
 
@@ -205,6 +203,7 @@ public:
         ItemKey::Flags _mask{ 0 };
     public:
         Builder() {}
+        Builder(const ItemFilter& srcFilter) : _value(srcFilter._value), _mask(srcFilter._mask) {}
 
         ItemFilter build() const { return ItemFilter(_value, _mask); }
 

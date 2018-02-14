@@ -118,7 +118,12 @@ uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) c
     auto numSubs = fetchMetaSubItems(subItems);
 
     for (auto id : subItems) {
-        subItemBounds.emplace_back(id, scene.getItem(id).getBound());
+        auto& item = scene.getItem(id);
+        if (item.exist()) {
+            subItemBounds.emplace_back(id, item.getBound());
+        } else {
+            numSubs--;
+        }
     }
     return numSubs;
 }

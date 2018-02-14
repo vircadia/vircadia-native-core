@@ -211,13 +211,14 @@ void CullSpatialSelection::run(const RenderContextPointer& renderContext,
     outItems.clear();
     outItems.reserve(inSelection.numItems());
 
-    const auto filter = inputs.get1();
-    if (!filter.selectsNothing()) {
-        // Now get the bound, and
+    const auto srcFilter = inputs.get1();
+    if (!srcFilter.selectsNothing()) {
+        auto filter = render::ItemFilter::Builder(srcFilter).withoutMetaCulled().build();
+
+            // Now get the bound, and
         // filter individually against the _filter
         // visibility cull if partially selected ( octree cell contianing it was partial)
         // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
-
         if (_skipCulling) {
             // inside & fit items: filter only, culling is disabled
             {
