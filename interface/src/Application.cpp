@@ -2946,6 +2946,7 @@ bool Application::importFromZIP(const QString& filePath) {
 bool Application::visitServerlessDomain(const QString& urlString) {
     qDebug() << "QQQQ visit serverless domain" << urlString;
     setServerlessMode(true);
+    return true;
 }
 
 bool Application::importImage(const QString& urlString) {
