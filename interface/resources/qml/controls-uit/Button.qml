@@ -22,7 +22,7 @@ Original.Button {
     property int colorScheme: hifi.colorSchemes.light
     property string buttonGlyph: "";
 
-    width: 120
+    width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
 
     HifiConstants { id: hifi }

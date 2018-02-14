@@ -21,18 +21,16 @@ ModalWindow {
     id: root
     HifiConstants { id: hifi }
 
-    property int scale: 3
-
     objectName: "LoginDialog"
-    implicitWidth: 520 *scale
-    implicitHeight: 150 *scale
+    implicitWidth: 1560
+    implicitHeight: 450
     y:0
     destroyOnCloseButton: true
     destroyOnHidden: true
     visible: true
 
     property string iconText: ""
-    property int iconSize: 35 *scale
+    property int iconSize: 105
 
     property string title: ""
     property int titleWidth: 0
@@ -54,8 +52,8 @@ ModalWindow {
 
     Component.onCompleted: {
         this.anchors.centerIn = undefined;
-        this.y=50 *scale;
-        this.x=150 *scale;
+        this.y=150;
+        this.x=450;
     }
 
     Keys.onPressed: {

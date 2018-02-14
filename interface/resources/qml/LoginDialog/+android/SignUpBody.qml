@@ -18,6 +18,7 @@ import "../../styles-uit"
 
 Item {
     id: signupBody
+
     clip: true
     height: root.pane.height
     width: root.pane.width
@@ -36,10 +37,10 @@ Item {
 
     QtObject {
         id: d
-        readonly property int minWidth: 480
-        readonly property int maxWidth: 1280
-        readonly property int minHeight: 100
-        readonly property int maxHeight: 200
+        readonly property int minWidth: 960
+        readonly property int maxWidth: 2560
+        readonly property int minHeight: 240
+        readonly property int maxHeight: 1480
 
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
@@ -113,7 +114,7 @@ Item {
                 anchors {
                     verticalCenter: parent.verticalCenter
                 }
-                width: 350
+                width: 780
 
                 placeholderText: "Email"
             }
@@ -127,7 +128,7 @@ Item {
                 anchors {
                     verticalCenter: parent.verticalCenter
                 }
-                width: 350
+                width: 780
 
                 placeholderText: "Username"
             }
@@ -154,7 +155,7 @@ Item {
                 anchors {
                     verticalCenter: parent.verticalCenter
                 }
-                width: 350
+                width: 780
 
                 placeholderText: "Password"
                 echoMode: TextInput.Password
@@ -193,7 +194,7 @@ Item {
         anchors {
             left: parent.left
             top: form.bottom
-            topMargin: hifi.dimensions.contentSpacing.y / 2
+            topMargin: hifi.dimensions.contentSpacing.y// / 2
         }
 
         spacing: hifi.dimensions.contentSpacing.x
@@ -205,7 +206,7 @@ Item {
             text: qsTr("Existing User")
 
             onClicked: {
-                bodyLoader.setSource("LinkAccountBody-android.qml")
+                bodyLoader.setSource("LinkAccountBody.qml")
                 bodyLoader.item.width = root.pane.width
                 bodyLoader.item.height = root.pane.height
             }
@@ -225,7 +226,6 @@ Item {
         Button {
             id: linkAccountButton
             anchors.verticalCenter: parent.verticalCenter
-            width: 200
 
             text: qsTr("Sign Up")
             color: hifi.buttons.blue
