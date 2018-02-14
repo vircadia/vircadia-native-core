@@ -282,13 +282,13 @@ public:
 
     static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
     static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
-    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID);
-    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID);
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName);
 
     static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
     static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const QString&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
-    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID);
-    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID);
+    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName);
+    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

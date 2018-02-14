@@ -318,8 +318,8 @@ public:
 
     void scaleToFit();
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
 
 public slots:
     void loadURLFinished(bool success);
@@ -473,7 +473,7 @@ private:
 
     void calculateTextureInfo();
 
-    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialID);
+    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialName);
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

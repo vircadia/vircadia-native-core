@@ -404,12 +404,12 @@ void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) {
     QObject::disconnect(this, &EntityRenderer::requestRenderUpdate, this, nullptr);
 }
 
-void EntityRenderer::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+void EntityRenderer::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialID].push(material);
+    _materials[parentMaterialName].push(material);
 }
 
-void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
+void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialID].remove(material);
+    _materials[parentMaterialName].remove(material);
 }

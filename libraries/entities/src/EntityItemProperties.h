@@ -44,7 +44,7 @@
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
 
-#include "MaterialMode.h"
+#include "MaterialMappingMode.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -223,12 +223,12 @@ public:
     DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
 
     DEFINE_PROPERTY_REF(PROP_MATERIAL_URL, MaterialURL, materialURL, QString, "");
-    DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode, UV);
+    DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode, UV);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, quint16, 0);
-    DEFINE_PROPERTY_REF(PROP_PARENT_MATERIAL_ID, ParentMaterialID, parentMaterialID, QString, "0");
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_POS, MaterialPos, materialPos, glmVec2, glm::vec2(0, 0));
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_SCALE, MaterialScale, materialScale, glmVec2, glm::vec2(1, 1));
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_ROT, MaterialRot, materialRot, float, 0);
+    DEFINE_PROPERTY_REF(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString, "0");
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);

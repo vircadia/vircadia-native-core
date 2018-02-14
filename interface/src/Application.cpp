@@ -1593,37 +1593,37 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID) {
+    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
-            avatar->addMaterial(material, parentMaterialID);
+            avatar->addMaterial(material, parentMaterialName);
             return true;
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialID) {
+    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
-            avatar->removeMaterial(material, parentMaterialID);
+            avatar->removeMaterial(material, parentMaterialName);
             return true;
         }
         return false;
     });
 
-    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID) {
+    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
-            overlay->addMaterial(material, parentMaterialID);
+            overlay->addMaterial(material, parentMaterialName);
             return true;
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialID) {
+    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
-            overlay->removeMaterial(material, parentMaterialID);
+            overlay->removeMaterial(material, parentMaterialName);
             return true;
         }
         return false;

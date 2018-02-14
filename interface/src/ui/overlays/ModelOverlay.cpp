@@ -83,6 +83,7 @@ void ModelOverlay::update(float deltatime) {
             auto modelOverlay = static_cast<ModelOverlay*>(&data);
             modelOverlay->setSubRenderItemIDs(newRenderItemIDs);
         });
+        processMaterials();
     }
     if (_visibleDirty) {
         _visibleDirty = false;
@@ -108,6 +109,7 @@ void ModelOverlay::update(float deltatime) {
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::addToScene(overlay, scene, transaction);
     _model->addToScene(scene, transaction);
+    processMaterials();
     return true;
 }
 
@@ -633,17 +635,17 @@ uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
     return 0;
 }
 
-void ModelOverlay::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
-    Overlay::addMaterial(material, parentMaterialID);
+void ModelOverlay::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+    Overlay::addMaterial(material, parentMaterialName);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->addMaterial(material, parentMaterialID);
+        _model->addMaterial(material, parentMaterialName);
     }
 }
 
-void ModelOverlay::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) {
-    Overlay::removeMaterial(material, parentMaterialID);
+void ModelOverlay::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+    Overlay::removeMaterial(material, parentMaterialName);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->removeMaterial(material, parentMaterialID);
+        _model->removeMaterial(material, parentMaterialName);
     }
 }
 

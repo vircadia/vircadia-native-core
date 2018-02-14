@@ -400,10 +400,10 @@ var toolBar = (function () {
     function handleNewMaterialDialogResult(result) {
         if (result) {
             var materialURL = result.textInput;
-            //var materialMode;
+            //var materialMappingMode;
             //switch (result.comboBox) {
             //    case MATERIAL_MODE_PROJECTED:
-            //        materialMode = "projected";
+            //        materialMappingMode = "projected";
             //        break;
             //    default:
             //        shapeType = "uv";
@@ -414,7 +414,7 @@ var toolBar = (function () {
                 createNewEntity({
                     type: "Material",
                     materialURL: materialURL,
-                    //materialMode: materialMode,
+                    //materialMappingMode: materialMappingMode,
                     priority: DEFAULT_LAYERED_MATERIAL_PRIORITY
                 });
             }

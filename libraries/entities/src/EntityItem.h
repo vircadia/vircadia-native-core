@@ -482,14 +482,14 @@ public:
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
     std::unordered_map<QString, graphics::MultiMaterial> getMaterials();
 
 signals:
     void requestRenderUpdate();
-    void addMaterialToRenderItem(graphics::MaterialPointer material, const QString& parentMaterialID);
-    void removeMaterialFromRenderItem(graphics::MaterialPointer material, const QString& parentMaterialID);
+    void addMaterialToRenderItem(graphics::MaterialPointer material, const QString& parentMaterialName);
+    void removeMaterialFromRenderItem(graphics::MaterialPointer material, const QString& parentMaterialName);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;

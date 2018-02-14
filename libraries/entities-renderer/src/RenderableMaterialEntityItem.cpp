@@ -18,7 +18,7 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
     if (entity->getParentID() != _parentID || entity->getClientOnly() != _clientOnly || entity->getOwningAvatarID() != _owningAvatarID) {
         return true;
     }
-    if (entity->getMaterialPos() != _materialPos || entity->getMaterialScale() != _materialScale || entity->getMaterialRot() != _materialRot) {
+    if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
         return true;
     }
     return false;
@@ -30,9 +30,9 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
         _parentID = entity->getParentID();
         _clientOnly = entity->getClientOnly();
         _owningAvatarID = entity->getOwningAvatarID();
-        _materialPos = entity->getMaterialPos();
-        _materialScale = entity->getMaterialScale();
-        _materialRot = entity->getMaterialRot();
+        _materialMappingPos = entity->getMaterialMappingPos();
+        _materialMappingScale = entity->getMaterialMappingScale();
+        _materialMappingRot = entity->getMaterialMappingRot();
         _renderTransform = getModelTransform();
         const float MATERIAL_ENTITY_SCALE = 0.5f;
         _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
@@ -238,9 +238,9 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         parentID = _clientOnly ? _owningAvatarID : _parentID;
         renderTransform = _renderTransform;
         drawMaterial = _drawMaterial;
-        textureTransform.setTranslation(glm::vec3(_materialPos, 0));
-        textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialRot)));
-        textureTransform.setScale(glm::vec3(_materialScale, 1));
+        textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
+        textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
+        textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
     });
     if (!parentID.isNull() || !drawMaterial) {
         return;

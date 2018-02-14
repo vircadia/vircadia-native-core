@@ -115,15 +115,15 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_STATIC_MESH);
 }
 
-QHash<QString, MaterialMode> stringToMaterialModeLookup;
+QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
 
-void addMaterialMode(MaterialMode mode) {
-    stringToMaterialModeLookup[MaterialModeHelpers::getNameForMaterialMode(mode)] = mode;
+void addMaterialMappingMode(MaterialMappingMode mode) {
+    stringToMaterialMappingModeLookup[MaterialMappingModeHelpers::getNameForMaterialMappingMode(mode)] = mode;
 }
 
-void buildStringToMaterialModeLookup() {
-    addMaterialMode(UV);
-    addMaterialMode(PROJECTED);
+void buildStringToMaterialMappingModeLookup() {
+    addMaterialMappingMode(UV);
+    addMaterialMappingMode(PROJECTED);
 }
 
 QString getCollisionGroupAsString(uint8_t group) {
@@ -270,18 +270,18 @@ void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
     }
 }
 
-QString EntityItemProperties::getMaterialModeAsString() const {
-    return MaterialModeHelpers::getNameForMaterialMode(_materialMode);
+QString EntityItemProperties::getMaterialMappingModeAsString() const {
+    return MaterialMappingModeHelpers::getNameForMaterialMappingMode(_materialMappingMode);
 }
 
-void EntityItemProperties::setMaterialModeFromString(const QString& materialMode) {
-    if (stringToMaterialModeLookup.empty()) {
-        buildStringToMaterialModeLookup();
+void EntityItemProperties::setMaterialMappingModeFromString(const QString& materialMappingMode) {
+    if (stringToMaterialMappingModeLookup.empty()) {
+        buildStringToMaterialMappingModeLookup();
     }
-    auto materialModeItr = stringToMaterialModeLookup.find(materialMode.toLower());
-    if (materialModeItr != stringToMaterialModeLookup.end()) {
-        _materialMode = materialModeItr.value();
-        _materialModeChanged = true;
+    auto materialMappingModeItr = stringToMaterialMappingModeLookup.find(materialMappingMode.toLower());
+    if (materialMappingModeItr != stringToMaterialMappingModeLookup.end()) {
+        _materialMappingMode = materialMappingModeItr.value();
+        _materialMappingModeChanged = true;
     }
 }
 
@@ -356,12 +356,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_TYPE, materialMode);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_MODE, materialMappingMode);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
-    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_ID, parentMaterialID);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_POS, materialPos);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_SCALE, materialScale);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_ROT, materialRot);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -661,12 +661,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Materials
     if (_type == EntityTypes::Material) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_URL, materialURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_MATERIAL_TYPE, materialMode, getMaterialModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_MATERIAL_MAPPING_MODE, materialMappingMode, getMaterialMappingModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_PRIORITY, priority);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_MATERIAL_ID, parentMaterialID);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_POS, materialPos);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_SCALE, materialScale);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_ROT, materialRot);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     }
 
     if (!skipDefaults && !strictSemantics) {
@@ -803,12 +803,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMode, MaterialMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialID, QString, setParentMaterialID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialPos, glmVec2, setMaterialPos);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialScale, glmVec2, setMaterialScale);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRot, float, setMaterialRot);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialName, QString, setParentMaterialName);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, glmVec2, setMaterialMappingPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1164,12 +1164,12 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
 
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_TYPE, MaterialMode, materialMode, MaterialMode);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_ID, ParentMaterialID, parentMaterialID, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_POS, MaterialPos, materialPos, glmVec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_SCALE, MaterialScale, materialScale, glmVec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_ROT, MaterialRot, materialRot, float);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -1557,12 +1557,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             // Materials
             if (properties.getType() == EntityTypes::Material) {
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_URL, properties.getMaterialURL());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_TYPE, (uint32_t)properties.getMaterialMode());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_MODE, (uint32_t)properties.getMaterialMappingMode());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, properties.getPriority());
-                APPEND_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_ID, properties.getParentMaterialID());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_POS, properties.getMaterialPos());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_SCALE, properties.getMaterialScale());
-                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_ROT, properties.getMaterialRot());
+                APPEND_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_NAME, properties.getParentMaterialName());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, properties.getMaterialMappingPos());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -1924,12 +1924,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // Materials
     if (properties.getType() == EntityTypes::Material) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_URL, QString, setMaterialURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_TYPE, MaterialMode, setMaterialMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_ID, QString, setParentMaterialID);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_POS, glmVec2, setMaterialPos);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_SCALE, glmVec2, setMaterialScale);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_ROT, float, setMaterialRot);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, glmVec2, setMaterialMappingPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, glmVec2, setMaterialMappingScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -2106,12 +2106,12 @@ void EntityItemProperties::markAllChanged() {
     //_alphaFinishChanged = true;
 
     _materialURLChanged = true;
-    _materialModeChanged = true;
+    _materialMappingModeChanged = true;
     _priorityChanged = true;
-    _parentMaterialIDChanged = true;
-    _materialPosChanged = true;
-    _materialScaleChanged = true;
-    _materialRotChanged = true;
+    _parentMaterialNameChanged = true;
+    _materialMappingPosChanged = true;
+    _materialMappingScaleChanged = true;
+    _materialMappingRotChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -2439,23 +2439,23 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (materialURLChanged()) {
         out += "materialURL";
     }
-    if (materialModeChanged()) {
-        out += "materialMode";
+    if (materialMappingModeChanged()) {
+        out += "materialMappingMode";
     }
     if (priorityChanged()) {
         out += "priority";
     }
-    if (parentMaterialIDChanged()) {
-        out += "parentMaterialID";
+    if (parentMaterialNameChanged()) {
+        out += "parentMaterialName";
     }
-    if (materialPosChanged()) {
-        out += "materialPos";
+    if (materialMappingPosChanged()) {
+        out += "materialMappingPos";
     }
-    if (materialScaleChanged()) {
-        out += "materialScale";
+    if (materialMappingScaleChanged()) {
+        out += "materialMappingScale";
     }
-    if (materialRotChanged()) {
-        out += "materialRot";
+    if (materialMappingRotChanged()) {
+        out += "materialMappingRot";
     }
 
     // Certifiable Properties

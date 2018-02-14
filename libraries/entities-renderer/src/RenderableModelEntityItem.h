@@ -144,8 +144,8 @@ public:
     ModelEntityRenderer(const EntityItemPointer& entity);
 
 public slots:
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;

@@ -59,8 +59,8 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
 
 protected:
     Transform evalRenderTransform() override;

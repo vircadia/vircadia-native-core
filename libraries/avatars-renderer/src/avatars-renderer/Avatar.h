@@ -272,8 +272,8 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID) override;
+    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
 
 public slots:
 

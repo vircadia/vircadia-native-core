@@ -91,8 +91,8 @@ public:
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
 
-    virtual void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
-    virtual void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialID);
+    virtual void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
+    virtual void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
 
 protected:
     float updatePulse();

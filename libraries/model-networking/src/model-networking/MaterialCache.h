@@ -22,9 +22,22 @@ public:
 
     virtual void downloadFinished(const QByteArray& data) override;
 
-    QString name { "" };
-    std::shared_ptr<NetworkMaterial> networkMaterial { nullptr };
+    typedef struct ParsedMaterials {
+        uint version { 1 };
+        std::vector<QString> names;
+        QHash<QString, std::shared_ptr<NetworkMaterial>> networkMaterials;
 
+        void reset() {
+            version = 1;
+            names.clear();
+            networkMaterials.clear();
+        }
+
+    } ParsedMaterials;
+
+    ParsedMaterials parsedMaterials;
+
+    static ParsedMaterials parseJSONMaterials(const QJsonDocument& materialJSON);
     static std::pair<QString, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON);
 
 private:

@@ -92,7 +92,7 @@ var toolBar = (function() {
 
         newMaterialButton = toolBar.addButton({
             objectName: "newMaterialButton",
-            imageURL: toolIconUrl + "model-01.svg",
+            imageURL: toolIconUrl + "material-01.svg",
             alpha: 0.9,
             visible: false
         });

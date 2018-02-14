@@ -6,20 +6,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_MaterialMode_h
-#define hifi_MaterialMode_h
+#ifndef hifi_MaterialMappingMode_h
+#define hifi_MaterialMappingMode_h
 
 #include "QString"
 
-enum MaterialMode {
+enum MaterialMappingMode {
     UV = 0,
     PROJECTED
 };
 
-class MaterialModeHelpers {
+class MaterialMappingModeHelpers {
 public:
-    static QString getNameForMaterialMode(MaterialMode mode);
+    static QString getNameForMaterialMappingMode(MaterialMappingMode mode);
 };
 
-#endif // hifi_MaterialMode_h
+#endif // hifi_MaterialMappingMode_h
 

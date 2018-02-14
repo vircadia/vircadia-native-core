@@ -15,13 +15,10 @@ NetworkMaterialResource::NetworkMaterialResource(const QUrl& url) :
     Resource(url) {}
 
 void NetworkMaterialResource::downloadFinished(const QByteArray& data) {
-    if (_url.toString().endsWith(".json")) {
-        QJsonDocument materialJSON = QJsonDocument::fromJson(data);
-        if (!materialJSON.isNull() && materialJSON.isObject()) {
-            auto parsedMaterial = parseJSONMaterial(materialJSON.object());
-            name = parsedMaterial.first;
-            networkMaterial = parsedMaterial.second;
-        }
+    parsedMaterials.reset();
+
+    if (_url.toString().contains(".json")) {
+        parsedMaterials = parseJSONMaterials(QJsonDocument::fromJson(data));
     }
 
     // TODO: parse other material types
@@ -46,6 +43,39 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
     return false;
 }
 
+NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON) {
+    ParsedMaterials toReturn;
+    if (!materialJSON.isNull() && materialJSON.isObject()) {
+        QJsonObject materialJSONObject = materialJSON.object();
+        for (auto& key : materialJSONObject.keys()) {
+            if (key == "materialVersion") {
+                auto value = materialJSONObject.value(key);
+                if (value.isDouble()) {
+                    toReturn.version = (uint)value.toInt();
+                }
+            } else if (key == "materials") {
+                auto materialsValue = materialJSONObject.value(key);
+                if (materialsValue.isArray()) {
+                    QJsonArray materials = materialsValue.toArray();
+                    for (auto material : materials) {
+                        if (!material.isNull() && material.isObject()) {
+                            auto parsedMaterial = parseJSONMaterial(material.toObject());
+                            toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
+                            toReturn.names.push_back(parsedMaterial.first);
+                        }
+                    }
+                } else if (materialsValue.isObject()) {
+                    auto parsedMaterial = parseJSONMaterial(materialsValue.toObject());
+                    toReturn.networkMaterials[parsedMaterial.first] = parsedMaterial.second;
+                    toReturn.names.push_back(parsedMaterial.first);
+                }
+            }
+        }
+    }
+
+    return toReturn;;
+}
+
 std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
     QString name = "";
     std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
@@ -54,6 +84,11 @@ std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::pa
             auto nameJSON = materialJSON.value(key);
             if (nameJSON.isString()) {
                 name = nameJSON.toString();
+            }
+        } else if (key == "model") {
+            auto modelJSON = materialJSON.value(key);
+            if (modelJSON.isString()) {
+                material->setModel(modelJSON.toString());
             }
         } else if (key == "emissive") {
             glm::vec3 color;
@@ -67,6 +102,11 @@ std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::pa
             if (value.isDouble()) {
                 material->setOpacity(value.toDouble());
             }
+        } else if (key == "unlit") {
+            auto value = materialJSON.value(key);
+            if (value.isBool()) {
+                material->setUnlit(value.toBool());
+            }
         } else if (key == "albedo") {
             glm::vec3 color;
             bool isSRGB;
@@ -78,13 +118,6 @@ std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::pa
             auto value = materialJSON.value(key);
             if (value.isDouble()) {
                 material->setRoughness(value.toDouble());
-            }
-        } else if (key == "fresnel") {
-            glm::vec3 color;
-            bool isSRGB;
-            bool valid = parseJSONColor(materialJSON.value(key), color, isSRGB);
-            if (valid) {
-                material->setFresnel(color, isSRGB);
             }
         } else if (key == "metallic") {
             auto value = materialJSON.value(key);

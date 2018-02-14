@@ -114,7 +114,7 @@ Rectangle {
                 }
 
                 ComboBox {
-                    id: materialMode
+                    id: materialMappingMode
                     property var materialArray: ["UV space material",
                                                  "3D projected material"]
 
@@ -142,7 +142,7 @@ Rectangle {
                                 method: "newMaterialDialogAdd",
                                 params: {
                                     textInput: materialURL.text,
-                                    //comboBox: materialMode.currentIndex
+                                    //comboBox: materialMappingMode.currentIndex
                                 }
                             });
                         }

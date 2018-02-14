@@ -361,6 +361,8 @@ public:
 
     const QString& getName() { return _name; }
 
+    void setModel(const QString& model) { _model = model; }
+
 protected:
     QString _name { "" };
 
@@ -378,6 +380,8 @@ private:
     bool calculateMaterialInfo() const;
 
     quint16 _priority { 0 };
+
+    QString _model { "hifi_pbr" };
 
 };
 typedef std::shared_ptr< Material > MaterialPointer;
