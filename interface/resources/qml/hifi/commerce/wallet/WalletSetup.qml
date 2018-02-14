@@ -441,7 +441,7 @@ Item {
     }
     Item {
         id: choosePassphraseContainer;
-        visible: root.activeView === "step_3";
+        visible: root.hasShownSecurityImageTip && root.activeView === "step_3";
         // Anchors
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 30;
@@ -451,7 +451,10 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
+                sendSignalToWallet({method: 'disableHmdPreview'});
                 Commerce.getWalletAuthenticatedStatus();
+            } else {
+                sendSignalToWallet({method: 'maybeEnableHmdPreview'});
             }
         }
 
