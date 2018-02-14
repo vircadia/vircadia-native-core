@@ -292,7 +292,6 @@ void DomainContentBackupManager::backup() {
             }
 
             for (auto& handler : _backupHandlers) {
-                qDebug() << "Backup handler";
                 handler.createBackup(zip);
             }
 

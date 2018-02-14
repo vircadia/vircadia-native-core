@@ -154,7 +154,6 @@ void BackupSupervisor::loadBackup(QuaZip& zip) {
 }
 
 void BackupSupervisor::createBackup(QuaZip& zip) {
-    qDebug() << Q_FUNC_INFO;
     if (operationInProgress()) {
         qCWarning(backup_supervisor) << "There is already an operation in progress.";
         return;

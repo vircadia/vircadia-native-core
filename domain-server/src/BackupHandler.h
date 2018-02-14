@@ -84,10 +84,7 @@ public:
     void loadBackup(QuaZip& zip) {}
 
     void createBackup(QuaZip& zip) const {
-        qDebug() << "Creating a backup from handler";
-
         QFile entitiesFile { _entitiesFilePath };
-        qDebug() << entitiesFile.size();
 
         if (entitiesFile.open(QIODevice::ReadOnly)) {
             QuaZipFile zipFile { &zip };
