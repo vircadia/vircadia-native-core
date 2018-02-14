@@ -187,13 +187,18 @@ public:
 
     const static QSet<PacketTypeEnum::Value> getDomainSourcedPackets() {
         const static QSet<PacketTypeEnum::Value> DOMAIN_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
-        << PacketTypeEnum::Value::AssetMappingOperation
-        << PacketTypeEnum::Value::AssetMappingOperationReply
-        << PacketTypeEnum::Value::AssetGet
-        << PacketTypeEnum::Value::AssetGetReply
-        << PacketTypeEnum::Value::AssetUpload
-        << PacketTypeEnum::Value::AssetUploadReply;
+            << PacketTypeEnum::Value::AssetMappingOperation
+            << PacketTypeEnum::Value::AssetGet
+            << PacketTypeEnum::Value::AssetUpload;
         return DOMAIN_SOURCED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getDomainIgnoredVerificationPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_IGNORED_VERIFICATION_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::AssetMappingOperationReply
+            << PacketTypeEnum::Value::AssetGetReply
+            << PacketTypeEnum::Value::AssetUploadReply;
+        return DOMAIN_IGNORED_VERIFICATION_PACKETS;
     }
 };
 
