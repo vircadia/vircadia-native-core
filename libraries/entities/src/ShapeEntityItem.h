@@ -101,6 +101,9 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
 
+    bool getCanCastShadow() const;
+    void setCanCastShadow(bool value);
+
 protected:
 
     float _alpha { 1 };
@@ -111,6 +114,8 @@ protected:
     //! prior functionality where new or unsupported shapes are treated as
     //! ellipsoids.
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
+
+    bool _canCastShadow { ENTITY_ITEM_DEFAULT_DONT_CAST_SHADOW };
 };
 
 #endif // hifi_ShapeEntityItem_h

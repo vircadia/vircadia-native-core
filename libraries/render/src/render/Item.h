@@ -120,7 +120,10 @@ public:
         Builder& withDynamic() { _flags.set(DYNAMIC); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
+
+        Builder& withNoShadowCaster() { _flags.reset(SHADOW_CASTER); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
+
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
 
         Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
@@ -155,6 +158,7 @@ public:
     bool isInvisible() const { return _flags[INVISIBLE]; }
 
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
+    bool isNotShadowCaster() const { return !_flags[SHADOW_CASTER]; }
 
     bool isLayered() const { return _flags[LAYERED]; }
     bool isSpatial() const { return !isLayered(); }

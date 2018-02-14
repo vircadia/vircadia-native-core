@@ -53,6 +53,8 @@ void ModelEntityItem::setTextures(const QString& textures) {
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
@@ -64,6 +66,7 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
     _animationProperties.getProperties(properties);
+
     return properties;
 }
 
@@ -71,6 +74,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
@@ -112,6 +116,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
     bool animationPropertiesChanged = false;
 
+    READ_ENTITY_PROPERTY(PROP_DONT_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
@@ -148,6 +153,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
+    requestedProperties += PROP_DONT_CAST_SHADOW;
     requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_TEXTURES;
@@ -172,6 +178,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     bool successPropertyFits = true;
 
+    APPEND_ENTITY_PROPERTY(PROP_DONT_CAST_SHADOW, getCanCastShadow());
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
@@ -190,8 +197,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
-
-
 
 // added update function back for property fix
 void ModelEntityItem::update(const quint64& now) {
@@ -290,6 +295,7 @@ void ModelEntityItem::updateFrameCount() {
 }
 
 void ModelEntityItem::debugDump() const {
+    qCDebug(entities) << "    can cast shadow" << getCanCastShadow();
     qCDebug(entities) << "ModelEntityItem id:" << getEntityItemID();
     qCDebug(entities) << "    edited ago:" << getEditedAgo();
     qCDebug(entities) << "    position:" << getWorldPosition();
@@ -571,15 +577,16 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
     return result;
 }
 
-
 xColor ModelEntityItem::getXColor() const { 
     xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; 
 }
+
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();
     });
 }
+
 bool ModelEntityItem::hasCompoundShapeURL() const {
     return !_compoundShapeURL.get().isEmpty();
 }
@@ -721,4 +728,26 @@ bool ModelEntityItem::isAnimatingSomething() const {
             _animationProperties.getRunning() &&
             (_animationProperties.getFPS() != 0.0f);
         });
+}
+
+bool ModelEntityItem::getCanCastShadow() const {
+    bool result;
+    withReadLock([&] {
+        result = _canCastShadow;
+    });
+    return result;
+}
+
+void ModelEntityItem::setCanCastShadow(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_canCastShadow != value) {
+            changed = true;
+            _canCastShadow = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
 }
