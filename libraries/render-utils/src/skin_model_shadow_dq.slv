@@ -17,7 +17,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
+<$declareUseDualQuaternionSkinning(1)$>
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);

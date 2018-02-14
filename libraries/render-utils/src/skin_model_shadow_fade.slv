@@ -17,6 +17,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
+<$declareUseDualQuaternionSkinning()$>
 
 out vec4 _worldPosition;
 

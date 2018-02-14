@@ -129,6 +129,7 @@ public:
     bool _isSkinned{ false };
     bool _isBlendShaped { false };
     bool _hasTangents { false };
+    bool _useDualQuaternionSkinning { false };
 
 private:
     void initCache(const ModelPointer& model);
@@ -136,7 +137,6 @@ private:
     gpu::BufferPointer _blendedVertexBuffer;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
     int _layer { render::Item::LAYER_3D };
-    bool _useDualQuaternionSkinning { false };
 };
 
 namespace render {

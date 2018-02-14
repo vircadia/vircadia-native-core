@@ -415,7 +415,7 @@ protected:
     virtual void createCollisionRenderItemSet();
 
     bool _isWireframe;
-    bool _useDualQuaternionSkinning { true };
+    bool _useDualQuaternionSkinning { false };
 
     // debug rendering support
     int _debugMeshBoxesID = GeometryCache::UNKNOWN_ID;

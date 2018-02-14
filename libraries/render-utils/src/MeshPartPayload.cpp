@@ -516,6 +516,10 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     if (isWireframe) {
         builder.withWireframe();
     }
+    if (_useDualQuaternionSkinning) {
+        builder.withDualQuatSkinned();
+    }
+
     _shapeKey = builder.build();
 }
 

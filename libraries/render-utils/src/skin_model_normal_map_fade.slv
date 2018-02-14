@@ -18,6 +18,7 @@
 <$declareStandardTransform()$>
 
 <@include Skinning.slh@>
+<$declareUseDualQuaternionSkinning()$>
 
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
