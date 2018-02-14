@@ -17,7 +17,6 @@ $(document).ready(function(){
   Settings.extraGroupsAtEnd = Settings.extraDomainGroupsAtEnd;
   Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
 
-
   Settings.afterReloadActions = function() {
     // append the domain selection modal
     appendDomainIDButtons();

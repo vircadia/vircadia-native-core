@@ -28,7 +28,7 @@ function settingsGroupAnchor(base, html_id) {
 }
 
 $(document).ready(function(){
-  var url = window.location;
+  var url = location.protocol + '//' + location.host+location.pathname;
 
   // Will only work if string in href matches with location
   $('ul.nav a[href="'+ url +'"]').parent().addClass('active');
@@ -55,7 +55,7 @@ $(document).ready(function(){
   var $contentDropdown = $('#content-settings-nav-dropdown');
   var $settingsDropdown = $('#domain-settings-nav-dropdown');
 
-   // define extra groups to add to setting panels, with their splice index
+  // define extra groups to add to setting panels, with their splice index
   Settings.extraContentGroupsAtIndex = {
     0: {
       html_id: Settings.CONTENT_ARCHIVES_PANEL_ID,
@@ -99,7 +99,7 @@ $(document).ready(function(){
       }
 
       for (var endIndex in Settings.extraContentGroupsAtEnd) {
-        data.content_settings.push(Settings.extraContentGroupsAtIndex[spliceIndex]);
+        data.content_settings.push(Settings.extraContentGroupsAtEnd[endIndex]);
       }
 
       $.each(data.content_settings, function(index, group){
