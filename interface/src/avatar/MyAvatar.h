@@ -569,6 +569,7 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    void animGraphLoaded();
 
     void setGravity(float gravity);
     float getGravity();
@@ -646,6 +647,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
+    void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
@@ -653,6 +655,7 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+    int _skeletonModelChangeCount { 0 };
 
     void saveAvatarScale();
 

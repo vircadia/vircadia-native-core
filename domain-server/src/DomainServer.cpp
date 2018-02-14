@@ -26,6 +26,7 @@
 #include <QCommandLineParser>
 
 #include <AccountManager.h>
+#include <AssetClient.h>
 #include <BuildInfo.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
@@ -343,6 +344,12 @@ void DomainServer::parseCommandLine() {
 
 DomainServer::~DomainServer() {
     qInfo() << "Domain Server is shutting down.";
+
+    // cleanup the AssetClient thread
+    DependencyManager::destroy<AssetClient>();
+    _assetClientThread.quit();
+    _assetClientThread.wait();
+
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
 }
@@ -684,11 +691,17 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
 
-    // add whatever static assignments that have been parsed to the queue
-    addStaticAssignmentsToQueue();
-
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
+
+    _assetClientThread.setObjectName("AssetClient Thread");
+    auto assetClient = DependencyManager::set<AssetClient>();
+    assetClient->moveToThread(&_assetClientThread);
+    QObject::connect(&_assetClientThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    _assetClientThread.start();
+
+    // add whatever static assignments that have been parsed to the queue
+    addStaticAssignmentsToQueue();
 }
 
 bool DomainServer::resetAccountManagerAccessToken() {

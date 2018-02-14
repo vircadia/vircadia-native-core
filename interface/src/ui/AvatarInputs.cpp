@@ -25,7 +25,6 @@ Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "sho
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {
         AvatarInputs::registerType();
-        AvatarInputs::show();
         Q_ASSERT(INSTANCE);
     }
     return INSTANCE;

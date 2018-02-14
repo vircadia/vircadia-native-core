@@ -749,8 +749,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             auto textureCache = DependencyManager::get<TextureCache>();
             {
                 PROFILE_RANGE(render, "Process Default Skybox");
-                auto textureCache = DependencyManager::get<TextureCache>();
-
                 QFileSelector fileSelector;
                 fileSelector.setExtraSelectors(FileUtils::getFileSelectors());
                 auto skyboxUrl = fileSelector.select(PathUtils::resourcesPath() + "images/Default-Sky-9-cubemap.ktx");

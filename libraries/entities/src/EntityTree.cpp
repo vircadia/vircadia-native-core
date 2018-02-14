@@ -913,18 +913,25 @@ void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
     recurseTreeWithOperation(elementFilter, nullptr);
 }
 
-EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
+EntityItemPointer EntityTree::findEntityByID(const QUuid& id) const {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
 }
 
-EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
-    EntityItemPointer foundEntity = NULL;
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        foundEntity = containingElement->getEntityWithEntityItemID(entityID);
+EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
+    EntityItemPointer foundEntity = nullptr;
+    {
+        QReadLocker locker(&_entityMapLock);
+        foundEntity = _entityMap.value(entityID);
     }
-    return foundEntity;
+    if (foundEntity && !foundEntity->getElement()) {
+        // special case to maintain legacy behavior:
+        // if the entity is in the map but not in the tree
+        // then pretend the entity doesn't exist
+        return EntityItemPointer(nullptr);
+    } else {
+        return foundEntity;
+    }
 }
 
 void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
