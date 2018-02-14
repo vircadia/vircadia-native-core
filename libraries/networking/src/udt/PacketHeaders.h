@@ -177,6 +177,17 @@ public:
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
         return NON_SOURCED_PACKETS;
     }
+
+    const static QSet<PacketTypeEnum::Value> getDomainSourcedPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+        << PacketTypeEnum::Value::AssetMappingOperation
+        << PacketTypeEnum::Value::AssetMappingOperationReply
+        << PacketTypeEnum::Value::AssetGet
+        << PacketTypeEnum::Value::AssetGetReply
+        << PacketTypeEnum::Value::AssetUpload
+        << PacketTypeEnum::Value::AssetUploadReply;
+        return DOMAIN_SOURCED_PACKETS;
+    }
 };
 
 using PacketType = PacketTypeEnum::Value;
