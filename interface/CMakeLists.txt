@@ -204,13 +204,14 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree ktx gpu gl procedural graphics render
+  shared task octree ktx gpu gl procedural graphics render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
+  workload
   ${PLATFORM_GL_BACKEND}
 )
 
