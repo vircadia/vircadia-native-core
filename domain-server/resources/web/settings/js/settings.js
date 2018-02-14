@@ -1033,31 +1033,40 @@ $(document).ready(function(){
   $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
     e.preventDefault();
 
-    var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+    swal({
+      title: "Are you sure?",
+      text: "Your domain settings will be replaced by the uploaded settings",
+      type: "warning",
+      showCancelButton: true,
+      closeOnConfirm: false
+    },
+    function() {
+      var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
 
-    var fileFormData = new FormData();
-    fileFormData.append('restore-file', files[0]);
+      var fileFormData = new FormData();
+      fileFormData.append('restore-file', files[0]);
 
-    showSpinnerAlert("Restoring Settings");
+      showSpinnerAlert("Restoring Settings");
 
-    $.ajax({
-      url: '/settings/restore',
-      type: 'POST',
-      processData: false,
-      contentType: false,
-      dataType: 'json',
-      data: fileFormData
-    }).done(function(data, textStatus, jqXHR) {
-      swal.close();
-      showRestartModal();
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-      showErrorMessage(
-        "Error",
-        "There was a problem restoring domain settings.\n"
-        + "Please ensure that your current domain settings are valid and try again."
-      );
+      $.ajax({
+        url: '/settings/restore',
+        type: 'POST',
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        data: fileFormData
+      }).done(function(data, textStatus, jqXHR) {
+        swal.close();
+        showRestartModal();
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        showErrorMessage(
+          "Error",
+          "There was a problem restoring domain settings.\n"
+          + "Please ensure that your current domain settings are valid and try again."
+        );
 
-      reloadSettings();
+        reloadSettings();
+      });
     });
   });
 
@@ -1079,7 +1088,7 @@ $(document).ready(function(){
     html += "<div class='form-group'>";
     html += "<label class='control-label'>Upload a Settings Configuration</label>";
     html += "<span class='help-block'>Upload a settings configuration to quickly configure this domain";
-    html += "<br/>Note: Your domain's settings will be replaced by the settings you upload</span>";
+    html += "<br/>Note: Your domain settings will be replaced by the settings you upload</span>";
 
     html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
     html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Domain Settings</button>";

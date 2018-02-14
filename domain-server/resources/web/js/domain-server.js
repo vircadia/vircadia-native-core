@@ -79,7 +79,7 @@ $(document).ready(function(){
   Settings.extraDomainGroupsAtEnd = [
     {
       html_id: 'settings_backup',
-      label: 'Settings Backup'
+      label: 'Settings Backup / Restore'
     }
   ]
 

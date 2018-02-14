@@ -7,16 +7,66 @@ $(document).ready(function(){
     // construct the HTML needed for the settings backup panel
     var html = "<div class='form-group'>";
 
-    html += "<span class='help-block'>Upload a Content Backup to replace the content of this domain";
-    html += "<br/>Note: Your domain's content will be replaced by the content you upload, but the existing backup files of your domain's content will not immediately be changed.</span>";
+    html += "<span class='help-block'>Upload a Content Archive (.zip) or entity file (.json, .json.gz) to replace the content of this domain.";
+    html += "<br/>Note: Your domain content will be replaced by the content you upload, but the existing backup files of your domain's content will not immediately be changed.</span>";
 
     html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
-    html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Domain Settings</button>";
+    html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Content</button>";
 
     html += "</div>";
 
     $('#' + Settings.UPLOAD_CONTENT_BACKUP_PANEL_ID + ' .panel-body').html(html);
   }
+
+  // handle content archive or entity file upload
+
+  // when the selected file is changed, enable the button if there's a selected file
+  $('body').on('change', '#' + RESTORE_SETTINGS_FILE_ID, function() {
+    if ($(this).val()) {
+        $('#' + RESTORE_SETTINGS_UPLOAD_ID).attr('disabled', false);
+    }
+  });
+
+  // when the upload button is clicked, send the file to the DS
+  // and reload the page if restore was successful or
+  // show an error if not
+  $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
+    e.preventDefault();
+
+    swal({
+      title: "Are you sure?",
+      text: "Your domain content will be replaced by the uploaded Content Archive or entity file",
+      type: "warning",
+      showCancelButton: true,
+      closeOnConfirm: false
+    },
+    function () {
+      var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+
+      var fileFormData = new FormData();
+      fileFormData.append('restore-file', files[0]);
+
+      showSpinnerAlert("Restoring Content");
+
+      $.ajax({
+        url: '/content/upload',
+        type: 'POST',
+        cache: false,
+        processData: false,
+        contentType: false,
+        data: fileFormData
+      }).done(function(data, textStatus, jqXHR) {
+        swal.close();
+        showRestartModal();
+      }).fail(function(jqXHR, textStatus, errorThrown) {
+        showErrorMessage(
+          "Error",
+          "There was a problem restoring domain content.\n"
+          + "Please ensure that the content archive or entity file is valid and try again."
+        );
+      });
+    });
+  });
 
   var GENERATE_ARCHIVE_BUTTON_ID = 'generate-archive-button';
   var AUTOMATIC_ARCHIVES_TABLE_ID = 'automatic-archives-table';
@@ -136,7 +186,7 @@ $(document).ready(function(){
         text: "You have pending changes to content settings that have not been saved. They will be lost if you leave the page to manage automatic content archive intervals.",
         type: "warning",
         showCancelButton: true,
-        confirmButtonText: "Leave and Lose Pending Changes",
+        confirmButtonText: "Proceed without Saving",
         closeOnConfirm: true
       },
       function () {

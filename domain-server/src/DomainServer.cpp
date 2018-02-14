@@ -2256,12 +2256,32 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QList<FormData> formData = connection->parseFormData();
 
             if (formData.size() > 0 && formData[0].second.size() > 0) {
-                // invoke our method to hand the new octree file off to the octree server
-                QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                          Qt::QueuedConnection, Q_ARG(QByteArray, formData[0].second));
+                auto& firstFormData = formData[0];
 
-                // respond with a 200 for success
-                connection->respond(HTTPConnection::StatusCode200);
+                // check the file extension to see what kind of file this is
+                // to match sure we handle this filetype for a content restore
+                auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
+                auto formDataFilenameRegex = QRegExp("filename=\"(\\S+)\"");
+                auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
+
+                QString uploadedFilename = "";
+                if (matchIndex != -1) {
+                    uploadedFilename = formDataFilenameRegex.cap(1);
+                }
+
+                if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
+                    || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+                    // invoke our method to hand the new octree file off to the octree server
+                    QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+                                              Qt::QueuedConnection, Q_ARG(QByteArray, formData[0].second));
+
+                    // respond with a 200 for success
+                    connection->respond(HTTPConnection::StatusCode200);
+                } else {
+                    // we don't have handling for this filetype, send back a 400 for failure
+                    connection->respond(HTTPConnection::StatusCode400);
+                }
+
             } else {
                 // respond with a 400 for failure
                 connection->respond(HTTPConnection::StatusCode400);
