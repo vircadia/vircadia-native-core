@@ -21,7 +21,6 @@
 #include <QJsonObject>
 
 #include <AssetUtils.h>
-#include <SharedUtil.h>
 
 #include <ReceivedMessage.h>
 

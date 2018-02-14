@@ -31,12 +31,11 @@ using namespace std;
 Q_DECLARE_LOGGING_CATEGORY(backup_supervisor)
 Q_LOGGING_CATEGORY(backup_supervisor, "hifi.backup-supervisor");
 
-BackupSupervisor::BackupSupervisor(const QString& backupDirectory) {
-    _assetsDirectory = backupDirectory + ASSETS_DIR;
-    QDir assetsDir { _assetsDirectory };
-    if (!assetsDir.exists()) {
-        assetsDir.mkpath(".");
-    }
+BackupSupervisor::BackupSupervisor(const QString& backupDirectory) :
+    _assetsDirectory(backupDirectory + ASSETS_DIR)
+{
+    // Make sure the asset directory exists.
+    QDir(_assetsDirectory).mkpath(".");
 
     refreshAssetsOnDisk();
 
@@ -166,7 +165,7 @@ void BackupSupervisor::createBackup(QuaZip& zip) {
 
     static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
     if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
-        qCWarning(backup_supervisor) << "Backing up asset mappings that appear old.";
+        qCWarning(backup_supervisor) << "Backing up asset mappings that might be stale.";
     }
 
     AssetServerBackup backup;
@@ -182,13 +181,13 @@ void BackupSupervisor::createBackup(QuaZip& zip) {
 
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(MAPPINGS_FILE))) {
-        qCDebug(backup_supervisor) << "testCreate(): outFile.open()";
+        qCDebug(backup_supervisor) << "Could not open zip file:" << zipFile.getZipError();
         return;
     }
     zipFile.write(document.toJson());
     zipFile.close();
     if (zipFile.getZipError() != UNZ_OK) {
-        qCDebug(backup_supervisor) << "testCreate(): outFile.close(): " << zipFile.getZipError();
+        qCDebug(backup_supervisor) << "Could not close zip file: " << zipFile.getZipError();
         return;
     }
     _backups.push_back(backup);
@@ -207,7 +206,7 @@ void BackupSupervisor::recoverBackup(QuaZip& zip) {
 
     static constexpr quint64 MAX_REFRESH_TIME = 15 * 60 * 1000 * 1000;
     if (usecTimestampNow() - _lastMappingsRefresh > MAX_REFRESH_TIME) {
-        qCWarning(backup_supervisor) << "Backing up asset mappings that appear old.";
+        qCWarning(backup_supervisor) << "Current asset mappings that might be stale.";
     }
 
     startOperation();
@@ -216,7 +215,7 @@ void BackupSupervisor::recoverBackup(QuaZip& zip) {
         return value.filePath == zip.getZipName();
     });
     if (it == end(_backups)) {
-        qCDebug(backup_supervisor) << "Could not find backup";
+        qCDebug(backup_supervisor) << "Could not find backup" << zip.getZipName() << "to restore.";
         stopOperation();
         return;
     }
@@ -237,7 +236,7 @@ void BackupSupervisor::deleteBackup(QuaZip& zip) {
         return value.filePath == zip.getZipName();
     });
     if (it == end(_backups)) {
-        qCDebug(backup_supervisor) << "Could not find backup";
+        qCDebug(backup_supervisor) << "Could not find backup" << zip.getZipName() << "to delete.";
         return;
     }
 
@@ -257,7 +256,7 @@ void BackupSupervisor::consolidateBackup(QuaZip& zip) {
         return info.fileName() == zipInfo.fileName();
     });
     if (it == end(_backups)) {
-        qCDebug(backup_supervisor) << "Could not find backup" << zip.getZipName();
+        qCDebug(backup_supervisor) << "Could not find backup" << zip.getZipName() << "to consolidate.";
         return;
     }
 
@@ -274,13 +273,13 @@ void BackupSupervisor::consolidateBackup(QuaZip& zip) {
         QuaZipFile zipFile { &zip };
         static const QString ZIP_ASSETS_FOLDER = "files/";
         if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ZIP_ASSETS_FOLDER + hash))) {
-            qCDebug(backup_supervisor) << "testCreate(): outFile.open()";
+            qCDebug(backup_supervisor) << "Could not open zip file:" << zipFile.getZipError();
             continue;
         }
         zipFile.write(file.readAll());
         zipFile.close();
         if (zipFile.getZipError() != UNZ_OK) {
-            qCDebug(backup_supervisor) << "testCreate(): outFile.close(): " << zipFile.getZipError();
+            qCDebug(backup_supervisor) << "Could not close zip file: " << zipFile.getZipError();
             continue;
         }
     }
@@ -294,9 +293,6 @@ void BackupSupervisor::refreshMappings() {
     QObject::connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) {
         if (request->getError() == MappingRequest::NoError) {
             const auto& mappings = request->getMappings();
-
-            qCDebug(backup_supervisor) << "Refreshed" << mappings.size() << "asset mappings!";
-
             _currentMappings.clear();
             for (const auto& mapping : mappings) {
                 _currentMappings.insert({ mapping.first, mapping.second.hash });

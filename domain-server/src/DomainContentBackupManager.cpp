@@ -47,7 +47,11 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
                                                        bool debugTimestampNow)
     : _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
-    _lastCheck(usecTimestampNow()) {
+    _lastCheck(usecTimestampNow())
+{
+    // Make sure the backup directory exists.
+    QDir(_backupDirectory).mkpath(".");
+
     parseSettings(settings);
 }
 
@@ -288,7 +292,8 @@ void DomainContentBackupManager::backup() {
             auto fileName = "backup-" + rule.extensionFormat + timestamp + ".zip";
             QuaZip zip(_backupDirectory + "/" + fileName);
             if (!zip.open(QuaZip::mdAdd)) {
-                qDebug() << "Could not open archive";
+                qDebug() << "Could not open backup archive:" << zip.getZipName();
+                qDebug() << "    ERROR:" << zip.getZipError();
             }
 
             for (auto& handler : _backupHandlers) {

@@ -295,7 +295,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
     maybeHandleReplacementEntityFile();
 
-    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.responseObjectForType("6")["entity_server_settings"].toObject()));
+    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
     _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath()));
     _contentManager->addBackupHandler(new BackupSupervisor(getContentBackupDir()));
     _contentManager->initialize(true);
