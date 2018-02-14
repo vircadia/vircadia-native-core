@@ -2338,6 +2338,7 @@ void Application::initializeGL() {
         qFatal("Unable to make offscreen context current");
     }
     _offscreenContext->doneCurrent();
+    _offscreenContext->setThreadContext();
     _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
 
     // The UI can't be created until the primary OpenGL
