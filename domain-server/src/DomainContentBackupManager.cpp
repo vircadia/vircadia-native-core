@@ -63,9 +63,9 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
 }
 
 void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
-    qDebug() << settings << settings["backups"] << settings["backups"].isArray();
-    if (settings["backups"].isArray()) {
-        const QJsonArray& backupRules = settings["backups"].toArray();
+    static const QString BACKUP_RULES_KEY = "backup_rules";
+    if (settings[BACKUP_RULES_KEY].isArray()) {
+        const QJsonArray& backupRules = settings[BACKUP_RULES_KEY].toArray();
         qCDebug(domain_server) << "BACKUP RULES:";
 
         for (const QJsonValue& value : backupRules) {

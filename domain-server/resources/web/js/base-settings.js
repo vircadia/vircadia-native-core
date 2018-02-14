@@ -126,6 +126,8 @@ function reloadSettings(callback) {
 
     $('[data-toggle="tooltip"]').tooltip();
 
+    Settings.pendingChanges = 0;
+
     // call the callback now that settings are loaded
     callback(true);
   }).fail(function() {
@@ -804,6 +806,8 @@ function badgeForDifferences(changedElement) {
       totalChanges += parseInt(this.innerHTML);
     }
   });
+
+  Settings.pendingChanges = totalChanges;
 
   if (totalChanges == 0) {
     totalChanges = ""

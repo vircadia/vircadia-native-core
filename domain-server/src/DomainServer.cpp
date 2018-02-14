@@ -296,8 +296,15 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         qCDebug(domain_server) << "Created entities data directory";
     }
     maybeHandleReplacementEntityFile();
+    
+    auto contentArchivesGroup = _settingsManager.valueOrDefaultValueForKeyPath(AUTOMATIC_CONTENT_ARCHIVES_GROUP);
+    auto archivesIntervalObject = QJsonObject();
 
-    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
+    if (contentArchivesGroup.canConvert<QVariantMap>()) {
+        archivesIntervalObject = QJsonObject::fromVariantMap(contentArchivesGroup.toMap());
+    }
+
+    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), archivesIntervalObject));
 
     connect(_contentManager.get(), &DomainContentBackupManager::started, _contentManager.get(), [this](){
         _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));

@@ -23,15 +23,17 @@ $(document).ready(function(){
   var AUTOMATIC_ARCHIVES_TBODY_ID = 'automatic-archives-tbody';
   var MANUAL_ARCHIVES_TABLE_ID = 'manual-archives-table';
   var MANUAL_ARCHIVES_TBODY_ID = 'manual-archives-tbody';
+  var AUTO_ARCHIVES_SETTINGS_LINK_ID = 'auto-archives-settings-link';
+
   var automaticBackups = [];
   var manualBackups = [];
 
   function setupContentArchives() {
-
     // construct the HTML needed for the content archives panel
     var html = "<div class='form-group'>";
     html += "<label class='control-label'>Automatic Content Archives</label>";
-    html += "<span class='help-block'>Your domain server makes regular archives of the content in your domain. In the list below, you can see and download all of your domain content and settings backups.</span>"
+    html += "<span class='help-block'>Your domain server makes regular archives of the content in your domain. In the list below, you can see and download all of your domain content and settings backups. "
+    html += "<a href='/settings/#automatic_content_archives' id='" + AUTO_ARCHIVES_SETTINGS_LINK_ID + "'>Click here to manage automatic content archive intervals.</a>";
     html += "</div>";
     html += "<table class='table sortable' id='" + AUTOMATIC_ARCHIVES_TABLE_ID + "'>";
 
@@ -119,6 +121,30 @@ $(document).ready(function(){
       $('#' + MANUAL_ARCHIVES_TABLE_ID).toggle(manualBackups.length > 0);
     });
   }
+
+  // handle click on automatic content archive settings link
+  $('body').on('click', '#' + AUTO_ARCHIVES_SETTINGS_LINK_ID, function(e) {
+    if (Settings.pendingChanges > 0) {
+      // don't follow the link right away, make sure the user knows they are about to leave
+      // the page and lose changes
+      e.preventDefault();
+
+      var settingsLink = $(this).attr('href');
+
+      swal({
+        title: "Are you sure?",
+        text: "You have pending changes to content settings that have not been saved. They will be lost if you leave the page to manage automatic content archive intervals.",
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Leave and Lose Pending Changes",
+        closeOnConfirm: true
+      },
+      function () {
+        // user wants to drop their changes, switch pages
+        window.location =  settingsLink;
+      });
+    }
+  });
 
   // handle click on manual archive creation button
   $('body').on('click', '#' + GENERATE_ARCHIVE_BUTTON_ID, function(e) {
