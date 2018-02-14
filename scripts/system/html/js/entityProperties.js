@@ -595,6 +595,8 @@ function loaded() {
 
         var elShape = document.getElementById("property-shape");
 
+        var elCanCastShadow = document.getElementById("property-can-cast-shadow");
+
         var elLightSpotLight = document.getElementById("property-light-spot-light");
         var elLightColor = document.getElementById("property-light-color");
         var elLightColorRed = document.getElementById("property-light-color-red");
@@ -799,7 +801,6 @@ function loaded() {
 
                         elLocked.checked = properties.locked;
 
-
                         elName.value = properties.name;
 
                         elVisible.checked = properties.visible;
@@ -966,6 +967,12 @@ function loaded() {
                                                                      properties.color.green + "," + properties.color.blue + ")";
                         }
 
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            elCanCastShadow = properties.canCastShadow;
+                        }
+
                         if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
                             elShapeType.value = properties.shapeType;
@@ -1012,7 +1019,6 @@ function loaded() {
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
-
                         } else if (properties.type === "Zone") {
                             // Key light
                             elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
@@ -1093,13 +1099,15 @@ function loaded() {
                             // Show/hide sections as required
                             showElements(document.getElementsByClassName('skybox-section'),
                                 elZoneSkyboxModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('keylight-section'),
                                 elZoneKeyLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('ambient-section'),
                                 elZoneAmbientLightModeEnabled.checked);
+
                             showElements(document.getElementsByClassName('haze-section'),
                                 elZoneHazeModeEnabled.checked);
-
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -1109,6 +1117,15 @@ function loaded() {
                             elXTextureURL.value = properties.xTextureURL;
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
+                        }
+
+                        // Only these types can cast a shadow
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), true);
+                        } else {
+                            showElements(document.getElementsByClassName('can-cast-shadow-section'), false);
                         }
 
                         if (properties.locked) {
@@ -1355,6 +1372,12 @@ function loaded() {
         elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
+        if (properties.type === "Model" ||
+            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+
+            elCanCastShadow.addEventListener('change', createEmitTextPropertyUpdateFunction('canCastShadow'));
+        }
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
         elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));

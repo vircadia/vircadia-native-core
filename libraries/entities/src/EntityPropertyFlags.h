@@ -31,7 +31,7 @@ enum EntityPropertyList {
     PROP_SCRIPT,
 
     // these properties are supported by some derived classes
-    PROP_CAST_SHADOW,
+    PROP_CAN_CAST_SHADOW,
     PROP_COLOR,
 
     // these are used by models only

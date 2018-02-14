@@ -290,6 +290,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
@@ -625,6 +626,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     }
 
+    // Models and Shapes
+    if (_type == EntityTypes::Model || _type == EntityTypes::Shape || _type == EntityTypes::Box || _type == EntityTypes::Sphere) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    }
+
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
@@ -707,6 +713,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
@@ -1851,6 +1858,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -1974,6 +1982,7 @@ void EntityItemProperties::markAllChanged() {
     _angularDampingChanged = true;
     _nameChanged = true;
     _visibleChanged = true;
+    _canCastShadowChanged = true;
     _colorChanged = true;
     _alphaChanged = true;
     _modelURLChanged = true;

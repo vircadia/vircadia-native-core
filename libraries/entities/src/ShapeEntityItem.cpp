@@ -157,7 +157,7 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_SHAPE, QString, setShape);
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
-    READ_ENTITY_PROPERTY(PROP_CAST_SHADOW, bool, setCanCastShadow);
+    READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
 
     return bytesRead;
 }
@@ -169,7 +169,7 @@ EntityPropertyFlags ShapeEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_SHAPE;
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
-    requestedProperties += PROP_CAST_SHADOW;
+    requestedProperties += PROP_CAN_CAST_SHADOW;
 
     return requestedProperties;
 }
@@ -186,7 +186,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_SHAPE, entity::stringFromShape(getShape()));
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
-    APPEND_ENTITY_PROPERTY(PROP_CAST_SHADOW, getCanCastShadow());
+    APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
 }
 
 void ShapeEntityItem::setColor(const rgbColor& value) {
