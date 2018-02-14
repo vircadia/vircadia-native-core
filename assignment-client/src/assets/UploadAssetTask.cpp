@@ -41,9 +41,12 @@ void UploadAssetTask::run() {
     
     uint64_t fileSize;
     buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
-    
-    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from"
-        << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
+
+    if (_senderNode) {
+        qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
+    } else {
+        qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from" << _receivedMessage->getSenderSockAddr();
+    }
     
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply, -1, true);
     replyPacket->writePrimitive(messageID);
@@ -55,9 +58,12 @@ void UploadAssetTask::run() {
         
         auto hash = AssetUtils::hashData(fileData);
         auto hexHash = hash.toHex();
-        
-        qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID())
-            << "is: (" << hexHash << ") ";
+
+        if (_senderNode) {
+            qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID()) << "is: (" << hexHash << ")";
+        } else {
+            qDebug() << "Hash for uploaded file from" << _receivedMessage->getSenderSockAddr() << "is: (" << hexHash << ")";
+        }
         
         QFile file { _resourcesDir.filePath(QString(hexHash)) };
 
@@ -103,5 +109,9 @@ void UploadAssetTask::run() {
     }
     
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *_senderNode);
+    if (_senderNode) {
+        nodeList->sendPacket(std::move(replyPacket), *_senderNode);
+    } else {
+        nodeList->sendPacket(std::move(replyPacket), _receivedMessage->getSenderSockAddr());
+    }
 }

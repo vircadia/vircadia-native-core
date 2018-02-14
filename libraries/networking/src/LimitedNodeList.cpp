@@ -90,21 +90,16 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     updateLocalSocket();
 
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
-    _nodeSocket.setPacketHandler(
-        [this](std::unique_ptr<udt::Packet> packet) {
+    _nodeSocket.setPacketHandler([this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedPacket(std::move(packet));
-        }
-    );
-    _nodeSocket.setMessageHandler(
-        [this](std::unique_ptr<udt::Packet> packet) {
+    });
+    _nodeSocket.setMessageHandler([this](std::unique_ptr<udt::Packet> packet) {
             _packetReceiver->handleVerifiedMessagePacket(std::move(packet));
-        }
-    );
-    _nodeSocket.setMessageFailureHandler(
-        [this](HifiSockAddr from, udt::Packet::MessageNumber messageNumber) {
+    });
+    _nodeSocket.setMessageFailureHandler([this](HifiSockAddr from,
+                                                udt::Packet::MessageNumber messageNumber) {
             _packetReceiver->handleMessageFailure(from, messageNumber);
-        }
-    );
+    });
 
     // set our isPacketVerified method as the verify operator for the udt::Socket
     using std::placeholders::_1;
@@ -309,8 +304,19 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             sourceNode = matchingNode.data();
         }
 
+        if (!sourceNode &&
+            sourceID == getDomainUUID() &&
+            packet.getSenderSockAddr() == getDomainSockAddr() &&
+            PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
+            // This is a packet sourced by the domain server
+
+            emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
+            return true;
+        }
+
         if (sourceNode) {
-            if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType)) {
+            if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType) &&
+                !isDomainServer()) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, sourceNode->getConnectionSecret());

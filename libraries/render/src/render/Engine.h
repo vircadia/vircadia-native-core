@@ -14,9 +14,10 @@
 
 #include <SettingHandle.h>
 
-#include "Scene.h"
-#include "../task/Task.h"
 #include <gpu/Batch.h>
+#include <task/Task.h>
+
+#include "Scene.h"
 
 namespace render {
 
@@ -24,6 +25,7 @@ namespace render {
 
     class RenderContext : public task::JobContext {
     public:
+        RenderContext() : task::JobContext(trace_render()) {}
         virtual ~RenderContext() {}
 
         RenderArgs* args;
@@ -100,7 +102,7 @@ namespace render {
 
     protected:
         RenderContextPointer _renderContext;
-    
+
         void run(const RenderContextPointer& context) override { assert(_renderContext);  Task::run(_renderContext); }
     };
     using EnginePointer = std::shared_ptr<Engine>;

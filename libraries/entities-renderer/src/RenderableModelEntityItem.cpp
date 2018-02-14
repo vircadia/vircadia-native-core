@@ -985,6 +985,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
         return;
     }
 
+    bool changed { false };
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {
         for (int index = 0; index < _localJointData.size(); ++index) {
@@ -992,13 +993,21 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
             if (jointData.rotationDirty) {
                 model->setJointRotation(index, true, jointData.joint.rotation, 1.0f);
                 jointData.rotationDirty = false;
+                changed = true;
             }
             if (jointData.translationDirty) {
                 model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
                 jointData.translationDirty = false;
+                changed = true;
             }
         }
     });
+
+    if (changed) {
+        forEachChild([&](SpatiallyNestablePointer object) {
+            object->locationChanged(false);
+        });
+    }
 }
 
 using namespace render;

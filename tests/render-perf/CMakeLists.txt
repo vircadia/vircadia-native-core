@@ -13,7 +13,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
 # link in the shared libraries
 link_hifi_libraries(
-    shared networking animation 
+    shared task networking animation 
     ktx image octree gl gpu gpu-gl  
     render render-utils 
     graphics fbx model-networking 
