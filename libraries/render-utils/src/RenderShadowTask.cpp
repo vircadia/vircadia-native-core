@@ -386,6 +386,10 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     assert(lightStage);
 
     // Exit if current keylight does not cast shadows
+    if (!lightStage->getCurrentKeyLight()) {
+        return;
+    }
+
     bool castShadows = lightStage->getCurrentKeyLight()->getCastShadows();
     if (!castShadows) {
         output.edit0() = ItemFilter::Builder::nothing();
