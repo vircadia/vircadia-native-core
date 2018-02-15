@@ -1392,12 +1392,8 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
-        if (properties.type === "Model" ||
-            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
-
-            elCanCastShadow.addEventListener('change', createEmitTextPropertyUpdateFunction('canCastShadow'));
-        }
-
+        elCanCastShadow.addEventListener('change', createEmitCheckedPropertyUpdateFunction('canCastShadow'));
+ 
         elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
