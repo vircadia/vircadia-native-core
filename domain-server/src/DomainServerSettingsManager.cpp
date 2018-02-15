@@ -427,7 +427,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // migrate entity server rolling backup intervals to new location for automatic content archive intervals
 
             const QString ENTITY_SERVER_BACKUPS_KEYPATH = "entity_server_settings.backups";
-            const QString AUTO_CONTENT_ARCHIVES_RULES_KEYPATH = "automatic_content_archives.backup_rules";
+            const QString AUTO_CONTENT_ARCHIVES_RULES_KEYPATH = AUTOMATIC_CONTENT_ARCHIVES_GROUP + ".backup_rules";
 
             QVariant* previousBackupsVariant = _configMap.valueForKeyPath(ENTITY_SERVER_BACKUPS_KEYPATH);
 
