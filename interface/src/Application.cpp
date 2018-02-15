@@ -339,6 +339,8 @@ static const QString SNAPSHOT_EXTENSION = ".jpg";
 static const QString JPG_EXTENSION = ".jpg";
 static const QString PNG_EXTENSION = ".png";
 static const QString SVO_EXTENSION = ".svo";
+static const QString SERVERLESS_DOMAIN_EXTENSION = ".domain.json";
+static const QString SERVERLESS_DOMAIN_GZ_EXTENSION = ".domain.json.gz";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
 static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
@@ -349,8 +351,6 @@ static const QString OBJ_EXTENSION = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 static const QString ZIP_EXTENSION = ".zip";
-static const QString SERVERLESS_DOMAIN_EXTENSION = ".domain.json";
-static const QString SERVERLESS_DOMAIN_GZ_EXTENSION = ".domain.json.gz";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -382,13 +382,13 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
+    { SERVERLESS_DOMAIN_EXTENSION, &Application::visitServerlessDomain },
+    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
     { ZIP_EXTENSION, &Application::importFromZIP },
-    { SERVERLESS_DOMAIN_EXTENSION, &Application::visitServerlessDomain },
-    { SERVERLESS_DOMAIN_GZ_EXTENSION, &Application::visitServerlessDomain },
     { JPG_EXTENSION, &Application::importImage },
     { PNG_EXTENSION, &Application::importImage }
 };
@@ -1085,6 +1085,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+
+    connect(addressManager.data(), &AddressManager::setServersEnabled, this, &Application::setServersEnabled);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -2944,9 +2946,25 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
+void Application::setServersEnabled(bool serversEnabled) {
+    qDebug() << "QQQQ serversEnabled =" << serversEnabled;
+    if (_serversEnabled != serversEnabled) {
+        _serversEnabled = serversEnabled;
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->getDomainHandler().setAPIRefreshTimerEnabled(serversEnabled);
+
+        if (!_serversEnabled) {
+            nodeList->reset();
+            clearDomainOctreeDetails();
+        }
+    }
+}
+
 bool Application::visitServerlessDomain(const QString& urlString) {
     qDebug() << "QQQQ visit serverless domain" << urlString;
-    setServerlessMode(true);
+    DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+    return true;
 }
 
 bool Application::importImage(const QString& urlString) {
@@ -5597,10 +5615,15 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
-    QString currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
 
-    if (currentPlaceName.isEmpty()) {
-        currentPlaceName = nodeList->getDomainHandler().getHostname();
+    QString currentPlaceName;
+    if (isServerlessMode()) {
+        currentPlaceName = "serverless"; // XXX filename?
+    } else {
+        currentPlaceName = DependencyManager::get<AddressManager>()->getHost();
+        if (currentPlaceName.isEmpty()) {
+            currentPlaceName = nodeList->getDomainHandler().getHostname();
+        }
     }
 
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())

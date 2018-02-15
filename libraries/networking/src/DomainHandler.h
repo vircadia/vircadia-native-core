@@ -138,6 +138,8 @@ public:
         TooManyUsers
     };
 
+    void setAPIRefreshTimerEnabled(bool enabled);
+
 public slots:
     void setSocketAndID(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
@@ -198,6 +200,7 @@ private:
     int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
+    bool _apiRefreshTimerEnabled { true };
 };
 
 #endif // hifi_DomainHandler_h

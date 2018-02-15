@@ -286,8 +286,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
-    bool isServerlessMode() { return _serverlessMode; }
-    void setServerlessMode(bool serverlessMode) { _serverlessMode = serverlessMode; }
+    bool isServerlessMode() const { return !_serversEnabled; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -392,6 +391,8 @@ public slots:
 
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
+
+    void setServersEnabled(bool enableServers);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -717,6 +718,6 @@ private:
     std::atomic<bool> _pendingIdleEvent { true };
     std::atomic<bool> _pendingRenderEvent { true };
 
-    bool _serverlessMode { false };
+    bool _serversEnabled { true };
 };
 #endif // hifi_Application_h
