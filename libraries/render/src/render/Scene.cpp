@@ -342,6 +342,13 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 
         // Access the true item
         auto& item = _items[updateID];
+
+        // If item doesn't exist it cannot be updated
+        if (!item.exist()) {
+            continue;
+        }
+
+        // Good to go, deal with the update
         auto oldCell = item.getCell();
         auto oldKey = item.getKey();
 
