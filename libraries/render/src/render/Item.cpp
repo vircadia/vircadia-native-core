@@ -113,6 +113,21 @@ const ShapeKey Item::getShapeKey() const {
     return shapeKey;
 }
 
+uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const {
+    ItemIDs subItems;
+    auto numSubs = fetchMetaSubItems(subItems);
+
+    for (auto id : subItems) {
+        auto& item = scene.getItem(id);
+        if (item.exist()) {
+            subItemBounds.emplace_back(id, item.getBound());
+        } else {
+            numSubs--;
+        }
+    }
+    return numSubs;
+}
+
 namespace render {
     template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload) {
         if (!payload) {
