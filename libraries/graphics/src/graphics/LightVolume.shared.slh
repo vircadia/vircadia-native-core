@@ -15,9 +15,17 @@
 
 #define LightVolumeConstRef LightVolume
 
+#ifndef PRECISIONQ
+#ifdef GL_ES
+#define PRECISIONQ highp
+#else
+#define PRECISIONQ
+#endif
+#endif
+
 struct LightVolume {
-    vec4 positionRadius;
-    vec4 directionSpotCos;
+    PRECISIONQ vec4 positionRadius;
+    PRECISIONQ vec4 directionSpotCos;
 };
 
 bool lightVolume_isPoint(LightVolume lv) { return bool(lv.directionSpotCos.w < 0.f); }
