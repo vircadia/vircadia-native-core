@@ -2121,19 +2121,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
 
             return true;
-        } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
-            auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
-            auto deferred = makePromise("recoverFromBackup");
-            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
-                QJsonObject rootJSON;
-                auto success = result["success"].toBool();
-                rootJSON["success"] = success;
-                QJsonDocument docJSON(rootJSON);
-                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
-                                    JSON_MIME_TYPE.toUtf8());
-            });
-            _contentManager->recoverFromBackup(deferred, id);
-            return true;
         } else if (url.path() == URI_API_BACKUPS) {
             QJsonObject rootJSON;
             QJsonArray backupsJSON;
@@ -2279,8 +2266,21 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
-
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "domain", { "label" });
+
+        } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
+            auto deferred = makePromise("recoverFromBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->recoverFromBackup(deferred, id);
+            return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
         if (url.path() == URI_API_DOMAINS) {
