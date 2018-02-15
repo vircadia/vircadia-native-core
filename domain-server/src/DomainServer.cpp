@@ -2253,9 +2253,17 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 return true;
             }
 
-            _contentManager->createManualBackup(it.value());
+            auto deferred = makePromise("createManualBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->createManualBackup(deferred, it.value());
 
-            connection->respond(HTTPConnection::StatusCode200);
             return true;
 
         } else if (url.path() == "/domain_settings") {

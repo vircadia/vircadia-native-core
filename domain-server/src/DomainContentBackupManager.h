@@ -57,9 +57,8 @@ public:
 
     void replaceData(QByteArray data);
 
-    void createManualBackup(const QString& name);
-
 public slots:
+    void createManualBackup(MiniPromise::Promise promise, const QString& name);
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 

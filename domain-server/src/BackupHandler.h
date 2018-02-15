@@ -77,6 +77,8 @@ private:
 };
 
 #include <quazip5/quazipfile.h>
+#include <OctreeUtils.h>
+
 class EntitiesBackupHandler {
 public:
     EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
@@ -111,18 +113,27 @@ public:
             qCritical() << "Failed to open models.json.gz in backup";
             return;
         }
-        auto data = zipFile.readAll();
+        auto rawData = zipFile.readAll();
+
+        zipFile.close();
+
+        OctreeUtils::RawOctreeData data;
+        if (!OctreeUtils::readOctreeDataInfoFromData(rawData, &data)) {
+            qCritical() << "Unable to parse octree data during backup recovery";
+            return;
+        }
+
+        data.resetIdAndVersion();
+
+        if (zipFile.getZipError() != UNZ_OK) {
+            qCritical() << "Failed to unzip models.json.gz: " << zipFile.getZipError();
+            return;
+        }
 
         QFile entitiesFile { _entitiesReplacementFilePath };
 
         if (entitiesFile.open(QIODevice::WriteOnly)) {
-            entitiesFile.write(data);
-        }
-
-        zipFile.close();
-
-        if (zipFile.getZipError() != UNZ_OK) {
-            qCritical() << "Failed to zip models.json.gz: " << zipFile.getZipError();
+            entitiesFile.write(data.toGzippedByteArray());
         }
     }
 
