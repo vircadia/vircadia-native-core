@@ -81,7 +81,7 @@ class EntitiesBackupHandler {
 public:
     EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath)
         : _entitiesFilePath(entitiesFilePath)
-        , _entitiesReplacementFilePath {}
+        , _entitiesReplacementFilePath(entitiesReplacementFilePath) {}
 
     void loadBackup(QuaZip& zip) {}
 
