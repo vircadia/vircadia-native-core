@@ -478,18 +478,15 @@ public:
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
 
-    virtual void postAdd() {}
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
-    std::unordered_map<QString, graphics::MultiMaterial> getMaterials();
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
 
 signals:
     void requestRenderUpdate();
-    void addMaterialToRenderItem(graphics::MaterialPointer material, const QString& parentMaterialName);
-    void removeMaterialFromRenderItem(graphics::MaterialPointer material, const QString& parentMaterialName);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -644,7 +641,7 @@ protected:
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
 private:
-    std::unordered_map<QString, graphics::MultiMaterial> _materials;
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
 
 };

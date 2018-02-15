@@ -318,8 +318,8 @@ public:
 
     void scaleToFit();
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 public slots:
     void loadURLFinished(bool success);
@@ -438,7 +438,7 @@ protected:
     render::ItemIDs _modelMeshRenderItemIDs;
     using ShapeInfo = struct { int meshIndex; };
     std::vector<ShapeInfo> _modelMeshRenderItemShapes;
-    std::vector<QString> _modelMeshMaterialNames;
+    std::vector<std::string> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene

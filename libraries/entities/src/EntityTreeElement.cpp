@@ -940,7 +940,6 @@ void EntityTreeElement::addEntityItem(EntityItemPointer entity) {
     });
     bumpChangedContent();
     entity->_element = getThisPointer();
-    entity->postAdd();
 }
 
 // will average a "common reduced LOD view" from the the child elements...

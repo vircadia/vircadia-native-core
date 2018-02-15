@@ -354,17 +354,14 @@ public:
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
 
-    void setPriority(quint16 priority) { _priority = priority; }
-    quint16 getPriority() { return _priority; }
-
     void setTextureTransforms(const Transform& transform);
 
-    const QString& getName() { return _name; }
+    const std::string& getName() { return _name; }
 
-    void setModel(const QString& model) { _model = model; }
+    void setModel(const std::string& model) { _model = model; }
 
 protected:
-    QString _name { "" };
+    std::string _name { "" };
 
 private:
     mutable MaterialKey _key;
@@ -379,24 +376,36 @@ private:
     mutable bool _hasCalculatedTextureInfo { false };
     bool calculateMaterialInfo() const;
 
-    quint16 _priority { 0 };
-
-    QString _model { "hifi_pbr" };
+    std::string _model { "hifi_pbr" };
 
 };
 typedef std::shared_ptr< Material > MaterialPointer;
 
-class MaterialCompare {
+class MaterialLayer {
 public:
-    bool operator() (MaterialPointer left, MaterialPointer right) {
-        return left->getPriority() < right->getPriority();
+    MaterialLayer(MaterialPointer material, quint16 priority) : material(material), priority(priority) {}
+
+    MaterialPointer material { nullptr };
+    quint16 priority { 0 };
+};
+
+class MaterialLayerCompare {
+public:
+    bool operator() (MaterialLayer left, MaterialLayer right) {
+        return left.priority < right.priority;
     }
 };
 
-class MultiMaterial : public std::priority_queue<MaterialPointer, std::vector<MaterialPointer>, MaterialCompare> {
+class MultiMaterial : public std::priority_queue<MaterialLayer, std::vector<MaterialLayer>, MaterialLayerCompare> {
 public:
     bool remove(const MaterialPointer& value) {
-        auto it = std::find(c.begin(), c.end(), value);
+        auto it = c.begin();
+        while (it != c.end()) {
+            if (it->material == value) {
+                break;
+            }
+            it++;
+        }
         if (it != c.end()) {
             c.erase(it);
             std::make_heap(c.begin(), c.end(), comp);
@@ -408,7 +417,5 @@ public:
 };
 
 };
-
-Q_DECLARE_METATYPE(graphics::MaterialPointer)
 
 #endif

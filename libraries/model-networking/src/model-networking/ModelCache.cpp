@@ -619,7 +619,7 @@ NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textur
     graphics::Material(*material._material),
     _textures(MapChannel::NUM_MAP_CHANNELS)
 {
-    _name = material.name;
+    _name = material.name.toStdString();
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         _albedoTransform = material.albedoTexture.transform;

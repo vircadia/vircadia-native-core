@@ -236,12 +236,12 @@ QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array) {
     return newVector;
 }
 
-void Overlay::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void Overlay::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].push(material);
 }
 
-void Overlay::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void Overlay::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
 }

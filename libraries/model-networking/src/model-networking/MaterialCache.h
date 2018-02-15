@@ -24,8 +24,8 @@ public:
 
     typedef struct ParsedMaterials {
         uint version { 1 };
-        std::vector<QString> names;
-        QHash<QString, std::shared_ptr<NetworkMaterial>> networkMaterials;
+        std::vector<std::string> names;
+        std::unordered_map<std::string, std::shared_ptr<NetworkMaterial>> networkMaterials;
 
         void reset() {
             version = 1;
@@ -38,7 +38,7 @@ public:
     ParsedMaterials parsedMaterials;
 
     static ParsedMaterials parseJSONMaterials(const QJsonDocument& materialJSON);
-    static std::pair<QString, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON);
+    static std::pair<std::string, std::shared_ptr<NetworkMaterial>> parseJSONMaterial(const QJsonObject& materialJSON);
 
 private:
     static bool parseJSONColor(const QJsonValue& array, glm::vec3& color, bool& isSRGB);

@@ -696,8 +696,8 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
-    virtual void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {}
-    virtual void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {}
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
 
 signals:
     void displayNameChanged();

@@ -2,9 +2,7 @@ set(TARGET_NAME render)
 AUTOSCRIBE_SHADER_LIB(gpu graphics)
 setup_hifi_library()
 
-# render needs octree only for getAccuracyAngle(float, int), and model-networking for TextureCache
-link_hifi_libraries(shared task ktx gpu graphics octree model-networking)
-include_hifi_library_headers(networking)
-include_hifi_library_headers(image)
+# render needs octree only for getAccuracyAngle(float, int)
+link_hifi_libraries(shared task ktx gpu graphics octree)
 
 target_nsight()

@@ -17,8 +17,6 @@
 using namespace graphics;
 using namespace gpu;
 
-int materialPointerMetaID = qRegisterMetaType<MaterialPointer>("graphics::MaterialPointer");
-
 Material::Material() :
     _key(0),
     _schemaBuffer(),

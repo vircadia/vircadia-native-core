@@ -1593,7 +1593,38 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName) {
+    EntityTree::setAddMaterialToEntityOperator([&](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        // try to find the renderable
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            renderable->addMaterial(material, parentMaterialName);
+        }
+
+        // even if we don't find it, try to find the entity
+        auto entity = getEntities()->getEntity(entityID);
+        if (entity) {
+            entity->addMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+    EntityTree::setRemoveMaterialFromEntityOperator([&](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        // try to find the renderable
+        auto renderable = getEntities()->renderableForEntityId(entityID);
+        if (renderable) {
+            renderable->removeMaterial(material, parentMaterialName);
+        }
+
+        // even if we don't find it, try to find the entity
+        auto entity = getEntities()->getEntity(entityID);
+        if (entity) {
+            entity->removeMaterial(material, parentMaterialName);
+            return true;
+        }
+        return false;
+    });
+
+    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
@@ -1602,7 +1633,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const QString& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
@@ -1612,7 +1643,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
 
-    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName) {
+    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->addMaterial(material, parentMaterialName);
@@ -1620,7 +1651,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const QString& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->removeMaterial(material, parentMaterialName);

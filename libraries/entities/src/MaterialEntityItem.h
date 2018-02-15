@@ -21,6 +21,7 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     MaterialEntityItem(const EntityItemID& entityItemID);
+    ~MaterialEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
 
@@ -55,8 +56,7 @@ public:
     QString getMaterialURL() const { return _materialURL; }
     void setMaterialURL(const QString& materialURLString, bool userDataChanged = false);
 
-    QString getCurrentMaterialName() const { return _currentMaterialName; }
-    void setCurrentMaterialName(const QString& currentMaterialName);
+    void setCurrentMaterialName(const std::string& currentMaterialName);
 
     MaterialMappingMode getMaterialMappingMode() const { return _materialMappingMode; }
     void setMaterialMappingMode(MaterialMappingMode mode) { _materialMappingMode = mode; }
@@ -84,8 +84,6 @@ public:
     void applyMaterial();
     void removeMaterial();
 
-    void postAdd() override;
-    void preDelete() override;
     void postParentFixup() override;
 
 private:
@@ -122,10 +120,9 @@ private:
 
     NetworkMaterialResourcePointer _networkMaterial;
     NetworkMaterialResource::ParsedMaterials _parsedMaterials;
-    QString _currentMaterialName;
+    std::string _currentMaterialName;
 
     bool _retryApply { false };
-    bool _hasBeenAddedToOctree { false };
 
 };
 

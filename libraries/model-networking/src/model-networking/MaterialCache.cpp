@@ -73,22 +73,22 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
         }
     }
 
-    return toReturn;;
+    return toReturn;
 }
 
-std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
-    QString name = "";
+std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON) {
+    std::string name = "";
     std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
     for (auto& key : materialJSON.keys()) {
         if (key == "name") {
             auto nameJSON = materialJSON.value(key);
             if (nameJSON.isString()) {
-                name = nameJSON.toString();
+                name = nameJSON.toString().toStdString();
             }
         } else if (key == "model") {
             auto modelJSON = materialJSON.value(key);
             if (modelJSON.isString()) {
-                material->setModel(modelJSON.toString());
+                material->setModel(modelJSON.toString().toStdString());
             }
         } else if (key == "emissive") {
             glm::vec3 color;
@@ -191,7 +191,7 @@ std::pair<QString, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::pa
             }
         }
     }
-    return std::pair<QString, std::shared_ptr<NetworkMaterial>>(name, material);
+    return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, material);
 }
 
 MaterialCache& MaterialCache::instance() {

@@ -27,6 +27,10 @@ MaterialEntityItem::MaterialEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::Material;
 }
 
+MaterialEntityItem::~MaterialEntityItem() {
+    removeMaterial();
+}
+
 EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
@@ -119,7 +123,7 @@ void MaterialEntityItem::debugDump() const {
     qCDebug(entities) << " MATERIAL EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "                   name:" << _name;
     qCDebug(entities) << "           material url:" << _materialURL;
-    qCDebug(entities) << "  current material name:" << _currentMaterialName;
+    qCDebug(entities) << "  current material name:" << _currentMaterialName.c_str();
     qCDebug(entities) << "  material mapping mode:" << _materialMappingMode;
     qCDebug(entities) << "               priority:" << _priority;
     qCDebug(entities) << "   parent material name:" << _parentMaterialName;
@@ -139,7 +143,7 @@ void MaterialEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 std::shared_ptr<NetworkMaterial> MaterialEntityItem::getMaterial() const {
     auto material = _parsedMaterials.networkMaterials.find(_currentMaterialName);
     if (material != _parsedMaterials.networkMaterials.end()) {
-        return material.value();
+        return material->second;
     } else {
         return nullptr;
     }
@@ -153,7 +157,7 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
 
         if (materialURLString.contains("?")) {
             auto split = materialURLString.split("?");
-            _currentMaterialName = split.last();
+            _currentMaterialName = split.last().toStdString();
         }
 
         if (usingUserData) {
@@ -183,9 +187,8 @@ void MaterialEntityItem::setMaterialURL(const QString& materialURLString, bool u
     }
 }
 
-void MaterialEntityItem::setCurrentMaterialName(const QString& currentMaterialName) {
-    auto material = _parsedMaterials.networkMaterials.find(currentMaterialName);
-    if (material != _parsedMaterials.networkMaterials.end()) {
+void MaterialEntityItem::setCurrentMaterialName(const std::string& currentMaterialName) {
+    if (_parsedMaterials.networkMaterials.find(currentMaterialName) != _parsedMaterials.networkMaterials.end()) {
         _currentMaterialName = currentMaterialName;
     } else if (_parsedMaterials.names.size() > 0) {
         _currentMaterialName = _parsedMaterials.names[0];
@@ -274,20 +277,15 @@ void MaterialEntityItem::removeMaterial() {
     }
 
     // Our parent could be an entity, an avatar, or an overlay
-    EntityTreePointer tree = getTree();
-    if (tree) {
-        EntityItemPointer entity = tree->findEntityByEntityItemID(parentID);
-        if (entity) {
-            entity->removeMaterial(material, getParentMaterialName());
-            return;
-        }
-    }
-
-    if (EntityTree::removeMaterialFromAvatar(parentID, material, getParentMaterialName())) {
+    if (EntityTree::removeMaterialFromEntity(parentID, material, getParentMaterialName().toStdString())) {
         return;
     }
 
-    if (EntityTree::removeMaterialFromOverlay(parentID, material, getParentMaterialName())) {
+    if (EntityTree::removeMaterialFromAvatar(parentID, material, getParentMaterialName().toStdString())) {
+        return;
+    }
+
+    if (EntityTree::removeMaterialFromOverlay(parentID, material, getParentMaterialName().toStdString())) {
         return;
     }
 
@@ -306,42 +304,24 @@ void MaterialEntityItem::applyMaterial() {
     textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
     textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
     material->setTextureTransforms(textureTransform);
-    material->setPriority(getPriority());
+
+    graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, getPriority());
 
     // Our parent could be an entity, an avatar, or an overlay
-    EntityTreePointer tree = getTree();
-    if (tree) {
-        EntityItemPointer entity = tree->findEntityByEntityItemID(parentID);
-        if (entity) {
-            entity->addMaterial(material, getParentMaterialName());
-            return;
-        }
-    }
-
-    if (EntityTree::addMaterialToAvatar(parentID, material, getParentMaterialName())) {
+    if (EntityTree::addMaterialToEntity(parentID, materialLayer, getParentMaterialName().toStdString())) {
         return;
     }
 
-    if (EntityTree::addMaterialToOverlay(parentID, material, getParentMaterialName())) {
+    if (EntityTree::addMaterialToAvatar(parentID, materialLayer, getParentMaterialName().toStdString())) {
+        return;
+    }
+
+    if (EntityTree::addMaterialToOverlay(parentID, materialLayer, getParentMaterialName().toStdString())) {
         return;
     }
 
     // if we've reached this point, we couldn't find our parent, so we need to try again later
     _retryApply = true;
-}
-
-void MaterialEntityItem::postAdd() {
-    // postAdd is called every time we are added to a new octree cell, but we only need to update the material the first time
-    if (!_hasBeenAddedToOctree) {
-        removeMaterial();
-        applyMaterial();
-        _hasBeenAddedToOctree = true;
-    }
-}
-
-void MaterialEntityItem::preDelete() {
-    EntityItem::preDelete();
-    removeMaterial();
 }
 
 void MaterialEntityItem::postParentFixup() {

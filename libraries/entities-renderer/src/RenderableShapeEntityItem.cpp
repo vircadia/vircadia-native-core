@@ -79,7 +79,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
         removeMaterial(_material, "0");
         _material = entity->getMaterial();
-        addMaterial(_material, "0");
+        addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
@@ -127,7 +127,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
-        mat = _materials["0"].top();
+        mat = _materials["0"].top().material;
         if (mat) {
             outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
             if (_procedural.isReady()) {

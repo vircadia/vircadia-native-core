@@ -8,6 +8,8 @@
 
 #include "RenderableMaterialEntityItem.h"
 
+#include "RenderPipelines.h"
+
 using namespace render;
 using namespace render::entities;
 
@@ -250,7 +252,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     drawMaterial->setTextureTransforms(textureTransform);
 
     // bind the material
-    args->_shapePipeline->bindMaterial(drawMaterial, batch, args->_enableTexturing);
+    RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
     args->_details._materialSwitches++;
 
     // Draw!

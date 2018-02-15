@@ -1467,14 +1467,14 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
-void ModelEntityRenderer::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void ModelEntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     Parent::addMaterial(material, parentMaterialName);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
         _model->addMaterial(material, parentMaterialName);
     }
 }
 
-void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     Parent::removeMaterial(material, parentMaterialName);
     if (_model && _model->fetchRenderItemIDs().size() > 0) {
         _model->removeMaterial(material, parentMaterialName);

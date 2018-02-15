@@ -1535,7 +1535,7 @@ std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterial
     if (parentMaterialName.startsWith(MATERIAL_NAME_PREFIX)) {
         parentMaterialName.replace(0, MATERIAL_NAME_PREFIX.size(), QString(""));
         for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
-            if (_modelMeshMaterialNames[i] == parentMaterialName) {
+            if (_modelMeshMaterialNames[i] == parentMaterialName.toStdString()) {
                 toReturn.push_back(i);
             }
         }
@@ -1548,8 +1548,8 @@ std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterial
     return toReturn;
 }
 
-void Model::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(parentMaterialName);
+void Model::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
@@ -1573,8 +1573,8 @@ void Model::addMaterial(graphics::MaterialPointer material, const QString& paren
     AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
-void Model::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(parentMaterialName);
+void Model::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {

@@ -65,11 +65,11 @@ public:
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return _drawMaterials.top() ? _drawMaterials.top()->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return _drawMaterials.top() ? _drawMaterials.top()->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return _drawMaterials.top() ? _drawMaterials.top()->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureSize() : 0; }
+    int getMaterialTextureCount() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureCount() : 0; }
+    bool hasTextureInfo() const { return _drawMaterials.top().material ? _drawMaterials.top().material->hasTextureInfo() : false; }
 
-    void addMaterial(graphics::MaterialPointer material);
+    void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
 protected:

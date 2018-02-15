@@ -18,8 +18,6 @@
 
 #include "Args.h"
 
-#include <graphics/Material.h>
-
 namespace render {
 class Item;
 class ShapePlumber;
@@ -304,8 +302,6 @@ public:
     std::shared_ptr<Locations> locations;
 
     void prepareShapeItem(Args* args, const ShapeKey& key, const Item& shape);
-
-    void bindMaterial(graphics::MaterialPointer material, gpu::Batch& batch, bool enableTextures) const;
 
 protected:
     friend class ShapePlumber;

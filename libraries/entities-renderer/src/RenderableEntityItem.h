@@ -54,6 +54,9 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);
@@ -101,10 +104,6 @@ protected:
         return result;
     }
 
-public slots:
-    virtual void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
-    virtual void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName);
-
 signals:
     void requestRenderUpdate();
 
@@ -133,7 +132,7 @@ protected:
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
 
-    std::unordered_map<QString, graphics::MultiMaterial> _materials;
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
 
 private:

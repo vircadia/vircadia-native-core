@@ -1763,7 +1763,7 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     }
 }
 
-void Avatar::addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].push(material);
     if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
@@ -1771,7 +1771,7 @@ void Avatar::addMaterial(graphics::MaterialPointer material, const QString& pare
     }
 }
 
-void Avatar::removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) {
+void Avatar::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
     if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {

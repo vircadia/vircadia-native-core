@@ -272,8 +272,8 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
-    void addMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
-    void removeMaterial(graphics::MaterialPointer material, const QString& parentMaterialName) override;
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
 public slots:
 
@@ -401,7 +401,7 @@ protected:
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
 
-    std::unordered_map<QString, graphics::MultiMaterial> _materials;
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
 
     void processMaterials();
