@@ -40,8 +40,9 @@ Rectangle {
     property bool isCertified;
     property string itemType;
     property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
-    property var buttonTextNormal: ["REZ IT", "WEAR IT", "SWAP CONTENT SET", "INSTALL IT", "WEAR IT"];
-    property var buttonTextClicked: ["REZZED", "WORN", "SWAPPED", "INSTALLED", "WORN"]
+    property var buttonTextNormal: ["REZ IT", "WEAR IT", "REPLACE CONTENT SET", "INSTALL IT", "WEAR IT"];
+    property var buttonTextClicked: ["REZZED", "WORN", "CONTENT SET REPLACED!", "INSTALLED", "WORN"]
+    property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
@@ -102,7 +103,7 @@ Rectangle {
             } else {
                 root.balanceReceived = true;
                 root.balanceAfterPurchase = result.data.balance - root.itemPrice;
-                root.setBuyText();
+                root.refreshBuyUI();
             }
         }
 
@@ -117,7 +118,7 @@ Rectangle {
                     console.log("WARNING - Received 'Already Owned' status about different Marketplace ID!");
                     root.alreadyOwned = false;
                 }
-                root.setBuyText();
+                root.refreshBuyUI();
             }
         }
     }
@@ -131,11 +132,11 @@ Rectangle {
     onItemHrefChanged: {
         if (root.itemHref.indexOf(".fst") > -1) {
             root.itemType = "avatar";
-        } else if (root.itemHref.endsWith('.json.gz')) {
+        } else if (root.itemHref.indexOf('.json.gz') > -1) {
             root.itemType = "contentSet";
-        } else if (root.itemHref.endsWith('.json')) {
+        } else if (root.itemHref.indexOf('.json') > -1) {
             root.itemType = "entity"; // "wearable" type handled later
-        } else if (root.itemHref.endsWith('.js')) {
+        } else if (root.itemHref.indexOf('.js') > -1) {
             root.itemType = "app";
         } else {
             console.log("WARNING - Item type is UNKNOWN!");
@@ -304,6 +305,31 @@ Rectangle {
         anchors.left: parent.left;
         anchors.right: parent.right;
 
+        Rectangle {
+            id: loading;
+            z: 997;
+            visible: !root.ownershipStatusReceived || !root.balanceReceived;
+            anchors.fill: parent;
+            color: Qt.rgba(0.0, 0.0, 0.0, 0.7);
+
+            // This object is always used in a popup.
+            // This MouseArea is used to prevent a user from being
+            //     able to click on a button/mouseArea underneath the popup/section.
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: true;
+                propagateComposedEvents: false;
+            }
+                
+            AnimatedImage {
+                source: "../common/images/loader.gif"
+                width: 96;
+                height: width;
+                anchors.verticalCenter: parent.verticalCenter;
+                anchors.horizontalCenter: parent.horizontalCenter;
+            }
+        }
+
         RalewayRegular {
             id: confirmPurchaseText;
             anchors.top: parent.top;
@@ -437,7 +463,7 @@ Rectangle {
             Rectangle {
                 id: buyTextContainer;
                 visible: buyText.text !== "";
-                anchors.top: cancelPurchaseButton.bottom;
+                anchors.top: parent.top;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
@@ -480,10 +506,23 @@ Rectangle {
                     // Alignment
                     horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
+                }
+            }
 
-                    onLinkActivated: {
-                        sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
-                    }
+            // "View in My Purchases" button
+            HifiControlsUit.Button {
+                id: viewInMyPurchasesButton;
+                visible: false;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
+                anchors.topMargin: 16;
+                height: 40;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                text: "VIEW THIS ITEM IN MY PURCHASES";
+                onClicked: {
+                    sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
                 }
             }
 
@@ -491,21 +530,38 @@ Rectangle {
             HifiControlsUit.Button {
                 id: buyButton;
                 enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived) || (!root.isCertified);
-                color: hifi.buttons.blue;
+                color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: checkoutActionButtonsContainer.top;
+                anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
+                    (buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top);
                 anchors.topMargin: 16;
                 height: 40;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ? "Confirm Purchase" : "--") : "Get Item");
+                text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ?
+                    (viewInMyPurchasesButton.visible ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item");
                 onClicked: {
                     if (root.isCertified) {
-                        buyButton.enabled = false;
                         if (!root.shouldBuyWithControlledFailure) {
-                            Commerce.buy(itemId, itemPrice);
+                            if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+                                lightboxPopup.titleText = "Purchase Content Set";
+                                lightboxPopup.bodyText = "You will not be able to replace this domain's content with <b>" + root.itemName +
+                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to purchase this content set?";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = "root.visible = false;"
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = "Commerce.buy('" + root.itemId + "', " + root.itemPrice + ");" +
+                                    "root.visible = false; buyButton.enabled = false; loading.visible = true;";
+                                lightboxPopup.visible = true;
+                            } else {
+                                buyButton.enabled = false;
+                                loading.visible = true;
+                                Commerce.buy(root.itemId, root.itemPrice);
+                            }
                         } else {
-                            Commerce.buy(itemId, itemPrice, true);
+                            buyButton.enabled = false;
+                            loading.visible = true;
+                            Commerce.buy(root.itemId, root.itemPrice, true);
                         }
                     } else {
                         if (urlHandler.canHandleUrl(itemHref)) {
@@ -618,8 +674,10 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems || root.itemType === "wearable";
-            buttonGlyph: hifi.glyphs.lightning;
+            enabled: (root.itemType === "entity" && root.canRezCertifiedItems) ||
+                (root.itemType === "contentSet" && Entities.canReplaceContent()) ||
+                root.itemType === "wearable";
+            buttonGlyph: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
             anchors.top: completeText2.bottom;
@@ -631,11 +689,17 @@ Rectangle {
             onClicked: {
                 if (root.itemType === "contentSet") {
                     lightboxPopup.titleText = "Replace Content";
-                    lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain.";
+                    lightboxPopup.bodyText = "Rezzing this content set will replace the existing environment and all of the items in this domain. " +
+                        "If you want to save the state of the content in this domain, create a backup before proceeding.<br><br>" +
+                        "For more information about backing up and restoring content, " +
+                        "<a href='https://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content'>" +
+                        "click here to open info on your desktop browser.";
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = "root.visible = false;"
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "sendToScript({method: 'checkout_rezClicked', itemHref: " + root.itemHref + ", itemType: " + root.itemType + "});";
+                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemId + "', '" + root.itemHref + "');" + 
+                    "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
+                    "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
@@ -919,7 +983,7 @@ Rectangle {
                 itemHref = message.params.itemHref;
                 referrer = message.params.referrer;
                 itemAuthor = message.params.itemAuthor;
-                setBuyText();
+                refreshBuyUI();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
@@ -927,13 +991,13 @@ Rectangle {
     }
     signal sendToScript(var message);
 
-    function setBuyText() {
+    function refreshBuyUI() {
         if (root.isCertified) {
             if (root.ownershipStatusReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.<br>" +
-                        '<font color="' + hifi.colors.blueAccent + '"><a href="#">View the copy you own in My Purchases</a></font></b>';
+                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
+                        viewInMyPurchasesButton.visible = true;
                     } else {
                         buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
                     }
@@ -943,14 +1007,18 @@ Rectangle {
                     buyGlyph.size = 54;
                 } else {
                     if (root.alreadyOwned) {
-                        buyText.text = '<b>You already own this item.<br>Purchasing it will buy another copy.<br><font color="'
-                        + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font></b>';
-                        buyTextContainer.color = "#FFD6AD";
-                        buyTextContainer.border.color = "#FAC07D";
-                        buyGlyph.text = hifi.glyphs.alert;
-                        buyGlyph.size = 46;
+                        viewInMyPurchasesButton.visible = true;
                     } else {
                         buyText.text = "";
+                    }
+
+                    if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
+                        buyText.text = "The domain owner must enable 'Replace Content' permissions for you in this " +
+                            "<b>domain's server settings</b> before you can replace this domain's content with <b>" + root.itemName + "</b>";
+                        buyTextContainer.color = "#FFC3CD";
+                        buyTextContainer.border.color = "#F3808F";
+                        buyGlyph.text = hifi.glyphs.alert;
+                        buyGlyph.size = 54;
                     }
                 }
             } else {
@@ -973,7 +1041,7 @@ Rectangle {
         }
         root.balanceReceived = false;
         root.ownershipStatusReceived = false;
-        Commerce.inventory();
+        Commerce.alreadyOwned(root.itemId);
         Commerce.balance();
     }
 

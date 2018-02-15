@@ -209,6 +209,8 @@ Item {
                         "You do not have 'Replace Content' permissions in this domain. <a href='#replaceContentPermission'>Learn more</a>";
                     } else if (root.itemType === "entity") {
                         "You do not have 'Rez Certified' permissions in this domain. <a href='#rezCertifiedPermission'>Learn more</a>";
+                    } else {
+                        ""
                     }
                 }
                 size: 16;
