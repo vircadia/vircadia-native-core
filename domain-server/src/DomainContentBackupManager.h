@@ -50,7 +50,7 @@ public:
                                int persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
-    void addBackupHandler(BackupHandler handler);
+    void addBackupHandler(BackupHandlerPointer handler);
     std::vector<BackupItemInfo> getAllBackups();
 
     void aboutToFinish();  /// call this to inform the persist thread that the owner is about to finish to support final persist
@@ -82,7 +82,7 @@ protected:
 
 private:
     const QString _backupDirectory;
-    std::vector<BackupHandler> _backupHandlers;
+    std::vector<BackupHandlerPointer> _backupHandlers;
     int _persistInterval { 0 };
 
     int64_t _lastCheck { 0 };

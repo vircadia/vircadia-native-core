@@ -24,6 +24,8 @@
 
 #include <ReceivedMessage.h>
 
+#include "BackupHandler.h"
+
 class QuaZip;
 
 struct AssetServerBackup {
@@ -32,7 +34,7 @@ struct AssetServerBackup {
     bool corruptedBackup;
 };
 
-class BackupSupervisor : public QObject {
+class BackupSupervisor : public QObject, public BackupHandlerInterface {
     Q_OBJECT
 
 public:

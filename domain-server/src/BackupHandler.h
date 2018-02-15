@@ -18,68 +18,22 @@
 
 #include <quazip5/quazip.h>
 
-class BackupHandler {
+class BackupHandlerInterface {
 public:
-    template <typename T>
-    BackupHandler(T* x) : _self(new Model<T>(x)) {}
+    virtual ~BackupHandlerInterface() = default;
 
-    void loadBackup(QuaZip& zip) {
-        _self->loadBackup(zip);
-    }
-    void createBackup(QuaZip& zip) {
-        _self->createBackup(zip);
-    }
-    void recoverBackup(QuaZip& zip) {
-        _self->recoverBackup(zip);
-    }
-    void deleteBackup(QuaZip& zip) {
-        _self->deleteBackup(zip);
-    }
-    void consolidateBackup(QuaZip& zip) {
-        _self->consolidateBackup(zip);
-    }
-
-private:
-    struct Concept {
-        virtual ~Concept() = default;
-
-        virtual void loadBackup(QuaZip& zip) = 0;
-        virtual void createBackup(QuaZip& zip) = 0;
-        virtual void recoverBackup(QuaZip& zip) = 0;
-        virtual void deleteBackup(QuaZip& zip) = 0;
-        virtual void consolidateBackup(QuaZip& zip) = 0;
-    };
-
-    template <typename T>
-    struct Model : Concept {
-        Model(T* x) : data(x) {}
-
-        void loadBackup(QuaZip& zip) override {
-            data->loadBackup(zip);
-        }
-        void createBackup(QuaZip& zip) override {
-            data->createBackup(zip);
-        }
-        void recoverBackup(QuaZip& zip) override {
-            data->recoverBackup(zip);
-        }
-        void deleteBackup(QuaZip& zip) override {
-            data->deleteBackup(zip);
-        }
-        void consolidateBackup(QuaZip& zip) override {
-            data->consolidateBackup(zip);
-        }
-
-        std::unique_ptr<T> data;
-    };
-
-    std::unique_ptr<Concept> _self;
+    virtual void loadBackup(QuaZip& zip) = 0;
+    virtual void createBackup(QuaZip& zip) = 0;
+    virtual void recoverBackup(QuaZip& zip) = 0;
+    virtual void deleteBackup(QuaZip& zip) = 0;
+    virtual void consolidateBackup(QuaZip& zip) = 0;
 };
+using BackupHandlerPointer = std::unique_ptr<BackupHandlerInterface>;
 
 #include <quazip5/quazipfile.h>
 #include <OctreeUtils.h>
 
-class EntitiesBackupHandler {
+class EntitiesBackupHandler : public BackupHandlerInterface {
 public:
     EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
         _entitiesFilePath(entitiesFilePath),
