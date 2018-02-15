@@ -295,18 +295,21 @@ void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule)
                 backupDir.entryInfoList({ AUTOMATIC_BACKUP_PREFIX + rule.extensionFormat + "*.zip" }, QDir::Files | QDir::NoSymLinks, QDir::Name);
 
         int backupsToDelete = matchingFiles.length() - rule.maxBackupVersions;
-        qCDebug(domain_server) << "Found" << matchingFiles.length() << "backups, deleting " << backupsToDelete << "backup(s)";
-        for (int i = 0; i < backupsToDelete; ++i) {
-            auto fileInfo = matchingFiles[i].absoluteFilePath();
-            QFile backupFile(fileInfo);
-            if (backupFile.remove()) {
-                qCDebug(domain_server) << "Removed old backup: " << backupFile.fileName();
-            } else {
-                qCDebug(domain_server) << "Failed to remove old backup: " << backupFile.fileName();
+        if (backupsToDelete <= 0) {
+            qCDebug(domain_server) << "Found" << matchingFiles.length() << "backups, no backups need to be deleted";
+        } else {
+            qCDebug(domain_server) << "Found" << matchingFiles.length() << "backups, deleting " << backupsToDelete << "backup(s)";
+            for (int i = 0; i < backupsToDelete; ++i) {
+                auto fileInfo = matchingFiles[i].absoluteFilePath();
+                QFile backupFile(fileInfo);
+                if (backupFile.remove()) {
+                    qCDebug(domain_server) << "Removed old backup: " << backupFile.fileName();
+                } else {
+                    qCDebug(domain_server) << "Failed to remove old backup: " << backupFile.fileName();
+                }
             }
+            qCDebug(domain_server) << "Done removing old backup versions";
         }
-
-        qCDebug(domain_server) << "Done removing old backup versions";
     } else {
         qCDebug(domain_server) << "Rolling backups for rule" << rule.name << "."
                                 << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
