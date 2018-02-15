@@ -156,6 +156,12 @@ function loaded() {
           var urlParts = url.split('/');
           var filename = urlParts[urlParts.length - 1];
 
+          var IMAGE_MODEL_NAME = 'default-image-model.fbx';
+
+          if (filename === IMAGE_MODEL_NAME) {
+              type = "Image";
+          }
+
           if (entities[id] === undefined) {
               entityList.add([{
                   id: id, name: name, type: type, url: filename, locked: locked, visible: visible,

@@ -1244,7 +1244,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-        if (!leftArmEnabled && elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (!leftArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1291,7 +1291,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-        if (!rightArmEnabled && elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (!rightArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1585,14 +1585,13 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 }
 
 void Rig::initAnimGraph(const QUrl& url) {
-    if (_animGraphURL != url || (!_animNode && !_animLoading)) {
+    if (_animGraphURL != url || !_animNode) {
         _animGraphURL = url;
 
         _animNode.reset();
 
         // load the anim graph
         _animLoader.reset(new AnimNodeLoader(url));
-        _animLoading = true;
         std::weak_ptr<AnimSkeleton> weakSkeletonPtr = _animSkeleton;
         connect(_animLoader.get(), &AnimNodeLoader::success, [this, weakSkeletonPtr](AnimNode::Pointer nodeIn) {
             _animNode = nodeIn;
@@ -1617,7 +1616,6 @@ void Rig::initAnimGraph(const QUrl& url) {
                 auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
-            _animLoading = false;
 
             emit onLoadComplete();
         });

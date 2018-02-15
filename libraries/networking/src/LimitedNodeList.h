@@ -124,6 +124,10 @@ public:
 
     PacketReceiver& getPacketReceiver() { return *_packetReceiver; }
 
+    virtual bool isDomainServer() const { return true; }
+    virtual QUuid getDomainUUID() const { assert(false); return QUuid(); }
+    virtual HifiSockAddr getDomainSockAddr() const { assert(false); return HifiSockAddr(); }
+
     // use sendUnreliablePacket to send an unrelaible packet (that you do not need to move)
     // either to a node (via its active socket) or to a manual sockaddr
     qint64 sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode);

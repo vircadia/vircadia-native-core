@@ -19,6 +19,7 @@ var ICON_FOR_TYPE = {
     ParticleEffect: "&#xe004;",
     Model: "&#xe008;",
     Web: "q",
+    Image: "&#xe02a;",
     Text: "l",
     Light: "p",
     Zone: "o",
@@ -133,6 +134,12 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
     };
 }
 
+function createImageURLUpdateFunction(propertyName) {
+    return function () {
+        var newTextures = JSON.stringify({ "tex.picture": this.value });
+        updateProperty(propertyName, newTextures);
+    };
+}
 
 function createEmitTextPropertyUpdateFunction(propertyName) {
     return function() {
@@ -621,6 +628,8 @@ function loaded() {
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
+        var elImageURL = document.getElementById("property-image-url");
+
         var elWebSourceURL = document.getElementById("property-web-source-url");
         var elWebDPI = document.getElementById("property-web-dpi");
 
@@ -779,7 +788,6 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
@@ -787,6 +795,14 @@ function loaded() {
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
+
+                        // HTML workaround since image is not yet a separate entity type
+                        var IMAGE_MODEL_NAME = 'default-image-model.fbx';
+                        var urlParts = properties.modelURL.split('/')
+                        var propsFilename = urlParts[urlParts.length - 1];
+                        if (properties.type === "Model" && propsFilename === IMAGE_MODEL_NAME) {
+                            properties.type = "Image";
+                        }
 
                         // Create class name for css ruleset filtering
                         elPropertiesList.className = properties.type + 'Menu';
@@ -985,6 +1001,9 @@ function loaded() {
                         } else if (properties.type === "Web") {
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
+                        } else if (properties.type === "Image") {
+                            var imageLink = JSON.parse(properties.textures)["tex.picture"];
+                            elImageURL.value = imageLink;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
@@ -1352,6 +1371,8 @@ function loaded() {
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
+        elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
+
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
         elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));
 
@@ -1697,12 +1718,12 @@ function loaded() {
         var isCollapsed = element.dataset.collapsed !== "true";
         element.dataset.collapsed = isCollapsed ? "true" : false;
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-        element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
+        element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
     };
 
     for (var collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
         var curCollapsibleElement = elCollapsible[collapseIndex];
-        curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
+        curCollapsibleElement.getElementsByTagName('span')[0].addEventListener("click", toggleCollapsedEvent, true);
     }
 
 
@@ -1724,7 +1745,7 @@ function loaded() {
     }
 
     // Dropdowns
-    // For each dropdown the following replacement is created in place of the oriringal dropdown...
+    // For each dropdown the following replacement is created in place of the original dropdown...
     // Structure created:
     //  <dl dropped="true/false">
     //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>

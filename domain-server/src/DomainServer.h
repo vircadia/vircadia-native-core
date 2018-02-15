@@ -18,6 +18,7 @@
 #include <QtCore/QQueue>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QStringList>
+#include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QAbstractNativeEventFilter>
 
@@ -25,6 +26,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
+#include "BackupSupervisor.h"
 #include "DomainGatekeeper.h"
 #include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"
@@ -251,6 +253,8 @@ private:
     bool _sendICEServerAddressToMetaverseAPIRedo { false };
 
     QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
+
+    QThread _assetClientThread;
 };
 
 

@@ -40,7 +40,7 @@ AssetClient::AssetClient() {
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListener(PacketType::AssetMappingOperationReply, this, "handleAssetMappingOperationReply");
@@ -308,7 +308,7 @@ void AssetClient::handleAssetMappingOperationReply(QSharedPointer<ReceivedMessag
 }
 
 bool haveAssetServer() {
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (!assetServer) {
@@ -402,7 +402,7 @@ MessageID AssetClient::getAsset(const QString& hash, AssetUtils::DataOffset star
         return false;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -435,7 +435,7 @@ MessageID AssetClient::getAsset(const QString& hash, AssetUtils::DataOffset star
 MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -635,7 +635,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
 MessageID AssetClient::getAssetMapping(const AssetUtils::AssetPath& path, MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -662,7 +662,7 @@ MessageID AssetClient::getAssetMapping(const AssetUtils::AssetPath& path, Mappin
 MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -685,7 +685,7 @@ MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
 }
 
 MessageID AssetClient::deleteAssetMappings(const AssetUtils::AssetPathList& paths, MappingOperationCallback callback) {
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -716,7 +716,7 @@ MessageID AssetClient::deleteAssetMappings(const AssetUtils::AssetPathList& path
 MessageID AssetClient::setAssetMapping(const QString& path, const AssetUtils::AssetHash& hash, MappingOperationCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -742,7 +742,7 @@ MessageID AssetClient::setAssetMapping(const QString& path, const AssetUtils::As
 }
 
 MessageID AssetClient::renameAssetMapping(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath, MappingOperationCallback callback) {
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -769,7 +769,7 @@ MessageID AssetClient::renameAssetMapping(const AssetUtils::AssetPath& oldPath, 
 }
 
 MessageID AssetClient::setBakingEnabled(const AssetUtils::AssetPathList& paths, bool enabled, MappingOperationCallback callback) {
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
@@ -859,7 +859,7 @@ bool AssetClient::cancelUploadAssetRequest(MessageID id) {
 MessageID AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback callback) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {

@@ -9,6 +9,7 @@
 #define hifi_gpu_GLShared_h
 
 #include <gl/Config.h>
+#include <gl/GLHelpers.h>
 #include <gpu/Forward.h>
 #include <gpu/Format.h>
 #include <gpu/Context.h>
@@ -114,9 +115,6 @@ static const GLenum ELEMENT_TYPE_TO_GL[gpu::NUM_TYPES] = {
     GL_INT_2_10_10_10_REV,
 };
 
-bool checkGLError(const char* name = nullptr);
-bool checkGLErrorDebug(const char* name = nullptr);
-
 class GLBackend;
 
 template <typename GPUType>
@@ -141,10 +139,7 @@ class GLShader;
 class GLTexture;
 struct ShaderObject;
 
-
 } } // namespace gpu::gl 
-
-#define CHECK_GL_ERROR() gpu::gl::checkGLErrorDebug(__FUNCTION__)
 
 #endif
 
