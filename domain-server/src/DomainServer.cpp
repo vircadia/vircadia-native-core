@@ -1941,7 +1941,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
-    const QString URI_ENTITY_FILE_UPLOAD = "/content/upload";
+    const QString URI_CONTENT_UPLOAD = "/content/upload";
     const QString URI_RESTART = "/restart";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
@@ -2251,7 +2251,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200);
 
             return true;
-        } else if (url.path() == URI_ENTITY_FILE_UPLOAD) {
+        } else if (url.path() == URI_CONTENT_UPLOAD) {
             // this is an entity file upload, ask the HTTPConnection to parse the data
             QList<FormData> formData = connection->parseFormData();
 

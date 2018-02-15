@@ -107,7 +107,11 @@ $(document).ready(function(){
 
   function reloadLatestBackups() {
     // make a GET request to get backup information to populate the table
-    $.get('/api/backups', function(data) {
+    $.ajax({
+      url: '/api/backups',
+      cache: false
+    }).done(function(data) {
+
       // split the returned data into manual and automatic manual backups
       var splitBackups = _.partition(data.backups, function(value, index) {
         return value.isManualBackup;
@@ -126,7 +130,7 @@ $(document).ready(function(){
           + "<ul class='dropdown-menu dropdown-menu-right'>"
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='#'>Download</a></li><li class='divider'></li>"
-          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='/api/backups/" + backups.id + "' target='_blank'>Delete</a></li></ul></div></td>";
+          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='/api/backups/" + backup.id + "' target='_blank'>Delete</a></li></ul></div></td>";
       }
 
       var automaticRows = "";
@@ -243,7 +247,7 @@ $(document).ready(function(){
         }).always(function(){
           // reload the list of content archives in case we deleted a backup
           // or it's no longer an available backup for some other reason
-          reloadContentArchives();
+          reloadLatestBackups();
         });
       }
     )
@@ -295,14 +299,14 @@ $(document).ready(function(){
       // post the provided archive name to ask the server to kick off a manual backup
       $.ajax({
         type: 'POST',
-        url: '/api/backup',
+        url: '/api/backups',
         data: {
           'name': inputValue
         }
       }).done(function(data) {
         // since we successfully setup a new content archive, reload the table of archives
         // which should show that this archive is pending creation
-        reloadContentArchives();
+        reloadLatestBackups();
       }).fail(function(jqXHR, textStatus, errorThrown) {
 
       });
