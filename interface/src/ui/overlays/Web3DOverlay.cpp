@@ -134,7 +134,11 @@ void Web3DOverlay::destroyWebSurface() {
 
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
+    auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+    if (offscreenCache) {
+        offscreenCache->release(QML, _webSurface);
+    }
     _webSurface.reset();
 }
 

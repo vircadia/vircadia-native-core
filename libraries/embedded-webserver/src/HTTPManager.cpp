@@ -79,7 +79,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             QHash<QByteArray, QByteArray> redirectHeader;
             redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
             
-            connection->respond(HTTPConnection::StatusCode301, "", HTTPConnection::DefaultContentType, redirectHeader);
+            connection->respond(HTTPConnection::StatusCode302, "", HTTPConnection::DefaultContentType, redirectHeader);
         }
         
         // if the last thing is a trailing slash then we want to look for index file

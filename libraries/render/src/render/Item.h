@@ -78,6 +78,8 @@ public:
         INVISIBLE,        // Visible or not in the scene?
         SHADOW_CASTER,    // Item cast shadows
         LAYERED,          // Item belongs to one of the layers different from the default layer
+        META_CULL_GROUP,  // As a meta item, the culling of my sub items is based solely on my bounding box and my visibility in the view
+        SUB_META_CULLED,  // As a sub item of a meta render item set as cull group, need to be set to my culling to the meta render it
 
         FIRST_TAG_BIT, // 8 Tags available to organize the items and filter them against
         LAST_TAG_BIT = FIRST_TAG_BIT + NUM_TAGS,
@@ -122,6 +124,8 @@ public:
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
+        Builder& withMetaCullGroup() { _flags.set(META_CULL_GROUP); return (*this); }
+        Builder& withSubMetaCulled() { _flags.set(SUB_META_CULLED); return (*this); }
 
         Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
         // Set ALL the tags in one call using the Tag bits
@@ -159,6 +163,12 @@ public:
     bool isLayered() const { return _flags[LAYERED]; }
     bool isSpatial() const { return !isLayered(); }
 
+    bool isMetaCullGroup() const { return _flags[META_CULL_GROUP]; }
+    void setMetaCullGroup(bool cullGroup) { (cullGroup ? _flags.set(META_CULL_GROUP) : _flags.reset(META_CULL_GROUP)); }
+
+    bool isSubMetaCulled() const { return _flags[SUB_META_CULLED]; }
+    void setSubMetaCulled(bool metaCulled) { (metaCulled ? _flags.set(SUB_META_CULLED) : _flags.reset(SUB_META_CULLED)); }
+
     bool isTag(Tag tag) const { return _flags[FIRST_TAG_BIT + tag]; }
     uint8_t getTagBits() const { return ((_flags.to_ulong() & KEY_TAG_BITS_MASK) >> FIRST_TAG_BIT); }
 
@@ -193,6 +203,7 @@ public:
         ItemKey::Flags _mask{ 0 };
     public:
         Builder() {}
+        Builder(const ItemFilter& srcFilter) : _value(srcFilter._value), _mask(srcFilter._mask) {}
 
         ItemFilter build() const { return ItemFilter(_value, _mask); }
 
@@ -220,6 +231,12 @@ public:
 
         Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
+
+        Builder& withoutMetaCullGroup() { _value.reset(ItemKey::META_CULL_GROUP); _mask.set(ItemKey::META_CULL_GROUP); return (*this); }
+        Builder& withMetaCullGroup() { _value.set(ItemKey::META_CULL_GROUP);  _mask.set(ItemKey::META_CULL_GROUP); return (*this); }
+
+        Builder& withoutSubMetaCulled() { _value.reset(ItemKey::SUB_META_CULLED); _mask.set(ItemKey::SUB_META_CULLED); return (*this); }
+        Builder& withSubMetaCulled() { _value.set(ItemKey::SUB_META_CULLED);  _mask.set(ItemKey::SUB_META_CULLED); return (*this); }
 
         Builder& withoutTag(ItemKey::Tag tagIndex)    { _value.reset(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
         Builder& withTag(ItemKey::Tag tagIndex)       { _value.set(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
@@ -420,6 +437,7 @@ public:
 
     // Meta Type Interface
     uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
+    uint32_t fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const;
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }

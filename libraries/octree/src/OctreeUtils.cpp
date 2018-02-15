@@ -64,8 +64,14 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
     return voxelSizeScale / powf(2.0f, renderLevel);
 }
 
-float getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) {
+float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) {
     const float maxScale = (float)TREE_SCALE;
     float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
     return atan(maxScale / visibleDistanceAtMaxScale);
+}
+
+float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust) {
+    // Smallest visible element is 1cm
+    const float smallestSize = 0.01f;
+    return (smallestSize * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT) / boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale);
 }

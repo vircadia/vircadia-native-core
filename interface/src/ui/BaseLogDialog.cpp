@@ -29,8 +29,8 @@ const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;
 const int SEARCH_TEXT_WIDTH = 240;
 const int TIME_STAMP_LENGTH = 16;
 const int FONT_WEIGHT = 75;
-const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
-const QColor BOLD_COLOR = QColor("#445c8c");
+const QColor HIGHLIGHT_COLOR = QColor("#00B4EF");
+const QColor BOLD_COLOR = QColor("#1080B8");
 const QString BOLD_PATTERN = "\\[\\d*\\/.*:\\d*:\\d*\\]";
 
 BaseLogDialog::BaseLogDialog(QWidget* parent) : QDialog(parent, Qt::Window) {
@@ -182,6 +182,7 @@ void BaseLogDialog::updateSelection() {
 Highlighter::Highlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
     boldFormat.setFontWeight(FONT_WEIGHT);
     boldFormat.setForeground(BOLD_COLOR);
+    keywordFormat.setFontWeight(FONT_WEIGHT);
     keywordFormat.setForeground(HIGHLIGHT_COLOR);
 }
 

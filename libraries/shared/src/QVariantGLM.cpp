@@ -66,7 +66,7 @@ void qListtoRgbColor(const QVariant& q, rgbColor& returnValue) {
 
 glm::vec3 qMapToGlmVec3(const QVariant& q) {
     QVariantMap qMap = q.toMap();
-    if (qMap.contains("x") && qMap.contains("y") && qMap.contains("y")) {
+    if (qMap.contains("x") && qMap.contains("y") && qMap.contains("z")) {
         return glm::vec3(
                 qMap["x"].toFloat(),
                 qMap["y"].toFloat(),

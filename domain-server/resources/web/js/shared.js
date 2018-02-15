@@ -1,6 +1,8 @@
-var Settings = {
-  showAdvanced: false,
-  ADVANCED_CLASS: 'advanced-setting',
+if (typeof Settings === "undefined") {
+  Settings = {};
+}
+
+Object.assign(Settings, {
   DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
@@ -41,7 +43,7 @@ var Settings = {
   FORM_ID: 'settings-form',
   INVALID_ROW_CLASS: 'invalid-input',
   DATA_ROW_INDEX: 'data-row-index'
-};
+});
 
 var URLs = {
   // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
@@ -95,7 +97,13 @@ var DOMAIN_ID_TYPE_FULL = 2;
 var DOMAIN_ID_TYPE_UNKNOWN = 3;
 
 function domainIDIsSet() {
-  return Settings.data.values.metaverse.id.length > 0;
+  if (typeof Settings.data.values.metaverse !== 'undefined' &&
+    typeof Settings.data.values.metaverse.id !== 'undefined') {
+
+    return Settings.data.values.metaverse.id.length > 0;
+  } else {
+    return false;
+  }
 }
 
 function getCurrentDomainIDType() {
@@ -156,11 +164,12 @@ function getDomainFromAPI(callback) {
   if (callback === undefined) {
     callback = function() {};
   }
-
-  var domainID = Settings.data.values.metaverse.id;
-  if (domainID === null || domainID === undefined || domainID === '') {
+  
+  if (!domainIDIsSet()) {
     callback({ status: 'fail' });
     return null;
+  } else {
+    var domainID = Settings.data.values.metaverse.id;
   }
 
   pendingDomainRequest = $.ajax({

@@ -38,6 +38,8 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
 static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
+static const float ANIM_GRAPH_LOAD_PRIORITY = 10.0f;
+
 // called after children have been loaded
 // returns node on success, nullptr on failure.
 static bool processDoNothing(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) { return true; }
@@ -653,6 +655,7 @@ AnimNodeLoader::AnimNodeLoader(const QUrl& url) :
 {
     _resource = QSharedPointer<Resource>::create(url);
     _resource->setSelf(_resource);
+    _resource->setLoadPriority(this, ANIM_GRAPH_LOAD_PRIORITY);
     connect(_resource.data(), &Resource::loaded, this, &AnimNodeLoader::onRequestDone);
     connect(_resource.data(), &Resource::failed, this, &AnimNodeLoader::onRequestError);
     _resource->ensureLoading();

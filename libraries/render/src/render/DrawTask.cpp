@@ -22,8 +22,8 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include <drawItemBounds_vert.h>
-#include <drawItemBounds_frag.h>
+#include "drawItemBounds_vert.h"
+#include "drawItemBounds_frag.h"
 
 using namespace render;
 
@@ -155,8 +155,8 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
 
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
-        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        auto vs = drawItemBounds_vert::getShader();
+        auto ps = drawItemBounds_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
