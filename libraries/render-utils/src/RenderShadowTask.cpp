@@ -121,8 +121,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     assert(lightStage);
 
 	// Exit if current keylight does not cast shadows
-    bool castShadows = lightStage->getCurrentKeyLight()->getCastShadows();
-    if (!castShadows) {
+    if (!lightStage->getCurrentKeyLight() || !lightStage->getCurrentKeyLight()->getCastShadows()) {
         return;
     }
 
