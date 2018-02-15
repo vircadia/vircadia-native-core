@@ -69,7 +69,7 @@ void Light::setCastShadows(const bool castShadows) {
     _castShadows = castShadows;
 }
 
-const bool Light::getCastShadows() const {
+bool Light::getCastShadows() const {
     return _castShadows;
 }
 

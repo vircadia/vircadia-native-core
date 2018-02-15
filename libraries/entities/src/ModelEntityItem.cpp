@@ -619,7 +619,6 @@ void ModelEntityItem::setColor(const rgbColor& value) {
     });
 }
 
-#pragma optimize("", off)
 void ModelEntityItem::setColor(const xColor& value) {
     withWriteLock([&] {
         _color[RED_INDEX] = value.red;

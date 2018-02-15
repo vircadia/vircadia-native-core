@@ -104,7 +104,7 @@ public:
     const Vec3& getDirection() const;
 
     void setCastShadows(const bool castShadows);
-    const bool getCastShadows() const;
+    bool getCastShadows() const;
 
     void setOrientation(const Quat& orientation);
     const glm::quat& getOrientation() const { return _transform.getRotation(); }
