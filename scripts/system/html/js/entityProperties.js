@@ -834,10 +834,11 @@ function loaded() {
 
                         // HTML workaround since image is not yet a separate entity type
                         var IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        if (properties.modelURL) {
-                            var urlParts = properties.modelURL.split('/')
+                        if (properties.type === "Model") {
+                            var urlParts = properties.modelURL.split('/');
                             var propsFilename = urlParts[urlParts.length - 1];
-                            if (properties.type === "Model" && propsFilename === IMAGE_MODEL_NAME) {
+
+                            if (propsFilename === IMAGE_MODEL_NAME) {
                                 properties.type = "Image";
                             }
                         }
