@@ -40,6 +40,7 @@ public:
     bool operationInProgress() const { return _operationInProgress; }
 
 private:
+    void setupRefreshTimer();
     void refreshMappings();
 
     void refreshAssetsInBackups();
