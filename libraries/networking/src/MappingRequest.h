@@ -120,17 +120,15 @@ private:
 class GetAllMappingsRequest : public MappingRequest {
     Q_OBJECT
 public:
-    GetAllMappingsRequest();
-
-    AssetUtils::AssetMapping getMappings() const { return _mappings;  }
+    AssetUtils::AssetMappings getMappings() const { return _mappings;  }
 
 signals:
     void finished(GetAllMappingsRequest* thisRequest);
 
 private:
     virtual void doStart() override;
-    
-    AssetUtils::AssetMapping _mappings;
+
+    AssetUtils::AssetMappings _mappings;
 };
 
 class SetBakingEnabledRequest : public MappingRequest {

@@ -391,7 +391,7 @@ Item {
                             anchors.topMargin: 15;
                             width: 118;
                             height: paintedHeight;
-                            wrapMode: Text.WordWrap;
+                            wrapMode: Text.Wrap;
                             // Alignment
                             horizontalAlignment: Text.AlignRight;
                         }
@@ -408,7 +408,7 @@ Item {
                             height: paintedHeight;
                             color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
                             linkColor: hifi.colors.blueAccent;
-                            wrapMode: Text.WordWrap;
+                            wrapMode: Text.Wrap;
                             font.strikeout: model.status === "invalidated";
 
                             onLinkActivated: {
