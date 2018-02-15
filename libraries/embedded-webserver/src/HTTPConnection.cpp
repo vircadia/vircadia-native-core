@@ -183,9 +183,9 @@ void HTTPConnection::respond(const char* code, std::unique_ptr<QIODevice> device
     if (_responseDevice->atEnd()) {
         _socket->disconnectFromHost();
     } else {
-        constexpr size_t HTTP_RESPONSE_CHUNK_SIZE = 1024 * 10;
         int totalToBeWritten = csize;
         connect(_socket, &QTcpSocket::bytesWritten, this, [this, totalToBeWritten](size_t bytes) mutable {
+            constexpr size_t HTTP_RESPONSE_CHUNK_SIZE = 1024 * 10;
             if (!_responseDevice->atEnd()) {
                 totalToBeWritten -= _socket->write(_responseDevice->read(HTTP_RESPONSE_CHUNK_SIZE));
                 if (_responseDevice->atEnd()) {
