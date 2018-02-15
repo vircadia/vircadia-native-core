@@ -83,7 +83,7 @@ protected:
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
 private:
-    QString _backupDirectory;
+    const QString _backupDirectory;
     std::vector<BackupHandler> _backupHandlers;
     int _persistInterval { 0 };
     bool _initialLoadComplete { false };

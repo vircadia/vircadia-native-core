@@ -370,25 +370,12 @@ void DomainContentBackupManager::backup() {
             qCDebug(domain_server) << "Time since last backup [" << secondsSinceLastBackup << "] for rule [" << rule.name
                                     << "] exceeds backup interval [" << rule.intervalSeconds << "] doing backup now...";
 
-<<<<<<< HEAD
-            auto timestamp = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
-            auto fileName = "backup-" + rule.extensionFormat + timestamp + ".zip";
-            QuaZip zip(_backupDirectory + "/" + fileName);
-            if (!zip.open(QuaZip::mdAdd)) {
-                qDebug() << "Could not open backup archive:" << zip.getZipName();
-                qDebug() << "    ERROR:" << zip.getZipError();
-            }
-
-            for (auto& handler : _backupHandlers) {
-                handler.createBackup(zip);
-=======
             bool success;
             QString path;
             std::tie(success, path) =  createBackup(AUTOMATIC_BACKUP_PREFIX, rule.extensionFormat);
             if (!success) {
                 qCWarning(domain_server) << "Failed to create backup for" << rule.name << "at" << path;
                 continue;
->>>>>>> dd86471a42... Add backup DS APIs
             }
 
             qDebug() << "Created backup: " << path;
