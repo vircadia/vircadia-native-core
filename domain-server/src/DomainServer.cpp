@@ -307,10 +307,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _contentManager->initialize(true);
 
-    qDebug() << "Existing backups:";
-    for (auto& backup : _contentManager->getAllBackups()) {
-        qDebug() << "  Backup: " << backup.name << backup.createdAt;
-    }
+    connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
 }
 
 void DomainServer::parseCommandLine() {
@@ -2131,24 +2128,13 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_BACKUPS) {
-            QJsonObject rootJSON;
-            QJsonArray backupsJSON;
+            auto deferred = makePromise("getAllBackupInformation");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
 
-            auto backups = _contentManager->getAllBackups();
-
-            for (const auto& backup : backups) {
-                QJsonObject obj;
-                obj["id"] = backup.id;
-                obj["name"] = backup.name;
-                obj["createdAtMillis"] = backup.createdAt.toMSecsSinceEpoch();
-                obj["isManualBackup"] = backup.isManualBackup;
-                backupsJSON.push_back(obj);
-            }
-
-            rootJSON["backups"] = backupsJSON;
-            QJsonDocument docJSON(rootJSON);
-
-            connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->getAllBackupInformation(deferred);
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
