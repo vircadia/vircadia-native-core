@@ -8,6 +8,14 @@
    };
 </script>
 
+<div class="col-md-10 col-md-offset-1 col-xs-12">
+   <div class="row">
+      <div class="col-xs-12">
+         <div class="alert alert-info">Your domain content settings are now available in <a href='/content/'>Content</a></div>
+      </div>
+   </div>
+</div>
+
 <!--#include virtual="base-settings.html"-->
 
 <!--#include virtual="footer.html"-->
