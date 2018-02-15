@@ -2150,6 +2150,28 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
             return true;
+        } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
+            auto deferred = makePromise("consolidateBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                if (success) {
+                    auto path = result["backupFilePath"].toString();
+                    auto file { std::unique_ptr<QFile>(new QFile(path)) };
+                    if (file->open(QIODevice::ReadOnly)) {
+                        connection->respond(HTTPConnection::StatusCode200, std::move(file));
+                    } else {
+                        qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
+                        connection->respond(HTTPConnection::StatusCode500, "Error opening backup");
+                    }
+                } else {
+                    connection->respond(HTTPConnection::StatusCode400);
+                }
+            });
+            _contentManager->consolidateBackup(deferred, id);
+
+            return true;
         } else if (url.path() == URI_RESTART) {
             connection->respond(HTTPConnection::StatusCode200);
             restart();

@@ -62,6 +62,7 @@ public slots:
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
+    void consolidateBackup(MiniPromise::Promise promise, QString fileName);
 
 signals:
     void loadCompleted();
@@ -73,7 +74,6 @@ protected:
 
     void load();
     void backup();
-    void consolidate(QString fileName);
     void removeOldBackupVersions(const BackupRule& rule);
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
     int64_t getMostRecentBackupTimeInSecs(const QString& format);

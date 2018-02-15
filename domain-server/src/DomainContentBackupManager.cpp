@@ -383,32 +383,60 @@ void DomainContentBackupManager::backup() {
     }
 }
 
-void DomainContentBackupManager::consolidate(QString fileName) {
-    QDir backupDir { _backupDirectory };
-    if (backupDir.exists()) {
-        auto filePath = backupDir.absoluteFilePath(fileName);
-
-        auto copyFilePath = QDir::tempPath() + "/" + fileName;
-
-        auto copySuccess = QFile::copy(filePath, copyFilePath);
-        if (!copySuccess) {
-            qCritical() << "Failed to create full backup.";
-            return;
-        }
-
-        QuaZip zip(copyFilePath);
-        if (!zip.open(QuaZip::mdAdd)) {
-            qCritical() << "Could not open backup archive:" << filePath;
-            qCritical() << "    ERROR:" << zip.getZipError();
-            return;
-        }
-
-        for (auto& handler : _backupHandlers) {
-            handler->consolidateBackup(zip);
-        }
-
-        zip.close();
+void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise, QString fileName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "consolidateBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(const QString&, fileName));
+        return;
     }
+
+    QDir backupDir { _backupDirectory };
+    if (!backupDir.exists()) {
+        qCritical() << "Backup directory does not exist, bailing consolidation of backup";
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    auto filePath = backupDir.absoluteFilePath(fileName);
+
+    auto copyFilePath = QDir::tempPath() + "/" + fileName;
+
+    {
+        QFile copyFile(copyFilePath);
+        copyFile.remove();
+        copyFile.close();
+    }
+    auto copySuccess = QFile::copy(filePath, copyFilePath);
+    if (!copySuccess) {
+        qCritical() << "Failed to create copy of backup.";
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    QuaZip zip(copyFilePath);
+    if (!zip.open(QuaZip::mdAdd)) {
+        qCritical() << "Could not open backup archive:" << filePath;
+        qCritical() << "    ERROR:" << zip.getZipError();
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    for (auto& handler : _backupHandlers) {
+        handler->consolidateBackup(zip);
+    }
+
+    zip.close();
+
+    if (zip.getZipError() != UNZ_OK) {
+        qCritical() << "Failed to consolidate backup: " << zip.getZipError();
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    promise->resolve({
+        { "success", true },
+        { "backupFilePath", copyFilePath }
+    });
 }
 
 void DomainContentBackupManager::createManualBackup(MiniPromise::Promise promise, const QString& name) {
