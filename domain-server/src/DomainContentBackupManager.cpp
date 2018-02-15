@@ -35,10 +35,10 @@
 const int DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL = 1000 * 30;  // every 30 seconds
 
 // Backup format looks like: daily_backup-TIMESTAMP.zip
-const static QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
-const static QString DATETIME_FORMAT_RE("\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}");
-static const QString AUTOMATIC_BACKUP_PREFIX{ "autobackup-" };
-static const QString MANUAL_BACKUP_PREFIX{ "backup-" };
+static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
+static const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
+static const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
+static const QString MANUAL_BACKUP_PREFIX { "backup-" };
 void DomainContentBackupManager::addBackupHandler(BackupHandler handler) {
     _backupHandlers.push_back(std::move(handler));
 }
@@ -131,14 +131,6 @@ void DomainContentBackupManager::setup() {
 }
 
 bool DomainContentBackupManager::process() {
-    if (!_initialLoadComplete) {
-        QDir backupDir { _backupDirectory };
-        if (!backupDir.exists()) {
-            backupDir.mkpath(".");
-        }
-        _initialLoadComplete = true;
-    }
-
     if (isStillRunning()) {
         constexpr int64_t MSECS_TO_USECS = 1000;
         constexpr int64_t USECS_TO_SLEEP = 10 * MSECS_TO_USECS;  // every 10ms
@@ -219,12 +211,9 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
         return;
     }
 
-    bool success { false };
     QDir backupDir { _backupDirectory };
     QFile backupFile { backupDir.filePath(backupName) };
-    if (backupFile.remove()) {
-        success = true;
-    }
+    auto success = backupFile.remove();
     promise->resolve({
         { "success", success }
     });
@@ -237,7 +226,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
         return;
     }
 
-    qDebug() << "Recoving from" << backupName;
+    qDebug() << "Recovering from" << backupName;
 
     bool success { false };
     QDir backupDir { _backupDirectory };

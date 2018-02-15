@@ -79,14 +79,14 @@ private:
 #include <quazip5/quazipfile.h>
 class EntitiesBackupHandler {
 public:
-    EntitiesBackupHandler(QString entitiesFilePath) : _entitiesFilePath(entitiesFilePath) {}
+    EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath)
+        : _entitiesFilePath(entitiesFilePath)
+        , _entitiesReplacementFilePath {}
 
     void loadBackup(QuaZip& zip) {}
 
     // Create a skeleton backup
     void createBackup(QuaZip& zip) {
-        qDebug() << "Creating a backup from handler";
-
         QFile entitiesFile { _entitiesFilePath };
 
         if (entitiesFile.open(QIODevice::ReadOnly)) {
@@ -95,7 +95,7 @@ public:
             zipFile.write(entitiesFile.readAll());
             zipFile.close();
             if (zipFile.getZipError() != UNZ_OK) {
-                qDebug() << "Failed to zip models.json.gz: " << zipFile.getZipError();
+                qCritical() << "Failed to zip models.json.gz: " << zipFile.getZipError();
             }
         }
     }
@@ -108,12 +108,12 @@ public:
         }
         QuaZipFile zipFile { &zip };
         if (!zipFile.open(QIODevice::ReadOnly)) {
-            qWarning() << "Failed to open models.json.gz in backup";
+            qCritical() << "Failed to open models.json.gz in backup";
             return;
         }
         auto data = zipFile.readAll();
 
-        QFile entitiesFile { _entitiesFilePath };
+        QFile entitiesFile { _entitiesReplacementFilePath };
 
         if (entitiesFile.open(QIODevice::WriteOnly)) {
             entitiesFile.write(data);
@@ -122,7 +122,7 @@ public:
         zipFile.close();
 
         if (zipFile.getZipError() != UNZ_OK) {
-            qDebug() << "Failed to zip models.json.gz: " << zipFile.getZipError();
+            qCritical() << "Failed to zip models.json.gz: " << zipFile.getZipError();
         }
     }
 
@@ -136,6 +136,7 @@ public:
 
 private:
     QString _entitiesFilePath;
+    QString _entitiesReplacementFilePath;
 };
 
 #endif /* hifi_BackupHandler_h */

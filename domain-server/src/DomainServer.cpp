@@ -296,7 +296,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     maybeHandleReplacementEntityFile();
 
     _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
-    _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath()));
+    _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath()));
     _contentManager->addBackupHandler(new BackupSupervisor(getContentBackupDir()));
     _contentManager->initialize(true);
 
@@ -1936,7 +1936,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_BACKUPS = "/api/backups";
     const QString URI_API_BACKUPS_ID = "/api/backups/";
     const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
-    //const QString URI_API_BACKUPS_CREATE = "/api/backups";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -2127,9 +2126,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             auto deferred = makePromise("recoverFromBackup");
             deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
                 QJsonObject rootJSON;
-                rootJSON["success"] = result["success"].toBool();
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
                 QJsonDocument docJSON(rootJSON);
-                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->recoverFromBackup(deferred, id);
             return true;
@@ -2258,7 +2259,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
 
         } else if (url.path() == URI_API_BACKUPS) {
-            qDebug() << "GOt request to create a backup:";
             auto params = connection->parseUrlEncodedForm();
             auto it = params.find("name");
             if (it == params.end()) {
@@ -2374,9 +2374,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             auto deferred = makePromise("deleteBackup");
             deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
                 QJsonObject rootJSON;
-                rootJSON["success"] = result["success"].toBool();
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
                 QJsonDocument docJSON(rootJSON);
-                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
             });
             _contentManager->deleteBackup(deferred, id);
 

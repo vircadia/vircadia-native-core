@@ -287,7 +287,6 @@ void HTTPConnection::readContent() {
     if (_socket->bytesAvailable() < size) {
         return;
     }
-    qDebug() << "Reading content";
     _socket->read(_requestContent.data(), size);
     _socket->disconnect(this, SLOT(readContent()));
 

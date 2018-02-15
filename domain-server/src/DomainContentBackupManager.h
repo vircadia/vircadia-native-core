@@ -51,7 +51,6 @@ public:
                                bool debugTimestampNow = false);
 
     void addBackupHandler(BackupHandler handler);
-    bool isInitialLoadComplete() const { return _initialLoadComplete; }
     std::vector<BackupItemInfo> getAllBackups();
 
     void aboutToFinish();  /// call this to inform the persist thread that the owner is about to finish to support final persist
@@ -86,7 +85,6 @@ private:
     const QString _backupDirectory;
     std::vector<BackupHandler> _backupHandlers;
     int _persistInterval { 0 };
-    bool _initialLoadComplete { false };
 
     int64_t _lastCheck { 0 };
     std::vector<BackupRule> _backupRules;
