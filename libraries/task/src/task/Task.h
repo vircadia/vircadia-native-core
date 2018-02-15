@@ -27,6 +27,21 @@ template <class JC> class JobT;
 template <class JC> class TaskT;
 class JobNoIO {};
 
+class TaskFlow {
+public:
+    TaskFlow() = default;
+    ~TaskFlow() = default;
+
+    // called after each job 
+    void reset();
+
+    void abortTask();
+    bool doAbortTask() const;
+
+protected:
+    bool _doAbortTask{ false };
+};
+
 class JobContext {
 public:
     JobContext(const QLoggingCategory& category);
@@ -35,15 +50,10 @@ public:
     std::shared_ptr<JobConfig> jobConfig { nullptr };
     const QLoggingCategory& profileCategory;
 
-    // control flow commands
-    void resetTaskFlow();
-    void abortTask();
-
-    // Check command flow
-    bool doAbortTask() const;
+    // Task flow control
+    TaskFlow taskFlow{};
 
 protected:
-    bool _doAbortTask{ false };
 };
 using JobContextPointer = std::shared_ptr<JobContext>;
 
@@ -316,8 +326,8 @@ public:
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : TaskConcept::_jobs) {
                     job.run(jobContext);
-                    if (jobContext->doAbortTask()) {
-                        jobContext->resetTaskFlow();
+                    if (jobContext->taskFlow.doAbortTask()) {
+                        jobContext->taskFlow.reset();
                         return;
                     }
                 }

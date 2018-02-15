@@ -455,7 +455,7 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
     }
 
     if (numLayers == 0) {
-        renderContext->abortTask();
+        renderContext->taskFlow.abortTask();
     }
 }
 

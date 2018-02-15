@@ -20,15 +20,15 @@ JobContext::JobContext(const QLoggingCategory& category) :
 JobContext::~JobContext() {
 }
 
-void JobContext::resetTaskFlow() {
+void TaskFlow::reset() {
     _doAbortTask = false;
 }
 
-void JobContext::abortTask() {
+void TaskFlow::abortTask() {
     _doAbortTask = true;
 }
 
-bool JobContext::doAbortTask() const {
+bool TaskFlow::doAbortTask() const {
     return _doAbortTask;
 }
 
