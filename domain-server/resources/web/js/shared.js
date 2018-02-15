@@ -98,6 +98,17 @@ var DOMAIN_ID_TYPE_TEMP = 1;
 var DOMAIN_ID_TYPE_FULL = 2;
 var DOMAIN_ID_TYPE_UNKNOWN = 3;
 
+function swalAreYouSure(text, confirmButtonText, callback) {
+  swal({
+    title: "Are you sure?",
+    text: text,
+    type: "warning",
+    showCancelButton: true,
+    confirmButtonText: confirmButtonText,
+    closeOnConfirm: false
+  }, callback);
+}
+
 function domainIDIsSet() {
   if (typeof Settings.data.values.metaverse !== 'undefined' &&
     typeof Settings.data.values.metaverse.id !== 'undefined') {

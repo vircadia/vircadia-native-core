@@ -7,7 +7,7 @@ $(document).ready(function(){
     // construct the HTML needed for the settings backup panel
     var html = "<div class='form-group'>";
 
-    html += "<span class='help-block'>Upload a Content Archive (.zip) or entity file (.json, .json.gz) to replace the content of this domain.";
+    html += "<span class='help-block'>Upload a content archive (.zip) or entity file (.json, .json.gz) to replace the content of this domain.";
     html += "<br/>Note: Your domain content will be replaced by the content you upload, but the existing backup files of your domain's content will not immediately be changed.</span>";
 
     html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
@@ -33,39 +33,36 @@ $(document).ready(function(){
   $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
     e.preventDefault();
 
-    swal({
-      title: "Are you sure?",
-      text: "Your domain content will be replaced by the uploaded Content Archive or entity file",
-      type: "warning",
-      showCancelButton: true,
-      closeOnConfirm: false
-    },
-    function () {
-      var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+    swalAreYouSure(
+      "Your domain content will be replaced by the uploaded Content Archive or entity file",
+      "Restore content",
+      function() {
+        var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
 
-      var fileFormData = new FormData();
-      fileFormData.append('restore-file', files[0]);
+        var fileFormData = new FormData();
+        fileFormData.append('restore-file', files[0]);
 
-      showSpinnerAlert("Restoring Content");
+        showSpinnerAlert("Restoring Content");
 
-      $.ajax({
-        url: '/content/upload',
-        type: 'POST',
-        cache: false,
-        processData: false,
-        contentType: false,
-        data: fileFormData
-      }).done(function(data, textStatus, jqXHR) {
-        swal.close();
-        showRestartModal();
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-        showErrorMessage(
-          "Error",
-          "There was a problem restoring domain content.\n"
-          + "Please ensure that the content archive or entity file is valid and try again."
-        );
-      });
-    });
+        $.ajax({
+          url: '/content/upload',
+          type: 'POST',
+          cache: false,
+          processData: false,
+          contentType: false,
+          data: fileFormData
+        }).done(function(data, textStatus, jqXHR) {
+          swal.close();
+          showRestartModal();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain content.\n"
+            + "Please ensure that the content archive or entity file is valid and try again."
+          );
+        });
+      }
+    );
   });
 
   var GENERATE_ARCHIVE_BUTTON_ID = 'generate-archive-button';
@@ -104,6 +101,10 @@ $(document).ready(function(){
     $('#' + Settings.CONTENT_ARCHIVES_PANEL_ID + ' .panel-body').html(html);
   }
 
+  var BACKUP_RESTORE_LINK_CLASS = 'restore-backup';
+  var BACKUP_DOWNLOAD_LINK_CLASS = 'download-backup';
+  var BACKUP_DELETE_LINK_CLASS = 'delete-backup';
+
   function reloadLatestBackups() {
     // make a GET request to get backup information to populate the table
     $.get('/api/backups', function(data) {
@@ -117,12 +118,15 @@ $(document).ready(function(){
 
       // populate the backups tables with the backups
       function createBackupTableRow(backup) {
-        return "<tr><td data-value='" + backup.name.toLowerCase() + "'>" + backup.name + "</td><td data-dateformat='lll'>"
+        return "<tr data-backup-id='" + backup.id + "' data-backup-name='" + backup.name + "'>"
+          + "<td data-value='" + backup.name.toLowerCase() + "'>" + backup.name + "</td><td data-dateformat='lll'>"
           + moment(backup.createdAtMillis).format('lll')
           + "</td><td class='text-right'>"
           + "<div class='dropdown'><div class='dropdown-toggle' data-toggle='dropdown' aria-expanded='false'><span class='glyphicon glyphicon-option-vertical'></span></div>"
-          + "<ul class='dropdown-menu dropdown-menu-right'><li><a class='update-server' href='#'>Restore from here</a></li><li class='divider'></li><li><a class='restart-server' href='#'>Download</a></li><li class='divider'></li><li><a class='' href='#'>Delete</a></li></ul></div>"
-          + "</td>";
+          + "<ul class='dropdown-menu dropdown-menu-right'>"
+          + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
+          + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='#'>Download</a></li><li class='divider'></li>"
+          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#'>Delete</a></li></ul></div></td>";
       }
 
       var automaticRows = "";
@@ -172,6 +176,79 @@ $(document).ready(function(){
     });
   }
 
+  // handle click in table to restore a given content backup
+  $('body').on('click', '.' + BACKUP_RESTORE_LINK_CLASS, function(e){
+    // stop the default behaviour
+    e.preventDefault();
+
+    // grab the name of this backup so we can show it in alerts
+    var backupName = $(this).closest('tr').attr('data-backup-name');
+
+    // grab the ID of this backup in case we need to send a POST
+    var backupID = $(this).closest('tr').attr('data-backup-id');
+
+    // make sure the user knows what is about to happen
+    swalAreYouSure(
+      "Your domain content will be replaced by the content archive " + backupName,
+      "Restore content",
+      function() {
+        // show a spinner while we send off our request
+        showSpinnerAlert("Restoring Content Archive " +  backupName);
+
+        // setup an AJAX POST to request content restore
+        $.post('/api/backups/recover/' + backupID).done(function(data, textStatus, jqXHR) {
+          swal.close();
+          showRestartModal();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain content.\n"
+            + "If the problem persists, the content archive may be corrupted."
+          );
+        });
+      }
+    )
+  });
+
+  // handle click in table to delete a given content backup
+  $('body').on('click', '.' + BACKUP_DELETE_LINK_CLASS, function(e){
+    // stop the default behaviour
+    e.preventDefault();
+
+    // grab the name of this backup so we can show it in alerts
+    var backupName = $(this).closest('tr').attr('data-backup-name');
+
+    // grab the ID of this backup in case we need to send the DELETE request
+    var backupID = $(this).closest('tr').attr('data-backup-id');
+
+    // make sure the user knows what is about to happen
+    swalAreYouSure(
+      "The content archive " + backupName + " will be deleted and will no longer be available for restore or download from this page.",
+      "Delete content archive",
+      function() {
+        // show a spinner while we send off our request
+        showSpinnerAlert("Deleting content archive " +  backupName);
+
+        // setup an AJAX DELETE to request content archive delete
+        $.ajax({
+          url: '/api/backups/' + backupID,
+          type: 'DELETE'
+        }).done(function(data, textStatus, jqXHR) {
+          swal.close();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was an unexpected error deleting the content archive"
+          );
+        }).always(function(){
+          // reload the list of content archives in case we deleted a backup
+          // or it's no longer an available backup for some other reason
+          reloadContentArchives();
+        });
+      }
+    )
+  });
+
   // handle click on automatic content archive settings link
   $('body').on('click', '#' + AUTO_ARCHIVES_SETTINGS_LINK_ID, function(e) {
     if (Settings.pendingChanges > 0) {
@@ -181,18 +258,14 @@ $(document).ready(function(){
 
       var settingsLink = $(this).attr('href');
 
-      swal({
-        title: "Are you sure?",
-        text: "You have pending changes to content settings that have not been saved. They will be lost if you leave the page to manage automatic content archive intervals.",
-        type: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Proceed without Saving",
-        closeOnConfirm: true
-      },
-      function () {
-        // user wants to drop their changes, switch pages
-        window.location =  settingsLink;
-      });
+      swalAreYouSure(
+        "You have pending changes to content settings that have not been saved. They will be lost if you leave the page to manage automatic content archive intervals.",
+        "Proceed without Saving",
+        function() {
+          // user wants to drop their changes, switch pages
+          window.location =  settingsLink;
+        }
+      );
     }
   });
 

@@ -94,20 +94,17 @@ $(document).ready(function(){
       var password = formJSON["security"]["http_password"];
 
       if ((password == sha256_digest("")) && (username == undefined || (username && username.length != 0))) {
-        swal({
-          title: "Are you sure?",
-          text: "You have entered a blank password with a non-blank username. Are you sure you want to require a blank password?",
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#5cb85c",
-          confirmButtonText: "Yes!",
-          closeOnConfirm: true
-        },
-        function () {
+        swalAreYouSure(
+          "You have entered a blank password with a non-blank username. Are you sure you want to require a blank password?",
+          "Use blank password",
+          function() {
+            swal.close();
+            
             formJSON["security"]["http_password"] = "";
 
             postSettings(formJSON);
-        });
+          }
+        );
 
         return;
       }
@@ -1033,41 +1030,38 @@ $(document).ready(function(){
   $('body').on('click', '#' + RESTORE_SETTINGS_UPLOAD_ID, function(e){
     e.preventDefault();
 
-    swal({
-      title: "Are you sure?",
-      text: "Your domain settings will be replaced by the uploaded settings",
-      type: "warning",
-      showCancelButton: true,
-      closeOnConfirm: false
-    },
-    function() {
-      var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
+    swalAreYouSure(
+      "Your domain settings will be replaced by the uploaded settings",
+      "Restore settings",
+      function() {
+        var files = $('#' + RESTORE_SETTINGS_FILE_ID).prop('files');
 
-      var fileFormData = new FormData();
-      fileFormData.append('restore-file', files[0]);
+        var fileFormData = new FormData();
+        fileFormData.append('restore-file', files[0]);
 
-      showSpinnerAlert("Restoring Settings");
+        showSpinnerAlert("Restoring Settings");
 
-      $.ajax({
-        url: '/settings/restore',
-        type: 'POST',
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        data: fileFormData
-      }).done(function(data, textStatus, jqXHR) {
-        swal.close();
-        showRestartModal();
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-        showErrorMessage(
-          "Error",
-          "There was a problem restoring domain settings.\n"
-          + "Please ensure that your current domain settings are valid and try again."
-        );
+        $.ajax({
+          url: '/settings/restore',
+          type: 'POST',
+          processData: false,
+          contentType: false,
+          dataType: 'json',
+          data: fileFormData
+        }).done(function(data, textStatus, jqXHR) {
+          swal.close();
+          showRestartModal();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain settings.\n"
+            + "Please ensure that your current domain settings are valid and try again."
+          );
 
-        reloadSettings();
-      });
-    });
+          reloadSettings();
+        });
+      }
+    );
   });
 
   $('body').on('change', '#' + RESTORE_SETTINGS_FILE_ID, function() {
