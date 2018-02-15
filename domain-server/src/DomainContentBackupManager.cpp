@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainContentBackupManager.h"
+
 #include <chrono>
 #include <thread>
 
@@ -25,13 +27,15 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <quazip5/quazip.h>
+
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <shared/QtHelpers.h>
 
 #include "DomainServer.h"
-#include "DomainContentBackupManager.h"
+
 const int DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL = 1000 * 30;  // every 30 seconds
 
 // Backup format looks like: daily_backup-TIMESTAMP.zip
@@ -39,7 +43,8 @@ static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
 static const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
 static const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
 static const QString MANUAL_BACKUP_PREFIX { "backup-" };
-void DomainContentBackupManager::addBackupHandler(BackupHandler handler) {
+
+void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) {
     _backupHandlers.push_back(std::move(handler));
 }
 
@@ -238,7 +243,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
             success = false;
         } else {
             for (auto& handler : _backupHandlers) {
-                handler.recoverBackup(zip);
+                handler->recoverBackup(zip);
             }
             
             qDebug() << "Successfully recovered from " << backupName;
@@ -339,7 +344,7 @@ void DomainContentBackupManager::load() {
             }
 
             for (auto& handler : _backupHandlers) {
-                handler.loadBackup(zip);
+                handler->loadBackup(zip);
             }
 
             zip.close();
@@ -402,7 +407,7 @@ void DomainContentBackupManager::consolidate(QString fileName) {
         }
 
         for (auto& handler : _backupHandlers) {
-            handler.consolidateBackup(zip);
+            handler->consolidateBackup(zip);
         }
 
         zip.close();
@@ -437,7 +442,7 @@ std::pair<bool, QString> DomainContentBackupManager::createBackup(const QString&
     }
 
     for (auto& handler : _backupHandlers) {
-        handler.createBackup(zip);
+        handler->createBackup(zip);
     }
 
     zip.close();
