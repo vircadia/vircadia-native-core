@@ -1506,6 +1506,15 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
+            // Only models and shapes (including cubes and spheres) can cast shadows
+            if (properties.getType() == EntityTypes::Model ||
+                properties.getType() == EntityTypes::Shape ||
+                properties.getType() == EntityTypes::Box ||
+                properties.getType() == EntityTypes::Sphere) {
+                
+                APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
+            }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());

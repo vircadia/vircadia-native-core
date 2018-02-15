@@ -983,11 +983,11 @@ function loaded() {
                                                                      properties.color.green + "," + properties.color.blue + ")";
                         }
 
-                        //if (properties.type === "Model" ||
-                        //    properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+                        if (properties.type === "Model" ||
+                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
 
-                            elCanCastShadow = properties.canCastShadow;
-                        //}
+                            elCanCastShadow.checked = properties.canCastShadow;
+                        }
 
                         if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
