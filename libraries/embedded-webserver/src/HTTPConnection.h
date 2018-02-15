@@ -26,6 +26,8 @@
 #include <QPair>
 #include <QUrl>
 
+#include <memory>
+
 class QTcpSocket;
 class HTTPManager;
 class MaskFilter;
