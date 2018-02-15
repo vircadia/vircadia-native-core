@@ -1111,7 +1111,7 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1460,10 +1460,23 @@ void MyAvatar::clearJointsData() {
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _skeletonModelChangeCount++;
+    int skeletonModelChangeCount = _skeletonModelChangeCount;
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
     _headBoneSet.clear();
     _cauterizationNeedsUpdate = true;
+
+    std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
+    *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
+       if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+           initHeadBones();
+           _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+           _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+           initAnimGraph();
+       }
+       QObject::disconnect(*skeletonConnection);
+    });
     saveAvatarUrl();
     emit skeletonChanged();
 
@@ -1808,7 +1821,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
-        model->setVisibleInScene(visible, scene, render::ItemKey::TAG_BITS_NONE);
+        model->setVisibleInScene(visible, scene, render::ItemKey::TAG_BITS_NONE, true);
     }
 }
 
@@ -1872,9 +1885,7 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
 
     _currentAnimGraphUrl.set(url);
     _skeletonModel->getRig().initAnimGraph(url);
-
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
 void MyAvatar::initAnimGraph() {
@@ -1889,28 +1900,24 @@ void MyAvatar::initAnimGraph() {
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
-
-    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
-    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
 void MyAvatar::destroyAnimGraph() {
     _skeletonModel->getRig().destroyAnimGraph();
 }
 
+void MyAvatar::animGraphLoaded() {
+    _bodySensorMatrix = deriveBodyFromHMDSensor(); // Based on current cached HMD position/rotation..
+    updateSensorToWorldMatrix(); // Uses updated position/orientation and _bodySensorMatrix changes
+    _isAnimatingScale = true;
+    _cauterizationNeedsUpdate = true;
+    disconnect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
+}
+
 void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     Avatar::postUpdate(deltaTime, scene);
-
-    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode()) {
-        initHeadBones();
-        _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-        _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-        initAnimGraph();
-        _isAnimatingScale = true;
-        _cauterizationNeedsUpdate = true;
-    }
-
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
 
         auto animSkeleton = _skeletonModel->getRig().getAnimSkeleton();
@@ -2008,7 +2015,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
                 _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
-                                                        render::ItemKey::TAG_BITS_NONE);
+                                                        render::ItemKey::TAG_BITS_NONE, true);
             }
         }
     }

@@ -24,9 +24,6 @@
 #include "RegisteredMetaTypes.h"
 
 struct AssetMeta {
-    AssetMeta() {
-    }
-
     int bakeVersion { 0 };
     bool failedLastBake { false };
     QString lastBakeErrors;
@@ -55,14 +52,15 @@ private slots:
     void sendStatsPacket() override;
 
 private:
-    using Mappings = std::unordered_map<QString, QString>;
+    void handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleGetAllMappingOperation(NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleDeleteMappingsOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleRenameMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
+    void handleSetBakingEnabledOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
 
-    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleAssetServerBackup(ReceivedMessage& message, NLPacketList& replyPacket);
+    void handleAssetServerRestore(ReceivedMessage& message, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     bool loadMappingsFromFile();
@@ -106,7 +104,7 @@ private:
     /// Remove baked paths when the original asset is deleteds
     void removeBakedPathsForDeletedAsset(AssetUtils::AssetHash originalAssetHash);
 
-    Mappings _fileMappings;
+    AssetUtils::Mappings _fileMappings;
 
     QDir _resourcesDirectory;
     QDir _filesDirectory;
