@@ -2365,12 +2365,14 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
 
 void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
-    if (tellPhysics) {
-        _flags |= Simulation::DIRTY_TRANSFORM;
-        EntityTreePointer tree = getTree();
-        if (tree) {
+    EntityTreePointer tree = getTree();
+    if (tree) {
+        if (tellPhysics) {
+            _flags |= Simulation::DIRTY_TRANSFORM;
             tree->entityChanged(getThisPointer());
         }
+        glm::vec4 sphere(getWorldPosition(), 0.5f * glm::length(getScaledDimensions()));
+        tree->queueUpdateSpaceProxy(_spaceIndex, sphere);
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
     somethingChangedNotification();

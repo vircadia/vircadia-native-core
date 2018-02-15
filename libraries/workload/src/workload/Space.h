@@ -60,8 +60,8 @@ public:
     Space() {}
 
     int32_t createProxy(const Sphere& sphere);
-    void deleteProxy(int32_t proxyId);
-    void updateProxy(int32_t proxyId, const Sphere& sphere);
+    void deleteProxies(const std::vector<int32_t>& deadIndices);
+    void updateProxies(const std::vector<std::pair<int32_t, Sphere> >& changedProxies);
     void setViews(const std::vector<View>& views);
 
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
@@ -69,6 +69,9 @@ public:
     void categorizeAndGetChanges(std::vector<Change>& changes);
 
 private:
+    void deleteProxy(int32_t proxyId);
+    void updateProxy(int32_t proxyId, const Sphere& sphere);
+
     std::vector<Proxy> _proxies;
     std::vector<View> _views;
     std::vector<int32_t> _freeIndices;

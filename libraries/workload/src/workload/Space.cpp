@@ -34,38 +34,26 @@ int32_t Space::createProxy(const Space::Sphere& newSphere) {
     }
 }
 
-void Space::deleteProxy(int32_t proxyId) {
-    if (proxyId >= (int32_t)_proxies.size() || _proxies.empty()) {
-        return;
-    }
-    if (proxyId == (int32_t)_proxies.size() - 1) {
-        // remove proxy on back
-        _proxies.pop_back();
-        if (!_freeIndices.empty()) {
-            // remove any freeIndices on back
-            std::sort(_freeIndices.begin(), _freeIndices.end());
-            while(!_freeIndices.empty() && _freeIndices.back() == (int32_t)_proxies.size() - 1) {
-                _freeIndices.pop_back();
-                _proxies.pop_back();
-            }
-        }
-    } else {
-        _proxies[proxyId].region = Space::REGION_INVALID;
-        _freeIndices.push_back(proxyId);
+void Space::deleteProxies(const std::vector<int32_t>& deadIndices) {
+    for (uint32_t i = 0; i < deadIndices.size(); ++i) {
+        deleteProxy(deadIndices[i]);
     }
 }
 
-void Space::updateProxy(int32_t proxyId, const Space::Sphere& newSphere) {
-    if (proxyId >= (int32_t)_proxies.size()) {
-        return;
+void Space::updateProxies(const std::vector<std::pair<int32_t, Sphere> >& changedProxies) {
+    for (uint32_t i = 0; i < changedProxies.size(); ++i) {
+        int32_t proxyId = changedProxies[i].first;
+        if (proxyId > -1 && proxyId < (int32_t)_proxies.size()) {
+            updateProxy(changedProxies[i].first, changedProxies[i].second);
+        }
     }
-    _proxies[proxyId].sphere = newSphere;
 }
 
 void Space::setViews(const std::vector<Space::View>& views) {
     _views = views;
 }
 
+// TODO?: move this to an algorithm/job?
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     uint32_t numProxies = (uint32_t)_proxies.size();
     uint32_t numViews = (uint32_t)_views.size();
@@ -89,6 +77,34 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
                 changes.emplace_back(Space::Change((int32_t)i, proxy.region, proxy.prevRegion));
             }
         }
+    }
+}
+
+// private
+void Space::deleteProxy(int32_t proxyId) {
+    if (proxyId > -1 && proxyId < (int32_t)_proxies.size()) {
+        if (proxyId == (int32_t)_proxies.size() - 1) {
+            // remove proxy on back
+            _proxies.pop_back();
+            if (!_freeIndices.empty()) {
+                // remove any freeIndices on back
+                std::sort(_freeIndices.begin(), _freeIndices.end());
+                while(!_freeIndices.empty() && _freeIndices.back() == (int32_t)_proxies.size() - 1) {
+                    _freeIndices.pop_back();
+                    _proxies.pop_back();
+                }
+            }
+        } else {
+            _proxies[proxyId].region = Space::REGION_INVALID;
+            _freeIndices.push_back(proxyId);
+        }
+    }
+}
+
+// private
+void Space::updateProxy(int32_t proxyId, const Space::Sphere& newSphere) {
+    if (proxyId > -1 && proxyId < (int32_t)_proxies.size()) {
+        _proxies[proxyId].sphere = newSphere;
     }
 }
 

@@ -18,7 +18,7 @@ link_hifi_libraries(
     render render-utils 
     graphics fbx model-networking 
     entities entities-renderer audio avatars script-engine 
-    physics procedural midi qml ui
+    physics procedural midi qml ui workload
     ${PLATFORM_GL_BACKEND}
 )
 

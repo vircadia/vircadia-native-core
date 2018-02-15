@@ -477,6 +477,8 @@ public:
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
 
+    void setSpaceIndex(int32_t index) { assert(_spaceIndex == -1); _spaceIndex = index; }
+    int32_t getSpaceIndex() const { return _spaceIndex; }
 signals:
     void requestRenderUpdate();
 
@@ -630,6 +632,7 @@ protected:
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
+    int32_t _spaceIndex { -1 }; // index to proxy in workload::Space
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 };
 

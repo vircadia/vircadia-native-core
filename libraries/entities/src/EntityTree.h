@@ -17,6 +17,7 @@
 
 #include <Octree.h>
 #include <SpatialParentFinder.h>
+#include <workload/Space.h>
 
 class EntityTree;
 using EntityTreePointer = std::shared_ptr<EntityTree>;
@@ -280,6 +281,8 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
+    void queueUpdateSpaceProxy(int32_t index, const glm::vec4& sphere);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void deletingEntityPointer(EntityItem* entityID);
@@ -387,6 +390,9 @@ private:
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
+    workload::Space _space;
+    std::vector< std::pair<int32_t, glm::vec4> > _spaceUpdates;
+    std::vector< int32_t > _spaceDeletes;
 };
 
 #endif // hifi_EntityTree_h

@@ -27,6 +27,7 @@
 #include "VrMenu.h"
 
 #include "ui/Logging.h"
+#include <iostream> // adebug
 
 #include <PointerManager.h>
 
@@ -619,7 +620,13 @@ class KeyboardFocusHack : public QObject {
 public:
     KeyboardFocusHack() {
         Q_ASSERT(_mainWindow);
+        std::cout << "adebug  _mainWindow = " << (void*)(_mainWindow) << std::endl; // adebug
         QTimer::singleShot(200, [=] {
+            _mainWindow = findMainWindow();
+            std::cout << "adebug  again _mainWindow = " << (void*)(_mainWindow) << std::endl; // adebug
+            std::cout << "adebug  _mainWindow->x() = " << _mainWindow->x() << std::endl;
+            std::cout << "  adebug  _mainWindow->y() = " << _mainWindow->y() << std::endl;
+            std::cout << std::endl;     // adebug
             _hackWindow = new QWindow();
             _hackWindow->setFlags(Qt::FramelessWindowHint);
             _hackWindow->setGeometry(_mainWindow->x(), _mainWindow->y(), 10, 10);
@@ -647,10 +654,11 @@ private:
                 break;
             }
         }
+        std::cout << "adebug  findMainWindow()  result = " << (void*)(result) << std::endl;     // adebug
         return result;
     }
 
-    QWindow* const _mainWindow { findMainWindow() };
+    QWindow* _mainWindow { findMainWindow() };
     QWindow* _hackWindow { nullptr };
 };
 
