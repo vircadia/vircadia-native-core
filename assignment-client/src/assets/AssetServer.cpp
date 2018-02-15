@@ -257,12 +257,10 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool.setMaxThreadCount(TASK_POOL_THREAD_COUNT);
     _bakingTaskPool.setMaxThreadCount(1);
 
+    // Queue all requests until the Asset Server is fully setup
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
-    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
-    
+    packetReceiver.registerListenerForTypes({ PacketType::AssetGet, PacketType::AssetGetInfo, PacketType::AssetUpload, PacketType::AssetMappingOperation }, this, "queueRequests");
+
 #ifdef Q_OS_WIN
     updateConsumedCores();
     QTimer* timer = new QTimer(this);
@@ -417,6 +415,43 @@ void AssetServer::completeSetup() {
 
     PathUtils::removeTemporaryApplicationDirs();
     PathUtils::removeTemporaryApplicationDirs("Oven");
+
+    // We're fully setup, remove the request queueing and replay all requests
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.unregisterListener(this);
+    packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
+    packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
+    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
+
+    replayRequests();
+}
+
+void AssetServer::queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode) {
+    _queuedRequests.push_back({ packet, senderNode });
+}
+
+void AssetServer::replayRequests() {
+    for (const auto& request : _queuedRequests) {
+        switch (request.first->getType()) {
+            case PacketType::AssetGet:
+                handleAssetGet(request.first, request.second);
+                break;
+            case PacketType::AssetGetInfo:
+                handleAssetGetInfo(request.first, request.second);
+                break;
+            case PacketType::AssetUpload:
+                handleAssetUpload(request.first, request.second);
+                break;
+            case PacketType::AssetMappingOperation:
+                handleAssetMappingOperation(request.first, request.second);
+                break;
+            default:
+                qWarning() << "Unknown queued request type:" << request.first->getType();
+                break;
+        }
+    }
+    _queuedRequests.clear();
 }
 
 void AssetServer::cleanupUnmappedFiles() {

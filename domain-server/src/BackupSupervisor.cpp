@@ -46,9 +46,8 @@ BackupSupervisor::BackupSupervisor(const QString& backupDirectory) :
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     QObject::connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, [this](SharedNodePointer node) {
         if (node->getType() == NodeType::AssetServer) {
-            // Give the Asset Server some time to bootup.
-            static constexpr int ASSET_SERVER_BOOTUP_MARGIN = 1 * 1000;
-            _mappingsRefreshTimer.start(ASSET_SERVER_BOOTUP_MARGIN);
+            // run immediately for the first time.
+            _mappingsRefreshTimer.start(0);
         }
     });
 }

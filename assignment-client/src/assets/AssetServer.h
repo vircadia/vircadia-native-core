@@ -49,6 +49,7 @@ public slots:
 private slots:
     void completeSetup();
 
+    void queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
@@ -57,6 +58,8 @@ private slots:
     void sendStatsPacket() override;
 
 private:
+    void replayRequests();
+
     void handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket);
     void handleGetAllMappingOperation(NLPacketList& replyPacket);
     void handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket);
@@ -119,6 +122,8 @@ private:
 
     QHash<AssetUtils::AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>> _queuedRequests;
 
     bool _wasColorTextureCompressionEnabled { false };
     bool _wasGrayscaleTextureCompressionEnabled { false  };
