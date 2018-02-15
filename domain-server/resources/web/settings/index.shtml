@@ -1,104 +1,29 @@
 <!--#include virtual="header.html"-->
 
-<div class="col-md-10 col-md-offset-1">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="alert" style="display:none;"></div>
-    </div>
-  </div>
+<script type="text/javascript">
+   var Settings = {
+      content_settings: false,
+      endpoint: "/settings.json",
+      path: "/settings/"
+   };
+</script>
 
-  <div class="row">
-    <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
-      <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col">
-        <script id="list-group-template" type="text/template">
-          <% _.each(descriptions, function(group){ %>
-            <% if (!group.hidden) { %>
-              <% panelID = group.name ? group.name : group.html_id %>
-              <li>
-                <a href="#<%- panelID %>" class="list-group-item">
-                  <span class="badge"></span>
-                  <%- group.label %>
-                </a>
-              </li>
-            <% } %>
-          <% }); %>
-        </script>
-
-        <ul class="nav nav-pills nav-stacked">
-        </ul>
-
-        <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
-        <button class="btn btn-success save-button" disabled>Save</button>
-        <div id="manage-cloud-domains-link" style="display: none;">
-          <a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Manage Cloud Hosted Domains</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-9 col-sm-9 col-xs-12">
+<div class="col-md-10 col-md-offset-1 col-xs-12">
+   <div class="row">
       <div class="col-xs-12">
-
-        <div id="cloud-domains-alert" class="alert alert-info alert-dismissible" role="alert" style="display: none;">
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <span class="alert-link">
-            <a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Visit Cloud Hosted Domains</a> to manage all your cloud domains
-          </span>
-        </div>
-
-        <form id="settings-form" role="form">
-
-        <script id="panels-template" type="text/template">
-          <% _.each(descriptions, function(group){ %>
-            <% if (!group.hidden) { %>
-              <% var settings = _.partition(group.settings, function(value, index) { return !value.deprecated })[0] %>
-              <% split_settings = _.partition(settings, function(value, index) { return !value.advanced }) %>
-              <% isAdvanced = _.isEmpty(split_settings[0]) && !_.isEmpty(split_settings[1]) %>
-              <% if (isAdvanced) { %>
-                <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
-              <% } %>
-
-              <% isGrouped = !!group.name %>
-              <% panelID = isGrouped ? group.name : group.html_id %>
-
-              <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>"
-                   id="<%- panelID %>">
-                <div class="panel-heading">
-                  <h3 class="panel-title"><%- group.label %></h3>
-                </div>
-                <div class="panel-body">
-                  <% _.each(split_settings[0], function(setting) { %>
-                    <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                    <%= getFormGroup(keypath, setting, values, false) %>
-                  <% }); %>
-                  <% if (!_.isEmpty(split_settings[1])) { %>
-                    <% $("#advanced-toggle-button").show() %>
-                    <% _.each(split_settings[1], function(setting) { %>
-                      <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                      <%= getFormGroup(keypath, setting, values, true) %>
-                    <% }); %>
-                  <% }%>
-                </div>
-              </div>
-            <% } %>
-          <% }); %>
-        </script>
-        <div id="panels"></div>
-      </form>
-    </div>
-  </div>
-
-  <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
-    <button class="btn btn-success save-button" id="small-save-button">Save</button>
-  </div>
+         <div class="alert alert-info">Your domain content settings are now available in <a href='/content/'>Content</a></div>
+      </div>
+   </div>
 </div>
 
+<!--#include virtual="base-settings.html"-->
+
 <!--#include virtual="footer.html"-->
-<script src='/js/underscore-min.js'></script>
-<script src='/js/underscore-keypath.min.js'></script>
-<script src='/js/bootbox.min.js'></script>
+
 <script src='/js/sha256.js'></script>
-<script src='js/form2js.min.js'></script>
-<script src='js/bootstrap-switch.min.js'></script>
-<script src='/js/shared.js'></script>
-<script src='js/settings.js'></script>
+
+<!--#include virtual="base-settings-scripts.html"-->
+
+<script src="js/settings.js"></script>
+
 <!--#include virtual="page-end.html"-->
