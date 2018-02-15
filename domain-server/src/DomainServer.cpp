@@ -45,7 +45,7 @@
 #include <Trace.h>
 #include <StatTracker.h>
 
-#include "BackupSupervisor.h"
+#include "AssetsBackupHandler.h"
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
 
@@ -297,7 +297,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
     _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
-    _contentManager->addBackupHandler(BackupHandlerPointer(new BackupSupervisor(getContentBackupDir())));
+    _contentManager->addBackupHandler(BackupHandlerPointer(new AssetsBackupHandler(getContentBackupDir())));
     _contentManager->initialize(true);
 
     qDebug() << "Existing backups:";

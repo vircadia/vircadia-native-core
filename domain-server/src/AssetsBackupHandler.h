@@ -1,5 +1,5 @@
 //
-//  BackupSupervisor.h
+//  AssetsBackupHandler.h
 //  domain-server/src
 //
 //  Created by Clement Brisset on 1/12/18.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_BackupSupervisor_h
-#define hifi_BackupSupervisor_h
+#ifndef hifi_AssetsBackupHandler_h
+#define hifi_AssetsBackupHandler_h
 
 #include <set>
 #include <map>
@@ -28,17 +28,11 @@
 
 class QuaZip;
 
-struct AssetServerBackup {
-    QString filePath;
-    AssetUtils::Mappings mappings;
-    bool corruptedBackup;
-};
-
-class BackupSupervisor : public QObject, public BackupHandlerInterface {
+class AssetsBackupHandler : public QObject, public BackupHandlerInterface {
     Q_OBJECT
 
 public:
-    BackupSupervisor(const QString& backupDirectory);
+    AssetsBackupHandler(const QString& backupDirectory);
 
     void loadBackup(QuaZip& zip);
     void createBackup(QuaZip& zip);
@@ -75,6 +69,12 @@ private:
     quint64 _lastMappingsRefresh { 0 };
     AssetUtils::Mappings _currentMappings;
 
+    struct AssetServerBackup {
+        QString filePath;
+        AssetUtils::Mappings mappings;
+        bool corruptedBackup;
+    };
+
     bool _operationInProgress { false };
 
     // Internal storage for backups on disk
@@ -93,4 +93,4 @@ private:
     int _mappingRequestsInFlight { 0 };
 };
 
-#endif /* hifi_BackupSupervisor_h */
+#endif /* hifi_AssetsBackupHandler_h */

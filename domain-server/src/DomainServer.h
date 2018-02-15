@@ -26,7 +26,7 @@
 #include <HTTPSConnection.h>
 #include <LimitedNodeList.h>
 
-#include "BackupSupervisor.h"
+#include "AssetsBackupHandler.h"
 #include "DomainGatekeeper.h"
 #include "DomainMetadata.h"
 #include "DomainServerSettingsManager.h"

@@ -1,5 +1,5 @@
 //
-//  BackupSupervisor.cpp
+//  AssetsBackupHandler.cpp
 //  domain-server/src
 //
 //  Created by Clement Brisset on 1/12/18.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "BackupSupervisor.h"
+#include "AssetsBackupHandler.h"
 
 #include <QJsonDocument>
 #include <QDate>
@@ -31,7 +31,7 @@ using namespace std;
 Q_DECLARE_LOGGING_CATEGORY(backup_supervisor)
 Q_LOGGING_CATEGORY(backup_supervisor, "hifi.backup-supervisor");
 
-BackupSupervisor::BackupSupervisor(const QString& backupDirectory) :
+AssetsBackupHandler::AssetsBackupHandler(const QString& backupDirectory) :
     _assetsDirectory(backupDirectory + ASSETS_DIR)
 {
     // Make sure the asset directory exists.
@@ -41,7 +41,7 @@ BackupSupervisor::BackupSupervisor(const QString& backupDirectory) :
 
     _mappingsRefreshTimer.setTimerType(Qt::CoarseTimer);
     _mappingsRefreshTimer.setSingleShot(true);
-    QObject::connect(&_mappingsRefreshTimer, &QTimer::timeout, this, &BackupSupervisor::refreshMappings);
+    QObject::connect(&_mappingsRefreshTimer, &QTimer::timeout, this, &AssetsBackupHandler::refreshMappings);
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
     QObject::connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, [this](SharedNodePointer node) {
@@ -53,7 +53,7 @@ BackupSupervisor::BackupSupervisor(const QString& backupDirectory) :
 }
 
 
-void BackupSupervisor::refreshAssetsOnDisk() {
+void AssetsBackupHandler::refreshAssetsOnDisk() {
     QDir assetsDir { _assetsDirectory };
     auto assetNames = assetsDir.entryList(QDir::Files);
 
@@ -64,7 +64,7 @@ void BackupSupervisor::refreshAssetsOnDisk() {
 
 }
 
-void BackupSupervisor::refreshAssetsInBackups() {
+void AssetsBackupHandler::refreshAssetsInBackups() {
     _assetsInBackups.clear();
     for (const auto& backup : _backups) {
         for (const auto& mapping : backup.mappings) {
@@ -73,7 +73,7 @@ void BackupSupervisor::refreshAssetsInBackups() {
     }
 }
 
-void BackupSupervisor::checkForMissingAssets() {
+void AssetsBackupHandler::checkForMissingAssets() {
     vector<AssetUtils::AssetHash> missingAssets;
     set_difference(begin(_assetsInBackups), end(_assetsInBackups),
                    begin(_assetsOnDisk), end(_assetsOnDisk),
@@ -83,7 +83,7 @@ void BackupSupervisor::checkForMissingAssets() {
     }
 }
 
-void BackupSupervisor::checkForAssetsToDelete() {
+void AssetsBackupHandler::checkForAssetsToDelete() {
     vector<AssetUtils::AssetHash> deprecatedAssets;
     set_difference(begin(_assetsOnDisk), end(_assetsOnDisk),
                    begin(_assetsInBackups), end(_assetsInBackups),
@@ -101,7 +101,7 @@ void BackupSupervisor::checkForAssetsToDelete() {
     }
 }
 
-void BackupSupervisor::loadBackup(QuaZip& zip) {
+void AssetsBackupHandler::loadBackup(QuaZip& zip) {
     _backups.push_back({ zip.getZipName(), {}, false });
     auto& backup = _backups.back();
 
@@ -151,7 +151,7 @@ void BackupSupervisor::loadBackup(QuaZip& zip) {
     return;
 }
 
-void BackupSupervisor::createBackup(QuaZip& zip) {
+void AssetsBackupHandler::createBackup(QuaZip& zip) {
     if (operationInProgress()) {
         qCWarning(backup_supervisor) << "There is already an operation in progress.";
         return;
@@ -192,7 +192,7 @@ void BackupSupervisor::createBackup(QuaZip& zip) {
     _backups.push_back(backup);
 }
 
-void BackupSupervisor::recoverBackup(QuaZip& zip) {
+void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
     if (operationInProgress()) {
         qCWarning(backup_supervisor) << "There is already a backup/restore in progress.";
         return;
@@ -225,7 +225,7 @@ void BackupSupervisor::recoverBackup(QuaZip& zip) {
     restoreAllAssets();
 }
 
-void BackupSupervisor::deleteBackup(QuaZip& zip) {
+void AssetsBackupHandler::deleteBackup(QuaZip& zip) {
     if (operationInProgress()) {
         qCWarning(backup_supervisor) << "There is a backup/restore in progress.";
         return;
@@ -243,7 +243,7 @@ void BackupSupervisor::deleteBackup(QuaZip& zip) {
     checkForAssetsToDelete();
 }
 
-void BackupSupervisor::consolidateBackup(QuaZip& zip) {
+void AssetsBackupHandler::consolidateBackup(QuaZip& zip) {
     if (operationInProgress()) {
         qCWarning(backup_supervisor) << "There is a backup/restore in progress.";
         return;
@@ -285,7 +285,7 @@ void BackupSupervisor::consolidateBackup(QuaZip& zip) {
 
 }
 
-void BackupSupervisor::refreshMappings() {
+void AssetsBackupHandler::refreshMappings() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
@@ -314,7 +314,7 @@ void BackupSupervisor::refreshMappings() {
     request->start();
 }
 
-void BackupSupervisor::downloadMissingFiles(const AssetUtils::Mappings& mappings) {
+void AssetsBackupHandler::downloadMissingFiles(const AssetUtils::Mappings& mappings) {
     auto wasEmpty = _assetsLeftToRequest.empty();
 
     for (const auto& mapping : mappings) {
@@ -330,7 +330,7 @@ void BackupSupervisor::downloadMissingFiles(const AssetUtils::Mappings& mappings
     }
 }
 
-void BackupSupervisor::downloadNextMissingFile() {
+void AssetsBackupHandler::downloadNextMissingFile() {
     if (_assetsLeftToRequest.empty()) {
         return;
     }
@@ -360,7 +360,7 @@ void BackupSupervisor::downloadNextMissingFile() {
     assetRequest->start();
 }
 
-bool BackupSupervisor::writeAssetFile(const AssetUtils::AssetHash& hash, const QByteArray& data) {
+bool AssetsBackupHandler::writeAssetFile(const AssetUtils::AssetHash& hash, const QByteArray& data) {
     QDir assetsDir { _assetsDirectory };
     QFile file { assetsDir.filePath(hash) };
     if (!file.open(QFile::WriteOnly)) {
@@ -380,7 +380,7 @@ bool BackupSupervisor::writeAssetFile(const AssetUtils::AssetHash& hash, const Q
     return true;
 }
 
-void BackupSupervisor::computeServerStateDifference(const AssetUtils::Mappings& currentMappings,
+void AssetsBackupHandler::computeServerStateDifference(const AssetUtils::Mappings& currentMappings,
                                                     const AssetUtils::Mappings& newMappings) {
     _mappingsLeftToSet.reserve((int)newMappings.size());
     _assetsLeftToUpload.reserve((int)newMappings.size());
@@ -415,11 +415,11 @@ void BackupSupervisor::computeServerStateDifference(const AssetUtils::Mappings& 
     qCDebug(backup_supervisor) << "Assets to upload:" << _assetsLeftToUpload.size();
 }
 
-void BackupSupervisor::restoreAllAssets() {
+void AssetsBackupHandler::restoreAllAssets() {
     restoreNextAsset();
 }
 
-void BackupSupervisor::restoreNextAsset() {
+void AssetsBackupHandler::restoreNextAsset() {
     if (_assetsLeftToUpload.empty()) {
         updateMappings();
         return;
@@ -447,7 +447,7 @@ void BackupSupervisor::restoreNextAsset() {
     request->start();
 }
 
-void BackupSupervisor::updateMappings() {
+void AssetsBackupHandler::updateMappings() {
     auto assetClient = DependencyManager::get<AssetClient>();
     for (const auto& mapping : _mappingsLeftToSet) {
         auto request = assetClient->createSetMappingRequest(mapping.first, mapping.second);
