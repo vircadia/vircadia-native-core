@@ -20,6 +20,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
+import TabletScriptingInterface 1.0
 
 // references XXX from root context
 
@@ -56,7 +57,17 @@ Item {
         target: Commerce;
         
         onContentSetChanged: {
-            if (contentSetMarketplaceID === root.itemId) {
+            if (contentSetHref === root.itemHref) {
+                showConfirmation = true;
+            }
+        }
+    }
+
+    Connections {
+        target: MyAvatar;
+
+        onSkeletonModelURLChanged: {
+            if (skeletonModelURL === root.itemHref) {
                 showConfirmation = true;
             }
         }
@@ -275,19 +286,19 @@ Item {
                 anchors.bottom: parent.bottom;
                 width: 32;
                 // Style
-                color: hifi.colors.lightGray;
+                color: hifi.colors.black;
             }
 
             RalewayRegular {
                 id: viewCertificateText;
                 text: "VIEW CERTIFICATE";
-                size: 14;
+                size: 13;
                 anchors.left: certificateIcon.right;
                 anchors.leftMargin: 4;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
                 anchors.right: parent.right;
-                color: hifi.colors.lightGray;
+                color: hifi.colors.black;
             }
 
             MouseArea {
@@ -297,12 +308,12 @@ Item {
                     sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
                 }
                 onEntered: {
-                    certificateIcon.color = hifi.colors.black;
-                    viewCertificateText.color = hifi.colors.black;
-                }
-                onExited: {
                     certificateIcon.color = hifi.colors.lightGray;
                     viewCertificateText.color = hifi.colors.lightGray;
+                }
+                onExited: {
+                    certificateIcon.color = hifi.colors.black;
+                    viewCertificateText.color = hifi.colors.black;
                 }
             }
         }
@@ -317,14 +328,14 @@ Item {
             anchors.right: buttonContainer.left;
             anchors.rightMargin: 2;
 
-            FiraSansRegular {
+            RalewayRegular {
                 anchors.left: parent.left;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 text: "#" + root.itemEdition;
-                size: 15;
-                color: "#cc6a6a6a";
+                size: 13;
+                color: hifi.colors.black;
                 verticalAlignment: Text.AlignTop;
             }
         }
@@ -471,13 +482,28 @@ Item {
             anchors.right: parent.right;
             anchors.rightMargin: 4;
             width: height;
-            enabled: root.hasPermissionToRezThis && root.purchaseStatus !== "invalidated";
+            enabled: root.hasPermissionToRezThis &&
+                root.purchaseStatus !== "invalidated" &&
+                MyAvatar.skeletonModelURL !== root.itemHref;
+
+            onHoveredChanged: {
+                if (hovered) {
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                }
+            }
+    
+            onFocusChanged: {
+                if (focus) {
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                }
+            }
             
             onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
                 if (root.itemType === "contentSet") {
-                    sendToPurchases({method: 'showReplaceContentLightbox', itemId: root.itemId, itemHref: root.itemHref});
+                    sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref});
                 } else if (root.itemType === "avatar") {
-                    Avatar.skeletonModelURL = root.itemHref;
+                    sendToPurchases({method: 'showChangeAvatarLightbox', itemName: root.itemName, itemHref: root.itemHref});
                 } else {
                     sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     root.showConfirmation = true;
@@ -547,7 +573,13 @@ Item {
                         size: 15;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)]
+                        text: {
+                            if (MyAvatar.skeletonModelURL === root.itemHref) {
+                                "CURRENT";
+                            } else {
+                                (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
+                            }
+                        }
                     }
                 }
             }

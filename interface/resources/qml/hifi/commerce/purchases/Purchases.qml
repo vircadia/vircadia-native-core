@@ -300,7 +300,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.leftMargin: 8;
             anchors.right: parent.right;
-            anchors.rightMargin: 12;
+            anchors.rightMargin: 16;
             anchors.top: parent.top;
             anchors.topMargin: 4;
 
@@ -314,7 +314,7 @@ Rectangle {
                 anchors.leftMargin: 16;
                 width: paintedWidth;
                 text: isShowingMyItems ? "My Items" : "My Purchases";
-                color: hifi.colors.baseGray;
+                color: hifi.colors.black;
                 size: 22;
             }
 
@@ -348,7 +348,7 @@ Rectangle {
 
         HifiControlsUit.Separator {
             id: separator;
-            colorScheme: 1;
+            colorScheme: 2;
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.top: filterBarContainer.bottom;
@@ -445,7 +445,15 @@ Rectangle {
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.button2text = "CONFIRM";
-                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemId + "', '" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.button2method = "Commerce.replaceContentSet('" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showChangeAvatarLightbox") {
+                            lightboxPopup.titleText = "Change Avatar";
+                            lightboxPopup.bodyText = "This will change your current avatar to " + msg.itemName + " while retaining your wearables.";
+                            lightboxPopup.button1text = "CANCEL";
+                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.button2text = "CONFIRM";
+                            lightboxPopup.button2method = "MyAvatar.skeletonModelURL('" + msg.itemHref + "'); root.visible = false;";
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPermissionsExplanation") {
                             if (msg.itemType === "entity") {

@@ -168,15 +168,15 @@ void QmlCommerce::transferHfcToUsername(const QString& username, const int& amou
     ledger->transferHfcToUsername(key, username, amount, optionalMessage);
 }
 
-void QmlCommerce::replaceContentSet(const QString& id, const QString& url) {
-    qApp->replaceDomainContent(url);
+void QmlCommerce::replaceContentSet(const QString& itemHref) {
+    qApp->replaceDomainContent(itemHref);
     QJsonObject messageProperties = {
         { "status", "SuccessfulRequestToReplaceContent" },
-        { "content_set_url", url }
+        { "content_set_url", itemHref }
     };
     UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
 
-    emit contentSetChanged(id);
+    emit contentSetChanged(itemHref);
 }
 
 void QmlCommerce::alreadyOwned(const QString& marketplaceId) {

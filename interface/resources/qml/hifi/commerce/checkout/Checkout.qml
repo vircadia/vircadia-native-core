@@ -339,8 +339,8 @@ Rectangle {
             anchors.leftMargin: 16;
             width: paintedWidth;
             height: paintedHeight;
-            text: "Confirm Purchase:";
-            color: hifi.colors.baseGray;
+            text: "Review Purchase:";
+            color: hifi.colors.black;
             size: 28;
         }
         
@@ -453,7 +453,7 @@ Rectangle {
             width: root.width;
             // Anchors
             anchors.top: separator2.bottom;
-            anchors.topMargin: 16;
+            anchors.topMargin: 0;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.right: parent.right;
@@ -465,7 +465,7 @@ Rectangle {
                 id: buyTextContainer;
                 visible: buyText.text !== "";
                 anchors.top: parent.top;
-                anchors.topMargin: 16;
+                anchors.topMargin: 10;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 height: buyText.height + 30;
@@ -517,8 +517,8 @@ Rectangle {
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
-                anchors.topMargin: 16;
-                height: 40;
+                anchors.topMargin: 10;
+                height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 text: "VIEW THIS ITEM IN MY PURCHASES";
@@ -536,8 +536,8 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
                     (buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top);
-                anchors.topMargin: 16;
-                height: 40;
+                anchors.topMargin: 10;
+                height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 text: ((root.isCertified) ? ((ownershipStatusReceived && balanceReceived) ?
@@ -579,8 +579,8 @@ Rectangle {
                 color: hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: buyButton.visible ? buyButton.bottom : viewInMyPurchasesButton.bottom;
-                anchors.topMargin: 16;
-                height: 40;
+                anchors.topMargin: 10;
+                height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
                 text: "Cancel"
@@ -606,32 +606,32 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
+        anchors.leftMargin: 20;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
+        anchors.rightMargin: 20;
 
         RalewayRegular {
             id: completeText;
             anchors.top: parent.top;
-            anchors.topMargin: 30;
+            anchors.topMargin: 18;
             anchors.left: parent.left;
             width: paintedWidth;
             height: paintedHeight;
             text: "Thank you for your order!";
             color: hifi.colors.baseGray;
-            size: 28;
+            size: 36;
         }
 
         RalewaySemiBold {
             id: completeText2;
             text: "The " + (root.itemTypesText)[itemTypesArray.indexOf(root.itemType)] +
-                '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
+                ' <font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
                 " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: completeText.bottom;
-            anchors.topMargin: 10;
+            anchors.topMargin: 15;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -684,7 +684,7 @@ Rectangle {
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
             anchors.top: completeText2.bottom;
-            anchors.topMargin: 30;
+            anchors.topMargin: 27;
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -700,12 +700,18 @@ Rectangle {
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = "root.visible = false;"
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemId + "', '" + root.itemHref + "');" + 
+                    lightboxPopup.button2method = "Commerce.replaceContentSet('" + root.itemHref + "');" + 
                     "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
                     "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
                     lightboxPopup.visible = true;
                 } else if (root.itemType === "avatar") {
-                    Avatar.skeletonModelURL = root.itemHref;
+                    lightboxPopup.titleText = "Change Avatar";
+                    lightboxPopup.bodyText = "This will change your current avatar to " + root.itemName + " while retaining your wearables.";
+                    lightboxPopup.button1text = "CANCEL";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "CONFIRM";
+                    lightboxPopup.button2method = "Avatar.skeletonModelURL('" + root.itemHref + "'); root.visible = false;";
+                    lightboxPopup.visible = true;
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     rezzedNotifContainer.visible = true;
@@ -768,9 +774,9 @@ Rectangle {
 
         RalewaySemiBold {
             id: myPurchasesLink;
-            text: '<font color="' + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in My Purchases</a></font>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: explainRezText.visible ? explainRezText.bottom : (noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom);
             anchors.topMargin: 40;
@@ -790,12 +796,12 @@ Rectangle {
 
         RalewaySemiBold {
             id: walletLink;
-            text: '<font color="' + hifi.colors.blueAccent + '"><a href="#">View receipt in Wallet</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Wallet</a></font>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: myPurchasesLink.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 16;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -813,12 +819,12 @@ Rectangle {
         RalewayRegular {
             id: pendingText;
             text: 'Your item is marked "pending" while your purchase is being confirmed. ' +
-            '<font color="' + hifi.colors.blueAccent + '"><a href="#">Learn More</a></font>';
+            '<b><font color="' + hifi.colors.primaryHighlight + '"><a href="#">Learn More</a></font></b>';
             // Text size
-            size: 20;
+            size: 18;
             // Anchors
             anchors.top: walletLink.bottom;
-            anchors.topMargin: 60;
+            anchors.topMargin: 32;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -844,11 +850,10 @@ Rectangle {
             color: hifi.buttons.noneBorderlessGray;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 20;
+            anchors.bottomMargin: 54;
             anchors.right: parent.right;
-            anchors.rightMargin: 14;
-            width: parent.width/2 - anchors.rightMargin;
-            height: 60;
+            width: 193;
+            height: 44;
             text: "Continue Shopping";
             onClicked: {
                 sendToScript({method: 'checkout_continueShopping', itemId: itemId});
