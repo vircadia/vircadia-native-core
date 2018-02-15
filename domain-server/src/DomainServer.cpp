@@ -47,6 +47,7 @@
 
 #include "AssetsBackupHandler.h"
 #include "DomainServerNodeData.h"
+#include "EntitiesBackupHandler.h"
 #include "NodeConnectionData.h"
 
 #include <Gzip.h>

@@ -16,6 +16,7 @@
 
 #include <QString>
 #include <QVector>
+#include <QDateTime>
 
 #include <GenericThread.h>
 

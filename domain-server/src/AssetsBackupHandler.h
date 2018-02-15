@@ -21,12 +21,9 @@
 #include <QJsonObject>
 
 #include <AssetUtils.h>
-
 #include <ReceivedMessage.h>
 
 #include "BackupHandler.h"
-
-class QuaZip;
 
 class AssetsBackupHandler : public QObject, public BackupHandlerInterface {
     Q_OBJECT

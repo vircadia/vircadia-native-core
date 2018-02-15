@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainContentBackupManager.h"
+
 #include <chrono>
 #include <thread>
 
@@ -25,13 +27,15 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <quazip5/quazip.h>
+
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <shared/QtHelpers.h>
 
 #include "DomainServer.h"
-#include "DomainContentBackupManager.h"
+
 const int DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL = 1000 * 30;  // every 30 seconds
 
 // Backup format looks like: daily_backup-TIMESTAMP.zip
