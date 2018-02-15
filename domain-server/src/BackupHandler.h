@@ -79,9 +79,9 @@ private:
 #include <quazip5/quazipfile.h>
 class EntitiesBackupHandler {
 public:
-    EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath)
-        : _entitiesFilePath(entitiesFilePath)
-        , _entitiesReplacementFilePath(entitiesReplacementFilePath) {}
+    EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
+        _entitiesFilePath(entitiesFilePath),
+        _entitiesReplacementFilePath(entitiesReplacementFilePath) {}
 
     void loadBackup(QuaZip& zip) {}
 
