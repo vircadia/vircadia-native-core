@@ -296,9 +296,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     maybeHandleReplacementEntityFile();
 
     _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
-    _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath()));
+    _contentManager->addBackupHandler(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath()));
     _contentManager->addBackupHandler(new BackupSupervisor(getContentBackupDir()));
     _contentManager->initialize(true);
+
+    qDebug() << "Existing backups:";
+    for (auto& backup : _contentManager->getAllBackups()) {
+        qDebug() << "  Backup: " << backup.name << backup.createdAt;
+    }
 }
 
 void DomainServer::parseCommandLine() {
@@ -1734,6 +1739,12 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
     auto data = message->readAll();
     auto filePath = getEntitiesFilePath();
 
+    QDir dir(getEntitiesDirPath());
+    if (!dir.exists()) {
+        qCDebug(domain_server) << "Creating entities content directory:" << dir.absolutePath();
+        dir.mkpath(".");
+    }
+
     QFile f(filePath);
     if (f.open(QIODevice::WriteOnly)) {
         f.write(data);
@@ -1744,12 +1755,12 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
     } else {
-        qCDebug(domain_server) << "Failed to write new entities file";
+        qCDebug(domain_server) << "Failed to write new entities file:" << filePath;
     }
 }
 
 QString DomainServer::getContentBackupDir() {
-    return PathUtils::getAppDataFilePath("backup");
+    return PathUtils::getAppDataFilePath("backups");
 }
 
 QString DomainServer::getEntitiesDirPath() {
@@ -1922,6 +1933,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
     const QString URI_API_DOMAINS_ID = "/api/domains/";
+    const QString URI_API_BACKUPS = "/api/backups";
+    const QString URI_API_BACKUPS_ID = "/api/backups/";
+    const QString URI_API_BACKUPS_RECOVER = "/api/backups/recover/";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -2107,6 +2121,26 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
 
             return true;
+        } else if (url.path() == URI_API_BACKUPS) {
+            QJsonObject rootJSON;
+            QJsonArray backupsJSON;
+
+            auto backups = _contentManager->getAllBackups();
+
+            for (const auto& backup : backups) {
+                QJsonObject obj;
+                obj["id"] = backup.id;
+                obj["name"] = backup.name;
+                obj["createdAtMillis"] = backup.createdAt.toMSecsSinceEpoch();
+                obj["isManualBackup"] = backup.isManualBackup;
+                backupsJSON.push_back(obj);
+            }
+
+            rootJSON["backups"] = backupsJSON;
+            QJsonDocument docJSON(rootJSON);
+
+            connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            return true;
         } else if (url.path() == URI_RESTART) {
             connection->respond(HTTPConnection::StatusCode200);
             restart();
@@ -2211,6 +2245,19 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
 
+        } else if (url.path() == URI_API_BACKUPS) {
+            auto params = connection->parseUrlEncodedForm();
+            auto it = params.find("name");
+            if (it == params.end()) {
+                connection->respond(HTTPConnection::StatusCode400, "Bad request, missing `name`");
+                return true;
+            }
+
+            _contentManager->createManualBackup(it.value());
+
+            connection->respond(HTTPConnection::StatusCode200);
+            return true;
+
         } else if (url.path() == "/domain_settings") {
             auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
             if (!accessTokenVariant) {
@@ -2219,8 +2266,21 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
-
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "domain", { "label" });
+
+        } else if (url.path().startsWith(URI_API_BACKUPS_RECOVER)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_RECOVER).length());
+            auto deferred = makePromise("recoverFromBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->recoverFromBackup(deferred, id);
+            return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
         if (url.path() == URI_API_DOMAINS) {
@@ -2309,7 +2369,22 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         QRegExp allNodesDeleteRegex(ALL_NODE_DELETE_REGEX_STRING);
         QRegExp nodeDeleteRegex(NODE_DELETE_REGEX_STRING);
 
-        if (nodeDeleteRegex.indexIn(url.path()) != -1) {
+        if (url.path().startsWith(URI_API_BACKUPS_ID)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
+            auto deferred = makePromise("deleteBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                rootJSON["success"] = success;
+                QJsonDocument docJSON(rootJSON);
+                connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                    JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->deleteBackup(deferred, id);
+
+            return true;
+
+        } else if (nodeDeleteRegex.indexIn(url.path()) != -1) {
             // this is a request to DELETE one node by UUID
 
             // pull the captured string, if it exists
@@ -3244,8 +3319,6 @@ void DomainServer::maybeHandleReplacementEntityFile() {
 }
 
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
-    // enumerate the nodes and find any octree type servers with active sockets
-
     //Assume we have compressed data
     auto compressedOctree = octreeFile;
     QByteArray jsonOctree;
