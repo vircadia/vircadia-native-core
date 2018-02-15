@@ -448,7 +448,7 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
-.shape-section, .light-section, .model-section, .web-section, .hyperlink-section, .text-section, .zone-section {
+.shape-section, .light-section, .model-section, .web-section, .image-section, .hyperlink-section, .text-section, .zone-section {
     display: table;
 }
 
@@ -564,6 +564,7 @@ hr {
 
 .text-group[collapsed="true"] ~ .text-group,
 .zone-group[collapsed="true"] ~ .zone-group,
+.image-group[collapsed="true"] ~ .image-group,
 .web-group[collapsed="true"] ~ .web-group,
 .hyperlink-group[collapsed="true"] ~ .hyperlink-group,
 .spatial-group[collapsed="true"] ~ .spatial-group,
@@ -1466,6 +1467,9 @@ input#reset-to-natural-dimensions {
 #properties-list.ShapeMenu #text,
 #properties-list.BoxMenu #text,
 #properties-list.SphereMenu #text,
+#properties-list.ShapeMenu #image,
+#properties-list.BoxMenu #image,
+#properties-list.SphereMenu #image,
 #properties-list.ShapeMenu #web,
 #properties-list.BoxMenu #web,
 #properties-list.SphereMenu #web {
@@ -1497,6 +1501,7 @@ input#reset-to-natural-dimensions {
 #properties-list.ParticleEffectMenu #shape-list,
 #properties-list.ParticleEffectMenu #text,
 #properties-list.ParticleEffectMenu #web,
+#properties-list.ParticleEffectMenu #image,
 #properties-list.ParticleEffectMenu #zone {
     display: none;
 }
@@ -1527,6 +1532,7 @@ input#reset-to-natural-dimensions {
 #properties-list.LightMenu #model,
 #properties-list.LightMenu #zone,
 #properties-list.LightMenu #text,
+#properties-list.LightMenu #image,
 #properties-list.LightMenu #web {
     display: none;
 }
@@ -1563,6 +1569,7 @@ input#reset-to-natural-dimensions {
 #properties-list.ModelMenu #light,
 #properties-list.ModelMenu #zone,
 #properties-list.ModelMenu #text,
+#properties-list.ModelMenu #image,
 #properties-list.ModelMenu #web {
     display: none;
 }
@@ -1599,6 +1606,7 @@ input#reset-to-natural-dimensions {
 #properties-list.ZoneMenu #light,
 #properties-list.ZoneMenu #model,
 #properties-list.ZoneMenu #text,
+#properties-list.ZoneMenu #image,
 #properties-list.ZoneMenu #web {
     display: none;
 }
@@ -1606,6 +1614,43 @@ input#reset-to-natural-dimensions {
 #properties-list.ZoneMenu #shape-list,
 #properties-list.ZoneMenu #base-color-section {
     display: none
+}
+
+
+/* -----   Order of Menu items for Image   ----- */
+#properties-list.ImageMenu #general {
+    order: 1;
+}
+#properties-list.ImageMenu #image {
+    order: 2;
+}
+#properties-list.ImageMenu #collision-info {
+    order: 3;
+}
+#properties-list.ImageMenu #physical {
+    order: 4;
+}
+#properties-list.ImageMenu #spatial {
+    order: 5;
+}
+#properties-list.ImageMenu #behavior {
+    order: 6;
+}
+#properties-list.ImageMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.ImageMenu #light,
+#properties-list.ImageMenu #model,
+#properties-list.ImageMenu #zone,
+#properties-list.ImageMenu #web,
+#properties-list.ImageMenu #text {
+    display: none;
+}
+/* items to hide */
+#properties-list.ImageMenu #shape-list,
+#properties-list.ImageMenu #base-color-section {
+    display: none;
 }
 
 
@@ -1635,6 +1680,7 @@ input#reset-to-natural-dimensions {
 #properties-list.WebMenu #light,
 #properties-list.WebMenu #model,
 #properties-list.WebMenu #zone,
+#properties-list.WebMenu #image,
 #properties-list.WebMenu #text {
     display: none;
 }
@@ -1672,6 +1718,7 @@ input#reset-to-natural-dimensions {
 #properties-list.TextMenu #light,
 #properties-list.TextMenu #model,
 #properties-list.TextMenu #zone,
+#properties-list.TextMenu #image,
 #properties-list.TextMenu #web {
     display: none;
 }

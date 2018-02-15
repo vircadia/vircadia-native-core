@@ -13,6 +13,7 @@ include_hifi_library_headers(fbx)
 include_hifi_library_headers(entities)
 include_hifi_library_headers(avatars)
 include_hifi_library_headers(controllers)
+include_hifi_library_headers(task)
 
 target_bullet()
 target_polyvox()

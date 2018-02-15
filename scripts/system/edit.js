@@ -252,6 +252,7 @@ var toolBar = (function () {
             properties.rotation = MyAvatar.orientation;
             
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
                     
                 // Adjust position of entity per bounding box prior to creating it.
@@ -535,6 +536,22 @@ var toolBar = (function () {
                 },
                 text: "some text",
                 lineHeight: 0.06
+            });
+        });
+
+        addButton("newImageButton", "web-01.svg", function () {
+            var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
+            var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+            createNewEntity({
+                type: "Model",
+                dimensions: {
+                    x: 4.16,
+                    y: 0.02,
+                    z: 2.58
+                },
+                shapeType: "box",
+                modelURL: IMAGE_MODEL,
+                textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
             });
         });
 
