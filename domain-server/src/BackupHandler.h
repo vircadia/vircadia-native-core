@@ -54,19 +54,19 @@ private:
     struct Model : Concept {
         Model(T* x) : data(x) {}
 
-        void loadBackup(QuaZip& zip) {
+        void loadBackup(QuaZip& zip) override {
             data->loadBackup(zip);
         }
-        void createBackup(QuaZip& zip) {
+        void createBackup(QuaZip& zip) override {
             data->createBackup(zip);
         }
-        void recoverBackup(QuaZip& zip) {
+        void recoverBackup(QuaZip& zip) override {
             data->recoverBackup(zip);
         }
-        void deleteBackup(QuaZip& zip) {
+        void deleteBackup(QuaZip& zip) override {
             data->deleteBackup(zip);
         }
-        void consolidateBackup(QuaZip& zip) {
+        void consolidateBackup(QuaZip& zip) override {
             data->consolidateBackup(zip);
         }
 
