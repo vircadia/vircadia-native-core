@@ -155,9 +155,6 @@ bool DomainContentBackupManager::process() {
 }
 
 void DomainContentBackupManager::aboutToFinish() {
-    qCDebug(domain_server) << "Persist thread about to finish...";
-    backup();
-    qCDebug(domain_server) << "Persist thread done with about to finish...";
     _stopThread = true;
 }
 

@@ -298,9 +298,13 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     maybeHandleReplacementEntityFile();
 
     _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
-    _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
-    _contentManager->addBackupHandler(BackupHandlerPointer(new AssetsBackupHandler(getContentBackupDir())));
-    _contentManager->addBackupHandler(BackupHandlerPointer(new ContentSettingsBackupHandler(_settingsManager)));
+
+    connect(_contentManager.get(), &DomainContentBackupManager::started, _contentManager.get(), [this](){
+        _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
+        _contentManager->addBackupHandler(BackupHandlerPointer(new AssetsBackupHandler(getContentBackupDir())));
+        _contentManager->addBackupHandler(BackupHandlerPointer(new ContentSettingsBackupHandler(_settingsManager)));
+    });
+
     _contentManager->initialize(true);
 
     qDebug() << "Existing backups:";
@@ -382,7 +386,7 @@ DomainServer::~DomainServer() {
 
     if (_contentManager) {
         _contentManager->aboutToFinish();
-        _contentManager->terminating();
+        _contentManager->terminate();
     }
 }
 
