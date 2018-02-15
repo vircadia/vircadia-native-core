@@ -126,7 +126,7 @@ $(document).ready(function(){
           + "<ul class='dropdown-menu dropdown-menu-right'>"
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
           + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='#'>Download</a></li><li class='divider'></li>"
-          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#'>Delete</a></li></ul></div></td>";
+          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='/api/backups/" + backups.id + "' target='_blank'>Delete</a></li></ul></div></td>";
       }
 
       var automaticRows = "";
