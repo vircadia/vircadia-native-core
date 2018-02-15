@@ -54,11 +54,9 @@ void KeyboardMouseDevice::InputDevice::focusOutEvent() {
 
 void KeyboardMouseDevice::keyPressEvent(QKeyEvent* event) {
     auto input = _inputDevice->makeInput((Qt::Key) event->key());
-    if (!(event->modifiers() & Qt::KeyboardModifier::ControlModifier)) {
-        auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
-        if (result.second) {
-            // key pressed again ? without catching the release event ?
-        }
+    auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
+    if (result.second) {
+        // key pressed again ? without catching the release event ?
     }
 }
 
@@ -237,6 +235,7 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Tab), QKeySequence(Qt::Key_Tab).toString()));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Control), "Control"));
 
         availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseButton"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseButton"));

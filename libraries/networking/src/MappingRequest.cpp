@@ -106,9 +106,6 @@ void GetMappingRequest::doStart() {
     });
 };
 
-GetAllMappingsRequest::GetAllMappingsRequest() {
-};
-
 void GetAllMappingsRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
     _mappingRequestID = assetClient->getAllAssetMappings(
