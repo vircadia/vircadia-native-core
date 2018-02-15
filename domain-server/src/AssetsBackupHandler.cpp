@@ -58,7 +58,6 @@ void AssetsBackupHandler::setupRefreshTimer() {
     });
     QObject::connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, [this](SharedNodePointer node) {
         if (node->getType() == NodeType::AssetServer) {
-            // run immediately for the first time.
             _mappingsRefreshTimer.stop();
         }
     });
@@ -240,7 +239,7 @@ void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
         auto assetNames = zipDir.entryList(QDir::Files);
         for (const auto& asset : assetNames) {
             if (AssetUtils::isValidHash(asset)) {
-                if (!zip.setCurrentFile(MAPPINGS_FILE)) {
+                if (!zip.setCurrentFile(zipDir.filePath(asset))) {
                     qCCritical(asset_backup) << "Failed to find" << asset << "while recovering backup";
                     qCCritical(asset_backup) << "    Error:" << zip.getZipError();
                     continue;
