@@ -128,7 +128,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString, ENTITY_ITEM_DEFAULT_SCRIPT);
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
-    DEFINE_PROPERTY(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool, ENTITY_ITEM_DEFAULT_CAST_SHADOW);
+    DEFINE_PROPERTY(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool, ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, particle::DEFAULT_COLOR);
     DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, particle::DEFAULT_COLOR_SPREAD);
     DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor, particle::DEFAULT_COLOR);
@@ -415,6 +415,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Velocity, velocity, "in meters");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Name, name, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Visible, visible, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CanCastShadow, canCastShadow, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Rotation, rotation, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Density, density, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Gravity, gravity, "");

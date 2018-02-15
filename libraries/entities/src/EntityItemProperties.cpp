@@ -878,6 +878,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(angularVelocity);
     COPY_PROPERTY_IF_CHANGED(angularDamping);
     COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(color);
     COPY_PROPERTY_IF_CHANGED(colorSpread);
     COPY_PROPERTY_IF_CHANGED(colorStart);
@@ -1050,6 +1051,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
     std::call_once(initMap, [](){
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, glm::quat);
@@ -2171,6 +2173,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (visibleChanged()) {
         out += "visible";
+    }
+    if (canCastShadowChanged()) {
+        out += "canCastShadow";
     }
     if (rotationChanged()) {
         out += "rotation";

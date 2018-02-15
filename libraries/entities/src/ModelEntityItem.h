@@ -174,7 +174,7 @@ protected:
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;
 
-    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAST_SHADOW };
+    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
 
 private:
     uint64_t _lastAnimated{ 0 };

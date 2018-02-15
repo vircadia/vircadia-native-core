@@ -802,11 +802,11 @@ function loaded() {
 
                         // HTML workaround since image is not yet a separate entity type
                         var IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        var urlParts = properties.modelURL.split('/')
-                        var propsFilename = urlParts[urlParts.length - 1];
-                        if (properties.type === "Model" && propsFilename === IMAGE_MODEL_NAME) {
-                            properties.type = "Image";
-                        }
+////                        var urlParts = properties.modelURL.split('/')
+////                        var propsFilename = urlParts[urlParts.length - 1];
+////                        if (properties.type === "Model" && propsFilename === IMAGE_MODEL_NAME) {
+////                            properties.type = "Image";
+////                        }
 
                         // Create class name for css ruleset filtering
                         elPropertiesList.className = properties.type + 'Menu';
@@ -983,11 +983,11 @@ function loaded() {
                                                                      properties.color.green + "," + properties.color.blue + ")";
                         }
 
-                        if (properties.type === "Model" ||
-                            properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
+                        //if (properties.type === "Model" ||
+                        //    properties.type === "Shape" || properties.type === "Box" || properties.type === "Sphere") {
 
                             elCanCastShadow = properties.canCastShadow;
-                        }
+                        //}
 
                         if (properties.type === "Model") {
                             elModelURL.value = properties.modelURL;
