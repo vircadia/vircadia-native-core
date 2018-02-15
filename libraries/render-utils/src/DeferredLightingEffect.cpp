@@ -550,7 +550,9 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
             if (lightStage && lightStage->_currentFrame._sunLights.size()) {
                 graphics::LightPointer keyLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
-                keyLightCastShadows = keyLight->getCastShadows();
+                if (keyLight) {
+                    keyLightCastShadows = keyLight->getCastShadows();
+                }
             }
 
             if (deferredLightingEffect->_shadowMapEnabled && keyLightCastShadows) {
