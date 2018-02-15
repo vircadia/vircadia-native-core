@@ -1869,6 +1869,14 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
+    }
+
+    // Can cast shadow flag
+    if (properties.getType() == EntityTypes::Model || 
+        properties.getType() == EntityTypes::Shape ||
+        properties.getType() == EntityTypes::Box ||
+        properties.getType() == EntityTypes::Sphere) {
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     }
 
