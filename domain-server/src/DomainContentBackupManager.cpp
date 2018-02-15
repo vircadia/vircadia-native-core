@@ -409,8 +409,20 @@ void DomainContentBackupManager::consolidate(QString fileName) {
     }
 }
 
-void DomainContentBackupManager::createManualBackup(const QString& name) {
-    createBackup(MANUAL_BACKUP_PREFIX, name);
+void DomainContentBackupManager::createManualBackup(MiniPromise::Promise promise, const QString& name) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "createManualBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(const QString&, name));
+        return;
+    }
+
+    bool success;
+    QString path;
+    std::tie(success, path) = createBackup(MANUAL_BACKUP_PREFIX, name);
+
+    promise->resolve({
+        { "success", success }
+    });
 }
 
 std::pair<bool, QString> DomainContentBackupManager::createBackup(const QString& prefix, const QString& name) {
