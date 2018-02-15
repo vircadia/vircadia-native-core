@@ -27,21 +27,32 @@ template <class JC> class JobT;
 template <class JC> class TaskT;
 class JobNoIO {};
 
+// Task Flow control class is a simple per value object used to communicate flow control commands trhough the graph of tasks.
+// From within the Job::Run function, you can access it from the JobCOntext and  issue commands which   will be picked up by the Task calling for the Job run.
+// This is first introduced to provide a way to abort all the work from within a task job. see the "abortTask" call
 class TaskFlow {
 public:
+    // A job that wants to abort the rest of the other jobs execution in a task would issue that call "abortTask" and let the task early exit for this run.
+    // All the varyings produced by the aborted branch of jobs are left unmodified.
+    void abortTask();
+
+    // called by the task::run to perform flow control
+    // This should be considered private but still need to be accessible from the Task<T> class
     TaskFlow() = default;
     ~TaskFlow() = default;
-
-    // called after each job 
     void reset();
-
-    void abortTask();
     bool doAbortTask() const;
 
 protected:
     bool _doAbortTask{ false };
 };
 
+// JobContext class is the base calss for the context object which is passed through all the Job::run calls thoughout the graph of jobs
+// It is used to communicate to the job::run its context and various state information the job relies on.
+// It specifically provide access to:
+// - The taskFlow object allowing for messaging control flow commands from within a Job::run
+// - The current Config object attached to the Job::run currently called.
+// The JobContext can be derived to add more global state to it that Jobs can access
 class JobContext {
 public:
     JobContext(const QLoggingCategory& category);
