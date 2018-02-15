@@ -75,10 +75,10 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
             tablet.sendToQml({
                 method: 'updateCheckoutQML', params: {
-                    itemId: 'e197e3d7-eafc-4aa5-9341-acee57174fe9',
-                    itemName: 'Oasis',
-                    itemPrice: (debugError ? 10 : 11),
-                    itemHref: 'http://mpassets-staging.highfidelity.com/e197e3d7-eafc-4aa5-9341-acee57174fe9-v1/oasis_Aug15.json.gz',
+                    itemId: '424611a2-73d0-4c03-9087-26a6a279257b',
+                    itemName: '2018-02-15 Finnegon',
+                    itemPrice: (debugError ? 10 : 3),
+                    itemHref: 'http://devmpassets.highfidelity.com/424611a2-73d0-4c03-9087-26a6a279257b-v1/finnigon.fst',
                     categories: ["Miscellaneous"]
                 }
             });

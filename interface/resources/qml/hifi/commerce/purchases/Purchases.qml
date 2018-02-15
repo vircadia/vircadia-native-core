@@ -453,7 +453,7 @@ Rectangle {
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = "root.visible = false;"
                             lightboxPopup.button2text = "CONFIRM";
-                            lightboxPopup.button2method = "MyAvatar.skeletonModelURL('" + msg.itemHref + "'); root.visible = false;";
+                            lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + msg.itemHref + "'); root.visible = false;";
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPermissionsExplanation") {
                             if (msg.itemType === "entity") {

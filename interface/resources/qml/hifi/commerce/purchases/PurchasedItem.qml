@@ -151,8 +151,9 @@ Item {
             anchors.topMargin: 4;
             anchors.left: itemPreviewImage.right;
             anchors.leftMargin: 8;
-            width: root.hasPermissionToRezThis ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width) :
-                Math.min(itemNameTextMetrics.tightBoundingRect.width + 2, buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - noPermissionGlyph.width + 2);
+            width: root.hasPermissionToRezThis ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin) :
+                Math.min(itemNameTextMetrics.tightBoundingRect.width + 2,
+                buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin - noPermissionGlyph.width + 2);
             height: paintedHeight;
             // Text size
             size: 24;

@@ -146,7 +146,7 @@ Rectangle {
     }
 
     onItemTypeChanged: {
-        if (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet") {
+        if (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "avatar") {
             root.isCertified = true;
         } else {
             root.isCertified = false;
@@ -679,7 +679,7 @@ Rectangle {
             id: rezNowButton;
             enabled: (root.itemType === "entity" && root.canRezCertifiedItems) ||
                 (root.itemType === "contentSet" && Entities.canReplaceContent()) ||
-                root.itemType === "wearable";
+                root.itemType === "wearable" || root.itemType === "avatar";
             buttonGlyph: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -710,7 +710,7 @@ Rectangle {
                     lightboxPopup.button1text = "CANCEL";
                     lightboxPopup.button1method = "root.visible = false;"
                     lightboxPopup.button2text = "CONFIRM";
-                    lightboxPopup.button2method = "Avatar.skeletonModelURL('" + root.itemHref + "'); root.visible = false;";
+                    lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
