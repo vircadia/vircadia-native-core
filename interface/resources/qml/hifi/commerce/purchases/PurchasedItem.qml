@@ -46,6 +46,7 @@ Item {
     property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
     property bool showConfirmation: false;
     property bool hasPermissionToRezThis;
+    property bool permissionExplanationCardVisible;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -151,7 +152,7 @@ Item {
             anchors.topMargin: 4;
             anchors.left: itemPreviewImage.right;
             anchors.leftMargin: 8;
-            width: root.hasPermissionToRezThis ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin) :
+            width: !noPermissionGlyph.visible ? (buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin) :
                 Math.min(itemNameTextMetrics.tightBoundingRect.width + 2,
                 buttonContainer.x - itemPreviewImage.x - itemPreviewImage.width - anchors.leftMargin - noPermissionGlyph.width + 2);
             height: paintedHeight;
@@ -181,7 +182,7 @@ Item {
         }
         HiFiGlyphs {
             id: noPermissionGlyph;
-            visible: !root.hasPermissionToRezThis;
+            visible: true// !root.hasPermissionToRezThis;
             anchors.verticalCenter: itemName.verticalCenter;
             anchors.left: itemName.right;
             anchors.leftMargin: itemName.truncated ? -14 : -2;
@@ -203,14 +204,14 @@ Item {
                     noPermissionGlyph.color = hifi.colors.redAccent;
                 }
                 onClicked: {
-                    permissionExplanationCard.visible = true;
+                    root.sendToPurchases({ method: 'openPermissionExplanationCard' });
                 }
             }
         }
         Rectangle {
             id: permissionExplanationCard;
             z: 995;
-            visible: false;
+            visible: root.permissionExplanationCardVisible;
             anchors.fill: parent;
             color: hifi.colors.white;
 
@@ -261,7 +262,7 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        permissionExplanationCard.visible = false;
+                        root.sendToPurchases({ method: 'openPermissionExplanationCard', closeAll: true });
                     }
                 }
             }

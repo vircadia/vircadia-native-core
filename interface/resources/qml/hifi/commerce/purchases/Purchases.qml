@@ -393,6 +393,7 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                permissionExplanationCardVisible: model.permissionExplanationCardVisible;
                 itemType: {
                     if (model.root_file_url.indexOf(".fst") > -1) {
                         "avatar";
@@ -472,6 +473,14 @@ Rectangle {
                             lightboxPopup.visible = true;
                         } else if (msg.method === "setFilterText") {
                             filterBar.text = msg.filterText;
+                        } else if (msg.method === "openPermissionExplanationCard") {
+                            for (var i = 0; i < filteredPurchasesModel.count; i++) {
+                                if (i !== index || msg.closeAll) {
+                                    filteredPurchasesModel.setProperty(i, "permissionExplanationCardVisible", false);
+                                } else {
+                                    filteredPurchasesModel.setProperty(i, "permissionExplanationCardVisible", true);
+                                }
+                            }
                         }
                     }
                 }
@@ -673,6 +682,7 @@ Rectangle {
             filteredPurchasesModel.clear();
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
+                filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);
             }
 
             populateDisplayedItemCounts();
