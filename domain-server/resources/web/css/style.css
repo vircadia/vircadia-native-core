@@ -18,6 +18,14 @@ body {
   margin-top: 70px;
 }
 
+/* unfortunate hack so that anchors go to the right place with fixed navbar */
+:target:before {
+  content: " ";
+  display: block;
+  height: 70px;
+  margin-top: -70px;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -116,11 +124,6 @@ span.port {
 #setup-sidebar button {
   width: 100%;
   margin-top: 10px;
-}
-
-#small-save-button {
-  width: 100%;
-  margin-bottom: 15px;
 }
 
 td.buttons {
@@ -344,4 +347,90 @@ table .headers + .headers td {
 #manage-cloud-domains-link {
   text-align: center;
   margin-top: 20px;
+}
+
+@media (min-width: 768px) {
+  ul.nav li.dropdown-on-hover:hover ul.dropdown-menu {
+    display: block;
+  }
+}
+
+ul.nav li.dropdown ul.dropdown-menu {
+  padding: 0px 0px;
+}
+
+ul.nav li.dropdown li a {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+ul.nav li.dropdown li a:hover {
+  color: white;
+  background-color: #337ab7;
+}
+
+ul.nav li.dropdown ul.dropdown-menu .divider {
+  margin: 0px 0;
+}
+
+#visit-domain-link {
+  background-color: transparent;
+}
+
+.navbar-btn {
+  margin-left: 10px;
+}
+
+#save-settings-xs-button {
+  float: right;
+  margin-right: 10px;
+}
+
+#button-bars {
+  display: inline-block;
+  float: left;
+}
+
+#hamburger-badge {
+  position: relative;
+  top: -2px;
+  float: left;
+  margin-right: 10px;
+  margin-left: 0px;
+}
+
+#restart-server {
+  margin-left: 0px;
+}
+
+#restart-server:hover {
+  text-decoration: none;
+}
+
+.badge {
+  margin-left: 5px;
+  background-color: #00B4EF !important;
+}
+
+.panel-title {
+  display: inline-block;
+}
+
+#visit-hmd-icon {
+  width: 25px;
+  position: relative;
+  top: -1px;
+}
+
+.advanced-settings-section {
+  margin-top: 20px;
+}
+
+#restore-settings-button {
+  margin-top: 10px;
+}
+
+/* fix for https://bugs.webkit.org/show_bug.cgi?id=39620 */
+.save-button-text {
+  pointer-events: none;
 }
