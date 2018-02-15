@@ -26,7 +26,6 @@ public:
     virtual void deleteBackup(QuaZip& zip) = 0;
     virtual void consolidateBackup(QuaZip& zip) = 0;
 };
-
 using BackupHandlerPointer = std::unique_ptr<BackupHandlerInterface>;
 
 #endif /* hifi_BackupHandler_h */
