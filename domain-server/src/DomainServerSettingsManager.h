@@ -111,6 +111,11 @@ public:
 
     void debugDumpGroupsState();
 
+    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
+                                              bool includeDomainSettings = true, bool includeContentSettings = true,
+                                              bool includeDefaults = true, bool isForBackup = false);
+    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
+
 signals:
     void updateNodePermissions();
     void settingsUpdated();
@@ -130,9 +135,6 @@ private:
     QStringList _argumentList;
 
     QJsonArray filteredDescriptionArray(bool isContentSettings);
-    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
-                                              bool includeDomainSettings = true, bool includeContentSettings = true,
-                                              bool includeDefaults = true, bool isForBackup = false);
     bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
@@ -142,8 +144,6 @@ private:
     void persistToFile();
 
     void splitSettingsDescription();
-
-    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
 
     double _descriptionVersion;
 
