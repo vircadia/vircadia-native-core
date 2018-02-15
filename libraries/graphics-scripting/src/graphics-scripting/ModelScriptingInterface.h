@@ -15,19 +15,17 @@
 #include <QtCore/QObject>
 #include <QUrl>
 
-#include <RegisteredMetaTypes.h>
-
 #include <QtScript/QScriptEngine>
 #include <QtScript/QScriptable>
 
 #include "ScriptableMesh.h"
 #include <DependencyManager.h>
+
 class ModelScriptingInterface : public QObject, public QScriptable, public Dependency {
     Q_OBJECT
 
 public:
     ModelScriptingInterface(QObject* parent = nullptr);
-    static void registerMetaTypes(QScriptEngine* engine);
 
 public slots:
     /**jsdoc
@@ -36,7 +34,9 @@ public slots:
      * @function ModelScriptingInterface.getMeshes
      * @param {EntityID} entityID The ID of the entity whose meshes are to be retrieve
      */
-    void getMeshes(QUuid uuid, QScriptValue scopeOrCallback, QScriptValue methodOrName = QScriptValue());
+    void getMeshes(QUuid uuid, QScriptValue callback);
+    bool updateMeshes(QUuid uuid, const scriptable::ScriptableModelPointer model);
+    bool updateMeshes(QUuid uuid, const scriptable::ScriptableMeshPointer mesh, int meshIndex=0, int partIndex=0);
 
     QString meshToOBJ(const scriptable::ScriptableModel& in);
 
@@ -48,6 +48,8 @@ public slots:
     QScriptValue getVertexCount(scriptable::ScriptableMeshPointer meshProxy);
     QScriptValue getVertex(scriptable::ScriptableMeshPointer meshProxy, quint32 vertexIndex);
 
+    static void registerMetaTypes(QScriptEngine* engine);
+    
 private:
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMeshPointer meshProxy);
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMesh& meshProxy);

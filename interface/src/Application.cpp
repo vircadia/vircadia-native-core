@@ -600,7 +600,9 @@ public:
         QString error;
 
         scriptable::ModelProviderPointer provider;
-        if (auto entityInterface = getEntityModelProvider(static_cast<EntityItemID>(uuid))) {
+        if (uuid.isNull()) {
+            provider = nullptr;
+        } else if (auto entityInterface = getEntityModelProvider(static_cast<EntityItemID>(uuid))) {
             provider = entityInterface;
         } else if (auto overlayInterface = getOverlayModelProvider(static_cast<OverlayID>(uuid))) {
             provider = overlayInterface;

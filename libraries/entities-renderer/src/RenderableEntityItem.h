@@ -17,7 +17,7 @@
 #include <Sound.h>
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 
 class EntityTreeRenderer;
 
@@ -55,7 +55,7 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);

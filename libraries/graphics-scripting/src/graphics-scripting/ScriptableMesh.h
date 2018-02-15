@@ -11,142 +11,188 @@
 
 #include <DependencyManager.h>
 
+//#include <graphics-scriping/Forward.h>
 #include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/BufferViewHelpers.h>
 
 #include <QtScript/QScriptable>
 #include <QtScript/QScriptValue>
 
-namespace graphics {
-    class Mesh;
-}
-namespace gpu {
-    class BufferView;
-}
 namespace scriptable {
-    class ScriptableMeshPart;
-    using ScriptableMeshPartPointer = QPointer<ScriptableMeshPart>;
-    class ScriptableMesh : public QObject, QScriptable {
+
+    QScriptValue jsBindCallback(QScriptValue callback);
+    class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT
     public:
-        Q_PROPERTY(quint32 numParts READ getNumParts)
-        Q_PROPERTY(quint32 numAttributes READ getNumAttributes)
-        Q_PROPERTY(quint32 numVertices READ getNumVertices)
-        Q_PROPERTY(quint32 numIndices READ getNumIndices)
-        Q_PROPERTY(QVariantMap metadata MEMBER _metadata)
+        Q_PROPERTY(uint32 numParts READ getNumParts)
+        Q_PROPERTY(uint32 numAttributes READ getNumAttributes)
+        Q_PROPERTY(uint32 numVertices READ getNumVertices)
+        Q_PROPERTY(uint32 numIndices READ getNumIndices)
+        Q_PROPERTY(QVariantMap metadata MEMBER metadata)
         Q_PROPERTY(QVector<QString> attributeNames READ getAttributeNames)
+        Q_PROPERTY(QVector<scriptable::ScriptableMeshPartPointer> parts READ getMeshParts)
+        Q_PROPERTY(bool valid READ hasValidMesh)
+        bool hasValidMesh() const { return (bool)getMeshPointer(); }
+        Q_PROPERTY(bool validOwned READ hasValidOwnedMesh)
+        bool hasValidOwnedMesh() const { return (bool)getOwnedMeshPointer(); }
 
-        static QMap<QString,int> ATTRIBUTES;
-        static std::map<QString, gpu::BufferView> gatherBufferViews(MeshPointer mesh, const QStringList& expandToMatchPositions = QStringList());
+        operator const ScriptableMeshBase*() const { return (qobject_cast<const scriptable::ScriptableMeshBase*>(this)); }
+        ScriptableMesh(scriptable::MeshPointer mesh) : ScriptableMeshBase(mesh) { ownedMesh = mesh; }
+        ScriptableMesh(WeakModelProviderPointer provider, ScriptableModelBasePointer model, MeshPointer mesh, const QVariantMap& metadata)
+            : ScriptableMeshBase(provider, model, mesh, metadata) { ownedMesh = mesh; }
+        //ScriptableMesh& operator=(const ScriptableMesh& other)  { model=other.model; mesh=other.mesh; metadata=other.metadata; return *this; };
+        //ScriptableMesh() : QObject(), model(nullptr) {}
+        //ScriptableMesh(const ScriptableMesh& other) : QObject(), model(other.model), mesh(other.mesh), metadata(other.metadata) {}
+        ScriptableMesh(const ScriptableMeshBase& other);
+        ScriptableMesh(const ScriptableMesh& other) : ScriptableMeshBase(other) {};
+        virtual ~ScriptableMesh();
 
-        ScriptableMesh& operator=(const ScriptableMesh& other)  { _model=other._model; _mesh=other._mesh; _metadata=other._metadata; return *this; };
-        ScriptableMesh() : QObject(), _model(nullptr) {}
-        ScriptableMesh(ScriptableModelPointer parent, scriptable::MeshPointer mesh) : QObject(), _model(parent), _mesh(mesh) {}
-        ScriptableMesh(const ScriptableMesh& other) : QObject(), _model(other._model), _mesh(other._mesh), _metadata(other._metadata) {}
-        ~ScriptableMesh() { qDebug() << "~ScriptableMesh" << this; }
-
-        scriptable::MeshPointer getMeshPointer() const { return _mesh; }
+        Q_INVOKABLE const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
+        Q_INVOKABLE const scriptable::MeshPointer getOwnedMeshPointer() const { return ownedMesh; }
+        scriptable::ScriptableMeshPointer getSelf() const { return const_cast<scriptable::ScriptableMesh*>(this); }
    public slots:
-        quint32 getNumParts() const;
-        quint32 getNumVertices() const;
-        quint32 getNumAttributes() const;
-        quint32 getNumIndices() const { return 0;  }
+        uint32 getNumParts() const;
+        uint32 getNumVertices() const;
+        uint32 getNumAttributes() const;
+        uint32 getNumIndices() const;
         QVector<QString> getAttributeNames() const;
+        QVector<scriptable::ScriptableMeshPartPointer> getMeshParts() const;
 
-        QVariantMap getVertexAttributes(quint32 vertexIndex) const;
-        QVariantMap getVertexAttributes(quint32 vertexIndex, QVector<QString> attributes) const;
+        QVariantMap getVertexAttributes(uint32 vertexIndex) const;
+        QVariantMap getVertexAttributes(uint32 vertexIndex, QVector<QString> attributes) const;
 
-        QVector<quint32> getIndices() const;
-        QVector<quint32> findNearbyIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
+        QVector<uint32> getIndices() const;
+        QVector<uint32> findNearbyIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
         QVariantMap getMeshExtents() const;
-        bool setVertexAttributes(quint32 vertexIndex, QVariantMap attributes);
-        QVariantMap scaleToFit(float unitScale);
+        bool setVertexAttributes(uint32 vertexIndex, QVariantMap attributes);
 
         QVariantList getAttributeValues(const QString& attributeName) const;
 
         int _getSlotNumber(const QString& attributeName) const;
 
+        scriptable::ScriptableMeshPointer cloneMesh(bool recalcNormals = false);        
+    public:
+        operator bool() const { return !mesh.expired(); }
+
+    public slots:
+        // QScriptEngine-specific wrappers
+        uint32 mapAttributeValues(QScriptValue callback);
+    };
+
+    // TODO: part-specific wrapper for working with raw geometries
+    class ScriptableMeshPart : public QObject, QScriptable {
+        Q_OBJECT
+    public:
+        Q_PROPERTY(uint32 partIndex MEMBER partIndex CONSTANT)
+        Q_PROPERTY(int numElementsPerFace MEMBER _elementsPerFace CONSTANT)
+        Q_PROPERTY(QString topology MEMBER _topology CONSTANT)
+
+        Q_PROPERTY(uint32 numFaces READ getNumFaces)
+        Q_PROPERTY(uint32 numAttributes READ getNumAttributes)
+        Q_PROPERTY(uint32 numVertices READ getNumVertices)
+        Q_PROPERTY(uint32 numIndices READ getNumIndices)
+        Q_PROPERTY(QVector<QString> attributeNames READ getAttributeNames)
+
+        Q_PROPERTY(QVariantMap metadata MEMBER metadata)
+
+        //Q_PROPERTY(scriptable::ScriptableMeshPointer parentMesh MEMBER parentMesh CONSTANT HIDE)
+
+        ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex);
+        ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
+        ScriptableMeshPart(const ScriptableMeshPart& other) : parentMesh(other.parentMesh), partIndex(other.partIndex) {}
+        ~ScriptableMeshPart() { qDebug() << "~ScriptableMeshPart" << this; }
+
+    public slots:
+        scriptable::ScriptableMeshPointer getParentMesh() const { return parentMesh; }
+        uint32 getNumAttributes() const { return parentMesh ? parentMesh->getNumAttributes() : 0; }
+        uint32 getNumVertices() const { return parentMesh ? parentMesh->getNumVertices() : 0; }
+        uint32 getNumIndices() const { return parentMesh ? parentMesh->getNumIndices() : 0; }
+        uint32 getNumFaces() const { return parentMesh ? parentMesh->getNumIndices() / _elementsPerFace : 0; }
+        QVector<QString> getAttributeNames() const { return parentMesh ? parentMesh->getAttributeNames() : QVector<QString>(); }
+        QVector<uint32> getFace(uint32 faceIndex) const {
+            auto inds = parentMesh ? parentMesh->getIndices() : QVector<uint32>();
+            return faceIndex+2 < (uint32)inds.size() ? inds.mid(faceIndex*3, 3) : QVector<uint32>();
+        }
+        QVariantMap scaleToFit(float unitScale);
         QVariantMap translate(const glm::vec3& translation);
         QVariantMap scale(const glm::vec3& scale, const glm::vec3& origin = glm::vec3(NAN));
         QVariantMap rotateDegrees(const glm::vec3& eulerAngles, const glm::vec3& origin = glm::vec3(NAN));
         QVariantMap rotate(const glm::quat& rotation, const glm::vec3& origin = glm::vec3(NAN));
         QVariantMap transform(const glm::mat4& transform);
 
-    public:
-        operator bool() const { return _mesh != nullptr; }
-        ScriptableModelPointer _model;
-        scriptable::MeshPointer _mesh;
-        QVariantMap _metadata;
+        bool unrollVertices(bool recalcNormals = false);
+        bool dedupeVertices(float epsilon = 1e-6);
+        bool recalculateNormals() { return buffer_helpers::recalculateNormals(getMeshPointer()); }
+
+        bool replaceMeshData(scriptable::ScriptableMeshPartPointer source, const QVector<QString>& attributeNames = QVector<QString>());
+        scriptable::ScriptableMeshPartPointer cloneMeshPart(bool recalcNormals = false) {
+            if (parentMesh) {
+                if (auto clone = parentMesh->cloneMesh(recalcNormals)) {
+                    return clone->getMeshParts().value(partIndex);
+                }
+            }
+            return nullptr;
+        }
+        QString toOBJ();
 
     public slots:
         // QScriptEngine-specific wrappers
-        QScriptValue mapAttributeValues(QScriptValue scopeOrCallback, QScriptValue methodOrName = QScriptValue());
-        bool dedupeVertices(float epsilon = 1e-6);
-        bool recalculateNormals();
-        QScriptValue cloneMesh(bool recalcNormals = true);
-        QScriptValue unrollVertices(bool recalcNormals = true);
-        bool replaceMeshData(scriptable::ScriptableMeshPointer source, const QVector<QString>& attributeNames = QVector<QString>());
-        QString toOBJ();
-    };
-
-    // TODO: part-specific wrapper for working with raw geometries
-    class ScriptableMeshPart : public QObject {
-        Q_OBJECT
-    public:
-        Q_PROPERTY(QString topology READ getTopology)
-        Q_PROPERTY(quint32 numFaces READ getNumFaces)
-
-        ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
-        ScriptableMeshPart(const ScriptableMeshPart& other) : parentMesh(other.parentMesh) {}
-        ScriptableMeshPart()  {}
-        ~ScriptableMeshPart() { qDebug() << "~ScriptableMeshPart" << this; }
-
-    public slots:
-        QString getTopology() const { return "triangles"; }
-        quint32 getNumFaces() const { return parentMesh.getIndices().size() / 3; }
-        QVector<quint32> getFace(quint32 faceIndex) const {
-            auto inds = parentMesh.getIndices();
-            return faceIndex+2 < (quint32)inds.size() ? inds.mid(faceIndex*3, 3) : QVector<quint32>();
-        }
+        uint32 mapAttributeValues(QScriptValue callback);
 
     public:
-        scriptable::ScriptableMesh parentMesh;
-        int partIndex;
+        scriptable::ScriptableMeshPointer parentMesh;
+        uint32 partIndex;
+        QVariantMap metadata;
+    protected:
+        int _elementsPerFace{ 3 };
+        QString _topology{ "triangles" };
+        scriptable::MeshPointer getMeshPointer() const { return parentMesh ? parentMesh->getMeshPointer() : nullptr; }    
     };
 
-    class GraphicsScriptingInterface : public QObject {
+    class GraphicsScriptingInterface : public QObject, QScriptable {
         Q_OBJECT
     public:
         GraphicsScriptingInterface(QObject* parent = nullptr) : QObject(parent) {}
         GraphicsScriptingInterface(const GraphicsScriptingInterface& other) {}
-        public slots:
-            ScriptableMeshPart exportMeshPart(ScriptableMesh mesh, int part) { return {}; }
+    public slots:
+        ScriptableMeshPartPointer exportMeshPart(ScriptableMeshPointer mesh, int part=0) {
+            return ScriptableMeshPartPointer(new ScriptableMeshPart(mesh, part));
+        }
+        bool updateMeshPart(ScriptableMeshPointer mesh, ScriptableMeshPartPointer part);
     };
+
+    // callback helper that lets C++ method signatures remain simple (ie: taking a single callback argument) while
+    // still supporting extended Qt signal-like (scope, "methodName") and (scope, function(){}) "this" binding conventions
+    QScriptValue jsBindCallback(QScriptValue callback);
+
+    // derive a corresponding C++ class instance from the current script engine's thisObject
+    template <typename T> T this_qobject_cast(QScriptEngine* engine);
 }
 
 Q_DECLARE_METATYPE(scriptable::ScriptableMeshPointer)
 Q_DECLARE_METATYPE(QVector<scriptable::ScriptableMeshPointer>)
 Q_DECLARE_METATYPE(scriptable::ScriptableMeshPartPointer)
+Q_DECLARE_METATYPE(QVector<scriptable::ScriptableMeshPartPointer>)
 Q_DECLARE_METATYPE(scriptable::GraphicsScriptingInterface)
 
 // FIXME: MESHFACES: faces were supported in the original Model.* API -- are they still needed/used/useful for anything yet?
 #include <memory>
 
 namespace mesh {
-    using uint32 = quint32;
     class MeshFace;
     using MeshFaces = QVector<mesh::MeshFace>;
     class MeshFace {
     public:
         MeshFace() {}
-        MeshFace(QVector<mesh::uint32> vertexIndices) : vertexIndices(vertexIndices) {}
+        MeshFace(QVector<scriptable::uint32> vertexIndices) : vertexIndices(vertexIndices) {}
         ~MeshFace() {}
 
-        QVector<mesh::uint32> vertexIndices;
+        QVector<scriptable::uint32> vertexIndices;
         // TODO -- material...
     };
 };
 
 Q_DECLARE_METATYPE(mesh::MeshFace)
 Q_DECLARE_METATYPE(QVector<mesh::MeshFace>)
-Q_DECLARE_METATYPE(mesh::uint32)
-Q_DECLARE_METATYPE(QVector<mesh::uint32>)
+Q_DECLARE_METATYPE(scriptable::uint32)
+Q_DECLARE_METATYPE(QVector<scriptable::uint32>)

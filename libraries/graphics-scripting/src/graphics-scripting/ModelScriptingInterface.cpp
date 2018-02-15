@@ -26,12 +26,11 @@
 
 #include "BufferViewScripting.h"
 #include "ScriptableMesh.h"
+#include "GraphicsScriptingUtil.h"
 
 #include "ModelScriptingInterface.moc"
 
-namespace {
-    QLoggingCategory model_scripting { "hifi.model.scripting" };
-}
+#include "RegisteredMetaTypes.h"
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
     if (auto scriptEngine = qobject_cast<QScriptEngine*>(parent)) {
@@ -39,8 +38,51 @@ ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(pare
     }
 }
 
-void ModelScriptingInterface::getMeshes(QUuid uuid, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
-    auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
+bool ModelScriptingInterface::updateMeshes(QUuid uuid, const scriptable::ScriptableMeshPointer mesh, int meshIndex, int partIndex) {
+    auto model = scriptable::make_qtowned<scriptable::ScriptableModel>();
+    if (mesh) {
+        model->append(*mesh);
+    }
+    return updateMeshes(uuid, model.get());
+}
+
+bool ModelScriptingInterface::updateMeshes(QUuid uuid, const scriptable::ScriptableModelPointer model) {
+    auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>();
+    qCDebug(graphics_scripting) << "appProvider" << appProvider.data();
+    scriptable::ModelProviderPointer provider = appProvider ? appProvider->lookupModelProvider(uuid) : nullptr;
+    QString providerType = provider ? provider->metadata.value("providerType").toString() : QString();
+    if (providerType.isEmpty()) {
+        providerType = "unknown";
+    }
+    bool success = false;
+    if (provider) {
+        qCDebug(graphics_scripting) << "fetching meshes from " << providerType << "...";
+        auto scriptableMeshes = provider->getScriptableModel(&success);
+        qCDebug(graphics_scripting) << "//fetched meshes from " << providerType << "success:" <<success << "#" << scriptableMeshes.meshes.size();
+        if (success) {
+            const scriptable::ScriptableModelBasePointer base = model->operator scriptable::ScriptableModelBasePointer();
+            qCDebug(graphics_scripting) << "as base" << base;
+            if (base) {
+                //auto meshes = model->getConstMeshes();
+                success = provider->replaceScriptableModelMeshPart(base, -1, -1);
+                
+                // for (uint32_t m = 0; success && m < meshes.size(); m++) {
+                //     const auto& mesh = meshes.at(m);
+                //     for (int p = 0; success && p < mesh->getNumParts(); p++) {
+                //         qCDebug(graphics_scripting) << "provider->replaceScriptableModelMeshPart" << "meshIndex" << m << "partIndex" << p;
+                //         success = provider->replaceScriptableModelMeshPart(base, m, p);
+                //         //if (!success) {
+                //         qCDebug(graphics_scripting) << "//provider->replaceScriptableModelMeshPart" << "meshIndex" << m << "partIndex" << p << success;
+                //     }
+                // }
+            }
+        }
+    }
+    return success;
+}
+
+void ModelScriptingInterface::getMeshes(QUuid uuid, QScriptValue callback) {
+    auto handler = scriptable::jsBindCallback(callback);
     Q_ASSERT(handler.engine() == this->engine());
     QPointer<BaseScriptEngine> engine = dynamic_cast<BaseScriptEngine*>(handler.engine());
 
@@ -49,18 +91,23 @@ void ModelScriptingInterface::getMeshes(QUuid uuid, QScriptValue scopeOrCallback
     QString error;
 
     auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>();
-    qDebug() << "appProvider" << appProvider.data();
+    qCDebug(graphics_scripting) << "appProvider" << appProvider.data();
     scriptable::ModelProviderPointer provider = appProvider ? appProvider->lookupModelProvider(uuid) : nullptr;
     QString providerType = provider ? provider->metadata.value("providerType").toString() : QString();
     if (providerType.isEmpty()) {
         providerType = "unknown";
     }
     if (provider) {
-        qCDebug(model_scripting) << "fetching meshes from " << providerType << "...";
+        qCDebug(graphics_scripting) << "fetching meshes from " << providerType << "...";
         auto scriptableMeshes = provider->getScriptableModel(&success);
-        qCDebug(model_scripting) << "//fetched meshes from " << providerType << "success:" <<success << "#" << scriptableMeshes.meshes.size();
+        qCDebug(graphics_scripting) << "//fetched meshes from " << providerType << "success:" <<success << "#" << scriptableMeshes.meshes.size();
         if (success) {
-            meshes = new scriptable::ScriptableModel(scriptableMeshes);//SimpleModelProxy::fromScriptableModel(scriptableMeshes);
+            meshes = scriptable::make_scriptowned<scriptable::ScriptableModel>(scriptableMeshes);
+        QString debugString = scriptable::toDebugString(meshes);
+        QObject::connect(meshes, &QObject::destroyed, this, [=]() {
+                qCDebug(graphics_scripting) << "///fetched meshes" << debugString;
+            });
+        
             if (meshes->objectName().isEmpty()) {
                 meshes->setObjectName(providerType+"::meshes");
             }
@@ -75,20 +122,20 @@ void ModelScriptingInterface::getMeshes(QUuid uuid, QScriptValue scopeOrCallback
     }
 
     if (!error.isEmpty()) {
-        qCWarning(model_scripting) << "ModelScriptingInterface::getMeshes ERROR" << error;
+        qCWarning(graphics_scripting) << "ModelScriptingInterface::getMeshes ERROR" << error;
         callScopedHandlerObject(handler, engine->makeError(error), QScriptValue::NullValue);
     } else {
-        callScopedHandlerObject(handler, QScriptValue::NullValue, engine->newQObject(meshes, QScriptEngine::ScriptOwnership));
+        callScopedHandlerObject(handler, QScriptValue::NullValue, engine->toScriptValue(meshes));
     }
 }
 
 QString ModelScriptingInterface::meshToOBJ(const scriptable::ScriptableModel& _in) {
     const auto& in = _in.getConstMeshes();
-    qCDebug(model_scripting) << "meshToOBJ" << in.size();
+    qCDebug(graphics_scripting) << "meshToOBJ" << in.size();
     if (in.size()) {
         QList<scriptable::MeshPointer> meshes;
         foreach (auto meshProxy, in) {
-            qCDebug(model_scripting) << "meshToOBJ" << meshProxy;
+            qCDebug(graphics_scripting) << "meshToOBJ" << meshProxy;
             if (meshProxy) {
                 meshes.append(getMeshPointer(meshProxy));
             }
@@ -207,7 +254,7 @@ QScriptValue ModelScriptingInterface::appendMeshes(scriptable::ScriptableModel _
                                                           (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 
-    return engine()->toScriptValue(scriptable::ScriptableMeshPointer(new scriptable::ScriptableMesh(nullptr, result)));
+    return engine()->toScriptValue(scriptable::make_scriptowned<scriptable::ScriptableMesh>(result));
 }
 
 QScriptValue ModelScriptingInterface::transformMesh(scriptable::ScriptableMeshPointer meshProxy, glm::mat4 transform) {
@@ -220,8 +267,7 @@ QScriptValue ModelScriptingInterface::transformMesh(scriptable::ScriptableMeshPo
                                           [&](glm::vec3 color){ return color; },
                                           [&](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
                                           [&](uint32_t index){ return index; });
-    scriptable::ScriptableMeshPointer resultProxy = scriptable::ScriptableMeshPointer(new scriptable::ScriptableMesh(nullptr, result));
-    return engine()->toScriptValue(resultProxy);
+    return engine()->toScriptValue(scriptable::make_scriptowned<scriptable::ScriptableMesh>(result));
 }
 
 QScriptValue ModelScriptingInterface::getVertexCount(scriptable::ScriptableMeshPointer meshProxy) {
@@ -270,7 +316,7 @@ QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices
                                          sizeof(glm::vec3), gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
         mesh->addAttribute(gpu::Stream::NORMAL, normalBufferView);
     } else {
-        qCWarning(model_scripting, "ModelScriptingInterface::newMesh normals must be same length as vertices");
+        qCWarning(graphics_scripting, "ModelScriptingInterface::newMesh normals must be same length as vertices");
     }
 
     // indices (faces)
@@ -300,54 +346,10 @@ QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices
 
 
 
-    scriptable::ScriptableMeshPointer meshProxy = scriptable::ScriptableMeshPointer(new scriptable::ScriptableMesh(nullptr, mesh));
-    return engine()->toScriptValue(meshProxy);
+    return engine()->toScriptValue(scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh));
 }
 
 namespace {
-    QScriptValue meshPointerToScriptValue(QScriptEngine* engine, scriptable::ScriptableMeshPointer const &in) {
-        if (!in) {
-            return QScriptValue::NullValue;
-        }
-        return engine->newQObject(in, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
-    }
-
-    void meshPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableMeshPointer &out) {
-        auto obj = value.toQObject();
-        qDebug() << "meshPointerFromScriptValue" << obj;
-        if (auto tmp = qobject_cast<scriptable::ScriptableMesh*>(obj)) {
-            out = tmp;
-        }
-        // FIXME: Why does above cast not work on Win32!?
-        if (!out) {
-            if (auto smp = static_cast<scriptable::ScriptableMesh*>(obj)) {
-                qDebug() << "meshPointerFromScriptValue2" << smp;
-                out = smp;
-            }
-        }
-    }
-
-    QScriptValue modelPointerToScriptValue(QScriptEngine* engine, const scriptable::ScriptableModelPointer &in) {
-        return engine->newQObject(in, QScriptEngine::QtOwnership,  QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
-        // QScriptValue result = engine->newArray();
-        // int i = 0;
-        // foreach(auto& mesh, in->getMeshes()) {
-        //     result.setProperty(i++, meshPointerToScriptValue(engine, mesh));
-        // }
-        // return result;
-    }
-
-    void modelPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableModelPointer &out) {
-        const auto length = value.property("length").toInt32();
-        qCDebug(model_scripting) << "in modelPointerFromScriptValue, length =" << length;
-        for (int i = 0; i < length; i++) {
-            if (const auto meshProxy = qobject_cast<scriptable::ScriptableMesh*>(value.property(i).toQObject())) {
-                out->meshes.append(meshProxy->getMeshPointer());
-            } else {
-                qCDebug(model_scripting) << "null meshProxy" << i;
-            }
-        }
-    }
 
     // FIXME: MESHFACES:
     // QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const mesh::MeshFace &meshFace) {
@@ -365,29 +367,11 @@ namespace {
     //     qScriptValueToSequence(array, result);
     // }
 
-    QScriptValue qVectorUInt32ToScriptValue(QScriptEngine* engine, const QVector<quint32>& vector) {
-        return qScriptValueFromSequence(engine, vector);
-    }
-
-    void qVectorUInt32FromScriptValue(const QScriptValue& array, QVector<quint32>& result) {
-        qScriptValueToSequence(array, result);
-    }
 }
 
-int meshUint32 = qRegisterMetaType<quint32>();
-namespace mesh {
-    int meshUint32 = qRegisterMetaType<uint32>();
-}
-int qVectorMeshUint32 = qRegisterMetaType<QVector<quint32>>();
 
 void ModelScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
-    qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMeshPointer>>(engine);
-    qScriptRegisterSequenceMetaType<QVector<quint32>>(engine);
-
-    qScriptRegisterMetaType(engine, qVectorUInt32ToScriptValue, qVectorUInt32FromScriptValue);
-    qScriptRegisterMetaType(engine, meshPointerToScriptValue, meshPointerFromScriptValue);
-    qScriptRegisterMetaType(engine, modelPointerToScriptValue, modelPointerFromScriptValue);
-
+    scriptable::registerMetaTypes(engine);
     // FIXME: MESHFACES: remove if MeshFace is not needed anywhere
     // qScriptRegisterSequenceMetaType<mesh::MeshFaces>(engine);
     // qScriptRegisterMetaType(engine, meshFaceToScriptValue, meshFaceFromScriptValue);
@@ -395,7 +379,7 @@ void ModelScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
 }
 
 MeshPointer ModelScriptingInterface::getMeshPointer(const scriptable::ScriptableMesh& meshProxy) {
-    return meshProxy._mesh;//getMeshPointer(&meshProxy);
+    return meshProxy.getMeshPointer();
 }
 MeshPointer ModelScriptingInterface::getMeshPointer(scriptable::ScriptableMesh& meshProxy) {
     return getMeshPointer(&meshProxy);
@@ -406,7 +390,7 @@ MeshPointer ModelScriptingInterface::getMeshPointer(scriptable::ScriptableMeshPo
         if (context()){
             context()->throwError("expected meshProxy as first parameter");
         } else {
-            qDebug() << "expected meshProxy as first parameter";
+            qCDebug(graphics_scripting) << "expected meshProxy as first parameter";
         }
         return result;
     }
@@ -415,7 +399,7 @@ MeshPointer ModelScriptingInterface::getMeshPointer(scriptable::ScriptableMeshPo
         if (context()) {
             context()->throwError("expected valid meshProxy as first parameter");
         } else {
-            qDebug() << "expected valid meshProxy as first parameter";
+            qCDebug(graphics_scripting) << "expected valid meshProxy as first parameter";
         }
         return result;
     }

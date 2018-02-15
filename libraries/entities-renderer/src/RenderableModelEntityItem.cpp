@@ -950,18 +950,27 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-
-scriptable::ScriptableModel render::entities::ModelEntityRenderer::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel(bool* ok) {
     ModelPointer model;
-    withReadLock([&] {
-        model = _model;
-    });
+    withReadLock([&] { model = _model; });
 
     if (!model || !model->isLoaded()) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
     return _model->getScriptableModel(ok);
+}
+
+bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
+    qCDebug(entitiesrenderer) << "REPLACING RenderableModelEntityItem" << newModel->objectName();
+    ModelPointer model;
+    withReadLock([&] { model = _model; });
+
+    if (!model || !model->isLoaded()) {
+        return false;
+    }
+
+   return _model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
 }
 
 void RenderableModelEntityItem::simulateRelayedJoints() {

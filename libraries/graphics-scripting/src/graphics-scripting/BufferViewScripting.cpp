@@ -26,7 +26,7 @@ QScriptValue getBufferViewElement(QScriptEngine* js, const gpu::BufferView& view
 }
 
 QScriptValue bufferViewElementToScriptValue(QScriptEngine* engine, const gpu::BufferView& view, quint32 index, bool asArray, const char* hint) {
-    QVariant result = bufferViewElementToVariant(view, index, asArray, hint);
+    QVariant result = buffer_helpers::toVariant(view, index, asArray, hint);
     if (!result.isValid()) {
         return QScriptValue::NullValue;
     }
@@ -39,7 +39,7 @@ void setBufferViewElement(const gpu::BufferView& view, quint32 index, const QScr
 }
 
 bool bufferViewElementFromScriptValue(const QScriptValue& v, const gpu::BufferView& view, quint32 index) {
-    return bufferViewElementFromVariant(view, index, v.toVariant());
+    return buffer_helpers::fromVariant(view, index, v.toVariant());
 }
 
 //

@@ -140,7 +140,8 @@ class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;

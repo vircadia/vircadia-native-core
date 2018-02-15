@@ -630,7 +630,7 @@ uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
     return 0;
 }
 
-scriptable::ScriptableModel ModelOverlay::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase ModelOverlay::getScriptableModel(bool* ok) {
     if (!_model || !_model->isLoaded()) {
         return Base3DOverlay::getScriptableModel(ok);
     }

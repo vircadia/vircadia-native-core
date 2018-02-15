@@ -13,7 +13,7 @@
 
 #include <Transform.h>
 #include <SpatiallyNestable.h>
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 #include "Overlay.h"
 
 namespace model { class Mesh; }
@@ -37,7 +37,7 @@ public:
     virtual bool is3D() const override { return true; }
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
 
     // TODO: consider implementing registration points in this class
     glm::vec3 getCenter() const { return getWorldPosition(); }

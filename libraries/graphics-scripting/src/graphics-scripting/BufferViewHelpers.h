@@ -7,6 +7,8 @@
 #pragma once
 
 #include <QtCore>
+#include <memory>
+#include <glm/glm.hpp>
 
 namespace gpu {
     class BufferView;
@@ -15,11 +17,34 @@ namespace gpu {
 
 template <typename T> QVariant glmVecToVariant(const T& v, bool asArray = false);
 template <typename T> const T glmVecFromVariant(const QVariant& v);
-QVariant bufferViewElementToVariant(const gpu::BufferView& view, quint32 index, bool asArray = false, const char* hint = "");
-bool bufferViewElementFromVariant(const gpu::BufferView& view, quint32 index, const QVariant& v);
 
-template <typename T> gpu::BufferView bufferViewFromVector(QVector<T> elements, gpu::Element elementType);
+namespace graphics {
+    class Mesh;
+    using MeshPointer = std::shared_ptr<Mesh>;
+}
 
-gpu::BufferView cloneBufferView(const gpu::BufferView& input);
-gpu::BufferView resizedBufferView(const gpu::BufferView& input, quint32 numElements);
+class Extents;
+class AABox;
 
+struct buffer_helpers {
+    static graphics::MeshPointer cloneMesh(graphics::MeshPointer mesh);
+    static QMap<QString,int> ATTRIBUTES;
+    static std::map<QString, gpu::BufferView> gatherBufferViews(graphics::MeshPointer mesh, const QStringList& expandToMatchPositions = QStringList());
+    static bool recalculateNormals(graphics::MeshPointer meshProxy);
+    static gpu::BufferView getBufferView(graphics::MeshPointer mesh, quint8 slot);
+
+    static QVariant toVariant(const Extents& box);
+    static QVariant toVariant(const AABox& box);
+    static QVariant toVariant(const glm::mat4& mat4);
+    static QVariant toVariant(const gpu::BufferView& view, quint32 index, bool asArray = false, const char* hint = "");
+
+    static bool fromVariant(const gpu::BufferView& view, quint32 index, const QVariant& v);
+
+    template <typename T> static gpu::BufferView fromVector(const QVector<T>& elements, const gpu::Element& elementType);
+
+    template <typename T> static QVector<T> toVector(const gpu::BufferView& view, const char *hint = "");    
+    template <typename T> static T convert(const gpu::BufferView& view, quint32 index, const char* hint = "");
+    
+    static gpu::BufferView clone(const gpu::BufferView& input);
+    static gpu::BufferView resize(const gpu::BufferView& input, quint32 numElements);    
+};
