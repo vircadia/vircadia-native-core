@@ -20,6 +20,11 @@ class BackupHandlerInterface {
 public:
     virtual ~BackupHandlerInterface() = default;
 
+    virtual std::pair<bool, float> isAvailable(QString filePath) = 0;
+
+    // Returns whether a recovery is ongoing and a progress between 0 and 1 if one is.
+    virtual std::pair<bool, float> getRecoveryStatus() = 0;
+
     virtual void loadBackup(QuaZip& zip) = 0;
     virtual void createBackup(QuaZip& zip) = 0;
     virtual void recoverBackup(QuaZip& zip) = 0;

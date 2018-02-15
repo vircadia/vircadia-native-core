@@ -31,13 +31,16 @@ class AssetsBackupHandler : public QObject, public BackupHandlerInterface {
 public:
     AssetsBackupHandler(const QString& backupDirectory);
 
-    void loadBackup(QuaZip& zip);
-    void createBackup(QuaZip& zip);
-    void recoverBackup(QuaZip& zip);
-    void deleteBackup(QuaZip& zip);
-    void consolidateBackup(QuaZip& zip);
+    std::pair<bool, float> isAvailable(QString filePath) override;
+    std::pair<bool, float> getRecoveryStatus() override;
 
-    bool operationInProgress() const { return _operationInProgress; }
+    void loadBackup(QuaZip& zip) override;
+    void createBackup(QuaZip& zip) override;
+    void recoverBackup(QuaZip& zip) override;
+    void deleteBackup(QuaZip& zip) override;
+    void consolidateBackup(QuaZip& zip) override;
+
+    bool operationInProgress() { return getRecoveryStatus().first; }
 
 private:
     void setupRefreshTimer();
@@ -47,9 +50,6 @@ private:
     void refreshAssetsOnDisk();
     void checkForMissingAssets();
     void checkForAssetsToDelete();
-
-    void startOperation() { _operationInProgress = true; }
-    void stopOperation() { _operationInProgress = false; }
 
     void downloadMissingFiles(const AssetUtils::Mappings& mappings);
     void downloadNextMissingFile();
@@ -73,8 +73,6 @@ private:
         bool corruptedBackup;
     };
 
-    bool _operationInProgress { false };
-
     // Internal storage for backups on disk
     bool _allBackupsLoadedSuccessfully { false };
     std::vector<AssetServerBackup> _backups;
@@ -89,6 +87,7 @@ private:
     std::vector<std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash>> _mappingsLeftToSet;
     AssetUtils::AssetPathList _mappingsLeftToDelete;
     int _mappingRequestsInFlight { 0 };
+    int _numRestoreOperations { 0 }; // Used to compute a restore progress.
 };
 
 #endif /* hifi_AssetsBackupHandler_h */
