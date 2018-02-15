@@ -2273,10 +2273,25 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
                     // invoke our method to hand the new octree file off to the octree server
                     QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                              Qt::QueuedConnection, Q_ARG(QByteArray, formData[0].second));
+                                              Qt::QueuedConnection, Q_ARG(QByteArray, firstFormData.second));
 
                     // respond with a 200 for success
                     connection->respond(HTTPConnection::StatusCode200);
+                } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
+                    auto deferred = makePromise("recoverFromUploadedBackup");
+
+                    deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                        QJsonObject rootJSON;
+                        auto success = result["success"].toBool();
+                        rootJSON["success"] = success;
+                        QJsonDocument docJSON(rootJSON);
+                        connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                            JSON_MIME_TYPE.toUtf8());
+                    });
+
+                    _contentManager->recoverFromUploadedBackup(deferred, firstFormData.second);
+
+                    return true;
                 } else {
                     // we don't have handling for this filetype, send back a 400 for failure
                     connection->respond(HTTPConnection::StatusCode400);

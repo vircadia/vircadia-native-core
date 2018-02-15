@@ -63,6 +63,7 @@ public slots:
     void getAllBackupsAndStatus(MiniPromise::Promise promise);
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
+    void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
     void consolidateBackup(MiniPromise::Promise promise, QString fileName);
 
@@ -84,6 +85,8 @@ protected:
     void parseSettings(const QJsonObject& settings);
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
+
+    bool recoverFromBackupZip(QuaZip& backupZip, const QString& backupName);
 
 private:
     const QString _backupDirectory;
