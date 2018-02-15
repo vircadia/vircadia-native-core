@@ -29,13 +29,21 @@ class JobNoIO {};
 
 class JobContext {
 public:
-    JobContext(const QLoggingCategory& category) : profileCategory(category) {
-        assert(&category);
-    }
-    virtual ~JobContext() {}
+    JobContext(const QLoggingCategory& category);
+    virtual ~JobContext();
 
     std::shared_ptr<JobConfig> jobConfig { nullptr };
     const QLoggingCategory& profileCategory;
+
+    // control flow commands
+    void resetTaskFlow();
+    void abortTask();
+
+    // Check command flow
+    bool doAbortTask() const;
+
+protected:
+    bool _doAbortTask{ false };
 };
 using JobContextPointer = std::shared_ptr<JobContext>;
 
@@ -308,6 +316,10 @@ public:
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : TaskConcept::_jobs) {
                     job.run(jobContext);
+                    if (jobContext->doAbortTask()) {
+                        jobContext->resetTaskFlow();
+                        return;
+                    }
                 }
             }
         }
