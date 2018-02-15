@@ -19,6 +19,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 
@@ -1196,6 +1197,16 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 }
 
 bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType) {
+
+    if (thread() != QThread::currentThread()) {
+        bool success;
+        QMetaObject::invokeMethod(this, "restoreSettingsFromObject", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(bool, success),
+                                  Q_ARG(QJsonObject, settingsToRestore),
+                                  Q_ARG(SettingsType, settingsType));
+        return success;
+    }
+
     QJsonArray& filteredDescriptionArray = settingsType == DomainSettings
         ? _domainSettingsDescription : _contentSettingsDescription;
 
@@ -1320,6 +1331,19 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                                                                        bool includeContentSettings,
                                                                        bool includeDefaults, bool isForBackup) {
     QJsonObject responseObject;
+
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "settingsResponseObjectForType", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QJsonObject, responseObject),
+                                  Q_ARG(const QString&, typeValue),
+                                  Q_ARG(bool, isAuthenticated),
+                                  Q_ARG(bool, includeDomainSettings),
+                                  Q_ARG(bool, includeContentSettings),
+                                  Q_ARG(bool, includeDefaults),
+                                  Q_ARG(bool, isForBackup));
+
+        return responseObject;
+    }
 
     if (!typeValue.isEmpty() || isAuthenticated) {
         // convert the string type value to a QJsonValue

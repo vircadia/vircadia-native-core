@@ -111,10 +111,12 @@ public:
 
     void debugDumpGroupsState();
 
-    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
+    /// thread safe method to retrieve a JSON representation of settings
+    Q_INVOKABLE QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
                                               bool includeDomainSettings = true, bool includeContentSettings = true,
                                               bool includeDefaults = true, bool isForBackup = false);
-    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
+    /// thread safe method to restore settings from a JSON object
+    Q_INVOKABLE bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
 
 signals:
     void updateNodePermissions();
