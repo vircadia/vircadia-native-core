@@ -476,6 +476,8 @@ Item {
             onClicked: {
                 if (root.itemType === "contentSet") {
                     sendToPurchases({method: 'showReplaceContentLightbox', itemId: root.itemId, itemHref: root.itemHref});
+                } else if (root.itemType === "avatar") {
+                    Avatar.skeletonModelURL = root.itemHref;
                 } else {
                     sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     root.showConfirmation = true;

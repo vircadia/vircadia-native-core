@@ -40,8 +40,9 @@ Rectangle {
     property bool isCertified;
     property string itemType;
     property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar"];
-    property var buttonTextNormal: ["REZ IT", "WEAR IT", "REPLACE CONTENT SET", "INSTALL IT", "WEAR IT"];
-    property var buttonTextClicked: ["REZZED", "WORN", "CONTENT SET REPLACED!", "INSTALLED", "WORN"]
+    property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar"];
+    property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR"];
+    property var buttonTextClicked: ["REZZED!", "WORN!", "CONTENT SET REPLACED!", "INSTALLED!", "AVATAR CHANGED!"]
     property var buttonGlyph: [hifi.glyphs.wand, hifi.glyphs.hat, hifi.glyphs.globe, hifi.glyphs.install, hifi.glyphs.avatar];
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
@@ -529,6 +530,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
+                visible: !(root.itemType === "avatar" && viewInMyPurchasesButton.visible)
                 enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived) || (!root.isCertified);
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
@@ -576,7 +578,7 @@ Rectangle {
                 id: cancelPurchaseButton;
                 color: hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.light;
-                anchors.top: buyButton.bottom;
+                anchors.top: buyButton.visible ? buyButton.bottom : viewInMyPurchasesButton.bottom;
                 anchors.topMargin: 16;
                 height: 40;
                 anchors.left: parent.left;
@@ -622,8 +624,9 @@ Rectangle {
 
         RalewaySemiBold {
             id: completeText2;
-            text: "The item " + '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
-            " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
+            text: "The " + (root.itemTypesText)[itemTypesArray.indexOf(root.itemType)] +
+                '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
+                " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
             // Text size
             size: 20;
             // Anchors
@@ -701,6 +704,8 @@ Rectangle {
                     "root.visible = false;rezzedNotifContainer.visible = true; rezzedNotifContainerTimer.start();" + 
                     "UserActivityLogger.commerceEntityRezzed('" + root.itemId + "', 'checkout', '" + root.itemType + "');";
                     lightboxPopup.visible = true;
+                } else if (root.itemType === "avatar") {
+                    Avatar.skeletonModelURL = root.itemHref;
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     rezzedNotifContainer.visible = true;
