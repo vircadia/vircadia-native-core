@@ -16,6 +16,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/quazipfile.h>
 
+#include <LimitedNodeList.h>
 #include <OctreeUtils.h>
 
 EntitiesBackupHandler::EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath) :
@@ -71,5 +72,13 @@ void EntitiesBackupHandler::recoverBackup(QuaZip& zip) {
 
     if (entitiesFile.open(QIODevice::WriteOnly)) {
         entitiesFile.write(data.toGzippedByteArray());
+        entitiesFile.close();
+
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        nodeList->eachMatchingNode([](const SharedNodePointer& otherNode) -> bool {
+            return otherNode->getType() == NodeType::EntityServer;
+        }, [nodeList](const SharedNodePointer& otherNode) {
+            QMetaObject::invokeMethod(nodeList.data(), "killNodeWithUUID", Q_ARG(const QUuid&, otherNode->getUUID()));
+        });
     }
 }

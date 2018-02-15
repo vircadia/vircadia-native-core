@@ -1785,6 +1785,8 @@ QString DomainServer::getEntitiesReplacementFilePath() {
 void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message) {
     qDebug() << "Got request for octree data from " << message->getSenderSockAddr();
 
+    maybeHandleReplacementEntityFile();
+
     bool remoteHasExistingData { false };
     QUuid id;
     int version;
