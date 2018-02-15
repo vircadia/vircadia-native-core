@@ -219,7 +219,7 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid()) {
+    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
