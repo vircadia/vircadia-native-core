@@ -322,7 +322,7 @@ void DomainContentBackupManager::getAllBackupInformation(MiniPromise::Promise pr
             for (auto& handler : _backupHandlers) {
                 bool handlerIsAvailable { false };
                 float progress { 0.0f };
-                //std::tie<handlerIsAvailable, progress> = handler->isAvailable();
+                //std::tie<handlerIsAvailable, progress> = handler->isAvailable(fileInfo.absoluteFilePath());
                 //isAvailable = isAvailable && !handlerIsAvailable);
                 //availabilityProgress += progress / _backupHandlers.size();
             }
