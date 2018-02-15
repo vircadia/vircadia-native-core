@@ -32,7 +32,7 @@
 #if USE_STABLE_GLOBAL_SERVICES
 const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://pikachu/160.45,-2.45,159.106";
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
