@@ -71,7 +71,7 @@ void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits) {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -83,6 +83,10 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits)
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (isGroupCulled) {
+        builder.withSubMetaCulled();
     }
 
     if (_drawMaterial) {
@@ -403,7 +407,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
-void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits) {
+void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -415,6 +419,10 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (isGroupCulled) {
+        builder.withSubMetaCulled();
     }
 
     if (_isBlendShaped || _isSkinned) {

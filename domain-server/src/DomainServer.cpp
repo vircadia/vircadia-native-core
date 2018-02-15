@@ -501,7 +501,7 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
         // store the new domain ID and auto network setting immediately
         QString newSettingsJSON = QString("{\"metaverse\": { \"id\": \"%1\", \"automatic_networking\": \"full\"}}").arg(id);
         auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
-        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object());
+        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object(), DomainSettings);
 
         // store the new ID and auto networking setting on disk
         _settingsManager.persistToFile();

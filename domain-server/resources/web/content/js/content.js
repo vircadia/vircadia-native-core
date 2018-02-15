@@ -1,14 +1,6 @@
 $(document).ready(function(){
 
-  function showSpinnerAlert(title) {
-    swal({
-      title: title,
-      text: '<div class="spinner" style="color:black;"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>',
-      html: true,
-      showConfirmButton: false,
-      allowEscapeKey: false
-    });
-  }
+  Settings.afterReloadActions = function() {};
 
   var frm = $('#upload-form');
   frm.submit(function (ev) {
