@@ -24,28 +24,30 @@ EntitiesBackupHandler::EntitiesBackupHandler(QString entitiesFilePath, QString e
 {
 }
 
+static const QString ENTITIES_BACKUP_FILENAME = "models.json.gz";
+
 void EntitiesBackupHandler::createBackup(QuaZip& zip) {
     QFile entitiesFile { _entitiesFilePath };
 
     if (entitiesFile.open(QIODevice::ReadOnly)) {
         QuaZipFile zipFile { &zip };
-        zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo("models.json.gz", _entitiesFilePath));
+        zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(ENTITIES_BACKUP_FILENAME, _entitiesFilePath));
         zipFile.write(entitiesFile.readAll());
         zipFile.close();
         if (zipFile.getZipError() != UNZ_OK) {
-            qCritical() << "Failed to zip models.json.gz: " << zipFile.getZipError();
+            qCritical().nospace() << "Failed to zip " << ENTITIES_BACKUP_FILENAME << ": " << zipFile.getZipError();
         }
     }
 }
 
 void EntitiesBackupHandler::recoverBackup(QuaZip& zip) {
-    if (!zip.setCurrentFile("models.json.gz")) {
-        qWarning() << "Failed to find models.json.gz while recovering backup";
+    if (!zip.setCurrentFile(ENTITIES_BACKUP_FILENAME)) {
+        qWarning() << "Failed to find" << ENTITIES_BACKUP_FILENAME << "while recovering backup";
         return;
     }
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QIODevice::ReadOnly)) {
-        qCritical() << "Failed to open models.json.gz in backup";
+        qCritical() << "Failed to open" << ENTITIES_BACKUP_FILENAME << "in backup";
         return;
     }
     auto rawData = zipFile.readAll();
@@ -61,7 +63,7 @@ void EntitiesBackupHandler::recoverBackup(QuaZip& zip) {
     data.resetIdAndVersion();
 
     if (zipFile.getZipError() != UNZ_OK) {
-        qCritical() << "Failed to unzip models.json.gz: " << zipFile.getZipError();
+        qCritical().nospace() << "Failed to unzip " << ENTITIES_BACKUP_FILENAME << ": " << zipFile.getZipError();
         return;
     }
 
