@@ -141,7 +141,8 @@ public:
     void setAPIRefreshTimerEnabled(bool enabled);
 
 public slots:
-    void setSocketAndID(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
+    void setSocketAndID(const QUrl& serverlessDomainURL,
+                        const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT, const QUuid& id = QUuid());
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
     void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
@@ -162,7 +163,7 @@ signals:
     void completedSocketDiscovery();
 
     void resetting();
-    void connectedToDomain(const QString& hostname);
+    void connectedToDomain(const QString& hostname, const QUrl& serverlessDomainURL);
     void disconnectedFromDomain();
 
     void iceSocketAndIDReceived();
@@ -181,6 +182,7 @@ private:
     void hardReset();
 
     QUuid _uuid;
+    QUrl _serverlessDomainURL;
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
@@ -200,7 +202,6 @@ private:
     int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
-    bool _apiRefreshTimerEnabled { true };
 };
 
 #endif // hifi_DomainHandler_h

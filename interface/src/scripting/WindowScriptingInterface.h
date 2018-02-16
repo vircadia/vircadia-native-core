@@ -547,7 +547,7 @@ signals:
      *
      * Window.domainChanged.connect(onDomainChanged);
      */
-    void domainChanged(const QString& domain);
+    void domainChanged(const QString& domain, const QUrl& serverlessDomainURL);
 
     /**jsdoc
      * Triggered when you try to navigate to a *.json, *.svo, or *.svo.json URL in a Web browser within Interface.

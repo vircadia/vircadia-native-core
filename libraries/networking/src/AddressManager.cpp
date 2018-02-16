@@ -293,9 +293,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         return true;
 
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
-
-        qDebug() << "QQQQ do http before serverless domain" << lookupUrl.toString();
+        qDebug() << "QQQQ file or http before serverless domain" << lookupUrl.toString();
         emit setServersEnabled(false);
+        setDomainInfo(lookupUrl, QString(), 0, trigger);
         emit loadServerlessDomain(lookupUrl);
         emit lookupResultsFinished();
         return true;
@@ -387,6 +387,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
             QVariantMap domainObject = rootMap[LOCATION_API_DOMAIN_KEY].toMap();
 
             if (!domainObject.isEmpty()) {
+                // XXX serverless domain URL ?
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
                 const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
@@ -406,7 +407,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
 
                     qCDebug(networking) << "Possible domain change required to connect to" << domainHostname
                         << "on" << domainPort;
-                    emit possibleDomainChangeRequired(domainHostname, domainPort, domainID);
+                    emit possibleDomainChangeRequired(QUrl(), domainHostname, domainPort, domainID);
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
@@ -578,7 +579,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         }
 
         emit lookupResultsFinished();
-        hostChanged = setDomainInfo(domainIPString, domainPort, trigger);
+        hostChanged = setDomainInfo(QUrl(), domainIPString, domainPort, trigger);
 
         return true;
     }
@@ -595,7 +596,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString, LookupTri
         }
 
         emit lookupResultsFinished();
-        hostChanged = setDomainInfo(domainHostname, domainPort, trigger);
+        hostChanged = setDomainInfo(QUrl(), domainHostname, domainPort, trigger);
 
         return true;
     }
@@ -739,7 +740,8 @@ bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16
     return false;
 }
 
-bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger) {
+bool AddressManager::setDomainInfo(const QUrl& serverlessDomainURL,
+                                   const QString& hostname, quint16 port, LookupTrigger trigger) {
     bool hostChanged = setHost(hostname, trigger, port);
 
     // clear any current place information
@@ -750,7 +752,7 @@ bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, Lookup
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
-    emit possibleDomainChangeRequired(hostname, port, QUuid());
+    emit possibleDomainChangeRequired(serverlessDomainURL, hostname, port, QUuid());
 
     return hostChanged;
 }
