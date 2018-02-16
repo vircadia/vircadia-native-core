@@ -417,7 +417,7 @@ signals:
     void goForwardPossible(bool isPossible);
 
     void setServersEnabled(bool serversEnabled);
-
+    void loadServerlessDomain(QUrl domainURL);
 
 protected:
     AddressManager();

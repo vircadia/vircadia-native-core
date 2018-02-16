@@ -292,20 +292,13 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
         return true;
 
-    } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https") {
+    } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
 
         qDebug() << "QQQQ do http before serverless domain" << lookupUrl.toString();
         emit setServersEnabled(false);
+        emit loadServerlessDomain(lookupUrl);
         emit lookupResultsFinished();
         return true;
-
-    } else if (lookupUrl.scheme() == "file") {
-
-        qDebug() << "QQQQ load serverless domain " << lookupUrl.toString();
-        emit setServersEnabled(false);
-        emit lookupResultsFinished();
-        return true;
-
     }
 
     return false;

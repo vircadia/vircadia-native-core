@@ -1087,6 +1087,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(addressManager.data(), &AddressManager::setServersEnabled, this, &Application::setServersEnabled);
+    connect(addressManager.data(), &AddressManager::loadServerlessDomain, this, &Application::loadServerlessDomain);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -2965,6 +2966,12 @@ bool Application::visitServerlessDomain(const QString& urlString) {
     qDebug() << "QQQQ visit serverless domain" << urlString;
     DependencyManager::get<AddressManager>()->handleLookupString(urlString);
     return true;
+}
+
+void Application::loadServerlessDomain(QUrl domainURL) {
+    resettingDomain();
+    domainChanged("");
+    importJSONFromURL(domainURL.toString());
 }
 
 bool Application::importImage(const QString& urlString) {

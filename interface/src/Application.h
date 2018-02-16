@@ -393,6 +393,7 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setServersEnabled(bool enableServers);
+    void loadServerlessDomain(QUrl domainURL);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
