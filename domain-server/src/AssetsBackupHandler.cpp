@@ -487,7 +487,7 @@ void AssetsBackupHandler::computeServerStateDifference(const AssetUtils::Mapping
         }
     }
 
-    _numRestoreOperations = _assetsLeftToUpload.size() + _mappingsLeftToSet.size();
+    _numRestoreOperations = (int)_assetsLeftToUpload.size() + (int)_mappingsLeftToSet.size();
     if (!_mappingsLeftToDelete.empty()) {
         ++_numRestoreOperations;
     }
