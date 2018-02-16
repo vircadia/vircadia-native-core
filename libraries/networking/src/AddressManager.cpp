@@ -57,24 +57,33 @@ bool AddressManager::isConnected() {
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL;
 
-    hifiURL.setScheme(HIFI_URL_SCHEME);
-    hifiURL.setHost(_host);
-    
-    if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
-        hifiURL.setPort(_port);
+    if (!_filebasedDomainURL.isEmpty()) {
+        hifiURL = _filebasedDomainURL;
+    } else {
+        hifiURL.setScheme(HIFI_URL_SCHEME);
+        hifiURL.setHost(_host);
+
+        if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
+            hifiURL.setPort(_port);
+        }
+
     }
-    
-    if (!domainOnly) {
+
+    if (!domainOnly && hifiURL.scheme() == HIFI_URL_SCHEME) {
         hifiURL.setPath(currentPath());
     }
 
+    qDebug() << "QQQQ currentAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
 QUrl AddressManager::currentFacingAddress() const {
     auto hifiURL = currentAddress();
-    hifiURL.setPath(currentFacingPath());
+    if (hifiURL.scheme() == HIFI_URL_SCHEME) {
+        hifiURL.setPath(currentFacingPath());
+    }
 
+    qDebug() << "QQQQ currentFacingAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
@@ -90,16 +99,21 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
             hifiURL.setPath(currentPath());
         }
 
+        qDebug() << "QQQQ currentShareableAddress --> " << hifiURL.toString();
         return hifiURL;
     } else {
+        qDebug() << "QQQQ currentShareableAddress --> " << currentAddress(domainOnly).toString();
         return currentAddress(domainOnly);
     }
 }
 
 QUrl AddressManager::currentFacingShareableAddress() const {
     auto hifiURL = currentShareableAddress();
-    hifiURL.setPath(currentFacingPath());
+    if (hifiURL.scheme() == HIFI_URL_SCHEME) {
+        hifiURL.setPath(currentFacingPath());
+    }
 
+    qDebug() << "QQQQ currentFacingShareableAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
@@ -294,6 +308,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
         qDebug() << "QQQQ file or http before serverless domain" << lookupUrl.toString();
+        _previousLookup.clear();
         emit setServersEnabled(false);
         setDomainInfo(lookupUrl, QString(), 0, trigger);
         emit loadServerlessDomain(lookupUrl);
@@ -747,8 +762,13 @@ bool AddressManager::setDomainInfo(const QUrl& serverlessDomainURL,
     // clear any current place information
     _rootPlaceID = QUuid();
     _placeName.clear();
+    _filebasedDomainURL = serverlessDomainURL;
 
-    qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    if (!serverlessDomainURL.isEmpty()) {
+        qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL;
+    } else {
+        qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
+    }
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::HandleAddress);
 
