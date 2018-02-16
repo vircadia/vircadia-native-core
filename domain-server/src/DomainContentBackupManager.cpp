@@ -160,6 +160,7 @@ bool DomainContentBackupManager::process() {
 
                 if (!isStillRecovering) {
                     _isRecovering = false;
+                    _recoveryFilename = "";
                     emit recoveryCompleted();
                 }
             }
