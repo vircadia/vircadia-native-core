@@ -131,9 +131,6 @@ public:
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
-    bool getCanCastShadow() const;
-    void setCanCastShadow(bool value);
-
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     ShapeType computeTrueShapeType() const;
@@ -173,8 +170,6 @@ protected:
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;
-
-    bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
 
 private:
     uint64_t _lastAnimated{ 0 };

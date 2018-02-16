@@ -1112,7 +1112,7 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE, true);
-    _skeletonModel->setCanCastShadow(true, qApp->getMain3DScene());
+    _skeletonModel->setCanCastShadow(isEnabled, qApp->getMain3DScene());
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -2010,8 +2010,11 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+
                 _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
                                                         render::ItemKey::TAG_BITS_NONE, true);
+
+                _attachmentModels[i]->setCanCastShadow(shouldDrawHead, qApp->getMain3DScene());
             }
         }
     }
