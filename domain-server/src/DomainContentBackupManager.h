@@ -50,7 +50,7 @@ public:
     static const int DEFAULT_PERSIST_INTERVAL;
 
     DomainContentBackupManager(const QString& rootBackupDirectory,
-                               const QJsonObject& settings,
+                               const QVariantList& settings,
                                int persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
@@ -82,7 +82,7 @@ protected:
     void refreshBackupRules();
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
     int64_t getMostRecentBackupTimeInSecs(const QString& format);
-    void parseSettings(const QJsonObject& settings);
+    void parseBackupRules(const QVariantList& backupRules);
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 

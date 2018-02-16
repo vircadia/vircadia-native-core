@@ -50,7 +50,7 @@ void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) 
 }
 
 DomainContentBackupManager::DomainContentBackupManager(const QString& backupDirectory,
-                                                       const QJsonObject& settings,
+                                                       const QVariantList& backupRules,
                                                        int persistInterval,
                                                        bool debugTimestampNow)
     : _backupDirectory(backupDirectory),
@@ -62,59 +62,38 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     // Make sure the backup directory exists.
     QDir(_backupDirectory).mkpath(".");
 
-    parseSettings(settings);
+    parseBackupRules(backupRules);
 }
 
-void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
-    static const QString BACKUP_RULES_KEY = "backup_rules";
-    if (settings[BACKUP_RULES_KEY].isArray()) {
-        const QJsonArray& backupRules = settings[BACKUP_RULES_KEY].toArray();
-        qCDebug(domain_server) << "BACKUP RULES:";
+void DomainContentBackupManager::parseBackupRules(const QVariantList& backupRules) {
+    qCDebug(domain_server) << "BACKUP RULES:";
 
-        for (const QJsonValue& value : backupRules) {
-            QJsonObject obj = value.toObject();
+    for (const QVariant& value : backupRules) {
+        QVariantMap map = value.toMap();
 
-            int interval = 0;
-            int count = 0;
+        int interval = map["backupInterval"].toInt();
+        int count = map["maxBackupVersions"].toInt();
+        auto name = map["Name"].toString();
+        auto format = name.replace(" ", "_").toLower();
 
-            QJsonValue intervalVal = obj["backupInterval"];
-            if (intervalVal.isString()) {
-                interval = intervalVal.toString().toInt();
-            } else {
-                interval = intervalVal.toInt();
-            }
+        qCDebug(domain_server) << "    Name:" << name;
+        qCDebug(domain_server) << "        format:" << format;
+        qCDebug(domain_server) << "        interval:" << interval;
+        qCDebug(domain_server) << "        count:" << count;
 
-            QJsonValue countVal = obj["maxBackupVersions"];
-            if (countVal.isString()) {
-                count = countVal.toString().toInt();
-            } else {
-                count = countVal.toInt();
-            }
+        BackupRule newRule = { name, interval, format, count, 0 };
 
-            auto name = obj["Name"].toString();
-            auto format = name.replace(" ", "_").toLower();
+        newRule.lastBackupSeconds = getMostRecentBackupTimeInSecs(format);
 
-            qCDebug(domain_server) << "    Name:" << name;
-            qCDebug(domain_server) << "        format:" << format;
-            qCDebug(domain_server) << "        interval:" << interval;
-            qCDebug(domain_server) << "        count:" << count;
-
-            BackupRule newRule = { name, interval, format, count, 0 };
-
-            newRule.lastBackupSeconds = getMostRecentBackupTimeInSecs(format);
-
-            if (newRule.lastBackupSeconds > 0) {
-                auto now = QDateTime::currentSecsSinceEpoch();
-                auto sinceLastBackup = now - newRule.lastBackupSeconds;
-                qCDebug(domain_server).noquote() << "        lastBackup:" <<  formatSecTime(sinceLastBackup) << "ago";
-            } else {
-                qCDebug(domain_server) << "        lastBackup: NEVER";
-            }
-
-            _backupRules.push_back(newRule);
+        if (newRule.lastBackupSeconds > 0) {
+            auto now = QDateTime::currentSecsSinceEpoch();
+            auto sinceLastBackup = now - newRule.lastBackupSeconds;
+            qCDebug(domain_server).noquote() << "        lastBackup:" <<  formatSecTime(sinceLastBackup) << "ago";
+        } else {
+            qCDebug(domain_server) << "        lastBackup: NEVER";
         }
-    } else {
-        qCDebug(domain_server) << "BACKUP RULES: NONE";
+
+        _backupRules.push_back(newRule);
     }
 }
 

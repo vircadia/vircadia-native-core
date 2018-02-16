@@ -113,7 +113,7 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
 
 
 std::pair<bool, float> AssetsBackupHandler::isAvailable(QString filePath) {
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& value) {
         return value.filePath == filePath;
     });
     if (it == end(_backups)) {
@@ -269,7 +269,7 @@ void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
         qCWarning(asset_backup) << "Current asset mappings that might be stale.";
     }
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& value) {
         return value.filePath == zip.getZipName();
     });
     if (it == end(_backups)) {
@@ -314,7 +314,7 @@ void AssetsBackupHandler::deleteBackup(const QString& absoluteFilePath) {
         return;
     }
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& value) {
         return value.filePath == absoluteFilePath;
     });
     if (it == end(_backups)) {
@@ -335,7 +335,7 @@ void AssetsBackupHandler::consolidateBackup(QuaZip& zip) {
     }
     QFileInfo zipInfo(zip.getZipName());
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& value) {
         QFileInfo info(value.filePath);
         return info.fileName() == zipInfo.fileName();
     });
