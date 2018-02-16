@@ -333,8 +333,8 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
                 availabilityProgress += progress / _backupHandlers.size();
             }
 
-            backups.push_back(
-                { fileInfo.fileName(), name, fileInfo.absoluteFilePath(), createdAt, type == MANUAL_BACKUP_PREFIX });
+            backups.emplace_back(fileInfo.fileName(), name, fileInfo.absoluteFilePath(), createdAt,
+                                 type == MANUAL_BACKUP_PREFIX);
         }
     }
 
@@ -343,7 +343,7 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
 
 void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise promise) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "getAllBackupInformation", Q_ARG(MiniPromise::Promise, promise));
+        QMetaObject::invokeMethod(this, "getAllBackupsAndStatus", Q_ARG(MiniPromise::Promise, promise));
         return;
     }
 
