@@ -334,6 +334,8 @@ public slots:
      * @param {number} aspectRatio=0 - The width/height ratio of the snapshot required. If the value is <code>0</code> the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
+     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ",jpg".
+	 *      otherwise, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'
      * @example <caption>Using the snapshot function and signals.</caption>
      * function onStillSnapshotTaken(path, notify) {
      *     print("Still snapshot taken: " + path);
@@ -355,15 +357,19 @@ public slots:
      * var notify = true;
      * var animated = true;
      * var aspect = 1920 / 1080;
-     * Window.takeSnapshot(notify, animated, aspect);
+     * var filename = QString();
+     * Window.takeSnapshot(notify, animated, aspect, filename);
      */
-    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
      * @function Window.takeSecondaryCameraSnapshot
+     * @param {string} filename=QString() - If this value is not null then the image will be saved to this filename, with an appended ".jpg"
+     *
+     * var filename = QString();
      */
-    void takeSecondaryCameraSnapshot();
+    void takeSecondaryCameraSnapshot(const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that

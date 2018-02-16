@@ -1,6 +1,6 @@
 //
 //  Task.h
-//  render/src/task
+//  task/src/task
 //
 //  Created by Zach Pomerantz on 1/6/2016.
 //  Copyright 2016 High Fidelity, Inc.
@@ -17,23 +17,54 @@
 
 #include "SettingHandle.h"
 
-#include "Logging.h"
-
 #include <Profile.h>
 #include <PerfStat.h>
 
 namespace task {
 
 class JobConcept;
-template <class RC> class JobT;
-template <class RC> class TaskT;
+template <class JC> class JobT;
+template <class JC> class TaskT;
 class JobNoIO {};
 
+// Task Flow control class is a simple per value object used to communicate flow control commands trhough the graph of tasks.
+// From within the Job::Run function, you can access it from the JobCOntext and  issue commands which   will be picked up by the Task calling for the Job run.
+// This is first introduced to provide a way to abort all the work from within a task job. see the "abortTask" call
+class TaskFlow {
+public:
+    // A job that wants to abort the rest of the other jobs execution in a task would issue that call "abortTask" and let the task early exit for this run.
+    // All the varyings produced by the aborted branch of jobs are left unmodified.
+    void abortTask();
+
+    // called by the task::run to perform flow control
+    // This should be considered private but still need to be accessible from the Task<T> class
+    TaskFlow() = default;
+    ~TaskFlow() = default;
+    void reset();
+    bool doAbortTask() const;
+
+protected:
+    bool _doAbortTask{ false };
+};
+
+// JobContext class is the base calss for the context object which is passed through all the Job::run calls thoughout the graph of jobs
+// It is used to communicate to the job::run its context and various state information the job relies on.
+// It specifically provide access to:
+// - The taskFlow object allowing for messaging control flow commands from within a Job::run
+// - The current Config object attached to the Job::run currently called.
+// The JobContext can be derived to add more global state to it that Jobs can access
 class JobContext {
 public:
-    virtual ~JobContext() {}
+    JobContext(const QLoggingCategory& category);
+    virtual ~JobContext();
 
     std::shared_ptr<JobConfig> jobConfig { nullptr };
+    const QLoggingCategory& profileCategory;
+
+    // Task flow control
+    TaskFlow taskFlow{};
+
+protected:
 };
 using JobContextPointer = std::shared_ptr<JobContext>;
 
@@ -68,23 +99,23 @@ template<class T> void jobConfigure(T&, const TaskConfig&) {
     // nop, as the default TaskConfig was used, so the data does not need a configure method
 }
 
-template <class T, class RC> void jobRun(T& data, const RC& renderContext, const JobNoIO& input, JobNoIO& output) {
-    data.run(renderContext);
+template <class T, class JC> void jobRun(T& data, const JC& jobContext, const JobNoIO& input, JobNoIO& output) {
+    data.run(jobContext);
 }
-template <class T, class RC, class I> void jobRun(T& data, const RC& renderContext, const I& input, JobNoIO& output) {
-    data.run(renderContext, input);
+template <class T, class JC, class I> void jobRun(T& data, const JC& jobContext, const I& input, JobNoIO& output) {
+    data.run(jobContext, input);
 }
-template <class T, class RC, class O> void jobRun(T& data, const RC& renderContext, const JobNoIO& input, O& output) {
-    data.run(renderContext, output);
+template <class T, class JC, class O> void jobRun(T& data, const JC& jobContext, const JobNoIO& input, O& output) {
+    data.run(jobContext, output);
 }
-template <class T, class RC, class I, class O> void jobRun(T& data, const RC& renderContext, const I& input, O& output) {
-    data.run(renderContext, input, output);
+template <class T, class JC, class I, class O> void jobRun(T& data, const JC& jobContext, const I& input, O& output) {
+    data.run(jobContext, input, output);
 }
 
-template <class RC>
+template <class JC>
 class Job {
 public:
-    using Context = RC;
+    using Context = JC;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = JobConfig;
     using None = JobNoIO;
@@ -94,7 +125,7 @@ public:
         Concept(QConfigPointer config) : JobConcept(config) {}
         virtual ~Concept() = default;
 
-        virtual void run(const ContextPointer& renderContext) = 0;
+        virtual void run(const ContextPointer& jobContext) = 0;
     };
     using ConceptPointer = std::shared_ptr<Concept>;
 
@@ -130,12 +161,12 @@ public:
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
         }
 
-        void run(const ContextPointer& renderContext) override {
-            renderContext->jobConfig = std::static_pointer_cast<Config>(Concept::_config);
-            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->isEnabled()) {
-                jobRun(_data, renderContext, _input.get<I>(), _output.edit<O>());
+        void run(const ContextPointer& jobContext) override {
+            jobContext->jobConfig = std::static_pointer_cast<Config>(Concept::_config);
+            if (jobContext->jobConfig->alwaysEnabled || jobContext->jobConfig->isEnabled()) {
+                jobRun(_data, jobContext, _input.get<I>(), _output.edit<O>());
             }
-            renderContext->jobConfig.reset();
+            jobContext->jobConfig.reset();
         }
     };
     template <class T, class I, class C = Config> using ModelI = Model<T, C, I, None>;
@@ -161,12 +192,13 @@ public:
         return concept->_data;
     }
 
-    virtual void run(const ContextPointer& renderContext) {
+    virtual void run(const ContextPointer& jobContext) {
         PerformanceTimer perfTimer(_name.c_str());
-        PROFILE_RANGE(render, _name.c_str());
+        // NOTE: rather than use the PROFILE_RANGE macro, we create a Duration manually
+        Duration profileRange(jobContext->profileCategory, _name.c_str());
         auto start = usecTimestampNow();
 
-        _concept->run(renderContext);
+        _concept->run(jobContext);
 
         _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
     }
@@ -183,16 +215,16 @@ protected:
 // It can be created on any type T by aliasing the type JobModel in the class T
 // using JobModel = Task::Model<T>
 // The class T is expected to have a "build" method acting as a constructor.
-// The build method is where child Jobs can be added internally to the task 
+// The build method is where child Jobs can be added internally to the task
 // where the input of the task can be setup to feed the child jobs
 // and where the output of the task is defined
-template <class RC>
-class Task : public Job<RC> {
+template <class JC>
+class Task : public Job<JC> {
 public:
-    using Context = RC;
+    using Context = JC;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = TaskConfig;
-    using JobType = Job<RC>;
+    using JobType = Job<JC>;
     using None = typename JobType::None;
     using Concept = typename JobType::Concept;
     using ConceptPointer = typename JobType::ConceptPointer;
@@ -300,11 +332,15 @@ public:
             }
         }
 
-        void run(const ContextPointer& renderContext) override {
+        void run(const ContextPointer& jobContext) override {
             auto config = std::static_pointer_cast<C>(Concept::_config);
             if (config->alwaysEnabled || config->enabled) {
                 for (auto job : TaskConcept::_jobs) {
-                    job.run(renderContext);
+                    job.run(jobContext);
+                    if (jobContext->taskFlow.doAbortTask()) {
+                        jobContext->taskFlow.reset();
+                        return;
+                    }
                 }
             }
         }

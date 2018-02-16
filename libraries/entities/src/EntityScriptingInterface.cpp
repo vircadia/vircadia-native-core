@@ -299,7 +299,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     }
 }
 
-QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType,
+QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType,
                                                bool dynamic, const glm::vec3& position, const glm::vec3& gravity) {
     _activityTracking.addedEntityCount++;
 
@@ -311,6 +311,9 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setDynamic(dynamic);
     properties.setPosition(position);
     properties.setGravity(gravity);
+    if (!textures.isEmpty()) {
+        properties.setTextures(textures);
+    }
     return addEntity(properties);
 }
 

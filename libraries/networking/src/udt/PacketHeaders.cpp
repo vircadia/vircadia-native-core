@@ -31,7 +31,6 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
             return static_cast<PacketVersion>(EntityVersion::SoftEntities);
-
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
         case PacketType::AvatarIdentity:

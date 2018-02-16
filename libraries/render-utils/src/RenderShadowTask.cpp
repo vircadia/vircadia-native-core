@@ -200,8 +200,10 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     });
 }
 
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&) { return true; };
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cameraCullFunctor, uint8_t tagBits, uint8_t tagMask) {
+    ::CullFunctor shadowCullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
+        return _cullFunctor(args, bounds);
+    };
 
     // Prepare the ShapePipeline
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
@@ -213,26 +215,54 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
-    task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    // Fetch and cull the items from the scene
+    static const auto shadowCasterFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
+    const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterFilter, queryResolution).asVarying();
+    const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
+    const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterFilter).asVarying();
+    const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
+
+    // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
+    // frustum culling or this will make shadow casters out of the camera frustum disappear.
+    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    const auto applyFunctorInputs = ApplyCullFunctorOnItemBounds::Inputs(shadowItems, cameraFrustum).asVarying();
+    const auto culledShadowItems = task.addJob<ApplyCullFunctorOnItemBounds>("ShadowCullCamera", applyFunctorInputs, cameraCullFunctor);
+
+    // Sort
+    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", culledShadowItems);
+    const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
+
+    render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
+        ViewFrustumPointer(),
+        ViewFrustumPointer(),
+        ViewFrustumPointer(),
+        ViewFrustumPointer()
+    };
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i, tagBits, tagMask);
-        const auto shadowFilter = setupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
+        char jobName[64];
+        sprintf(jobName, "ShadowCascadeSetup%d", i);
+        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor, tagBits, tagMask);
+        const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
+        auto antiFrustum = render::Varying(ViewFrustumPointer());
+        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
+        if (i > 1) {
+            antiFrustum = cascadeFrustums[i - 2];
+        }
 
-        // CPU jobs:
-        // Fetch and cull the items from the scene
-        const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
-        const auto cullInputs = CullSpatialSelection::Inputs(shadowSelection, shadowFilter).asVarying();
-        const auto culledShadowSelection = task.addJob<CullSpatialSelection>("CullShadowSelection", cullInputs, cullFunctor, RenderDetails::SHADOW);
-
-        // Sort
-        const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
-        const auto sortedShapesAndBounds = task.addJob<DepthSortShapesAndComputeBounds>("DepthSortShadowMap", sortedPipelines, true);
+        // CPU jobs: finer grained culling
+        const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
+        const auto culledShadowItemsAndBounds = task.addJob<CullShapeBounds>("CullShadowCascade", cullInputs, shadowCullFunctor, RenderDetails::SHADOW);
 
         // GPU jobs: Render to shadow map
-        task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber, i);
-        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", setupOutput);
+        sprintf(jobName, "RenderShadowMap%d", i);
+        task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
+        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
     }
+
+    task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
@@ -241,15 +271,107 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext) {
+RenderShadowSetup::RenderShadowSetup() :
+    _cameraFrustum{ std::make_shared<ViewFrustum>() },
+    _coarseShadowFrustum{ std::make_shared<ViewFrustum>() } {
+
+}
+
+void RenderShadowSetup::configure(const Config& configuration) {
+    setConstantBias(0, configuration.constantBias0);
+    setConstantBias(1, configuration.constantBias1);
+    setConstantBias(2, configuration.constantBias2);
+    setConstantBias(3, configuration.constantBias3);
+    setSlopeBias(0, configuration.slopeBias0);
+    setSlopeBias(1, configuration.slopeBias1);
+    setSlopeBias(2, configuration.slopeBias2);
+    setSlopeBias(3, configuration.slopeBias3);
+}
+
+void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
+    _bias[cascadeIndex]._constant = value * value * value * 0.004f;
+}
+
+void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
+    _bias[cascadeIndex]._slope = value * value * value * 0.01f;
+}
+
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
+    output.edit0() = args->_renderMode;
+    output.edit1() = glm::ivec2(0, 0);
+    // Save main camera frustum
+    *_cameraFrustum = args->getViewFrustum();
+    output.edit2() = _cameraFrustum;
+
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow) {
         globalShadow->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+
+        auto& firstCascade = globalShadow->getCascade(0);
+        auto& firstCascadeFrustum = firstCascade.getFrustum();
+        unsigned int cascadeIndex;
+
+        // Adjust each cascade frustum
+        for (cascadeIndex = 0; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
+            auto& bias = _bias[cascadeIndex];
+            globalShadow->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
+                                                    SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
+                                                    bias._constant, bias._slope);
+        }
+
+        // Now adjust coarse frustum bounds
+        auto frustumPosition = firstCascadeFrustum->getPosition();
+        auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
+        auto farBottomRight = firstCascadeFrustum->getFarBottomRight() - frustumPosition;
+
+        auto left = glm::dot(farTopLeft, firstCascadeFrustum->getRight());
+        auto right = glm::dot(farBottomRight, firstCascadeFrustum->getRight());
+        auto top = glm::dot(farTopLeft, firstCascadeFrustum->getUp());
+        auto bottom = glm::dot(farBottomRight, firstCascadeFrustum->getUp());
+        auto near = firstCascadeFrustum->getNearClip();
+        auto far = firstCascadeFrustum->getFarClip();
+
+        for (cascadeIndex = 1; cascadeIndex < globalShadow->getCascadeCount(); ++cascadeIndex) {
+            auto& cascadeFrustum = globalShadow->getCascade(cascadeIndex).getFrustum();
+
+            farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
+            farBottomRight = cascadeFrustum->getFarBottomRight() - frustumPosition;
+
+            auto cascadeLeft = glm::dot(farTopLeft, cascadeFrustum->getRight());
+            auto cascadeRight = glm::dot(farBottomRight, cascadeFrustum->getRight());
+            auto cascadeTop = glm::dot(farTopLeft, cascadeFrustum->getUp());
+            auto cascadeBottom = glm::dot(farBottomRight, cascadeFrustum->getUp());
+            auto cascadeNear = cascadeFrustum->getNearClip();
+            auto cascadeFar = cascadeFrustum->getFarClip();
+            left = glm::min(left, cascadeLeft);
+            right = glm::max(right, cascadeRight);
+            bottom = glm::min(bottom, cascadeBottom);
+            top = glm::max(top, cascadeTop);
+            near = glm::min(near, cascadeNear);
+            far = glm::max(far, cascadeFar);
+        }
+
+        _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
+        _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
+        _coarseShadowFrustum->setProjection(glm::ortho<float>(left, right, bottom, top, near, far));
+        _coarseShadowFrustum->calculate();
+
+        // Push frustum for further culling and selection
+        args->pushViewFrustum(*_coarseShadowFrustum);
+
+        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+
+        // We want for the octree query enough resolution to catch the details in the lowest cascade. So compute
+        // the desired resolution for the first cascade frustum and extrapolate it to the coarse frustum.
+        glm::ivec2 queryResolution = firstCascade.framebuffer->getSize();
+        queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
+        queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
+        output.edit1() = queryResolution;
     }
 }
 
@@ -259,39 +381,44 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
-    output.edit0() = args->_renderMode;
-    output.edit2() = args->_sizeScale;
-
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
-
-        globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
 
         // Set the keylight render args
-        args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
-        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
-        if (lightStage->getCurrentKeyLight()->getType() == graphics::Light::SUN) {
-            const float shadowSizeScale = 1e16f;
-            // Set the size scale to a ridiculously high value to prevent small object culling which assumes
-            // the view frustum is a perspective projection. But this isn't the case for the sun which
-            // is an orthographic projection.
-            args->_sizeScale = shadowSizeScale;
-        }
+        auto& cascade = globalShadow->getCascade(_cascadeIndex);
+        auto& cascadeFrustum = cascade.getFrustum();
+        args->pushViewFrustum(*cascadeFrustum);
+        auto texelSize = glm::min(cascadeFrustum->getHeight(), cascadeFrustum->getWidth()) / cascade.framebuffer->getSize().x;
+        // Set the cull threshold to 24 shadow texels. This is totally arbitrary
+        const auto minTexelCount = 24.0f;
+        // TODO : maybe adapt that with LOD management system?
+        texelSize *= minTexelCount;
+        _cullFunctor._minSquareSize = texelSize * texelSize;
 
+        output.edit1() = cascadeFrustum;
     } else {
-        output.edit1() = ItemFilter::Builder::nothing();
+        output.edit0() = ItemFilter::Builder::nothing();
+        output.edit1() = ViewFrustumPointer();
     }
 }
 
 void RenderShadowCascadeTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
     RenderArgs* args = renderContext->args;
 
-    if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE && !input.get1().selectsNothing()) {
+    if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE && !input.selectsNothing()) {
+        args->popViewFrustum();
+    }
+    assert(args->hasViewFrustum());
+}
+
+void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
+    RenderArgs* args = renderContext->args;
+
+    if (args->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
         args->popViewFrustum();
     }
     assert(args->hasViewFrustum());
     // Reset the render args
     args->_renderMode = input.get0();
-    args->_sizeScale = input.get2();
-};
+}
