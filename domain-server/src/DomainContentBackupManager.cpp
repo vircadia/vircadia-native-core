@@ -281,6 +281,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
             success = false;
         } else {
             _isRecovering = true;
+            _recoveryFilename = backupName;
             for (auto& handler : _backupHandlers) {
                 handler->recoverBackup(zip);
             }
