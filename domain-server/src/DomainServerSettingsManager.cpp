@@ -38,6 +38,9 @@
 #include "DomainServerNodeData.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
+const QString SETTINGS_PATH = "/settings";
+const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
+const QString CONTENT_SETTINGS_PATH_JSON = "/content-settings.json";
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
@@ -190,6 +193,9 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
+    // since we're called from the DomainServerSettingsManager constructor, we don't take a write lock here
+    // even though we change the underlying config map
+
     _argumentList = argumentList;
 
     _configMap.loadConfig(_argumentList);
@@ -448,17 +454,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
     unpackPermissions();
 }
 
-QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {
-    static const QString DESCRIPTORS{ "descriptors" };
-
-    auto& settingsMap = getSettingsMap();
-    if (!getSettingsMap().contains(DESCRIPTORS)) {
-        settingsMap.insert(DESCRIPTORS, QVariantMap());
-    }
-
-    return *static_cast<QVariantMap*>(getSettingsMap()[DESCRIPTORS].data());
-}
-
 void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap& permissionsRows,
                                                              QString groupName, NodePermissionsPointer perms) {
     // this is called when someone has used the domain-settings webpage to add a group.  They type the group's name
@@ -487,6 +482,9 @@ void DomainServerSettingsManager::initializeGroupPermissions(NodePermissionsMap&
 void DomainServerSettingsManager::packPermissionsForMap(QString mapName,
                                                         NodePermissionsMap& permissionsRows,
                                                         QString keyPath) {
+    // grab a write lock on the settings mutex since we're about to change the config map
+    QWriteLocker locker(&_settingsLock);
+
     // find (or create) the "security" section of the settings map
     QVariant* security = _configMap.valueForKeyPath("security", true);
     if (!security->canConvert(QMetaType::QVariantMap)) {
@@ -576,15 +574,15 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 
     mapPointer->clear();
 
-    QVariant* permissions = _configMap.valueForKeyPath(keyPath, true);
-    if (!permissions->canConvert(QMetaType::QVariantList)) {
+    QVariant permissions = valueForKeyPath(keyPath);
+
+    if (!permissions.canConvert(QMetaType::QVariantList)) {
         qDebug() << "Failed to extract permissions for key path" << keyPath << "from settings.";
-        (*permissions) = QVariantList();
     }
 
     bool needPack = false;
 
-    QList<QVariant> permissionsList = permissions->toList();
+    QList<QVariant> permissionsList = permissions.toList();
     foreach (QVariant permsHash, permissionsList) {
         NodePermissionsPointer perms { new NodePermissions(permsHash.toMap()) };
         QString id = perms->getID();
@@ -1068,12 +1066,22 @@ NodePermissions DomainServerSettingsManager::getForbiddensForGroup(const QUuid& 
     return getForbiddensForGroup(groupKey.first, groupKey.second);
 }
 
+QVariant DomainServerSettingsManager::valueForKeyPath(const QString& keyPath) {
+    QReadLocker locker(&_settingsLock);
+    auto foundValue = _configMap.valueForKeyPath(keyPath);
+    return foundValue ? *foundValue : QVariant();
+}
+
 QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString& keyPath) {
+    QReadLocker locker(&_settingsLock);
     const QVariant* foundValue = _configMap.valueForKeyPath(keyPath);
 
     if (foundValue) {
         return *foundValue;
     } else {
+        // we don't need the settings lock anymore since we're done reading from the config map
+        _settingsLock.unlock();
+
         int dotIndex = keyPath.indexOf('.');
 
         QString groupKey = keyPath.mid(0, dotIndex);
@@ -1111,9 +1119,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 
             // we recurse one level deep below each group for the appropriate setting
             bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject, endpointType);
-
-            // store whatever the current _settingsMap is to file
-            persistToFile();
 
             // return success to the caller
             QString jsonSuccess = "{\"status\": \"success\"}";
@@ -1216,16 +1221,9 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 }
 
 bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType) {
-    
-    if (thread() != QThread::currentThread()) {
-        bool success;
 
-        BLOCKING_INVOKE_METHOD(this, "restoreSettingsFromObject",
-                               Q_RETURN_ARG(bool, success),
-                               Q_ARG(QJsonObject, settingsToRestore),
-                               Q_ARG(SettingsType, settingsType));
-        return success;
-    }
+    // grab a write lock since we're about to change the settings map
+    QWriteLocker locker(&_settingsLock);
 
     QJsonArray* filteredDescriptionArray = settingsType == DomainSettings
         ? &_domainSettingsDescription : &_contentSettingsDescription;
@@ -1341,6 +1339,10 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
     } else {
         // restore completed, persist the new settings
         qDebug() << "Restore completed, persisting restored settings to file";
+
+        // let go of the write lock since we're done making changes to the config map
+        locker.unlock();
+
         persistToFile();
         return true;
     }
@@ -1351,20 +1353,6 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                                                                        bool includeContentSettings,
                                                                        bool includeDefaults, bool isForBackup) {
     QJsonObject responseObject;
-
-    if (thread() != QThread::currentThread()) {
-
-        BLOCKING_INVOKE_METHOD(this, "settingsResponseObjectForType",
-                               Q_RETURN_ARG(QJsonObject, responseObject),
-                               Q_ARG(QString, typeValue),
-                               Q_ARG(bool, isAuthenticated),
-                               Q_ARG(bool, includeDomainSettings),
-                               Q_ARG(bool, includeContentSettings),
-                               Q_ARG(bool, includeDefaults),
-                               Q_ARG(bool, isForBackup));
-
-        return responseObject;
-    }
 
     if (!typeValue.isEmpty() || isAuthenticated) {
         // convert the string type value to a QJsonValue
@@ -1414,21 +1402,21 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
                         QVariant variantValue;
 
                         if (!groupKey.isEmpty()) {
-                             QVariant settingsMapGroupValue = _configMap.value(groupKey);
+                             QVariant settingsMapGroupValue = valueForKeyPath(groupKey);
 
                             if (!settingsMapGroupValue.isNull()) {
                                 variantValue = settingsMapGroupValue.toMap().value(settingName);
                             }
                         } else {
-                            variantValue = _configMap.value(settingName);
+                            variantValue = valueForKeyPath(settingName);
                         }
 
                         // final check for inclusion
                         // either we include default values or we don't but this isn't a default value
-                        if (includeDefaults || !variantValue.isNull()) {
+                        if (includeDefaults || variantValue.isValid()) {
                             QJsonValue result;
 
-                            if (variantValue.isNull()) {
+                            if (!variantValue.isValid()) {
                                 // no value for this setting, pass the default
                                 if (settingObject.contains(SETTING_DEFAULT_KEY)) {
                                     result = settingObject[SETTING_DEFAULT_KEY];
@@ -1567,6 +1555,10 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         SettingsType settingsType) {
+
+    // take a write lock since we're about to overwrite settings in the config map
+    QWriteLocker locker(&_settingsLock);
+
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
@@ -1664,6 +1656,12 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         }
     }
 
+    // we're done making changes to the config map, let go of our read lock
+    locker.unlock();
+
+    // store whatever the current config map is to file
+    persistToFile();
+
     return needRestart;
 }
 
@@ -1690,6 +1688,9 @@ bool permissionVariantLessThan(const QVariant &v1, const QVariant &v2) {
 }
 
 void DomainServerSettingsManager::sortPermissions() {
+    // take a write lock since we're about to change the config map data
+    QWriteLocker locker(&_settingsLock);
+
     // sort the permission-names
     QVariant* standardPermissions = _configMap.valueForKeyPath(AGENT_STANDARD_PERMISSIONS_KEYPATH);
     if (standardPermissions && standardPermissions->canConvert(QMetaType::QVariantList)) {
@@ -1726,11 +1727,15 @@ void DomainServerSettingsManager::persistToFile() {
     QFile settingsFile(_configMap.getUserConfigFilename());
 
     if (settingsFile.open(QIODevice::WriteOnly)) {
+        // take a read lock so we can grab the config and write it to file
+        QReadLocker locker(&_settingsLock);
         settingsFile.write(QJsonDocument::fromVariant(_configMap.getConfig()).toJson());
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
 
         // failed to write, reload whatever the current config state is
+        // with a write lock since we're about to overwrite the config map
+        QWriteLocker locker(&_settingsLock);
         _configMap.loadConfig(_argumentList);
     }
 }

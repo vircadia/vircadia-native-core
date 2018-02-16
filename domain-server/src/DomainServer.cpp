@@ -75,8 +75,8 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               std::initializer_list<QString> optionalData,
                                               bool requireAccessToken) {
 
-    auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-    if (accessTokenVariant == nullptr && requireAccessToken) {
+    auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
+    if (!accessTokenVariant.isValid() && requireAccessToken) {
         connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
         return true;
     }
@@ -112,8 +112,8 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    if (accessTokenVariant != nullptr) {
-        auto accessTokenHeader = QString("Bearer ") + accessTokenVariant->toString();
+    if (accessTokenVariant.isValid()) {
+        auto accessTokenHeader = QString("Bearer ") + accessTokenVariant.toString();
         req.setRawHeader("Authorization", accessTokenHeader.toLatin1());
     }
 
@@ -417,8 +417,8 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
     const QString X509_PRIVATE_KEY_OPTION = "key";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
 
-    QString certPath = _settingsManager.getSettingsMap().value(X509_CERTIFICATE_OPTION).toString();
-    QString keyPath = _settingsManager.getSettingsMap().value(X509_PRIVATE_KEY_OPTION).toString();
+    QString certPath = _settingsManager.valueForKeyPath(X509_CERTIFICATE_OPTION).toString();
+    QString keyPath = _settingsManager.valueForKeyPath(X509_PRIVATE_KEY_OPTION).toString();
 
     if (!certPath.isEmpty() && !keyPath.isEmpty()) {
         // the user wants to use the following cert and key for HTTPS
@@ -461,8 +461,7 @@ bool DomainServer::optionallySetupOAuth() {
     const QString OAUTH_CLIENT_SECRET_ENV = "DOMAIN_SERVER_CLIENT_SECRET";
     const QString REDIRECT_HOSTNAME_OPTION = "hostname";
 
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-    _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
+    _oauthProviderURL = QUrl(_settingsManager.valueForKeyPath(OAUTH_PROVIDER_URL_OPTION).toString());
 
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
@@ -472,9 +471,9 @@ bool DomainServer::optionallySetupOAuth() {
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setAuthURL(_oauthProviderURL);
 
-    _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
+    _oauthClientID = _settingsManager.valueForKeyPath(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
-    _hostname = settingsMap.value(REDIRECT_HOSTNAME_OPTION).toString();
+    _hostname = _settingsManager.valueForKeyPath(REDIRECT_HOSTNAME_OPTION).toString();
 
     if (!_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
@@ -499,11 +498,11 @@ static const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
 
 void DomainServer::getTemporaryName(bool force) {
     // check if we already have a domain ID
-    const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
+    QVariant idValueVariant = _settingsManager.valueForKeyPath(METAVERSE_DOMAIN_ID_KEY_PATH);
 
     qInfo() << "Requesting temporary domain name";
-    if (idValueVariant) {
-        qDebug() << "A domain ID is already present in domain-server settings:" << idValueVariant->toString();
+    if (idValueVariant.isValid()) {
+        qDebug() << "A domain ID is already present in domain-server settings:" << idValueVariant.toString();
         if (force) {
             qDebug() << "Requesting temporary domain name to replace current ID:" << getID();
         } else {
@@ -542,9 +541,6 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
         QString newSettingsJSON = QString("{\"metaverse\": { \"id\": \"%1\", \"automatic_networking\": \"full\"}}").arg(id);
         auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
         _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object(), DomainSettings);
-
-        // store the new ID and auto networking setting on disk
-        _settingsManager.persistToFile();
 
         // store the new token to the account info
         auto accountManager = DependencyManager::get<AccountManager>();
@@ -647,8 +643,6 @@ void DomainServer::setupNodeListAndAssignments() {
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
     int domainServerPort = localPortValue.toInt();
 
-    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
     int domainServerDTLSPort = INVALID_PORT;
 
     if (_isUsingDTLS) {
@@ -656,8 +650,9 @@ void DomainServer::setupNodeListAndAssignments() {
 
         const QString CUSTOM_DTLS_PORT_OPTION = "dtls-port";
 
-        if (settingsMap.contains(CUSTOM_DTLS_PORT_OPTION)) {
-            domainServerDTLSPort = (unsigned short) settingsMap.value(CUSTOM_DTLS_PORT_OPTION).toUInt();
+        auto dtlsPortVariant = _settingsManager.valueForKeyPath(CUSTOM_DTLS_PORT_OPTION);
+        if (dtlsPortVariant.isValid()) {
+            domainServerDTLSPort = (unsigned short) dtlsPortVariant.toUInt();
         }
     }
 
@@ -687,9 +682,9 @@ void DomainServer::setupNodeListAndAssignments() {
         nodeList->setSessionUUID(_overridingDomainID);
         isMetaverseDomain = true; // assume metaverse domain
     } else {
-        const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
-        if (idValueVariant) {
-            nodeList->setSessionUUID(idValueVariant->toString());
+        QVariant idValueVariant = _settingsManager.valueForKeyPath(METAVERSE_DOMAIN_ID_KEY_PATH);
+        if (idValueVariant.isValid()) {
+            nodeList->setSessionUUID(idValueVariant.toString());
             isMetaverseDomain = true; // if we have an ID, we'll assume we're a metaverse domain
         } else {
             nodeList->setSessionUUID(QUuid::createUuid()); // Use random UUID
@@ -758,10 +753,10 @@ bool DomainServer::resetAccountManagerAccessToken() {
         QString accessToken = QProcessEnvironment::systemEnvironment().value(ENV_ACCESS_TOKEN_KEY);
 
         if (accessToken.isEmpty()) {
-            const QVariant* accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
+            QVariant accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
 
-            if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
-                accessToken = accessTokenVariant->toString();
+            if (accessTokenVariant.isValid() && accessTokenVariant.canConvert(QMetaType::QString)) {
+                accessToken = accessTokenVariant.toString();
             } else {
                 qWarning() << "No access token is present. Some operations that use the metaverse API will fail.";
                 qDebug() << "Set an access token via the web interface, in your user config"
@@ -892,31 +887,26 @@ void DomainServer::updateICEServerAddresses() {
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
-    const QString ASSIGNMENT_CONFIG_REGEX_STRING = "config-([\\d]+)";
-    QRegExp assignmentConfigRegex(ASSIGNMENT_CONFIG_REGEX_STRING);
-
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    const QString ASSIGNMENT_CONFIG_PREFIX = "config-";
 
     // scan for assignment config keys
-    QStringList variantMapKeys = settingsMap.keys();
-    int configIndex = variantMapKeys.indexOf(assignmentConfigRegex);
+    for (int i = 0; i < Assignment::AllTypes; ++i) {
+        QVariant assignmentConfigVariant = _settingsManager.valueOrDefaultValueForKeyPath(ASSIGNMENT_CONFIG_PREFIX + QString::number(i));
 
-    while (configIndex != -1) {
-        // figure out which assignment type this matches
-        Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap(1).toInt();
+        if (assignmentConfigVariant.isValid()) {
+            // figure out which assignment type this matches
+            Assignment::Type assignmentType = static_cast<Assignment::Type>(i);
 
-        if (assignmentType < Assignment::AllTypes && !excludedTypes.contains(assignmentType)) {
-            QVariant mapValue = settingsMap[variantMapKeys[configIndex]];
-            QVariantList assignmentList = mapValue.toList();
+            if (!excludedTypes.contains(assignmentType)) {
+                QVariantList assignmentList = assignmentConfigVariant.toList();
 
-            if (assignmentType != Assignment::AgentType) {
-                createStaticAssignmentsForType(assignmentType, assignmentList);
+                if (assignmentType != Assignment::AgentType) {
+                    createStaticAssignmentsForType(assignmentType, assignmentList);
+                }
+
+                excludedTypes.insert(assignmentType);
             }
-
-            excludedTypes.insert(assignmentType);
         }
-
-        configIndex = variantMapKeys.indexOf(assignmentConfigRegex, configIndex + 1);
     }
 }
 
@@ -928,10 +918,10 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
 
 void DomainServer::populateStaticScriptedAssignmentsFromSettings() {
     const QString PERSISTENT_SCRIPTS_KEY_PATH = "scripts.persistent_scripts";
-    const QVariant* persistentScriptsVariant = valueForKeyPath(_settingsManager.getSettingsMap(), PERSISTENT_SCRIPTS_KEY_PATH);
+    QVariant persistentScriptsVariant = _settingsManager.valueOrDefaultValueForKeyPath(PERSISTENT_SCRIPTS_KEY_PATH);
 
-    if (persistentScriptsVariant) {
-        QVariantList persistentScriptsList = persistentScriptsVariant->toList();
+    if (persistentScriptsVariant.isValid()) {
+        QVariantList persistentScriptsList = persistentScriptsVariant.toList();
         foreach(const QVariant& persistentScriptVariant, persistentScriptsList) {
             QVariantMap persistentScript = persistentScriptVariant.toMap();
 
@@ -1954,13 +1944,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    auto getSetting = [this](QString keyPath, QVariant& value) -> bool {
-        QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-        QVariant* var = valueForKeyPath(settingsMap, keyPath);
-        if (var == nullptr) {
+    auto getSetting = [this](QString keyPath, QVariant value) -> bool {
+
+        value = _settingsManager.valueForKeyPath(keyPath);
+        if (!value.isValid()) {
             return false;
         }
-        value = *var;
         return true;
     };
 
@@ -2028,8 +2017,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         const QString URI_WIZARD = "/wizard/";
         const QString WIZARD_COMPLETED_ONCE_KEY_PATH = "wizard.completed_once";
-        const QVariant* wizardCompletedOnce = valueForKeyPath(_settingsManager.getSettingsMap(), WIZARD_COMPLETED_ONCE_KEY_PATH);
-        const bool completedOnce = wizardCompletedOnce && wizardCompletedOnce->toBool();
+        QVariant wizardCompletedOnce = _settingsManager.valueForKeyPath(WIZARD_COMPLETED_ONCE_KEY_PATH);
+        const bool completedOnce = wizardCompletedOnce.isValid() && wizardCompletedOnce.toBool();
 
         if (url.path() != URI_WIZARD && url.path().endsWith('/') && !completedOnce) {
             // First visit, redirect to the wizard
@@ -2326,8 +2315,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
 
         } else if (url.path() == "/domain_settings") {
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant) {
+            auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
+            if (!accessTokenVariant.isValid()) {
                 connection->respond(HTTPConnection::StatusCode400);
                 return true;
             }
@@ -2360,8 +2349,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + domainID, "domain",
                                               { }, { "network_address", "network_port", "label" });
         }  else if (url.path() == URI_API_PLACES) {
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant->isValid()) {
+            auto accessTokenVariant = _settingsManager.valueForKeyPath(ACCESS_TOKEN_KEY_PATH);
+            if (!accessTokenVariant.isValid()) {
                 connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
                 return true;
             }
@@ -2409,7 +2398,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/v1/places/" + place_id };
 
-            url.setQuery("access_token=" + accessTokenVariant->toString());
+            url.setQuery("access_token=" + accessTokenVariant.toString());
 
             QNetworkRequest req(url);
             req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -2604,10 +2593,11 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
 
-    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    QVariant adminUsersVariant = _settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY);
+    QVariant adminRolesVariant = _settingsManager.valueForKeyPath(ADMIN_ROLES_CONFIG_KEY);
 
     if (!_oauthProviderURL.isEmpty()
-        && (settingsMap.contains(ADMIN_USERS_CONFIG_KEY) || settingsMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
+        && (adminUsersVariant.isValid() || adminRolesVariant.isValid())) {
         QString cookieString = connection->requestHeaders().value(HTTP_COOKIE_HEADER_KEY);
 
         const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
@@ -2618,7 +2608,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             cookieUUID = cookieUUIDRegex.cap(1);
         }
 
-        if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
+        if (_settingsManager.valueForKeyPath(BASIC_AUTH_USERNAME_KEY_PATH).isValid()) {
             qDebug() << "Config file contains web admin settings for OAuth and basic HTTP authentication."
                 << "These cannot be combined - using OAuth for authentication.";
         }
@@ -2628,13 +2618,13 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             DomainServerWebSessionData sessionData = _cookieSessionHash.value(cookieUUID);
             QString profileUsername = sessionData.getUsername();
 
-            if (settingsMap.value(ADMIN_USERS_CONFIG_KEY).toStringList().contains(profileUsername)) {
+            if (_settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY).toStringList().contains(profileUsername)) {
                 // this is an authenticated user
                 return true;
             }
 
             // loop the roles of this user and see if they are in the admin-roles array
-            QStringList adminRolesArray = settingsMap.value(ADMIN_ROLES_CONFIG_KEY).toStringList();
+            QStringList adminRolesArray = _settingsManager.valueForKeyPath(ADMIN_ROLES_CONFIG_KEY).toStringList();
 
             if (!adminRolesArray.isEmpty()) {
                 foreach(const QString& userRole, sessionData.getRoles()) {
@@ -2679,7 +2669,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // we don't know about this user yet, so they are not yet authenticated
             return false;
         }
-    } else if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
+    } else if (_settingsManager.valueForKeyPath(BASIC_AUTH_USERNAME_KEY_PATH).isValid()) {
         // config file contains username and password combinations for basic auth
         const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
 
@@ -2698,10 +2688,10 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                     QString headerPassword = credentialList[1];
 
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
-                    QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
-                    const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
+                    QString settingsUsername = _settingsManager.valueForKeyPath(BASIC_AUTH_USERNAME_KEY_PATH).toString();
+                    QVariant settingsPasswordVariant = _settingsManager.valueForKeyPath(BASIC_AUTH_PASSWORD_KEY_PATH);
 
-                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
+                    QString settingsPassword = settingsPasswordVariant.isValid() ? settingsPasswordVariant.toString() : "";
                     QString hexHeaderPassword = headerPassword.isEmpty() ?
                         "" : QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
                         
@@ -2838,13 +2828,14 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
 }
 
 void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) {
-    auto settings = _settingsManager.getSettingsMap();
 
-    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+    auto broadcastSettingsVariant = _settingsManager.valueForKeyPath(BROADCASTING_SETTINGS_KEY);
+
+    if (broadcastSettingsVariant.isValid()) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
         std::vector<HifiSockAddr> replicationNodesInSettings;
 
-        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+        auto replicationSettings = broadcastSettingsVariant.toMap();
 
         QString serversKey = direction == Upstream ? "upstream_servers" : "downstream_servers";
         QString replicationDirection = direction == Upstream ? "upstream" : "downstream";
@@ -2920,13 +2911,12 @@ void DomainServer::updateUpstreamNodes() {
 
 void DomainServer::updateReplicatedNodes() {
     // Make sure we have downstream nodes in our list
-    auto settings = _settingsManager.getSettingsMap();
-
     static const QString REPLICATED_USERS_KEY = "users";
     _replicatedUsernames.clear();
-    
-    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
-        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+
+    auto replicationVariant = _settingsManager.valueForKeyPath(BROADCASTING_SETTINGS_KEY);
+    if (replicationVariant.isValid()) {
+        auto replicationSettings = replicationVariant.toMap();
         if (replicationSettings.contains(REPLICATED_USERS_KEY)) {
             auto usersSettings = replicationSettings.value(REPLICATED_USERS_KEY).toList();
             for (auto& username : usersSettings) {
@@ -3114,17 +3104,17 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
 
         // check out paths in the _configMap to see if we have a match
         auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
-        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(), keypath);
+        QVariant pathMatch = _settingsManager.valueForKeyPath(keypath);
 
-        if (pathMatch || pathQuery == INDEX_PATH) {
+        if (pathMatch.isValid() || pathQuery == INDEX_PATH) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
 
             QString responseViewpoint;
 
             // if we didn't match the path BUT this is for the index path then send back our default
-            if (pathMatch) {
-                responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+            if (pathMatch.isValid()) {
+                responseViewpoint = pathMatch.toMap()[PATH_VIEWPOINT_KEY].toString();
             } else {
                 const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
                 responseViewpoint = DEFAULT_INDEX_PATH;
