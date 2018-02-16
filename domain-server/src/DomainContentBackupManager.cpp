@@ -503,8 +503,6 @@ void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise,
         return;
     }
 
-    qDebug() << "copyFilePath" << copyFilePath;
-
     promise->resolve({
         { "success", true },
         { "backupFilePath", copyFilePath }
