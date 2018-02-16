@@ -438,14 +438,14 @@ void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule)
 void DomainContentBackupManager::load() {
     auto backups = getAllBackups();
     for (auto& backup : backups) {
-        QFile backupFile{ backup.absolutePath };
+        QFile backupFile { backup.absolutePath };
         if (!backupFile.open(QIODevice::ReadOnly)) {
             qCritical() << "Could not open file:" << backup.absolutePath;
             qCritical() << "    ERROR:" << backupFile.errorString();
             continue;
         }
 
-        QuaZip zip{ &backupFile };
+        QuaZip zip { &backupFile };
         if (!zip.open(QuaZip::mdUnzip)) {
             qCritical() << "Could not open backup archive:" << backup.absolutePath;
             qCritical() << "    ERROR:" << zip.getZipError();
