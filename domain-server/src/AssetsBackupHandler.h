@@ -31,14 +31,14 @@ class AssetsBackupHandler : public QObject, public BackupHandlerInterface {
 public:
     AssetsBackupHandler(const QString& backupDirectory);
 
-    std::pair<bool, float> isAvailable(QString filePath) override;
+    std::pair<bool, float> isAvailable(const QString& backupName) override;
     std::pair<bool, float> getRecoveryStatus() override;
 
-    void loadBackup(QuaZip& zip) override;
-    void createBackup(QuaZip& zip) override;
-    void recoverBackup(QuaZip& zip) override;
-    void deleteBackup(const QString& absoluteFilePath) override;
-    void consolidateBackup(QuaZip& zip) override;
+    void loadBackup(const QString& backupName, QuaZip& zip) override;
+    void createBackup(const QString& backupName, QuaZip& zip) override;
+    void recoverBackup(const QString& backupName, QuaZip& zip) override;
+    void deleteBackup(const QString& backupName) override;
+    void consolidateBackup(const QString& backupName, QuaZip& zip) override;
 
     bool operationInProgress() { return getRecoveryStatus().first; }
 
@@ -68,7 +68,10 @@ private:
     AssetUtils::Mappings _currentMappings;
 
     struct AssetServerBackup {
-        QString filePath;
+        AssetServerBackup(const QString& pName, AssetUtils::Mappings pMappings, bool pCorruptedBackup) :
+            name(pName), mappings(pMappings), corruptedBackup(pCorruptedBackup) {}
+
+        QString name;
         AssetUtils::Mappings mappings;
         bool corruptedBackup;
     };

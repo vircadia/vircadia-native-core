@@ -86,7 +86,7 @@ protected:
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
-    bool recoverFromBackupZip(QuaZip& backupZip, const QString& backupName);
+    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip);
 
 private:
     const QString _backupDirectory;
