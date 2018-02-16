@@ -380,9 +380,6 @@ void DomainServer::parseCommandLine() {
 DomainServer::~DomainServer() {
     qInfo() << "Domain Server is shutting down.";
 
-    // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
-    DependencyManager::destroy<LimitedNodeList>();
-
     if (_contentManager) {
         _contentManager->aboutToFinish();
         _contentManager->terminate();
@@ -392,6 +389,9 @@ DomainServer::~DomainServer() {
     DependencyManager::destroy<AssetClient>();
     _assetClientThread.quit();
     _assetClientThread.wait();
+
+    // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
+    DependencyManager::destroy<LimitedNodeList>();
 }
 
 void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
