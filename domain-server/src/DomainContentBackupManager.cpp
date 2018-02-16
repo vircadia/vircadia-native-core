@@ -148,18 +148,15 @@ bool DomainContentBackupManager::process() {
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
             if (_isRecovering) {
-                bool anyHandlerIsRecovering { false };
-                for (auto& handler : _backupHandlers) {
-                    bool handlerIsRecovering { false };
-                    float progress { 0.0f };
-                    //std::tie<handlerIsRecovering, progress> = handler->getRecoveryStatus();
-                    if (handlerIsRecovering) {
-                        anyHandlerIsRecovering = true;
-                        emit recoveryCompleted();
-                        break;
-                    }
+                using Value = std::vector<BackupHandlerPointer>::value_type;
+                bool isStillRecovering = std::any_of(begin(_backupHandlers), end(_backupHandlers), [](const Value& handler) {
+                    return handler->getRecoveryStatus().first;
+                });
+
+                if (!isStillRecovering) {
+                    _isRecovering = false;
+                    emit recoveryCompleted();
                 }
-                _isRecovering = anyHandlerIsRecovering;
             }
 
             if (!_isRecovering) {
@@ -320,11 +317,11 @@ void DomainContentBackupManager::getAllBackupInformation(MiniPromise::Promise pr
             bool isAvailable { true };
             float availabilityProgress { 0.0f };
             for (auto& handler : _backupHandlers) {
-                bool handlerIsAvailable { false };
+                bool handlerIsAvailable { true };
                 float progress { 0.0f };
-                //std::tie<handlerIsAvailable, progress> = handler->isAvailable(fileInfo.absoluteFilePath());
-                //isAvailable = isAvailable && !handlerIsAvailable);
-                //availabilityProgress += progress / _backupHandlers.size();
+                std::tie(handlerIsAvailable, progress) = handler->isAvailable(fileInfo.absoluteFilePath());
+                isAvailable &= handlerIsAvailable;
+                availabilityProgress += progress / _backupHandlers.size();
             }
 
             backups.push_back(QVariantMap({
@@ -342,9 +339,7 @@ void DomainContentBackupManager::getAllBackupInformation(MiniPromise::Promise pr
     bool isRecovering = _isRecovering.load();
     if (_isRecovering) {
         for (auto& handler : _backupHandlers) {
-            bool handlerIsRecovering { false };
-            float progress { 0.0f };
-            //std::tie<handlerIsRecovering, progress> = handler->getRecoveryStatus();
+            float progress = handler->getRecoveryStatus().second;
             recoveryProgress += progress / _backupHandlers.size();
         }
     }
