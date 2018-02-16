@@ -71,7 +71,7 @@ void MeshPartPayload::updateMaterial(graphics::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
-void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled) {
+void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -83,6 +83,10 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tagBits,
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (canCastShadow) {
+        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -419,6 +423,10 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, uint8_t tag
 
     if (isLayered) {
         builder.withLayered();
+    }
+
+    if (canCastShadow) {
+        builder.withShadowCaster();
     }
 
     if (isGroupCulled) {

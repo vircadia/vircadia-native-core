@@ -87,6 +87,10 @@ public:
 
     // new Scene/Engine rendering support
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+
+    bool canCastShadow() const { return _canCastShadow; }
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene);
+
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -400,6 +404,8 @@ protected:
     QUrl _url;
     bool _isVisible;
     uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
+
+    bool _canCastShadow;
 
     gpu::Buffers _blendedVertexBuffers;
 
