@@ -105,6 +105,7 @@ protected slots:
     void readContent ();
 
 protected:
+    void respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, int64_t size);
 
     /// The parent HTTP manager
     HTTPManager* _parentManager;
