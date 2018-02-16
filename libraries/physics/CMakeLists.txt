@@ -7,6 +7,5 @@ include_hifi_library_headers(avatars)
 include_hifi_library_headers(audio)
 include_hifi_library_headers(octree)
 include_hifi_library_headers(animation)
-include_hifi_library_headers(workload)
 
 target_bullet()

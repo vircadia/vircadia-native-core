@@ -391,6 +391,9 @@ public slots:
     const QString getPreferredCursor() const { return _preferredCursor.get(); }
     void setPreferredCursor(const QString& cursor);
 
+    void addingEntity(const EntityItemID& entityID);
+    void deletingEntity(const EntityItemID& entityID);
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);

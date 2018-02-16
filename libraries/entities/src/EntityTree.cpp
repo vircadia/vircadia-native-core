@@ -560,49 +560,37 @@ void EntityTree::setSimulation(EntitySimulationPointer simulation) {
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ignoreWarnings) {
-    EntityItemPointer entity;
-    {
-        QReadLocker locker(&_entityMapLock);
-        entity = _entityMap.value(entityID);
-    }
-    if (!entity) {
+    EntityTreeElementPointer containingElement = getContainingElement(entityID);
+    if (!containingElement) {
         if (!ignoreWarnings) {
-            qCWarning(entities) << "EntityTree::deleteEntity() on unknown entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existent entityID=" << entityID;
         }
         return;
     }
-    if (entity->getLocked() && !force) {
+
+    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+    if (!existingEntity) {
+        if (!ignoreWarnings) {
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existant entity item with entityID=" << entityID;
+        }
+        return;
+    }
+
+    if (existingEntity->getLocked() && !force) {
         if (!ignoreWarnings) {
             qCDebug(entities) << "ERROR! EntityTree::deleteEntity() trying to delete locked entity. entityID=" << entityID;
         }
         return;
     }
 
-    if (!ignoreWarnings) {
-        if (!entity->getElement()) {
-            qCWarning(entities) << "EntityTree::deleteEntity() found entity with entityID=" << entityID
-                << " in map but it doesn't know its containing element";
-        } else {
-            // check for element mismatch
-            EntityItemPointer otherEntity = entity->getElement()->getEntityWithEntityItemID(entityID);
-            if (!otherEntity) {
-                qCWarning(entities) << "EntityTree::deleteEntity() on entity with entityID=" << entityID
-                    << " but the containing element of record cannot find it";
-            } else if (otherEntity != entity) {
-                qCWarning(entities) << "EntityTree::deleteEntity() on entity with entityID=" << entityID
-                    << " but the containing element of record found a different entity";
-            }
-        }
-    }
-
     unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
-    emit deletingEntityPointer(entity.get());
+    emit deletingEntityPointer(existingEntity.get());
 
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer(), entityID);
 
-    entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+    existingEntity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         auto descendantID = descendant->getID();
         theOperator.addEntityIDToDeleteList(descendantID);
         emit deletingEntity(descendantID);
@@ -632,46 +620,34 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer());
     foreach(const EntityItemID& entityID, entityIDs) {
-        EntityItemPointer entity;
-        {
-            QReadLocker locker(&_entityMapLock);
-            entity = _entityMap.value(entityID);
-        }
-        if (!entity) {
+        EntityTreeElementPointer containingElement = getContainingElement(entityID);
+        if (!containingElement) {
             if (!ignoreWarnings) {
-                qCWarning(entities) << "EntityTree::deleteEntities() on unknown entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entityID=" << entityID;
             }
             continue;
         }
-        if (entity->getLocked() && !force) {
+
+        EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
+        if (!existingEntity) {
+            if (!ignoreWarnings) {
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entity item with entityID=" << entityID;
+            }
+            continue;
+        }
+
+        if (existingEntity->getLocked() && !force) {
             if (!ignoreWarnings) {
                 qCDebug(entities) << "ERROR! EntityTree::deleteEntities() trying to delete locked entity. entityID=" << entityID;
             }
             continue;
         }
 
-        if (!ignoreWarnings) {
-            if (!entity->getElement()) {
-                qCWarning(entities) << "EntityTree::deleteEntities() found entity with entityID=" << entityID
-                    << " in map but it doesn't know its containing element";
-            } else {
-                // check for element mismatch
-                EntityItemPointer otherEntity = entity->getElement()->getEntityWithEntityItemID(entityID);
-                if (!otherEntity) {
-                    qCWarning(entities) << "EntityTree::deleteEntities() on entity with entityID=" << entityID
-                        << " but the containing element of record cannot find it";
-                } else if (otherEntity != entity) {
-                    qCWarning(entities) << "EntityTree::deleteEntities() on entity with entityID=" << entityID
-                        << " but the containing element of record found a different entity";
-                }
-            }
-        }
-
         // tell our delete operator about this entityID
         unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
-        emit deletingEntityPointer(entity.get());
+        emit deletingEntityPointer(existingEntity.get());
     }
 
     if (theOperator.getEntities().size() > 0) {
@@ -1231,10 +1207,6 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
     }
 
     return verificationSuccess;
-}
-
-void EntityTree::queueUpdateSpaceProxy(int32_t index, const glm::vec4& sphere) {
-    _spaceUpdates.push_back(std::pair<int32_t, glm::vec4>(index, sphere));
 }
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -1838,12 +1810,6 @@ void EntityTree::update(bool simulate) {
             }
         });
     }
-
-    // process Space queues
-    _space.deleteProxies(_spaceDeletes);
-    _spaceDeletes.clear();
-    _space.updateProxies(_spaceUpdates);
-    _spaceUpdates.clear();
 }
 
 quint64 EntityTree::getAdjustedConsiderSince(quint64 sinceTime) {
@@ -2013,25 +1979,11 @@ void EntityTree::addEntityMapEntry(EntityItemPointer entity) {
         return;
     }
     _entityMap.insert(id, entity);
-
-    // create a proxy for the entity in the workload/Space container
-    glm::vec4 sphere(entity->getWorldPosition(), 0.5f * glm::length(entity->getScaledDimensions()));
-    int32_t spaceIndex = _space.createProxy(sphere);
-    entity->setSpaceIndex(spaceIndex);
 }
 
 void EntityTree::clearEntityMapEntry(const EntityItemID& id) {
-    // this method only called by DeleteEntityOperator
     QWriteLocker locker(&_entityMapLock);
-    QHash<EntityItemID, EntityItemPointer>::iterator itr = _entityMap.find(id);
-    if (itr != _entityMap.end()) {
-        // queue delete from _space BEFORE removing from map
-        int32_t spaceIndex = itr.value()->getSpaceIndex();
-        assert(spaceIndex != -1);
-        _spaceDeletes.push_back(spaceIndex);
-
-        _entityMap.erase(itr);
-    }
+    _entityMap.remove(id);
 }
 
 void EntityTree::debugDumpMap() {

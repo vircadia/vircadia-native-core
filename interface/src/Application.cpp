@@ -4477,6 +4477,8 @@ void Application::init() {
     _physicsEngine->init();
 
     EntityTreePointer tree = getEntities()->getTree();
+    connect(tree.get(), &EntityTree::deletingEntity, this, &Application::deletingEntity, Qt::QueuedConnection);
+    connect(tree.get(), &EntityTree::addingEntity, this, &Application::addingEntity, Qt::QueuedConnection);
     _entitySimulation->init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(_entitySimulation);
 
@@ -7604,6 +7606,14 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
 
 void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
+}
+
+void Application::addingEntity(const EntityItemID& entityID) {
+    // TODO: Andrew to implement this
+}
+
+void Application::deletingEntity(const EntityItemID& entityID) {
+    // TODO: Andrew to implement this
 }
 
 #include "Application.moc"
