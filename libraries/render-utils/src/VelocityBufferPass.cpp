@@ -147,7 +147,7 @@ void VelocityBufferPass::run(const render::RenderContextPointer& renderContext, 
 const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline() {
     if (!_cameraMotionPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(velocityBuffer_cameraMotion_frag));
+        auto ps = velocityBuffer_cameraMotion_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

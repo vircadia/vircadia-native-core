@@ -202,7 +202,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     if (!_antialiasingPipeline) {
         
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(taa_frag));
+        auto ps = taa_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
@@ -233,7 +233,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(fxaa_blend_frag));
+        auto ps = fxaa_blend_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
@@ -254,7 +254,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
     if (!_debugBlendPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(taa_blend_frag));
+        auto ps = taa_blend_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
