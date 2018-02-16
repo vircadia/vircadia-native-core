@@ -207,7 +207,12 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
+
+    qDebug() << "QQQQ handleUrl: " << lookupUrl.toString();
+
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
+
+        emit setServersEnabled(true);
 
         qCDebug(networking) << "Trying to go to URL" << lookupUrl.toString();
 
@@ -233,8 +238,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
             bool hostChanged;
-            if (handleNetworkAddress(lookupUrl.host()
-                                     + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger, hostChanged)) {
+            if (handleNetworkAddress(lookupUrl.host() +
+                                     (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())),
+                                     trigger, hostChanged)) {
 
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_NETWORK_ADDRESS, lookupUrl.toString());
 
@@ -274,23 +280,39 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
             }
         }
-
         return true;
 
     } else if (lookupUrl.toString().startsWith('/')) {
-        qCDebug(networking) << "Going to relative path" << lookupUrl.path();
 
+        qCDebug(networking) << "Going to relative path" << lookupUrl.path();
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
         _previousLookup.clear();
-
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, true);
         emit lookupResultsFinished();
+        return true;
 
+    } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
+
+        qDebug() << "QQQQ do http before serverless domain" << lookupUrl.toString();
+        emit setServersEnabled(false);
+        emit loadServerlessDomain(lookupUrl);
+        emit lookupResultsFinished();
         return true;
     }
 
     return false;
+}
+
+bool isPossiblePlaceName(QString possiblePlaceName) {
+    bool result { false };
+    int len = possiblePlaceName.length();
+    if (possiblePlaceName != "localhost" && len >= 4 && len <= 64) {
+        const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
+        result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
+    }
+    qDebug() << "isPossiblePlaceName: " << possiblePlaceName << " " << result;
+    return result;
 }
 
 void AddressManager::handleLookupString(const QString& lookupString, bool fromSuggestions) {
@@ -299,14 +321,15 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
         QString sanitizedString = lookupString.trimmed();
         QUrl lookupURL;
 
-        if (!lookupString.startsWith('/')) {
+        if (lookupString.toLower().startsWith(HIFI_URL_SCHEME + ":/") || isPossiblePlaceName(sanitizedString)) {
+            // sometimes we need to handle lookupStrings like hifi:/somewhere
             const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
             sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
-
-            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
-        } else {
-            lookupURL = QUrl(lookupString);
+            sanitizedString = HIFI_URL_SCHEME + "://" + sanitizedString;
         }
+
+        lookupURL = QUrl(sanitizedString);
+        qDebug() << "QQQQ handleLookupString: " << lookupString << " " << lookupURL.toString();
 
         handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
     }
@@ -426,7 +449,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     if (setHost(domainIDString, trigger)) {
                         trigger = LookupTrigger::Internal;
                     }
-                    
+
                     // this isn't a place, so clear the place name
                     _placeName.clear();
                 }
@@ -664,8 +687,8 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                     qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
-            
-            emit locationChangeRequired(newPosition, orientationChanged, 
+
+            emit locationChangeRequired(newPosition, orientationChanged,
                 trigger == LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
                 shouldFace
             );
@@ -697,7 +720,7 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
     if (host != _host || port != _port) {
-        
+
         addCurrentAddressToHistory(trigger);
 
         _port = port;

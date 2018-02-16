@@ -369,7 +369,7 @@ signals:
      * location.pathChangeRequired.connect(onPathChangeRequired);
      */
     void pathChangeRequired(const QString& newPath);
-    
+
     /**jsdoc
      * Triggered when you navigate to a new domain.
      * @function location.hostChanged
@@ -415,6 +415,9 @@ signals:
      * location.goForwardPossible.connect(onGoForwardPossible);
      */
     void goForwardPossible(bool isPossible);
+
+    void setServersEnabled(bool serversEnabled);
+    void loadServerlessDomain(QUrl domainURL);
 
 protected:
     AddressManager();

@@ -38,7 +38,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // if we get a socket that make sure our NetworkPeer ping timer stops
     connect(this, &DomainHandler::completedSocketDiscovery, &_icePeer, &NetworkPeer::stopPingTimer);
-    
+
     // setup a timeout for failure on settings requests
     static const int DOMAIN_SETTINGS_TIMEOUT_MS = 5000;
     _settingsTimer.setInterval(DOMAIN_SETTINGS_TIMEOUT_MS); // 5s, Qt::CoarseTimer acceptable
@@ -48,11 +48,21 @@ DomainHandler::DomainHandler(QObject* parent) :
     const int API_REFRESH_TIMEOUT_MSEC = 2500;
     _apiRefreshTimer.setInterval(API_REFRESH_TIMEOUT_MSEC); // 2.5s, Qt::CoarseTimer acceptable
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    connect(&_apiRefreshTimer, &QTimer::timeout, addressManager.data(), &AddressManager::refreshPreviousLookup);
+    connect(&_apiRefreshTimer, &QTimer::timeout, [this] {
+        if (_apiRefreshTimerEnabled) {
+            auto addressManager = DependencyManager::get<AddressManager>();
+            if (addressManager) {
+                addressManager->refreshPreviousLookup();
+            }
+        }
+    });
 
     // stop the refresh timer if we connect to a domain
     connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
+}
+
+void DomainHandler::setAPIRefreshTimerEnabled(bool enabled) {
+    _apiRefreshTimerEnabled = enabled;
 }
 
 void DomainHandler::disconnect() {
