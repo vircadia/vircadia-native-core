@@ -357,15 +357,6 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
         return;
     }
 
-    QDir backupDir { _backupDirectory };
-    auto matchingFiles =
-            backupDir.entryInfoList({ AUTOMATIC_BACKUP_PREFIX + "*.zip", MANUAL_BACKUP_PREFIX + "*.zip" },
-                                    QDir::Files | QDir::NoSymLinks, QDir::Name);
-    QString prefixFormat = "(" + QRegExp::escape(AUTOMATIC_BACKUP_PREFIX) + "|" + QRegExp::escape(MANUAL_BACKUP_PREFIX) + ")";
-    QString nameFormat = "(.+)";
-    QString dateTimeFormat = "(" + DATETIME_FORMAT_RE + ")";
-    QRegExp backupNameFormat { prefixFormat + nameFormat + "-" + dateTimeFormat + "\\.zip" };
-
     auto backups = getAllBackups();
 
     QVariantList variantBackups;
@@ -376,7 +367,7 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
         for (auto& handler : _backupHandlers) {
             bool handlerIsAvailable { true };
             float progress { 0.0f };
-            std::tie(handlerIsAvailable, progress) = handler->isAvailable(backup.name);
+            std::tie(handlerIsAvailable, progress) = handler->isAvailable(backup.id);
             isAvailable &= handlerIsAvailable;
             availabilityProgress += progress / _backupHandlers.size();
         }
@@ -462,7 +453,7 @@ void DomainContentBackupManager::load() {
         }
 
         for (auto& handler : _backupHandlers) {
-            handler->loadBackup(backup.name, zip);
+            handler->loadBackup(backup.id, zip);
         }
 
         zip.close();
