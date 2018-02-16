@@ -177,7 +177,7 @@ void HTTPConnection::respond(const char* code, std::unique_ptr<QIODevice> device
     disconnect(_socket, &QTcpSocket::readyRead, this, nullptr);
 }
 
-void HTTPConnection::respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, int64_t contentLength) {
+void HTTPConnection::respondWithStatusAndHeaders(const char* code, const char* contentType, const Headers& headers, qint64 contentLength) {
     _socket->write("HTTP/1.1 ");
 
     _socket->write(code);
