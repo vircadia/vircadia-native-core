@@ -2259,7 +2259,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 auto& firstFormData = formData[0];
 
                 // check the file extension to see what kind of file this is
-                // to match sure we handle this filetype for a content restore
+                // to make sure we handle this filetype for a content restore
                 auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
                 auto formDataFilenameRegex = QRegExp("filename=\"(\\S+)\"");
                 auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
