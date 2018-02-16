@@ -123,7 +123,10 @@ private:
     QHash<AssetUtils::AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
 
-    QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>> _queuedRequests;
+    QMutex _queuedRequestsMutex;
+    bool _isQueueingRequests { true };
+    using RequestQueue = QVector<QPair<QSharedPointer<ReceivedMessage>, SharedNodePointer>>;
+    RequestQueue _queuedRequests;
 
     bool _wasColorTextureCompressionEnabled { false };
     bool _wasGrayscaleTextureCompressionEnabled { false  };
