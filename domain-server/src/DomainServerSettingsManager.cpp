@@ -686,9 +686,6 @@ void DomainServerSettingsManager::unpackPermissions() {
 
             // add the permissions to the standard map
             _standardAgentPermissions[standardKey] = perms;
-
-            // this will require a packing of permissions
-            needPack = true;
         }
     }
 
@@ -1080,7 +1077,7 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
         return *foundValue;
     } else {
         // we don't need the settings lock anymore since we're done reading from the config map
-        _settingsLock.unlock();
+        locker.unlock();
 
         int dotIndex = keyPath.indexOf('.');
 
