@@ -466,6 +466,11 @@ tr.gray-tr {
   background-color: #f5f5f5;
 }
 
+table .action-menu {
+  text-align: right;
+  width: 90px;
+}
+
 .dropdown-toggle span.glyphicon-option-vertical {
   font-size: 110%;
   cursor: pointer;

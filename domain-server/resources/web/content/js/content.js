@@ -2,10 +2,19 @@ $(document).ready(function(){
 
   var RESTORE_SETTINGS_UPLOAD_ID = 'restore-settings-button';
   var RESTORE_SETTINGS_FILE_ID = 'restore-settings-file';
+  var UPLOAD_CONTENT_ALLOWED_DIV_ID = 'upload-content-allowed';
+  var UPLOAD_CONTENT_RECOVERING_DIV_ID = 'upload-content-recovering';
+
+  function progressBarHTML(extraClass, label) {
+    var html = "<div class='progress'>";
+    html += "<div class='" + extraClass + " progress-bar progress-bar-success progress-bar-striped active' role='progressbar' aria-valuemin='0' aria-valuemax='100'>";
+    html += label + "<span class='sr-only'></span></div></div>";
+    return html;
+  }
 
   function setupBackupUpload() {
     // construct the HTML needed for the settings backup panel
-    var html = "<div class='form-group'>";
+    var html = "<div class='form-group'><div id='" + UPLOAD_CONTENT_ALLOWED_DIV_ID + "'>";
 
     html += "<span class='help-block'>Upload a content archive (.zip) or entity file (.json, .json.gz) to replace the content of this domain.";
     html += "<br/>Note: Your domain content will be replaced by the content you upload, but the existing backup files of your domain's content will not immediately be changed.</span>";
@@ -13,7 +22,10 @@ $(document).ready(function(){
     html += "<input id='restore-settings-file' name='restore-settings' type='file'>";
     html += "<button type='button' id='" + RESTORE_SETTINGS_UPLOAD_ID + "' disabled='true' class='btn btn-primary'>Upload Content</button>";
 
-    html += "</div>";
+    html += "</div><div id='" + UPLOAD_CONTENT_RECOVERING_DIV_ID + "'>";
+    html += "<span class='help-block'>Restore in progress</span>";
+    html += progressBarHTML('recovery', 'Restoring');
+    html += "</div></div>";
 
     $('#' + Settings.UPLOAD_CONTENT_BACKUP_PANEL_ID + ' .panel-body').html(html);
   }
@@ -71,6 +83,7 @@ $(document).ready(function(){
   var MANUAL_ARCHIVES_TABLE_ID = 'manual-archives-table';
   var MANUAL_ARCHIVES_TBODY_ID = 'manual-archives-tbody';
   var AUTO_ARCHIVES_SETTINGS_LINK_ID = 'auto-archives-settings-link';
+  var ACTION_MENU_CLASS = 'action-menu';
 
   var automaticBackups = [];
   var manualBackups = [];
@@ -84,7 +97,9 @@ $(document).ready(function(){
     html += "</div>";
     html += "<table class='table sortable' id='" + AUTOMATIC_ARCHIVES_TABLE_ID + "'>";
 
-    var backups_table_head = "<thead><tr class='gray-tr'><th>Archive Name</th><th data-defaultsort='desc'>Archive Date</th><th class='text-right' data-defaultsort='disabled'>Actions</th></tr></thead>";
+    var backups_table_head = "<thead><tr class='gray-tr'><th>Archive Name</th><th data-defaultsort='desc'>Archive Date</th>"
+      + "<th data-defaultsort='disabled'></th><th class='" + ACTION_MENU_CLASS + "' data-defaultsort='disabled'>Actions</th>"
+      + "</tr></thead>";
 
     html += backups_table_head;
     html += "<tbody id='" + AUTOMATIC_ARCHIVES_TBODY_ID + "'></tbody></table>";
@@ -105,7 +120,7 @@ $(document).ready(function(){
   var BACKUP_DOWNLOAD_LINK_CLASS = 'download-backup';
   var BACKUP_DELETE_LINK_CLASS = 'delete-backup';
 
-  function reloadLatestBackups() {
+  function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
       url: '/api/backups',
@@ -125,7 +140,7 @@ $(document).ready(function(){
         return "<tr data-backup-id='" + backup.id + "' data-backup-name='" + backup.name + "'>"
           + "<td data-value='" + backup.name.toLowerCase() + "'>" + backup.name + "</td><td data-dateformat='lll'>"
           + moment(backup.createdAtMillis).format('lll')
-          + "</td><td class='text-right'>"
+          + "</td><td class='backup-status'></td><td class='" + ACTION_MENU_CLASS + "'>"
           + "<div class='dropdown'><div class='dropdown-toggle' data-toggle='dropdown' aria-expanded='false'><span class='glyphicon glyphicon-option-vertical'></span></div>"
           + "<ul class='dropdown-menu dropdown-menu-right'>"
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
@@ -133,27 +148,64 @@ $(document).ready(function(){
           + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='/api/backups/" + backup.id + "' target='_blank'>Delete</a></li></ul></div></td>";
       }
 
+      function updateProgressBars($progressBar, value) {
+        $progressBar.attr('aria-valuenow', value).attr('style', 'width: ' + value + '%');
+        $progressBar.find('.sr-only').html(data.status.recoveryProgress + "% Complete");
+      }
+
+      function updateOrAddTableRow(backup, tableBodyID) {
+        // check for a backup with this ID
+        var $backupRow = $("tr[data-backup-id='" + backup.id + "']");
+
+        if ($backupRow.length == 0) {
+          // create a new row and then add it to the table
+          $backupRow = $(createBackupTableRow(backup));
+          $('#' + tableBodyID).append($backupRow);
+        }
+
+        // update the row status column depending on if it is available or recovering
+        if (!backup.isAvailable) {
+          // add a progress bar to the status row for availability
+          $backupRow.find('td.backup-status').html(progressBarHTML('availability', 'Archiving'));
+
+          // set the value of the progress bar based on availability progress
+          updateProgressBars($backupRow.find('.progress-bar'), backup.availabilityProgress);
+        } else if (backup.id == data.status.recoveringBackupId) {
+          // add a progress bar to the status row for recovery
+          $backupRow.find('td.backup-status').html(progressBarHTML('recovery', 'Restoring'));
+        } else {
+          // no special status for this row, use an empty status column
+          $backupRow.find('td.backup-status').html('');
+        }
+
+        $backupRow.find('td.' + ACTION_MENU_CLASS + ' .dropdown').toggle(backup.isAvailable);
+      }
+
       var automaticRows = "";
 
       if (automaticBackups.length > 0) {
         for (var backupIndex in automaticBackups) {
-          // create a table row for this backup and add it to the rows we'll put in the table body
-          automaticRows += createBackupTableRow(automaticBackups[backupIndex]);
+          updateOrAddTableRow(automaticBackups[backupIndex], AUTOMATIC_ARCHIVES_TBODY_ID)
         }
       }
-
-      $('#' + AUTOMATIC_ARCHIVES_TBODY_ID).html(automaticRows);
-
-      var manualRows = "";
 
       if (manualBackups.length > 0) {
         for (var backupIndex in manualBackups) {
-          // create a table row for this backup and add it to the rows we'll put in the table body
-          manualRows += createBackupTableRow(manualBackups[backupIndex]);
+          updateOrAddTableRow(manualBackups[backupIndex], MANUAL_ARCHIVES_TBODY_ID)
         }
       }
 
-      $('#' + MANUAL_ARCHIVES_TBODY_ID).html(manualRows);
+      // check if the restore action on all rows should be enabled or disabled
+      $('.' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', data.status.isRecovering);
+
+      // hide or show the manual content upload file and button depending on our recovering status
+      $('#' + UPLOAD_CONTENT_ALLOWED_DIV_ID).toggle(!data.status.isRecovering);
+      $('#' + UPLOAD_CONTENT_RECOVERING_DIV_ID).toggle(data.status.isRecovering);
+
+      // update the progress bars for current restore status
+      if (data.status.isRecovering) {
+        updateProgressBars($('.recovery.progress-bar'), data.status.recoveryProgress);
+      }
 
       // tell bootstrap sortable to update for the new rows
       $.bootstrapSortable({ applyLast: true });
@@ -247,7 +299,7 @@ $(document).ready(function(){
         }).always(function(){
           // reload the list of content archives in case we deleted a backup
           // or it's no longer an available backup for some other reason
-          reloadLatestBackups();
+          reloadBackupInformation();
         });
       }
     )
@@ -306,7 +358,7 @@ $(document).ready(function(){
       }).done(function(data) {
         // since we successfully setup a new content archive, reload the table of archives
         // which should show that this archive is pending creation
-        reloadLatestBackups();
+        reloadBackupInformation();
       }).fail(function(jqXHR, textStatus, errorThrown) {
 
       });
@@ -322,6 +374,9 @@ $(document).ready(function(){
     setupContentArchives();
 
     // load the latest backups immediately
-    reloadLatestBackups();
+    reloadBackupInformation();
+
+    // setup a timer to reload them every 5 seconds
+    setTimeout(reloadBackupInformation(), 5000);
   };
 });
