@@ -126,7 +126,7 @@ $(document).ready(function(){
   var BACKUP_DOWNLOAD_LINK_CLASS = 'download-backup';
   var BACKUP_DELETE_LINK_CLASS = 'delete-backup';
   var ACTIVE_BACKUP_ROW_CLASS = 'active-backup';
-  
+
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
@@ -151,8 +151,8 @@ $(document).ready(function(){
           + "<div class='dropdown'><div class='dropdown-toggle' data-toggle='dropdown' aria-expanded='false'><span class='glyphicon glyphicon-option-vertical'></span></div>"
           + "<ul class='dropdown-menu dropdown-menu-right'>"
           + "<li><a class='" + BACKUP_RESTORE_LINK_CLASS + "' href='#'>Restore from here</a></li><li class='divider'></li>"
-          + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='#'>Download</a></li><li class='divider'></li>"
-          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='/api/backups/" + backup.id + "' target='_blank'>Delete</a></li></ul></div></td>";
+          + "<li><a class='" + BACKUP_DOWNLOAD_LINK_CLASS + "' href='/api/backups/" + backup.id + "'>Download</a></li><li class='divider'></li>"
+          + "<li><a class='" + BACKUP_DELETE_LINK_CLASS + "' href='#' target='_blank'>Delete</a></li></ul></div></td>";
       }
 
       function updateProgressBars($progressBar, value) {
@@ -267,12 +267,11 @@ $(document).ready(function(){
       "Restore content",
       function() {
         // show a spinner while we send off our request
-        showSpinnerAlert("Restoring Content Archive " +  backupName);
+        showSpinnerAlert("Starting restore of " +  backupName);
 
         // setup an AJAX POST to request content restore
         $.post('/api/backups/recover/' + backupID).done(function(data, textStatus, jqXHR) {
           swal.close();
-          showRestartModal();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(
             "Error",
