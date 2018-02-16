@@ -2951,14 +2951,6 @@ void Application::setServersEnabled(bool serversEnabled) {
     qDebug() << "QQQQ serversEnabled =" << serversEnabled;
     if (_serversEnabled != serversEnabled) {
         _serversEnabled = serversEnabled;
-
-        auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->getDomainHandler().setAPIRefreshTimerEnabled(serversEnabled);
-
-        if (!_serversEnabled) {
-            nodeList->reset();
-            clearDomainOctreeDetails();
-        }
     }
 }
 
@@ -2969,8 +2961,8 @@ bool Application::visitServerlessDomain(const QString& urlString) {
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
-    resettingDomain();
-    domainChanged("");
+    // resettingDomain();
+    // domainChanged("");
     importJSONFromURL(domainURL.toString());
 }
 

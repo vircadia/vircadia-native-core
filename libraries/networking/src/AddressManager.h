@@ -311,13 +311,15 @@ signals:
     /**jsdoc
      * Triggered when a request is made to go to an IP address.
      * @function location.possibleDomainChangeRequired
+     * @param {string} serverlessDomainURL - URL for a file-based domain
      * @param {string} hostName - The name of the domain to go do.
      * @param {number} port - The integer number of the network port to connect to.
      * @param {Uuid} domainID - The UUID of the domain to go to.
      * @returns {Signal}
      */
     // No example because this function isn't typically used in scripts.
-    void possibleDomainChangeRequired(const QString& newHostname, quint16 newPort, const QUuid& domainID);
+    void possibleDomainChangeRequired(const QUrl& serverlessDomainURL,
+                                      const QString& newHostname, quint16 newPort, const QUuid& domainID);
 
     /**jsdoc
      * Triggered when a request is made to go to a named domain or user.
@@ -432,7 +434,7 @@ private:
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
-    bool setDomainInfo(const QString& hostname, quint16 port, LookupTrigger trigger);
+    bool setDomainInfo(const QUrl& serverlessDomainURL, const QString& hostname, quint16 port, LookupTrigger trigger);
 
     const JSONCallbackParameters& apiCallbackParameters();
 
@@ -453,6 +455,7 @@ private:
     QString _host;
     quint16 _port;
     QString _placeName;
+    QUrl _filebasedDomainURL; // for serverless domains
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;
@@ -464,7 +467,7 @@ private:
     quint64 _lastBackPush = 0;
 
     QString _newHostLookupPath;
-    
+
     QUrl _previousLookup;
 };
 
