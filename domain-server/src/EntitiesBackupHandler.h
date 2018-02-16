@@ -30,7 +30,7 @@ public:
     void recoverBackup(QuaZip& zip) override;
 
     // Delete a skeleton backup
-    void deleteBackup(QuaZip& zip) override {}
+    void deleteBackup(const QString& absoluteFilePath) override {}
 
     // Create a full backup
     void consolidateBackup(QuaZip& zip) override {}
