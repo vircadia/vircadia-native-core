@@ -574,7 +574,12 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 
     mapPointer->clear();
 
-    QVariant permissions = valueForKeyPath(keyPath);
+    QVariant permissions = valueOrDefaultValueForKeyPath(keyPath);
+
+    if (!permissions.isValid()) {
+        // we don't have a permissions object to unpack for this keypath, bail
+        return false;
+    }
 
     if (!permissions.canConvert(QMetaType::QVariantList)) {
         qDebug() << "Failed to extract permissions for key path" << keyPath << "from settings.";
@@ -608,6 +613,11 @@ bool DomainServerSettingsManager::unpackPermissionsForKeypath(const QString& key
 
 void DomainServerSettingsManager::unpackPermissions() {
     // transfer details from _configMap to _agentPermissions
+
+    // NOTE: Defaults for standard permissions (anonymous, friends, localhost, logged-in) used
+    // to be set here and then immediately persisted to the config JSON file.
+    // They have since been moved to describe-settings.json as the default value for AGENT_STANDARD_PERMISSIONS_KEYPATH.
+    // In order to change the default standard permissions you must change the default value in describe-settings.json.
 
     bool needPack = false;
 
@@ -668,54 +678,39 @@ void DomainServerSettingsManager::unpackPermissions() {
             }
     });
 
-    // if any of the standard names are missing, add them
-    foreach(const QString& standardName, NodePermissions::standardNames) {
-        NodePermissionsKey standardKey { standardName, 0 };
-        if (!_standardAgentPermissions.contains(standardKey)) {
-            // we don't have permissions for one of the standard groups, so we'll add them now
-            NodePermissionsPointer perms { new NodePermissions(standardKey) };
-
-            if (standardKey == NodePermissions::standardNameLocalhost) {
-                // the localhost user is granted all permissions by default
-                perms->setAll(true);
-            } else {
-                // anonymous, logged in, and friend users get connect permissions by default
-                perms->set(NodePermissions::Permission::canConnectToDomain);
-                perms->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
-            }
-
-            // add the permissions to the standard map
-            _standardAgentPermissions[standardKey] = perms;
-        }
-    }
-
     needPack |= ensurePermissionsForGroupRanks();
 
     if (needPack) {
         packPermissions();
     }
 
-    #ifdef WANT_DEBUG
+#ifdef WANT_DEBUG
     qDebug() << "--------------- permissions ---------------------";
-    QList<QHash<NodePermissionsKey, NodePermissionsPointer>> permissionsSets;
-    permissionsSets << _standardAgentPermissions.get() << _agentPermissions.get()
-                    << _groupPermissions.get() << _groupForbiddens.get()
-                    << _ipPermissions.get() << _macPermissions.get()
-                    << _machineFingerprintPermissions.get();
+    std::list<NodePermissionsMap*> permissionsSets {
+        &_standardAgentPermissions, &_agentPermissions,
+        &_groupPermissions, &_groupForbiddens,
+        &_ipPermissions, &_macPermissions,
+        &_machineFingerprintPermissions
+    };
 
     foreach (auto permissionSet, permissionsSets) {
-        QHashIterator<NodePermissionsKey, NodePermissionsPointer> i(permissionSet);
-        while (i.hasNext()) {
-            i.next();
-            NodePermissionsPointer perms = i.value();
+        auto& permissionKeyMap = permissionSet->get();
+        auto it = permissionKeyMap.begin();
+
+        while (it != permissionKeyMap.end()) {
+
+            NodePermissionsPointer perms = it->second;
             if (perms->isGroup()) {
-                qDebug() << i.key() << perms->getGroupID() << perms;
+                qDebug() << it->first << perms->getGroupID() << perms;
             } else {
-                qDebug() << i.key() << perms;
+                qDebug() << it->first << perms;
             }
+
+            ++it;
         }
     }
-    #endif
+#endif
+
 }
 
 bool DomainServerSettingsManager::ensurePermissionsForGroupRanks() {
