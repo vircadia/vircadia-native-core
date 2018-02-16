@@ -14,6 +14,8 @@
 
 #include <memory>
 
+#include <QString>
+
 class QuaZip;
 
 class BackupHandlerInterface {

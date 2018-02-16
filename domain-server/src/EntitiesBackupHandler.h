@@ -12,8 +12,6 @@
 #ifndef hifi_EntitiesBackupHandler_h
 #define hifi_EntitiesBackupHandler_h
 
-#include <QString>
-
 #include "BackupHandler.h"
 
 class EntitiesBackupHandler : public BackupHandlerInterface {
