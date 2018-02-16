@@ -145,7 +145,7 @@ $(document).ready(function(){
       // populate the backups tables with the backups
       function createBackupTableRow(backup) {
         return "<tr data-backup-id='" + backup.id + "' data-backup-name='" + backup.name + "'>"
-          + "<td data-value='" + backup.name.toLowerCase() + "'>" + backup.name + "</td><td data-dateformat='lll'>"
+          + "<td data-value='" + backup.name.toLowerCase() + "'>" + backup.name + "</td><td data-value='" + backup.createdAtMillis + "'>"
           + moment(backup.createdAtMillis).format('lll')
           + "</td><td class='backup-status'></td><td class='" + ACTION_MENU_CLASS + "'>"
           + "<div class='dropdown'><div class='dropdown-toggle' data-toggle='dropdown' aria-expanded='false'><span class='glyphicon glyphicon-option-vertical'></span></div>"
@@ -211,7 +211,7 @@ $(document).ready(function(){
 
       // at this point, any rows that no longer have the ACTIVE_BACKUP_ROW_CLASS
       // are deleted backups, so we remove them from the table
-      $('tbody tr:not(.' + ACTIVE_BACKUP_ROW_CLASS + ')').remove();
+      $('#' + CONTENT_ARCHIVES_NORMAL_ID + ' tbody tr:not(.' + ACTIVE_BACKUP_ROW_CLASS + ')').remove();
 
       // check if the restore action on all rows should be enabled or disabled
       $('.' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', data.status.isRecovering);
