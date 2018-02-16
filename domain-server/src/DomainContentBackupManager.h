@@ -25,12 +25,8 @@
 #include <shared/MiniPromises.h>
 
 struct BackupItemInfo {
-    BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup)
-        : id(pId)
-        , name(pName)
-        , absolutePath(pAbsolutePath)
-        , createdAt(pCreatedAt)
-        , isManualBackup(pIsManualBackup){};
+    BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup) :
+        id(pId), name(pName), absolutePath(pAbsolutePath), createdAt(pCreatedAt), isManualBackup(pIsManualBackup) { };
 
     QString id;
     QString name;
