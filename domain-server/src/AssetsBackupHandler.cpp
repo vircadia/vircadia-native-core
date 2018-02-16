@@ -306,7 +306,7 @@ void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
     restoreAllAssets();
 }
 
-void AssetsBackupHandler::deleteBackup(QuaZip& zip) {
+void AssetsBackupHandler::deleteBackup(const QString& absoluteFilePath) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
@@ -315,10 +315,10 @@ void AssetsBackupHandler::deleteBackup(QuaZip& zip) {
     }
 
     auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == zip.getZipName();
+        return value.filePath == absoluteFilePath;
     });
     if (it == end(_backups)) {
-        qCDebug(asset_backup) << "Could not find backup" << zip.getZipName() << "to delete.";
+        qCDebug(asset_backup) << "Could not find backup" << absoluteFilePath << "to delete.";
         return;
     }
 

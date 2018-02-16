@@ -68,6 +68,7 @@ protected:
     void load();
     void backup();
     void removeOldBackupVersions(const BackupRule& rule);
+    void refreshBackupRules();
     bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
     int64_t getMostRecentBackupTimeInSecs(const QString& format);
     void parseSettings(const QJsonObject& settings);

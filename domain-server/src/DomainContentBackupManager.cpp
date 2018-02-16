@@ -89,8 +89,7 @@ void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
             }
 
             auto name = obj["Name"].toString();
-            auto format = obj["format"].toString();
-            format = name.replace(" ", "_").toLower();
+            auto format = name.replace(" ", "_").toLower();
 
             qCDebug(domain_server) << "    Name:" << name;
             qCDebug(domain_server) << "        format:" << format;
@@ -113,6 +112,12 @@ void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
         }
     } else {
         qCDebug(domain_server) << "BACKUP RULES: NONE";
+    }
+}
+
+void DomainContentBackupManager::refreshBackupRules() {
+    for (auto& backup : _backupRules) {
+        backup.lastBackupSeconds = getMostRecentBackupTimeInSecs(backup.extensionFormat);
     }
 }
 
@@ -235,8 +240,16 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
     }
 
     QDir backupDir { _backupDirectory };
-    QFile backupFile { backupDir.filePath(backupName) };
+    auto absoluteFilePath { backupDir.filePath(backupName) };
+    QFile backupFile { absoluteFilePath };
     auto success = backupFile.remove();
+
+    refreshBackupRules();
+
+    for (auto& handler : _backupHandlers) {
+        handler->deleteBackup(absoluteFilePath);
+    }
+
     promise->resolve({
         { "success", success }
     });

@@ -28,7 +28,7 @@ public:
 
     void recoverBackup(QuaZip& zip) override;
 
-    void deleteBackup(QuaZip& zip) override {}
+    void deleteBackup(const QString& absoluteFilePath) override {}
 
     void consolidateBackup(QuaZip& zip) override {}
 private:

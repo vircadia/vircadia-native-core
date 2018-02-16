@@ -30,7 +30,7 @@ public:
     virtual void loadBackup(QuaZip& zip) = 0;
     virtual void createBackup(QuaZip& zip) = 0;
     virtual void recoverBackup(QuaZip& zip) = 0;
-    virtual void deleteBackup(QuaZip& zip) = 0;
+    virtual void deleteBackup(const QString& absoluteFilePath) = 0;
     virtual void consolidateBackup(QuaZip& zip) = 0;
 };
 using BackupHandlerPointer = std::unique_ptr<BackupHandlerInterface>;
