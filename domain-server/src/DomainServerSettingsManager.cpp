@@ -1356,7 +1356,7 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
 
         BLOCKING_INVOKE_METHOD(this, "settingsResponseObjectForType",
                                Q_RETURN_ARG(QJsonObject, responseObject),
-                               Q_ARG(const QString&, typeValue),
+                               Q_ARG(QString, typeValue),
                                Q_ARG(bool, isAuthenticated),
                                Q_ARG(bool, includeDomainSettings),
                                Q_ARG(bool, includeContentSettings),
@@ -1374,6 +1374,7 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
 
         // only enumerate the requested settings type (domain setting or content setting)
         QJsonArray* filteredDescriptionArray = &_descriptionArray;
+
         if (includeDomainSettings && !includeContentSettings) {
             filteredDescriptionArray = &_domainSettingsDescription;
         } else if (includeContentSettings && !includeDomainSettings) {

@@ -78,6 +78,8 @@ $(document).ready(function(){
   });
 
   var GENERATE_ARCHIVE_BUTTON_ID = 'generate-archive-button';
+  var CONTENT_ARCHIVES_NORMAL_ID = 'content-archives-success';
+  var CONTENT_ARCHIVES_ERROR_ID = 'content-archives-error';
   var AUTOMATIC_ARCHIVES_TABLE_ID = 'automatic-archives-table';
   var AUTOMATIC_ARCHIVES_TBODY_ID = 'automatic-archives-tbody';
   var MANUAL_ARCHIVES_TABLE_ID = 'manual-archives-table';
@@ -90,10 +92,10 @@ $(document).ready(function(){
 
   function setupContentArchives() {
     // construct the HTML needed for the content archives panel
-    var html = "<div class='form-group'>";
+    var html = "<div id='" + CONTENT_ARCHIVES_NORMAL_ID + "'><div class='form-group'>";
     html += "<label class='control-label'>Automatic Content Archives</label>";
     html += "<span class='help-block'>Your domain server makes regular archives of the content in your domain. In the list below, you can see and download all of your domain content and settings backups. "
-    html += "<a href='/settings/#automatic_content_archives' id='" + AUTO_ARCHIVES_SETTINGS_LINK_ID + "'>Click here to manage automatic content archive intervals.</a>";
+    html += "<a href='/settings/#automatic_content_archives' id='" + AUTO_ARCHIVES_SETTINGS_LINK_ID + "'>Click here to manage automatic content archive intervals.</a></span>";
     html += "</div>";
     html += "<table class='table sortable' id='" + AUTOMATIC_ARCHIVES_TABLE_ID + "'>";
 
@@ -110,7 +112,11 @@ $(document).ready(function(){
     html += "</div>";
     html += "<table class='table sortable' id='" + MANUAL_ARCHIVES_TABLE_ID + "'>";
     html += backups_table_head;
-    html += "<tbody id='" + MANUAL_ARCHIVES_TBODY_ID + "'></tbody></table>";
+    html += "<tbody id='" + MANUAL_ARCHIVES_TBODY_ID + "'></tbody></table></div>";
+
+    html += "<div class='form-group' id='" + CONTENT_ARCHIVES_ERROR_ID + "' style='display:none;'>"
+      + "<span class='help-block'>There was a problem loading your list of automatic and manual content archives. "
+      + "Please reload the page to try again.</span></div>";
 
     // put the base HTML in the content archives panel
     $('#' + Settings.CONTENT_ARCHIVES_PANEL_ID + ' .panel-body').html(html);
@@ -119,7 +125,8 @@ $(document).ready(function(){
   var BACKUP_RESTORE_LINK_CLASS = 'restore-backup';
   var BACKUP_DOWNLOAD_LINK_CLASS = 'download-backup';
   var BACKUP_DELETE_LINK_CLASS = 'delete-backup';
-
+  var ACTIVE_BACKUP_ROW_CLASS = 'active-backup';
+  
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
     $.ajax({
@@ -153,6 +160,10 @@ $(document).ready(function(){
         $progressBar.find('.sr-only').html(data.status.recoveryProgress + "% Complete");
       }
 
+      // before we add any new rows and update existing ones
+      // remove our flag for active rows
+      $('.' + ACTIVE_BACKUP_ROW_CLASS).removeClass(ACTIVE_BACKUP_ROW_CLASS);
+
       function updateOrAddTableRow(backup, tableBodyID) {
         // check for a backup with this ID
         var $backupRow = $("tr[data-backup-id='" + backup.id + "']");
@@ -169,7 +180,7 @@ $(document).ready(function(){
           $backupRow.find('td.backup-status').html(progressBarHTML('availability', 'Archiving'));
 
           // set the value of the progress bar based on availability progress
-          updateProgressBars($backupRow.find('.progress-bar'), backup.availabilityProgress);
+          updateProgressBars($backupRow.find('.progress-bar'), backup.availabilityProgress * 100);
         } else if (backup.id == data.status.recoveringBackupId) {
           // add a progress bar to the status row for recovery
           $backupRow.find('td.backup-status').html(progressBarHTML('recovery', 'Restoring'));
@@ -179,21 +190,28 @@ $(document).ready(function(){
         }
 
         $backupRow.find('td.' + ACTION_MENU_CLASS + ' .dropdown').toggle(backup.isAvailable);
+
+        $backupRow.addClass(ACTIVE_BACKUP_ROW_CLASS);
       }
 
       var automaticRows = "";
 
       if (automaticBackups.length > 0) {
         for (var backupIndex in automaticBackups) {
-          updateOrAddTableRow(automaticBackups[backupIndex], AUTOMATIC_ARCHIVES_TBODY_ID)
+          updateOrAddTableRow(automaticBackups[backupIndex], AUTOMATIC_ARCHIVES_TBODY_ID);
+
         }
       }
 
       if (manualBackups.length > 0) {
         for (var backupIndex in manualBackups) {
-          updateOrAddTableRow(manualBackups[backupIndex], MANUAL_ARCHIVES_TBODY_ID)
+          updateOrAddTableRow(manualBackups[backupIndex], MANUAL_ARCHIVES_TBODY_ID);
         }
       }
+
+      // at this point, any rows that no longer have the ACTIVE_BACKUP_ROW_CLASS
+      // are deleted backups, so we remove them from the table
+      $('tbody tr:not(.' + ACTIVE_BACKUP_ROW_CLASS + ')').remove();
 
       // check if the restore action on all rows should be enabled or disabled
       $('.' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', data.status.isRecovering);
@@ -204,11 +222,14 @@ $(document).ready(function(){
 
       // update the progress bars for current restore status
       if (data.status.isRecovering) {
-        updateProgressBars($('.recovery.progress-bar'), data.status.recoveryProgress);
+        updateProgressBars($('.recovery.progress-bar'), data.status.recoveryProgress * 100);
       }
 
       // tell bootstrap sortable to update for the new rows
       $.bootstrapSortable({ applyLast: true });
+
+      $('#' + CONTENT_ARCHIVES_NORMAL_ID).toggle(true);
+      $('#' + CONTENT_ARCHIVES_ERROR_ID).toggle(false);
 
     }).fail(function(){
       // we've hit the very rare case where we couldn't load the list of backups from the domain server
@@ -219,11 +240,8 @@ $(document).ready(function(){
 
       // replace the content archives panel with a simple error message
       // stating that the user should reload the page
-      $('#' + Settings.CONTENT_ARCHIVES_PANEL_ID + ' .panel-body').html(
-        "<div class='form-group'>" +
-        "<span class='help-block'>There was a problem loading your list of automatic and manual content archives. Please reload the page to try again.</span>" +
-        "</div>"
-      );
+      $('#' + CONTENT_ARCHIVES_NORMAL_ID).toggle(false);
+      $('#' + CONTENT_ARCHIVES_ERROR_ID).toggle(true);
 
     }).always(function(){
       // toggle showing or hiding the tables depending on if they have entries
@@ -377,6 +395,6 @@ $(document).ready(function(){
     reloadBackupInformation();
 
     // setup a timer to reload them every 5 seconds
-    setTimeout(reloadBackupInformation(), 5000);
+    setInterval(reloadBackupInformation, 5000);
   };
 });
