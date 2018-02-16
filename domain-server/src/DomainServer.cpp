@@ -1761,7 +1761,7 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
         f.write(data);
         OctreeUtils::RawOctreeData octreeData;
         if (OctreeUtils::readOctreeDataInfoFromData(data, &octreeData)) {
-            qCDebug(domain_server) << "Wrote new entiteis file" << octreeData.id << octreeData.version;
+            qCDebug(domain_server) << "Wrote new entities file" << octreeData.id << octreeData.version;
         } else {
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
