@@ -2128,13 +2128,13 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_BACKUPS) {
-            auto deferred = makePromise("getAllBackupInformation");
+            auto deferred = makePromise("getAllBackupsAndStatus");
             deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
                 QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
 
                 connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
             });
-            _contentManager->getAllBackupInformation(deferred);
+            _contentManager->getAllBackupsAndStatus(deferred);
             return true;
         } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
             auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
