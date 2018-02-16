@@ -18,6 +18,7 @@
 #include <fstream>
 #include <time.h>
 
+#include <QBuffer>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -63,9 +64,9 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
 }
 
 void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
-    qDebug() << settings << settings["backups"] << settings["backups"].isArray();
-    if (settings["backups"].isArray()) {
-        const QJsonArray& backupRules = settings["backups"].toArray();
+    static const QString BACKUP_RULES_KEY = "backup_rules";
+    if (settings[BACKUP_RULES_KEY].isArray()) {
+        const QJsonArray& backupRules = settings[BACKUP_RULES_KEY].toArray();
         qCDebug(domain_server) << "BACKUP RULES:";
 
         for (const QJsonValue& value : backupRules) {
@@ -256,6 +257,22 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
     });
 }
 
+bool DomainContentBackupManager::recoverFromBackupZip(QuaZip& zip, const QString& backupName) {
+    if (!zip.open(QuaZip::Mode::mdUnzip)) {
+        qWarning() << "Failed to unzip file: " << zip.getZipName();
+        return false;
+    } else {
+        _isRecovering = true;
+
+        for (auto& handler : _backupHandlers) {
+            handler->recoverBackup(zip);
+        }
+
+        qDebug() << "Successfully started recovering from " << zip.getZipName();
+        return true;
+    }
+}
+
 void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise, const QString& backupName) {
     if (_isRecovering) {
         promise->resolve({
@@ -277,19 +294,9 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     QFile backupFile { backupDir.filePath(backupName) };
     if (backupFile.open(QIODevice::ReadOnly)) {
         QuaZip zip { &backupFile };
-        if (!zip.open(QuaZip::Mode::mdUnzip)) {
-            qWarning() << "Failed to unzip file: " << backupName;
-            success = false;
-        } else {
-            _isRecovering = true;
-            _recoveryFilename = backupName;
-            for (auto& handler : _backupHandlers) {
-                handler->recoverBackup(zip);
-            }
-            
-            qDebug() << "Successfully started recovering from " << backupName;
-            success = true;
-        }
+
+        success = recoverFromBackupZip(zip, backupName);
+
         backupFile.close();
     } else {
         success = false;
@@ -301,7 +308,28 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     });
 }
 
+void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "recoverFromUploadedBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(QByteArray, uploadedBackup));
+        return;
+    }
+
+    qDebug() << "Recovering from uploaded content archive";
+
+    // create a buffer and then a QuaZip from that buffer
+    QBuffer uploadedBackupBuffer { &uploadedBackup };
+    QuaZip uploadedZip { &uploadedBackupBuffer };
+
+    bool success = recoverFromBackupZip(uploadedZip, MANUAL_BACKUP_PREFIX + "uploaded.zip");
+
+    promise->resolve({
+        { "success", success }
+    });
+}
+
 std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
+
     QDir backupDir { _backupDirectory };
     auto matchingFiles =
             backupDir.entryInfoList({ AUTOMATIC_BACKUP_PREFIX + "*.zip", MANUAL_BACKUP_PREFIX + "*.zip" },

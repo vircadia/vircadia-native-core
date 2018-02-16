@@ -296,8 +296,15 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         qCDebug(domain_server) << "Created entities data directory";
     }
     maybeHandleReplacementEntityFile();
+    
+    auto contentArchivesGroup = _settingsManager.valueOrDefaultValueForKeyPath(AUTOMATIC_CONTENT_ARCHIVES_GROUP);
+    auto archivesIntervalObject = QJsonObject();
 
-    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager.settingsResponseObjectForType("6")["entity_server_settings"].toObject()));
+    if (contentArchivesGroup.canConvert<QVariantMap>()) {
+        archivesIntervalObject = QJsonObject::fromVariantMap(contentArchivesGroup.toMap());
+    }
+
+    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), archivesIntervalObject));
 
     connect(_contentManager.get(), &DomainContentBackupManager::started, _contentManager.get(), [this](){
         _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
@@ -1934,7 +1941,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_ASSIGNMENT = "/assignment";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
-    const QString URI_ENTITY_FILE_UPLOAD = "/content/upload";
+    const QString URI_CONTENT_UPLOAD = "/content/upload";
     const QString URI_RESTART = "/restart";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
@@ -2244,17 +2251,52 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200);
 
             return true;
-        } else if (url.path() == URI_ENTITY_FILE_UPLOAD) {
+        } else if (url.path() == URI_CONTENT_UPLOAD) {
             // this is an entity file upload, ask the HTTPConnection to parse the data
             QList<FormData> formData = connection->parseFormData();
 
             if (formData.size() > 0 && formData[0].second.size() > 0) {
-                // invoke our method to hand the new octree file off to the octree server
-                QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                          Qt::QueuedConnection, Q_ARG(QByteArray, formData[0].second));
+                auto& firstFormData = formData[0];
 
-                // respond with a 200 for success
-                connection->respond(HTTPConnection::StatusCode200);
+                // check the file extension to see what kind of file this is
+                // to make sure we handle this filetype for a content restore
+                auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
+                auto formDataFilenameRegex = QRegExp("filename=\"(\\S+)\"");
+                auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
+
+                QString uploadedFilename = "";
+                if (matchIndex != -1) {
+                    uploadedFilename = formDataFilenameRegex.cap(1);
+                }
+
+                if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
+                    || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+                    // invoke our method to hand the new octree file off to the octree server
+                    QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+                                              Qt::QueuedConnection, Q_ARG(QByteArray, firstFormData.second));
+
+                    // respond with a 200 for success
+                    connection->respond(HTTPConnection::StatusCode200);
+                } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
+                    auto deferred = makePromise("recoverFromUploadedBackup");
+
+                    deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                        QJsonObject rootJSON;
+                        auto success = result["success"].toBool();
+                        rootJSON["success"] = success;
+                        QJsonDocument docJSON(rootJSON);
+                        connection->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
+                                            JSON_MIME_TYPE.toUtf8());
+                    });
+
+                    _contentManager->recoverFromUploadedBackup(deferred, firstFormData.second);
+
+                    return true;
+                } else {
+                    // we don't have handling for this filetype, send back a 400 for failure
+                    connection->respond(HTTPConnection::StatusCode400);
+                }
+
             } else {
                 // respond with a 400 for failure
                 connection->respond(HTTPConnection::StatusCode400);

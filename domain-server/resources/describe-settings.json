@@ -1,5 +1,5 @@
 {
-  "version": 2.1,
+  "version": 2.2,
   "settings": [
     {
       "name": "metaverse",
@@ -1322,73 +1322,6 @@
           "advanced": true
         },
         {
-          "name": "backups",
-          "type": "table",
-          "label": "Backup Rules",
-          "help": "In this table you can define a set of rules for how frequently to backup copies of your entites content file.",
-          "numbered": false,
-          "can_add_new_rows": true,
-          "default": [
-            {
-              "Name": "Half Hourly Rolling",
-              "backupInterval": 1800,
-              "format": ".backup.halfhourly.%N",
-              "maxBackupVersions": 5
-            },
-            {
-              "Name": "Daily Rolling",
-              "backupInterval": 86400,
-              "format": ".backup.daily.%N",
-              "maxBackupVersions": 7
-            },
-            {
-              "Name": "Weekly Rolling",
-              "backupInterval": 604800,
-              "format": ".backup.weekly.%N",
-              "maxBackupVersions": 4
-            },
-            {
-              "Name": "Thirty Day Rolling",
-              "backupInterval": 2592000,
-              "format": ".backup.thirtyday.%N",
-              "maxBackupVersions": 12
-            }
-          ],
-          "columns": [
-            {
-              "name": "Name",
-              "label": "Name",
-              "can_set": true,
-              "placeholder": "Example",
-              "default": "Example"
-            },
-            {
-              "name": "format",
-              "label": "Rule Format",
-              "can_set": true,
-              "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
-              "placeholder": ".backup.example.%N",
-              "default": ".backup.example.%N"
-            },
-            {
-              "name": "backupInterval",
-              "label": "Backup Interval in Seconds",
-              "help": "Interval between backup checks in seconds.",
-              "placeholder": 1800,
-              "default": 1800,
-              "can_set": true
-            },
-            {
-              "name": "maxBackupVersions",
-              "label": "Max Rolled Backup Versions",
-              "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
-              "placeholder": 5,
-              "default": 5,
-              "can_set": true
-            }
-          ]
-        },
-        {
           "name": "NoPersist",
           "type": "checkbox",
           "label": "Disable Persistence",
@@ -1644,6 +1577,67 @@
                   "label": "Avatar Mixer"
                 }
               ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "automatic_content_archives",
+      "label": "Automatic Content Archives",
+      "settings": [
+        {
+          "name": "backup_rules",
+          "type": "table",
+          "label": "Rolling Backup Rules",
+          "help": "Define how frequently to create automatic content archives",
+          "numbered": false,
+          "can_add_new_rows": true,
+          "default": [
+            {
+              "Name": "Half Hourly Rolling",
+              "backupInterval": 1800,
+              "maxBackupVersions": 5
+            },
+            {
+              "Name": "Daily Rolling",
+              "backupInterval": 86400,
+              "maxBackupVersions": 7
+            },
+            {
+              "Name": "Weekly Rolling",
+              "backupInterval": 604800,
+              "maxBackupVersions": 4
+            },
+            {
+              "Name": "Thirty Day Rolling",
+              "backupInterval": 2592000,
+              "maxBackupVersions": 12
+            }
+          ],
+          "columns": [
+            {
+              "name": "Name",
+              "label": "Name",
+              "can_set": true,
+              "placeholder": "Example",
+              "default": "Example"
+            },
+            {
+              "name": "backupInterval",
+              "label": "Backup Interval in Seconds",
+              "help": "Interval between backup checks in seconds.",
+              "placeholder": 1800,
+              "default": 1800,
+              "can_set": true
+            },
+            {
+              "name": "maxBackupVersions",
+              "label": "Max Rolled Backup Versions",
+              "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+              "placeholder": 5,
+              "default": 5,
+              "can_set": true
             }
           ]
         }

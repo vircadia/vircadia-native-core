@@ -393,6 +393,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
             packPermissions();
         }
+
         if (oldVersion < 2.0) {
             const QString WIZARD_COMPLETED_ONCE = "wizard.completed_once";
 
@@ -400,6 +401,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             *wizardCompletedOnce = QVariant(true);
         }
+
         if (oldVersion < 2.1) {
             // convert old avatar scale settings into avatar height.
 
@@ -420,6 +422,21 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 *newMaxScaleVariant = avatarMaxScale->toFloat() * DEFAULT_AVATAR_HEIGHT;
             }
         }
+
+        if (oldVersion < 2.2) {
+            // migrate entity server rolling backup intervals to new location for automatic content archive intervals
+
+            const QString ENTITY_SERVER_BACKUPS_KEYPATH = "entity_server_settings.backups";
+            const QString AUTO_CONTENT_ARCHIVES_RULES_KEYPATH = AUTOMATIC_CONTENT_ARCHIVES_GROUP + ".backup_rules";
+
+            QVariant* previousBackupsVariant = _configMap.valueForKeyPath(ENTITY_SERVER_BACKUPS_KEYPATH);
+
+            if (previousBackupsVariant) {
+                auto migratedBackupsVariant = _configMap.valueForKeyPath(AUTO_CONTENT_ARCHIVES_RULES_KEYPATH, true);
+                *migratedBackupsVariant = *previousBackupsVariant;
+            }
+        }
+
 
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;

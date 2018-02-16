@@ -37,6 +37,7 @@ const QString MAC_PERMISSIONS_KEYPATH = "security.mac_permissions";
 const QString MACHINE_FINGERPRINT_PERMISSIONS_KEYPATH = "security.machine_fingerprint_permissions";
 const QString GROUP_PERMISSIONS_KEYPATH = "security.group_permissions";
 const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
+const QString AUTOMATIC_CONTENT_ARCHIVES_GROUP = "automatic_content_archives";
 
 using GroupByUUIDKey = QPair<QUuid, QUuid>; // groupID, rankID
 

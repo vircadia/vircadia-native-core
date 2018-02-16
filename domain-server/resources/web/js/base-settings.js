@@ -106,8 +106,12 @@ function reloadSettings(callback) {
   $.getJSON(Settings.endpoint, function(data){
     _.extend(data, viewHelpers);
 
-    for (var spliceIndex in Settings.extraGroups) {
-      data.descriptions.splice(spliceIndex, 0, Settings.extraGroups[spliceIndex]);
+    for (var spliceIndex in Settings.extraGroupsAtIndex) {
+      data.descriptions.splice(spliceIndex, 0, Settings.extraGroupsAtIndex[spliceIndex]);
+    }
+
+    for (var endGroupIndex in Settings.extraGroupsAtEnd) {
+      data.descriptions.push(Settings.extraGroupsAtEnd[endGroupIndex]);
     }
 
     $('#panels').html(Settings.panelsTemplate(data));
@@ -121,6 +125,8 @@ function reloadSettings(callback) {
     $('.toggle-checkbox').bootstrapSwitch();
 
     $('[data-toggle="tooltip"]').tooltip();
+
+    Settings.pendingChanges = 0;
 
     // call the callback now that settings are loaded
     callback(true);
@@ -800,6 +806,8 @@ function badgeForDifferences(changedElement) {
       totalChanges += parseInt(this.innerHTML);
     }
   });
+
+  Settings.pendingChanges = totalChanges;
 
   if (totalChanges == 0) {
     totalChanges = ""
