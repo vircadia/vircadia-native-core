@@ -57,6 +57,8 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     _persistInterval(persistInterval),
     _lastCheck(usecTimestampNow())
 {
+    setObjectName("DomainContentBackupManager");
+    
     // Make sure the backup directory exists.
     QDir(_backupDirectory).mkpath(".");
 
