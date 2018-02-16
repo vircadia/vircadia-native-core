@@ -21,7 +21,6 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     MaterialEntityItem(const EntityItemID& entityItemID);
-    ~MaterialEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
 
@@ -85,6 +84,7 @@ public:
     void removeMaterial();
 
     void postParentFixup() override;
+    void preDelete() override;
 
 private:
     // URL for this material.  Currently, only JSON format is supported.  Set to "userData" to use the user data to live edit a material.

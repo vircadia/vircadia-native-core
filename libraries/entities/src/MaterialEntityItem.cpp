@@ -27,10 +27,6 @@ MaterialEntityItem::MaterialEntityItem(const EntityItemID& entityItemID) : Entit
     _type = EntityTypes::Material;
 }
 
-MaterialEntityItem::~MaterialEntityItem() {
-    removeMaterial();
-}
-
 EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
@@ -327,6 +323,11 @@ void MaterialEntityItem::applyMaterial() {
 void MaterialEntityItem::postParentFixup() {
     removeMaterial();
     applyMaterial();
+}
+
+void MaterialEntityItem::preDelete() {
+    EntityItem::preDelete();
+    removeMaterial();
 }
 
 void MaterialEntityItem::update(const quint64& now) {
