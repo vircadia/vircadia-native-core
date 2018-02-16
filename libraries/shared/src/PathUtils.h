@@ -37,6 +37,7 @@ public:
     static QUrl resourcesUrl(const QString& relative);
     static const QString& resourcesPath();
     static const QString& qmlBaseUrl();
+    static QString expandToAppAbsolutePath(const QString& filePath);
     static QUrl qmlUrl(const QString& relative);
 #ifdef DEV_BUILD
     static const QString& projectRootPath();

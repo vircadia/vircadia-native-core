@@ -22,6 +22,7 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <UUID.h>
+#include <PathUtils.h>
 
 #include "AddressManager.h"
 #include "NodeList.h"
@@ -293,10 +294,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         return true;
 
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
-
-        qDebug() << "QQQQ do http before serverless domain" << lookupUrl.toString();
+        QUrl url = lookupUrl;
+        const QString path = PathUtils::expandToAppAbsolutePath(lookupUrl.path());
+        url.setPath(path);
         emit setServersEnabled(false);
-        emit loadServerlessDomain(lookupUrl);
+        emit loadServerlessDomain(url);
         emit lookupResultsFinished();
         return true;
     }

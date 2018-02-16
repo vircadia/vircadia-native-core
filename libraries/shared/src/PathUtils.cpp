@@ -116,10 +116,30 @@ const QString& PathUtils::resourcesUrl() {
     return staticResourcePath;
 }
 
+QString applicationAbsolutePath() {
+    QString path;
+#if defined(Q_OS_OSX)
+    path = QCoreApplication::applicationDirPath() + "/../";
+#elif defined(Q_OS_ANDROID)
+    path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+#else
+    path = QCoreApplication::applicationDirPath() + "/";
+#endif
+
+    return path;
+}
+
 QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
 }
 
+QString PathUtils::expandToAppAbsolutePath(const QString& filePath) {
+    QString path = filePath;
+    if (path.startsWith("/~/")) {
+        path.replace(1, 2, applicationAbsolutePath());
+    }
+    return path;
+}
 const QString& PathUtils::qmlBaseUrl() {
     static const QString staticResourcePath = resourcesUrl() + "qml/";
     return staticResourcePath;
