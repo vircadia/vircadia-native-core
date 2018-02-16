@@ -120,13 +120,20 @@ std::pair<bool, float> AssetsBackupHandler::isAvailable(QString filePath) {
         return { true, 1.0f };
     }
 
-    float progress = (float)it->mappings.size();
+    int mappingsMissing = 0;
     for (const auto& mapping : it->mappings) {
         if (_assetsLeftToRequest.find(mapping.second) != end(_assetsLeftToRequest)) {
-            progress -= 1.0f;
+            ++mappingsMissing;
         }
     }
-    progress /= (float)it->mappings.size();
+
+    if (mappingsMissing == 0) {
+        return { true, 1.0f };
+    }
+
+    float progress = (float)it->mappings.size();
+    progress -= (float)mappingsMissing;
+    progress /= it->mappings.size();
 
     return { false, progress };
 }
