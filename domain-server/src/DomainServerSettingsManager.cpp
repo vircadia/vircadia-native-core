@@ -1199,7 +1199,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
 }
 
 bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType) {
-
+    
     if (thread() != QThread::currentThread()) {
         bool success;
 
@@ -1210,8 +1210,8 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
         return success;
     }
 
-    QJsonArray& filteredDescriptionArray = settingsType == DomainSettings
-        ? _domainSettingsDescription : _contentSettingsDescription;
+    QJsonArray* filteredDescriptionArray = settingsType == DomainSettings
+        ? &_domainSettingsDescription : &_contentSettingsDescription;
 
     // grab a copy of the current config before restore, so that we can back out if something bad happens during
     QVariantMap preRestoreConfig = _configMap.getConfig();
@@ -1220,7 +1220,7 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
 
     // enumerate through the settings in the description
     // if we have one in the restore then use it, otherwise clear it from current settings
-    foreach(const QJsonValue& descriptionGroupValue, filteredDescriptionArray) {
+    foreach(const QJsonValue& descriptionGroupValue, *filteredDescriptionArray) {
         QJsonObject descriptionGroupObject = descriptionGroupValue.toObject();
         QString groupKey = descriptionGroupObject[DESCRIPTION_NAME_KEY].toString();
         QJsonArray descriptionGroupSettings = descriptionGroupObject[DESCRIPTION_SETTINGS_KEY].toArray();
@@ -1356,15 +1356,15 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
         const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
 
         // only enumerate the requested settings type (domain setting or content setting)
-        QJsonArray& filteredDescriptionArray = _descriptionArray;
+        QJsonArray* filteredDescriptionArray = &_descriptionArray;
         if (includeDomainSettings && !includeContentSettings) {
-            filteredDescriptionArray = _domainSettingsDescription;
+            filteredDescriptionArray = &_domainSettingsDescription;
         } else if (includeContentSettings && !includeDomainSettings) {
-            filteredDescriptionArray = _contentSettingsDescription;
+            filteredDescriptionArray = &_contentSettingsDescription;
         }
 
         // enumerate the groups in the potentially filtered object to find which settings to pass
-        foreach(const QJsonValue& groupValue, filteredDescriptionArray) {
+        foreach(const QJsonValue& groupValue, *filteredDescriptionArray) {
             QJsonObject groupObject = groupValue.toObject();
             QString groupKey = groupObject[DESCRIPTION_NAME_KEY].toString();
             QJsonArray groupSettingsArray = groupObject[DESCRIPTION_SETTINGS_KEY].toArray();
