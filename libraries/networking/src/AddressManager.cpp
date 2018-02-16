@@ -315,6 +315,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         domainUrl.setPath(path);
         emit setServersEnabled(false);
         setDomainInfo(domainUrl, QString(), 0, trigger);
+        DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
         emit loadServerlessDomain(domainUrl);
         emit lookupResultsFinished();
         return true;
