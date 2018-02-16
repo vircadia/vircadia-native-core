@@ -33,6 +33,8 @@
 #include <SettingHelpers.h>
 #include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
+#include <shared/QtHelpers.h>
+
 #include "DomainServerNodeData.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
@@ -1200,10 +1202,11 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
 
     if (thread() != QThread::currentThread()) {
         bool success;
-        QMetaObject::invokeMethod(this, "restoreSettingsFromObject", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, success),
-                                  Q_ARG(QJsonObject, settingsToRestore),
-                                  Q_ARG(SettingsType, settingsType));
+
+        BLOCKING_INVOKE_METHOD(this, "restoreSettingsFromObject",
+                               Q_RETURN_ARG(bool, success),
+                               Q_ARG(QJsonObject, settingsToRestore),
+                               Q_ARG(SettingsType, settingsType));
         return success;
     }
 
@@ -1333,14 +1336,15 @@ QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QSt
     QJsonObject responseObject;
 
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "settingsResponseObjectForType", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QJsonObject, responseObject),
-                                  Q_ARG(const QString&, typeValue),
-                                  Q_ARG(bool, isAuthenticated),
-                                  Q_ARG(bool, includeDomainSettings),
-                                  Q_ARG(bool, includeContentSettings),
-                                  Q_ARG(bool, includeDefaults),
-                                  Q_ARG(bool, isForBackup));
+
+        BLOCKING_INVOKE_METHOD(this, "settingsResponseObjectForType",
+                               Q_RETURN_ARG(QJsonObject, responseObject),
+                               Q_ARG(const QString&, typeValue),
+                               Q_ARG(bool, isAuthenticated),
+                               Q_ARG(bool, includeDomainSettings),
+                               Q_ARG(bool, includeContentSettings),
+                               Q_ARG(bool, includeDefaults),
+                               Q_ARG(bool, isForBackup));
 
         return responseObject;
     }
