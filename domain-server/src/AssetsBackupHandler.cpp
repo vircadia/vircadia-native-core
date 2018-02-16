@@ -111,6 +111,42 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
     }
 }
 
+
+std::pair<bool, float> AssetsBackupHandler::isAvailable(QString filePath) {
+    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
+        return value.filePath == filePath;
+    });
+    if (it == end(_backups)) {
+        return { true, 1.0f };
+    }
+
+    float progress = (float)it->mappings.size();
+    for (const auto& mapping : it->mappings) {
+        if (_assetsLeftToRequest.find(mapping.second) != end(_assetsLeftToRequest)) {
+            progress -= 1.0f;
+        }
+    }
+    progress /= (float)it->mappings.size();
+
+    return { false, progress };
+}
+
+std::pair<bool, float> AssetsBackupHandler::getRecoveryStatus() {
+    if (_assetsLeftToUpload.empty() &&
+        _mappingsLeftToSet.empty() &&
+        _mappingsLeftToDelete.empty() &&
+        _mappingRequestsInFlight == 0) {
+        return { false, 1.0f };
+    }
+
+    float progress = (float)_numRestoreOperations;
+    progress -= (float)_assetsLeftToUpload.size();
+    progress -= (float)_mappingRequestsInFlight;
+    progress /= (float)_numRestoreOperations;
+
+    return { true, progress };
+}
+
 void AssetsBackupHandler::loadBackup(QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
@@ -451,6 +487,11 @@ void AssetsBackupHandler::computeServerStateDifference(const AssetUtils::Mapping
         }
     }
 
+    _numRestoreOperations = (int)_assetsLeftToUpload.size() + (int)_mappingsLeftToSet.size();
+    if (!_mappingsLeftToDelete.empty()) {
+        ++_numRestoreOperations;
+    }
+
     qCDebug(asset_backup) << "Mappings to set:" << _mappingsLeftToSet.size();
     qCDebug(asset_backup) << "Mappings to del:" << _mappingsLeftToDelete.size();
     qCDebug(asset_backup) << "Assets to upload:" << _assetsLeftToUpload.size();
@@ -461,8 +502,6 @@ void AssetsBackupHandler::restoreAllAssets() {
 }
 
 void AssetsBackupHandler::restoreNextAsset() {
-    startOperation();
-
     if (_assetsLeftToUpload.empty()) {
         updateMappings();
         return;
@@ -500,9 +539,7 @@ void AssetsBackupHandler::updateMappings() {
                 qCCritical(asset_backup) << "    Error:" << request->getErrorString();
             }
 
-            if (--_mappingRequestsInFlight == 0) {
-                stopOperation();
-            }
+            --_mappingRequestsInFlight;
 
             request->deleteLater();
         });
@@ -519,9 +556,7 @@ void AssetsBackupHandler::updateMappings() {
             qCCritical(asset_backup) << "    Error:" << request->getErrorString();
         }
 
-        if (--_mappingRequestsInFlight == 0) {
-            stopOperation();
-        }
+        --_mappingRequestsInFlight;
 
         request->deleteLater();
     });

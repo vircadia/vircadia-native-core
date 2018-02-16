@@ -416,9 +416,9 @@ void AssetServer::completeSetup() {
     PathUtils::removeTemporaryApplicationDirs();
     PathUtils::removeTemporaryApplicationDirs("Oven");
 
-    // We're fully setup, remove the request queueing and replay all requests
+    qCDebug(asset_server) << "Overriding temporary queuing packet handler.";
+    // We're fully setup, override the request queueing handler and replay all requests
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.unregisterListener(this);
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
@@ -428,11 +428,30 @@ void AssetServer::completeSetup() {
 }
 
 void AssetServer::queueRequests(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode) {
+    qCDebug(asset_server) << "Queuing requests until fully setup";
+
+    QMutexLocker lock { &_queuedRequestsMutex };
     _queuedRequests.push_back({ packet, senderNode });
+
+    // If we've stopped queueing but the callback was already in flight,
+    // then replay it immediately.
+    if (!_isQueueingRequests) {
+        lock.unlock();
+        replayRequests();
+    }
 }
 
 void AssetServer::replayRequests() {
-    for (const auto& request : _queuedRequests) {
+    RequestQueue queue;
+    {
+        QMutexLocker lock { &_queuedRequestsMutex };
+        qSwap(queue, _queuedRequests);
+        _isQueueingRequests = false;
+    }
+
+    qCDebug(asset_server) << "Replaying" << queue.size() << "requests.";
+
+    for (const auto& request : queue) {
         switch (request.first->getType()) {
             case PacketType::AssetGet:
                 handleAssetGet(request.first, request.second);
@@ -447,11 +466,10 @@ void AssetServer::replayRequests() {
                 handleAssetMappingOperation(request.first, request.second);
                 break;
             default:
-                qWarning() << "Unknown queued request type:" << request.first->getType();
+                qCWarning(asset_server) << "Unknown queued request type:" << request.first->getType();
                 break;
         }
     }
-    _queuedRequests.clear();
 }
 
 void AssetServer::cleanupUnmappedFiles() {

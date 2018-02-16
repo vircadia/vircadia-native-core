@@ -147,7 +147,21 @@ bool DomainContentBackupManager::process() {
 
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
-            backup();
+            if (_isRecovering) {
+                using Value = std::vector<BackupHandlerPointer>::value_type;
+                bool isStillRecovering = std::any_of(begin(_backupHandlers), end(_backupHandlers), [](const Value& handler) {
+                    return handler->getRecoveryStatus().first;
+                });
+
+                if (!isStillRecovering) {
+                    _isRecovering = false;
+                    emit recoveryCompleted();
+                }
+            }
+
+            if (!_isRecovering) {
+                backup();
+            }
         }
     }
 
@@ -213,6 +227,13 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
         return;
     }
 
+    if (_isRecovering && backupName == _recoveryFilename) {
+        promise->resolve({
+            { "success", false }
+        });
+        return;
+    }
+
     QDir backupDir { _backupDirectory };
     QFile backupFile { backupDir.filePath(backupName) };
     auto success = backupFile.remove();
@@ -222,6 +243,13 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
 }
 
 void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise, const QString& backupName) {
+    if (_isRecovering) {
+        promise->resolve({
+            { "success", false }
+        });
+        return;
+    };
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "recoverFromBackup", Q_ARG(MiniPromise::Promise, promise),
                                   Q_ARG(const QString&, backupName));
@@ -239,11 +267,12 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
             qWarning() << "Failed to unzip file: " << backupName;
             success = false;
         } else {
+            _isRecovering = true;
             for (auto& handler : _backupHandlers) {
                 handler->recoverBackup(zip);
             }
             
-            qDebug() << "Successfully recovered from " << backupName;
+            qDebug() << "Successfully started recovering from " << backupName;
             success = true;
         }
         backupFile.close();
@@ -257,8 +286,11 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     });
 }
 
-std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
-    std::vector<BackupItemInfo> backups;
+void DomainContentBackupManager::getAllBackupInformation(MiniPromise::Promise promise) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "getAllBackupInformation", Q_ARG(MiniPromise::Promise, promise));
+        return;
+    }
 
     QDir backupDir { _backupDirectory };
     auto matchingFiles =
@@ -268,6 +300,8 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
     QString nameFormat = "(.+)";
     QString dateTimeFormat = "(" + DATETIME_FORMAT_RE + ")";
     QRegExp backupNameFormat { prefixFormat + nameFormat + "-" + dateTimeFormat + "\\.zip" };
+
+    QVariantList backups;
 
     for (const auto& fileInfo : matchingFiles) {
         auto fileName = fileInfo.fileName();
@@ -280,12 +314,48 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
                 continue;
             }
 
-            BackupItemInfo backup { fileInfo.fileName(), name, fileInfo.absoluteFilePath(), createdAt, type == MANUAL_BACKUP_PREFIX };
-            backups.push_back(backup);
+            bool isAvailable { true };
+            float availabilityProgress { 0.0f };
+            for (auto& handler : _backupHandlers) {
+                bool handlerIsAvailable { true };
+                float progress { 0.0f };
+                std::tie(handlerIsAvailable, progress) = handler->isAvailable(fileInfo.absoluteFilePath());
+                isAvailable &= handlerIsAvailable;
+                availabilityProgress += progress / _backupHandlers.size();
+            }
+
+            backups.push_back(QVariantMap({
+                { "id", fileInfo.fileName() },
+                { "name", name },
+                { "createdAtMillis", createdAt.toMSecsSinceEpoch() },
+                { "isAvailable", isAvailable },
+                { "availabilityProgress", availabilityProgress },
+                { "isManualBackup", type == MANUAL_BACKUP_PREFIX }
+            }));
         }
     }
 
-    return backups;
+    float recoveryProgress = 0.0f;
+    bool isRecovering = _isRecovering.load();
+    if (_isRecovering) {
+        for (auto& handler : _backupHandlers) {
+            float progress = handler->getRecoveryStatus().second;
+            recoveryProgress += progress / _backupHandlers.size();
+        }
+    }
+
+    QVariantMap status { 
+        { "isRecovering", isRecovering },
+        { "recoveringBackupId", _recoveryFilename },
+        { "recoveryProgress", recoveryProgress }
+    };
+
+    QVariantMap info {
+        { "backups", backups },
+        { "status", status }
+    };
+
+    promise->resolve(info);
 }
 
 void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule) {
@@ -383,32 +453,60 @@ void DomainContentBackupManager::backup() {
     }
 }
 
-void DomainContentBackupManager::consolidate(QString fileName) {
-    QDir backupDir { _backupDirectory };
-    if (backupDir.exists()) {
-        auto filePath = backupDir.absoluteFilePath(fileName);
-
-        auto copyFilePath = QDir::tempPath() + "/" + fileName;
-
-        auto copySuccess = QFile::copy(filePath, copyFilePath);
-        if (!copySuccess) {
-            qCritical() << "Failed to create full backup.";
-            return;
-        }
-
-        QuaZip zip(copyFilePath);
-        if (!zip.open(QuaZip::mdAdd)) {
-            qCritical() << "Could not open backup archive:" << filePath;
-            qCritical() << "    ERROR:" << zip.getZipError();
-            return;
-        }
-
-        for (auto& handler : _backupHandlers) {
-            handler->consolidateBackup(zip);
-        }
-
-        zip.close();
+void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise, QString fileName) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "consolidateBackup", Q_ARG(MiniPromise::Promise, promise),
+                                  Q_ARG(const QString&, fileName));
+        return;
     }
+
+    QDir backupDir { _backupDirectory };
+    if (!backupDir.exists()) {
+        qCritical() << "Backup directory does not exist, bailing consolidation of backup";
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    auto filePath = backupDir.absoluteFilePath(fileName);
+
+    auto copyFilePath = QDir::tempPath() + "/" + fileName;
+
+    {
+        QFile copyFile(copyFilePath);
+        copyFile.remove();
+        copyFile.close();
+    }
+    auto copySuccess = QFile::copy(filePath, copyFilePath);
+    if (!copySuccess) {
+        qCritical() << "Failed to create copy of backup.";
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    QuaZip zip(copyFilePath);
+    if (!zip.open(QuaZip::mdAdd)) {
+        qCritical() << "Could not open backup archive:" << filePath;
+        qCritical() << "    ERROR:" << zip.getZipError();
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    for (auto& handler : _backupHandlers) {
+        handler->consolidateBackup(zip);
+    }
+
+    zip.close();
+
+    if (zip.getZipError() != UNZ_OK) {
+        qCritical() << "Failed to consolidate backup: " << zip.getZipError();
+        promise->resolve({ { "success", false } });
+        return;
+    }
+
+    promise->resolve({
+        { "success", true },
+        { "backupFilePath", copyFilePath }
+    });
 }
 
 void DomainContentBackupManager::createManualBackup(MiniPromise::Promise promise, const QString& name) {

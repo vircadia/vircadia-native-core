@@ -307,10 +307,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _contentManager->initialize(true);
 
-    qDebug() << "Existing backups:";
-    for (auto& backup : _contentManager->getAllBackups()) {
-        qDebug() << "  Backup: " << backup.name << backup.createdAt;
-    }
+    connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
 }
 
 void DomainServer::parseCommandLine() {
@@ -1785,6 +1782,8 @@ QString DomainServer::getEntitiesReplacementFilePath() {
 void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message) {
     qDebug() << "Got request for octree data from " << message->getSenderSockAddr();
 
+    maybeHandleReplacementEntityFile();
+
     bool remoteHasExistingData { false };
     QUuid id;
     int version;
@@ -2129,24 +2128,35 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_API_BACKUPS) {
-            QJsonObject rootJSON;
-            QJsonArray backupsJSON;
+            auto deferred = makePromise("getAllBackupInformation");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
 
-            auto backups = _contentManager->getAllBackups();
+                connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+            });
+            _contentManager->getAllBackupInformation(deferred);
+            return true;
+        } else if (url.path().startsWith(URI_API_BACKUPS_ID)) {
+            auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
+            auto deferred = makePromise("consolidateBackup");
+            deferred->then([connection, JSON_MIME_TYPE](QString error, QVariantMap result) {
+                QJsonObject rootJSON;
+                auto success = result["success"].toBool();
+                if (success) {
+                    auto path = result["backupFilePath"].toString();
+                    auto file { std::unique_ptr<QFile>(new QFile(path)) };
+                    if (file->open(QIODevice::ReadOnly)) {
+                        connection->respond(HTTPConnection::StatusCode200, std::move(file));
+                    } else {
+                        qCritical(domain_server) << "Unable to load consolidated backup at:" << path << result;
+                        connection->respond(HTTPConnection::StatusCode500, "Error opening backup");
+                    }
+                } else {
+                    connection->respond(HTTPConnection::StatusCode400);
+                }
+            });
+            _contentManager->consolidateBackup(deferred, id);
 
-            for (const auto& backup : backups) {
-                QJsonObject obj;
-                obj["id"] = backup.id;
-                obj["name"] = backup.name;
-                obj["createdAtMillis"] = backup.createdAt.toMSecsSinceEpoch();
-                obj["isManualBackup"] = backup.isManualBackup;
-                backupsJSON.push_back(obj);
-            }
-
-            rootJSON["backups"] = backupsJSON;
-            QJsonDocument docJSON(rootJSON);
-
-            connection->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
             return true;
         } else if (url.path() == URI_RESTART) {
             connection->respond(HTTPConnection::StatusCode200);
