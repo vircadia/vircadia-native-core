@@ -20,7 +20,7 @@ GameWorkload::~GameWorkload() {
 void GameWorkload::startup() {
     _engine.reset(new workload::Engine());
 
-    _engine.addJob<GameSpaceToRender>();
+    _engine->addJob<GameSpaceToRender>("SpaceToRender");
 }
 
 void GameWorkload::shutdown() {
