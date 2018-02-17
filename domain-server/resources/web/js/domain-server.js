@@ -62,7 +62,7 @@ $(document).ready(function(){
     },
     1: {
       html_id: Settings.UPLOAD_CONTENT_BACKUP_PANEL_ID,
-      label: 'Upload Content Archive'
+      label: 'Upload Content'
     }
   };
 
