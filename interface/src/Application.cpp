@@ -2967,6 +2967,9 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+
     if (importEntities(domainURL.toString())) {
         pasteEntities(0.0f, 0.0f, 0.0f);
     }
