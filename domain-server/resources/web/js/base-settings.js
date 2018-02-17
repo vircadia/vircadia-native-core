@@ -263,7 +263,7 @@ $(document).ready(function(){
     }
   });
 
-  $('#' + Settings.FORM_ID).on('input propertychange', '.' + Settings.TRIGGER_CHANGE_CLASS , function(e){
+  $('#' + Settings.FORM_ID).on('change input propertychange', '.' + Settings.TRIGGER_CHANGE_CLASS , function(e){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true);
 
@@ -838,7 +838,7 @@ function addTableRow(row) {
     var keyInput = row.children(".key").children("input");
 
     // whenever the keyInput changes, re-badge for differences
-    keyInput.on('input propertychange', function(e){
+    keyInput.on('change input propertychange', function(e){
       // update siblings in the row to have the correct name
       var currentKey = $(this).val();
 
