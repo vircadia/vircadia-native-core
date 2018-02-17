@@ -513,6 +513,13 @@ std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
 ThreadSafeMovingAverage<int, DeadlockWatchdogThread::HEARTBEAT_SAMPLES> DeadlockWatchdogThread::_movingAverage;
 
+bool isDomainURL(QUrl url) {
+    if (!url.isValid()) {
+        return false;
+    }
+    return url.scheme() == HIFI_URL_SCHEME || url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https";
+}
+
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -542,7 +549,7 @@ public:
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));
-                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                if (isDomainURL(url)) {
                     DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
                     return true;
                 }
@@ -622,6 +629,7 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
+
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
@@ -2970,6 +2978,7 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
 
+    clearDomainOctreeDetails();
     if (importEntities(domainURL.toString())) {
         pasteEntities(0.0f, 0.0f, 0.0f);
     }
@@ -6070,7 +6079,8 @@ bool Application::canAcceptURL(const QString& urlString) const {
 }
 
 bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
-    if (urlString.startsWith(HIFI_URL_SCHEME)) {
+    QUrl url(urlString);
+    if (isDomainURL(url)) {
         // this is a hifi URL - have the AddressManager handle it
         emit receivedHifiSchemeURL(urlString);
         QMetaObject::invokeMethod(DependencyManager::get<AddressManager>().data(), "handleLookupString",
@@ -6078,7 +6088,6 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         return true;
     }
 
-    QUrl url(urlString);
     QHashIterator<QString, AcceptURLMethod> i(_acceptedExtensions);
     QString lowerPath = url.path().toLower();
     while (i.hasNext()) {
@@ -6913,7 +6922,7 @@ void Application::packageModel() {
 
 void Application::openUrl(const QUrl& url) const {
     if (!url.isEmpty()) {
-        if (url.scheme() == HIFI_URL_SCHEME) {
+        if (isDomainURL(url)) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
