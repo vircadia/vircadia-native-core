@@ -54,7 +54,7 @@ $(document).ready(function(){
         var fileFormData = new FormData();
         fileFormData.append('restore-file', files[0]);
 
-        showSpinnerAlert("Restoring Content");
+        showSpinnerAlert("Uploading content to restore");
 
         $.ajax({
           url: '/content/upload',
@@ -65,7 +65,6 @@ $(document).ready(function(){
           data: fileFormData
         }).done(function(data, textStatus, jqXHR) {
           swal.close();
-          showRestartModal();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(
             "Error",
