@@ -18,22 +18,22 @@ class EntitiesBackupHandler : public BackupHandlerInterface {
 public:
     EntitiesBackupHandler(QString entitiesFilePath, QString entitiesReplacementFilePath);
 
-    std::pair<bool, float> isAvailable(QString filePath) override { return { true, 1.0f }; }
+    std::pair<bool, float> isAvailable(const QString& backupName) override { return { true, 1.0f }; }
     std::pair<bool, float> getRecoveryStatus() override { return { false, 1.0f }; }
 
-    void loadBackup(QuaZip& zip) override {}
+    void loadBackup(const QString& backupName, QuaZip& zip) override {}
 
     // Create a skeleton backup
-    void createBackup(QuaZip& zip) override;
+    void createBackup(const QString& backupName, QuaZip& zip) override;
 
     // Recover from a full backup
-    void recoverBackup(QuaZip& zip) override;
+    void recoverBackup(const QString& backupName, QuaZip& zip) override;
 
     // Delete a skeleton backup
-    void deleteBackup(const QString& absoluteFilePath) override {}
+    void deleteBackup(const QString& backupName) override {}
 
     // Create a full backup
-    void consolidateBackup(QuaZip& zip) override {}
+    void consolidateBackup(const QString& backupName, QuaZip& zip) override {}
 
 private:
     QString _entitiesFilePath;

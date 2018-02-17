@@ -112,9 +112,9 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
 }
 
 
-std::pair<bool, float> AssetsBackupHandler::isAvailable(QString filePath) {
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == filePath;
+std::pair<bool, float> AssetsBackupHandler::isAvailable(const QString& backupName) {
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+        return backup.name == backupName;
     });
     if (it == end(_backups)) {
         return { true, 1.0f };
@@ -154,10 +154,10 @@ std::pair<bool, float> AssetsBackupHandler::getRecoveryStatus() {
     return { true, progress };
 }
 
-void AssetsBackupHandler::loadBackup(QuaZip& zip) {
+void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
-    _backups.push_back({ zip.getZipName(), {}, false });
+    _backups.emplace_back(backupName, AssetUtils::Mappings(), false);
     auto& backup = _backups.back();
 
     if (!zip.setCurrentFile(MAPPINGS_FILE)) {
@@ -170,7 +170,7 @@ void AssetsBackupHandler::loadBackup(QuaZip& zip) {
 
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QFile::ReadOnly)) {
-        qCCritical(asset_backup) << "Could not unzip backup file for load:" << zip.getZipName();
+        qCCritical(asset_backup) << "Could not unzip backup file for load:" << backupName;
         qCCritical(asset_backup) << "    Error:" << zip.getZipError();
         backup.corruptedBackup = true;
         _allBackupsLoadedSuccessfully = false;
@@ -180,7 +180,7 @@ void AssetsBackupHandler::loadBackup(QuaZip& zip) {
     QJsonParseError error;
     auto document = QJsonDocument::fromJson(zipFile.readAll(), &error);
     if (document.isNull() || !document.isObject()) {
-        qCCritical(asset_backup) << "Could not parse backup file to JSON object for load:" << zip.getZipName();
+        qCCritical(asset_backup) << "Could not parse backup file to JSON object for load:" << backupName;
         qCCritical(asset_backup) << "    Error:" << error.errorString();
         backup.corruptedBackup = true;
         _allBackupsLoadedSuccessfully = false;
@@ -193,7 +193,7 @@ void AssetsBackupHandler::loadBackup(QuaZip& zip) {
         const auto& assetHash = it.value().toString();
 
         if (!AssetUtils::isValidHash(assetHash)) {
-            qCCritical(asset_backup) << "Corrupted mapping in loading backup file" << zip.getZipName() << ":" << it.key();
+            qCCritical(asset_backup) << "Corrupted mapping in loading backup file" << backupName << ":" << it.key();
             backup.corruptedBackup = true;
             _allBackupsLoadedSuccessfully = false;
             continue;
@@ -208,7 +208,7 @@ void AssetsBackupHandler::loadBackup(QuaZip& zip) {
     return;
 }
 
-void AssetsBackupHandler::createBackup(QuaZip& zip) {
+void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
@@ -226,12 +226,11 @@ void AssetsBackupHandler::createBackup(QuaZip& zip) {
         qCWarning(asset_backup) << "Backing up asset mappings that might be stale.";
     }
 
-    AssetServerBackup backup;
-    backup.filePath = zip.getZipName();
+    AssetUtils::Mappings mappings;
 
     QJsonObject jsonObject;
     for (const auto& mapping : _currentMappings) {
-        backup.mappings[mapping.first] = mapping.second;
+        mappings[mapping.first] = mapping.second;
         _assetsInBackups.insert(mapping.second);
         jsonObject.insert(mapping.first, mapping.second);
     }
@@ -248,10 +247,11 @@ void AssetsBackupHandler::createBackup(QuaZip& zip) {
         qCDebug(asset_backup) << "Could not close zip file: " << zipFile.getZipError();
         return;
     }
-    _backups.push_back(backup);
+    _backups.emplace_back(backupName, mappings, false);
+    qDebug() << "Created asset backup:" << backupName;
 }
 
-void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
+void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
@@ -269,13 +269,11 @@ void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
         qCWarning(asset_backup) << "Current asset mappings that might be stale.";
     }
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == zip.getZipName();
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+        return backup.name == backupName;
     });
     if (it == end(_backups)) {
-        qCDebug(asset_backup) << "Could not find backup" << zip.getZipName() << "to restore.";
-
-        loadBackup(zip);
+        loadBackup(backupName, zip);
 
         QuaZipDir zipDir { &zip, ZIP_ASSETS_FOLDER };
 
@@ -306,7 +304,7 @@ void AssetsBackupHandler::recoverBackup(QuaZip& zip) {
     restoreAllAssets();
 }
 
-void AssetsBackupHandler::deleteBackup(const QString& absoluteFilePath) {
+void AssetsBackupHandler::deleteBackup(const QString& backupName) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
@@ -314,33 +312,32 @@ void AssetsBackupHandler::deleteBackup(const QString& absoluteFilePath) {
         return;
     }
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == absoluteFilePath;
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+        return backup.name == backupName;
     });
     if (it == end(_backups)) {
-        qCDebug(asset_backup) << "Could not find backup" << absoluteFilePath << "to delete.";
+        qCDebug(asset_backup) << "Could not find backup" << backupName << "to delete.";
         return;
     }
 
     refreshAssetsInBackups();
     checkForAssetsToDelete();
+    qDebug() << "Deleted asset backup:" << backupName;
 }
 
-void AssetsBackupHandler::consolidateBackup(QuaZip& zip) {
+void AssetsBackupHandler::consolidateBackup(const QString& backupName, QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
         qCWarning(asset_backup) << "There is a backup/restore in progress.";
         return;
     }
-    QFileInfo zipInfo(zip.getZipName());
 
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        QFileInfo info(value.filePath);
-        return info.fileName() == zipInfo.fileName();
+    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+        return backup.name == backupName;
     });
     if (it == end(_backups)) {
-        qCDebug(asset_backup) << "Could not find backup" << zip.getZipName() << "to consolidate.";
+        qCDebug(asset_backup) << "Could not find backup" << backupName << "to consolidate.";
         return;
     }
 
@@ -465,7 +462,7 @@ bool AssetsBackupHandler::writeAssetFile(const AssetUtils::AssetHash& hash, cons
 }
 
 void AssetsBackupHandler::computeServerStateDifference(const AssetUtils::Mappings& currentMappings,
-                                                    const AssetUtils::Mappings& newMappings) {
+                                                       const AssetUtils::Mappings& newMappings) {
     _mappingsLeftToSet.reserve((int)newMappings.size());
     _assetsLeftToUpload.reserve((int)newMappings.size());
     _mappingsLeftToDelete.reserve((int)currentMappings.size());

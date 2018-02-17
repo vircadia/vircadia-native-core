@@ -50,7 +50,7 @@ void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) 
 }
 
 DomainContentBackupManager::DomainContentBackupManager(const QString& backupDirectory,
-                                                       const QJsonObject& settings,
+                                                       const QVariantList& backupRules,
                                                        int persistInterval,
                                                        bool debugTimestampNow)
     : _backupDirectory(backupDirectory),
@@ -62,59 +62,38 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     // Make sure the backup directory exists.
     QDir(_backupDirectory).mkpath(".");
 
-    parseSettings(settings);
+    parseBackupRules(backupRules);
 }
 
-void DomainContentBackupManager::parseSettings(const QJsonObject& settings) {
-    static const QString BACKUP_RULES_KEY = "backup_rules";
-    if (settings[BACKUP_RULES_KEY].isArray()) {
-        const QJsonArray& backupRules = settings[BACKUP_RULES_KEY].toArray();
-        qCDebug(domain_server) << "BACKUP RULES:";
+void DomainContentBackupManager::parseBackupRules(const QVariantList& backupRules) {
+    qCDebug(domain_server) << "BACKUP RULES:";
 
-        for (const QJsonValue& value : backupRules) {
-            QJsonObject obj = value.toObject();
+    for (const QVariant& value : backupRules) {
+        QVariantMap map = value.toMap();
 
-            int interval = 0;
-            int count = 0;
+        int interval = map["backupInterval"].toInt();
+        int count = map["maxBackupVersions"].toInt();
+        auto name = map["Name"].toString();
+        auto format = name.replace(" ", "_").toLower();
 
-            QJsonValue intervalVal = obj["backupInterval"];
-            if (intervalVal.isString()) {
-                interval = intervalVal.toString().toInt();
-            } else {
-                interval = intervalVal.toInt();
-            }
+        qCDebug(domain_server) << "    Name:" << name;
+        qCDebug(domain_server) << "        format:" << format;
+        qCDebug(domain_server) << "        interval:" << interval;
+        qCDebug(domain_server) << "        count:" << count;
 
-            QJsonValue countVal = obj["maxBackupVersions"];
-            if (countVal.isString()) {
-                count = countVal.toString().toInt();
-            } else {
-                count = countVal.toInt();
-            }
+        BackupRule newRule = { name, interval, format, count, 0 };
 
-            auto name = obj["Name"].toString();
-            auto format = name.replace(" ", "_").toLower();
+        newRule.lastBackupSeconds = getMostRecentBackupTimeInSecs(format);
 
-            qCDebug(domain_server) << "    Name:" << name;
-            qCDebug(domain_server) << "        format:" << format;
-            qCDebug(domain_server) << "        interval:" << interval;
-            qCDebug(domain_server) << "        count:" << count;
-
-            BackupRule newRule = { name, interval, format, count, 0 };
-
-            newRule.lastBackupSeconds = getMostRecentBackupTimeInSecs(format);
-
-            if (newRule.lastBackupSeconds > 0) {
-                auto now = QDateTime::currentSecsSinceEpoch();
-                auto sinceLastBackup = now - newRule.lastBackupSeconds;
-                qCDebug(domain_server).noquote() << "        lastBackup:" <<  formatSecTime(sinceLastBackup) << "ago";
-            } else {
-                qCDebug(domain_server) << "        lastBackup: NEVER";
-            }
-
-            _backupRules.push_back(newRule);
+        if (newRule.lastBackupSeconds > 0) {
+            auto now = QDateTime::currentSecsSinceEpoch();
+            auto sinceLastBackup = now - newRule.lastBackupSeconds;
+            qCDebug(domain_server).noquote() << "        lastBackup:" <<  formatSecTime(sinceLastBackup) << "ago";
+        } else {
+            qCDebug(domain_server) << "        lastBackup: NEVER";
         }
-    } else {
-        qCDebug(domain_server) << "BACKUP RULES: NONE";
+
+        _backupRules.push_back(newRule);
     }
 }
 
@@ -156,8 +135,7 @@ bool DomainContentBackupManager::process() {
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
             if (_isRecovering) {
-                using Value = std::vector<BackupHandlerPointer>::value_type;
-                bool isStillRecovering = std::any_of(begin(_backupHandlers), end(_backupHandlers), [](const Value& handler) {
+                bool isStillRecovering = any_of(begin(_backupHandlers), end(_backupHandlers), [](const BackupHandlerPointer& handler) {
                     return handler->getRecoveryStatus().first;
                 });
 
@@ -244,14 +222,13 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
     }
 
     QDir backupDir { _backupDirectory };
-    auto absoluteFilePath { backupDir.filePath(backupName) };
-    QFile backupFile { absoluteFilePath };
+    QFile backupFile { backupDir.filePath(backupName) };
     auto success = backupFile.remove();
 
     refreshBackupRules();
 
     for (auto& handler : _backupHandlers) {
-        handler->deleteBackup(absoluteFilePath);
+        handler->deleteBackup(backupName);
     }
 
     promise->resolve({
@@ -259,18 +236,18 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
     });
 }
 
-bool DomainContentBackupManager::recoverFromBackupZip(QuaZip& zip, const QString& backupName) {
+bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName, QuaZip& zip) {
     if (!zip.open(QuaZip::Mode::mdUnzip)) {
-        qWarning() << "Failed to unzip file: " << zip.getZipName();
+        qWarning() << "Failed to unzip file: " << backupName;
         return false;
     } else {
         _isRecovering = true;
 
         for (auto& handler : _backupHandlers) {
-            handler->recoverBackup(zip);
+            handler->recoverBackup(backupName, zip);
         }
 
-        qDebug() << "Successfully started recovering from " << zip.getZipName();
+        qDebug() << "Successfully started recovering from " << backupName;
         return true;
     }
 }
@@ -297,7 +274,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     if (backupFile.open(QIODevice::ReadOnly)) {
         QuaZip zip { &backupFile };
 
-        success = recoverFromBackupZip(zip, backupName);
+        success = recoverFromBackupZip(backupName, zip);
 
         backupFile.close();
     } else {
@@ -324,7 +301,8 @@ void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise 
     QBuffer uploadedBackupBuffer { &uploadedBackup };
     QuaZip uploadedZip { &uploadedBackupBuffer };
 
-    bool success = recoverFromBackupZip(uploadedZip, MANUAL_BACKUP_PREFIX + "uploaded.zip");
+    QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
+    bool success = recoverFromBackupZip(backupName, uploadedZip);
 
     promise->resolve({
         { "success", success }
@@ -360,7 +338,7 @@ std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {
             for (auto& handler : _backupHandlers) {
                 bool handlerIsAvailable { true };
                 float progress { 0.0f };
-                std::tie(handlerIsAvailable, progress) = handler->isAvailable(fileInfo.absoluteFilePath());
+                std::tie(handlerIsAvailable, progress) = handler->isAvailable(fileName);
                 isAvailable &= handlerIsAvailable;
                 availabilityProgress += progress / _backupHandlers.size();
             }
@@ -398,7 +376,7 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
         for (auto& handler : _backupHandlers) {
             bool handlerIsAvailable { true };
             float progress { 0.0f };
-            std::tie(handlerIsAvailable, progress) = handler->isAvailable(backup.absolutePath);
+            std::tie(handlerIsAvailable, progress) = handler->isAvailable(backup.name);
             isAvailable &= handlerIsAvailable;
             availabilityProgress += progress / _backupHandlers.size();
         }
@@ -484,7 +462,7 @@ void DomainContentBackupManager::load() {
         }
 
         for (auto& handler : _backupHandlers) {
-            handler->loadBackup(zip);
+            handler->loadBackup(backup.name, zip);
         }
 
         zip.close();
@@ -528,7 +506,7 @@ void DomainContentBackupManager::backup() {
 void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise, QString fileName) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "consolidateBackup", Q_ARG(MiniPromise::Promise, promise),
-                                  Q_ARG(const QString&, fileName));
+                                  Q_ARG(QString, fileName));
         return;
     }
 
@@ -564,7 +542,7 @@ void DomainContentBackupManager::consolidateBackup(MiniPromise::Promise promise,
     }
 
     for (auto& handler : _backupHandlers) {
-        handler->consolidateBackup(zip);
+        handler->consolidateBackup(fileName, zip);
     }
 
     zip.close();
@@ -609,7 +587,7 @@ std::pair<bool, QString> DomainContentBackupManager::createBackup(const QString&
     }
 
     for (auto& handler : _backupHandlers) {
-        handler->createBackup(zip);
+        handler->createBackup(fileName, zip);
     }
 
     zip.close();

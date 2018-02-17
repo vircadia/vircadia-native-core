@@ -17,12 +17,11 @@
 ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsManager& domainServerSettingsManager) :
     _settingsManager(domainServerSettingsManager)
 {
-
 }
 
 static const QString CONTENT_SETTINGS_BACKUP_FILENAME = "content-settings.json";
 
-void ContentSettingsBackupHandler::createBackup(QuaZip& zip) {
+void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
     // grab the content settings as JSON,excluding default values and values hidden from backup
     QJsonObject contentSettingsJSON = _settingsManager.settingsResponseObjectForType("", true, false, true, false, true);
@@ -41,7 +40,7 @@ void ContentSettingsBackupHandler::createBackup(QuaZip& zip) {
     }
 }
 
-void ContentSettingsBackupHandler::recoverBackup(QuaZip& zip) {
+void ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
     if (!zip.setCurrentFile(CONTENT_SETTINGS_BACKUP_FILENAME)) {
         qWarning() << "Failed to find" << CONTENT_SETTINGS_BACKUP_FILENAME << "while recovering backup";
         return;

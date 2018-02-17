@@ -19,18 +19,18 @@ class ContentSettingsBackupHandler : public BackupHandlerInterface {
 public:
     ContentSettingsBackupHandler(DomainServerSettingsManager& domainServerSettingsManager);
 
-    std::pair<bool, float> isAvailable(QString filePath) override { return { true, 1.0f }; }
+    std::pair<bool, float> isAvailable(const QString& backupName) override { return { true, 1.0f }; }
     std::pair<bool, float> getRecoveryStatus() override { return { false, 1.0f }; }
 
-    void loadBackup(QuaZip& zip) override {}
+    void loadBackup(const QString& backupName, QuaZip& zip) override {}
 
-    void createBackup(QuaZip& zip) override;
+    void createBackup(const QString& backupName, QuaZip& zip) override;
 
-    void recoverBackup(QuaZip& zip) override;
+    void recoverBackup(const QString& backupName, QuaZip& zip) override;
 
-    void deleteBackup(const QString& absoluteFilePath) override {}
+    void deleteBackup(const QString& backupName) override {}
 
-    void consolidateBackup(QuaZip& zip) override {}
+    void consolidateBackup(const QString& backupName, QuaZip& zip) override {}
 private:
     DomainServerSettingsManager& _settingsManager;
 };

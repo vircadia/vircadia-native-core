@@ -26,7 +26,7 @@ EntitiesBackupHandler::EntitiesBackupHandler(QString entitiesFilePath, QString e
 
 static const QString ENTITIES_BACKUP_FILENAME = "models.json.gz";
 
-void EntitiesBackupHandler::createBackup(QuaZip& zip) {
+void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
     QFile entitiesFile { _entitiesFilePath };
 
     if (entitiesFile.open(QIODevice::ReadOnly)) {
@@ -40,7 +40,7 @@ void EntitiesBackupHandler::createBackup(QuaZip& zip) {
     }
 }
 
-void EntitiesBackupHandler::recoverBackup(QuaZip& zip) {
+void EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
     if (!zip.setCurrentFile(ENTITIES_BACKUP_FILENAME)) {
         qWarning() << "Failed to find" << ENTITIES_BACKUP_FILENAME << "while recovering backup";
         return;
