@@ -20,6 +20,7 @@ enum EntityPropertyList {
 
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
+    PROP_CAN_CAST_SHADOW,
     PROP_POSITION,
     PROP_DIMENSIONS,
     PROP_ROTATION,
@@ -31,7 +32,6 @@ enum EntityPropertyList {
     PROP_SCRIPT,
 
     // these properties are supported by some derived classes
-    PROP_CAN_CAST_SHADOW,
     PROP_COLOR,
 
     // these are used by models only

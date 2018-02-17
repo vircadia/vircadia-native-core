@@ -101,9 +101,6 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
 
-    bool getCanCastShadow() const;
-    void setCanCastShadow(bool value);
-
 protected:
 
     float _alpha { 1 };

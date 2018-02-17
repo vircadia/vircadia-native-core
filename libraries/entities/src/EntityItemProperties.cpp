@@ -458,6 +458,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
@@ -626,10 +627,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     }
 
-    // Models and Shapes
-    if (_type == EntityTypes::Model || _type == EntityTypes::Shape || _type == EntityTypes::Box || _type == EntityTypes::Sphere) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
-    }
+    ////// Models and Shapes
+    ////if (_type == EntityTypes::Model || _type == EntityTypes::Shape || _type == EntityTypes::Box || _type == EntityTypes::Sphere) {
+    ////    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    ////}
 
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
@@ -1364,6 +1365,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
+            APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
             APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
@@ -1506,14 +1508,14 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
-            // Only models and shapes (including cubes and spheres) can cast shadows
-            if (properties.getType() == EntityTypes::Model ||
-                properties.getType() == EntityTypes::Shape ||
-                properties.getType() == EntityTypes::Box ||
-                properties.getType() == EntityTypes::Sphere) {
-                
-                APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
-            }
+            ////// Only models and shapes (including cubes and spheres) can cast shadows
+            ////if (properties.getType() == EntityTypes::Model ||
+            ////    properties.getType() == EntityTypes::Shape ||
+            ////    properties.getType() == EntityTypes::Box ||
+            ////    properties.getType() == EntityTypes::Sphere) {
+            ////    
+            ////    APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
+            ////}
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
@@ -1734,6 +1736,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
@@ -1869,15 +1872,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
-    }
-
-    // Can cast shadow flag
-    if (properties.getType() == EntityTypes::Model || 
-        properties.getType() == EntityTypes::Shape ||
-        properties.getType() == EntityTypes::Box ||
-        properties.getType() == EntityTypes::Sphere) {
-
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);

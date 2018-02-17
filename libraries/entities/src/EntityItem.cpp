@@ -903,7 +903,6 @@ void EntityItem::debugDump() const {
     qCDebug(entities, " edited ago:%f", (double)getEditedAgo());
     qCDebug(entities, " position:%f,%f,%f", (double)position.x, (double)position.y, (double)position.z);
     qCDebug(entities) << " dimensions:" << getScaledDimensions();
-    qCDebug(entities) << " can cast shadow" << getCanCastShadow();
 }
 
 // adjust any internal timestamps to fix clock skew for this server
