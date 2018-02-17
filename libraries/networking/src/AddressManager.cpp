@@ -152,8 +152,8 @@ void AddressManager::goForward() {
 
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
-    
-    if (!url.host().isEmpty()) {
+
+    if (url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https" || !url.host().isEmpty()) {
         currentAddressHandle.set(url);
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
