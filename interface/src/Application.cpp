@@ -2961,9 +2961,14 @@ bool Application::visitServerlessDomain(const QString& urlString) {
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
-    // resettingDomain();
-    // domainChanged("");
-    importJSONFromURL(domainURL.toString());
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL));
+        return;
+    }
+
+    if (importEntities(domainURL.toString())) {
+        pasteEntities(0.0f, 0.0f, 0.0f);
+    }
 }
 
 bool Application::importImage(const QString& urlString) {
