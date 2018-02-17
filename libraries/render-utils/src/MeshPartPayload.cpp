@@ -87,6 +87,8 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShad
 
     if (canCastShadow) {
         builder.withShadowCaster();
+    } else {
+        builder.withNoShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -427,6 +429,8 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCas
 
     if (canCastShadow) {
         builder.withShadowCaster();
+    } else {
+        builder.withNoShadowCaster();
     }
 
     if (isGroupCulled) {
