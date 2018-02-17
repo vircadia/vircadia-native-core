@@ -435,10 +435,11 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     if (!userPerms.can(NodePermissions::Permission::canConnectPastMaxCapacity) && !isWithinMaxCapacity()) {
         // we can't allow this user to connect because we are at max capacity
         QString redirectOnMaxCapacity;
-        const QVariant* redirectOnMaxCapacityVariant =
-            valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
-        if (redirectOnMaxCapacityVariant && redirectOnMaxCapacityVariant->canConvert<QString>()) {
-            redirectOnMaxCapacity = redirectOnMaxCapacityVariant->toString();
+
+        QVariant redirectOnMaxCapacityVariant =
+            _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY_REDIRECT_LOCATION);
+        if (redirectOnMaxCapacityVariant.canConvert<QString>()) {
+            redirectOnMaxCapacity = redirectOnMaxCapacityVariant.toString();
             qDebug() << "Redirection domain:" << redirectOnMaxCapacity;
         }
 
@@ -610,9 +611,9 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
 
 bool DomainGatekeeper::isWithinMaxCapacity() {
     // find out what our maximum capacity is
-    const QVariant* maximumUserCapacityVariant =
-        valueForKeyPath(_server->_settingsManager.getSettingsMap(), MAXIMUM_USER_CAPACITY);
-    unsigned int maximumUserCapacity = maximumUserCapacityVariant ? maximumUserCapacityVariant->toUInt() : 0;
+    QVariant maximumUserCapacityVariant =
+        _server->_settingsManager.valueForKeyPath(MAXIMUM_USER_CAPACITY);
+    unsigned int maximumUserCapacity = !maximumUserCapacityVariant.isValid() ? maximumUserCapacityVariant.toUInt() : 0;
 
     if (maximumUserCapacity > 0) {
         unsigned int connectedUsers = _server->countConnectedUsers();

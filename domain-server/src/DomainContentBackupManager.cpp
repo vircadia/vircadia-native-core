@@ -57,6 +57,8 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     _persistInterval(persistInterval),
     _lastCheck(usecTimestampNow())
 {
+    setObjectName("DomainContentBackupManager");
+
     // Make sure the backup directory exists.
     QDir(_backupDirectory).mkpath(".");
 
@@ -309,6 +311,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
 }
 
 void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup) {
+
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "recoverFromUploadedBackup", Q_ARG(MiniPromise::Promise, promise),
                                   Q_ARG(QByteArray, uploadedBackup));
