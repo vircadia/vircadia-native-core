@@ -157,6 +157,7 @@ private slots:
 
 signals:
     void hostnameChanged(const QString& hostname);
+    void serverlessDomainChanged(const QString& hostname);
 
     // NOTE: the emission of completedSocketDiscovery does not mean a connection to DS is established
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
