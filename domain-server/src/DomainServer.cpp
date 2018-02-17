@@ -2250,7 +2250,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 // check the file extension to see what kind of file this is
                 // to make sure we handle this filetype for a content restore
                 auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
-                auto formDataFilenameRegex = QRegExp("filename=\"(\\S+)\"");
+                auto formDataFilenameRegex = QRegExp("filename=\"(.+)\"");
                 auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
 
                 QString uploadedFilename = "";
