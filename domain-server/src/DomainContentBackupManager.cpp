@@ -132,19 +132,20 @@ bool DomainContentBackupManager::process() {
         int64_t sinceLastSave = now - _lastCheck;
         int64_t intervalToCheck = _persistInterval * MSECS_TO_USECS;
 
+        if (_isRecovering) {
+            bool isStillRecovering = any_of(begin(_backupHandlers), end(_backupHandlers), [](const BackupHandlerPointer& handler) {
+                return handler->getRecoveryStatus().first;
+            });
+
+            if (!isStillRecovering) {
+                _isRecovering = false;
+                _recoveryFilename = "";
+                emit recoveryCompleted();
+            }
+        }
+
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
-            if (_isRecovering) {
-                bool isStillRecovering = any_of(begin(_backupHandlers), end(_backupHandlers), [](const BackupHandlerPointer& handler) {
-                    return handler->getRecoveryStatus().first;
-                });
-
-                if (!isStillRecovering) {
-                    _isRecovering = false;
-                    _recoveryFilename = "";
-                    emit recoveryCompleted();
-                }
-            }
 
             if (!_isRecovering) {
                 backup();
