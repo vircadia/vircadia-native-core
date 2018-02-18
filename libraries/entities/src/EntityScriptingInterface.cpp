@@ -528,7 +528,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     NestableType nestableType = nestable->getNestableType();
                     if (nestableType == NestableType::Overlay || nestableType == NestableType::Avatar) {
                         qCWarning(entities) << "attempted edit on non-entity: " << id << nestable->getName();
-                        return QUuid(); // null UUID to indicate failure
+                        return QUuid(); // null script value to indicate failure
                     }
                 }
             }
