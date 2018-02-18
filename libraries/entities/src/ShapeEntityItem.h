@@ -103,7 +103,7 @@ public:
 
 protected:
 
-    float _alpha { 1 };
+    float _alpha { 1 };  // FIXME: This property is not used.
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
 

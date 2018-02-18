@@ -689,6 +689,15 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     return object;
 }
 
+/**jsdoc
+ * An axis-aligned cube, defined as the bottom right near (minimum axes values) corner of the cube plus the dimension of its 
+ * sides.
+ * @typedef {object} AACube
+ * @property {number} x - X coordinate of the brn corner of the cube.
+ * @property {number} y - Y coordinate of the brn corner of the cube.
+ * @property {number} z - Z coordinate of the brn corner of the cube.
+ * @property {number} scale - The dimensions of each side of the cube.
+ */
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube) {
     QScriptValue obj = engine->newObject();
     const glm::vec3& corner = aaCube.getCorner();

@@ -72,7 +72,15 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
 
 /**jsdoc
+ * The Entities API provides facilities to create and interact with entities. Entities are 2D and 3D objects that are visible
+ * to everyone and typically are persisted to the domain.
+ *
  * @namespace Entities
+ * @property {number} currentAvatarEnergy - <strong>Deprecated</strong>
+ * @property {number} costMultiplier - <strong>Deprecated</strong>
+ * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
+ *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
+ *     clear keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {

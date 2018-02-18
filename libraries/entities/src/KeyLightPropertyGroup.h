@@ -27,6 +27,13 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
+/**jsdoc
+ * A key light is defined by the following properties.
+ * @typedef {object} Entities.KeyLight
+ * @property {Color} color=255,255,255 - The color of the light.
+ * @property {number} intensity=1 - The intensity of the light.
+ * @property {Vec3} direction=0,-1,0 - The direction the light is shining.
+ */
 class KeyLightPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
