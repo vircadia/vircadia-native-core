@@ -123,7 +123,7 @@ public:
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
-        Builder& withNoShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
+        Builder& withNoShadowCaster() { _flags.reset(SHADOW_CASTER); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
         Builder& withMetaCullGroup() { _flags.set(META_CULL_GROUP); return (*this); }
         Builder& withSubMetaCulled() { _flags.set(SUB_META_CULLED); return (*this); }

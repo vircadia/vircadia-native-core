@@ -261,7 +261,6 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
-    qCDebug(entities) << "     can cast shadow" << getCanCastShadow();
 }
 
 void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
