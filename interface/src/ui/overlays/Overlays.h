@@ -75,7 +75,8 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
- *     If no overlay is set, get returns <code>null</code>; set to <code>null</code> to clear keyboard focus.
+ *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
+ *     clear keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -111,7 +112,7 @@ public slots:
      * @function Overlays.addOverlay
      * @param {Overlays.OverlayType} type - The type of the overlay to add.
      * @param {Overlays.OverlayProperties} properties - The properties of the overlay to add.
-     * @returns {Uuid} The ID of the newly created overlay.
+     * @returns {Uuid} The ID of the newly created overlay if successful, otherwise {@link Uuid|Uuid.NULL}.
      * @example <caption>Add a cube overlay in front of your avatar.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
@@ -126,7 +127,7 @@ public slots:
      * Create a clone of an existing overlay.
      * @function Overlays.cloneOverlay
      * @param {Uuid} overlayID - The ID of the overlay to clone.
-     * @returns {Uuid} The ID of the new overlay.
+     * @returns {Uuid} The ID of the new overlay if successful, otherwise {@link Uuid|Uuid.NULL}.
      * @example <caption>Add an overlay in front of your avatar, clone it, and move the clone to be above the 
      *     original.</caption>
      * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 }));
@@ -557,7 +558,7 @@ public slots:
      * Set the Web3D overlay that has keyboard focus.
      * @function Overlays.setKeyboardFocusOverlay
      * @param {Uuid} overlayID - The ID of the {@link Overlays.OverlayType|web3d} overlay to set keyboard focus to. Use 
-     *     {@link Uuid|Uuid.NULL} or <code>null</code> to unset keyboard focus from an overlay.
+     *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an overlay.
      */
     void setKeyboardFocusOverlay(const OverlayID& id);
 
