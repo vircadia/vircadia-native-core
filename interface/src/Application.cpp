@@ -517,6 +517,7 @@ bool isDomainURL(QUrl url) {
     if (!url.isValid()) {
         return false;
     }
+    // XXX check ending of path
     return url.scheme() == HIFI_URL_SCHEME || url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https";
 }
 
@@ -629,7 +630,6 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 extern DisplayPluginList getDisplayPlugins();
 extern InputPluginList getInputPlugins();
 extern void saveInputPluginSettings(const InputPluginList& plugins);
-
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);

@@ -455,7 +455,7 @@ private:
     QString _host;
     quint16 _port;
     QString _placeName;
-    QUrl _filebasedDomainURL; // for serverless domains
+    QUrl _serverlessDomainURL; // for file-based domains
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
     OrientationGetter _orientationGetter;

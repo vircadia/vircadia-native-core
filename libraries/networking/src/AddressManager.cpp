@@ -58,8 +58,8 @@ bool AddressManager::isConnected() {
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL;
 
-    if (!_filebasedDomainURL.isEmpty()) {
-        hifiURL = _filebasedDomainURL;
+    if (!_serverlessDomainURL.isEmpty()) {
+        hifiURL = _serverlessDomainURL;
     } else {
         hifiURL.setScheme(HIFI_URL_SCHEME);
         hifiURL.setHost(_host);
@@ -67,7 +67,6 @@ QUrl AddressManager::currentAddress(bool domainOnly) const {
         if (_port != 0 && _port != DEFAULT_DOMAIN_SERVER_PORT) {
             hifiURL.setPort(_port);
         }
-
     }
 
     if (!domainOnly && hifiURL.scheme() == HIFI_URL_SCHEME) {
@@ -154,6 +153,7 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https" || !url.host().isEmpty()) {
+        qDebug() << "QQQQ setting address in settings to " << url.toString();
         currentAddressHandle.set(url);
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
@@ -331,7 +331,7 @@ bool isPossiblePlaceName(QString possiblePlaceName) {
         const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
         result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
     }
-    qDebug() << "isPossiblePlaceName: " << possiblePlaceName << " " << result;
+    qDebug() << "QQQQ isPossiblePlaceName: " << possiblePlaceName << " " << result;
     return result;
 }
 
@@ -741,13 +741,12 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 
 bool AddressManager::setHost(const QString& host, LookupTrigger trigger, quint16 port) {
     if (host != _host || port != _port) {
-
         addCurrentAddressToHistory(trigger);
 
         _port = port;
-
         // any host change should clear the shareable place name
         _shareablePlaceName.clear();
+        _serverlessDomainURL = QUrl();
 
         if (host != _host) {
             _host = host;
@@ -767,7 +766,7 @@ bool AddressManager::setDomainInfo(const QUrl& serverlessDomainURL,
     // clear any current place information
     _rootPlaceID = QUuid();
     _placeName.clear();
-    _filebasedDomainURL = serverlessDomainURL;
+    _serverlessDomainURL = serverlessDomainURL;
 
     if (!serverlessDomainURL.isEmpty()) {
         qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL;
