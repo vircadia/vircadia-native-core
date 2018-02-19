@@ -15,7 +15,7 @@ class FBXGeometry;
 
 class TestFbx : public GpuTestBase {
     size_t _partCount { 0 };
-    model::Material _material;
+    graphics::Material _material;
     render::ShapeKey _shapeKey;
     std::vector<mat4> _partTransforms;
     render::ShapePlumberPointer _shapePlumber;

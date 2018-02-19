@@ -58,6 +58,21 @@ Audio::Audio() : _devices(_contextIsHMD) {
     enableNoiseReduction(enableNoiseReductionSetting.get());
 }
 
+bool Audio::startRecording(const QString& filepath) {
+    auto client = DependencyManager::get<AudioClient>().data();
+    return client->startRecording(filepath);
+}
+
+bool Audio::getRecording() {
+    auto client = DependencyManager::get<AudioClient>().data();
+    return client->getRecording();
+}
+
+void Audio::stopRecording() {
+    auto client = DependencyManager::get<AudioClient>().data();
+    client->stopRecording();
+}
+
 void Audio::setMuted(bool isMuted) {
     if (_isMuted != isMuted) {
         auto client = DependencyManager::get<AudioClient>().data();

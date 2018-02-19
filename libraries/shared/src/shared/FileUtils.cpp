@@ -12,6 +12,9 @@
 
 #include "FileUtils.h"
 
+#include <mutex>
+
+#include <QtCore/QDateTime>
 #include <QtCore/QDir>
 #include <QtCore/QFileInfo>
 #include <QtCore/QProcess>
@@ -19,6 +22,21 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QRegularExpression>
 #include <QtGui/QDesktopServices>
+
+
+#include "../SharedLogging.h"
+
+const QStringList& FileUtils::getFileSelectors() {
+    static std::once_flag once;
+    static QStringList extraSelectors;
+    std::call_once(once, [] {
+#if defined(USE_GLES)
+        extraSelectors << "gles";
+#endif
+    });
+    return extraSelectors;
+
+}
 
 
 QString FileUtils::readFile(const QString& filename) {
@@ -81,21 +99,59 @@ void FileUtils::locateFile(QString filePath) {
 QString FileUtils::standardPath(QString subfolder) {
     // standard path
     // Mac: ~/Library/Application Support/Interface
+#ifdef Q_OS_ANDROID
+    QString path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+#else
     QString path = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    
+#endif
     if (!subfolder.startsWith("/")) {
         subfolder.prepend("/");
     }
-    
     if (!subfolder.endsWith("/")) {
         subfolder.append("/");
     }
-    
     path.append(subfolder);
     QDir logDir(path);
     if (!logDir.exists(path)) {
         logDir.mkpath(path);
     }
-    
     return path;
+}
+
+QString FileUtils::replaceDateTimeTokens(const QString& originalPath) {
+    // Filter for specific tokens potentially present in the path:
+    auto now = QDateTime::currentDateTime();
+    QString path = originalPath;
+    path.replace("{DATE}", now.date().toString("yyyyMMdd"));
+    path.replace("{TIME}", now.time().toString("HHmm"));
+    return path;
+}
+
+
+QString FileUtils::computeDocumentPath(const QString& originalPath) {
+    // If the filename is relative, turn it into an absolute path relative to the document directory.
+    QString path = originalPath;
+    QFileInfo originalFileInfo(originalPath);
+    if (originalFileInfo.isRelative()) {
+        QString docsLocation = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        path = docsLocation + "/" + originalPath;
+    }
+    return path;
+}
+
+bool FileUtils::canCreateFile(const QString& fullPath) {
+    // If the file exists and we can't remove it, fail early
+    QFileInfo fileInfo(fullPath);
+    if (fileInfo.exists() && !QFile::remove(fullPath)) {
+        qDebug(shared) << "unable to overwrite file '" << fullPath << "'";
+        return false;
+    }
+    QDir dir(fileInfo.absolutePath());
+    if (!dir.exists()) {
+        if (!dir.mkpath(fullPath)) {
+            qDebug(shared) << "unable to create dir '" << dir.absolutePath() << "'";
+            return false;
+        }
+    }
+    return true;
 }

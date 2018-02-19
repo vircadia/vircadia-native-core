@@ -58,6 +58,10 @@ void Planar3DOverlay::setProperties(const QVariantMap& properties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Planar3DOverlay.
+/**jsdoc
+ * @property {Vec2} dimensions=1,1 - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ */
 QVariant Planar3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
         return vec2toVariant(getDimensions());

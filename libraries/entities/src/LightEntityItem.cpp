@@ -41,16 +41,16 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
 }
 
-void LightEntityItem::setDimensions(const glm::vec3& value) {
+void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     if (_isSpotlight) {
         // If we are a spotlight, treat the z value as our radius or length, and
         // recalculate the x/y dimensions to properly encapsulate the spotlight.
         const float length = value.z;
         const float width = length * glm::sin(glm::radians(_cutoff));
-        EntityItem::setDimensions(glm::vec3(width, width, length));
+        EntityItem::setUnscaledDimensions(glm::vec3(width, width, length));
     } else {
         float maxDimension = glm::compMax(value);
-        EntityItem::setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
+        EntityItem::setUnscaledDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
     }
 }
 
@@ -98,7 +98,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
         return;
     }
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 newDimensions;
     if (value) {
         const float length = dimensions.z;
@@ -112,7 +112,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
         _isSpotlight = value;
         _lightPropertiesChanged = true;
     });
-    setDimensions(newDimensions);
+    setScaledDimensions(newDimensions);
 }
 
 void LightEntityItem::setCutoff(float value) {
@@ -128,9 +128,9 @@ void LightEntityItem::setCutoff(float value) {
     if (getIsSpotlight()) {
         // If we are a spotlight, adjusting the cutoff will affect the area we encapsulate,
         // so update the dimensions to reflect this.
-        const float length = getDimensions().z;
+        const float length = getScaledDimensions().z;
         const float width = length * glm::sin(glm::radians(_cutoff));
-        setDimensions(glm::vec3(width, width, length));
+        setScaledDimensions(glm::vec3(width, width, length));
     }
     
     withWriteLock([&] {
@@ -300,7 +300,7 @@ void LightEntityItem::resetLightPropertiesChanged() {
 bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
-                        void** intersectedObject, bool precisionPicking) const {
+                        QVariantMap& extraInfo, bool precisionPicking) const {
 
     // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
     // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could

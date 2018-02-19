@@ -13,8 +13,6 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-bool AnimClip::usePreAndPostPoseFromAnim = true;
-
 AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
@@ -138,14 +136,8 @@ void AnimClip::copyFromNetworkAnim() {
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
 
                 AnimPose preRot, postRot;
-                if (usePreAndPostPoseFromAnim) {
-                    preRot = animSkeleton.getPreRotationPose(animJoint);
-                    postRot = animSkeleton.getPostRotationPose(animJoint);
-                } else {
-                    // In order to support Blender, which does not have preRotation FBX support, we use the models defaultPose as the reference frame for the animations.
-                    preRot = AnimPose(glm::vec3(1.0f), _skeleton->getRelativeBindPose(skeletonJoint).rot(), glm::vec3());
-                    postRot = AnimPose::identity;
-                }
+                preRot = animSkeleton.getPreRotationPose(animJoint);
+                postRot = animSkeleton.getPostRotationPose(animJoint);
 
                 // cancel out scale
                 preRot.scale() = glm::vec3(1.0f);

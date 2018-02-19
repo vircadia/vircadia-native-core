@@ -81,7 +81,7 @@ class MyAvatar : public Avatar {
      *   and MyAvatar.customListenOrientation properties.
      * @property customListenPosition {Vec3} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the position
      *   of audio spatialization listener.
-     * @property customListenOreintation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
+     * @property customListenOrientation {Quat} If MyAvatar.audioListenerMode == MyAvatar.audioListenerModeHead, then this determines the orientation
      *   of the audio spatialization listener.
      * @property audioListenerModeHead {number} READ-ONLY. When passed to MyAvatar.audioListenerMode, it will set the audio listener
      *   around the avatar's head.
@@ -110,6 +110,10 @@ class MyAvatar : public Avatar {
      * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
      * @property SELF_ID {string} READ-ONLY. UUID representing "my avatar". Only use for local-only entities and overlays in situations where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain).
      *   Note: Likely to be deprecated.
+     * @property hmdRollControlEnabled {bool} When enabled the roll angle of your HMD will turn your avatar while flying.
+     * @property hmdRollControlDeadZone {number} If hmdRollControlEnabled is true, this value can be used to tune what roll angle is required to begin turning.
+     *   This angle is specified in degrees.
+     * @property hmdRollControlRate {number} If hmdRollControlEnabled is true, this value determines the maximum turn rate of your avatar when rolling your HMD in degrees per second.
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -158,7 +162,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
- 
+
+    Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
+
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -444,9 +450,8 @@ public:
     virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
 
-
-
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
+    bool isJointPinned(int index);
     Q_INVOKABLE bool clearPinOnJoint(int index);
 
     Q_INVOKABLE float getIKErrorOnLastSolve() const;
@@ -507,6 +512,9 @@ public:
 
     bool hasDriveInput() const;
 
+    QVariantList getAvatarEntitiesVariant();
+    void removeAvatarEntities();
+
     Q_INVOKABLE bool isFlying();
     Q_INVOKABLE bool isInAir();
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
@@ -554,12 +562,14 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setWalkSpeed(float value);
+    float getWalkSpeed() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
-    float getDomainMinScale();
-    float getDomainMaxScale();
+    void animGraphLoaded();
 
     void setGravity(float gravity);
     float getGravity();
@@ -593,7 +603,6 @@ public slots:
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
-    void setUseAnimPreAndPostRotations(bool isEnabled);
     void setEnableInverseKinematics(bool isEnabled);
 
     QUrl getAnimGraphOverrideUrl() const;  // thread-safe
@@ -625,6 +634,11 @@ signals:
 private slots:
     void leaveDomain();
 
+
+protected:
+    virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
+    virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+
 private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
@@ -633,6 +647,7 @@ private:
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
+    void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
@@ -640,6 +655,7 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+    int _skeletonModelChangeCount { 0 };
 
     void saveAvatarScale();
 
@@ -737,12 +753,12 @@ private:
     bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
-    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
-    const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
+    const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
+
     bool _hmdRollControlEnabled { true };
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
-    float _lastDrivenSpeed { 0.0f };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
@@ -804,6 +820,8 @@ private:
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
 
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
+
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;
@@ -835,10 +853,16 @@ private:
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
 
+    std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    void updateChildCauterization(SpatiallyNestablePointer object);
+
+    // max unscaled forward movement speed
+    ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

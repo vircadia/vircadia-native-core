@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
-add_custom_target(qml SOURCES ${QML_SRC})
+add_custom_target(qmls SOURCES ${QML_SRC})
 GroupSources("resources/qml")
 
 function(JOIN VALUES GLUE OUTPUT)
@@ -11,9 +11,28 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
+set(CUSTOM_INTERFACE_QRC_PATHS "")
 
-set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
-generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)      
+find_npm()
+
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+endif ()
+
+set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
+set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
+generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
+
+add_custom_command(
+    OUTPUT ${RESOURCES_RCC}
+    DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+    COMMAND "${QT_DIR}/bin/rcc"
+    ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+)
+
+list(APPEND GENERATE_QRC_DEPENDS ${RESOURCES_RCC})
+add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
+
 
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
@@ -40,6 +59,7 @@ endif()
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
+list(APPEND INTERFACE_SRCS ${RESOURCES_RCC})
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
@@ -56,17 +76,9 @@ else ()
   list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
-if (ANDROID)
-  set(PLATFORM_QT_COMPONENTS AndroidExtras)
-  set(PLATFORM_QT_LIBRARIES Qt5::AndroidExtras)
-else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
-  set(PLATFORM_QT_LIBRARIES Qt5::WebEngine Qt5::WebEngineWidgets)
-endif ()
-
 find_package(
   Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script Svg
+  Gui Widgets Multimedia Network Qml Quick Script Svg
   ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
@@ -80,16 +92,6 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
-
-if (UNIX)
-  install(
-  DIRECTORY "${CMAKE_SOURCE_DIR}/interface/resources/qml"
-  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/resources
-  COMPONENT ${CLIENT_COMPONENT}
-  )
-endif()
-
 # translation disabled until we strip out the line numbers
 # set(QM ${TARGET_NAME}_en.qm)
 # set(TS ${TARGET_NAME}_en.ts)
@@ -97,21 +99,7 @@ endif()
 
 # setup the android parameters that will help us produce an APK
 if (ANDROID)
-  set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
-  set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
-
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
-
   set(ANDROID_SDK_ROOT $ENV{ANDROID_HOME})
-  set(ANDROID_APP_DISPLAY_NAME Interface)
-  set(ANDROID_API_LEVEL 19)
-  set(ANDROID_APK_PACKAGE io.highfidelity.interface)
-  set(ANDROID_ACTIVITY_NAME io.highfidelity.interface.InterfaceActivity)
-  set(ANDROID_APK_VERSION_NAME "0.1")
-  set(ANDROID_APK_VERSION_CODE 1)
-  set(ANDROID_APK_FULLSCREEN TRUE)
-  set(ANDROID_DEPLOY_QT_INSTALL "--install")
-
   set(BUILD_SHARED_LIBS ON)
 endif ()
 
@@ -183,6 +171,13 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  add_dependencies(resources jsdoc)
+endif()
+
+add_dependencies(${TARGET_NAME} resources)
+
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
   # binary directories get added to the fixup path
@@ -209,14 +204,15 @@ endif()
 
 # link required hifi libraries
 link_hifi_libraries(
-  shared octree ktx gpu gl gpu-gl procedural model render
+  shared task octree ktx gpu gl procedural graphics render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
-  render-utils entities-renderer avatars-renderer ui auto-updater midi
+  render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
-  ${NON_ANDROID_LIBRARIES}
+  workload
+  ${PLATFORM_GL_BACKEND}
 )
 
 # include the binary directory of render-utils for shader includes
@@ -224,6 +220,7 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 
 target_bullet()
 target_opengl()
+add_crashpad()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -266,15 +263,20 @@ endforeach()
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
+if (ANDROID)
+  find_library(ANDROID_LOG_LIB log)
+  target_link_libraries(${TARGET_NAME} ${ANDROID_LOG_LIB})
+endif ()
+
 target_link_libraries(
   ${TARGET_NAME}
-  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::Widgets
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine
+  Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}
 )
 
-if (UNIX)
+if (UNIX AND NOT ANDROID)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
@@ -282,7 +284,7 @@ if (UNIX)
         # OSX
         target_link_libraries(${TARGET_NAME} pthread)
     endif ()
-endif(UNIX)
+endif()
 
 # assume we are using a Qt build without bearer management
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
@@ -302,6 +304,7 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
+
   # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
@@ -312,12 +315,20 @@ if (APPLE)
   # call the fixup_interface macro to add required bundling commands for installation
   fixup_interface()
 
-else (APPLE)
+else()
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different 
+    "${RESOURCES_RCC}" 
+    "$<TARGET_FILE_DIR:interface>"
+    # FIXME, the edit script code loads HTML from the scripts folder
+    # which in turn relies on CSS that refers to the fonts.  In theory
+    # we should be able to modify the CSS to reference the QRC path to 
+    # the ttf files, but doing so generates a CORS policy violation, 
+    # so we have to retain a copy of the fonts outside of the resources binary
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${PROJECT_SOURCE_DIR}/resources"
-    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources"
+    "${PROJECT_SOURCE_DIR}/resources/fonts"
+    "$<TARGET_FILE_DIR:${TARGET_NAME}>/resources/fonts"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${CMAKE_SOURCE_DIR}/scripts"
     "$<TARGET_FILE_DIR:${TARGET_NAME}>/scripts"
@@ -343,7 +354,7 @@ else (APPLE)
 
     optional_win_executable_signing()
   endif()
-endif (APPLE)
+endif()
 
 if (SCRIPTS_INSTALL_DIR)
 
@@ -355,8 +366,6 @@ if (SCRIPTS_INSTALL_DIR)
   )
 endif()
 
-add_bugsplat()
-
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")
 
@@ -366,20 +375,6 @@ if (WIN32)
 
     package_libraries_for_deployment()
 endif()
-
-if (ANDROID)
-  set(HIFI_URL_INTENT "<intent-filter>\
-    \n        <action android:name='android.intent.action.VIEW' />\
-    \n        <category android:name='android.intent.category.DEFAULT' />\
-    \n        <category android:name='android.intent.category.BROWSABLE' />\
-    \n        <data android:scheme='hifi' />\
-    \n      </intent-filter>"
-  )
-
-  set(ANDROID_EXTRA_ACTIVITY_XML "${HIFI_URL_INTENT}")
-
-  qt_create_apk()
-endif ()
 
 add_dependency_external_projects(GifCreator)
 find_package(GifCreator REQUIRED)

@@ -19,7 +19,7 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
         DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
             getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (entityRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal);
+        return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }
@@ -30,7 +30,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
         qApp->getOverlays().findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
             getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (overlayRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal);
+        return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }
@@ -39,7 +39,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
 PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
     RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
     if (avatarRes.intersects) {
-        return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick);
+        return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick, glm::vec3(NAN), avatarRes.extraInfo);
     } else {
         return std::make_shared<RayPickResult>(pick.toVariantMap());
     }
@@ -84,18 +84,7 @@ glm::vec2 RayPick::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3
 glm::vec2 RayPick::projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos, bool unNormalized) {
     glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
     glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
-    glm::vec3 dimensions;
-
-    float dpi = qApp->getOverlays().getProperty(overlayID, "dpi").value.toFloat();
-    if (dpi > 0) {
-        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
-        glm::vec3 resolution = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "resolution").value), 1);
-        glm::vec3 scale = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01f);
-        const float INCHES_TO_METERS = 1.0f / 39.3701f;
-        dimensions = (resolution * INCHES_TO_METERS / dpi) * scale;
-    } else {
-        dimensions = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01);
-    }
+    glm::vec3 dimensions = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01f);
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT, unNormalized);
 }

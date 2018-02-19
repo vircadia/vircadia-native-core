@@ -18,9 +18,9 @@
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
-void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
-    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
+void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {    
+    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
+    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     if (!isDeferred) {
         task.addJob<RenderForwardTask>("Forward", items);
@@ -203,10 +203,14 @@ public:
     }
 };
 
-void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
+void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
+    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
-    task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+    if (!isDeferred) {
+        task.addJob<RenderForwardTask>("Forward", items);
+    } else {
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+    }
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

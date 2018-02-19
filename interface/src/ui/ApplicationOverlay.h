@@ -13,6 +13,7 @@
 #define hifi_ApplicationOverlay_h
 
 #include <gpu/Texture.h>
+#include <render/Args.h>
 
 
 // Handles the drawing of the overlays to the screen
@@ -32,7 +33,6 @@ private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
     void renderDomainConnectionStatusBorder(RenderArgs* renderArgs);
     void renderQmlUi(RenderArgs* renderArgs);
-    void renderAudioScope(RenderArgs* renderArgs);
     void renderOverlays(RenderArgs* renderArgs);
     void buildFramebufferObject();
 

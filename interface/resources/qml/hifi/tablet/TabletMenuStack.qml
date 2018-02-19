@@ -22,7 +22,6 @@ Item {
         anchors.fill: parent
         id: d
         objectName: "stack"
-        initialItem: topMenu
 
         property var menuStack: []
         property var topMenu: null;
@@ -48,11 +47,15 @@ Item {
         }
 
         function pushSource(path) {
-            d.push(Qt.resolvedUrl(path));
-            d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
+            d.push(Qt.resolvedUrl("../../" + path));
+            if (d.currentItem.sendToScript !== undefined) {
+                d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
+            }
             d.currentItem.focus = true;
             d.currentItem.forceActiveFocus();
-            breadcrumbText.text = d.currentItem.title;
+            if (d.currentItem.title !== undefined) {
+                breadcrumbText.text = d.currentItem.title;
+            }
             if (typeof bgNavBar !== "undefined") {
                 d.currentItem.y = bgNavBar.height;
                 d.currentItem.height -= bgNavBar.height;

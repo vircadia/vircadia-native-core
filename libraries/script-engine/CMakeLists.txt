@@ -1,4 +1,5 @@
 set(TARGET_NAME script-engine)
+# FIXME Move undo scripting interface to application and remove Widgets
 setup_hifi_library(Gui Network Script ScriptTools WebSockets Widgets)
 
 target_zlib()
@@ -16,6 +17,6 @@ if (NOT ANDROID)
 
 endif ()
 
-link_hifi_libraries(shared networking octree gpu procedural model model-networking ktx recording avatars fbx entities controllers animation audio physics image midi)
+link_hifi_libraries(shared networking octree gpu procedural graphics model-networking ktx recording avatars fbx entities controllers animation audio physics image midi)
 # ui includes gl, but link_hifi_libraries does not use transitive includes, so gl must be explicit
 include_hifi_library_headers(gl)

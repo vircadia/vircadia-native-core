@@ -34,6 +34,21 @@ const int Item::LAYER_3D = 1;
 const int Item::LAYER_3D_FRONT = 2;
 const int Item::LAYER_3D_HUD = 3;
 
+const uint8_t ItemKey::TAG_BITS_ALL { 0xFF };
+const uint8_t ItemKey::TAG_BITS_NONE { 0x00 };
+const uint8_t ItemKey::TAG_BITS_0 { 0x01 };
+const uint8_t ItemKey::TAG_BITS_1 { 0x02 };
+const uint8_t ItemKey::TAG_BITS_2 { 0x04 };
+const uint8_t ItemKey::TAG_BITS_3 { 0x08 };
+const uint8_t ItemKey::TAG_BITS_4 { 0x10 };
+const uint8_t ItemKey::TAG_BITS_5 { 0x20 };
+const uint8_t ItemKey::TAG_BITS_6 { 0x40 };
+const uint8_t ItemKey::TAG_BITS_7 { 0x80 };
+
+const uint32_t ItemKey::KEY_TAG_BITS_MASK = ((uint32_t) ItemKey::TAG_BITS_ALL) << FIRST_TAG_BIT;
+
+
+
 void Item::Status::Value::setScale(float scale) {
     _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
  }
@@ -96,6 +111,21 @@ const ShapeKey Item::getShapeKey() const {
         return ShapeKey::Builder(shapeKey).withFade().withoutCullFace();
     }
     return shapeKey;
+}
+
+uint32_t Item::fetchMetaSubItemBounds(ItemBounds& subItemBounds, Scene& scene) const {
+    ItemIDs subItems;
+    auto numSubs = fetchMetaSubItems(subItems);
+
+    for (auto id : subItems) {
+        auto& item = scene.getItem(id);
+        if (item.exist()) {
+            subItemBounds.emplace_back(id, item.getBound());
+        } else {
+            numSubs--;
+        }
+    }
+    return numSubs;
 }
 
 namespace render {

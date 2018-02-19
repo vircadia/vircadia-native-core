@@ -255,15 +255,20 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
-    /**jsdoc
-     * Provides read only access to the current eye height of the avatar.
-     * @function Avatar.getEyeHeight
-     * @returns {number} eye height of avatar in meters
-     */
-    Q_INVOKABLE float getEyeHeight() const;
+    Q_INVOKABLE virtual float getEyeHeight() const override;
+
+    // returns eye height of avatar in meters, ignoring avatar scale.
+    // if _targetScale is 1 then this will be identical to getEyeHeight.
+    virtual float getUnscaledEyeHeight() const override;
+
+    // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
+    // not all subclasses of AvatarData have access to this data.
+    virtual bool canMeasureEyeHeight() const override { return true; }
+
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
@@ -276,9 +281,17 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
+    // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
+    // hooked up to Model::rigReady & rigReset signals
+    void rigReady();
+    void rigReset();
+
 protected:
+    float getUnscaledEyeHeightFromSkeleton() const;
+    void buildUnscaledEyeHeightCache();
+    void clearUnscaledEyeHeightCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -293,6 +306,7 @@ protected:
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<bool> _attachmentModelsTexturesLoaded;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
@@ -317,6 +331,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
 
@@ -349,7 +364,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-private:
+protected:
     class AvatarEntityDataHash {
     public:
         AvatarEntityDataHash(uint32_t h) : hash(h) {};
@@ -369,6 +384,7 @@ private:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 
     static int _jointConesID;
@@ -379,6 +395,8 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
+
+    ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
 };
 
 #endif // hifi_Avatar_h

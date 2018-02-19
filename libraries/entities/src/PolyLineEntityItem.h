@@ -96,7 +96,7 @@ class PolyLineEntityItem : public EntityItem {
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                              bool& keepSearching, OctreeElementPointer& element, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
-                                             void** intersectedObject, bool precisionPicking) const override { return false; }
+                                             QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
     // disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
     virtual void setRegistrationPoint(const glm::vec3& value) override {}; // FIXME: this is suspicious! 

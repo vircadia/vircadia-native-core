@@ -22,7 +22,6 @@ Windows.Window {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property var source;
-    property var component;
     property var dynamicContent;
 
     // Keyboard control properties in case needed by QML content.
@@ -35,28 +34,9 @@ Windows.Window {
             dynamicContent.destroy();
             dynamicContent = null; 
         }
-        component = Qt.createComponent(source);
-        console.log("Created component " + component + " from source " + source);
-    }
-
-    onComponentChanged: {
-        console.log("Component changed to " + component)
-        populate();
-    }
-        
-    function populate() {
-        console.log("Populate called: dynamicContent " + dynamicContent + " component " + component);
-        if (!dynamicContent && component) {
-            if (component.status == Component.Error) {
-                console.log("Error loading component:", component.errorString());
-            } else if (component.status == Component.Ready) {
-                console.log("Building dynamic content");
-                dynamicContent = component.createObject(contentHolder);
-            } else {
-                console.log("Component not yet ready, connecting to status change");
-                component.statusChanged.connect(populate);
-            }
-        }
+        QmlSurface.load(source, contentHolder, function(newObject) {
+            dynamicContent = newObject;
+        });
     }
 
     // Handle message traffic from the script that launched us to the loaded QML

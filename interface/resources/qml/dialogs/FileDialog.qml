@@ -70,7 +70,15 @@ ModalWindow {
 
     signal selectedFile(var file);
     signal canceled();
-
+    signal selected(int button);
+    function click(button) {
+        clickedButton = button;
+        selected(button);
+        destroy();
+    }
+	
+    property int clickedButton: OriginalDialogs.StandardButton.NoButton;
+	
     Component.onCompleted: {
         console.log("Helper " + helper + " drives " + drives);
 
@@ -102,7 +110,17 @@ ModalWindow {
             }
         });
 
-        fileTableView.forceActiveFocus();
+        focusTimer.start();
+    }
+    
+    Timer {
+        id: focusTimer
+        interval: 10
+        running: false
+        repeat: false
+        onTriggered: {
+            fileTableView.contentItem.forceActiveFocus();
+        }
     }
 
     Item {
@@ -122,7 +140,9 @@ ModalWindow {
             drag.target: root
             onClicked: {
                 d.clearSelection();
-                frame.forceActiveFocus();  // Defocus text field so that the keyboard gets hidden.
+                // Defocus text field so that the keyboard gets hidden.
+                // Clicking also breaks keyboard navigation apart from backtabbing to cancel 
+                frame.forceActiveFocus();
             }
         }
 
@@ -142,6 +162,11 @@ ModalWindow {
                 size: 30
                 enabled: fileTableModel.parentFolder && fileTableModel.parentFolder !== ""
                 onClicked: d.navigateUp();
+                Keys.onReturnPressed: { d.navigateUp(); }
+                KeyNavigation.tab: homeButton
+                KeyNavigation.backtab: upButton
+                KeyNavigation.left: upButton
+                KeyNavigation.right: homeButton
             }
 
             GlyphButton {
@@ -152,6 +177,10 @@ ModalWindow {
                 width: height
                 enabled: d.homeDestination ? true : false
                 onClicked: d.navigateHome();
+                Keys.onReturnPressed: { d.navigateHome(); }
+                KeyNavigation.tab: fileTableView.contentItem
+                KeyNavigation.backtab: upButton
+                KeyNavigation.left: upButton
             }
         }
 
@@ -220,9 +249,15 @@ ModalWindow {
                         d.currentSelectionUrl = helper.pathToUrl(currentText);
                     }
                     fileTableModel.folder = folder;
-                    fileTableView.forceActiveFocus();
                 }
             }
+
+            KeyNavigation.up: fileTableView.contentItem
+            KeyNavigation.down: fileTableView.contentItem
+            KeyNavigation.tab: fileTableView.contentItem
+            KeyNavigation.backtab: fileTableView.contentItem
+            KeyNavigation.left: fileTableView.contentItem
+            KeyNavigation.right: fileTableView.contentItem
         }
 
         QtObject {
@@ -475,7 +510,6 @@ ModalWindow {
             }
             headerVisible: !selectDirectory
             onDoubleClicked: navigateToRow(row);
-            focus: true
             Keys.onReturnPressed: navigateToCurrentRow();
             Keys.onEnterPressed: navigateToCurrentRow();
 
@@ -552,7 +586,7 @@ ModalWindow {
                 resizable: true
             }
             TableViewColumn {
-                id: fileMofifiedColumn
+                id: fileModifiedColumn
                 role: "fileModified"
                 title: "Date"
                 width: 0.3 * fileTableView.width
@@ -563,7 +597,7 @@ ModalWindow {
             TableViewColumn {
                 role: "fileSize"
                 title: "Size"
-                width: fileTableView.width - fileNameColumn.width - fileMofifiedColumn.width
+                width: fileTableView.width - fileNameColumn.width - fileModifiedColumn.width
                 movable: false
                 resizable: true
                 visible: !selectDirectory
@@ -628,7 +662,10 @@ ModalWindow {
                 case Qt.Key_Backtab:
                     event.accepted = false;
                     break;
-
+                case Qt.Key_Escape:
+                    event.accepted = true;
+                    root.click(OriginalDialogs.StandardButton.Cancel);
+                    break;
                 default:
                     if (addToPrefix(event)) {
                         event.accepted = true
@@ -638,6 +675,8 @@ ModalWindow {
                     break;
                 }
             }
+
+            KeyNavigation.tab: root.saveDialog ? currentSelection : openButton
         }
 
         TextField {
@@ -654,6 +693,10 @@ ModalWindow {
             activeFocusOnTab: !readOnly
             onActiveFocusChanged: if (activeFocus) { selectAll(); }
             onAccepted: okAction.trigger();
+            KeyNavigation.up: fileTableView.contentItem
+            KeyNavigation.down: openButton
+            KeyNavigation.tab: openButton
+            KeyNavigation.backtab: fileTableView.contentItem
         }
 
         FileTypeSelection {
@@ -664,8 +707,6 @@ ModalWindow {
                 right: parent.right
             }
             visible: !selectDirectory && filtersCount > 1
-            KeyNavigation.left: fileTableView
-            KeyNavigation.right: openButton
         }
 
         Keyboard {
@@ -693,18 +734,18 @@ ModalWindow {
                 color: hifi.buttons.blue
                 action: okAction
                 Keys.onReturnPressed: okAction.trigger()
-                KeyNavigation.up: selectionType
-                KeyNavigation.left: selectionType
                 KeyNavigation.right: cancelButton
+                KeyNavigation.up: root.saveDialog ? currentSelection : fileTableView.contentItem
+                KeyNavigation.tab: cancelButton
             }
 
             Button {
                 id: cancelButton
                 action: cancelAction
-                KeyNavigation.up: selectionType
+                Keys.onReturnPressed: { cancelAction.trigger() }
                 KeyNavigation.left: openButton
-                KeyNavigation.right: fileTableView.contentItem
-                Keys.onReturnPressed: { canceled(); root.enabled = false }
+                KeyNavigation.up: root.saveDialog ? currentSelection : fileTableView.contentItem
+                KeyNavigation.backtab: openButton
             }
         }
 
@@ -793,7 +834,11 @@ ModalWindow {
         case Qt.Key_Home:
             event.accepted = d.navigateHome();
             break;
-
-        }
+		
+        case Qt.Key_Escape:
+            event.accepted = true;
+            root.click(OriginalDialogs.StandardButton.Cancel);
+            break;
+		}
     }
 }

@@ -38,37 +38,28 @@ private:
     gpu::FramebufferPointer _framebuffer;
 };
 
-class Draw {
+class PrepareForward {
 public:
-    using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<Draw, Inputs>;
+    using Inputs = LightingModelPointer;
+    using JobModel = render::Job::ModelI<PrepareForward, Inputs>;
 
-    Draw(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
     void run(const render::RenderContextPointer& renderContext,
-            const Inputs& items);
+        const Inputs& inputs);
+
+private:
+};
+
+class DrawForward{
+public:
+    using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
+    using JobModel = render::Job::ModelI<DrawForward, Inputs>;
+
+    DrawForward(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
+    void run(const render::RenderContextPointer& renderContext,
+            const Inputs& inputs);
 
 private:
     render::ShapePlumberPointer _shapePlumber;
-};
-
-class Stencil {
-public:
-    using JobModel = render::Job::Model<Stencil>;
-
-    void run(const render::RenderContextPointer& renderContext);
-
-private:
-    const gpu::PipelinePointer getPipeline();
-    gpu::PipelinePointer _stencilPipeline;
-};
-
-class DrawBackground {
-public:
-    using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<DrawBackground, Inputs>;
-
-    void run(const render::RenderContextPointer& renderContext,
-            const Inputs& background);
 };
 
 #endif // hifi_RenderForwardTask_h

@@ -257,9 +257,6 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
             congestionControl->setMaxBandwidth(_maxBandwidth);
             auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
 
-            // we queue the connection to cleanup connection in case it asks for it during its own rate control sync
-            QObject::connect(connection.get(), &Connection::connectionInactive, this, &Socket::cleanupConnection);
-
             // allow higher-level classes to find out when connections have completed a handshake
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);

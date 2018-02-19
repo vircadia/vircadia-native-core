@@ -80,7 +80,7 @@ public:
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
 
-	void setDimensions(const glm::vec3& value) override;
+    void setUnscaledDimensions(const glm::vec3& value) override;
 
     xColor getXColor() const;
     void setColor(const xColor& value);
@@ -94,7 +94,7 @@ public:
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                 bool& keepSearching, OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
-                                                void** intersectedObject, bool precisionPicking) const override;
+                                                QVariantMap& extraInfo, bool precisionPicking) const override;
 
     void debugDump() const override;
 

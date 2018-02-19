@@ -33,8 +33,9 @@ using namespace render;
 using namespace render::entities;
 
 static uint8_t CUSTOM_PIPELINE_NUMBER { 0 };
-static const int32_t PAINTSTROKE_TEXTURE_SLOT{ 0 };
-static const int32_t PAINTSTROKE_UNIFORM_SLOT{ 0 };
+static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
+static const int32_t PAINTSTROKE_UNIFORM_SLOT { 11 };
 static gpu::Stream::FormatPointer polylineFormat;
 static gpu::PipelinePointer polylinePipeline;
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
@@ -45,25 +46,31 @@ struct PolyLineUniforms {
     glm::vec3 color;
 };
 
-static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
     if (!polylinePipeline) {
-        auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
-        auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+        auto VS = paintStroke_vert::getShader();
+        auto PS = paintStroke_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
         auto fadeVS = gpu::Shader::createVertex(std::string(paintStroke_fade_vert));
         auto fadePS = gpu::Shader::createPixel(std::string(paintStroke_fade_frag));
         gpu::ShaderPointer fadeProgram = gpu::Shader::createProgram(fadeVS, fadePS);
 #endif
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
-        gpu::Shader::makeProgram(*program, slotBindings);
+        batch.runLambda([program
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT + 1));
-        gpu::Shader::makeProgram(*fadeProgram, slotBindings);
+            , fadeProgram
 #endif
+        ] {
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
+            slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
+            gpu::Shader::makeProgram(*program, slotBindings);
+#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
+            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
+            slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT + 1));
+            gpu::Shader::makeProgram(*fadeProgram, slotBindings);
+#endif
+        });
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);
@@ -105,7 +112,7 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta();
+    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
@@ -303,6 +310,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     batch.setInputBuffer(0, _verticesBuffer, 0, sizeof(Vertex));
 
 #ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
+    // glColor4f must be called after setInputFormat if it must be taken into account
     if (_isFading) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
     } else {

@@ -36,10 +36,11 @@ Rectangle {
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
+    property int pendingItemCount: 0;
     // Style
     color: hifi.colors.white;
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -54,13 +55,14 @@ Rectangle {
             } else if (walletStatus === 2) {
                 if (root.activeView !== "passphraseModal") {
                     root.activeView = "passphraseModal";
+                    UserActivityLogger.commercePassphraseEntry("marketplace purchases");
                 }
             } else if (walletStatus === 3) {
                 if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
-                    commerce.inventory();
+                    Commerce.inventory();
                 }
             } else {
                 console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
@@ -71,24 +73,28 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
         onInventoryResult: {
             purchasesReceived = true;
 
-            if (root.pendingInventoryReply) {
-                inventoryTimer.start();
-            }
-
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
-            } else {
+            } else if (!purchasesContentsList.dragging) { // Don't modify the view if the user's scrolling
                 var inventoryResult = processInventoryResult(result.data.assets);
 
+                var currentIndex = purchasesContentsList.currentIndex === -1 ? 0 : purchasesContentsList.currentIndex;
                 purchasesModel.clear();
                 purchasesModel.append(inventoryResult);
+
+                root.pendingItemCount = 0;
+                for (var i = 0; i < purchasesModel.count; i++) {
+                    if (purchasesModel.get(i).status === "pending") {
+                        root.pendingItemCount++;
+                    }
+                }
 
                 if (previousPurchasesModel.count !== 0) {
                     checkIfAnyItemStatusChanged();
@@ -102,6 +108,12 @@ Rectangle {
                 previousPurchasesModel.append(inventoryResult);
 
                 buildFilteredPurchasesModel();
+
+                purchasesContentsList.positionViewAtIndex(currentIndex, ListView.Beginning);
+            }
+
+            if (root.pendingInventoryReply && root.pendingItemCount > 0) {
+                inventoryTimer.start();
             }
 
             root.pendingInventoryReply = false;
@@ -197,7 +209,7 @@ Rectangle {
         Component.onCompleted: {
             securityImageResultReceived = false;
             purchasesReceived = false;
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -218,7 +230,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -233,7 +245,7 @@ Rectangle {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
                     root.activeView = "initialize";
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
@@ -254,7 +266,7 @@ Rectangle {
                     case 'tutorial_finished':
                         Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
-                        commerce.inventory();
+                        Commerce.inventory();
                     break;
                 }
             }
@@ -305,6 +317,7 @@ Rectangle {
 
             HifiControlsUit.TextField {
                 id: filterBar;
+                property string previousText: "";
                 colorScheme: hifi.colorSchemes.faintGray;
                 hasClearButton: true;
                 hasRoundedBorder: true;
@@ -317,6 +330,8 @@ Rectangle {
 
                 onTextChanged: {
                     buildFilteredPurchasesModel();
+                    purchasesContentsList.positionViewAtIndex(0, ListView.Beginning)
+                    filterBar.previousText = filterBar.text;
                 }
 
                 onAccepted: {
@@ -418,6 +433,8 @@ Rectangle {
             visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
             clip: true;
             model: filteredPurchasesModel;
+            snapMode: ListView.SnapToItem;
+            highlightRangeMode: ListView.StrictlyEnforceRange;
             // Anchors
             anchors.top: root.canRezCertifiedItems ? separator.bottom : cantRezCertified.bottom;
             anchors.topMargin: 12;
@@ -594,7 +611,7 @@ Rectangle {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
                 console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
-                commerce.inventory();
+                Commerce.inventory();
             }
         }
     }
@@ -633,7 +650,8 @@ Rectangle {
 
     function sortByDate() {
         filteredPurchasesModel.sortColumnName = "purchase_date";
-        filteredPurchasesModel.isSortingDescending = false;
+        filteredPurchasesModel.isSortingDescending = true;
+        filteredPurchasesModel.valuesAreNumerical = true;
         filteredPurchasesModel.quickSort();
     }
 
@@ -663,7 +681,7 @@ Rectangle {
             }
         }
 
-        if (sameItemCount !== tempPurchasesModel.count) {
+        if (sameItemCount !== tempPurchasesModel.count || filterBar.text !== filterBar.previousText) {
             filteredPurchasesModel.clear();
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));

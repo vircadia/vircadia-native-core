@@ -33,8 +33,6 @@ private:
 Qt59TestApp::Qt59TestApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
 {
-
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::set<AccountManager>([&] { return QString("Mozilla/5.0 (HighFidelityACClient)"); });
     DependencyManager::set<AddressManager>();

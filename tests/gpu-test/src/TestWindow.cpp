@@ -44,7 +44,7 @@ TestWindow::TestWindow() {
     });
 
 #ifdef DEFERRED_LIGHTING
-    _light->setType(model::Light::SUN);
+    _light->setType(graphics::Light::SUN);
     _light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
     _light->setIntensity(1.0f);
     _light->setAmbientIntensity(0.5f);

@@ -23,8 +23,10 @@ using namespace render::entities;
 static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
+// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 11 to avoid collisions
+static int32_t PARTICLE_UNIFORM_SLOT { 11 };
 
-static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
+static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     auto texturedPipeline = _texturedPipeline.lock();
     if (!texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
@@ -34,11 +36,17 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         PrepareStencil::testMask(*state);
 
-        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
-        auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
+        auto vertShader = textured_particle_vert::getShader();
+        auto fragShader = textured_particle_frag::getShader();
 
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
+
+        batch.runLambda([program] {
+            gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("particleBuffer"), PARTICLE_UNIFORM_SLOT));
+            gpu::Shader::makeProgram(*program, slotBindings);
+        });
     }
 
     return std::make_shared<render::ShapePipeline>(texturedPipeline, nullptr, nullptr, nullptr);
@@ -139,9 +147,9 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     if (_visible) {
-        return ItemKey::Builder::transparentShape();
+        return ItemKey::Builder::transparentShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     } else {
-        return ItemKey::Builder().withInvisible().build();
+        return ItemKey::Builder().withInvisible().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).build();
     }
 }
 
@@ -320,7 +328,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         transform.setScale(vec3(1));
     }
     batch.setModelTransform(transform);
-    batch.setUniformBuffer(0, _uniformBuffer);
+    batch.setUniformBuffer(PARTICLE_UNIFORM_SLOT, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
 

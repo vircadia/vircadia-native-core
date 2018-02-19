@@ -71,7 +71,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include <procedural/ProceduralSkybox.h>
-#include <model/Skybox.h>
+#include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 
@@ -146,7 +146,7 @@ public:
     void initializeGL();
     void initializeUi();
 
-    void updateCamera(RenderArgs& renderArgs);
+    void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void paintGL();
     void resizeGL();
 
@@ -207,7 +207,11 @@ public:
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
-    bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
+    void setPreferStylusOverLaser(bool value);
+    // FIXME: Remove setting completely or make available through JavaScript API?
+    //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
+    bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
@@ -227,8 +231,6 @@ public:
     void setActiveDisplayPlugin(const QString& pluginName);
 
     FileLogger* getLogger() const { return _logger; }
-
-    NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
     float getRenderResolutionScale() const;
 
@@ -264,11 +266,13 @@ public:
 
     float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
-    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
-    void takeSecondaryCameraSnapshot();
+    // Note that takeSnapshot has a default value, as this method is used internally.
+    void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const QString& filename);
+
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
+    graphics::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
@@ -280,6 +284,7 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void saveNextPhysicsStats(QString filename);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -306,6 +311,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE void loadAvatarBrowser() const;
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
@@ -385,6 +391,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
@@ -432,6 +440,7 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
 private:
     static void initDisplay();
     void init();
@@ -448,7 +457,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
+    void queryOctree(NodeType_t serverType, PacketType packetType);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -464,6 +473,7 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
     bool importFromZIP(const QString& filePath);
+    bool importImage(const QString& urlString);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -551,6 +561,7 @@ private:
     Setting::Handle<float> _desktopTabletScale;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
+    Setting::Handle<bool> _preferStylusOverLaserSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
@@ -569,7 +580,6 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
-    NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
@@ -662,7 +672,7 @@ private:
 
     ConnectionMonitor _connectionMonitor;
 
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
+    graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() } ;
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
@@ -690,6 +700,9 @@ private:
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
     void endHMDSession();
+
+    glm::vec3 _thirdPersonHMDCameraBoom { 0.0f, 0.0f, -1.0f };
+    bool _thirdPersonHMDCameraBoomValid { true };
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };

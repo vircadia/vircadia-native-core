@@ -45,6 +45,7 @@
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
+   makeLaserParams:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
@@ -131,6 +132,17 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
         isOverlay: isOverlay,
         hand: hand,
         offset: offset
+    };
+};
+
+makeLaserParams = function(hand, allwaysOn) {
+    if (allwaysOn === undefined) {
+        allwaysOn = false;
+    }
+
+    return {
+        hand: hand,
+        allwaysOn: allwaysOn
     };
 };
 
@@ -272,22 +284,8 @@ projectOntoEntityXYPlane = function (entityID, worldPos, props) {
 projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldPos) {
     var position = Overlays.getProperty(overlayID, "position");
     var rotation = Overlays.getProperty(overlayID, "rotation");
-    var dimensions;
-
-    var dpi = Overlays.getProperty(overlayID, "dpi");
-    if (dpi) {
-        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
-        var resolution = Overlays.getProperty(overlayID, "resolution");
-        resolution.z = 1; // Circumvent divide-by-zero.
-        var scale = Overlays.getProperty(overlayID, "dimensions");
-        scale.z = 0.01; // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
-    } else {
-        dimensions = Overlays.getProperty(overlayID, "dimensions");
-        if (dimensions.z) {
-            dimensions.z = 0.01; // overlay dimensions are 2D, not 3D.
-        }
-    }
+    var dimensions = Overlays.getProperty(overlayID, "dimensions");
+    dimensions.z = 0.01; // we are projecting onto the XY plane of the overlay, so ignore the z dimension
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
 };

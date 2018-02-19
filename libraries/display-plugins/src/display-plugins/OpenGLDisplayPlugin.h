@@ -8,7 +8,6 @@
 #pragma once
 
 #include "DisplayPlugin.h"
-#include <gl/Config.h>
 
 #include <condition_variable>
 #include <memory>
@@ -120,7 +119,7 @@ protected:
     void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 
-    void withMainThreadContext(std::function<void()> f) const;
+    void withOtherThreadContext(std::function<void()> f) const;
 
     void present();
     virtual void swapBuffers();

@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include model/Material.slh@>
+<@include graphics/Material.slh@>
 <@include DeferredBufferWrite.slh@>
 
 in vec3 _normal;

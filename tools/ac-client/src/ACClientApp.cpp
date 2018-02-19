@@ -97,7 +97,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         _password = pieces[1];
     }
 
-    Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
     DependencyManager::set<AccountManager>([&]{ return QString("Mozilla/5.0 (HighFidelityACClient)"); });
@@ -106,7 +105,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     auto nodeList = DependencyManager::get<NodeList>();
 

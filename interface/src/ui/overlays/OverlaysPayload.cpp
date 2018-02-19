@@ -44,6 +44,13 @@ namespace render {
         } else {
             builder.withViewSpace();
         }
+
+        if (!overlay->getVisible()) {
+            builder.withInvisible();
+        }
+
+        builder.withTagBits(render::ItemKey::TAG_BITS_0); // Only draw overlays in main view
+
         return builder.build();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
@@ -65,26 +72,16 @@ namespace render {
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
         if (args) {
-            if (overlay->getAnchor() == Overlay::MY_AVATAR) {
-                auto batch = args->_batch;
-                auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-                glm::quat myAvatarRotation = avatar->getWorldOrientation();
-                glm::vec3 myAvatarPosition = avatar->getWorldPosition();
-                float angle = glm::degrees(glm::angle(myAvatarRotation));
-                glm::vec3 axis = glm::axis(myAvatarRotation);
-                float myAvatarScale = avatar->getModelScale();
-                Transform transform = Transform();
-                transform.setTranslation(myAvatarPosition);
-                transform.setRotation(glm::angleAxis(angle, axis));
-                transform.setScale(myAvatarScale);
-                batch->setModelTransform(transform);
-                overlay->render(args);
-            } else {
-                overlay->render(args);
-            }
+            overlay->render(args);
         }
     }
     template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
         return overlay->getShapeKey();
     }
+
+
+    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems) {
+        return overlay->fetchMetaSubItems(subItems);
+    }
 }
+

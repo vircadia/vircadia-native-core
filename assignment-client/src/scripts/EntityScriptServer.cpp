@@ -79,7 +79,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
                                             this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
@@ -283,11 +282,8 @@ void EntityScriptServer::run() {
     // Setup Script Engine
     resetEntitiesScriptEngine();
 
-    // we need to make sure that init has been called for our EntityScriptingInterface
-    // so that it actually has a jurisdiction listener when we ask it for it next
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->init();
-    _entityViewer.setJurisdictionListener(entityScriptingInterface->getJurisdictionListener());
 
     _entityViewer.init();
     
@@ -563,17 +559,6 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
         _entityViewer.processDatagram(*message, senderNode);
     } else if (packetType == PacketType::EntityErase) {
         _entityViewer.processEraseMessage(*message, senderNode);
-    }
-}
-
-void EntityScriptServer::handleJurisdictionPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    NodeType_t nodeType;
-    message->peekPrimitive(&nodeType);
-
-    // PacketType_JURISDICTION, first byte is the node type...
-    if (nodeType == NodeType::EntityServer) {
-        DependencyManager::get<EntityScriptingInterface>()->getJurisdictionListener()->
-        queueReceivedPacket(message, senderNode);
     }
 }
 

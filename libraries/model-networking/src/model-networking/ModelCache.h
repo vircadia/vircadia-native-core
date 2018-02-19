@@ -15,8 +15,8 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <model/Material.h>
-#include <model/Asset.h>
+#include <graphics/Material.h>
+#include <graphics/Asset.h>
 
 #include "FBXReader.h"
 #include "TextureCache.h"
@@ -38,7 +38,7 @@ public:
     Geometry(const Geometry& geometry);
 
     // Immutable over lifetime
-    using GeometryMeshes = std::vector<std::shared_ptr<const model::Mesh>>;
+    using GeometryMeshes = std::vector<std::shared_ptr<const graphics::Mesh>>;
     using GeometryMeshParts = std::vector<std::shared_ptr<const MeshPart>>;
 
     // Mutable, but must retain structure of vector
@@ -157,9 +157,9 @@ private:
     virtual ~ModelCache() = default;
 };
 
-class NetworkMaterial : public model::Material {
+class NetworkMaterial : public graphics::Material {
 public:
-    using MapChannel = model::Material::MapChannel;
+    using MapChannel = graphics::Material::MapChannel;
 
     NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl);
 
@@ -185,9 +185,9 @@ protected:
 private:
     // Helpers for the ctors
     QUrl getTextureUrl(const QUrl& baseUrl, const FBXTexture& fbxTexture);
-    model::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                              image::TextureUsage::Type type, MapChannel channel);
-    model::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
+    graphics::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
 
     Transform _albedoTransform;
     Transform _lightmapTransform;

@@ -161,7 +161,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -187,7 +187,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
         } else if (_server->_settingsManager.hasPermissionsForMachineFingerprint(machineFingerprint)) {
             userPerms = _server->_settingsManager.getPermissionsForMachineFingerprint(machineFingerprint);
 #ifdef WANT_DEBUG
-            qDebug(() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
+            qDebug() << "| user-permissions: specific Machine Fingerprint matches, so: " << userPerms;
 #endif
         } else if (_server->_settingsManager.hasPermissionsForIP(senderAddress)) {
             // this user comes from an IP we have in our permissions table, apply those permissions
@@ -393,9 +393,12 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     QString verifiedUsername; // if this remains empty, consider this an anonymous connection attempt
     if (!username.isEmpty()) {
-        if (usernameSignature.isEmpty()) {
+        const QUuid& connectionToken = _connectionTokenHash.value(username.toLower());
+
+        if (usernameSignature.isEmpty() || connectionToken.isNull()) {
             // user is attempting to prove their identity to us, but we don't have enough information
             sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
+
             // ask for their public key right now to make sure we have it
             requestUserPublicKey(username, true);
             getGroupMemberships(username); // optimistically get started on group memberships

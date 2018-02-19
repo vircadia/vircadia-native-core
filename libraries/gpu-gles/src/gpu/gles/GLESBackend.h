@@ -27,6 +27,12 @@ class GLESBackend : public GLBackend {
     friend class Context;
 
 public:
+    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
+    static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
+    static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
+    static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
+    static const GLint RESOURCE_BUFFER_SLOT0_TEX_UNIT { 35 };
+    static bool supportedTextureFormat(const gpu::Element& format);
     explicit GLESBackend(bool syncCache) : Parent(syncCache) {}
     GLESBackend() : Parent() {}
     virtual ~GLESBackend() {
@@ -38,33 +44,95 @@ public:
     static const std::string GLES_VERSION;
     const std::string& getVersion() const override { return GLES_VERSION; }
 
-    
     class GLESTexture : public GLTexture {
         using Parent = GLTexture;
-        GLuint allocate();
-    public:
-        GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, GLuint externalId);
-        GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer, bool transferrable);
-
+        friend class GLESBackend;
+        GLuint allocate(const Texture& texture);
     protected:
-        void transferMip(uint16_t mipLevel, uint8_t face) const;
-        void startTransfer() override;
-        void allocateStorage() const override;
-        void updateSize() const override;
-        void syncSampler() const override;
+        GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer);
         void generateMips() const override;
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        void syncSampler() const override;
+
+        void withPreservedTexture(std::function<void()> f) const;
     };
 
+    //
+    // Textures that have fixed allocation sizes and cannot be managed at runtime
+    //
+
+    class GLESFixedAllocationTexture : public GLESTexture {
+        using Parent = GLESTexture;
+        friend class GLESBackend;
+
+    public:
+        GLESFixedAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GLESFixedAllocationTexture();
+
+    protected:
+        Size size() const override { return _size; }
+        void allocateStorage() const;
+        void syncSampler() const override;
+        const Size _size { 0 };
+    };
+
+    class GLESAttachmentTexture : public GLESFixedAllocationTexture {
+        using Parent = GLESFixedAllocationTexture;
+        friend class GLESBackend;
+    protected:
+        GLESAttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GLESAttachmentTexture();
+    };
+
+    class GLESStrictResourceTexture : public GLESFixedAllocationTexture {
+        using Parent = GLESFixedAllocationTexture;
+        friend class GLESBackend;
+    protected:
+        GLESStrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GLESStrictResourceTexture();
+    };
+
+    class GLESVariableAllocationTexture : public GLESTexture, public GLVariableAllocationSupport {
+        using Parent = GLESTexture;
+        friend class GLESBackend;
+        using PromoteLambda = std::function<void()>;
+
+
+    protected:
+        GLESVariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GLESVariableAllocationTexture();
+
+        void allocateStorage(uint16 allocatedMip);
+        void syncSampler() const override;
+        void promote() override;
+        void demote() override;
+        void populateTransferQueue() override;
+
+        Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override;
+        Size copyMipsFromTexture();
+
+        void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) override;
+
+        Size size() const override { return _size; }
+    };
+
+    class GLESResourceTexture : public GLESVariableAllocationTexture {
+        using Parent = GLESVariableAllocationTexture;
+        friend class GLESBackend;
+    protected:
+        GLESResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
+        ~GLESResourceTexture();
+    };
 
 protected:
     GLuint getFramebufferID(const FramebufferPointer& framebuffer) override;
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getResourceBufferID(const Buffer& buffer);
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
-    GLuint getTextureID(const TexturePointer& texture, bool needTransfer = true) override;
-    GLTexture* syncGPUObject(const TexturePointer& texture, bool sync = true) override;
+    GLTexture* syncGPUObject(const TexturePointer& texture) override;
 
     GLuint getQueryID(const QueryPointer& query) override;
     GLQuery* syncGPUObject(const Query& query) override;
@@ -78,17 +146,25 @@ protected:
     void do_multiDrawIndexedIndirect(const Batch& batch, size_t paramOffset) override;
 
     // Input Stage
-    void updateInput() override;
     void resetInputStage() override;
+    void updateInput() override;
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void transferTransformState(const Batch& batch) const override;
     void initTransform() override;
-    void updateTransform(const Batch& batch);
-    void resetTransformStage();
+    void updateTransform(const Batch& batch) override;
+
+    // Resource Stage
+    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    void releaseResourceBuffer(uint32_t slot) override;
 
     // Output stage
     void do_blit(const Batch& batch, size_t paramOffset) override;
+    
+    std::string getBackendShaderHeader() const override;
+    void makeProgramBindings(ShaderObject& shaderObject) override;
+    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+
 };
 
 } }

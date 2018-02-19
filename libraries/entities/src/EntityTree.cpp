@@ -39,10 +39,8 @@
 #include "EntityEditFilters.h"
 #include "EntityDynamicFactoryInterface.h"
 
-
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
-
 
 // combines the ray cast arguments into a single object
 class RayArgs {
@@ -61,8 +59,8 @@ public:
     float& distance;
     BoxFace& face;
     glm::vec3& surfaceNormal;
-    void** intersectedObject;
-    bool found;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
 };
 
 
@@ -355,11 +353,11 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 } else if (submittedID == senderID) {
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
-                        // the sender it taking ownership
+                        // the sender is taking ownership
                         properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
-                        // the sender is asserting ownership
+                        // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
                     } else {
                         // the sender is trying to steal ownership from another simulator
@@ -750,23 +748,24 @@ bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
-        args->found = true;
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
+    if (!entityID.isNull()) {
+        args->entityID = entityID;
     }
     return keepSearching;
 }
 
-bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
                                     bool visibleOnly, bool collidableOnly, bool precisionPicking, 
                                     OctreeElementPointer& element, float& distance,
-                                    BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
+                                    BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, surfaceNormal,  intersectedObject, false };
+            element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
@@ -778,7 +777,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
         *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
 
-    return args.found;
+    return args.entityID;
 }
 
 
@@ -914,18 +913,25 @@ void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
     recurseTreeWithOperation(elementFilter, nullptr);
 }
 
-EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
+EntityItemPointer EntityTree::findEntityByID(const QUuid& id) const {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
 }
 
-EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
-    EntityItemPointer foundEntity = NULL;
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        foundEntity = containingElement->getEntityWithEntityItemID(entityID);
+EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
+    EntityItemPointer foundEntity = nullptr;
+    {
+        QReadLocker locker(&_entityMapLock);
+        foundEntity = _entityMap.value(entityID);
     }
-    return foundEntity;
+    if (foundEntity && !foundEntity->getElement()) {
+        // special case to maintain legacy behavior:
+        // if the entity is in the map but not in the tree
+        // then pretend the entity doesn't exist
+        return EntityItemPointer(nullptr);
+    } else {
+        return foundEntity;
+    }
 }
 
 void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
@@ -1189,13 +1195,15 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
         key = sent.second;
     }
 
-    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----";
-    bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), actualNonce.toUtf8(), nonce.toUtf8());
+    QString annotatedKey = "-----BEGIN PUBLIC KEY-----\n" + key.insert(64, "\n") + "\n-----END PUBLIC KEY-----\n"; 
+    QByteArray hashedActualNonce = QCryptographicHash::hash(QByteArray(actualNonce.toUtf8()), QCryptographicHash::Sha256);
+    bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), hashedActualNonce, QByteArray::fromBase64(nonce.toUtf8()));
 
     if (verificationSuccess) {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed for nonce" << actualNonce << "key" << key << "signature" << nonce;
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed. Actual nonce:" << actualNonce <<
+            "\nHashed actual nonce (digest):" << hashedActualNonce << "\nSent nonce (signature)" << nonce << "\nKey" << key;
     }
 
     return verificationSuccess;
@@ -1308,7 +1316,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
     request["certificate_id"] = certID;
@@ -1678,14 +1686,17 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-
 void EntityTree::fixupNeedsParentFixups() {
     PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
+    QVector<EntityItemWeakPointer> entitiesToFixup;
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        entitiesToFixup = _needsParentFixup;
+        _needsParentFixup.clear();
+    }
 
-    QWriteLocker locker(&_needsParentFixupLock);
-
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesToFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1748,6 +1759,12 @@ void EntityTree::fixupNeedsParentFixups() {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
     }
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        // add back the entities that did not get fixup
+        _needsParentFixup.append(entitiesToFixup);
+    }
 }
 
 void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
@@ -1770,24 +1787,26 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 }
 
 void EntityTree::update(bool simulate) {
-    PROFILE_RANGE(simulation_physics, "ET::update");
+    PROFILE_RANGE(simulation_physics, "UpdateTree");
     fixupNeedsParentFixups();
     if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
-            VectorOfEntities pendingDeletes;
-            _simulation->takeEntitiesToDelete(pendingDeletes);
+            {
+                PROFILE_RANGE(simulation_physics, "Deletes");
+                VectorOfEntities pendingDeletes;
+                _simulation->takeEntitiesToDelete(pendingDeletes);
+                if (pendingDeletes.size() > 0) {
+                    // translate into list of ID's
+                    QSet<EntityItemID> idsToDelete;
 
-            if (pendingDeletes.size() > 0) {
-                // translate into list of ID's
-                QSet<EntityItemID> idsToDelete;
+                    for (auto entity : pendingDeletes) {
+                        idsToDelete.insert(entity->getEntityItemID());
+                    }
 
-                for (auto entity : pendingDeletes) {
-                    idsToDelete.insert(entity->getEntityItemID());
+                    // delete these things the roundabout way
+                    deleteEntities(idsToDelete, true);
                 }
-
-                // delete these things the roundabout way
-                deleteEntities(idsToDelete, true);
             }
         });
     }
@@ -2233,10 +2252,14 @@ bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer
 }
 
 bool EntityTree::readFromMap(QVariantMap& map) {
+    // These are needed to deal with older content (before adding inheritance modes)
+    int contentVersion = map["Version"].toInt();
+    bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
+
     // map will have a top-level list keyed as "Entities".  This will be extracted
     // and iterated over.  Each member of this list is converted to a QVariantMap, then
     // to a QScriptValue, and then to EntityItemProperties.  These properties are used
-    // to add the new entity to the EnitytTree.
+    // to add the new entity to the EntityTree.
     QVariantList entitiesQList = map["Entities"].toList();
     QScriptEngine scriptEngine;
 
@@ -2277,12 +2300,44 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setOwningAvatarID(myNodeID);
         }
 
+        // Fix for older content not containing mode fields in the zones
+        if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+            // The legacy version had no keylight mode - this is set to on
+            properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
+            
+            // The ambient URL has been moved from "keyLight" to "ambientLight"
+            if (entityMap.contains("keyLight")) {
+                QVariantMap keyLightObject = entityMap["keyLight"].toMap();
+                properties.getAmbientLight().setAmbientURL(keyLightObject["ambientURL"].toString());
+            }
+
+            // Copy the skybox URL if the ambient URL is empty, as this is the legacy behaviour
+            // Use skybox value only if it is not empty, else set ambientMode to inherit (to use default URL)
+            properties.setAmbientLightMode(COMPONENT_MODE_ENABLED);
+            if (properties.getAmbientLight().getAmbientURL() == "") {
+                if (properties.getSkybox().getURL() != "") {
+                    properties.getAmbientLight().setAmbientURL(properties.getSkybox().getURL());
+                } else {
+                    properties.setAmbientLightMode(COMPONENT_MODE_INHERIT);
+                }
+            }
+
+            // The background should be enabled if the mode is skybox
+            // Note that if the values are default then they are not stored in the JSON file
+            if (entityMap.contains("backgroundMode") && (entityMap["backgroundMode"].toString() == "skybox")) {
+                properties.setSkyboxMode(COMPONENT_MODE_ENABLED);
+            } else {
+                properties.setSkyboxMode(COMPONENT_MODE_INHERIT);
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
             success = false;
         }
     }
+
     return success;
 }
 

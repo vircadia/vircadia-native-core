@@ -35,6 +35,8 @@ public:
     // getters
     virtual bool is3D() const override { return true; }
 
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }
+
     // TODO: consider implementing registration points in this class
     glm::vec3 getCenter() const { return getWorldPosition(); }
 
@@ -59,14 +61,14 @@ public:
 
     void notifyRenderVariableChange() const;
 
-    void setProperties(const QVariantMap& properties) override;
-    QVariant getProperty(const QString& property) override;
+    virtual void setProperties(const QVariantMap& properties) override;
+    virtual QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal);
 
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
+                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
         return findRayIntersection(origin, direction, distance, face, surfaceNormal);
     }
 

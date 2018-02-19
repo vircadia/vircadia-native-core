@@ -37,7 +37,7 @@ class Snapshot : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
-    static QString saveSnapshot(QImage image);
+    static QString saveSnapshot(QImage image, const QString& filename);
     static QTemporaryFile* saveTempSnapshot(QImage image);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
 
@@ -51,7 +51,7 @@ public slots:
     Q_INVOKABLE QString getSnapshotsLocation();
     Q_INVOKABLE void setSnapshotsLocation(const QString& location);
 private:
-    static QFile* savedFileForSnapshot(QImage & image, bool isTemporary);
+    static QFile* savedFileForSnapshot(QImage & image, bool isTemporary, const QString& userSelectedFilename = QString());
 };
 
 #endif // hifi_Snapshot_h

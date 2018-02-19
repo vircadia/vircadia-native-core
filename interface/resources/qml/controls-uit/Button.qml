@@ -29,12 +29,18 @@ Original.Button {
 
     onHoveredChanged: {
         if (hovered) {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablet.playSound(TabletEnums.ButtonHover);
+        }
+    }
+    
+    onFocusChanged: {
+        if (focus) {
+            Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     style: ButtonStyle {
@@ -59,6 +65,8 @@ Original.Button {
                             hifi.buttons.pressedColor[control.color]
                         } else if (control.hovered) {
                             hifi.buttons.hoveredColor[control.color]
+                        }  else if (!control.hovered && control.focus) {
+                            hifi.buttons.focusedColor[control.color]
                         } else {
                             hifi.buttons.colorStart[control.color]
                         }
@@ -73,6 +81,8 @@ Original.Button {
                             hifi.buttons.pressedColor[control.color]
                         } else if (control.hovered) {
                             hifi.buttons.hoveredColor[control.color]
+                        } else if (!control.hovered && control.focus) {
+                            hifi.buttons.focusedColor[control.color]
                         } else {
                             hifi.buttons.colorFinish[control.color]
                         }

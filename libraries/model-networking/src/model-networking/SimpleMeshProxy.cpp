@@ -11,7 +11,7 @@
 
 #include "SimpleMeshProxy.h"
 
-#include <model/Geometry.h>
+#include <graphics/Geometry.h>
 
 MeshPointer SimpleMeshProxy::getMeshPointer() const {
     return _mesh;

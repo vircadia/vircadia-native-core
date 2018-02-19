@@ -22,7 +22,7 @@ public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    virtual void setDimensions(const glm::vec3& value) override;
+    virtual void setUnscaledDimensions(const glm::vec3& value) override;
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_BOX; }
 
     // methods for getting/setting all properties of an entity
@@ -49,7 +49,7 @@ public:
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const override;
+                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setSourceUrl(const QString& value);
     QString getSourceUrl() const;

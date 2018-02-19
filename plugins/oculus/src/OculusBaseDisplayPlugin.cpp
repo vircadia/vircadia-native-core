@@ -11,6 +11,7 @@
 #include <controllers/Pose.h>
 #include <display-plugins/CompositorHelper.h>
 #include <gpu/Frame.h>
+#include <gl/Config.h>
 
 #include "OculusHelpers.h"
 
@@ -40,7 +41,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     std::array<glm::mat4, 2> handPoses;
     // Make controller poses available to the presentation thread
     ovr_for_each_hand([&](ovrHandType hand) {
-        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked & ovrStatus_PositionTracked;
+        static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
         if (REQUIRED_HAND_STATUS != (trackingState.HandStatusFlags[hand] & REQUIRED_HAND_STATUS)) {
             return;
         }
@@ -92,9 +93,7 @@ glm::mat4 OculusBaseDisplayPlugin::getCullingProjection(const glm::mat4& basePro
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusBaseDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    GLenum err = glewInit();
-    glGetError(); // clear the potential error from glewExperimental
+    gl::initModuleGl();
     Parent::customizeContext();
 }
 

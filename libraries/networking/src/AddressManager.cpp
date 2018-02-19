@@ -9,12 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QApplication>
+#include <QGuiApplication>
 #include <QClipboard>
 #include <QDebug>
 #include <QJsonDocument>
 #include <QRegExp>
 #include <QStringList>
+#include <QThread>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -28,14 +29,10 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-#ifdef Q_OS_ANDROID
-const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
-#else
 #if USE_STABLE_GLOBAL_SERVICES
 const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
 const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
-#endif
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -596,7 +593,7 @@ bool AddressManager::handleDomainID(const QString& host) {
 void AddressManager::handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly) {
     if (!handleViewpoint(path, false, trigger, wasPathOnly)) {
         qCDebug(networking) << "User entered path could not be handled as a viewpoint - " << path <<
-                            "- wll attempt to ask domain-server to resolve.";
+                            "- will attempt to ask domain-server to resolve.";
 
         if (!wasPathOnly) {
             // if we received a path with a host then we need to remember what it was here so we can not
@@ -669,7 +666,7 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
             }
             
             emit locationChangeRequired(newPosition, orientationChanged, 
-                LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
+                trigger == LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
                 shouldFace
             );
 
@@ -761,15 +758,25 @@ void AddressManager::refreshPreviousLookup() {
 }
 
 void AddressManager::copyAddress() {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
     // assume that the address is being copied because the user wants a shareable address
-    QApplication::clipboard()->setText(currentShareableAddress().toString());
+    QGuiApplication::clipboard()->setText(currentShareableAddress().toString());
 }
 
 void AddressManager::copyPath() {
-    QApplication::clipboard()->setText(currentPath());
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
+    QGuiApplication::clipboard()->setText(currentPath());
 }
 
-QString AddressManager::getDomainId() const {
+QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 

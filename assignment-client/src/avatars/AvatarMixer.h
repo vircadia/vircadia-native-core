@@ -90,8 +90,8 @@ private:
 
     float _maxKbpsPerNode = 0.0f;
 
-    float _domainMinimumScale { MIN_AVATAR_SCALE };
-    float _domainMaximumScale { MAX_AVATAR_SCALE };
+    float _domainMinimumHeight { MIN_AVATAR_HEIGHT };
+    float _domainMaximumHeight { MAX_AVATAR_HEIGHT };
 
     RateCounter<> _broadcastRate;
     p_high_resolution_clock::time_point _lastDebugMessage;

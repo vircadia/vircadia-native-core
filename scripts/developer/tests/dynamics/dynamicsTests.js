@@ -22,8 +22,7 @@
 
     var button = tablet.addButton({
         icon: Script.resolvePath("dynamicsTests.svg"),
-        text: "Dynamics",
-        sortOrder: 15
+        text: "Dynamics"
     });
 
 

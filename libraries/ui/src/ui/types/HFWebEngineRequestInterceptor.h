@@ -14,6 +14,9 @@
 #ifndef hifi_HFWebEngineRequestInterceptor_h
 #define hifi_HFWebEngineRequestInterceptor_h
 
+#include <QtCore/QtGlobal>
+
+#if !defined(Q_OS_ANDROID)
 #include <QWebEngineUrlRequestInterceptor>
 
 class HFWebEngineRequestInterceptor : public QWebEngineUrlRequestInterceptor {
@@ -22,5 +25,6 @@ public:
 
     virtual void interceptRequest(QWebEngineUrlRequestInfo& info) override;
 };
+#endif
 
 #endif // hifi_HFWebEngineRequestInterceptor_h

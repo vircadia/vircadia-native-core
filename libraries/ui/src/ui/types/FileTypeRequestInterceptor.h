@@ -14,6 +14,9 @@
 #ifndef hifi_FileTypeRequestInterceptor_h
 #define hifi_FileTypeRequestInterceptor_h
 
+#include <QtCore/QtGlobal>
+
+#if !defined(Q_OS_ANDROID)
 #include <QWebEngineUrlRequestInterceptor>
 
 class FileTypeRequestInterceptor : public QWebEngineUrlRequestInterceptor {
@@ -22,5 +25,6 @@ public:
 
     virtual void interceptRequest(QWebEngineUrlRequestInfo& info) override;
 };
+#endif
 
 #endif // hifi_FileTypeRequestInterceptor_h

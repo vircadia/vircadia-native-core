@@ -17,7 +17,6 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkingConstants.h>
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -34,8 +33,8 @@
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
-StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
+AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -80,6 +79,7 @@ void EntityItemProperties::debugDump() const {
     getSkybox().debugDump();
     getHaze().debugDump();
     getKeyLight().debugDump();
+    getAmbientLight().debugDump();
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -183,47 +183,7 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-using BackgroundPair = std::pair<const BackgroundMode, const QString>;
-const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = { {
-    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
-    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
-} };
-
-QString EntityItemProperties::getBackgroundModeAsString() const {
-    return BACKGROUND_MODES[_backgroundMode].second;
-}
-
-QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    return BACKGROUND_MODES[mode].second;
-}
-
-void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
-        return (pair.second == backgroundMode);
-    });
-    if (result != BACKGROUND_MODES.end()) {
-        _backgroundMode = result->first;
-        _backgroundModeChanged = true;
-    }
-}
-
-using ComponentPair = std::pair<const ComponentMode, const QString>;
-const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
-        ComponentPair{ COMPONENT_MODE_INHERIT,{ "inherit" } },
-        ComponentPair{ COMPONENT_MODE_DISABLED,{ "disabled" } },
-        ComponentPair{ COMPONENT_MODE_ENABLED,{ "enabled" } }
-} };
-
-QString EntityItemProperties::getHazeModeAsString() const {
-    // return "inherit" if _hazeMode is not valid
-    if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[_hazeMode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
-    }
-}
-
-QString EntityItemProperties::getHazeModeString(uint32_t mode) {
+QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[mode].second;
@@ -232,14 +192,70 @@ QString EntityItemProperties::getHazeModeString(uint32_t mode) {
     }
 }
 
-void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
-    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
-        return (pair.second == hazeMode);
+QString EntityItemProperties::getHazeModeAsString() const {
+    return getComponentModeAsString(_hazeMode);
+}
+
+QString EntityItemProperties::getComponentModeString(uint32_t mode) {
+    // return "inherit" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
+    }
+}
+
+std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
+    return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
+        return (pair.second == mode);
     });
+}
+
+void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
+    auto result = findComponent(hazeMode);
 
     if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getKeyLightModeAsString() const {
+    return getComponentModeAsString(_keyLightMode);
+}
+
+void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
+    auto result = findComponent(keyLightMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _keyLightMode = result->first;
+        _keyLightModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getAmbientLightModeAsString() const {
+    return getComponentModeAsString(_ambientLightMode);
+}
+
+void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
+    auto result = findComponent(ambientLightMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _ambientLightMode = result->first;
+        _ambientLightModeChanged = true;
+    }
+}
+
+QString EntityItemProperties::getSkyboxModeAsString() const {
+    return getComponentModeAsString(_skyboxMode);
+}
+
+void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
+    auto result = findComponent(skyboxMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _skyboxMode = result->first;
+        _skyboxModeChanged = true;
     }
 }
 
@@ -325,11 +341,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
     CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
+    CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
-    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+    CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
+    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
+    CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -365,6 +384,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
     CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
@@ -375,11 +395,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
+    changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
-    changedProperties += _stage.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
 
     return changedProperties;
@@ -460,6 +481,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EDITION_NUMBER, editionNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
@@ -506,6 +528,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -551,10 +574,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Zones only
     if (_type == EntityTypes::Zone) {
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
-
-        _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
@@ -563,6 +584,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
     }
 
     // Web only
@@ -627,6 +652,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
@@ -696,7 +722,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collidesWith, CollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
@@ -711,7 +737,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, xColor, setTextColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, xColor, setBackgroundColor);
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
@@ -731,6 +757,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -743,13 +770,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(staticCertificateVersion, quint32, setStaticCertificateVersion);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
-
-    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
@@ -779,8 +808,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     _animation.copyFromScriptValue(object, _defaultSettings);
     _keyLight.copyFromScriptValue(object, _defaultSettings);
+    _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
-    _stage.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
@@ -803,6 +832,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -900,13 +930,15 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(editionNumber);
     COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
     COPY_PROPERTY_IF_CHANGED(certificateID);
+    COPY_PROPERTY_IF_CHANGED(staticCertificateVersion);
 
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
-    COPY_PROPERTY_IF_CHANGED(backgroundMode);
-
     COPY_PROPERTY_IF_CHANGED(hazeMode);
+    COPY_PROPERTY_IF_CHANGED(keyLightMode);
+    COPY_PROPERTY_IF_CHANGED(ambientLightMode);
+    COPY_PROPERTY_IF_CHANGED(skyboxMode);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -926,8 +958,8 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
 
     _animation.merge(other._animation);
     _keyLight.merge(other._keyLight);
+    _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
-    _stage.merge(other._stage);
     _haze.merge(other._haze);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
@@ -950,6 +982,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(localRotation);
     COPY_PROPERTY_IF_CHANGED(localVelocity);
     COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+    COPY_PROPERTY_IF_CHANGED(localDimensions);
 
     COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
     COPY_PROPERTY_IF_CHANGED(jointRotations);
@@ -1090,16 +1123,15 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
-        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -1128,11 +1160,13 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
@@ -1148,14 +1182,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
 
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
@@ -1178,6 +1204,10 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
+
+        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
@@ -1360,6 +1390,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, properties.getJointRotations());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
+                APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
             }
 
             if (properties.getType() == EntityTypes::Light) {
@@ -1405,13 +1436,11 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 _staticKeyLight.setProperties(properties);
                 _staticKeyLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
-                _staticStage.setProperties(properties);
-                _staticStage.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+                _staticAmbientLight.setProperties(properties);
+                _staticAmbientLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -1423,6 +1452,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 _staticHaze.setProperties(properties);
                 _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
+                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
+                APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)properties.getSkyboxMode());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1478,6 +1511,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
+            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
         }
 
         if (propertyCount > 0) {
@@ -1716,6 +1750,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     }
 
     if (properties.getType() == EntityTypes::Light) {
@@ -1758,12 +1793,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Zone) {
-        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
-        properties.getStage().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
@@ -1772,7 +1806,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
  
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-   }
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
+    }
 
     if (properties.getType() == EntityTypes::PolyVox) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
@@ -1829,6 +1867,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     return valid;
 }
@@ -1996,15 +2035,16 @@ void EntityItemProperties::markAllChanged() {
     _editionNumberChanged = true;
     _entityInstanceNumberChanged = true;
     _certificateIDChanged = true;
+    _staticCertificateVersionChanged = true;
 
     _keyLight.markAllChanged();
+    _ambientLight.markAllChanged();
+    _skybox.markAllChanged();
 
-    _backgroundModeChanged = true;
     _hazeModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
-    _stage.markAllChanged();
     _haze.markAllChanged();
 
     _sourceUrlChanged = true;
@@ -2055,6 +2095,7 @@ void EntityItemProperties::markAllChanged() {
     _owningAvatarIDChanged = true;
 
     _dpiChanged = true;
+    _relayParentJointsChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -2338,13 +2379,24 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (certificateIDChanged()) {
         out += "certificateID";
     }
-
-    if (backgroundModeChanged()) {
-        out += "backgroundMode";
+    if (staticCertificateVersionChanged()) {
+        out += "staticCertificateVersion";
     }
 
     if (hazeModeChanged()) {
         out += "hazeMode";
+    }
+
+    if (keyLightModeChanged()) {
+        out += "keyLightMode";
+    }
+
+    if (ambientLightModeChanged()) {
+        out += "ambientLightMode";
+    }
+
+    if (skyboxModeChanged()) {
+        out += "skyboxMode";
     }
 
     if (voxelVolumeSizeChanged()) {
@@ -2410,6 +2462,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (jointTranslationsChanged()) {
         out += "jointTranslations";
     }
+    if (relayParentJointsChanged()) {
+        out += "relayParentJoints";
+    }
     if (queryAACubeChanged()) {
         out += "queryAACube";
     }
@@ -2448,8 +2503,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
+    getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
-    getStage().listChangedProperties(out);
     getHaze().listChangedProperties(out);
 
     return out;
@@ -2460,9 +2515,25 @@ bool EntityItemProperties::transformChanged() const {
         localPositionChanged() || localRotationChanged();
 }
 
+bool EntityItemProperties::getScalesWithParent() const {
+    // keep this logic the same as in EntityItem::getScalesWithParent
+    bool scalesWithParent { false };
+    if (parentIDChanged()) {
+        bool success;
+        SpatiallyNestablePointer parent = SpatiallyNestable::findByID(getParentID(), success);
+        if (success && parent) {
+            bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
+                                   parent->hasAncestorOfType(NestableType::Avatar));
+            scalesWithParent = getClientOnly() && avatarAncestor;
+        }
+    }
+    return scalesWithParent;
+}
+
 bool EntityItemProperties::parentRelatedPropertyChanged() const {
     return positionChanged() || rotationChanged() ||
         localPositionChanged() || localRotationChanged() ||
+        localDimensionsChanged() ||
         parentIDChanged() || parentJointIndexChanged();
 }
 
@@ -2480,13 +2551,16 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     // of the entity as reviewed during the certification submission.
 
     QJsonObject json;
+
+    quint32 staticCertificateVersion = getStaticCertificateVersion();
+
     if (!getAnimation().getURL().isEmpty()) {
         json["animationURL"] = getAnimation().getURL();
     }
     ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
     ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
     ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
     ADD_STRING_PROPERTY(itemArtist, ItemArtist);
     ADD_STRING_PROPERTY(itemCategories, ItemCategories);
     ADD_STRING_PROPERTY(itemDescription, ItemDescription);
@@ -2496,7 +2570,11 @@ QByteArray EntityItemProperties::getStaticCertificateJSON() const {
     ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
     ADD_STRING_PROPERTY(modelURL, ModelURL);
     ADD_STRING_PROPERTY(script, Script);
+    if (staticCertificateVersion >= 1) {
+        ADD_STRING_PROPERTY(serverScripts, ServerScripts);
+    }
     ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    ADD_INT_PROPERTY(staticCertificateVersion, StaticCertificateVersion);
     json["type"] = EntityTypes::getEntityTypeName(getType());
 
     return QJsonDocument(json).toJson(QJsonDocument::Compact);
@@ -2513,7 +2591,8 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
         return false;
     }
 
-    const unsigned char* key = reinterpret_cast<const unsigned char*>(publicKey.toUtf8().constData());
+    auto keyByteArray = publicKey.toUtf8();
+    auto key = keyByteArray.constData();
     int keyLength = publicKey.length();
 
     BIO *bio = BIO_new_mem_buf((void*)key, keyLength);
@@ -2531,19 +2610,23 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             // ECSDA verification prototype: note that type is currently ignored
             // int ECDSA_verify(int type, const unsigned char *dgst, int dgstlen,
             // const unsigned char *sig, int siglen, EC_KEY *eckey);
-            bool answer = ECDSA_verify(0,
+            int answer = ECDSA_verify(0,
                 digest,
                 digestLength,
                 signature,
                 signatureLength,
                 ec);
             long error = ERR_get_error();
-            if (error != 0) {
-                const char* error_str = ERR_error_string(error, NULL);
-                qCWarning(entities) << "ERROR while verifying signature! EC error:" << error_str
+            if (error != 0 || answer == -1) {
+                qCWarning(entities) << "ERROR while verifying signature!"
                     << "\nKey:" << publicKey << "\nutf8 Key Length:" << keyLength
                     << "\nDigest:" << digest << "\nDigest Length:" << digestLength
                     << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+                while (error != 0) {
+                    const char* error_str = ERR_error_string(error, NULL);
+                    qCWarning(entities) << "EC error:" << error_str;
+                    error = ERR_get_error();
+                }
             }
             EC_KEY_free(ec);
             if (bio) {
@@ -2552,7 +2635,7 @@ bool EntityItemProperties::verifySignature(const QString& publicKey, const QByte
             if (evp_key) {
                 EVP_PKEY_free(evp_key);
             }
-            return answer;
+            return (answer == 1);
         } else {
             if (bio) {
                 BIO_free(bio);

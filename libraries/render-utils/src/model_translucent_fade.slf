@@ -1,23 +1,18 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//
 //  model_translucent_fade.frag
-//  fragment shader
-//
 //  Created by Olivier Prat on 06/05/17.
 //  Copyright 2017 High Fidelity, Inc.
-//
 //  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+//  See the accompanying file LICENSE
 
-<@include model/Material.slh@>
-
+<@include graphics/Material.slh@>
 <@include DeferredGlobalLight.slh@>
 
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
+<@include LightLocal.slh@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
@@ -60,32 +55,38 @@ void main(void) {
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
-    vec3 fresnel = vec3(0.03); // Default Di-electric fresnel value
-    if (metallic <= 0.5) {
-        metallic = 0.0;
-    } else {
-        fresnel = albedo;
-        metallic = 1.0;
-    }
+    vec3 fresnel = getFresnelF0(metallic, albedo);
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 fragPosition = _position.xyz;
+    // Lighting is done in world space
     vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
+    vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
+    vec3 fragEyeDir = normalize(fragEyeVector);
+    SurfaceData surface = initSurfaceData(roughness, fragNormal, fragEyeDir);
 
-    _fragColor =  vec4(evalGlobalLightingAlphaBlended(
+    vec4 localLighting = vec4(0.0);
+
+    <$fetchClusterInfo(_worldPosition)$>;
+    if (hasLocalLights(numLights, clusterPos, dims)) {
+        localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, surface,
+                                          metallic, fresnel, albedo, 0.0,
+                                          vec4(0), vec4(0), opacity);
+    }
+
+    _fragColor =  vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
         occlusionTex,
         fragPosition,
-        fragNormal,
         albedo,
         fresnel,
         metallic,
         emissive+fadeEmissive,
-        roughness, opacity),
+        surface, opacity, localLighting.rgb),
         opacity);
 }

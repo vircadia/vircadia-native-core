@@ -177,6 +177,8 @@ vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
 vec4 toGlm(const xColor& color, float alpha);
 
+xColor xColorFromGlm(const glm::vec3 & c);
+
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
 
@@ -251,6 +253,7 @@ glm::vec2 getFacingDir2D(const glm::mat4& m);
 
 inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
+inline bool isNaN(const glm::mat3& value) { return isNaN(value * glm::vec3(1.0f)); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
 

@@ -26,6 +26,7 @@
 #include <QCommandLineParser>
 
 #include <AccountManager.h>
+#include <AssetClient.h>
 #include <BuildInfo.h>
 #include <DependencyManager.h>
 #include <HifiConfigVariantMap.h>
@@ -94,7 +95,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     root.insert(requestSubobjectKey, subobject);
     QJsonDocument doc { root };
 
-    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + metaversePath };
+    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + metaversePath };
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
@@ -157,7 +158,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     DependencyManager::set<StatTracker>();
 
     LogUtils::init();
-    Setting::init();
 
     qDebug() << "Setting up domain-server";
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
@@ -344,6 +344,12 @@ void DomainServer::parseCommandLine() {
 
 DomainServer::~DomainServer() {
     qInfo() << "Domain Server is shutting down.";
+
+    // cleanup the AssetClient thread
+    DependencyManager::destroy<AssetClient>();
+    _assetClientThread.quit();
+    _assetClientThread.wait();
+
     // destroy the LimitedNodeList before the DomainServer QCoreApplication is down
     DependencyManager::destroy<LimitedNodeList>();
 }
@@ -420,7 +426,7 @@ bool DomainServer::optionallySetupOAuth() {
 
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
-        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL();
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -495,7 +501,7 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
         // store the new domain ID and auto network setting immediately
         QString newSettingsJSON = QString("{\"metaverse\": { \"id\": \"%1\", \"automatic_networking\": \"full\"}}").arg(id);
         auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
-        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object());
+        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object(), DomainSettings);
 
         // store the new ID and auto networking setting on disk
         _settingsManager.persistToFile();
@@ -685,11 +691,17 @@ void DomainServer::setupNodeListAndAssignments() {
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     packetReceiver.registerListener(PacketType::ICEServerHeartbeatACK, this, "processICEServerHeartbeatACK");
 
-    // add whatever static assignments that have been parsed to the queue
-    addStaticAssignmentsToQueue();
-
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
+
+    _assetClientThread.setObjectName("AssetClient Thread");
+    auto assetClient = DependencyManager::set<AssetClient>();
+    assetClient->moveToThread(&_assetClientThread);
+    QObject::connect(&_assetClientThread, &QThread::started, assetClient.data(), &AssetClient::init);
+    _assetClientThread.start();
+
+    // add whatever static assignments that have been parsed to the queue
+    addStaticAssignmentsToQueue();
 }
 
 bool DomainServer::resetAccountManagerAccessToken() {
@@ -945,7 +957,7 @@ void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const Q
 
 void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes) {
     // enumerate over all assignment types and see if we've already excluded it
-    for (Assignment::Type defaultedType = Assignment::AudioMixerType;
+    for (Assignment::Type defaultedType = Assignment::FirstType;
          defaultedType != Assignment::AllTypes;
          defaultedType =  static_cast<Assignment::Type>(static_cast<int>(defaultedType) + 1)) {
         if (!excludedTypes.contains(defaultedType) && defaultedType != Assignment::AgentType) {
@@ -2159,7 +2171,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonDocument doc(root);
 
 
-            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/v1/places/" + place_id };
+            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/v1/places/" + place_id };
 
             url.setQuery("access_token=" + accessTokenVariant->toString());
 

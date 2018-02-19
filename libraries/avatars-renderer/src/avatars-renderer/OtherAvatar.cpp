@@ -13,4 +13,6 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     _headData = new Head(this);
     _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
+    connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
+    connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 }

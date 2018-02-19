@@ -27,7 +27,8 @@ StateImage {
     property string activeHoverIcon: button.activeIcon
 
     property int sortOrder: 100
-    property int stableSortOrder: 0
+    property int stableOrder: 0
+    property var uuid;
 
     signal clicked()
 

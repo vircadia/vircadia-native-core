@@ -13,7 +13,7 @@
 #ifndef hifi_VHACDUtilApp_h
 #define hifi_VHACDUtilApp_h
 
-#include <QApplication>
+#include <QCoreApplication>
 
 #include <FBXReader.h>
 

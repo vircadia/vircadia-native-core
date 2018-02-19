@@ -9,12 +9,12 @@
 #include "CauterizedModel.h"
 
 #include <PerfStat.h>
+#include <DualQuaternion.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
 #include "CauterizedMeshPartPayload.h"
 #include "RenderUtilsLogging.h"
-
 
 CauterizedModel::CauterizedModel(QObject* parent) :
         Model(parent) {
@@ -35,7 +35,7 @@ bool CauterizedModel::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             Model::MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
+            state.clusterTransforms.resize(mesh.clusters.size());
             _cauterizeMeshStates.append(state);
         }
     }
@@ -109,30 +109,54 @@ void CauterizedModel::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
+#if defined(SKIN_DQ)
+            auto jointPose = _rig.getJointPose(cluster.jointIndex);
+            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+            Transform clusterTransform;
+            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+            state.clusterTransforms[j].setCauterizationParameters(0.0f, jointPose.trans());
+#else
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
+#endif
         }
     }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
+#if defined(SKIN_DQ)
+        AnimPose cauterizePose = _rig.getJointPose(geometry.neckJointIndex);
+        cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
+#else
         static const glm::mat4 zeroScale(
-            glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
-            glm::vec4(0.0f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0001f, 0.0f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0001f, 0.0f, 0.0f),
+            glm::vec4(0.0f, 0.0f, 0.0001f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
-
+#endif
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);
+
             for (int j = 0; j < mesh.clusters.size(); j++) {
                 const FBXCluster& cluster = mesh.clusters.at(j);
-                auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-                if (_cauterizeBoneSet.find(cluster.jointIndex) != _cauterizeBoneSet.end()) {
-                    jointMatrix = cauterizeMatrix;
+
+                if (_cauterizeBoneSet.find(cluster.jointIndex) == _cauterizeBoneSet.end()) {
+                    // not cauterized so just copy the value from the non-cauterized version.
+                    state.clusterTransforms[j] = _meshStates[i].clusterTransforms[j];
+                } else {
+#if defined(SKIN_DQ)
+                    Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
+                    Transform clusterTransform;
+                    Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+                    state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+                    state.clusterTransforms[j].setCauterizationParameters(1.0f, cauterizePose.trans());
+#else
+                    glm_mat4u_mul(cauterizeMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
+#endif
                 }
-                glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
         }
     }
@@ -178,28 +202,56 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
+            bool isWireframe = self->isWireframe();
+            bool isVisible = self->isVisible();
+            bool isLayeredInFront = self->isLayeredInFront();
+            bool isLayeredInHUD = self->isLayeredInHUD();
+            bool enableCauterization = self->getEnableCauterization();
+
             render::Transaction transaction;
             for (int i = 0; i < (int)self->_modelMeshRenderItemIDs.size(); i++) {
 
                 auto itemID = self->_modelMeshRenderItemIDs[i];
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-                auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
-                auto clusterMatricesCauterized(self->getCauterizeMeshState(meshIndex).clusterMatrices);
+                auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
+                auto clusterTransformsCauterized(self->getCauterizeMeshState(meshIndex).clusterTransforms);
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
-                    data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+                bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterTransforms, clusterTransformsCauterized, invalidatePayloadShapeKey,
+                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, enableCauterization](CauterizedMeshPartPayload& data) {
+                    data.updateClusterBuffer(clusterTransforms, clusterTransformsCauterized);
 
                     Transform renderTransform = modelTransform;
-                    if (clusterMatrices.size() == 1) {
-                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                    if (clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+                        Transform transform(clusterTransforms[0].getRotation(),
+                                            clusterTransforms[0].getScale(),
+                                            clusterTransforms[0].getTranslation());
+                        renderTransform = modelTransform.worldTransform(transform);
+#else
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
+#endif
                     }
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                     renderTransform = modelTransform;
-                    if (clusterMatricesCauterized.size() == 1) {
-                        renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+                    if (clusterTransformsCauterized.size() == 1) {
+#if defined(SKIN_DQ)
+                        Transform transform(clusterTransformsCauterized[0].getRotation(),
+                                            clusterTransformsCauterized[0].getScale(),
+                                            clusterTransformsCauterized[0].getTranslation());
+                        renderTransform = modelTransform.worldTransform(Transform(transform));
+#else
+                        renderTransform = modelTransform.worldTransform(Transform(clusterTransformsCauterized[0]));
+#endif
                     }
                     data.updateTransformForCauterizedMesh(renderTransform);
+
+                    data.setEnableCauterization(enableCauterization);
+                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, render::ItemKey::TAG_BITS_ALL);
+                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
                 });
             }
 

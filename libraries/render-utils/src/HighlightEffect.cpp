@@ -88,7 +88,7 @@ HighlightSharedParameters::HighlightSharedParameters() {
 }
 
 float HighlightSharedParameters::getBlurPixelWidth(const render::HighlightStyle& style, int frameBufferHeight) {
-    return ceilf(style.outlineWidth * frameBufferHeight / 400.0f);
+    return ceilf(style._outlineWidth * frameBufferHeight / 400.0f);
 }
 
 PrepareDrawHighlight::PrepareDrawHighlight() {
@@ -130,8 +130,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         fillState->setColorWriteMask(false, false, false, false);
         fillState->setCullMode(gpu::State::CULL_FRONT);
 
-        auto vs = gpu::Shader::createVertex(std::string(Highlight_aabox_vert));
-        auto ps = gpu::Shader::createPixel(std::string(nop_frag));
+        auto vs = Highlight_aabox_vert::getShader();
+        auto ps = nop_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -267,14 +267,19 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
                 {
                     auto& shaderParameters = _configuration.edit();
 
-                    shaderParameters._color = highlight._style.color;
-                    shaderParameters._intensity = highlight._style.outlineIntensity * (highlight._style.isOutlineSmooth ? 2.0f : 1.0f);
-                    shaderParameters._unoccludedFillOpacity = highlight._style.unoccludedFillOpacity;
-                    shaderParameters._occludedFillOpacity = highlight._style.occludedFillOpacity;
-                    shaderParameters._threshold = highlight._style.isOutlineSmooth ? 1.0f : 1e-3f;
-                    shaderParameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(highlight._style.outlineWidth * 3 + 0.5f)));
+                    shaderParameters._outlineUnoccludedColor = highlight._style._outlineUnoccluded.color;
+                    shaderParameters._outlineUnoccludedAlpha = highlight._style._outlineUnoccluded.alpha * (highlight._style._isOutlineSmooth ? 2.0f : 1.0f);
+                    shaderParameters._outlineOccludedColor = highlight._style._outlineOccluded.color;
+                    shaderParameters._outlineOccludedAlpha = highlight._style._outlineOccluded.alpha * (highlight._style._isOutlineSmooth ? 2.0f : 1.0f);
+                    shaderParameters._fillUnoccludedColor = highlight._style._fillUnoccluded.color;
+                    shaderParameters._fillUnoccludedAlpha = highlight._style._fillUnoccluded.alpha;
+                    shaderParameters._fillOccludedColor = highlight._style._fillOccluded.color;
+                    shaderParameters._fillOccludedAlpha = highlight._style._fillOccluded.alpha;
+
+                    shaderParameters._threshold = highlight._style._isOutlineSmooth ? 1.0f : 1e-3f;
+                    shaderParameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(highlight._style._outlineWidth * 3 + 0.5f)));
                     // Size is in normalized screen height. We decide that for highlight width = 1, this is equal to 1/400.
-                    auto size = highlight._style.outlineWidth / 400.0f;
+                    auto size = highlight._style._outlineWidth / 400.0f;
                     shaderParameters._size.x = (size * framebufferSize.y) / framebufferSize.x;
                     shaderParameters._size.y = size;
                 }
@@ -308,7 +313,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
         state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(Highlight_frag));
+        auto ps = Highlight_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -320,7 +325,7 @@ const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightSt
 
         _pipeline = gpu::Pipeline::create(program, state);
 
-        ps = gpu::Shader::createPixel(std::string(Highlight_filled_frag));
+        ps = Highlight_filled_frag::getShader();
         program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
@@ -380,8 +385,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const std::string VERTEX_SHADER{ debug_deferred_buffer_vert };
-    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag };
+    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag::getSource() };
     static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
     static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
     Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
@@ -391,7 +395,7 @@ void DebugHighlight::initializePipelines() {
     state->setDepthTest(gpu::State::DepthTest(false, false));
     state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
-    const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
+    const auto vs = debug_deferred_buffer_vert::getShader();
 
     // Depth shader
     {
@@ -432,21 +436,26 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
     outputs.clear();
     _sharedParameters->_highlightIds.fill(render::HighlightStage::INVALID_INDEX);
 
-    for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
-        std::ostringstream stream;
-        if (i > 0) {
-            stream << "highlightList" << i;
-        } else {
-            stream << "contextOverlayHighlightList";
-        }
-        auto selectionName = stream.str();
-        if (!scene->isSelectionEmpty(selectionName)) {
-            auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);
-            if (!render::HighlightStage::isIndexInvalid(highlightId)) {
-                _sharedParameters->_highlightIds[outputs.size()] = highlightId;
-                outputs.emplace_back(selectionName);
+    int numLayers = 0;
+    auto highlightList = highlightStage->getActiveHighlightIds();
+
+    for (auto styleId : highlightList) {
+        auto highlight = highlightStage->getHighlight(styleId);
+
+        if (!scene->isSelectionEmpty(highlight._selectionName)) {
+            auto highlightId = highlightStage->getHighlightIdBySelection(highlight._selectionName);
+            _sharedParameters->_highlightIds[outputs.size()] = highlightId;
+            outputs.emplace_back(highlight._selectionName);
+            numLayers++;
+
+            if (numLayers == HighlightSharedParameters::MAX_PASS_COUNT) {
+                break;
             }
         }
+    }
+
+    if (numLayers == 0) {
+        renderContext->taskFlow.abortTask();
     }
 }
 
@@ -547,14 +556,14 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
 #include "model_shadow_frag.h"
 
 void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-    auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    auto modelVertex = model_shadow_vert::getShader();
+    auto modelPixel = model_shadow_frag::getShader();
     gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned(),
         modelProgram, state);
 
-    auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
+    auto skinVertex = skin_model_shadow_vert::getShader();
     gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned(),

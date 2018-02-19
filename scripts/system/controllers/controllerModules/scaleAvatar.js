@@ -12,6 +12,10 @@
 (function () {
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
+    function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+    }
+
     function ScaleAvatar(hand) {
         this.hand = hand;
         this.scalingStartAvatarScale = 0;
@@ -61,7 +65,7 @@
                             controllerData.controllerLocations[this.otherHand()].position));
 
                     var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;
-                    MyAvatar.scale = newAvatarScale;
+                    MyAvatar.scale = clamp(newAvatarScale, MyAvatar.getDomainMinScale(), MyAvatar.getDomainMaxScale());
                     MyAvatar.scaleChanged();
                 }
                 return dispatcherUtils.makeRunningValues(true, [], []);

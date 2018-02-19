@@ -56,8 +56,8 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        Jurisdiction,
-        JurisdictionRequest,
+        UNUSED_PACKET_TYPE_1,
+        UNUSED_PACKET_TYPE_2,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -177,6 +177,17 @@ public:
             << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
         return NON_SOURCED_PACKETS;
     }
+
+    const static QSet<PacketTypeEnum::Value> getDomainSourcedPackets() {
+        const static QSet<PacketTypeEnum::Value> DOMAIN_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+        << PacketTypeEnum::Value::AssetMappingOperation
+        << PacketTypeEnum::Value::AssetMappingOperationReply
+        << PacketTypeEnum::Value::AssetGet
+        << PacketTypeEnum::Value::AssetGetReply
+        << PacketTypeEnum::Value::AssetUpload
+        << PacketTypeEnum::Value::AssetUploadReply;
+        return DOMAIN_SOURCED_PACKETS;
+    }
 };
 
 using PacketType = PacketTypeEnum::Value;
@@ -196,10 +207,17 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debuggin
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
+// Due to the different legacy behaviour, we need special processing for domains that were created before
+// the zone inheritance modes were added.  These have version numbers up to 80
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77,
+    StrokeColorProperty = 0,
     HasDynamicOwnershipTests,
-    HazeEffect
+    HazeEffect,
+    StaticCertJsonVersionOne,
+    OwnershipChallengeFix,
+    ZoneLightInheritModes = 82,
+    ZoneStageRemoved,
+    SoftEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -210,7 +228,8 @@ enum class EntityScriptCallMethodVersion : PacketVersion {
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19,
-    ConnectionIdentifier = 20
+    ConnectionIdentifier = 20,
+    RemovedJurisdictions = 21
 };
 
 enum class AssetServerPacketVersion: PacketVersion {
@@ -239,7 +258,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceFront,
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
-    UpdatedMannequinDefaultAvatar
+    UpdatedMannequinDefaultAvatar,
+    AvatarJointDefaultPoseFlags,
+    FBXReaderNodeReparenting
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

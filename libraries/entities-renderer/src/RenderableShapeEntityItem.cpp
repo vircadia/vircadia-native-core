@@ -16,8 +16,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-#include <render-utils/simple_vert.h>
-#include <render-utils/simple_frag.h>
+#include "render-utils/simple_vert.h"
+#include "render-utils/simple_frag.h"
 
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
@@ -32,8 +32,8 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = simple_vert;
-    _procedural._fragmentSource = simple_frag;
+    _procedural._vertexSource = simple_vert::getSource();
+    _procedural._fragmentSource = simple_frag::getSource();
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
@@ -63,7 +63,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_dimensions != entity->getDimensions()) {
+    if (_dimensions != entity->getScaledDimensions()) {
         return true;
     }
 
@@ -82,7 +82,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
-        _dimensions = entity->getDimensions();
+        _dimensions = entity->getScaledDimensions();
         _orientation = entity->getWorldOrientation();
         _renderTransform = getModelTransform();
 
@@ -137,11 +137,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     });
 
     if (proceduralRender) {
-        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShape(batch, geometryShape);
+            geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
-            geometryCache->renderShape(batch, geometryShape);
+            geometryCache->renderShape(batch, geometryShape, outColor);
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect

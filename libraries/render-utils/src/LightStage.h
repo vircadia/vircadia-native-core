@@ -17,7 +17,7 @@
 
 #include <gpu/Framebuffer.h>
 
-#include <model/Light.h>
+#include <graphics/Light.h>
 
 #include <render/IndexedContainer.h>
 #include <render/Stage.h>
@@ -35,8 +35,8 @@ public:
     static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
-    using LightPointer = model::LightPointer;
-    using Lights = render::indexed_container::IndexedPointerVector<model::Light>;
+    using LightPointer = graphics::LightPointer;
+    using Lights = render::indexed_container::IndexedPointerVector<graphics::Light>;
     using LightMap = std::unordered_map<LightPointer, Index>;
 
     using LightIndices = std::vector<Index>;
@@ -44,54 +44,85 @@ public:
     class Shadow {
     public:
         using UniformBufferView = gpu::BufferView;
-        static const int MAP_SIZE = 1024;
+        static const int MAP_SIZE;
 
-        Shadow(model::LightPointer light);
+        class Cascade {
+            friend Shadow;
+        public:
 
-        void setKeylightFrustum(const ViewFrustum& viewFrustum, float viewMinShadowDistance, float viewMaxShadowDistance, float nearDepth = 1.0f, float farDepth = 1000.0f);
+            Cascade();
 
-        void setFrustum(const ViewFrustum& shadowFrustum);
-        const std::shared_ptr<ViewFrustum> getFrustum() const { return _frustum; }
+            gpu::FramebufferPointer framebuffer;
+            gpu::TexturePointer map;
 
-        const glm::mat4& getView() const;
-        const glm::mat4& getProjection() const;
+            const std::shared_ptr<ViewFrustum>& getFrustum() const { return _frustum; }
+
+            const glm::mat4& getView() const;
+            const glm::mat4& getProjection() const;
+
+            void setMinDistance(float value) { _minDistance = value; }
+            void setMaxDistance(float value) { _maxDistance = value; }
+            float getMinDistance() const { return _minDistance; }
+            float getMaxDistance() const { return _maxDistance; }
+
+        private:
+
+            std::shared_ptr<ViewFrustum> _frustum;
+            float _minDistance;
+            float _maxDistance;
+
+            float computeFarDistance(const ViewFrustum& viewFrustum, const Transform& shadowViewInverse,
+                                     float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
+        };
+
+        Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
+
+        void setKeylightFrustum(const ViewFrustum& viewFrustum,
+                                float nearDepth = 1.0f, float farDepth = 1000.0f);
+        void setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
+                                float nearDepth = 1.0f, float farDepth = 1000.0f, float fixedBias = 0.005f, float slopeBias = 0.005f);
+        void setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
 
-        // Shadow maps are shared among all lights for the moment as only one key light
-        // is used.
-        static gpu::FramebufferPointer framebuffer;
-        static gpu::TexturePointer map;
+        unsigned int getCascadeCount() const { return (unsigned int)_cascades.size(); }
+        const Cascade& getCascade(unsigned int index) const { return _cascades[index]; }
 
-        const model::LightPointer& getLight() const { return _light; }
+        float getMaxDistance() const { return _maxDistance; }
+        void setMaxDistance(float value);
+
+        const graphics::LightPointer& getLight() const { return _light; }
 
     protected:
 
-        model::LightPointer _light;
-        std::shared_ptr<ViewFrustum> _frustum;
+#include "Shadows_shared.slh"
 
-        class Schema {
+        using Cascades = std::vector<Cascade>;
+
+        static const glm::mat4 _biasMatrix;
+
+        graphics::LightPointer _light;
+        float _maxDistance;
+        Cascades _cascades;
+
+        class Schema : public ShadowParameters {
         public:
 
             Schema();
 
-            glm::mat4 projection;
-            glm::mat4 viewInverse;
-
-            glm::float32 bias;
-            glm::float32 scale;
         };
         UniformBufferView _schemaBuffer = nullptr;
-        
     };
 
     using ShadowPointer = std::shared_ptr<Shadow>;
     using Shadows = render::indexed_container::IndexedPointerVector<Shadow>;
 
     Index findLight(const LightPointer& light) const;
-    Index addLight(const LightPointer& light);
+    Index addLight(const LightPointer& light, const bool shouldSetAsDefault = false);
+    
+    Index getDefaultLight() { return _defaultLightId; }
 
-    Index addShadow(Index lightIndex);
+    Index addShadow(Index lightIndex, float maxDistance = 20.0f, unsigned int cascadeCount = 1U);
 
     LightPointer removeLight(Index index);
     
@@ -134,12 +165,12 @@ public:
         Frame() {}
         
         void clear() { _pointLights.clear(); _spotLights.clear(); _sunLights.clear(); _ambientLights.clear(); }
-        void pushLight(LightStage::Index index, model::Light::Type type) {
+        void pushLight(LightStage::Index index, graphics::Light::Type type) {
             switch (type) {
-                case model::Light::POINT: { pushPointLight(index); break; }
-                case model::Light::SPOT: { pushSpotLight(index); break; }
-                case model::Light::SUN: { pushSunLight(index); break; }
-                case model::Light::AMBIENT: { pushAmbientLight(index); break; }
+                case graphics::Light::POINT: { pushPointLight(index); break; }
+                case graphics::Light::SPOT: { pushSpotLight(index); break; }
+                case graphics::Light::SUN: { pushSunLight(index); break; }
+                case graphics::Light::AMBIENT: { pushAmbientLight(index); break; }
                 default: { break; }
             }
         }
@@ -156,6 +187,11 @@ public:
     
     Frame _currentFrame;
     
+    Index getAmbientOffLight() { return _ambientOffLightId; }
+    Index getPointOffLight() { return _pointOffLightId; }
+    Index getSpotOffLight() { return _spotOffLightId; }
+    Index getSunOffLight() { return _sunOffLightId; }
+
 protected:
 
     struct Desc {
@@ -169,6 +205,14 @@ protected:
     Shadows _shadows;
     Descs _descs;
     LightMap _lightMap;
+
+    // define off lights
+    Index _ambientOffLightId;
+    Index _pointOffLightId;
+    Index _spotOffLightId;
+    Index _sunOffLightId;
+
+    Index _defaultLightId;
 
 };
 using LightStagePointer = std::shared_ptr<LightStage>;

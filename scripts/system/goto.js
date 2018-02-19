@@ -41,8 +41,7 @@ if (Settings.getValue("HUDUIEnabled")) {
     button = tablet.addButton({
         icon: "icons/tablet-icons/goto-i.svg",
         activeIcon: "icons/tablet-icons/goto-a.svg",
-        text: buttonName,
-        sortOrder: 8
+        text: buttonName
     });
 }
 

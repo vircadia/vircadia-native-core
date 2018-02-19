@@ -275,17 +275,28 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             if (micStreamIt == _audioStreams.end()) {
                 // we don't have a mic stream yet, so add it
 
-                // read the channel flag to see if our stream is stereo or not
+                // hop past the sequence number that leads the packet
                 message.seek(sizeof(quint16));
 
-                quint8 channelFlag;
-                message.readPrimitive(&channelFlag);
+                // pull the codec string from the packet
+                auto codecString = message.readString();
 
-                bool isStereo = channelFlag == 1;
+                // determine if the stream is stereo or not
+                bool isStereo;
+                if (packetType == PacketType::SilentAudioFrame
+                    || packetType == PacketType::ReplicatedSilentAudioFrame) {
+                    quint16 numSilentSamples;
+                    message.readPrimitive(&numSilentSamples);
+                    isStereo = numSilentSamples == AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
+                } else {
+                    quint8 channelFlag;
+                    message.readPrimitive(&channelFlag);
+                    isStereo = channelFlag == 1;
+                }
 
                 auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
-                avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
-                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
+                avatarAudioStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
+                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
 
                 connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
                         this, &AudioMixerClientData::handleMismatchAudioFormat);
@@ -324,7 +335,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
 #if INJECTORS_SUPPORT_CODECS
                 injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
-                qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName;
+                qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
 #endif
 
                 auto emplaced = _audioStreams.emplace(
@@ -567,7 +578,8 @@ void AudioMixerClientData::setupCodec(CodecPluginPointer codec, const QString& c
 
     auto avatarAudioStream = getAvatarAudioStream();
     if (avatarAudioStream) {
-        avatarAudioStream->setupCodec(codec, codecName, AudioConstants::MONO);
+        avatarAudioStream->setupCodec(codec, codecName, avatarAudioStream->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
+        qCDebug(audio) << "setting AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << avatarAudioStream->isStereo();
     }
 
 #if INJECTORS_SUPPORT_CODECS

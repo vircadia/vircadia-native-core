@@ -24,7 +24,12 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
+#include <TBBHelpers.h>
+
 #include <model-networking/SimpleMeshProxy.h>
+#include <DualQuaternion.h>
+
+#include <glm/gtc/packing.hpp>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
@@ -41,7 +46,7 @@ float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
 const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<model::MaterialPointer> _collisionMaterials;
+std::vector<graphics::MaterialPointer> _collisionMaterials;
 
 void initCollisionMaterials() {
     // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
@@ -67,8 +72,8 @@ void initCollisionMaterials() {
     // so they don't tend to group together for large models
     for (int i = 0; i < sectionWidth; ++i) {
         for (int j = 0; j < numComponents; ++j) {
-            model::MaterialPointer material;
-            material = std::make_shared<model::Material>();
+            graphics::MaterialPointer material;
+            material = std::make_shared<graphics::Material>();
             int index = j * sectionWidth + i;
             float red = component[index];
             float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
@@ -140,7 +145,13 @@ void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
 }
 
 Transform Model::getTransform() const {
-    if (_spatiallyNestableOverride) {
+    if (_overrideModelTransform) {
+        Transform transform;
+        transform.setTranslation(getOverrideTranslation());
+        transform.setRotation(getOverrideRotation());
+        transform.setScale(getScale());
+        return transform;
+    } else if (_spatiallyNestableOverride) {
         bool success;
         Transform transform = _spatiallyNestableOverride->getTransform(success);
         if (success) {
@@ -163,7 +174,7 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float SCALE_CHANGE_EPSILON = 0.01f;
+const float SCALE_CHANGE_EPSILON = 0.0000001f;
 
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
@@ -210,6 +221,24 @@ int Model::getRenderInfoTextureCount() {
     return _renderInfoTextureCount;
 }
 
+bool Model::shouldInvalidatePayloadShapeKey(int meshIndex) {
+    if (!getGeometry()) {
+        return true;
+    }
+
+    const FBXGeometry& geometry = getFBXGeometry();
+    const auto& networkMeshes = getGeometry()->getMeshes();
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    if (meshIndex < 0 || meshIndex >= (int)networkMeshes.size() || meshIndex >= (int)geometry.meshes.size() || meshIndex >= (int)_meshStates.size()) {
+        _needsFixupInScene = true;     // trigger remove/add cycle
+        invalidCalculatedMeshBoxes();  // if we have to reload, we need to assume our mesh boxes are all invalid
+        return true;
+    }
+
+    return false;
+}
+
 void Model::updateRenderItems() {
     if (!_addedToScene) {
         return;
@@ -237,20 +266,44 @@ void Model::updateRenderItems() {
         Transform modelTransform = self->getTransform();
         modelTransform.setScale(glm::vec3(1.0f));
 
+        bool isWireframe = self->isWireframe();
+        bool isVisible = self->isVisible();
+        uint8_t viewTagBits = self->getViewTagBits();
+        bool isLayeredInFront = self->isLayeredInFront();
+        bool isLayeredInHUD = self->isLayeredInHUD();
+        bool isGroupCulled = self->isGroupCulled();
+
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+            auto clusterTransforms(self->getMeshState(meshIndex).clusterTransforms);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
-                data.updateClusterBuffer(clusterMatrices);
+            bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
+
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms,
+                                                                  invalidatePayloadShapeKey, isWireframe, isVisible,
+                                                                  viewTagBits, isLayeredInFront,
+                                                                  isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateClusterBuffer(clusterTransforms);
+
                 Transform renderTransform = modelTransform;
-                if (clusterMatrices.size() == 1) {
-                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                if (clusterTransforms.size() == 1) {
+#if defined(SKIN_DQ)
+                    Transform transform(clusterTransforms[0].getRotation(),
+                                        clusterTransforms[0].getScale(),
+                                        clusterTransforms[0].getTranslation());
+                    renderTransform = modelTransform.worldTransform(Transform(transform));
+#else
+                    renderTransform = modelTransform.worldTransform(Transform(clusterTransforms[0]));
+#endif
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+                data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
         }
 
@@ -272,22 +325,41 @@ void Model::setRenderItemsNeedUpdate() {
     emit requestRenderUpdate();
 }
 
-void Model::initJointTransforms() {
-    if (isLoaded()) {
-        glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-        _rig.setModelOffset(modelOffset);
-    }
-}
-
-void Model::init() {
-}
-
 void Model::reset() {
     if (isLoaded()) {
         const FBXGeometry& geometry = getFBXGeometry();
         _rig.reset(geometry);
+        emit rigReset();
     }
 }
+
+#if FBX_PACK_NORMALS
+static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
+    auto absNormal = glm::abs(normal);
+    auto absTangent = glm::abs(tangent);
+    normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
+    tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
+    normal = glm::clamp(normal, -1.0f, 1.0f);
+    tangent = glm::clamp(tangent, -1.0f, 1.0f);
+    normal *= 511.0f;
+    tangent *= 511.0f;
+    normal = glm::round(normal);
+    tangent = glm::round(tangent);
+
+    glm::detail::i10i10i10i2 normalStruct;
+    glm::detail::i10i10i10i2 tangentStruct;
+    normalStruct.data.x = int(normal.x);
+    normalStruct.data.y = int(normal.y);
+    normalStruct.data.z = int(normal.z);
+    normalStruct.data.w = 0;
+    tangentStruct.data.x = int(tangent.x);
+    tangentStruct.data.y = int(tangent.y);
+    tangentStruct.data.z = int(tangent.z);
+    tangentStruct.data.w = 0;
+    packedNormal = normalStruct.pack;
+    packedTangent = tangentStruct.pack;
+}
+#endif
 
 bool Model::updateGeometry() {
     bool needFullUpdate = false;
@@ -306,7 +378,7 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            state.clusterMatrices.resize(mesh.clusters.size());
+            state.clusterTransforms.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -314,14 +386,33 @@ bool Model::updateGeometry() {
             // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
             auto buffer = std::make_shared<gpu::Buffer>();
             if (!mesh.blendshapes.isEmpty()) {
-                buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.vertices.constData());
+                std::vector<NormalType> normalsAndTangents;
+                normalsAndTangents.reserve(mesh.normals.size() + mesh.tangents.size());
+
+                for (auto normalIt = mesh.normals.begin(), tangentIt = mesh.tangents.begin();
+                     normalIt != mesh.normals.end();
+                     ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+                    glm::uint32 finalNormal;
+                    glm::uint32 finalTangent;
+                    packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+                    const auto finalNormal = *normalIt;
+                    const auto finalTangent = *tangentIt;
+#endif
+                    normalsAndTangents.push_back(finalNormal);
+                    normalsAndTangents.push_back(finalTangent);
+                }
+
+                buffer->resize(mesh.vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
+                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
                 buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                                   mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) mesh.normals.constData());
+                                   mesh.normals.size() * 2 * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
             }
             _blendedVertexBuffers.push_back(buffer);
         }
         needFullUpdate = true;
+        emit rigReady();
     }
     return needFullUpdate;
 }
@@ -335,8 +426,8 @@ void Model::initJointStates() {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, glm::vec3& surfaceNormal,
-                                                    QString& extraInfo, bool pickAgainstTriangles, bool allowBackface) {
+                                                BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                                bool pickAgainstTriangles, bool allowBackface) {
 
     bool intersectedSomething = false;
 
@@ -367,6 +458,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         QMutexLocker locker(&_mutex);
 
         float bestDistance = std::numeric_limits<float>::max();
+        Triangle bestModelTriangle;
+        Triangle bestWorldTriangle;
+        int bestSubMeshIndex = 0;
+
         int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
 
@@ -384,8 +479,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
-            glm::vec3 triangleSetNormal;
-            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetNormal, pickAgainstTriangles, allowBackface)) {
+            Triangle triangleSetTriangle;
+            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
 
                 glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
                 glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
@@ -395,8 +490,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     bestDistance = worldDistance;
                     intersectedSomething = true;
                     face = triangleSetFace;
-                    surfaceNormal = glm::vec3(meshToWorldMatrix * glm::vec4(triangleSetNormal, 0.0f));
-                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                    extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                    bestSubMeshIndex = subMeshIndex;
                 }
             }
             subMeshIndex++;
@@ -404,9 +502,24 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         if (intersectedSomething) {
             distance = bestDistance;
+            surfaceNormal = bestWorldTriangle.getNormal();
+            if (pickAgainstTriangles) {
+                extraInfo["subMeshIndex"] = bestSubMeshIndex;
+                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshTriangleWorld"] = QVariantMap{
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
+                };
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshTriangle"] = QVariantMap{
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
+                };
+            }
+            
         }
-
-        return intersectedSomething;
     }
 
     return intersectedSomething;
@@ -478,7 +591,7 @@ MeshProxyList Model::getMeshes() const {
     offset.postTranslate(_offset);
     glm::mat4 offsetMat = offset.getMatrix();
 
-    for (std::shared_ptr<const model::Mesh> mesh : meshes) {
+    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
         if (!mesh) {
             continue;
         }
@@ -572,47 +685,84 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) {
-    if (_isVisible != newValue) {
-        _isVisible = newValue;
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
+    if (_isVisible != isVisible || _viewTagBits != viewTagBits || _isGroupCulled != isGroupCulled) {
+        _isVisible = isVisible;
+        _viewTagBits = viewTagBits;
+        _isGroupCulled = isGroupCulled;
+
+        bool isLayeredInFront = _isLayeredInFront;
+        bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
 
-void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
-    if (_isLayeredInFront != layered) {
-        _isLayeredInFront = layered;
+void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene) {
+    if (_isLayeredInFront != isLayeredInFront) {
+        _isLayeredInFront = isLayeredInFront;
+
+        bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
+        bool isLayeredInHUD = _isLayeredInHUD;
+        bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
 }
 
-void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
-    if (_isLayeredInHUD != layered) {
-        _isLayeredInHUD = layered;
+void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != isLayeredInHUD) {
+        _isLayeredInHUD = isLayeredInHUD;
+
+        bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
+        bool isLayeredInFront = _isLayeredInFront;
+        bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
+                data.setLayer(isLayeredInFront, isLayeredInHUD);
+            });
         }
         scene->enqueueTransaction(transaction);
     }
@@ -959,7 +1109,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 
 void Blender::run() {
     DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
-    QVector<glm::vec3> vertices, normals;
+    QVector<glm::vec3> vertices, normals, tangents;
     if (_model) {
         int offset = 0;
         foreach (const FBXMesh& mesh, _meshes) {
@@ -968,8 +1118,10 @@ void Blender::run() {
             }
             vertices += mesh.vertices;
             normals += mesh.normals;
+            tangents += mesh.tangents;
             glm::vec3* meshVertices = vertices.data() + offset;
             glm::vec3* meshNormals = normals.data() + offset;
+            glm::vec3* meshTangents = tangents.data() + offset;
             offset += mesh.vertices.size();
             const float NORMAL_COEFFICIENT_SCALE = 0.01f;
             for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
@@ -984,6 +1136,9 @@ void Blender::run() {
                     int index = blendshape.indices.at(j);
                     meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
                     meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+                    if (blendshape.tangents.size() > j) {
+                        meshTangents[index] += blendshape.tangents.at(j) * normalCoefficient;
+                    }
                 }
             }
         }
@@ -992,7 +1147,7 @@ void Blender::run() {
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
         Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
         Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
-        Q_ARG(const QVector<glm::vec3>&, normals));
+        Q_ARG(const QVector<glm::vec3>&, normals), Q_ARG(const QVector<glm::vec3>&, tangents));
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1111,7 +1266,7 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 void Model::computeMeshPartLocalBounds() {
     for (auto& part : _modelMeshRenderItems) {
         const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        part->computeAdjustedLocalBound(state.clusterMatrices);
+        part->computeAdjustedLocalBound(state.clusterTransforms);
     }
 }
 
@@ -1122,6 +1277,7 @@ void Model::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
+
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
     for (int i = 0; i < (int) _meshStates.size(); i++) {
@@ -1129,8 +1285,16 @@ void Model::updateClusterMatrices() {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
+#if defined(SKIN_DQ)
+            auto jointPose = _rig.getJointPose(cluster.jointIndex);
+            Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+            Transform clusterTransform;
+            Transform::mult(clusterTransform, jointTransform, cluster.inverseBindTransform);
+            state.clusterTransforms[j] = Model::TransformDualQuaternion(clusterTransform);
+#else
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
-            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
+            glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterTransforms[j]);
+#endif
         }
     }
 
@@ -1139,25 +1303,6 @@ void Model::updateClusterMatrices() {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
     }
-}
-
-void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(endIndex).freeLineage;
-    glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
-    _rig.inverseKinematics(endIndex, targetPosition, targetRotation, priority, freeLineage, parentTransform);
-}
-
-bool Model::restoreJointPosition(int jointIndex, float fraction, float priority) {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.restoreJointPosition(jointIndex, fraction, priority, freeLineage);
-}
-
-float Model::getLimbLength(int jointIndex) const {
-    const FBXGeometry& geometry = getFBXGeometry();
-    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    return _rig.getLimbLength(jointIndex, freeLineage, _scale, geometry.joints);
 }
 
 bool Model::maybeStartBlender() {
@@ -1173,7 +1318,7 @@ bool Model::maybeStartBlender() {
 }
 
 void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents) {
     auto geometryRef = geometry.lock();
     if (!geometryRef || _renderGeometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
         return;
@@ -1181,6 +1326,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
     _appliedBlendNumber = blendNumber;
     const FBXGeometry& fbxGeometry = getFBXGeometry();
     int index = 0;
+    std::vector<NormalType> normalsAndTangents;
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
@@ -1188,11 +1334,67 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         }
 
         gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
-        buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Byte*) vertices.constData() + index*sizeof(glm::vec3));
-        buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-            mesh.normals.size() * sizeof(glm::vec3), (gpu::Byte*) normals.constData() + index*sizeof(glm::vec3));
+        const auto vertexCount = mesh.vertices.size();
+        const auto verticesSize = vertexCount * sizeof(glm::vec3);
+        const auto offset = index * sizeof(glm::vec3);
 
-        index += mesh.vertices.size();
+        normalsAndTangents.clear();
+        normalsAndTangents.resize(normals.size()+tangents.size());
+//        assert(normalsAndTangents.size() == 2 * vertexCount);
+
+        // Interleave normals and tangents
+#if 0
+        // Sequential version for debugging
+        auto normalsRange = std::make_pair(normals.begin() + index, normals.begin() + index + vertexCount);
+        auto tangentsRange = std::make_pair(tangents.begin() + index, tangents.begin() + index + vertexCount);
+        auto normalsAndTangentsIt = normalsAndTangents.begin();
+
+        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+             normalIt != normalsRange.second;
+             ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+            glm::uint32 finalNormal;
+            glm::uint32 finalTangent;
+            packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+            const auto finalNormal = *normalIt;
+            const auto finalTangent = *tangentIt;
+#endif
+            *normalsAndTangentsIt = finalNormal;
+            ++normalsAndTangentsIt;
+            *normalsAndTangentsIt = finalTangent;
+            ++normalsAndTangentsIt;
+        }
+#else
+        // Parallel version for performance
+        tbb::parallel_for(tbb::blocked_range<size_t>(index, index+vertexCount), [&](const tbb::blocked_range<size_t>& range) {
+            auto normalsRange = std::make_pair(normals.begin() + range.begin(), normals.begin() + range.end());
+            auto tangentsRange = std::make_pair(tangents.begin() + range.begin(), tangents.begin() + range.end());
+            auto normalsAndTangentsIt = normalsAndTangents.begin() + (range.begin()-index)*2;
+
+            for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+                 normalIt != normalsRange.second;
+                 ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+                glm::uint32 finalNormal;
+                glm::uint32 finalTangent;
+                packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+                const auto finalNormal = *normalIt;
+                const auto finalTangent = *tangentIt;
+#endif
+                *normalsAndTangentsIt = finalNormal;
+                ++normalsAndTangentsIt;
+                *normalsAndTangentsIt = finalTangent;
+                ++normalsAndTangentsIt;
+            }
+        });
+#endif
+
+        buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + offset);
+        buffer->setSubData(verticesSize, 2 * vertexCount * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+
+        index += vertexCount;
     }
 }
 
@@ -1204,6 +1406,14 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
     _collisionGeometry.reset();
+}
+
+void Model::overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset) {
+    _overrideTranslation = transform.getTranslation();
+    _overrideRotation = transform.getRotation();
+    _overrideModelTransform = true;
+    setScale(transform.getScale());
+    setOffset(offset);
 }
 
 AABox Model::getRenderableMeshBound() const {
@@ -1306,7 +1516,7 @@ void Model::createCollisionRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            model::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
+            graphics::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
             auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
             payload->updateTransform(identity, offset);
             _collisionRenderItems << payload;
@@ -1320,7 +1530,7 @@ bool Model::isRenderable() const {
 
 class CollisionRenderGeometry : public Geometry {
 public:
-    CollisionRenderGeometry(model::MeshPointer mesh) {
+    CollisionRenderGeometry(graphics::MeshPointer mesh) {
         _fbxGeometry = std::make_shared<FBXGeometry>();
         std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
         meshes->push_back(mesh);
@@ -1329,7 +1539,7 @@ public:
     }
 };
 
-void Model::setCollisionMesh(model::MeshPointer mesh) {
+void Model::setCollisionMesh(graphics::MeshPointer mesh) {
     if (mesh) {
         _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
     } else {
@@ -1359,10 +1569,11 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
     }
 }
 
-void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber,
-        const Geometry::WeakPointer& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, 
+                                      const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, 
+                                      const QVector<glm::vec3>& tangents) {
     if (model) {
-        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
+        model->setBlendedVertices(blendNumber, geometry, vertices, normals, tangents);
     }
     _pendingBlenders--;
     {

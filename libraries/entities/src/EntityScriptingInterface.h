@@ -62,7 +62,7 @@ public:
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
-    EntityItemPointer entity;
+    QVariantMap extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
@@ -139,7 +139,7 @@ public slots:
     Q_INVOKABLE bool canRezTmpCertified();
 
     /**jsdoc
-    * @function Entities.canWriteAsseets
+    * @function Entities.canWriteAssets
     * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
     */
     Q_INVOKABLE bool canWriteAssets();
@@ -158,7 +158,7 @@ public slots:
 
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
-    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& shapeType, bool dynamic,
+    Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
@@ -423,6 +423,12 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
+
+    /**jsdoc
+    * Return the Static Certificate JSON for the specified {EntityID}.
+    * @return {QByteArray} The Static Certificate JSON for the specified entity.
+    */
+    Q_INVOKABLE QString getStaticCertificateJSON(const QUuid& entityID);
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
 signals:

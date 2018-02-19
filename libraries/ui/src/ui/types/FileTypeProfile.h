@@ -14,12 +14,15 @@
 #ifndef hifi_FileTypeProfile_h
 #define hifi_FileTypeProfile_h
 
+#include <QtCore/QtGlobal>
+
+#if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>
 
 class FileTypeProfile : public QQuickWebEngineProfile {
 public:
     FileTypeProfile(QObject* parent = Q_NULLPTR);
 };
-
+#endif
 
 #endif // hifi_FileTypeProfile_h

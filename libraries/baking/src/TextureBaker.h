@@ -31,8 +31,6 @@ public:
                  const QDir& outputDirectory, const QString& bakedFilename = QString(),
                  const QByteArray& textureContent = QByteArray());
 
-    static const QStringList getSupportedFormats();
-
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
     QUrl getTextureURL() const { return _textureURL; }

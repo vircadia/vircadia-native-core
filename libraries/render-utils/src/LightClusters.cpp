@@ -37,14 +37,13 @@ enum LightClusterGridShader_MapSlot {
 };
 
 enum LightClusterGridShader_BufferSlot {
-    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 0,
-    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT =1,
-    CAMERA_CORRECTION_BUFFER_SLOT = 2,
+    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
+    CAMERA_CORRECTION_BUFFER_SLOT = 1,
     LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
-    LIGHT_INDEX_GPU_SLOT = 5,
-
-    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT = 6,
-    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT = 7,
+    LIGHT_INDEX_GPU_SLOT = 7,
+    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 8,
+    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT = 9,
+    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT = 10,
 };
 
 FrustumGrid::FrustumGrid(const FrustumGrid& source) :
@@ -606,8 +605,8 @@ void DebugLightClusters::configure(const Config& config) {
 
 const gpu::PipelinePointer DebugLightClusters::getDrawClusterGridPipeline() {
     if (!_drawClusterGrid) {
-        auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawGrid_vert));
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawGrid_frag));
+        auto vs = lightClusters_drawGrid_vert::getShader();
+        auto ps = lightClusters_drawGrid_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -636,7 +635,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterFromDepthPipeline()
     if (!_drawClusterFromDepth) {
        // auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawGrid_vert));
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawClusterFromDepth_frag));
+        auto ps = lightClusters_drawClusterFromDepth_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
@@ -666,7 +665,7 @@ const gpu::PipelinePointer DebugLightClusters::getDrawClusterContentPipeline() {
     if (!_drawClusterContent) {
       //  auto vs = gpu::Shader::createVertex(std::string(lightClusters_drawClusterContent_vert));
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(lightClusters_drawClusterContent_frag));
+        auto ps = lightClusters_drawClusterContent_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;

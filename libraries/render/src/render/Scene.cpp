@@ -342,6 +342,13 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 
         // Access the true item
         auto& item = _items[updateID];
+
+        // If item doesn't exist it cannot be updated
+        if (!item.exist()) {
+            continue;
+        }
+
+        // Good to go, deal with the update
         auto oldCell = item.getCell();
         auto oldKey = item.getKey();
 
@@ -532,7 +539,7 @@ bool Scene::isSelectionEmpty(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
-        return false;
+        return true;
     } else {
         return (*found).second.isEmpty();
     }

@@ -18,7 +18,7 @@
     var buttonName = "Settings";
     var toolBar = null;
     var tablet = null;
-    var settings = "TabletGeneralPreferences.qml"
+    var settings = "hifi/tablet/TabletGeneralPreferences.qml"
     function onClicked(){
         if (tablet) {
             tablet.loadQMLSource(settings);
@@ -37,8 +37,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
             icon: "icons/tablet-icons/goto-i.svg",
-            text: buttonName,
-            sortOrder: 8
+            text: buttonName
         });
     }
 

@@ -89,17 +89,19 @@ void UserActivityLoggerScriptingInterface::doLogAction(QString action, QJsonObje
                               Q_ARG(QJsonObject, details));
 }
 
-void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, int cost, bool firstPurchaseOfThisItem) {
+void UserActivityLoggerScriptingInterface::commercePurchaseSuccess(QString marketplaceID, QString contentCreator, int cost, bool firstPurchaseOfThisItem) {
     QJsonObject payload;
     payload["marketplaceID"] = marketplaceID;
+    payload["contentCreator"] = contentCreator;
     payload["cost"] = cost;
     payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
     doLogAction("commercePurchaseSuccess", payload);
 }
 
-void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
+void UserActivityLoggerScriptingInterface::commercePurchaseFailure(QString marketplaceID, QString contentCreator, int cost, bool firstPurchaseOfThisItem, QString errorDetails) {
     QJsonObject payload;
     payload["marketplaceID"] = marketplaceID;
+    payload["contentCreator"] = contentCreator;
     payload["cost"] = cost;
     payload["firstPurchaseOfThisItem"] = firstPurchaseOfThisItem;
     payload["errorDetails"] = errorDetails;
@@ -140,4 +142,17 @@ void UserActivityLoggerScriptingInterface::commerceWalletSetupFinished(int times
     payload["setupAttemptID"] = setupAttemptID;
     payload["secondsToComplete"] = secondsToComplete;
     doLogAction("commerceWalletSetupFinished", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commercePassphraseEntry(QString source) {
+    QJsonObject payload;
+    payload["source"] = source;
+    doLogAction("commercePassphraseEntry", payload);
+}
+
+void UserActivityLoggerScriptingInterface::commercePassphraseAuthenticationStatus(QString status) {
+    QJsonObject payload;
+    payload["status"] = status;
+    doLogAction("commercePassphraseAuthenticationStatus", payload);
+
 }

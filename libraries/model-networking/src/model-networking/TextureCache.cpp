@@ -50,8 +50,10 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image, "trace.resource.parse.image")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_raw, "trace.resource.parse.image.raw")
 Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.ktx")
 
+#if !defined(DISABLE_KTX_CACHE)
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
+#endif
 
 static const QString RESOURCE_SCHEME = "resource";
 static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
@@ -61,7 +63,9 @@ static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads fir
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
 TextureCache::TextureCache() {
+#if !defined(DISABLE_KTX_CACHE)
     _ktxCache->initialize();
+#endif
     setUnusedResourceCacheSize(0);
     setObjectName("TextureCache");
 }
@@ -217,8 +221,6 @@ gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, co
         if (!result) {
             _texturesByHashes[hash] = texture;
             result = texture;
-        } else {
-            qCWarning(modelnetworking) << "QQQ Swapping out texture with previous live texture in hash " << hash.c_str();
         }
     }
     return result;
@@ -263,8 +265,12 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
+    if (image.isNull()) {
+        qCWarning(networking) << "Unable to load required resource texture" << path;
+        return nullptr;
+    }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString(), false));
+    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -744,16 +750,20 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
         gpu::TexturePointer texture = textureCache->getTextureByHash(hash);
 
+#if !defined(DISABLE_KTX_CACHE)
         if (!texture) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
                 texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
+                    if (texture->source().empty()) {
+                        texture->setSource(url.toString().toStdString());
+                    }
                 }
             }
         }
-
+#endif
         if (!texture) {
 
             auto memKtx = ktx::KTX::createBare(*header, keyValues);
@@ -768,6 +778,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
             // Move ktx to file
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
+#if !defined(DISABLE_KTX_CACHE)
             size_t length = memKtx->_storage->size();
             cache::FilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
@@ -779,11 +790,14 @@ void NetworkTexture::handleFinishedInitialLoad() {
                     Q_ARG(int, 0));
                 return;
             }
+#endif
 
             auto newKtxDescriptor = memKtx->toDescriptor();
 
             texture = gpu::Texture::build(newKtxDescriptor);
+#if !defined(DISABLE_KTX_CACHE)
             texture->setKtxBacking(file);
+#endif
             texture->setSource(filename);
 
             auto& images = originalKtxDescriptor->images;
@@ -926,11 +940,12 @@ void ImageReader::read() {
         // If we already have a live texture with the same hash, use it
         auto texture = textureCache->getTextureByHash(hash);
 
+#if !defined(DISABLE_KTX_CACHE)
         // If there is no live texture, check if there's an existing KTX file
         if (!texture) {
             auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile);
+                texture = gpu::Texture::unserialize(ktxFile, _url.toString().toStdString());
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 } else {
@@ -938,6 +953,7 @@ void ImageReader::read() {
                 }
             }
         }
+#endif
 
         // If we found the texture either because it's in use or via KTX deserialization,
         // set the image and return immediately.
@@ -954,7 +970,9 @@ void ImageReader::read() {
     gpu::TexturePointer texture;
     {
         PROFILE_RANGE_EX(resource_parse_image_raw, __FUNCTION__, 0xffff0000, 0);
-        texture = image::processImage(_content, _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
+
+        // IMPORTANT: _content is empty past this point
+        texture = image::processImage(std::move(_content), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
 
         if (!texture) {
             qCWarning(modelnetworking) << "Could not process:" << _url;
@@ -971,6 +989,7 @@ void ImageReader::read() {
 
     // Save the image into a KTXFile
     if (texture && textureCache) {
+#if !defined(DISABLE_KTX_CACHE)
         auto memKtx = gpu::Texture::serialize(*texture);
 
         // Move the texture into a memory mapped file
@@ -987,7 +1006,7 @@ void ImageReader::read() {
         } else {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
         }
-
+#endif
         // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
         // be the winner
@@ -1006,14 +1025,11 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
         if (!_spectatorCameraNetworkTexture) {
             _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
         }
-        if (_spectatorCameraFramebuffer) {
-            texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
-            if (texture) {
-                texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
-                _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
-                return _spectatorCameraNetworkTexture;
-            }
+        if (!_spectatorCameraFramebuffer) {
+            getSpectatorCameraFramebuffer(); // initialize frame buffer
         }
+        updateSpectatorCameraNetworkTexture();
+        return _spectatorCameraNetworkTexture;
     }
     // FIXME: Generalize this, DRY up this code
     if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
@@ -1052,7 +1068,18 @@ const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer(int w
     // If we aren't taking a screenshot, we might need to resize or create the camera buffer
     if (!_spectatorCameraFramebuffer || _spectatorCameraFramebuffer->getWidth() != width || _spectatorCameraFramebuffer->getHeight() != height) {
         _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
+        updateSpectatorCameraNetworkTexture();
         emit spectatorCameraFramebufferReset();
     }
     return _spectatorCameraFramebuffer;
+}
+
+void TextureCache::updateSpectatorCameraNetworkTexture() {
+    if (_spectatorCameraFramebuffer && _spectatorCameraNetworkTexture) {
+        gpu::TexturePointer texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
+        if (texture) {
+            texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
+            _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+        }
+    }
 }

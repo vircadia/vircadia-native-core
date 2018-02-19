@@ -30,11 +30,15 @@
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
+#include <DualQuaternion.h>
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
 
+// Use dual quaternion skinning!
+// Must match define in Skinning.slh
+#define SKIN_DQ
 
 class AbstractViewStateInterface;
 class QScriptEngine;
@@ -78,13 +82,13 @@ public:
 
     /// Sets the URL of the model to render.
     // Should only be called from the model's rendering thread to avoid access violations of changed geometry.
-    Q_INVOKABLE void setURL(const QUrl& url);
+    Q_INVOKABLE virtual void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
-    void setLayeredInFront(bool layered, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -100,9 +104,12 @@ public:
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
+    uint8_t getViewTagBits() const { return _viewTagBits; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
     bool isLayeredInHUD() const { return _isLayeredInHUD; }
+
+    bool isGroupCulled() const { return _isGroupCulled; }
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -114,7 +121,7 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -122,7 +129,6 @@ public:
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
 
-    void init();
     void reset();
 
     void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
@@ -137,7 +143,7 @@ public:
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
-    Q_INVOKABLE void setTextures(const QVariantMap& textures);
+    Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getGeometry() isn't chained everywhere
@@ -158,8 +164,8 @@ public:
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, glm::vec3& surfaceNormal, 
-                                             QString& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
@@ -196,20 +202,26 @@ public:
     /// Returns the index of the parent of the indexed joint, or -1 if not found.
     int getParentJointIndex(int jointIndex) const;
 
-    void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
-
     /// Returns the extents of the model in its bind pose.
     Extents getBindExtents() const;
 
     /// Returns the extents of the model's mesh
     Extents getMeshExtents() const;
 
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
+
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset);
+    bool isOverridingModelTransformAndOffset() { return _overrideModelTransform; };
+    void stopTransformAndOffsetOverride() { _overrideModelTransform = false; };
     void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
+    const glm::vec3& getOverrideTranslation() const { return _overrideTranslation; }
+    const glm::quat& getOverrideRotation() const { return _overrideRotation; }
 
     glm::vec3 getNaturalDimensions() const;
 
@@ -234,7 +246,7 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     virtual bool updateGeometry();
-    void setCollisionMesh(model::MeshPointer mesh);
+    void setCollisionMesh(graphics::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -244,9 +256,54 @@ public:
     int getRenderInfoDrawCalls() const { return _renderInfoDrawCalls; }
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
 
+
+#if defined(SKIN_DQ)
+    class TransformDualQuaternion {
+    public:
+        TransformDualQuaternion() {}
+        TransformDualQuaternion(const glm::mat4& m) {
+            AnimPose p(m);
+            _scale.x = p.scale().x;
+            _scale.y = p.scale().y;
+            _scale.z = p.scale().z;
+            _scale.w = 0.0f;
+            _dq = DualQuaternion(p.rot(), p.trans());
+        }
+        TransformDualQuaternion(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+            _scale.x = scale.x;
+            _scale.y = scale.y;
+            _scale.z = scale.z;
+            _scale.w = 0.0f;
+            _dq = DualQuaternion(rot, trans);
+        }
+        TransformDualQuaternion(const Transform& transform) {
+            _scale = glm::vec4(transform.getScale(), 0.0f);
+            _scale.w = 0.0f;
+            _dq = DualQuaternion(transform.getRotation(), transform.getTranslation());
+        }
+        glm::vec3 getScale() const { return glm::vec3(_scale); }
+        glm::quat getRotation() const { return _dq.getRotation(); }
+        glm::vec3 getTranslation() const { return _dq.getTranslation(); }
+        glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRotation(), getTranslation()); };
+
+        void setCauterizationParameters(float cauterizationAmount, const glm::vec3& cauterizedPosition) {
+            _scale.w = cauterizationAmount;
+            _cauterizedPosition = glm::vec4(cauterizedPosition, 1.0f);
+        }
+    protected:
+        glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
+        DualQuaternion _dq;
+        glm::vec4 _cauterizedPosition { 0.0f, 0.0f, 0.0f, 1.0f };
+    };
+#endif
+
     class MeshState {
     public:
-        std::vector<glm::mat4> clusterMatrices;
+#if defined(SKIN_DQ)
+        std::vector<TransformDualQuaternion> clusterTransforms;
+#else
+        std::vector<glm::mat4> clusterTransforms;
+#endif
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -270,14 +327,13 @@ signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
     void requestRenderUpdate();
+    void rigReady();
+    void rigReset();
 
 protected:
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
-
-    /// Returns the unscaled extents of the model's mesh
-    Extents getUnscaledMeshExtents() const;
 
     /// Clear the joint states
     void clearJointState(int index);
@@ -300,6 +356,9 @@ protected:
     glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
     glm::vec3 _scale;
+
+    glm::vec3 _overrideTranslation;
+    glm::quat _overrideRotation;
 
     // For entity models this is the translation for the minimum extent of the model (in original mesh coordinate space)
     // to the model's registration point. For avatar models this is the translation from the avatar's hips, as determined
@@ -326,16 +385,6 @@ protected:
     void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
-    /// Restores the indexed joint to its default position.
-    /// \param fraction the fraction of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
-    /// the original position
-    /// \return true if the joint was found
-    bool restoreJointPosition(int jointIndex, float fraction = 1.0f, float priority = 0.0f);
-
-    /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
-    /// first free ancestor.
-    float getLimbLength(int jointIndex) const;
-
     /// Allow sub classes to force invalidating the bboxes
     void invalidCalculatedMeshBoxes() {
         _triangleSetsValid = false;
@@ -344,16 +393,13 @@ protected:
     // hook for derived classes to be notified when setUrl invalidates the current model.
     virtual void onInvalidate() {};
 
-
-protected:
-
     virtual void deleteGeometry();
-    void initJointTransforms();
 
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
     bool _isVisible;
+    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
     gpu::Buffers _blendedVertexBuffers;
 
@@ -365,6 +411,7 @@ protected:
 
     QMutex _mutex;
 
+    bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets();
     QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
@@ -417,6 +464,10 @@ protected:
     bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
 
+    bool _isGroupCulled{ false };
+
+    bool shouldInvalidatePayloadShapeKey(int meshIndex);
+
 private:
     float _loadingPriority { 0.0f };
 
@@ -438,7 +489,7 @@ public:
 
 public slots:
     void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
 
 private:
     using Mutex = std::mutex;

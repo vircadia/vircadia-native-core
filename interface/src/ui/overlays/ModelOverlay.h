@@ -30,12 +30,18 @@ public:
 
     virtual void update(float deltatime) override;
     virtual void render(RenderArgs* args) override {};
+
+    virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override;
+
+    void clearSubRenderItemIDs();
+    void setSubRenderItemIDs(const render::ItemIDs& ids);
+
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) override;
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) override;
 
     virtual ModelOverlay* createClone() const override;
 
@@ -73,10 +79,13 @@ private:
 
     ModelPointer _model;
     QVariantMap _modelTextures;
+    bool _texturesLoaded { false };
+
+    render::ItemIDs _subRenderItemIDs;
 
     QUrl _url;
-    bool _updateModel = { false };
-    bool _scaleToFit = { false };
+    bool _updateModel { false };
+    bool _scaleToFit { false };
     float _loadPriority { 0.0f };
 
     AnimationPointer _animation;
@@ -87,7 +96,7 @@ private:
     bool _animationRunning { false };
     bool _animationLoop { false };
     float _animationFirstFrame { 0.0f };
-    float _animationLastFrame = { 0.0f };
+    float _animationLastFrame { 0.0f };
     bool _animationHold { false };
     bool _animationAllowTranslation { false };
     uint64_t _lastAnimated { 0 };
@@ -97,7 +106,7 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
 
-    bool _visibleDirty { false };
+    bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
 

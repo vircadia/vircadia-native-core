@@ -89,11 +89,6 @@ public:
 
     bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
-    static QHash<NodeType_t, QString>& getTypeNameHash() {
-        static QHash<NodeType_t, QString> TypeNameHash;
-        return TypeNameHash;
-    }
-
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);

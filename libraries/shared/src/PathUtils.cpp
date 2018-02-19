@@ -11,25 +11,122 @@
 
 #include "PathUtils.h"
 
-#include <QCoreApplication>
-#include <QString>
-#include <QVector>
-#include <QDateTime>
-#include <QFileInfo>
-#include <QDir>
-#include <QUrl>
-#include <QtCore/QStandardPaths>
 #include <mutex> // std::once
-#include "shared/GlobalAppProperties.h"
 
-const QString& PathUtils::resourcesPath() {
-#ifdef Q_OS_MAC
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
-#else
-    static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDateTime>
+#include <QtCore/QDir>
+#include <QtCore/QDirIterator>
+#include <QtCore/QFileInfo>
+#include <QtCore/QProcessEnvironment>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QString>
+#include <QtCore/QUrl>
+#include <QtCore/QVector>
+
+#if defined(Q_OS_OSX)
+#include <mach-o/dyld.h>
 #endif
 
+#include "shared/GlobalAppProperties.h"
+#include "SharedUtil.h"
+
+// Format: AppName-PID-Timestamp
+// Example: ...
+QString TEMP_DIR_FORMAT { "%1-%2-%3" };
+
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+static bool USE_SOURCE_TREE_RESOURCES() {
+#if defined(Q_OS_OSX)
+    return true;
+#else
+    static bool result = false;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
+        result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
+    });
+    return result;
+#endif
+}
+#endif
+
+#ifdef DEV_BUILD
+const QString& PathUtils::projectRootPath() {
+    static QString sourceFolder;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        QDir thisDir = QFileInfo(__FILE__).absoluteDir();
+        sourceFolder = QDir::cleanPath(thisDir.absoluteFilePath("../../../"));
+    });
+    return sourceFolder;
+}
+#endif
+
+const QString& PathUtils::resourcesPath() {
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        // FIXME fix the OSX installer to install the resources.rcc instead of the
+        // individual resource files
+        // FIXME the first call to fetch the resources location seems to return
+        // nothing for QCoreApplication::applicationDirPath()
+        char buffer[8192];
+        uint32_t bufferSize = sizeof(buffer);
+        _NSGetExecutablePath(buffer, &bufferSize);
+        staticResourcePath = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
+#else
+        staticResourcePath = ":/";
+#endif
+        
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES()) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = projectRootPath() + "/interface/resources/";
+        }
+#endif
+        qDebug() << "Resource path resolved to " << staticResourcePath;
+    });
+
     return staticResourcePath;
+}
+
+const QString& PathUtils::resourcesUrl() {
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        staticResourcePath = QUrl::fromLocalFile(resourcesPath()).toString();
+#else
+        staticResourcePath = "qrc:///";
+#endif
+
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES()) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/").toString();
+        }
+#endif
+        qDebug() << "Resource url resolved to " << staticResourcePath;
+    });
+    return staticResourcePath;
+}
+
+QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
+    return QUrl(resourcesUrl() + relativeUrl);
+}
+
+const QString& PathUtils::qmlBaseUrl() {
+    static const QString staticResourcePath = resourcesUrl() + "qml/";
+    return staticResourcePath;
+}
+
+QUrl PathUtils::qmlUrl(const QString& relativeUrl) {
+    return QUrl(qmlBaseUrl() + relativeUrl);
 }
 
 QString PathUtils::getAppDataPath() {
@@ -44,7 +141,11 @@ QString PathUtils::getAppLocalDataPath() {
     }
 
     // otherwise return standard path
+#ifdef Q_OS_ANDROID
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
+#endif
 }
 
 QString PathUtils::getAppDataFilePath(const QString& filename) {
@@ -60,12 +161,46 @@ QString PathUtils::generateTemporaryDir() {
     QString appName = qApp->applicationName();
     for (auto i = 0; i < 64; ++i) {
         auto now = std::chrono::system_clock::now().time_since_epoch().count();
-        QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
+        auto dirName = TEMP_DIR_FORMAT.arg(appName).arg(qApp->applicationPid()).arg(now);
+        QDir tempDir = rootTempDir.filePath(dirName);
         if (tempDir.mkpath(".")) {
             return tempDir.absolutePath();
         }
     }
     return "";
+}
+
+// Delete all temporary directories for an application
+int PathUtils::removeTemporaryApplicationDirs(QString appName) {
+    if (appName.isNull()) {
+        appName = qApp->applicationName();
+    }
+
+    auto dirName = TEMP_DIR_FORMAT.arg(appName).arg("*").arg("*");
+
+    QDir rootTempDir = QDir::tempPath();
+    auto dirs = rootTempDir.entryInfoList({ dirName }, QDir::Dirs);
+    int removed = 0;
+    for (auto& dir : dirs) {
+        auto dirName = dir.fileName();
+        auto absoluteDirPath = QDir(dir.absoluteFilePath());
+        QRegularExpression re { "^" + QRegularExpression::escape(appName) + "\\-(?<pid>\\d+)\\-(?<timestamp>\\d+)$" };
+
+        auto match = re.match(dirName);
+        if (match.hasMatch()) {
+            auto pid = match.capturedRef("pid").toLongLong();
+            auto timestamp = match.capturedRef("timestamp");
+            if (!processIsRunning(pid)) {
+                qDebug() << "  Removing old temporary directory: " << dir.absoluteFilePath();
+                absoluteDirPath.removeRecursively();
+                removed++;
+            } else {
+                qDebug() << "  Not removing (process is running): " << dir.absoluteFilePath();
+            }
+        }
+    }
+
+    return removed;
 }
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {

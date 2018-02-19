@@ -31,6 +31,7 @@ const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
 const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
+const uint32_t PENDING_FLAG_RECOMPUTE_FLYING = 1U << 5;
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
 class btRigidBody;
@@ -54,6 +55,7 @@ public:
 
     void setGravity(float gravity);
     float getGravity();
+    void recomputeFlying();
 
     virtual void updateShapeIfNecessary() = 0;
 

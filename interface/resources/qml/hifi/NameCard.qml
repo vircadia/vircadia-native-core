@@ -50,7 +50,7 @@ Item {
         id: avatarImage
         visible: profileUrl !== "" && userName !== "";
         // Size
-        height: isMyCard ? 70 : 42;
+        height: isMyCard ? 84 : 42;
         width: visible ? height : 0;
         anchors.top: parent.top;
         anchors.topMargin: isMyCard ? 0 : 8;
@@ -520,7 +520,7 @@ Item {
     Slider {
         id: gainSlider
         // Size
-        width: thisNameCard.width;
+        width: isMyCard ? thisNameCard.width - 20 : thisNameCard.width;
         height: 14
         // Anchors
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
@@ -597,18 +597,11 @@ Item {
     // Function body by Howard Stearns 2017-01-08
     function goToUserInDomain(avatarUuid) {
         var avatar = AvatarList.getAvatar(avatarUuid);
-        if (!avatar) {
+        if (!avatar || !avatar.position || !avatar.orientation) {
             console.log("This avatar is no longer present. goToUserInDomain() failed.");
             return;
         }
-        // FIXME: We would like the avatar to recompute the avatar's "maybe fly" test at the new position, so that if high enough up,
-        // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
-        // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
-        // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
-        // Position avatar 2 metres from the target in the direction that target avatar was facing.
-        MyAvatar.position = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.orientation, {x: 0, y: 0, z: -2}));
-        
-        // Rotate avatar on Y axis to face target avatar and cancel out any inherited roll and pitch.
-        MyAvatar.orientation = Quat.cancelOutRollAndPitch(Quat.multiply(avatar.orientation, {y: 1}));
+        // This is the last step of what AddressManager.goToUser does, but we don't need to resolve the username.
+        MyAvatar.goToLocation(avatar.position, true, Quat.cancelOutRollAndPitch(avatar.orientation), true);
     }
 }

@@ -145,21 +145,30 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             return deltaTime;
         };
 
-        this.setIgnoreTablet = function() {
+        this.setIgnorePointerItems = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
-                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat([HMD.tabletID]));
-                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
+                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
             }
         };
 
         this.update = function () {
+            try {
+                _this.updateInternal();
+            }  catch (e) {
+                print(e);
+            }
+            Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
+        };
+
+        this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
             }
             var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             var deltaTime = _this.updateTimings();
-            _this.setIgnoreTablet();
+            _this.setIgnorePointerItems();
 
             if (controllerDispatcherPluginsNeedSort) {
                 _this.orderedPluginNames = [];
@@ -172,16 +181,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     return controllerDispatcherPlugins[a].parameters.priority -
                         controllerDispatcherPlugins[b].parameters.priority;
                 });
-
-                var output = "controllerDispatcher -- new plugin order: ";
-                for (var k = 0; k < _this.orderedPluginNames.length; k++) {
-                    var dbgPluginName = _this.orderedPluginNames[k];
-                    var priority = controllerDispatcherPlugins[dbgPluginName].parameters.priority;
-                    output += dbgPluginName + ":" + priority;
-                    if (k + 1 < _this.orderedPluginNames.length) {
-                        output += ", ";
-                    }
-                }
 
                 controllerDispatcherPluginsNeedSort = false;
             }
@@ -379,8 +378,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat(HMD.tabletID));
-            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat(HMD.tabletID));
+            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist);
+            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist);
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
@@ -403,6 +402,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -412,6 +412,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
@@ -422,6 +423,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
@@ -432,6 +434,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             hover: true,
+            scaleWithAvatar: true,
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
@@ -470,7 +473,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.cleanup = function () {
-            Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPick);
@@ -501,5 +503,5 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
-    Script.update.connect(controllerDispatcher.update);
+    Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());

@@ -27,6 +27,8 @@ class SentPacketHistory {
 public:
     SentPacketHistory(int size = MAX_REASONABLE_SEQUENCE_GAP);
 
+    void untrackedPacketSent(uint16_t sequenceNumber);
+
     void packetSent(uint16_t sequenceNumber, const NLPacket& packet);
     const NLPacket* getPacket(uint16_t sequenceNumber) const;
 

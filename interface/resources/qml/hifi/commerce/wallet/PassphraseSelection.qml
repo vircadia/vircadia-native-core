@@ -34,10 +34,11 @@ Item {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
         onSecurityImageResult: {
             passphrasePageSecurityImage.source = "";
             passphrasePageSecurityImage.source = "image://security/securityImage";
@@ -54,6 +55,9 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
+            passphraseField.error = false;
+            passphraseFieldAgain.error = false;
+            currentPassphraseField.error = false;
             if (root.shouldImmediatelyFocus) {
                 focusFirstTextField();
             }
@@ -160,7 +164,7 @@ Item {
             source: "image://security/securityImage";
             cache: false;
             onVisibleChanged: {
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             }
         }
         Item {
@@ -283,7 +287,7 @@ Item {
             passphraseFieldAgain.error = false;
             currentPassphraseField.error = false;
             setErrorText("");
-            commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
+            Commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
             return true;
         }
     }

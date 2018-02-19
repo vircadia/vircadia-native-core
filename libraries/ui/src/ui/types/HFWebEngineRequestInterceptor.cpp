@@ -16,6 +16,10 @@
 #include "AccountManager.h"
 #include "RequestFilters.h"
 
+#if !defined(Q_OS_ANDROID)
+
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
     RequestFilters::interceptHFWebEngineRequest(info);
 }
+
+#endif

@@ -30,8 +30,6 @@
 #ifndef hifi_PanelAttachable_h
 #define hifi_PanelAttachable_h
 
-#define OVERLAY_PANELS 0
-
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -44,18 +42,12 @@ class OverlayPanel;
 class PanelAttachable {
 public:
     // getters
-#if OVERLAY_PANELS
-    std::shared_ptr<OverlayPanel> getParentPanel() const { return _parentPanel; }
-#endif
     glm::vec3 getOffsetPosition() const { return _offset.getTranslation(); }
     glm::quat getOffsetRotation() const { return _offset.getRotation(); }
     glm::vec3 getOffsetScale() const { return _offset.getScale(); }
     bool getParentVisible() const;
 
     // setters
-#if OVERLAY_PANELS
-    void setParentPanel(std::shared_ptr<OverlayPanel> panel) { _parentPanel = panel; }
-#endif
     void setOffsetPosition(const glm::vec3& position) { _offset.setTranslation(position); }
     void setOffsetRotation(const glm::quat& rotation) { _offset.setRotation(rotation); }
     void setOffsetScale(float scale) { _offset.setScale(scale); }
@@ -71,9 +63,6 @@ protected:
     quint64 _transformExpiry = 0;
 
 private:
-#if OVERLAY_PANELS
-    std::shared_ptr<OverlayPanel> _parentPanel = nullptr;
-#endif
     Transform _offset;
 };
 

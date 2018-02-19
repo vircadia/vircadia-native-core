@@ -30,6 +30,8 @@ Item {
     property alias min: sliderControl.minimumValue
     property alias max: sliderControl.maximumValue
 
+    signal valueChanged(real value)
+
     Component.onCompleted: {
         // Binding favors qml value, so set it first
         sliderControl.value = root.config[root.property];
@@ -69,5 +71,7 @@ Item {
         anchors.rightMargin: 0
         anchors.top: root.top
         anchors.topMargin: 0
+
+        onValueChanged: { root.valueChanged(value) }
     }
 }

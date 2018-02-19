@@ -10,7 +10,7 @@
 //
 <@include zone_draw.slh@>
 
-<@include model/Light.slh@>
+<@include graphics/Light.slh@>
 
 <@include LightingModel.slh@>
 <$declareLightAmbientBuffer()$>

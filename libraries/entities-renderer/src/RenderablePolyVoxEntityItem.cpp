@@ -27,6 +27,7 @@
 #include <StencilMaskPass.h>
 
 #include "EntityTreeRenderer.h"
+
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
 #include "polyvox_fade_vert.h"
@@ -65,11 +66,12 @@
 #pragma warning(pop)
 #endif
 
-#include "model/Geometry.h"
+#include "graphics/Geometry.h"
 
 #include "StencilMaskPass.h"
 
 #include "EntityTreeRenderer.h"
+
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
 #include "polyvox_fade_vert.h"
@@ -99,7 +101,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
   decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
-  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  polyVox surface extractor to create _mesh (as well as set Simulation _flags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
 
@@ -213,7 +215,7 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
     withReadLock([&] {
-        glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
         if (isEdged(_voxelSurfaceStyle)) {
             result = scale / -2.0f;
         }
@@ -228,7 +230,7 @@ glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
         voxelVolumeSize = _voxelVolumeSize;
     });
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
@@ -393,7 +395,7 @@ bool RenderablePolyVoxEntityItem::setSphere(const vec3& centerWorldCoords, float
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
@@ -454,7 +456,7 @@ bool RenderablePolyVoxEntityItem::setCapsule(const vec3& startWorldCoords, const
     glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
@@ -565,7 +567,7 @@ public:
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                               bool& keepSearching, OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                              void** intersectedObject, bool precisionPicking) const
+                                                              QVariantMap& extraInfo, bool precisionPicking) const
 {
     // TODO -- correctly pick against marching-cube generated meshes
     if (!precisionPicking) {
@@ -580,7 +582,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     // the PolyVox ray intersection code requires a near and far point.
     // set ray cast length to long enough to cover all of the voxel space
     float distanceToEntity = glm::distance(origin, getWorldPosition());
-    glm::vec3 dimensions = getDimensions();
+    glm::vec3 dimensions = getScaledDimensions();
     float largestDimension = glm::compMax(dimensions) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);
 
@@ -668,7 +670,7 @@ bool RenderablePolyVoxEntityItem::isReadyToComputeShape() const {
 void RenderablePolyVoxEntityItem::computeShapeInfo(ShapeInfo& info) {
     ShapeType shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_NONE) {
-        info.setParams(getShapeType(), 0.5f * getDimensions());
+        info.setParams(getShapeType(), 0.5f * getScaledDimensions());
         return;
     }
 
@@ -1060,7 +1062,7 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
     auto entity = std::static_pointer_cast<RenderablePolyVoxEntityItem>(getThisPointer());
 
     QtConcurrent::run([entity, voxelSurfaceStyle] {
-        model::MeshPointer mesh(new model::Mesh());
+        graphics::MeshPointer mesh(new graphics::Mesh());
 
         // A mesh object to hold the result of surface extraction
         PolyVox::SurfaceMesh<PolyVox::PositionMaterialNormal> polyVoxMesh;
@@ -1122,23 +1124,23 @@ void RenderablePolyVoxEntityItem::recomputeMesh() {
                                            sizeof(PolyVox::PositionMaterialNormal),
                                            gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ)));
 
-        std::vector<model::Mesh::Part> parts;
-        parts.emplace_back(model::Mesh::Part((model::Index)0, // startIndex
-                                             (model::Index)vecIndices.size(), // numIndices
-                                             (model::Index)0, // baseVertex
-                                             model::Mesh::TRIANGLES)); // topology
-        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part),
+        std::vector<graphics::Mesh::Part> parts;
+        parts.emplace_back(graphics::Mesh::Part((graphics::Index)0, // startIndex
+                                             (graphics::Index)vecIndices.size(), // numIndices
+                                             (graphics::Index)0, // baseVertex
+                                             graphics::Mesh::TRIANGLES)); // topology
+        mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part),
                                                             (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
         entity->setMesh(mesh);
     });
 }
 
-void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
+void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     // this catches the payload from recomputeMesh
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         if (!_collisionless) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
         _mesh = mesh;
         _meshDirty = true;
@@ -1164,7 +1166,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     PolyVoxSurfaceStyle voxelSurfaceStyle;
     glm::vec3 voxelVolumeSize;
-    model::MeshPointer mesh;
+    graphics::MeshPointer mesh;
 
     withReadLock([&] {
         voxelSurfaceStyle = _voxelSurfaceStyle;
@@ -1422,27 +1424,29 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     }
 
     bool success = false;
-    MeshProxy* meshProxy = nullptr;
-    glm::mat4 transform = voxelToLocalMatrix();
-    withReadLock([&] {
-        gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
-        if (!_meshReady) {
-            // we aren't ready to return a mesh.  the caller will have to try again later.
-            success = false;
-        } else if (numVertices == 0) {
-            // we are ready, but there are no triangles in the mesh.
-            success = true;
-        } else {
-            success = true;
-            // the mesh will be in voxel-space.  transform it into object-space
-            meshProxy = new SimpleMeshProxy(
-                _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
-                           [=](glm::vec3 color){ return color; },
-                           [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
-                           [&](uint32_t index){ return index; }));
-            result << meshProxy;
-        }
-    });
+    if (_mesh) {
+        MeshProxy* meshProxy = nullptr;
+        glm::mat4 transform = voxelToLocalMatrix();
+        withReadLock([&] {
+            gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+            if (!_meshReady) {
+                // we aren't ready to return a mesh.  the caller will have to try again later.
+                success = false;
+            } else if (numVertices == 0) {
+                // we are ready, but there are no triangles in the mesh.
+                success = true;
+            } else {
+                success = true;
+                // the mesh will be in voxel-space.  transform it into object-space
+                meshProxy = new SimpleMeshProxy(
+                    _mesh->map([=](glm::vec3 position) { return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                    [=](glm::vec3 color) { return color; },
+                    [=](glm::vec3 normal) { return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                    [&](uint32_t index) { return index; }));
+                result << meshProxy;
+            }
+        });
+    }
     return success;
 }
 
@@ -1455,10 +1459,10 @@ static gpu::PipelinePointer _pipelines[2];
 static gpu::PipelinePointer _wireframePipelines[2];
 static gpu::Stream::FormatPointer _vertexFormat;
 
-ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
+ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
-        gpu::ShaderPointer vertexShaders[2] = { gpu::Shader::createVertex(std::string(polyvox_vert)), gpu::Shader::createVertex(std::string(polyvox_fade_vert)) };
-        gpu::ShaderPointer pixelShaders[2] = { gpu::Shader::createPixel(std::string(polyvox_frag)), gpu::Shader::createPixel(std::string(polyvox_fade_frag)) };
+        gpu::ShaderPointer vertexShaders[2] = { polyvox_vert::getShader(), polyvox_fade_vert::getShader() };
+        gpu::ShaderPointer pixelShaders[2] = { polyvox_frag::getShader(), polyvox_fade_frag::getShader() };
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -1483,7 +1487,10 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
-            gpu::Shader::makeProgram(*program, slotBindings);
+         
+            batch.runLambda([program, slotBindings] {
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
 
             _pipelines[i] = gpu::Pipeline::create(program, state);
             _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
@@ -1580,7 +1587,7 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
-    model::MeshPointer newMesh;
+    graphics::MeshPointer newMesh;
     entity->withReadLock([&] {
         newMesh = entity->_mesh;
     });

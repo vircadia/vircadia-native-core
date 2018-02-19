@@ -49,8 +49,6 @@ public:
     bool walletIsAuthenticatedWithPassphrase();
     bool changePassphrase(const QString& newPassphrase);
 
-    void reset();
-
     void getWalletStatus();
     enum WalletStatus {
         WALLET_STATUS_NOT_LOGGED_IN = 0,

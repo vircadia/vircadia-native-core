@@ -52,7 +52,7 @@ function CustomSettingsApp(options) {
 
     this.extraParams = Object.assign(options.extraParams || {}, {
         customSettingsVersion: CustomSettingsApp.version+'',
-        protocolVersion: location.protocolVersion && location.protocolVersion()
+        protocolVersion: Window.protocolSignature && Window.protocolSignature()
     });
 
     var params = {

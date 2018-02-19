@@ -72,7 +72,7 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
-// TODO: Move to model::Mesh when Sam's ready
+// TODO: Move to graphics::Mesh when Sam's ready
 bool FBXGeometry::convexHullContains(const glm::vec3& point) const {
     if (!getUnscaledMeshExtents().containsPoint(point)) {
         return false;
@@ -148,6 +148,59 @@ glm::vec3 parseVec3(const QString& string) {
     return value;
 }
 
+enum RotationOrder {
+    OrderXYZ = 0,
+    OrderXZY,
+    OrderYZX,
+    OrderYXZ,
+    OrderZXY,
+    OrderZYX,
+    OrderSphericXYZ
+};
+
+bool haveReportedUnhandledRotationOrder = false; // Report error only once per FBX file.
+
+glm::vec3 convertRotationToXYZ(int rotationOrder, const glm::vec3& rotation) {
+    // Convert rotation with given rotation order to have order XYZ.
+    if (rotationOrder == OrderXYZ) {
+        return rotation;
+    }
+
+    glm::quat xyzRotation;
+
+    switch (rotationOrder) {
+        case OrderXZY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))));
+            break;
+        case OrderYZX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderYXZ:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, 0, rotation.z)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))));
+            break;
+        case OrderZXY:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(0, rotation.y, 0)))
+                * (glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        case OrderZYX:
+            xyzRotation = glm::quat(glm::radians(glm::vec3(rotation.x, 0, 0)))
+                * (glm::quat(glm::radians(glm::vec3(0, rotation.y, 0))) * glm::quat(glm::radians(glm::vec3(0, 0, rotation.z))));
+            break;
+        default:
+            // FIXME: Handle OrderSphericXYZ.
+            if (!haveReportedUnhandledRotationOrder) {
+                qCDebug(modelformat) << "ERROR: Unhandled rotation order in FBX file:" << rotationOrder;
+                haveReportedUnhandledRotationOrder = true;
+            }
+            return rotation;
+    }
+
+    return glm::degrees(safeEulerAngles(xyzRotation));
+}
+
 QString processID(const QString& id) {
     // Blender (at least) prepends a type to the ID, so strip it out
     return id.mid(id.lastIndexOf(':') + 1);
@@ -219,6 +272,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
+        if (model.hasGeometricOffset) {
+            glm::mat4 geometricOffset = createMatFromScaleQuatAndPos(model.geometricScaling, model.geometricRotation, model.geometricTranslation);
+            globalTransform = globalTransform * geometricOffset;
+        }
+
         if (mixamoHack) {
             // there's something weird about the models from Mixamo Fuse; they don't skin right with the full transform
             return globalTransform;
@@ -270,12 +328,12 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
-        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs) {
+        QHash<QString, FBXModel>& models, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
-    int parentIndex = modelIDs.size() - 1;
+    int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
         if (remainingModels.contains(childID)) {
             FBXModel& model = models[childID];
@@ -303,17 +361,97 @@ FBXBlendshape extractBlendshape(const FBXNode& object) {
     return blendshape;
 }
 
+using IndexAccessor = std::function<glm::vec3*(const FBXMesh&, int, int, glm::vec3*, glm::vec3&)>;
 
-void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    const glm::vec3& normal = mesh.normals.at(firstIndex);
-    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
-    if (glm::length(bitangent) < EPSILON) {
-        return;
+static void setTangents(const FBXMesh& mesh, const IndexAccessor& vertexAccessor, int firstIndex, int secondIndex,
+                        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents) {
+    glm::vec3 vertex[2];
+    glm::vec3 normal;
+    glm::vec3* tangent = vertexAccessor(mesh, firstIndex, secondIndex, vertex, normal);
+    if (tangent) {
+        glm::vec3 bitangent = glm::cross(normal, vertex[1] - vertex[0]);
+        if (glm::length(bitangent) < EPSILON) {
+            return;
+        }
+        glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+        glm::vec3 normalizedNormal = glm::normalize(normal);
+        *tangent += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
+                                       glm::normalize(bitangent), normalizedNormal);
     }
-    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
-    glm::vec3 normalizedNormal = glm::normalize(normal);
-    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(-atan2f(-texCoordDelta.t, texCoordDelta.s), normalizedNormal) *
-        glm::normalize(bitangent), normalizedNormal);
+}
+
+static void createTangents(const FBXMesh& mesh, bool generateFromTexCoords,
+                           const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, QVector<glm::vec3>& tangents,
+                           IndexAccessor accessor) {
+    // if we have a normal map (and texture coordinates), we must compute tangents
+    if (generateFromTexCoords && !mesh.texCoords.isEmpty()) {
+        tangents.resize(vertices.size());
+
+        foreach(const FBXMeshPart& part, mesh.parts) {
+            for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                setTangents(mesh, accessor, part.quadIndices.at(i), part.quadIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.quadIndices.at(i + 3), part.quadIndices.at(i), vertices, normals, tangents);
+            }
+            // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
+            // This is most likely evidence of a further problem in extractMesh()
+            for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
+                setTangents(mesh, accessor, part.triangleIndices.at(i), part.triangleIndices.at(i + 1), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2), vertices, normals, tangents);
+                setTangents(mesh, accessor, part.triangleIndices.at(i + 2), part.triangleIndices.at(i), vertices, normals, tangents);
+            }
+            if ((part.triangleIndices.size() % 3) != 0) {
+                qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
+            }
+        }
+    }
+}
+
+static void createMeshTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+    // This is the only workaround I've found to trick the compiler into understanding that mesh.tangents isn't
+    // const in the lambda function.
+    auto& tangents = mesh.tangents;
+    createTangents(mesh, generateFromTexCoords, mesh.vertices, mesh.normals, mesh.tangents, 
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        outVertices[0] = mesh.vertices[firstIndex];
+        outVertices[1] = mesh.vertices[secondIndex];
+        outNormal = mesh.normals[firstIndex];
+        return &(tangents[firstIndex]);
+    });
+}
+
+static void createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape) {
+    // Create lookup to get index in blend shape from vertex index in mesh
+    std::vector<int> reverseIndices;
+    reverseIndices.resize(mesh.vertices.size());
+    std::iota(reverseIndices.begin(), reverseIndices.end(), 0);
+
+    for (int indexInBlendShape = 0; indexInBlendShape < blendShape.indices.size(); ++indexInBlendShape) {
+        auto indexInMesh = blendShape.indices[indexInBlendShape];
+        reverseIndices[indexInMesh] = indexInBlendShape;
+    }
+
+    createTangents(mesh, generateFromTexCoords, blendShape.vertices, blendShape.normals, blendShape.tangents,
+                   [&](const FBXMesh& mesh, int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec3& outNormal) {
+        const auto index1 = reverseIndices[firstIndex];
+        const auto index2 = reverseIndices[secondIndex];
+
+        if (index1 < blendShape.vertices.size()) {
+            outVertices[0] = blendShape.vertices[index1];
+            if (index2 < blendShape.vertices.size()) {
+                outVertices[1] = blendShape.vertices[index2];
+            } else {
+                // Index isn't in the blend shape so return vertex from mesh
+                outVertices[1] = mesh.vertices[secondIndex];
+            }
+            outNormal = blendShape.normals[index1];
+            return &blendShape.tangents[index1];
+        } else {
+            // Index isn't in blend shape so return nullptr
+            return (glm::vec3*)nullptr;
+        }
+    });
 }
 
 QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
@@ -550,6 +688,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
+    haveReportedUnhandledRotationOrder = false;
     foreach (const FBXNode& child, node.children) {
 
         if (child.name == "FBXHeaderExtension") {
@@ -651,6 +790,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     glm::vec3 translation;
                     // NOTE: the euler angles as supplied by the FBX file are in degrees
                     glm::vec3 rotationOffset;
+                    int rotationOrder = OrderXYZ;  // Default rotation order set in "Definitions" node is assumed to be XYZ.
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot, scaleOffset;
@@ -684,6 +824,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             index = 4;
                         }
                         if (properties) {
+                            static const QVariant ROTATION_ORDER = QByteArray("RotationOrder");
                             static const QVariant GEOMETRIC_TRANSLATION = QByteArray("GeometricTranslation");
                             static const QVariant GEOMETRIC_ROTATION = QByteArray("GeometricRotation");
                             static const QVariant GEOMETRIC_SCALING = QByteArray("GeometricScaling");
@@ -710,6 +851,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     if (childProperty == LCL_TRANSLATION) {
                                         translation = getVec3(property.properties, index);
 
+                                    } else if (childProperty == ROTATION_ORDER) {
+                                        rotationOrder = property.properties.at(index).toInt();
+
                                     } else if (childProperty == ROTATION_OFFSET) {
                                         rotationOffset = getVec3(property.properties, index);
 
@@ -717,13 +861,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                         rotationPivot = getVec3(property.properties, index);
 
                                     } else if (childProperty == PRE_ROTATION) {
-                                        preRotation = getVec3(property.properties, index);
+                                        preRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == LCL_ROTATION) {
-                                        rotation = getVec3(property.properties, index);
+                                        rotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == POST_ROTATION) {
-                                        postRotation = getVec3(property.properties, index);
+                                        postRotation = convertRotationToXYZ(rotationOrder, getVec3(property.properties, index));
 
                                     } else if (childProperty == SCALING_PIVOT) {
                                         scalePivot = getVec3(property.properties, index);
@@ -1311,18 +1455,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
     QSet<QString> remainingModels;
     for (QHash<QString, FBXModel>::const_iterator model = models.constBegin(); model != models.constEnd(); model++) {
         // models with clusters must be parented to the cluster top
-        foreach (const QString& deformerID, _connectionChildMap.values(model.key())) {
-            foreach (const QString& clusterID, _connectionChildMap.values(deformerID)) {
-                if (!clusters.contains(clusterID)) {
-                    continue;
+        // Unless the model is a root node.
+        bool isARootNode = !modelIDs.contains(_connectionParentMap.value(model.key()));
+        if (!isARootNode) {  
+            foreach(const QString& deformerID, _connectionChildMap.values(model.key())) {
+                foreach(const QString& clusterID, _connectionChildMap.values(deformerID)) {
+                    if (!clusters.contains(clusterID)) {
+                        continue;
+                    }
+                    QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
+                    _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
+                    _connectionParentMap.insert(model.key(), topID);
+                    goto outerBreak;
                 }
-                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
-                _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
-                _connectionParentMap.insert(model.key(), topID);
-                goto outerBreak;
             }
+            outerBreak: ;
         }
-        outerBreak:
 
         // make sure the parent is in the child map
         QString parent = _connectionParentMap.value(model.key());
@@ -1339,7 +1487,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
         QString topID = getTopModelID(_connectionParentMap, models, first, url);
-        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
+        appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs, true);
     }
 
     // figure the number of animation frames from the curves
@@ -1394,7 +1542,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             joint.transform = geometry.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
             joint.inverseDefaultRotation = glm::inverse(combinedRotation);
-           joint.distanceToParent = 0.0f;
+            joint.distanceToParent = 0.0f;
 
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
@@ -1570,27 +1718,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        // if we have a normal map (and texture coordinates), we must compute tangents
-        if (generateTangents && !extracted.mesh.texCoords.isEmpty()) {
-            extracted.mesh.tangents.resize(extracted.mesh.vertices.size());
-            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
-                for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    setTangents(extracted.mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
-                    setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
-                }
-                // <= size - 3 in order to prevent overflowing triangleIndices when (i % 3) != 0
-                // This is most likely evidence of a further problem in extractMesh()
-                for (int i = 0; i <= part.triangleIndices.size() - 3; i += 3) {
-                    setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
-                    setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
-                }
-                if ((part.triangleIndices.size() % 3) != 0){
-                    qCDebug(modelformat) << "Error in extractFBXGeometry part.triangleIndices.size() is not divisible by three ";
-                }
-            }
+        createMeshTangents(extracted.mesh, generateTangents);
+        for (auto& blendShape : extracted.mesh.blendshapes) {
+            createBlendShapeTangents(extracted.mesh, generateTangents, blendShape);
         }
 
         // find the clusters with which the mesh is associated
@@ -1612,7 +1742,18 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     qCDebug(modelformat) << "Joint not in model list: " << jointID;
                     fbxCluster.jointIndex = 0;
                 }
+
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
+
+                // slam bottom row to (0, 0, 0, 1), we KNOW this is not a perspective matrix and
+                // sometimes floating point fuzz can be introduced after the inverse.
+                fbxCluster.inverseBindMatrix[0][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[1][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[2][3] = 0.0f;
+                fbxCluster.inverseBindMatrix[3][3] = 1.0f;
+
+                fbxCluster.inverseBindTransform = Transform(fbxCluster.inverseBindMatrix);
+
                 extracted.mesh.clusters.append(fbxCluster);
 
                 // override the bind rotation with the transform link
@@ -1714,22 +1855,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
 
             // now that we've accumulated the most relevant weights for each vertex
-            // normalize and compress to 8-bits
+            // normalize and compress to 16-bits
             extracted.mesh.clusterWeights.fill(0, numClusterIndices);
             int numVertices = extracted.mesh.vertices.size();
             for (int i = 0; i < numVertices; ++i) {
                 int j = i * WEIGHTS_PER_VERTEX;
 
-                // normalize weights into uint8_t
+                // normalize weights into uint16_t
                 float totalWeight = weightAccumulators[j];
                 for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
                     totalWeight += weightAccumulators[k];
                 }
                 if (totalWeight > 0.0f) {
                     const float ALMOST_HALF = 0.499f;
-                    float weightScalingFactor = (float)(UINT8_MAX) / totalWeight;
+                    float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                     for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                        extracted.mesh.clusterWeights[k] = (uint8_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
+                        extracted.mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
                     }
                 }
             }
@@ -1759,6 +1900,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
+        if (extracted.mesh._mesh) {
+            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex);
+        }
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
@@ -1827,7 +1971,19 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-
+    {
+        int i = 0;
+        for (const auto& mesh : geometry.meshes) {
+            auto name = geometry.getModelNameOfMesh(i++);
+            if (!name.isEmpty()) {
+                if (mesh._mesh) {
+                    mesh._mesh->displayName += "#" + name;
+                } else {
+                    qDebug() << "modelName but no mesh._mesh" << name;
+                }
+            }
+        }
+    }
     return geometryPtr;
 }
 
@@ -1843,7 +1999,7 @@ FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
-    qDebug() << "Reading FBX: " << url;
+    qCDebug(modelformat) << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

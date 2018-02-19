@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MismatchWindow</class>
+ <widget class="QDialog" name="MismatchWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1782</width>
+    <height>942</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MismatchWindow</string>
+  </property>
+  <widget class="QLabel" name="expectedImage">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>25</y>
+     <width>800</width>
+     <height>450</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>expected image</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="resultImage">
+   <property name="geometry">
+    <rect>
+     <x>900</x>
+     <y>25</y>
+     <width>800</width>
+     <height>450</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>result image</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="diffImage">
+   <property name="geometry">
+    <rect>
+     <x>540</x>
+     <y>480</y>
+     <width>800</width>
+     <height>450</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>diff image</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="resultFilename">
+   <property name="geometry">
+    <rect>
+     <x>60</x>
+     <y>660</y>
+     <width>480</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>result image filename</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="expectedFilename">
+   <property name="geometry">
+    <rect>
+     <x>60</x>
+     <y>630</y>
+     <width>480</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>expected image filename</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="imagePath">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>600</y>
+     <width>1200</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>image path</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="passTestButton">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>790</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Pass</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="failTestButton">
+   <property name="geometry">
+    <rect>
+     <x>120</x>
+     <y>790</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Fail</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="abortTestsButton">
+   <property name="geometry">
+    <rect>
+     <x>210</x>
+     <y>790</y>
+     <width>121</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Abort current test</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="errorLabel">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>850</y>
+     <width>500</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>similarity</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>5</y>
+     <width>151</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Expected Image</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>930</x>
+     <y>5</y>
+     <width>151</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Actual Image</string>
+   </property>
+  </widget>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>

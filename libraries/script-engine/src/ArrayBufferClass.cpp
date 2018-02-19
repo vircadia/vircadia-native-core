@@ -18,14 +18,19 @@
 
 #include "ArrayBufferClass.h"
 
+
 static const QString CLASS_NAME = "ArrayBuffer";
 
+// FIXME: Q_DECLARE_METATYPE is global and really belongs in a shared header file, not per .cpp like this
+// (see DataViewClass.cpp, etc. which would also have to be updated to resolve)
+Q_DECLARE_METATYPE(QScriptClass*)
 Q_DECLARE_METATYPE(QByteArray*)
+int qScriptClassPointerMetaTypeId = qRegisterMetaType<QScriptClass*>();
+int qByteArrayPointerMetaTypeId = qRegisterMetaType<QByteArray*>();
 
 ArrayBufferClass::ArrayBufferClass(ScriptEngine* scriptEngine) :
 QObject(scriptEngine),
-QScriptClass(scriptEngine),
-_scriptEngine(scriptEngine) {
+QScriptClass(scriptEngine) {
     qScriptRegisterMetaType<QByteArray>(engine(), toScriptValue, fromScriptValue);
     QScriptValue global = engine()->globalObject();
     
@@ -144,12 +149,30 @@ QScriptValue ArrayBufferClass::toScriptValue(QScriptEngine* engine, const QByteA
     QScriptValue ctor = engine->globalObject().property(CLASS_NAME);
     ArrayBufferClass* cls = qscriptvalue_cast<ArrayBufferClass*>(ctor.data());
     if (!cls) {
-        return engine->newVariant(QVariant::fromValue(ba));
+        if (engine->currentContext()) {
+            engine->currentContext()->throwError("arrayBufferClass::toScriptValue -- could not get " + CLASS_NAME + " class constructor");
+        }
+        return QScriptValue::NullValue;
     }
     return cls->newInstance(ba);
 }
 
-void ArrayBufferClass::fromScriptValue(const QScriptValue& obj, QByteArray& ba) {
-    ba = qvariant_cast<QByteArray>(obj.data().toVariant());
+void ArrayBufferClass::fromScriptValue(const QScriptValue& object, QByteArray& byteArray) {
+    if (object.isString()) {
+        // UTF-8 encoded String
+        byteArray = object.toString().toUtf8();
+    } else if (object.isArray()) {
+        // Array of uint8s eg: [ 128, 3, 25, 234 ]
+        auto Uint8Array = object.engine()->globalObject().property("Uint8Array");
+        auto typedArray = Uint8Array.construct(QScriptValueList{object});
+        if (QByteArray* buffer = qscriptvalue_cast<QByteArray*>(typedArray.property("buffer"))) {
+            byteArray = *buffer;
+        }
+    } else if (object.isObject()) {
+        // ArrayBuffer instance (or any JS class that supports coercion into QByteArray*)
+        if (QByteArray* buffer = qscriptvalue_cast<QByteArray*>(object.data())) {
+            byteArray = *buffer;
+        }
+    }
 }
 

@@ -13,9 +13,12 @@
 #define hifi_LogDialog_h
 
 #include "BaseLogDialog.h"
+#include <SettingHandle.h>
 
 class QCheckBox;
 class QPushButton;
+class QComboBox;
+class QLabel;
 class QResizeEvent;
 class AbstractLoggerInterface;
 
@@ -25,19 +28,49 @@ class LogDialog : public BaseLogDialog {
 public:
     LogDialog(QWidget* parent, AbstractLoggerInterface* logger);
 
+public slots:
+    void appendLogLine(QString logLine) override;
+
 private slots:
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(int);
+    void handleDebugPrintBox(int);
+    void handleInfoPrintBox(int);
+    void handleCriticalPrintBox(int);
+    void handleWarningPrintBox(int);
+    void handleSuppressPrintBox(int);
+    void handleFatalPrintBox(int);
+    void handleUnknownPrintBox(int);
+    void handleFilterDropdownChanged(int);
+    void handleAllLogsButton();
+    void printLogFile();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+
     QString getCurrentLog() override;
+    void updateMessageCount();
     
+
 private:
     QCheckBox* _extraDebuggingBox;
     QPushButton* _revealLogButton;
-
+    QPushButton* _allLogsButton;
+    QCheckBox* _debugPrintBox;
+    QCheckBox* _infoPrintBox;
+    QCheckBox* _criticalPrintBox;
+    QCheckBox* _warningPrintBox;
+    QCheckBox* _suppressPrintBox;
+    QCheckBox* _fatalPrintBox;
+    QCheckBox* _unknownPrintBox;
+    QComboBox* _filterDropdown;
+    QLabel* _messageCount;
+    QString _filterSelection;
+    QString _countLabel;
     AbstractLoggerInterface* _logger;
+    Setting::Handle<QRect> _windowGeometry;
+    int _count = 0;
 };
 
 #endif // hifi_LogDialog_h

@@ -42,7 +42,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     setTransform(base3DOverlay->getTransform());
 }
 
-QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties) {
+QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& properties, bool scalesWithParent) {
     // the position and rotation in _transform are relative to the parent (aka local).  The versions coming from
     // scripts are in world-frame, unless localPosition or localRotation are used.  Patch up the properties
     // so that "position" and "rotation" are relative-to-parent values.
@@ -56,7 +56,7 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
         result["position"] = result["localPosition"];
     } else if (result["position"].isValid()) {
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(vec3FromVariant(result["position"]),
-                                                                  parentID, parentJointIndex, success);
+                                                                  parentID, parentJointIndex, scalesWithParent, success);
         if (success) {
             result["position"] = vec3toVariant(localPosition);
         }
@@ -66,7 +66,7 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
         result["orientation"] = result["localOrientation"];
     } else if (result["orientation"].isValid()) {
         glm::quat localOrientation = SpatiallyNestable::worldToLocal(quatFromVariant(result["orientation"]),
-                                                                     parentID, parentJointIndex, success);
+                                                                     parentID, parentJointIndex, scalesWithParent, success);
         if (success) {
             result["orientation"] = quatToVariant(localOrientation);
         }
@@ -118,7 +118,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         }
     }
 
-    properties = convertOverlayLocationFromScriptSemantics(properties);
+    properties = convertOverlayLocationFromScriptSemantics(properties, getScalesWithParent());
     Overlay::setProperties(properties);
 
     bool needRenderItemUpdate = false;
@@ -181,6 +181,8 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     if (properties["parentID"].isValid()) {
         setParentID(QUuid(properties["parentID"].toString()));
+        bool success;
+        getParentPointer(success); // call this to hook-up the parent's back-pointers to its child overlays
         needRenderItemUpdate = true;
     }
     if (properties["parentJointIndex"].isValid()) {
@@ -200,6 +202,29 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Base3DOverlay.
+/**jsdoc
+ * @property {string} name="" - A friendly name for the overlay.
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ *     <code>start</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
+ *     <code>dashed</code>.
+ * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
+ *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
+ *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ */
 QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
         return _name;
@@ -216,7 +241,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "localRotation" || property == "localOrientation") {
         return quatToVariant(getLocalOrientation());
     }
-    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filled" || property == "filed") {
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filled") {
         return _isSolid;
     }
     if (property == "isWire" || property == "wire") {

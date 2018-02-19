@@ -31,8 +31,7 @@ var activeButton = tablet.addButton({
     icon: whiteIcon,
     activeIcon: blackIcon,
     text: APP_NAME,
-    isActive: isActive,
-    sortOrder: 11
+    isActive: isActive
 });
 
 if (isActive) {

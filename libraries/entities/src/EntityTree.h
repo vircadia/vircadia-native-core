@@ -97,11 +97,11 @@ public:
     virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly, bool precisionPicking, 
         OctreeElementPointer& node, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject = NULL,
+        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }
@@ -132,9 +132,9 @@ public:
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
     EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
-    EntityItemPointer findEntityByID(const QUuid& id);
-    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
-    virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
+    EntityItemPointer findEntityByID(const QUuid& id) const;
+    EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
+    virtual SpatiallyNestablePointer findByID(const QUuid& id) const override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 

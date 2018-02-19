@@ -59,26 +59,25 @@ Windows.ScrollingWindow {
     }
 
     function loadSource(url) {
-        loader.source = "";  // make sure we load the qml fresh each time.
-        loader.source = url;
+        loader.load(url) 
     }
 
-    function loadWebBase() {
-        loader.source = "";
-        loader.source = "WindowWebView.qml";
+    function loadWebContent(source, url, injectJavaScriptUrl) {
+        loader.load(source, function() {
+            loader.item.scriptURL = injectJavaScriptUrl;
+            loader.item.url = url;
+            if (loader.item.hasOwnProperty("closeButtonVisible")) {
+                loader.item.closeButtonVisible = false;
+            }
+        });
     }
 
-    function loadTabletWebBase() {
-        loader.source = "";
-        loader.source = "./BlocksWebView.qml";
+    function loadWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/TabletWebView.qml", url, injectJavaScriptUrl);
     }
 
-    function loadWebUrl(url, injectedJavaScriptUrl) {
-        loader.item.url = url;
-        loader.item.scriptURL = injectedJavaScriptUrl;
-        if (loader.item.hasOwnProperty("closeButtonVisible")) {
-            loader.item.closeButtonVisible = false;
-        }
+    function loadTabletWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/BlocksWebView.qml", url, injectJavaScriptUrl);
     }
 
     // used to send a message from qml to interface script.
@@ -111,37 +110,67 @@ Windows.ScrollingWindow {
         username = newUsername;
     }
 
-    Loader {
+    // Hook up callback for clara.io download from the marketplace.
+    Connections {
+        id: eventBridgeConnection
+        target: eventBridge
+        onWebEventReceived: {
+            if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
+            }
+        }
+    }
+
+    Item {
         id: loader
-        objectName: "loader"
-        asynchronous: false
+        objectName: "loader";
+        property string source: "";
+        property var item: null;
 
         height: pane.scrollHeight
         width: pane.contentWidth
         anchors.left: parent.left
         anchors.top: parent.top
-
-        // Hook up callback for clara.io download from the marketplace.
-        Connections {
-            id: eventBridgeConnection
-            target: eventBridge
-            onWebEventReceived: {
-                if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                    ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
-                }
+        signal loaded;
+        
+        onWidthChanged: {
+            if (loader.item) {
+                loader.item.width = loader.width;
             }
         }
-
-        onLoaded: {
-            if (loader.item.hasOwnProperty("sendToScript")) {
-                loader.item.sendToScript.connect(tabletRoot.sendToScript);
+        
+        onHeightChanged: {
+            if (loader.item) {
+                loader.item.height = loader.height;
             }
-            if (loader.item.hasOwnProperty("setRootMenu")) {
-                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
+        }
+        
+        function load(newSource, callback) {
+            if (loader.item) {
+                loader.item.destroy();
+                loader.item = null;
             }
-            loader.item.forceActiveFocus();
+            
+            QmlSurface.load(newSource, loader, function(newItem) {
+                loader.item = newItem;
+                loader.item.width = loader.width;
+                loader.item.height = loader.height;
+                loader.loaded();
+                if (loader.item.hasOwnProperty("sendToScript")) {
+                    loader.item.sendToScript.connect(tabletRoot.sendToScript);
+                }
+                if (loader.item.hasOwnProperty("setRootMenu")) {
+                    loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
+                }
+                loader.item.forceActiveFocus();
+                
+                if (callback) {
+                    callback();
+                }
+            });
         }
     }
+
 
     implicitWidth: 480
     implicitHeight: 706

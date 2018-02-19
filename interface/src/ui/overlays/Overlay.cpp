@@ -15,8 +15,8 @@
 
 #include "Application.h"
 
-static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
-static const float DEFAULT_ALPHA = 0.7f;
+const xColor Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+const float Overlay::DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
@@ -31,8 +31,7 @@ Overlay::Overlay() :
     _alphaPulse(0.0f),
     _colorPulse(0.0f),
     _color(DEFAULT_OVERLAY_COLOR),
-    _visible(true),
-    _anchor(NO_ANCHOR)
+    _visible(true)
 {
 }
 
@@ -49,8 +48,7 @@ Overlay::Overlay(const Overlay* overlay) :
     _alphaPulse(overlay->_alphaPulse),
     _colorPulse(overlay->_colorPulse),
     _color(overlay->_color),
-    _visible(overlay->_visible),
-    _anchor(overlay->_anchor)
+    _visible(overlay->_visible)
 {
 }
 
@@ -92,15 +90,27 @@ void Overlay::setProperties(const QVariantMap& properties) {
         bool visible = properties["visible"].toBool();
         setVisible(visible);
     }
-
-    if (properties["anchor"].isValid()) {
-        QString property = properties["anchor"].toString();
-        if (property == "MyAvatar") {
-            setAnchor(MY_AVATAR);
-        }
-    }
 }
 
+// JSDoc for copying to @typedefs of overlay types that inherit Overlay.
+/**jsdoc
+  * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
+  * @property {Color} color=255,255,255 - The color of the overlay.
+  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from 
+  *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+  * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the 
+  *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0 
+  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+  *     used.)
+  * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the 
+  *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0 
+  *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+  *     used.)
+  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+  */
 QVariant Overlay::getProperty(const QString& property) {
     if (property == "type") {
         return QVariant(getType());
@@ -128,9 +138,6 @@ QVariant Overlay::getProperty(const QString& property) {
     }
     if (property == "visible") {
         return _visible;
-    }
-    if (property == "anchor") {
-        return _anchor == MY_AVATAR ? "MyAvatar" : "";
     }
 
     return QVariant();

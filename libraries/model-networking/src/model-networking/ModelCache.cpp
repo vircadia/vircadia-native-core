@@ -516,13 +516,13 @@ QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const FBXTexture& textu
     }
 }
 
-model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
+graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const FBXTexture& fbxTexture,
                                                           image::TextureUsage::Type type, MapChannel channel) {
     const auto url = getTextureUrl(baseUrl, fbxTexture);
     const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, fbxTexture.content, fbxTexture.maxNumPixels);
     _textures[channel] = Texture { fbxTexture.name, texture };
 
-    auto map = std::make_shared<model::TextureMap>();
+    auto map = std::make_shared<graphics::TextureMap>();
     if (texture) {
         map->setTextureSource(texture->_textureSource);
     }
@@ -531,18 +531,18 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, c
     return map;
 }
 
-model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
+graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
     const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type);
     _textures[channel].texture = texture;
 
-    auto map = std::make_shared<model::TextureMap>();
+    auto map = std::make_shared<graphics::TextureMap>();
     map->setTextureSource(texture->_textureSource);
 
     return map;
 }
 
 NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) :
-    model::Material(*material._material)
+    graphics::Material(*material._material)
 {
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {

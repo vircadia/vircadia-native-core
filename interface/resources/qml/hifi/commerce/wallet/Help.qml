@@ -25,10 +25,9 @@ Item {
 
     id: root;
     property string keyFilePath;
-    property bool showDebugButtons: true;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onKeyFilePathIfExistsResult: {
             root.keyFilePath = path;
@@ -37,7 +36,7 @@ Item {
 
     onVisibleChanged: {
         if (visible) {
-            commerce.getKeyFilePathIfExists();
+            Commerce.getKeyFilePathIfExists();
         }
     }
 

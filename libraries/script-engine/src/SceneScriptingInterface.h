@@ -15,7 +15,7 @@
 #include <qscriptengine.h> // QObject
 #include <DependencyManager.h> // Dependency
 
-#include "model/Stage.h"
+#include "graphics/Stage.h"
 
 // TODO: if QT moc ever supports nested classes, subclass these to the interface instead of namespacing
 namespace SceneScripting {
@@ -23,7 +23,7 @@ namespace SceneScripting {
         Q_OBJECT
 
     public:
-        Location(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+        Location(graphics::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
 
         Q_PROPERTY(float longitude READ getLongitude WRITE setLongitude)
         Q_PROPERTY(float latitude READ getLatitude WRITE setLatitude)
@@ -37,7 +37,7 @@ namespace SceneScripting {
         void setAltitude(float altitude);
 
     protected:
-        model::SunSkyStagePointer _skyStage;
+        graphics::SunSkyStagePointer _skyStage;
     };
     using LocationPointer = std::unique_ptr<Location>;
     
@@ -45,7 +45,7 @@ namespace SceneScripting {
         Q_OBJECT
 
     public:
-        Time(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+        Time(graphics::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
 
         Q_PROPERTY(float hour READ getHour WRITE setHour)
         Q_PROPERTY(int day READ getDay WRITE setDay)
@@ -56,7 +56,7 @@ namespace SceneScripting {
         void setDay(int day);
 
     protected:
-        model::SunSkyStagePointer _skyStage;
+        graphics::SunSkyStagePointer _skyStage;
     };
     using TimePointer = std::unique_ptr<Time>;
 
@@ -64,7 +64,7 @@ namespace SceneScripting {
         Q_OBJECT
 
     public:
-        KeyLight(model::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
+        KeyLight(graphics::SunSkyStagePointer skyStage) : _skyStage{ skyStage } {}
 
         Q_PROPERTY(glm::vec3 color READ getColor WRITE setColor)
         Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity)
@@ -87,7 +87,7 @@ namespace SceneScripting {
         void setAmbientMap(const gpu::TexturePointer& map);
 
     protected:
-        model::SunSkyStagePointer _skyStage;
+        graphics::SunSkyStagePointer _skyStage;
     };
     using KeyLightPointer = std::unique_ptr<KeyLight>;
     
@@ -95,7 +95,7 @@ namespace SceneScripting {
         Q_OBJECT
 
     public:
-        Stage(model::SunSkyStagePointer skyStage)
+        Stage(graphics::SunSkyStagePointer skyStage)
             : _skyStage{ skyStage },
             _location{ new Location{ skyStage } }, _time{ new Time{ skyStage } }, _keyLight{ new KeyLight{ skyStage } }{}
 
@@ -122,7 +122,7 @@ namespace SceneScripting {
         QString getBackgroundMode() const;
 
     protected:
-        model::SunSkyStagePointer _skyStage;
+        graphics::SunSkyStagePointer _skyStage;
         LocationPointer _location;
         TimePointer _time;
         KeyLightPointer _keyLight;
@@ -146,7 +146,7 @@ public:
     Q_PROPERTY(SceneScripting::Stage* stage READ getStage)
     SceneScripting::Stage* getStage() const { return _stage.get(); }
  
-    model::SunSkyStagePointer getSkyStage() const;
+    graphics::SunSkyStagePointer getSkyStage() const;
 
 signals:
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
@@ -156,7 +156,7 @@ protected:
     SceneScriptingInterface();
     ~SceneScriptingInterface() {};
 
-    model::SunSkyStagePointer _skyStage = std::make_shared<model::SunSkyStage>();
+    graphics::SunSkyStagePointer _skyStage = std::make_shared<graphics::SunSkyStage>();
     SceneScripting::StagePointer _stage;
 
     bool _shouldRenderAvatars = true;

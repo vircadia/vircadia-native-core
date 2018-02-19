@@ -9,8 +9,8 @@
 if (APPLE OR WIN32)
     
     set(TARGET_NAME hifiNeuron)
-    setup_hifi_plugin(Script Qml Widgets)
-    link_hifi_libraries(shared controllers ui plugins input-plugins)
+    setup_hifi_plugin(Qml)
+    link_hifi_libraries(shared controllers qml ui plugins input-plugins)
     target_neuron()
 
 endif()

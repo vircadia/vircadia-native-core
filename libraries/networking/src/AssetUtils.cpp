@@ -15,6 +15,7 @@
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
+#include <QtCore/QFileInfo> // for baseName
 #include <QtNetwork/QAbstractNetworkCache>
 
 #include "NetworkAccessManager.h"
@@ -22,8 +23,38 @@
 
 #include "ResourceManager.h"
 
-QUrl getATPUrl(const QString& hash) {
-    return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
+namespace AssetUtils {
+
+// Extract the valid AssetHash portion from atp: URLs like "[atp:]HASH[.fbx][?query]"
+// (or an invalid AssetHash if not found)
+AssetHash extractAssetHash(const QString& input) {
+    if (isValidHash(input)) {
+        return input;
+    }
+    QString path = getATPUrl(input).path();
+    QString baseName = QFileInfo(path).baseName();
+    if (isValidHash(baseName)) {
+        return baseName;
+    }
+    return AssetHash();
+}
+
+// Get the normalized ATP URL for a raw hash, /path or "atp:" input string.
+QUrl getATPUrl(const QString& input) {
+    QUrl url = input;
+    if (!url.scheme().isEmpty() && url.scheme() != URL_SCHEME_ATP) {
+        return QUrl();
+    }
+    // this strips extraneous info from the URL (while preserving fragment/querystring)
+    QString path = url.toEncoded(
+        QUrl::RemoveAuthority | QUrl::RemoveScheme |
+        QUrl::StripTrailingSlash | QUrl::NormalizePathSegments
+    );
+    QString baseName = QFileInfo(url.path()).baseName();
+    if (isValidPath(path) || isValidHash(baseName)) {
+        return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP).arg(path));
+    }
+    return QUrl();
 }
 
 QByteArray hashData(const QByteArray& data) {
@@ -102,3 +133,5 @@ QString bakingStatusToString(BakingStatus status) {
             return "--";
     }
 }
+
+} // namespace AssetUtils

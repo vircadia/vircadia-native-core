@@ -16,11 +16,10 @@
 #include <QPlainTextEdit>
 #include <QTextCursor>
 #include <QPushButton>
-#include <QSyntaxHighlighter>
 
 #include <PathUtils.h>
 
-const int TOP_BAR_HEIGHT = 46;
+const int TOP_BAR_HEIGHT = 124;
 const int INITIAL_WIDTH = 720;
 const int INITIAL_HEIGHT = 480;
 const int MINIMAL_WIDTH = 700;
@@ -30,24 +29,9 @@ const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;
 const int SEARCH_TEXT_WIDTH = 240;
 const int TIME_STAMP_LENGTH = 16;
 const int FONT_WEIGHT = 75;
-const QColor HIGHLIGHT_COLOR = QColor("#3366CC");
-const QColor BOLD_COLOR = QColor("#445c8c");
+const QColor HIGHLIGHT_COLOR = QColor("#00B4EF");
+const QColor BOLD_COLOR = QColor("#1080B8");
 const QString BOLD_PATTERN = "\\[\\d*\\/.*:\\d*:\\d*\\]";
-
-class Highlighter : public QSyntaxHighlighter {
-public:
-    Highlighter(QTextDocument* parent = nullptr);
-    void setBold(int indexToBold);
-    QString keyword;
-
-protected:
-    void highlightBlock(const QString& text) override;
-
-private:
-    QTextCharFormat boldFormat;
-    QTextCharFormat keywordFormat;
-    
-};
 
 BaseLogDialog::BaseLogDialog(QWidget* parent) : QDialog(parent, Qt::Window) {
     setWindowTitle("Base Log");
@@ -55,7 +39,6 @@ BaseLogDialog::BaseLogDialog(QWidget* parent) : QDialog(parent, Qt::Window) {
 
     QFile styleSheet(PathUtils::resourcesPath() + "styles/log_dialog.qss");
     if (styleSheet.open(QIODevice::ReadOnly)) {
-        QDir::setCurrent(PathUtils::resourcesPath());
         setStyleSheet(styleSheet.readAll());
     }
 
@@ -77,7 +60,7 @@ void BaseLogDialog::initControls() {
     _searchButton->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_BUTTON_WIDTH, ELEMENT_HEIGHT);
     _leftPad += SEARCH_BUTTON_WIDTH;
     _searchButton->show();
-    connect(_searchButton, SIGNAL(clicked()), SLOT(handleSearchButton()));
+    connect(_searchButton, &QPushButton::clicked, this, &BaseLogDialog::handleSearchButton);
 
     _searchTextBox = new QLineEdit(this);
     // disable blue outline in Mac
@@ -85,8 +68,8 @@ void BaseLogDialog::initControls() {
     _searchTextBox->setGeometry(_leftPad, ELEMENT_MARGIN, SEARCH_TEXT_WIDTH, ELEMENT_HEIGHT);
     _leftPad += SEARCH_TEXT_WIDTH + BUTTON_MARGIN;
     _searchTextBox->show();
-    connect(_searchTextBox, SIGNAL(textChanged(QString)), SLOT(handleSearchTextChanged(QString)));
-    connect(_searchTextBox, SIGNAL(returnPressed()), SLOT(toggleSearchNext()));
+    connect(_searchTextBox, &QLineEdit::textChanged, this, &BaseLogDialog::handleSearchTextChanged);
+    connect(_searchTextBox, &QLineEdit::returnPressed, this, &BaseLogDialog::toggleSearchNext);
 
     _searchPrevButton = new QPushButton(this);
     _searchPrevButton->setObjectName("searchPrevButton");
@@ -94,7 +77,7 @@ void BaseLogDialog::initControls() {
     _searchPrevButton->setText("Prev");
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + BUTTON_MARGIN;
     _searchPrevButton->show();
-    connect(_searchPrevButton, SIGNAL(clicked()), SLOT(toggleSearchPrev()));
+    connect(_searchPrevButton, &QPushButton::clicked, this, &BaseLogDialog::toggleSearchPrev);
 
     _searchNextButton = new QPushButton(this);
     _searchNextButton->setObjectName("searchNextButton");
@@ -102,16 +85,16 @@ void BaseLogDialog::initControls() {
     _searchNextButton->setText("Next");
     _leftPad += SEARCH_TOGGLE_BUTTON_WIDTH + CHECKBOX_MARGIN;
     _searchNextButton->show();
-    connect(_searchNextButton, SIGNAL(clicked()), SLOT(toggleSearchNext()));
+    connect(_searchNextButton, &QPushButton::clicked, this, &BaseLogDialog::toggleSearchNext);
 
     _logTextBox = new QPlainTextEdit(this);
     _logTextBox->setReadOnly(true);
     _logTextBox->show();
     _highlighter = new Highlighter(_logTextBox->document());
-    connect(_logTextBox, SIGNAL(selectionChanged()), SLOT(updateSelection()));
+    connect(_logTextBox, &QPlainTextEdit::selectionChanged, this, &BaseLogDialog::updateSelection);
 }
 
-void BaseLogDialog::showEvent(QShowEvent* event)  {
+void BaseLogDialog::showEvent(QShowEvent* event) {
     showLogData();
 }
 
@@ -132,15 +115,12 @@ void BaseLogDialog::handleSearchButton() {
 }
 
 void BaseLogDialog::handleSearchTextChanged(QString searchText) {
-    if (searchText.isEmpty()) {
-        return;
-    }
-
     QTextCursor cursor = _logTextBox->textCursor();
+
     if (cursor.hasSelection()) {
         QString selectedTerm = cursor.selectedText();
         if (selectedTerm == searchText) {
-          return;
+            return;
         }
     }
 
@@ -156,6 +136,10 @@ void BaseLogDialog::handleSearchTextChanged(QString searchText) {
     _searchTerm = searchText;
     _highlighter->keyword = searchText;
     _highlighter->rehighlight();
+}
+
+void BaseLogDialog::clearSearch() {
+    _searchTextBox->setText("");
 }
 
 void BaseLogDialog::toggleSearchPrev() {
@@ -198,6 +182,7 @@ void BaseLogDialog::updateSelection() {
 Highlighter::Highlighter(QTextDocument* parent) : QSyntaxHighlighter(parent) {
     boldFormat.setFontWeight(FONT_WEIGHT);
     boldFormat.setForeground(BOLD_COLOR);
+    keywordFormat.setFontWeight(FONT_WEIGHT);
     keywordFormat.setForeground(HIGHLIGHT_COLOR);
 }
 

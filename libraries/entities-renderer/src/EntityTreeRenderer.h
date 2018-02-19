@@ -12,13 +12,13 @@
 #ifndef hifi_EntityTreeRenderer_h
 #define hifi_EntityTreeRenderer_h
 
-#include <QSet>
-#include <QStack>
+#include <QtCore/QSet>
+#include <QtCore/QStack>
+#include <QtGui/QMouseEvent>
 
 #include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
-#include <QMouseEvent>
 #include <PointerEvent.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>
@@ -116,10 +116,14 @@ public:
     EntityItemPointer getEntity(const EntityItemID& id);
     void onEntityChanged(const EntityItemID& id);
 
+    static void setRenderDebugHullsOperator(std::function<bool()> renderDebugHullsOperator) { _renderDebugHullsOperator = renderDebugHullsOperator; }
+    static bool shouldRenderDebugHulls() { return _renderDebugHullsOperator(); }
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+    void setRenderDebugHulls();
 
 public slots:
     void addingEntity(const EntityItemID& entityID);
@@ -255,6 +259,8 @@ private:
     static int _entitiesScriptEngineCount;
     static CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc;
     static std::function<bool()> _entitiesShouldFadeFunction;
+
+    static std::function<bool()> _renderDebugHullsOperator;
 };
 
 

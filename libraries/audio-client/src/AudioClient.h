@@ -47,11 +47,13 @@
 #include <AudioConstants.h>
 #include <AudioGate.h>
 
+
 #include <shared/RateCounter.h>
 
 #include <plugins/CodecPlugin.h>
 
 #include "AudioIOStats.h"
+#include "AudioFileWav.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -66,7 +68,6 @@
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;
-
 
 class Transform;
 class NLPacket;
@@ -118,6 +119,8 @@ public:
     const MixedProcessedAudioStream& getReceivedAudioStream() const { return _receivedAudioStream; }
     MixedProcessedAudioStream& getReceivedAudioStream() { return _receivedAudioStream; }
 
+    const QAudioFormat& getOutputFormat() const { return _outputFormat; }
+
     float getLastInputLoudness() const { return _lastInputLoudness; }   // TODO: relative to noise floor?
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
@@ -142,7 +145,7 @@ public:
     void setIsPlayingBackRecording(bool isPlayingBackRecording) { _isPlayingBackRecording = isPlayingBackRecording; }
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
-
+    
     bool outputLocalInjector(const AudioInjectorPointer& injector) override;
 
     QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
@@ -154,6 +157,13 @@ public:
     static const float CALLBACK_ACCELERATOR_RATIO;
 
     bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
+
+    void setRecording(bool isRecording) { _isRecording = isRecording; };
+    bool getRecording() { return _isRecording; };
+
+    bool startRecording(const QString& filename);
+    void stopRecording();
+
 
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
@@ -184,13 +194,17 @@ public slots:
     void toggleMute();
     bool isMuted() { return _muted; }
 
-
     virtual void setIsStereoInput(bool stereo) override;
 
     void setNoiseReduction(bool isNoiseGateEnabled);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
+    bool getLocalEcho() { return _shouldEchoLocally; }
+    void setLocalEcho(bool localEcho) { _shouldEchoLocally = localEcho; }
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
+
+    bool getServerEcho() { return _shouldEchoToServer; }
+    void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
 
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
@@ -238,6 +252,8 @@ signals:
     void audioFinished();
 
     void muteEnvironmentRequested(glm::vec3 position, float radius);
+
+    void outputBufferReceived(const QByteArray _outputBuffer);
 
 protected:
     AudioClient();
@@ -354,17 +370,16 @@ private:
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };
     Mutex _localAudioMutex;
-
     AudioLimiter _audioLimiter;
-
+    
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-    bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest = false);
-    bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest = false);
+    bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
+    bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
 
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
@@ -391,6 +406,8 @@ private:
     QList<QAudioDeviceInfo> _inputDevices;
     QList<QAudioDeviceInfo> _outputDevices;
 
+    AudioFileWav _audioFileWav;
+
     bool _hasReceivedFirstPacket { false };
 
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
@@ -412,6 +429,8 @@ private:
     
     QTimer* _checkDevicesTimer { nullptr };
     QTimer* _checkPeakValuesTimer { nullptr };
+
+    bool _isRecording { false };
 };
 
 

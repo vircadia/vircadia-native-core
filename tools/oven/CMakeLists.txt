@@ -2,19 +2,20 @@ set(TARGET_NAME oven)
 
 setup_hifi_project(Widgets Gui Concurrent)
 
-link_hifi_libraries(networking shared image gpu ktx fbx baking model)
+link_hifi_libraries(networking shared image gpu ktx fbx baking graphics)
 
 setup_memory_debugger()
 
 if (WIN32)
   package_libraries_for_deployment()
-endif ()
-
-if (UNIX)
+elseif (UNIX AND NOT APPLE)
   find_package(Threads REQUIRED)
   if(THREADS_HAVE_PTHREAD_ARG)
     target_compile_options(PUBLIC oven "-pthread")
   endif()
-endif ()
+elseif (APPLE)
+  # Fix up the rpath so macdeployqt works
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
+endif()
 
-set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+install_beside_console()

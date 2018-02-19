@@ -30,15 +30,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::HazeEffect);
-
+            return static_cast<PacketVersion>(EntityVersion::SoftEntities);
         case PacketType::EntityQuery:
-            return static_cast<PacketVersion>(EntityQueryPacketVersion::ConnectionIdentifier);
+            return static_cast<PacketVersion>(EntityQueryPacketVersion::RemovedJurisdictions);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::UpdatedMannequinDefaultAvatar);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXReaderNodeReparenting);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
@@ -74,6 +73,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
         case PacketType::ICEPing:
             return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
+        case PacketType::DomainSettings:
+            return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         default:
             return 17;
     }

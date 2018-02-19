@@ -44,7 +44,7 @@
 
 
         <fieldset id="general" class="major">
-            <div class="shape-group shape-section property dropdown">
+            <div class="shape-group shape-section property dropdown" id="shape-list">
                 <label for="property-shape">Shape</label>
                 <select name="SelectShape" id="property-shape">
                         <option value="Cube">Box</option>
@@ -66,12 +66,19 @@
                 <label for="property-name">Name</label>
                 <input type="text" id="property-name">
             </div>
-            <div class="physical-group color-section property color-control1">
-                <div class="color-picker" id="property-color-control1"></div>
+            <div class="physical-group color-section property rgb fstuple" id="base-color-section">
+                <div class="color-picker" id="property-color-control2"></div>
                 <label>Entity color</label>
+                <div class="tuple">
+                    <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+                </div>
             </div>
         </fieldset>
-        <fieldset id="collision-info">
+
+        <fieldset id="collision-info" class="major">
+            <legend class="section-header"> Collision<span class=".collapse-icon">M</span> </legend>
             <fieldset class="minor">
                 <div class="behavior-group property checkbox">
                     <input type="checkbox" id="property-collisionless">
@@ -161,7 +168,7 @@
 
         <fieldset id="physical" class="major">
             <legend class="section-header physical-group">
-                Physical<span>M</span>
+                Physical<span class=".collapse-icon"> M</span>
             </legend>
             <fieldset class="minor">
                 <fieldset class="physical-group property xyz fstuple">
@@ -216,23 +223,12 @@
                     </div>
                 </fieldset>
             </fieldset>
-            <fieldset class="minor">
-                <div class="physical-group color-section property rgb fstuple">
-                    <div class="color-picker" id="property-color-control2"></div>
-                    <label>Entity color</label>
-                    <div class="tuple">
-                        <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
-                    </div>
-                </div>
-            </fieldset>
         </fieldset>
 
 
         <fieldset id="spatial" class="major">
             <legend class="section-header spatial-group">
-                Spatial<span>M</span>
+                Spatial<span class=".collapse-icon" >M</span>
             </legend>
             <fieldset class="spatial-group property xyz fstuple">
                 <legend>Position <span class="unit">m</span></legend>
@@ -300,7 +296,7 @@
 
         <fieldset id="behavior" class="major">
             <legend class="section-header behavior-group">
-                Behavior<span>M</span>
+                Behavior<span class=".collapse-icon">M</span>
             </legend>
             <div class="property textarea">
                 <label for="property-user-data">User data</label>
@@ -361,7 +357,7 @@
 
         <fieldset id="hyperlink" class="major">
             <legend class="section-header hyperlink-group hyperlink-section">
-                Hyperlink<span>M</span>
+                Hyperlink<span class=".collapse-icon">M</span>
             </legend>
             <div class="hyperlink-group hyperlink-section property url">
                 <label for="property-hyperlink-href">Href - hifi://address</label>
@@ -373,7 +369,7 @@
 
         <fieldset id="light" class="major">
             <legend class="section-header light-group light-section">
-                Light<span>M</span>
+                Light<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="light-group light-section property rgb fstuple">
                 <div class="color-picker" id="property-light-color"></div>
@@ -407,7 +403,7 @@
 
         <fieldset id="model" class="major">
             <legend class="section-header model-group model-section zone-section">
-                Model<span>M</span>
+                Model<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="minor">
                 <div class="model-group model-section property url ">
@@ -491,13 +487,9 @@
 
         <fieldset id="zone" class="major">
             <legend class="section-header zone-group zone-section">
-                Zone<span>M</span>
+                Zone<span class=".collapse-icon">M</span>
             </legend>
             <fieldset class="minor">
-                <div class="zone-group zone-section property checkbox">
-                    <input type="checkbox" id="property-zone-stage-sun-model-enabled">
-                    <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
-                </div>
                 <div class="zone-group zone-section property checkbox">
                     <input type="checkbox" id="property-zone-flying-allowed">
                     <label for="property-zone-flying-allowed">Flying allowed</label>
@@ -512,9 +504,14 @@
                     <label for="property-zone-filter-url">Filter URL</label>
                     <input type="text" id="property-zone-filter-url">
                 </div>
-                <div class="sub-section-header zone-group zone-section keylight-section">
+                <div class="sub-section-header zone-group zone-section">
                     <label>Key Light</label>
                 </div>
+                <form>
+                    <input type="radio" name="keyLightMode" value="inherit" id="property-zone-key-light-mode-inherit" checked> Inherit
+                    <input type="radio" name="keyLightMode" value="disabled" id="property-zone-key-light-mode-disabled"> Off
+                    <input type="radio" name="keyLightMode" value="enabled" id="property-zone-key-light-mode-enabled"> On
+                </form>
                 <div class="zone-section keylight-section zone-group property rgb">
                     <div class="color-picker" id="property-zone-key-light-color"></div>
                     <label>Key light color</label>
@@ -535,23 +532,67 @@
                         <div></div>
                     </div>
                 </div>
-                <div class="zone-group zone-section keylight-section property number">
+            <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section background-section">
+                    Skybox
+                </legend>
+                <form>
+                    <input type="radio" name="skyboxMode" value="inherit" id="property-zone-skybox-mode-inherit" checked> Inherit
+                    <input type="radio" name="skyboxMode" value="disabled" id="property-zone-skybox-mode-disabled"> Off
+                    <input type="radio" name="skyboxMode" value="enabled" id="property-zone-skybox-mode-enabled"> On
+                </form>
+                <fieldset class="zone-group zone-section skybox-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-skybox-color"></div>
+                    <legend>Skybox color</legend>
+                    <div class="tuple">
+                        <div>
+                            <input type="number" class="red" id="property-zone-skybox-color-red">
+                            <label for="property-zone-skybox-color-red">Red:</label>
+                        </div>
+                        <div>
+                            <input type="number" class="green" id="property-zone-skybox-color-green">
+                            <label for="property-zone-skybox-color-green">Green:</label>
+                        </div>
+                        <div>
+                            <input type="number" class="blue" id="property-zone-skybox-color-blue">
+                            <label for="property-zone-skybox-color-blue">Blue:</label>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="zone-group zone-section skybox-section property url ">
+                    <br>
+                    <label for="property-zone-skybox-url" width="80">Skybox URL</label>
+                    <input type="text" id="property-zone-skybox-url">
+                    <br>
+                    <br>
+                    <input type="button" id="copy-skybox-url-to-ambient-url" value="Copy URL to Ambient">
+                </div>
+            </fieldset>
+                <div class="sub-section-header zone-group zone-section">
+                    <label>Ambient Light</label>
+                </div>
+                <form>
+                    <input type="radio" name="ambientLightMode" value="inherit" id="property-zone-ambient-light-mode-inherit" checked> Inherit
+                    <input type="radio" name="ambientLightMode" value="disabled" id="property-zone-ambient-light-mode-disabled"> Off
+                    <input type="radio" name="ambientLightMode" value="enabled" id="property-zone-ambient-light-mode-enabled"> On
+                </form>
+                <div class="zone-group zone-section ambient-section property number">
                     <label>Ambient intensity</label>
                     <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
                 </div>
-                <div class="zone-group zone-section keylight-section property url ">
+                <div class="zone-group zone-section ambient-section property url ">
                     <label for="property-zone-key-ambient-url">Ambient URL</label>
                     <input type="text" id="property-zone-key-ambient-url">
                 </div>
             </fieldset>
             <fieldset class="minor">
-                <legend class="sub-section-header zone-group zone-section haze-section">
+                <legend class="sub-section-header zone-group zone-section">
                     Haze
                 </legend>
                 <form>
-                  <input type="radio" name="hazeMode" value="inherit" id="property-zone-haze-mode-inherit" checked> Inherit
-                  <input type="radio" name="hazeMode" value="disabled" id="property-zone-haze-mode-disabled"> Off
-                  <input type="radio" name="hazeMode" value="enabled" id="property-zone-haze-mode-enabled"> On
+                    <input type="radio" name="hazeMode" value="inherit" id="property-zone-haze-mode-inherit" checked> Inherit
+                    <input type="radio" name="hazeMode" value="disabled" id="property-zone-haze-mode-disabled"> Off
+                    <input type="radio" name="hazeMode" value="enabled" id="property-zone-haze-mode-enabled"> On
                 </form>
                 <fieldset class="zone-group zone-section haze-section property gen fstuple">
                     <div class="tuple">
@@ -636,65 +677,10 @@
                     </div>
                 </fieldset-->
            </fieldset>
-            <fieldset class="minor">
-                <legend class="sub-section-header zone-group zone-section stage-section">
-                    Stage
-                </legend>
-                <fieldset class="zone-group zone-section stage-section property gen fstuple">
-                    <div class="tuple">
-                        <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
-                        <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
-                        <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
-                    </div>
-                </fieldset>
-                <div class="zone-group zone-section stage-section property checkbox">
-                    <input type="checkbox" id="property-zone-stage-automatic-hour-day">
-                    <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
-                </div>
-                <fieldset class="zone-group zone-section stage-section property gen fstuple">
-                    <div class="tuple">
-                        <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
-                        <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
-                        <div></div>
-                    </div>
-                </fieldset>
-            </fieldset>
-            <fieldset class="minor">
-                <legend class="sub-section-header zone-group zone-section background-section">
-                    Background
-                </legend>
-                <div class="zone-group zone-section background-section property dropdown">
-                    <label>Background mode</label>
-                    <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                        <option value="inherit">Nothing</option>
-                        <option value="skybox">Skybox</option>
-                    </select>
-                </div>
-            </fieldset>
-            <fieldset class="minor skybox-section">
-                <legend class="sub-section-header zone-group zone-section skybox-section">
-                    Skybox
-                </legend>
-                <fieldset class="zone-group zone-section skybox-section property rgb fstuple">
-                    <div class="color-picker" id="property-zone-skybox-color"></div>
-                    <legend>Skybox color</legend>
-                    <div class="tuple">
-                        <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
-                    </div>
-                </fieldset>
-                <div class="zone-group zone-section skybox-section property url ">
-                    <label for="property-zone-skybox-url">Skybox URL</label>
-                    <input type="text" id="property-zone-skybox-url">
-                </div>
-            </fieldset>
         </fieldset>
-
-
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
-                Text<span>M</span>
+                Text<span class=".collapse-icon">M</span>
             </legend>
             <div class="text-group text-section property text">
                 <label for="property-text-text">Text content</label>
@@ -728,10 +714,19 @@
             </fieldset>
         </fieldset>
 
+        <fieldset id="image" class="major">
+            <legend class="section-header image-group image-section">
+                Image<span>M</span>
+            </legend>
+            <div class="image-group image-section property url ">
+                <label for="property-image-url">Image URL</label>
+                <input type="text" id="property-image-url">
+            </div>
+        </fieldset>
 
         <fieldset id="web" class="major">
             <legend class="section-header web-group web-section">
-                Web<span>M</span>
+                Web<span class=".collapse-icon">M</span>
             </legend>
             <div class="web-group web-section property url ">
                 <label for="property-web-source-url">Source URL</label>
