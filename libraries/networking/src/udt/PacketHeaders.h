@@ -218,6 +218,7 @@ enum class EntityVersion : PacketVersion {
     ZoneLightInheritModes = 82,
     ZoneStageRemoved,
     SoftEntities,
+    MaterialEntities,
     ShadowControl
 };
 

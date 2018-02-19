@@ -283,6 +283,8 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSh
     return QSharedPointer<Resource>(texture, &Resource::deleter);
 }
 
+int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
+
 NetworkTexture::NetworkTexture(const QUrl& url) :
 Resource(url),
 _type(),

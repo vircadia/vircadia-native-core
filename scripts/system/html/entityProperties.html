@@ -772,6 +772,71 @@
             </div>
         </fieldset>
 
+        <fieldset id="material" class="major">
+            <legend class="section-header material-group material-section">
+                Material<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <div class="material-group material-section property url">
+                    <label for="property-material-url">Material URL</label>
+                    <input type="text" id="property-material-url">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="material-group material-section property text" id="property-parent-material-id-string-container">
+                    <label for="property-parent-material-id-string">Material Name to Replace </label>
+                    <input type="text" id="property-parent-material-id-string">
+                </div>
+
+                <div class="material-group material-section property number" id="property-parent-material-id-number-container">
+                    <label for="property-parent-material-id-number">Submesh to Replace </label>
+                    <input type="number" min="0" step="1" value="0" id="property-parent-material-id-number">
+                </div>
+
+                <div class="material-group material-section property checkbox">
+                    <input type="checkbox" id="property-parent-material-id-checkbox">
+                    <label for="property-parent-material-id-checkbox">Select Submesh</label>
+                </div>
+
+                <div class="material-group material-section property number">
+                    <label>Priority </label>
+                    <input type="number" id="property-priority" min="0">
+                </div>
+
+                <fieldset>
+                    <!-- TODO: support 3D projected materials
+                    <div class="material-group material-section property dropdown">
+                        <label>Material mode </label>
+                        <select name="SelectMaterialMode" id="property-material-mapping-mode">
+                            <option value="uv">UV space material</option>
+                            <option value="projected">3D projected material</option>
+                        </select>
+                    </div>
+                    -->
+
+                    <div class="material-group material-section property xy fstuple">
+                        <label>Material Position </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-mapping-pos-x" min="0" max="1" step="0.1"><label for="property-material-mapping-pos-x">X:</label></div>
+                            <div><input type="number" class="y" id="property-material-mapping-pos-y" min="0" max="1" step="0.1"><label for="property-material-mapping-pos-y">Y:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property wh fstuple">
+                        <label>Material Scale </label>
+                        <div class="tuple">
+                            <div><input type="number" class="x" id="property-material-mapping-scale-x" min="0" step="0.1"><label for="property-material-mapping-scale-x">Width:</label></div>
+                            <div><input type="number" class="y" id="property-material-mapping-scale-y" min="0" step="0.1"><label for="property-material-mapping-scale-y">Height:</label></div>
+                    </div>
+
+                    <div class="material-group material-section property number">
+                        <label>Material Rotation <span class="unit">deg</span></label>
+                        <input type="number" id="property-material-mapping-rot" step="0.1">
+                    </div>
+                </fieldset>
+
+            </fieldset>
+        </fieldset>
+
     </div>
 </body>
 

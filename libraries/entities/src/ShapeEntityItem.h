@@ -75,7 +75,7 @@ public:
     void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 
     float getAlpha() const { return _alpha; };
-    void setAlpha(float alpha) { _alpha = alpha; }
+    void setAlpha(float alpha);
 
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
@@ -101,6 +101,8 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
 
+    std::shared_ptr<graphics::Material> getMaterial() { return _material; }
+
 protected:
 
     float _alpha { 1 };
@@ -113,6 +115,8 @@ protected:
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
 
     bool _canCastShadow { ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
+
+    std::shared_ptr<graphics::Material> _material;
 };
 
 #endif // hifi_ShapeEntityItem_h
