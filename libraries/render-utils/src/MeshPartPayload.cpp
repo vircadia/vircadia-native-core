@@ -87,8 +87,6 @@ void MeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShad
 
     if (canCastShadow) {
         builder.withShadowCaster();
-    } else {
-        builder.withNoShadowCaster();
     }
 
     if (isGroupCulled) {
@@ -413,6 +411,7 @@ void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& render
     _worldBound.transform(boundTransform);
 }
 
+// Note that this method is called for models but not for shapes
 void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled) {
     ItemKey::Builder builder;
     builder.withTypeShape();
@@ -429,8 +428,6 @@ void ModelMeshPartPayload::updateKey(bool isVisible, bool isLayered, bool canCas
 
     if (canCastShadow) {
         builder.withShadowCaster();
-    } else {
-        builder.withNoShadowCaster();
     }
 
     if (isGroupCulled) {
