@@ -59,6 +59,9 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
 
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
 protected:
     Transform evalRenderTransform() override;
 
@@ -109,6 +112,8 @@ private:
     bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+
+    void processMaterials();
 
 };
 
