@@ -18,13 +18,13 @@ extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
-    gpu::doInBatch("BeginGPURangeTimer::run", renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("BeginGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
         _gpuTimer->begin(batch);
     });
 }
 
 void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, const gpu::RangeTimerPointer& timer) {
-    gpu::doInBatch("EndGPURangeTimer::run", renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("EndGPURangeTimer", renderContext->args->_context, [&](gpu::Batch& batch) {
         timer->end(batch);
     });
     
@@ -64,7 +64,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         }
 
         // Render the items
-        gpu::doInBatch("DrawOverlay3D::run", args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
@@ -97,7 +97,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
 
     // Grab the HUD texture
 #if !defined(DISABLE_QML)
-    gpu::doInBatch("CompositeHUD::run", renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("CompositeHUD", renderContext->args->_context, [&](gpu::Batch& batch) {
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
@@ -124,7 +124,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     // Blit primary to blit FBO
     auto primaryFbo = srcFramebuffer;
 
-    gpu::doInBatch("Blit::run", renderArgs->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("Blit", renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {

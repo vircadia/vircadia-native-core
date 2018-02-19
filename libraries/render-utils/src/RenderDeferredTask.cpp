@@ -250,7 +250,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
-     // Debugging stages
+    // Debugging stages
     {
         // Debugging Deferred buffer job
         const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer, deferredFrameTransform));
@@ -420,4 +420,3 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     config->setNumDrawn((int)inItems.size());
 }
-
