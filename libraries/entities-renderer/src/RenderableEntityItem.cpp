@@ -162,7 +162,12 @@ ItemKey EntityRenderer::getKey() {
         return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 
-    return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).withShadowCaster();
+    // This allows shapes to cast shadows
+    if (_canCastShadow) {
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).withShadowCaster();
+    } else {
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    }
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
