@@ -320,11 +320,32 @@ void Batch::setResourceTexture(uint32 slot, const TextureView& view) {
     setResourceTexture(slot, view._texture);
 }
 
+void Batch::setResourceFramebufferRingTexture(uint32 slot, const FramebufferRingPointer& framebuffer, unsigned int ringIndex) {
+    ADD_COMMAND(setResourceFramebufferRingTexture);
+
+    _params.emplace_back(_ringbuffers.cache(framebuffer));
+    _params.emplace_back(slot);
+    _params.emplace_back(ringIndex);
+}
+
 void Batch::setFramebuffer(const FramebufferPointer& framebuffer) {
     ADD_COMMAND(setFramebuffer);
 
     _params.emplace_back(_framebuffers.cache(framebuffer));
 
+}
+
+void Batch::setFramebufferRing(const FramebufferRingPointer& framebuffer, unsigned int ringIndex) {
+    ADD_COMMAND(setFramebufferRing);
+
+    _params.emplace_back(_ringbuffers.cache(framebuffer));
+    _params.emplace_back(ringIndex);
+}
+
+void Batch::advance(const RingBufferPointer& ringbuffer) {
+    ADD_COMMAND(advance);
+
+    _params.emplace_back(_ringbuffers.cache(ringbuffer));
 }
 
 void Batch::clearFramebuffer(Framebuffer::Masks targets, const Vec4& color, float depth, int stencil, bool enableScissor) {
