@@ -31,10 +31,11 @@ var PINCH_INCREMENT_FIRST = 0.4; // 0.1 meters zoom in - out
 var PINCH_INCREMENT = 0.4; // 0.1 meters zoom in - out
 var RADAR_HEIGHT_MAX_PLUS_AVATAR = 40;
 var RADAR_HEIGHT_MIN_PLUS_AVATAR = 2;
-var RADAR_CAMERA_DISTANCE_TO_ICONS = 0.5; // Icons are near the camera to prevent the LOD manager dismissing them
+var RADAR_CAMERA_DISTANCE_TO_ICONS = 1.5; // Icons are near the camera to prevent the LOD manager dismissing them
 var RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE = 1; // How much above the avatar base should the icon appear
 var AVATAR_DISPLAY_NAME_HEIGHT = 38;
 var AVATAR_DISPLAY_NAME_CHAR_WIDTH = 18;
+var AVATAR_DISPLAY_NAME_FONT_SIZE = 350;
 var lastDragAt;
 var lastDeltaDrag;
 
@@ -734,14 +735,15 @@ function saveAvatarData(QUuid) {
     if (avatarsData[QUuid] != undefined) {
         avatarsData[QUuid].position = avat.position;
     } else {
-        var avatarIcon = Overlays.addOverlay("image3d", {
-                                          subImage: { x: 0, y: 0, width: 150, height: 142},
-                                          url: getAvatarIconForUser(QUuid),
-                                          dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
-                                          visible: false,
-                                          ignoreRayIntersection: false,
-                                          orientation: Quat.fromPitchYawRollDegrees(-90,0,0)
-                                          });
+        var avatarIcon = Overlays.addOverlay("circle3d", {
+            color: uniqueColor.convertHexToRGB(uniqueColor.getColor(QUuid)),
+            dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+            innerRadius: 1.6,
+            outerRadius: 2,
+            isSolid: true,
+            visible: false
+        });
 
         var needRefresh = !avat || !avat.displayName;
         var displayName = avat && avat.displayName ? avat.displayName : "Unknown";
@@ -752,7 +754,7 @@ function saveAvatarData(QUuid) {
             color: { red: 255, green: 255, blue: 255},
             backgroundAlpha: 0.0,
             textRaiseColor: { red: 0, green: 0, blue: 0},
-            font: {size: 68, bold: true},
+            font: {size: AVATAR_DISPLAY_NAME_FONT_SIZE, bold: true},
             visible: false,
             text: displayName,
             textAlignCenter: true
@@ -833,15 +835,16 @@ function renderMyAvatarIcon() {
     var x = (p1.x - borderPoints[0].x) * (Window.innerWidth) / (borderPoints[1].x - borderPoints[0].x);
     var y = (p1.z - borderPoints[0].z) * (Window.innerHeight) / (borderPoints[1].z - borderPoints[0].z);
 
-    if (!myAvatarIcon && MyAvatar.sessionUUID) {
-        myAvatarIcon = Overlays.addOverlay("image3d", {
-                          subImage: { x: 0, y: 0, width: 150, height: 142},
-                          url: getAvatarIconForUser(MyAvatar.sessionUUID),
-                          dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
-                          visible: false,
-                          ignoreRayIntersection: false,
-                          orientation: Quat.fromPitchYawRollDegrees(-90,0,0)
-                       });
+    if (!myAvatarIcon && MyAvatar.SELF_ID) {
+       myAvatarIcon =  Overlays.addOverlay("circle3d", {
+            color: uniqueColor.convertHexToRGB(uniqueColor.getColor(MyAvatar.SELF_ID)),
+            dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
+            rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+            innerRadius: 1.6,
+            outerRadius: 2,
+            isSolid: true,
+            visible: false
+        });
     }
 
     if (!myAvatarName) {
@@ -851,7 +854,7 @@ function renderMyAvatarIcon() {
                         textAlignCenter: true,
                         color: { red: 255, green: 255, blue: 255},
                         backgroundAlpha: 0.0,
-                        font: {size: 68, bold: true},
+                        font: {size: AVATAR_DISPLAY_NAME_FONT_SIZE, bold: true},
                         textRaiseColor: { red: 0, green: 0, blue: 0},
                         visible: false,
                         text: "Me"
@@ -907,13 +910,13 @@ function renderAllOthersAvatarIcons() {
             if (AvatarList.getAvatar(QUuid) != null) {
                 avatarPos = AvatarList.getAvatar(QUuid).position;
 
-        		var cameraPos = Camera.position;
-        		var p1 = findLineToHeightIntersectionCoords(avatarPos.x, avatarPos.y, avatarPos.z, 
+                var cameraPos = Camera.position;
+                var p1 = findLineToHeightIntersectionCoords(avatarPos.x, avatarPos.y, avatarPos.z, 
                                                     cameraPos.x, cameraPos.y, cameraPos.z,
                                                     commonY);
 
-        		var x = (p1.x - borderPoints[0].x) * (Window.innerWidth) / (borderPoints[1].x - borderPoints[0].x);
-        		var y = (p1.z - borderPoints[0].z) * (Window.innerHeight) / (borderPoints[1].z - borderPoints[0].z);
+                var x = (p1.x - borderPoints[0].x) * (Window.innerWidth) / (borderPoints[1].x - borderPoints[0].x);
+                var y = (p1.z - borderPoints[0].z) * (Window.innerHeight) / (borderPoints[1].z - borderPoints[0].z);
 
                 if (avatarsData[QUuid].icon != undefined) {
                     var iconPos = findLineToHeightIntersectionCoords(   avatarPos.x, avatarPos.y + RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE, avatarPos.z,
