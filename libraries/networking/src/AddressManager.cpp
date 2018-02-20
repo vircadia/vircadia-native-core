@@ -107,7 +107,7 @@ void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
     handleUrl(QUrl("hifi://127.0.0.0"), LookupTrigger::StartupFromSettings);
 #elif defined(Q_OS_ANDROID)
-    handleUrl(QUrl("hifi://dev-android"), LookupTrigger::StartupFromSettings);
+    handleUrl(QUrl(DEFAULT_HIFI_ADDRESS), LookupTrigger::StartupFromSettings);
 #else
     if (lookupString.isEmpty()) {
         handleUrl(currentAddressHandle.get(), LookupTrigger::StartupFromSettings);

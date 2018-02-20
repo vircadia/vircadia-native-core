@@ -33,9 +33,9 @@ var RADAR_HEIGHT_MAX_PLUS_AVATAR = 80;
 var RADAR_HEIGHT_MIN_PLUS_AVATAR = 2;
 var RADAR_CAMERA_DISTANCE_TO_ICONS = 1.5; // Icons are near the camera to prevent the LOD manager dismissing them
 var RADAR_ICONS_APPARENT_DISTANCE_TO_AVATAR_BASE = 1; // How much above the avatar base should the icon appear
-var AVATAR_DISPLAY_NAME_HEIGHT = 38;
-var AVATAR_DISPLAY_NAME_CHAR_WIDTH = 18;
-var AVATAR_DISPLAY_NAME_FONT_SIZE = 350;
+var AVATAR_DISPLAY_NAME_HEIGHT = 106;
+var AVATAR_DISPLAY_NAME_CHAR_WIDTH = 48;
+var AVATAR_DISPLAY_NAME_FONT_SIZE = 50;
 var lastDragAt;
 var lastDeltaDrag;
 
@@ -739,7 +739,7 @@ function saveAvatarData(QUuid) {
             color: uniqueColor.convertHexToRGB(uniqueColor.getColor(QUuid)),
             dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-            innerRadius: 1.6,
+            innerRadius: 1.8,
             outerRadius: 2,
             isSolid: true,
             visible: false
@@ -812,8 +812,9 @@ function avatarRemoved(QUuid) {
 var myAvatarIcon;
 var myAvatarName;
 function distanceForCameraHeight(h) {
-    if (h < 10) return 1;
-    if (h < 50) return 2;
+    if (h < 30) return 1;
+    if (h < 40) return 2;
+    if (h < 50) return 2.5;
     return 5;
 }
 function renderMyAvatarIcon() {
@@ -844,7 +845,7 @@ function renderMyAvatarIcon() {
             color: uniqueColor.convertHexToRGB(uniqueColor.getColor(MyAvatar.SELF_ID)),
             dimensions: ICON_ENTITY_DEFAULT_DIMENSIONS,
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-            innerRadius: 1.6,
+            innerRadius: 1.8,
             outerRadius: 2,
             isSolid: true,
             visible: false
@@ -853,7 +854,7 @@ function renderMyAvatarIcon() {
 
     if (!myAvatarName) {
         myAvatarName = Overlays.addOverlay("text", {
-                        width: 40,
+                        width: 100,
                         height: AVATAR_DISPLAY_NAME_HEIGHT,
                         textAlignCenter: true,
                         color: { red: 255, green: 255, blue: 255},
