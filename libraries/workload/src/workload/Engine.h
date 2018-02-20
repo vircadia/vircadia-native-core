@@ -20,6 +20,8 @@
 
 #include <task/Task.h>
 
+#include "Space.h"
+
 namespace workload {
 
     // How to make an Engine under the task::Task<C> paradigm...
@@ -29,6 +31,8 @@ namespace workload {
     public:
         WorkloadContext();
         virtual ~WorkloadContext() {}
+
+        SpacePointer _space;
     };
     using WorkloadContextPointer = std::shared_ptr<WorkloadContext>;
 
@@ -56,11 +60,14 @@ namespace workload {
     // (5) Engine derives from task::Task<C> and will run all the Job<C>'s
     class Engine : public Task {
     public:
-        Engine();
+        Engine(const WorkloadContextPointer& context = std::make_shared<WorkloadContext>());
         ~Engine() = default;
 
         // (6) The Engine's Context is passed to its Jobs when they are run()
         void run() { assert(_context); Task::run(_context); }
+
+        // Register the Space
+        void registerSpace(const SpacePointer& space) { _context->_space = space; }
 
     protected:
         // (6) Again, the Engine's Context is passed to its Jobs when they are run()

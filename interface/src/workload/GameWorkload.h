@@ -24,6 +24,15 @@ public:
     void run(const workload::WorkloadContextPointer& renderContext, Outputs& outputs);
 
 protected:
+    render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
+};
+
+class GameWorkloadContext : public workload::WorkloadContext {
+public:
+    GameWorkloadContext(const render::ScenePointer& scene);
+    virtual ~GameWorkloadContext();
+
+    render::ScenePointer _scene;
 };
 
 class GameWorkload {
@@ -31,11 +40,10 @@ public:
     GameWorkload();
     ~GameWorkload();
 
-    void startup();
+    void startup(const render::ScenePointer& scene);
     void shutdown();
 
-    workload::EnginePointer _engine{};
-
+    workload::EnginePointer _engine;
 };
 
 #endif

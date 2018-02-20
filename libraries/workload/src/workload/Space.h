@@ -15,8 +15,10 @@
 #ifndef hifi_workload_Space_h
 #define hifi_workload_Space_h
 
+#include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+
 
 namespace workload {
 
@@ -76,6 +78,8 @@ private:
     std::vector<View> _views;
     std::vector<int32_t> _freeIndices;
 };
+
+using SpacePointer = std::shared_ptr<Space>;
 
 } // namespace workload
 
