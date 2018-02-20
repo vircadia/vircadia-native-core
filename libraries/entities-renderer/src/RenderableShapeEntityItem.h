@@ -34,7 +34,7 @@ private:
     QString _lastUserData;
     Transform _renderTransform;
     entity::Shape _shape { entity::Sphere };
-    glm::vec4 _color;
+    std::shared_ptr<graphics::Material> _material;
     glm::vec3 _position;
     glm::vec3 _dimensions;
     glm::quat _orientation;
