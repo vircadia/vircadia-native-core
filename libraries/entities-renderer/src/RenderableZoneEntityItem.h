@@ -45,7 +45,7 @@ protected:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
 private:
-    void updateKeyZoneItemFromEntity();
+    void updateKeyZoneItemFromEntity(const TypedEntityPointer& entity);
     void updateKeySunFromEntity(const TypedEntityPointer& entity);
     void updateAmbientLightFromEntity(const TypedEntityPointer& entity);
     void updateHazeFromEntity(const TypedEntityPointer& entity);

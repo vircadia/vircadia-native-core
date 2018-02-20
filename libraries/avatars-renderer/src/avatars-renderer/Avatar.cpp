@@ -52,7 +52,7 @@ const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
         return static_pointer_cast<Avatar>(avatar)->getBounds();
@@ -221,7 +221,7 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid()) {
+    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
@@ -572,6 +572,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
+    processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
@@ -763,6 +764,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
     }
@@ -1763,13 +1765,40 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     }
 }
 
+void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].push(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->addMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].remove(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::processMaterials() {
+    assert(_skeletonModel);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _skeletonModel->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}
+
 scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
-    qDebug() << "Avatar::getScriptableModel" ;
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
     scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
-    result.objectID = getSessionUUID(); 
+    result.objectID = getSessionUUID();
     result.mixin({
         { "avatarID", getSessionUUID().toString() },
         { "url", _skeletonModelURL.toString() },

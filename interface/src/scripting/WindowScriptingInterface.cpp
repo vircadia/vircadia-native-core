@@ -105,14 +105,14 @@ void WindowScriptingInterface::raiseMainWindow() {
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
 void WindowScriptingInterface::alert(const QString& message) {
-    OffscreenUi::asyncWarning("", message);
+    OffscreenUi::asyncWarning("", message, QMessageBox::Ok, QMessageBox::Ok);
 }
 
 /// Display a confirmation box with the options 'Yes' and 'No'
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::confirm(const QString& message) {
-    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No)));
+    return QScriptValue((QMessageBox::Yes == OffscreenUi::question("", message, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes)));
 }
 
 /// Display a prompt with a text box
@@ -120,16 +120,19 @@ QScriptValue WindowScriptingInterface::confirm(const QString& message) {
 /// \param const QString& defaultText default text in the text box
 /// \return QScriptValue string text value in text box if the dialog was accepted, `null` otherwise.
 QScriptValue WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
-    bool ok = false;
-    QString result = OffscreenUi::getText(nullptr, "", message, QLineEdit::Normal, defaultText, &ok);
-    return ok ? QScriptValue(result) : QScriptValue::NullValue;
+    QString result = OffscreenUi::getText(nullptr, "", message, QLineEdit::Normal, defaultText);
+    if (QScriptValue(result).equals("")) {
+        return QScriptValue::NullValue;
+    }
+    return QScriptValue(result);
 }
 
 /// Display a prompt with a text box
 /// \param const QString& message message to display
 /// \param const QString& defaultText default text in the text box
 void WindowScriptingInterface::promptAsync(const QString& message, const QString& defaultText) {
-    ModalDialogListener* dlg = OffscreenUi::getTextAsync(nullptr, "", message, QLineEdit::Normal, defaultText);
+    bool ok = false;
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(nullptr, "", message, QLineEdit::Normal, defaultText, &ok);
     connect(dlg, &ModalDialogListener::response, this, [=] (QVariant result) {
         disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         emit promptTextChanged(result.toString());
@@ -354,7 +357,7 @@ QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const 
     return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
 }
 
-/// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid 
+/// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid
 /// directory the browser will start at the root directory.
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the asset browser at
@@ -396,11 +399,11 @@ QString WindowScriptingInterface::protocolSignature() {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return qApp->getDeviceSize().x;
+    return qApp->getWindow()->geometry().width();
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return qApp->getDeviceSize().y;
+    return qApp->getWindow()->geometry().height() - qApp->getPrimaryMenu()->geometry().height();
 }
 
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {
@@ -430,12 +433,12 @@ bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
     return  qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
 }
 
-void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
+void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
+    qApp->takeSnapshot(notify, includeAnimated, aspectRatio, filename);
 }
 
-void WindowScriptingInterface::takeSecondaryCameraSnapshot() {
-    qApp->takeSecondaryCameraSnapshot();
+void WindowScriptingInterface::takeSecondaryCameraSnapshot(const QString& filename) {
+    qApp->takeSecondaryCameraSnapshot(filename);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {

@@ -68,8 +68,8 @@ GLBackend& getBackend() {
     return *INSTANCE;
 }
 
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings);
+bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
+    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
 }
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 

@@ -283,7 +283,6 @@ protected:
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
-    bool _animLoading { false };
     AnimVariantMap _animVars;
     enum class RigRole {
         Idle = 0,
@@ -346,7 +345,6 @@ protected:
     bool _enabledAnimations { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
-    float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };

@@ -26,6 +26,7 @@ colpick Color Picker / colpick.com
 /*Color selection box with gradients*/
 .colpick_color {
 	position: absolute;
+	touch-action: none;
 	left: 7px;
 	top: 7px;
 	width: 156px;
@@ -84,6 +85,7 @@ colpick Color Picker / colpick.com
 /*Vertical hue bar*/
 .colpick_hue {
 	position: absolute;
+	touch-action: none;
 	top: 6px;
 	left: 175px;
 	width: 19px;
@@ -94,6 +96,7 @@ colpick Color Picker / colpick.com
 /*Hue bar sliding indicator*/
 .colpick_hue_arrs {
 	position: absolute;
+	touch-action: none;
 	left: -8px;
 	width: 35px;
 	height: 7px;
@@ -101,6 +104,7 @@ colpick Color Picker / colpick.com
 }
 .colpick_hue_larr {
 	position:absolute;
+	touch-action: none;
 	width: 0; 
 	height: 0; 
 	border-top: 6px solid transparent;
@@ -109,6 +113,7 @@ colpick Color Picker / colpick.com
 }
 .colpick_hue_rarr {
 	position:absolute;
+	touch-action: none;
 	right:0;
 	width: 0; 
 	height: 0; 
@@ -119,6 +124,7 @@ colpick Color Picker / colpick.com
 /*New color box*/
 .colpick_new_color {
 	position: absolute;
+	touch-action: none;
 	left: 207px;
 	top: 6px;
 	width: 60px;
@@ -129,6 +135,7 @@ colpick Color Picker / colpick.com
 /*Current color box*/
 .colpick_current_color {
 	position: absolute;
+	touch-action: none;
 	left: 277px;
 	top: 6px;
 	width: 60px;
@@ -139,6 +146,7 @@ colpick Color Picker / colpick.com
 /*Input field containers*/
 .colpick_field, .colpick_hex_field  {
 	position: absolute;
+	touch-action: none;
 	height: 20px;
 	width: 60px;
 	overflow:hidden;
@@ -198,6 +206,7 @@ colpick Color Picker / colpick.com
 /*Text inputs*/
 .colpick_field input, .colpick_hex_field input {
 	position: absolute;
+	touch-action: none;
 	right: 11px;
 	margin: 0;
 	padding: 0;
@@ -217,6 +226,7 @@ colpick Color Picker / colpick.com
 /*Field up/down arrows*/
 .colpick_field_arrs {
 	position: absolute;
+	touch-action: none;
 	top: 0;
 	right: 0;
 	width: 9px;
@@ -225,6 +235,7 @@ colpick Color Picker / colpick.com
 }
 .colpick_field_uarr {
 	position: absolute;
+	touch-action: none;
 	top: 5px;
 	width: 0; 
 	height: 0; 
@@ -234,6 +245,7 @@ colpick Color Picker / colpick.com
 }
 .colpick_field_darr {
 	position: absolute;
+	touch-action: none;
 	bottom:5px;
 	width: 0; 
 	height: 0; 
@@ -244,6 +256,7 @@ colpick Color Picker / colpick.com
 /*Submit/Select button*/
 .colpick_submit {
 	position: absolute;
+	touch-action: none;
 	left: 207px;
 	top: 149px;
 	width: 130px;

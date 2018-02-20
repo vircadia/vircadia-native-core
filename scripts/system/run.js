@@ -35,4 +35,5 @@
         button.editProperties({isActive: true});
     }
 
+    Script.scriptEnding.connect(cleanup);
 }());

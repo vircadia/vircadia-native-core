@@ -43,8 +43,6 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         AnimPose result = AnimPose(worldToSensorMat * avatarTransform.getMatrix() * Matrices::Y_180);
         result.scale() = glm::vec3(1.0f, 1.0f, 1.0f);
         return result;
-    } else {
-        DebugDraw::getInstance().removeMarker("pinnedHips");
     }
 
     glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();

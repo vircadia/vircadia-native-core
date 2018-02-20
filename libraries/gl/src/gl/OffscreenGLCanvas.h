@@ -17,7 +17,7 @@
 
 class QOpenGLContext;
 class QOffscreenSurface;
-class QOpenGLDebugLogger;
+class QOpenGLDebugMessage;
 
 class OffscreenGLCanvas : public QObject {
 public:
@@ -32,6 +32,12 @@ public:
     }
     QObject* getContextObject();
     
+    void setThreadContext();
+    static bool restoreThreadContext();
+
+private slots:
+    void onMessageLogged(const QOpenGLDebugMessage &debugMessage);
+
 protected:
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };

@@ -998,6 +998,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
         return;
     }
 
+    bool changed { false };
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {
         for (int index = 0; index < _localJointData.size(); ++index) {
@@ -1005,13 +1006,21 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
             if (jointData.rotationDirty) {
                 model->setJointRotation(index, true, jointData.joint.rotation, 1.0f);
                 jointData.rotationDirty = false;
+                changed = true;
             }
             if (jointData.translationDirty) {
                 model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
                 jointData.translationDirty = false;
+                changed = true;
             }
         }
     });
+
+    if (changed) {
+        forEachChild([&](SpatiallyNestablePointer object) {
+            object->locationChanged(false);
+        });
+    }
 }
 
 using namespace render;
@@ -1026,9 +1035,9 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 }
 
@@ -1347,11 +1356,16 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    if (model->isVisible() != _visible) {
+    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
+    uint32_t viewTaskBits = _cauterized ?
+        render::ItemKey::TAG_BITS_1 : // draw in every view except the main one (view zero)
+        render::ItemKey::TAG_BITS_ALL; // draw in all views
+
+    if (model->isVisible() != _visible || model->getViewTagBits() != viewTaskBits) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene);
+        model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
 
@@ -1388,6 +1402,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
             });
+            processMaterials();
         }
     }
 
@@ -1474,3 +1489,28 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
+void ModelEntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    Parent::addMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->addMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    Parent::removeMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::processMaterials() {
+    assert(_model);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _model->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}

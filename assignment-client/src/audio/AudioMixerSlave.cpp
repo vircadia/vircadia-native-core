@@ -129,6 +129,12 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
     AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
 
+    // if we received an invalid position from this listener, then refuse to make them a mix
+    // because we don't know how to do it properly
+    if (!listenerAudioStream->hasValidPosition()) {
+        return false;
+    }
+
     // zero out the mix for this listener
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
@@ -170,7 +176,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
-                float nodeVolume;
+                float nodeVolume = 0.0f;
                 for (auto& streamPair : nodeData->getAudioStreams()) {
                     auto nodeStream = streamPair.second;
 
@@ -187,10 +193,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 }
 
                 // max-heapify the nodes by relative volume
-                throttledNodes.push_back(std::make_pair(nodeVolume, node));
-                if (!throttledNodes.empty()) {
-                    std::push_heap(throttledNodes.begin(), throttledNodes.end());
-                }
+                throttledNodes.push_back({ nodeVolume, node });
+                std::push_heap(throttledNodes.begin(), throttledNodes.end());
             }
         }
     });
@@ -244,12 +248,18 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
 void AudioMixerSlave::throttleStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
-    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
+    // only throttle this stream to the mix if it has a valid position, we won't know how to mix it otherwise
+    if (streamToAdd.hasValidPosition()) {
+        addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
+    }
 }
 
 void AudioMixerSlave::mixStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
-    addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, false);
+    // only add the stream to the mix if it has a valid position, we won't know how to mix it otherwise
+    if (streamToAdd.hasValidPosition()) {
+        addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, false);
+    }
 }
 
 void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,

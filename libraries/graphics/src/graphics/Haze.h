@@ -92,7 +92,7 @@ namespace graphics {
 
         void setHazeBackgroundBlend(const float hazeBackgroundBlend);
 
-        void setZoneTransform(const glm::mat4& zoneTransform);
+        void setTransform(const glm::mat4& transform);
 
         using UniformBufferView = gpu::BufferView;
         UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
@@ -113,7 +113,7 @@ namespace graphics {
                                   // bit 2 - set to activate directional light attenuation mode
                                   // bit 3 - set to blend between blend-in and blend-out colours
 
-            glm::mat4 zoneTransform;
+            glm::mat4 transform;
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
             float hazeBackgroundBlend{ INITIAL_HAZE_BACKGROUND_BLEND };

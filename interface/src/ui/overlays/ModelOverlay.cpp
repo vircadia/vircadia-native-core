@@ -83,10 +83,12 @@ void ModelOverlay::update(float deltatime) {
             auto modelOverlay = static_cast<ModelOverlay*>(&data);
             modelOverlay->setSubRenderItemIDs(newRenderItemIDs);
         });
+        processMaterials();
     }
     if (_visibleDirty) {
         _visibleDirty = false;
-        _model->setVisibleInScene(getVisible(), scene);
+        // don't show overlays in mirrors
+        _model->setVisibleInScene(getVisible(), scene, render::ItemKey::TAG_BITS_0, false);
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
@@ -107,6 +109,7 @@ void ModelOverlay::update(float deltatime) {
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::addToScene(overlay, scene, transaction);
     _model->addToScene(scene, transaction);
+    processMaterials();
     return true;
 }
 
@@ -120,8 +123,10 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
 }
 
 void ModelOverlay::setVisible(bool visible) {
-    Overlay::setVisible(visible);
-    _visibleDirty = true;
+    if (visible != getVisible()) {
+        Overlay::setVisible(visible);
+        _visibleDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {
@@ -628,6 +633,32 @@ uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
         return (uint32_t)metaSubItems.size();
     }
     return 0;
+}
+
+void ModelOverlay::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    Overlay::addMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->addMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelOverlay::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    Overlay::removeMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelOverlay::processMaterials() {
+    assert(_model);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _model->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
 }
 
 scriptable::ScriptableModelBase ModelOverlay::getScriptableModel(bool* ok) {

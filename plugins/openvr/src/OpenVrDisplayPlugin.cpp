@@ -200,9 +200,10 @@ public:
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
             std::string error;
+            std::vector<char> binary;
             ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
             ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error);
+            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error, binary);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";
@@ -484,7 +485,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     if (_threadedSubmit) {
         _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
         if (!_submitCanvas) {
-            withMainThreadContext([&] {
+            withOtherThreadContext([&] {
                 _submitCanvas = std::make_shared<gl::OffscreenContext>();
                 _submitCanvas->create();
                 _submitCanvas->doneCurrent();

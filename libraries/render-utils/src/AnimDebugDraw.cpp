@@ -9,8 +9,6 @@
 
 #include <qmath.h>
 
-#include "animdebugdraw_vert.h"
-#include "animdebugdraw_frag.h"
 #include <gpu/Batch.h>
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
@@ -18,6 +16,9 @@
 #include "DebugDraw.h"
 
 #include "AnimDebugDraw.h"
+
+#include "animdebugdraw_vert.h"
+#include "animdebugdraw_frag.h"
 
 class AnimDebugDrawData {
 public:
@@ -67,7 +68,7 @@ public:
 typedef render::Payload<AnimDebugDrawData> AnimDebugDrawPayload;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()); }
+    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()).withTagBits(ItemKey::TAG_BITS_ALL); }
     template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return data->_bound; }
     template <> void payloadRender(const AnimDebugDrawData::Pointer& data, RenderArgs* args) {
         data->render(args);
@@ -101,8 +102,8 @@ AnimDebugDraw::AnimDebugDraw() :
     state->setBlendFunction(false, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                             gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
                             gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    auto vertShader = gpu::Shader::createVertex(std::string(animdebugdraw_vert));
-    auto fragShader = gpu::Shader::createPixel(std::string(animdebugdraw_frag));
+    auto vertShader = animdebugdraw_vert::getShader();
+    auto fragShader = animdebugdraw_frag::getShader();
     auto program = gpu::Shader::createProgram(vertShader, fragShader);
     _pipeline = gpu::Pipeline::create(program, state);
 

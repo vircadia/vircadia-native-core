@@ -144,13 +144,13 @@ void AvatarEntitiesBookmarks::addBookmark() {
         const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
         const QVariant& avatarScale = myAvatar->getAvatarScale();
 
-        QVariantMap *bookmark = new QVariantMap;
-        bookmark->insert(ENTRY_VERSION, AVATAR_ENTITIES_BOOKMARK_VERSION);
-        bookmark->insert(ENTRY_AVATAR_URL, avatarUrl);
-        bookmark->insert(ENTRY_AVATAR_SCALE, avatarScale);
-        bookmark->insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
+        QVariantMap bookmark;
+        bookmark.insert(ENTRY_VERSION, AVATAR_ENTITIES_BOOKMARK_VERSION);
+        bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+        bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
+        bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
 
-        Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
     });
 }
 

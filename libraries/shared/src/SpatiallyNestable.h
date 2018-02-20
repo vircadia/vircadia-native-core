@@ -207,6 +207,10 @@ public:
 
     void dump(const QString& prefix = "") const;
 
+    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
+    virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
+    virtual void parentDeleted() { } // called on children of a deleted parent
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -217,10 +221,6 @@ protected:
 
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
-
-    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
-    virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
-    virtual void parentDeleted() { } // called on children of a deleted parent
 
     // _queryAACube is used to decide where something lives in the octree
     mutable AACube _queryAACube;
