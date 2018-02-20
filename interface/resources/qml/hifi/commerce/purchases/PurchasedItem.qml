@@ -182,7 +182,7 @@ Item {
         }
         HiFiGlyphs {
             id: noPermissionGlyph;
-            visible: true// !root.hasPermissionToRezThis;
+            visible: !root.hasPermissionToRezThis;
             anchors.verticalCenter: itemName.verticalCenter;
             anchors.left: itemName.right;
             anchors.leftMargin: itemName.truncated ? -14 : -2;

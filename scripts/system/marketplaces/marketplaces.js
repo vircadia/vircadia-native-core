@@ -65,7 +65,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var onMarketplaceScreen = false;
     var onCommerceScreen = false;
 
-    var debugCheckout = true;
+    var debugCheckout = false;
     var debugError = false;
     function showMarketplace() {
         if (!debugCheckout) {
