@@ -17,7 +17,6 @@
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
-#include <render/ShapePipeline.h>
 
 #include <graphics/Geometry.h>
 
@@ -33,14 +32,12 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(bool isVisible, bool isLayered, uint8_t tagBits);
+    virtual void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
     void updateTransform(const Transform& transform, const Transform& offsetTransform);
-
-    virtual void updateMaterial(graphics::MaterialPointer drawMaterial);
 
     // Render Item interface
     virtual render::ItemKey getKey() const;
@@ -51,8 +48,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch);
-    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool enableTextures) const;
-    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const;
+    virtual void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const;
 
     // Payload resource cached values
     Transform _drawTransform;
@@ -65,13 +61,16 @@ public:
     mutable graphics::Box _worldBound;
     std::shared_ptr<const graphics::Mesh> _drawMesh;
 
-    std::shared_ptr<const graphics::Material> _drawMaterial;
+    graphics::MultiMaterial _drawMaterials;
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return _drawMaterial ? _drawMaterial->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return _drawMaterial ? _drawMaterial->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureSize() : 0; }
+    int getMaterialTextureCount() { return _drawMaterials.top().material ? _drawMaterials.top().material->getTextureCount() : 0; }
+    bool hasTextureInfo() const { return _drawMaterials.top().material ? _drawMaterials.top().material->hasTextureInfo() : false; }
+
+    void addMaterial(graphics::MaterialLayer material);
+    void removeMaterial(graphics::MaterialPointer material);
 
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
@@ -99,7 +98,7 @@ public:
     using TransformType = glm::mat4;
 #endif
 
-    void updateKey(bool isVisible, bool isLayered, uint8_t tagBits) override;
+    void updateKey(bool isVisible, bool isLayered, uint8_t tagBits, bool isGroupCulled = false) override;
     void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
@@ -113,7 +112,7 @@ public:
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+    void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
 
     void computeAdjustedLocalBound(const std::vector<TransformType>& clusterTransforms);
 
