@@ -138,6 +138,7 @@ QString PathUtils::expandToAppAbsolutePath(const QString& filePath, bool localPa
     if (path.startsWith("/~/")) {
         QString absolutePath = applicationAbsolutePath();
         if (localPath) {
+            qDebug() << "PathUtils -> " << filePath;
             path.replace(0, 3, absolutePath);
         } else {
             path.replace(1, 2, absolutePath);
