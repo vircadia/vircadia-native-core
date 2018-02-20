@@ -102,6 +102,17 @@ TabView {
                 }
 
                 NewEntityButton {
+                    icon: "icons/create-icons/image.svg"
+                    text: "IMAGE"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newImageButton" }
+                        });
+                        editTabView.currentIndex = 2
+                    }
+                }
+
+                NewEntityButton {
                     icon: "icons/create-icons/25-web-1-01.svg"
                     text: "WEB"
                     onClicked: {
@@ -131,6 +142,17 @@ TabView {
                             method: "newEntityButtonClicked", params: { buttonName: "newParticleButton" }
                         });
                         editTabView.currentIndex = 4
+                    }
+                }
+
+                NewEntityButton {
+                    icon: "icons/create-icons/126-material-01.svg"
+                    text: "MATERIAL"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newMaterialButton" }
+                        });
+                        editTabView.currentIndex = 2
                     }
                 }
             }

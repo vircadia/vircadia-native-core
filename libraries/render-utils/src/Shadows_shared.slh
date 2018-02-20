@@ -11,16 +11,14 @@
 
 struct ShadowTransform {
 	MAT4 reprojection;
-
-	float bias;
+	float fixedBias;
+    float slopeBias;
     float _padding1;
     float _padding2;
-    float _padding3;
 };
 
 struct ShadowParameters {
     ShadowTransform cascades[SHADOW_CASCADE_MAX_COUNT];
-    VEC3 lightDirInViewSpace;
     int cascadeCount;
     float invMapSize;
     float invCascadeBlendWidth;

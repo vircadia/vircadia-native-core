@@ -121,13 +121,13 @@ void AvatarBookmarks::addBookmark() {
         const QVariant& avatarScale = myAvatar->getAvatarScale();
 
         // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
-        QVariantMap *bookmark = new QVariantMap;
-        bookmark->insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
-        bookmark->insert(ENTRY_AVATAR_URL, avatarUrl);
-        bookmark->insert(ENTRY_AVATAR_SCALE, avatarScale);
-        bookmark->insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
+        QVariantMap bookmark;
+        bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
+        bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+        bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
+        bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
 
-        Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
     });
 
 }

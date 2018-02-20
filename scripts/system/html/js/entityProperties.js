@@ -19,18 +19,22 @@ var ICON_FOR_TYPE = {
     ParticleEffect: "&#xe004;",
     Model: "&#xe008;",
     Web: "q",
+    Image: "&#xe02a;",
     Text: "l",
     Light: "p",
     Zone: "o",
     PolyVox: "&#xe005;",
     Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;"
+    PolyLine: "&#xe01b;",
+    Material: "&#xe00b;"
 };
 
 var EDITOR_TIMEOUT_DURATION = 1500;
 var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
+
+var MATERIAL_PREFIX_STRING = "mat::";
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -77,7 +81,6 @@ function disableProperties() {
     if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
         showStaticUserData();
     }
-
 }
 
 function showElements(els, show) {
@@ -133,6 +136,12 @@ function createEmitGroupNumberPropertyUpdateFunction(group, propertyName) {
     };
 }
 
+function createImageURLUpdateFunction(propertyName) {
+    return function () {
+        var newTextures = JSON.stringify({ "tex.picture": this.value });
+        updateProperty(propertyName, newTextures);
+    };
+}
 
 function createEmitTextPropertyUpdateFunction(propertyName) {
     return function() {
@@ -163,6 +172,17 @@ function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
         var properties = {};
         properties[group] = {};
         properties[group][propertyName] = this.value;
+        updateProperties(properties);
+    };
+}
+
+function createEmitVec2PropertyUpdateFunction(property, elX, elY) {
+    return function () {
+        var properties = {};
+        properties[property] = {
+            x: elX.value,
+            y: elY.value
+        };
         updateProperties(properties);
     };
 }
@@ -473,7 +493,6 @@ function bindAllNonJSONEditorElements() {
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
-
                 }
             }
         });
@@ -496,6 +515,18 @@ function clearSelection() {
     } else if (window.getSelection) {
         var sel = window.getSelection();
         sel.removeAllRanges();
+    }
+}
+
+function showParentMaterialNameBox(number, elNumber, elString) {
+    if (number) {
+        $('#property-parent-material-id-number-container').show();
+        $('#property-parent-material-id-string-container').hide();
+        elString.value = "";
+    } else {
+        $('#property-parent-material-id-string-container').show();
+        $('#property-parent-material-id-number-container').hide();
+        elNumber.value = 0;
     }
 }
 
@@ -621,6 +652,20 @@ function loaded() {
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
+        var elMaterialURL = document.getElementById("property-material-url");
+        //var elMaterialMappingMode = document.getElementById("property-material-mapping-mode");
+        var elPriority = document.getElementById("property-priority");
+        var elParentMaterialNameString = document.getElementById("property-parent-material-id-string");
+        var elParentMaterialNameNumber = document.getElementById("property-parent-material-id-number");
+        var elParentMaterialNameCheckbox = document.getElementById("property-parent-material-id-checkbox");
+        var elMaterialMappingPosX = document.getElementById("property-material-mapping-pos-x");
+        var elMaterialMappingPosY = document.getElementById("property-material-mapping-pos-y");
+        var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
+        var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
+        var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
+
+        var elImageURL = document.getElementById("property-image-url");
+
         var elWebSourceURL = document.getElementById("property-web-source-url");
         var elWebDPI = document.getElementById("property-web-dpi");
 
@@ -653,16 +698,16 @@ function loaded() {
         var elZoneKeyLightDirectionY = document.getElementById("property-zone-key-light-direction-y");
 
         // Skybox
-        var elZoneSkyboxModeInherit  = document.getElementById("property-zone-skybox-mode-inherit");
+        var elZoneSkyboxModeInherit = document.getElementById("property-zone-skybox-mode-inherit");
         var elZoneSkyboxModeDisabled = document.getElementById("property-zone-skybox-mode-disabled");
-        var elZoneSkyboxModeEnabled  = document.getElementById("property-zone-skybox-mode-enabled");
+        var elZoneSkyboxModeEnabled = document.getElementById("property-zone-skybox-mode-enabled");
 
         // Ambient light
         var elCopySkyboxURLToAmbientURL = document.getElementById("copy-skybox-url-to-ambient-url");
 
-        var elZoneAmbientLightModeInherit  = document.getElementById("property-zone-ambient-light-mode-inherit");
+        var elZoneAmbientLightModeInherit = document.getElementById("property-zone-ambient-light-mode-inherit");
         var elZoneAmbientLightModeDisabled = document.getElementById("property-zone-ambient-light-mode-disabled");
-        var elZoneAmbientLightModeEnabled  = document.getElementById("property-zone-ambient-light-mode-enabled");
+        var elZoneAmbientLightModeEnabled = document.getElementById("property-zone-ambient-light-mode-enabled");
 
         var elZoneAmbientLightIntensity = document.getElementById("property-zone-key-ambient-intensity");
         var elZoneAmbientLightURL = document.getElementById("property-zone-key-ambient-url");
@@ -779,7 +824,6 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
@@ -787,6 +831,17 @@ function loaded() {
 
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
+
+                        // HTML workaround since image is not yet a separate entity type
+                        var IMAGE_MODEL_NAME = 'default-image-model.fbx';
+                        if (properties.type === "Model") {
+                            var urlParts = properties.modelURL.split('/');
+                            var propsFilename = urlParts[urlParts.length - 1];
+
+                            if (propsFilename === IMAGE_MODEL_NAME) {
+                                properties.type = "Image";
+                            }
+                        }
 
                         // Create class name for css ruleset filtering
                         elPropertiesList.className = properties.type + 'Menu';
@@ -985,6 +1040,9 @@ function loaded() {
                         } else if (properties.type === "Web") {
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
+                        } else if (properties.type === "Image") {
+                            var imageLink = JSON.parse(properties.textures)["tex.picture"];
+                            elImageURL.value = imageLink;
                         } else if (properties.type === "Text") {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
@@ -1013,9 +1071,9 @@ function loaded() {
 
                         } else if (properties.type === "Zone") {
                             // Key light
-                            elZoneKeyLightModeInherit.checked  = (properties.keyLightMode === 'inherit');
+                            elZoneKeyLightModeInherit.checked = (properties.keyLightMode === 'inherit');
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
-                            elZoneKeyLightModeEnabled.checked  = (properties.keyLightMode === 'enabled');
+                            elZoneKeyLightModeEnabled.checked = (properties.keyLightMode === 'enabled');
 
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
                                                    properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
@@ -1027,22 +1085,22 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
 
                             // Skybox
-                            elZoneSkyboxModeInherit.checked  = (properties.skyboxMode === 'inherit');
+                            elZoneSkyboxModeInherit.checked = (properties.skyboxMode === 'inherit');
                             elZoneSkyboxModeDisabled.checked = (properties.skyboxMode === 'disabled');
-                            elZoneSkyboxModeEnabled.checked  = (properties.skyboxMode === 'enabled');
+                            elZoneSkyboxModeEnabled.checked = (properties.skyboxMode === 'enabled');
 
                             // Ambient light
-                            elZoneAmbientLightModeInherit.checked  = (properties.ambientLightMode === 'inherit');
+                            elZoneAmbientLightModeInherit.checked = (properties.ambientLightMode === 'inherit');
                             elZoneAmbientLightModeDisabled.checked = (properties.ambientLightMode === 'disabled');
-                            elZoneAmbientLightModeEnabled.checked  = (properties.ambientLightMode === 'enabled');
+                            elZoneAmbientLightModeEnabled.checked = (properties.ambientLightMode === 'enabled');
 
                             elZoneAmbientLightIntensity.value = properties.ambientLight.ambientIntensity.toFixed(2);
                             elZoneAmbientLightURL.value = properties.ambientLight.ambientURL;
 
                             // Haze
-                            elZoneHazeModeInherit.checked  = (properties.hazeMode === 'inherit');
+                            elZoneHazeModeInherit.checked = (properties.hazeMode === 'inherit');
                             elZoneHazeModeDisabled.checked = (properties.hazeMode === 'disabled');
-                            elZoneHazeModeEnabled.checked  = (properties.hazeMode === 'enabled');
+                            elZoneHazeModeEnabled.checked = (properties.hazeMode === 'enabled');
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
                             elZoneHazeColor.style.backgroundColor = "rgb(" + 
@@ -1105,6 +1163,25 @@ function loaded() {
                             elXTextureURL.value = properties.xTextureURL;
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
+                        } else if (properties.type === "Material") {
+                            elMaterialURL.value = properties.materialURL;
+                            //elMaterialMappingMode.value = properties.materialMappingMode;
+                            //setDropdownText(elMaterialMappingMode);
+                            elPriority.value = properties.priority;
+                            if (properties.parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
+                                elParentMaterialNameString.value = properties.parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
+                                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = false;
+                            } else {
+                                elParentMaterialNameNumber.value = parseInt(properties.parentMaterialName);
+                                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = true;
+                            }
+                            elMaterialMappingPosX.value = properties.materialMappingPos.x.toFixed(4);
+                            elMaterialMappingPosY.value = properties.materialMappingPos.y.toFixed(4);
+                            elMaterialMappingScaleX.value = properties.materialMappingScale.x.toFixed(4);
+                            elMaterialMappingScaleY.value = properties.materialMappingScale.y.toFixed(4);
+                            elMaterialMappingRot.value = properties.materialMappingRot.toFixed(2);
                         }
 
                         if (properties.locked) {
@@ -1308,15 +1385,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-color-control2').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-color-control2').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1332,15 +1409,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-light-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-light-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1351,6 +1428,8 @@ function loaded() {
         elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
 
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
+
+        elImageURL.addEventListener('change', createImageURLUpdateFunction('textures'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
         elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));
@@ -1375,6 +1454,30 @@ function loaded() {
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 
+        elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
+        //elMaterialMappingMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMappingMode'));
+        elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority', 0));
+
+        elParentMaterialNameString.addEventListener('change', function () { updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); });
+        elParentMaterialNameNumber.addEventListener('change', function () { updateProperty("parentMaterialName", this.value); });
+        elParentMaterialNameCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                updateProperty("parentMaterialName", elParentMaterialNameNumber.value);
+                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+            } else {
+                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value);
+                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+            }
+        });
+
+        var materialMappingPosChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingPos', elMaterialMappingPosX, elMaterialMappingPosY);
+        elMaterialMappingPosX.addEventListener('change', materialMappingPosChangeFunction);
+        elMaterialMappingPosY.addEventListener('change', materialMappingPosChangeFunction);
+        var materialMappingScaleChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingScale', elMaterialMappingScaleX, elMaterialMappingScaleY);
+        elMaterialMappingScaleX.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingScaleY.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingRot.addEventListener('change', createEmitNumberPropertyUpdateFunction('materialMappingRot', 2));
+
         elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
         elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));
         elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
@@ -1387,15 +1490,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-text-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-text-text-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 $(el).attr('active', 'false');
                 emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
             }
@@ -1411,15 +1514,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-background-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-text-background-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
         }));
@@ -1436,15 +1539,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
         }));
@@ -1505,15 +1608,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('hazeColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
@@ -1530,15 +1633,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('hazeGlareColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
@@ -1572,15 +1675,15 @@ function loaded() {
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
+            submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'true');
             },
             onHide: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'false');
             },
-            onSubmit: function(hsb, hex, rgb, el) {
+            onChange: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
             }
         }));
@@ -1697,12 +1800,12 @@ function loaded() {
         var isCollapsed = element.dataset.collapsed !== "true";
         element.dataset.collapsed = isCollapsed ? "true" : false;
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-        element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
+        element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
     };
 
     for (var collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
         var curCollapsibleElement = elCollapsible[collapseIndex];
-        curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
+        curCollapsibleElement.getElementsByTagName('span')[0].addEventListener("click", toggleCollapsedEvent, true);
     }
 
 
@@ -1724,7 +1827,7 @@ function loaded() {
     }
 
     // Dropdowns
-    // For each dropdown the following replacement is created in place of the oriringal dropdown...
+    // For each dropdown the following replacement is created in place of the original dropdown...
     // Structure created:
     //  <dl dropped="true/false">
     //      <dt name="?" id="?" value="?"><span>display text</span><span>carat</span></dt>

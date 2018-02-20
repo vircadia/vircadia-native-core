@@ -1,8 +1,10 @@
+#include "LimitlessConnection.h"
+
+#include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <src/InterfaceLogging.h>
 #include <src/ui/AvatarInputs.h>
-#include "LimitlessConnection.h"
 #include "LimitlessVoiceRecognitionScriptingInterface.h"
 
 LimitlessConnection::LimitlessConnection() :

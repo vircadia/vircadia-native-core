@@ -11,7 +11,7 @@
 //
 
 <@include DeferredGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include graphics/Material.slh@>
 

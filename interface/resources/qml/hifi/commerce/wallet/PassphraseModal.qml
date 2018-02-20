@@ -66,6 +66,7 @@ Item {
     MouseArea {
         anchors.fill: parent;
         propagateComposedEvents: false;
+        hoverEnabled: true;
     }
     
     // This will cause a bug -- if you bring up passphrase selection in HUD mode while

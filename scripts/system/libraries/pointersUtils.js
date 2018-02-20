@@ -30,7 +30,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
     this.halfEnd = {
         type: "sphere",
@@ -53,7 +52,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
     this.fullEnd = {
         type: "sphere",
@@ -76,7 +74,6 @@ Pointer = function(hudLayer, pickType, pointerData) {
         ignoreRayIntersection: true, // always ignore this
         drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
-        parentID: MyAvatar.SELF_ID
     };
 
     this.renderStates = [

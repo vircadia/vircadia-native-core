@@ -127,13 +127,17 @@ void OffscreenUi::removeModalDialog(QObject* modal) {
     }
 }
 
-void OffscreenUi::create() {
-    OffscreenQmlSurface::create();
-    auto myContext = getSurfaceContext();
+void OffscreenUi::onRootContextCreated(QQmlContext* qmlContext) {
+    OffscreenQmlSurface::onRootContextCreated(qmlContext);
+    qmlContext->setContextProperty("OffscreenUi", this);
+    qmlContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    qmlContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+#ifdef DEBUG
+    qmlContext->setContextProperty("DebugQML", QVariant(true));
+#else 
+    qmlContext->setContextProperty("DebugQML", QVariant(false));
+#endif
 
-    myContext->setContextProperty("OffscreenUi", this);
-    myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -336,10 +340,11 @@ class InputDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selected(QVariant)), this, SLOT(onSelected(const QVariant&)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelected()));
     }
 
 private slots:
-    void onSelected(const QVariant& result) {
+    void onSelected(const QVariant& result = "") {
         _result = result;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);
@@ -656,12 +661,6 @@ void OffscreenUi::createDesktop(const QUrl& url) {
         return;
     }
 
-#ifdef DEBUG
-    getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
-#else 
-    getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
-#endif
-
     load(url, [=](QQmlContext* context, QObject* newObject) {
         Q_UNUSED(context)
         _desktop = static_cast<QQuickItem*>(newObject);
@@ -700,10 +699,11 @@ class FileDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selectedFile(QVariant)), this, SLOT(onSelectedFile(QVariant)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelectedFile()));
     }
 
 private slots:
-    void onSelectedFile(QVariant file) {
+    void onSelectedFile(QVariant file = "") {
         _result = file.toUrl().toLocalFile();
         _finished = true;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -949,10 +949,11 @@ class AssetDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selectedAsset(QVariant)), this, SLOT(onSelectedAsset(QVariant)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelectedAsset()));
     }
 
     private slots:
-    void onSelectedAsset(QVariant asset) {
+    void onSelectedAsset(QVariant asset = "") {
         _result = asset;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);

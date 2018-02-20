@@ -448,11 +448,9 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
-.shape-section, .light-section, .model-section, .web-section, .hyperlink-section, .text-section, .zone-section {
+.shape-section, .light-section, .model-section, .web-section, .image-section, .hyperlink-section, .text-section, .zone-section, .material-section {
     display: table;
 }
-
-
 
 #properties-list fieldset {
     position: relative;
@@ -564,12 +562,14 @@ hr {
 
 .text-group[collapsed="true"] ~ .text-group,
 .zone-group[collapsed="true"] ~ .zone-group,
+.image-group[collapsed="true"] ~ .image-group,
 .web-group[collapsed="true"] ~ .web-group,
 .hyperlink-group[collapsed="true"] ~ .hyperlink-group,
 .spatial-group[collapsed="true"] ~ .spatial-group,
 .physical-group[collapsed="true"] ~ .physical-group,
 .behavior-group[collapsed="true"] ~ .behavior-group,
 .model-group[collapsed="true"] ~ .model-group,
+.material-group[collapsed="true"] ~ .material-group,
 .light-group[collapsed="true"] ~ .light-group {
     display: none !important;
 }
@@ -644,14 +644,14 @@ hr {
     margin-left: 10px;
 }
 
-.text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
+.text label, .url label, .number label, .textarea label, .xy label, .wh label, .rgb label, .xyz label,.pyr label, .dropdown label, .gen label {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
     margin-top: -2px;
 }
 
-.text legend, .url legend, .number legend, .textarea legend, .rgb legend, .xyz legend, .pyr legend, .dropdown legend, .gen legend {
+.text legend, .url legend, .number legend, .textarea legend, .xy legend, .wh legend, .rgb legend, .xyz legend, .pyr legend, .dropdown legend, .gen legend {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
@@ -666,7 +666,7 @@ hr {
     clear: both;
     float: left;
 }
-.xyz > div, .pyr > div, .gen > div {
+.xy > div, .wh > div, .xyz > div, .pyr > div, .gen > div {
     clear: both;
 }
 
@@ -840,6 +840,12 @@ div.refresh input[type="button"] {
     margin-right: -6px;
 }
 
+.xy .tuple input {
+    padding-left: 25px;
+}
+.wh .tuple input {
+    padding-left: 45px;
+}
 .rgb .tuple input {
     padding-left: 65px;
 }
@@ -1386,7 +1392,7 @@ input#reset-to-natural-dimensions {
 }
 
 
-#static-userdata{
+#static-userdata {
     display: none;
     z-index: 99;
     position: absolute;
@@ -1397,7 +1403,7 @@ input#reset-to-natural-dimensions {
     background-color: #2e2e2e;
 }
 
-#userdata-saved{
+#userdata-saved {
     margin-top:5px;
     font-size:16px;
     display:none;
@@ -1454,6 +1460,9 @@ input#reset-to-natural-dimensions {
     order: 6;
 }
 
+#properties-list.ShapeMenu #material,
+#properties-list.BoxMenu #material,
+#properties-list.SphereMenu #material,
 #properties-list.ShapeMenu #light,
 #properties-list.BoxMenu #light,
 #properties-list.SphereMenu #light,
@@ -1466,6 +1475,9 @@ input#reset-to-natural-dimensions {
 #properties-list.ShapeMenu #text,
 #properties-list.BoxMenu #text,
 #properties-list.SphereMenu #text,
+#properties-list.ShapeMenu #image,
+#properties-list.BoxMenu #image,
+#properties-list.SphereMenu #image,
 #properties-list.ShapeMenu #web,
 #properties-list.BoxMenu #web,
 #properties-list.SphereMenu #web {
@@ -1490,6 +1502,7 @@ input#reset-to-natural-dimensions {
 }
 
 /* items to hide    */
+#properties-list.ParticleEffectMenu #material,
 #properties-list.ParticleEffectMenu #base-color-section,
 #properties-list.ParticleEffectMenu #hyperlink,
 #properties-list.ParticleEffectMenu #light,
@@ -1497,6 +1510,7 @@ input#reset-to-natural-dimensions {
 #properties-list.ParticleEffectMenu #shape-list,
 #properties-list.ParticleEffectMenu #text,
 #properties-list.ParticleEffectMenu #web,
+#properties-list.ParticleEffectMenu #image,
 #properties-list.ParticleEffectMenu #zone {
     display: none;
 }
@@ -1524,9 +1538,11 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.LightMenu #material,
 #properties-list.LightMenu #model,
 #properties-list.LightMenu #zone,
 #properties-list.LightMenu #text,
+#properties-list.LightMenu #image,
 #properties-list.LightMenu #web {
     display: none;
 }
@@ -1560,9 +1576,11 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.ModelMenu #material,
 #properties-list.ModelMenu #light,
 #properties-list.ModelMenu #zone,
 #properties-list.ModelMenu #text,
+#properties-list.ModelMenu #image,
 #properties-list.ModelMenu #web {
     display: none;
 }
@@ -1596,9 +1614,11 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.ZoneMenu #material,
 #properties-list.ZoneMenu #light,
 #properties-list.ZoneMenu #model,
 #properties-list.ZoneMenu #text,
+#properties-list.ZoneMenu #image,
 #properties-list.ZoneMenu #web {
     display: none;
 }
@@ -1606,6 +1626,44 @@ input#reset-to-natural-dimensions {
 #properties-list.ZoneMenu #shape-list,
 #properties-list.ZoneMenu #base-color-section {
     display: none
+}
+
+
+/* -----   Order of Menu items for Image   ----- */
+#properties-list.ImageMenu #general {
+    order: 1;
+}
+#properties-list.ImageMenu #image {
+    order: 2;
+}
+#properties-list.ImageMenu #collision-info {
+    order: 3;
+}
+#properties-list.ImageMenu #physical {
+    order: 4;
+}
+#properties-list.ImageMenu #spatial {
+    order: 5;
+}
+#properties-list.ImageMenu #behavior {
+    order: 6;
+}
+#properties-list.ImageMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.ImageMenu #material,
+#properties-list.ImageMenu #light,
+#properties-list.ImageMenu #model,
+#properties-list.ImageMenu #zone,
+#properties-list.ImageMenu #web,
+#properties-list.ImageMenu #text {
+    display: none;
+}
+/* items to hide */
+#properties-list.ImageMenu #shape-list,
+#properties-list.ImageMenu #base-color-section {
+    display: none;
 }
 
 
@@ -1632,9 +1690,11 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.WebMenu #material,
 #properties-list.WebMenu #light,
 #properties-list.WebMenu #model,
 #properties-list.WebMenu #zone,
+#properties-list.WebMenu #image,
 #properties-list.WebMenu #text {
     display: none;
 }
@@ -1669,15 +1729,51 @@ input#reset-to-natural-dimensions {
     order: 7;
 }
 /* sections to hide    */
+#properties-list.TextMenu #material,
 #properties-list.TextMenu #light,
 #properties-list.TextMenu #model,
 #properties-list.TextMenu #zone,
+#properties-list.TextMenu #image,
 #properties-list.TextMenu #web {
     display: none;
 }
 /* items to hide */
 #properties-list.TextMenu #shape-list,
 #properties-list.TextMenu #base-color-section {
+    display: none
+}
+
+/* -----   Order of Menu items for Material   ----- */
+#properties-list.MaterialMenu #general {
+    order: 1;
+}
+#properties-list.MaterialMenu #material {
+    order: 2;
+}
+#properties-list.MaterialMenu #spatial {
+    order: 3;
+}
+#properties-list.MaterialMenu #hyperlink {
+    order: 4;
+}
+#properties-list.MaterialMenu #behavior {
+    order: 5;
+}
+
+/* sections to hide    */
+#properties-list.MaterialMenu #physical,
+#properties-list.MaterialMenu #collision-info,
+#properties-list.MaterialMenu #model,
+#properties-list.MaterialMenu #light,
+#properties-list.MaterialMenu #zone,
+#properties-list.MaterialMenu #text,
+#properties-list.MaterialMenu #web,
+#properties-list.MaterialMenu #image {
+    display: none;
+}
+/* items to hide */
+#properties-list.MaterialMenu #shape-list,
+#properties-list.MaterialMenu #base-color-section {
     display: none
 }
 

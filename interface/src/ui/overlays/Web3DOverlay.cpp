@@ -72,6 +72,14 @@ Web3DOverlay::Web3DOverlay() {
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
+
+    //need to be intialized before Tablet 1st open
+    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(_url);
+    _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+    _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+    _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -126,7 +134,11 @@ void Web3DOverlay::destroyWebSurface() {
 
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
+    auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+    if (offscreenCache) {
+        offscreenCache->release(QML, _webSurface);
+    }
     _webSurface.reset();
 }
 

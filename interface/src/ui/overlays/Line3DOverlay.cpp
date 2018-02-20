@@ -63,7 +63,7 @@ glm::vec3 Line3DOverlay::getEnd() const {
     localEnd = getLocalEnd();
     worldEnd = localToWorld(localEnd, getParentID(), getParentJointIndex(), getScalesWithParent(), success);
     if (!success) {
-        qDebug() << "Line3DOverlay::getEnd failed";
+        qDebug() << "Line3DOverlay::getEnd failed, parentID = " << getParentID();
     }
     return worldEnd;
 }

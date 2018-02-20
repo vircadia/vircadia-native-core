@@ -55,13 +55,16 @@ public:
 
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);
     virtual void onRemoveFromScene(const EntityItemPointer& entity);
 
-protected:
     EntityRenderer(const EntityItemPointer& entity);
     ~EntityRenderer();
 
@@ -126,11 +129,14 @@ protected:
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };
     bool _visible { false };
+    bool _cauterized { false };
     bool _moving { false };
     bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
 
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 private:
     // The base class relies on comparing the model transform to the entity transform in order 

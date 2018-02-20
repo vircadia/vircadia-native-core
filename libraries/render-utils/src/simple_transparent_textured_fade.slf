@@ -16,7 +16,7 @@
 
 <@include DeferredBufferWrite.slh@>
 <@include DeferredGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
