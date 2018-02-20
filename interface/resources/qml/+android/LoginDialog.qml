@@ -53,7 +53,7 @@ ModalWindow {
     Component.onCompleted: {
         this.anchors.centerIn = undefined;
         this.y=150;
-        this.x=450;
+        this.x=(parent.width - this.width)/2;
     }
 
     Keys.onPressed: {
