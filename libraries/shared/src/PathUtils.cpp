@@ -133,10 +133,15 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
 }
 
-QString PathUtils::expandToAppAbsolutePath(const QString& filePath) {
+QString PathUtils::expandToAppAbsolutePath(const QString& filePath, bool localPath) {
     QString path = filePath;
     if (path.startsWith("/~/")) {
-        path.replace(1, 2, applicationAbsolutePath());
+        QString absolutePath = applicationAbsolutePath();
+        if (localPath) {
+            path.replace(0, 3, absolutePath);
+        } else {
+            path.replace(1, 2, absolutePath);
+        }
     }
     return path;
 }

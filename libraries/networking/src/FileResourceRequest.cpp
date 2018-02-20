@@ -17,6 +17,7 @@
 
 #include <StatTracker.h>
 #include <shared/FileUtils.h>
+#include <pathUtils.h>
 
 #include "ResourceManager.h"
 
@@ -28,7 +29,7 @@ void FileResourceRequest::doSend() {
     if (_url.scheme() == URL_SCHEME_QRC) {
         filename = ":/" + _url.path();
     } else {
-        filename = _url.toLocalFile();
+        filename = PathUtils::expandToAppAbsolutePath(_url.toLocalFile(), true);
         // sometimes on windows, we see the toLocalFile() return null,
         // in this case we will attempt to simply use the url as a string
         if (filename.isEmpty()) {
