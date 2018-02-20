@@ -126,14 +126,18 @@ public:
     // Resource Stage
     virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceFramebufferRingTexture(const Batch& batch, size_t paramOffset) final;
 
     // Pipeline Stage
     virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Output stage
     virtual void do_setFramebuffer(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setFramebufferRing(const Batch& batch, size_t paramOffset) final;
     virtual void do_clearFramebuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_blit(const Batch& batch, size_t paramOffset) = 0;
+
+    virtual void do_advance(const Batch& batch, size_t paramOffset) final;
 
     // Query section
     virtual void do_beginQuery(const Batch& batch, size_t paramOffset) final;
@@ -245,6 +249,8 @@ protected:
     void setupStereoSide(int side);
 #endif
 
+    virtual void setResourceTexture(unsigned int slot, const TexturePointer& resourceTexture);
+    virtual void setFramebuffer(const FramebufferPointer& framebuffer);
     virtual void initInput() final;
     virtual void killInput() final;
     virtual void syncInputStateCache() final;

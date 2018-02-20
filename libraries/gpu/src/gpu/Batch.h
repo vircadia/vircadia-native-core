@@ -187,7 +187,7 @@ public:
 
     void setResourceTexture(uint32 slot, const TexturePointer& texture);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
-    void setResourceFramebufferRingTexture(uint32 slot, const FramebufferRingPointer& framebuffer, unsigned int ringIndex); // not a command, just a shortcut from a TextureView
+    void setResourceFramebufferRingTexture(uint32 slot, const FramebufferRingPointer& framebuffer, unsigned int ringIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
 
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
