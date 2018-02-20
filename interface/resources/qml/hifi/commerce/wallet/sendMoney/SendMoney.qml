@@ -923,7 +923,7 @@ Item {
             anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 20;
-            height: 140;
+            height: 95;
                 
             FontLoader { id: firaSansSemiBold; source: "../../../../../fonts/FiraSans-SemiBold.ttf"; }
             TextArea {
