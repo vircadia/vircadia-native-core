@@ -947,8 +947,14 @@ Item {
                 wrapMode: TextEdit.Wrap;
                 activeFocusOnPress: true;
                 activeFocusOnTab: true;
-                // Workaround for no max length on TextAreas
                 onTextChanged: {
+                    // Don't allow tabs or newlines
+                    if ((/[\n\r\t]/g).test(text)) {
+                        var cursor = cursorPosition;
+                        text = text.replace(/[\n\r\t]/g, '');
+                        cursorPosition = cursor-1;
+                    }
+                    // Workaround for no max length on TextAreas
                     if (text.length > maximumLength) {
                         var cursor = cursorPosition;
                         text = previousText;
