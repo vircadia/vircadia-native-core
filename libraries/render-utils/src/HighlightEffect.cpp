@@ -453,6 +453,10 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
             }
         }
     }
+
+    if (numLayers == 0) {
+        renderContext->taskFlow.abortTask();
+    }
 }
 
 void ExtractSelectionName::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
