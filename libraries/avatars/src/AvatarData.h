@@ -54,6 +54,8 @@
 #include "HeadData.h"
 #include "PathUtils.h"
 
+#include <graphics/Material.h>
+
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
@@ -693,6 +695,9 @@ public:
     float getDensity() const { return _density; }
 
     bool getIsReplicated() const { return _isReplicated; }
+
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
 
 signals:
     void displayNameChanged();

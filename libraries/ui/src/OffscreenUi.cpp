@@ -340,10 +340,11 @@ class InputDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selected(QVariant)), this, SLOT(onSelected(const QVariant&)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelected()));
     }
 
 private slots:
-    void onSelected(const QVariant& result) {
+    void onSelected(const QVariant& result = "") {
         _result = result;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);
@@ -698,10 +699,11 @@ class FileDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selectedFile(QVariant)), this, SLOT(onSelectedFile(QVariant)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelectedFile()));
     }
 
 private slots:
-    void onSelectedFile(QVariant file) {
+    void onSelectedFile(QVariant file = "") {
         _result = file.toUrl().toLocalFile();
         _finished = true;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -947,10 +949,11 @@ class AssetDialogListener : public ModalDialogListener {
             return;
         }
         connect(_dialog, SIGNAL(selectedAsset(QVariant)), this, SLOT(onSelectedAsset(QVariant)));
+        connect(_dialog, SIGNAL(canceled()), this, SLOT(onSelectedAsset()));
     }
 
     private slots:
-    void onSelectedAsset(QVariant asset) {
+    void onSelectedAsset(QVariant asset = "") {
         _result = asset;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);

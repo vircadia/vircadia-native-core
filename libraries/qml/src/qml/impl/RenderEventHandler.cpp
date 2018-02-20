@@ -58,6 +58,7 @@ void RenderEventHandler::onInitalize() {
         return;
     }
 
+    _canvas.setThreadContext();
     if (!_canvas.makeCurrent()) {
         qFatal("Unable to make QML rendering context current on render thread");
     }

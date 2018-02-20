@@ -485,7 +485,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     if (_threadedSubmit) {
         _submitThread = std::make_shared<OpenVrSubmitThread>(*this);
         if (!_submitCanvas) {
-            withMainThreadContext([&] {
+            withOtherThreadContext([&] {
                 _submitCanvas = std::make_shared<gl::OffscreenContext>();
                 _submitCanvas->create();
                 _submitCanvas->doneCurrent();

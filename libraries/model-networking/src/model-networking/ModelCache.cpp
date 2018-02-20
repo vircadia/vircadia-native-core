@@ -425,7 +425,7 @@ bool Geometry::areTexturesLoaded() const {
     return true;
 }
 
-const std::shared_ptr<const NetworkMaterial> Geometry::getShapeMaterial(int partID) const {
+const std::shared_ptr<NetworkMaterial> Geometry::getShapeMaterial(int partID) const {
     if ((partID >= 0) && (partID < (int)_meshParts->size())) {
         int materialID = _meshParts->at(partID)->materialID;
         if ((materialID >= 0) && (materialID < (int)_materials.size())) {
@@ -491,6 +491,15 @@ void GeometryResourceWatcher::resourceRefreshed() {
     // _instance.reset();
 }
 
+NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :
+    Material(m),
+    _textures(m._textures),
+    _albedoTransform(m._albedoTransform),
+    _lightmapTransform(m._lightmapTransform),
+    _lightmapParams(m._lightmapParams),
+    _isOriginal(m._isOriginal)
+{}
+
 const QString NetworkMaterial::NO_TEXTURE = QString();
 
 const QString& NetworkMaterial::getTextureName(MapChannel channel) {
@@ -532,19 +541,85 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl
 }
 
 graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type);
-    _textures[channel].texture = texture;
+    auto textureCache = DependencyManager::get<TextureCache>();
+    if (textureCache) {
+        auto texture = textureCache->getTexture(url, type);
+        _textures[channel].texture = texture;
 
-    auto map = std::make_shared<graphics::TextureMap>();
-    map->setTextureSource(texture->_textureSource);
+        auto map = std::make_shared<graphics::TextureMap>();
+        if (texture) {
+            map->setTextureSource(texture->_textureSource);
+        }
 
-    return map;
+        return map;
+    }
+    return nullptr;
+}
+
+void NetworkMaterial::setAlbedoMap(const QString& url, bool useAlphaChannel) {
+    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
+    if (map) {
+        map->setUseAlphaChannel(useAlphaChannel);
+        setTextureMap(MapChannel::ALBEDO_MAP, map);
+    }
+}
+
+void NetworkMaterial::setNormalMap(const QString& url, bool isBumpmap) {
+    auto map = fetchTextureMap(QUrl(url), isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
+    if (map) {
+        setTextureMap(MapChannel::NORMAL_MAP, map);
+    }
+}
+
+void NetworkMaterial::setRoughnessMap(const QString& url, bool isGloss) {
+    auto map = fetchTextureMap(QUrl(url), isGloss ? image::TextureUsage::GLOSS_TEXTURE : image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
+    if (map) {
+        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
+    }
+}
+
+void NetworkMaterial::setMetallicMap(const QString& url, bool isSpecular) {
+    auto map = fetchTextureMap(QUrl(url), isSpecular ? image::TextureUsage::SPECULAR_TEXTURE : image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
+    if (map) {
+        setTextureMap(MapChannel::METALLIC_MAP, map);
+    }
+}
+
+void NetworkMaterial::setOcclusionMap(const QString& url) {
+    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
+    if (map) {
+        setTextureMap(MapChannel::OCCLUSION_MAP, map);
+    }
+}
+
+void NetworkMaterial::setEmissiveMap(const QString& url) {
+    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
+    if (map) {
+        setTextureMap(MapChannel::EMISSIVE_MAP, map);
+    }
+}
+
+void NetworkMaterial::setScatteringMap(const QString& url) {
+    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
+    if (map) {
+        setTextureMap(MapChannel::SCATTERING_MAP, map);
+    }
+}
+
+void NetworkMaterial::setLightmapMap(const QString& url) {
+    auto map = fetchTextureMap(QUrl(url), image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+    if (map) {
+        //map->setTextureTransform(_lightmapTransform);
+        //map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
+        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
+    }
 }
 
 NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) :
-    graphics::Material(*material._material)
+    graphics::Material(*material._material),
+    _textures(MapChannel::NUM_MAP_CHANNELS)
 {
-    _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
+    _name = material.name.toStdString();
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
         _albedoTransform = material.albedoTexture.transform;
@@ -653,6 +728,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!occlusionName.isEmpty()) {
         auto url = textureMap.contains(occlusionName) ? textureMap[occlusionName].toUrl() : QUrl();
+        // FIXME: we need to handle the occlusion map transform here
         auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
         setTextureMap(MapChannel::OCCLUSION_MAP, map);
     }

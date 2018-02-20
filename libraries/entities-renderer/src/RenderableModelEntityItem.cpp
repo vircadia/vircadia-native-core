@@ -985,6 +985,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
         return;
     }
 
+    bool changed { false };
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {
         for (int index = 0; index < _localJointData.size(); ++index) {
@@ -992,13 +993,21 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
             if (jointData.rotationDirty) {
                 model->setJointRotation(index, true, jointData.joint.rotation, 1.0f);
                 jointData.rotationDirty = false;
+                changed = true;
             }
             if (jointData.translationDirty) {
                 model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
                 jointData.translationDirty = false;
+                changed = true;
             }
         }
     });
+
+    if (changed) {
+        forEachChild([&](SpatiallyNestablePointer object) {
+            object->locationChanged(false);
+        });
+    }
 }
 
 using namespace render;
@@ -1343,7 +1352,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene, viewTaskBits);
+        model->setVisibleInScene(_visible, scene, viewTaskBits, false);
     }
     // TODO? early exit here when not visible?
 
@@ -1380,6 +1389,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
             });
+            processMaterials();
         }
     }
 
@@ -1466,3 +1476,28 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStr
     }
 }
 
+void ModelEntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    Parent::addMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->addMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    Parent::removeMaterial(material, parentMaterialName);
+    if (_model && _model->fetchRenderItemIDs().size() > 0) {
+        _model->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void ModelEntityRenderer::processMaterials() {
+    assert(_model);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _model->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
+    }
+}
