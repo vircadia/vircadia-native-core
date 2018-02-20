@@ -35,6 +35,8 @@ public:
     // Create a full backup
     void consolidateBackup(const QString& backupName, QuaZip& zip) override {}
 
+    bool isCorruptedBackup(const QString& absoluteFilePath) override { return false; }
+
 private:
     QString _entitiesFilePath;
     QString _entitiesReplacementFilePath;

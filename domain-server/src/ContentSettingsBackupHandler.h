@@ -31,6 +31,9 @@ public:
     void deleteBackup(const QString& backupName) override {}
 
     void consolidateBackup(const QString& backupName, QuaZip& zip) override {}
+
+    bool isCorruptedBackup(const QString& absoluteFilePath) override { return true; }
+
 private:
     DomainServerSettingsManager& _settingsManager;
 };

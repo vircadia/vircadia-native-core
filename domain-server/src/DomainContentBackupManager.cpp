@@ -363,6 +363,7 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
 
     for (auto& backup : backups) {
         bool isAvailable { true };
+        bool isCorrupted { false };
         float availabilityProgress { 0.0f };
         for (auto& handler : _backupHandlers) {
             bool handlerIsAvailable { true };
@@ -370,6 +371,8 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
             std::tie(handlerIsAvailable, progress) = handler->isAvailable(backup.id);
             isAvailable &= handlerIsAvailable;
             availabilityProgress += progress / _backupHandlers.size();
+
+            isCorrupted = isCorrupted || handler->isCorruptedBackup(backup.absolutePath);
         }
         variantBackups.push_back(QVariantMap({
             { "id", backup.id },
@@ -377,7 +380,8 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
             { "createdAtMillis", backup.createdAt.toMSecsSinceEpoch() },
             { "isAvailable", isAvailable },
             { "availabilityProgress", availabilityProgress },
-            { "isManualBackup", backup.isManualBackup }
+            { "isManualBackup", backup.isManualBackup },
+            { "isCorrupted", isCorrupted }
         }));
     }
 
