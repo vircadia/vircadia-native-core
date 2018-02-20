@@ -48,7 +48,7 @@ bool ModelScriptingInterface::updateMeshes(QUuid uuid, const scriptable::Scripta
 
 bool ModelScriptingInterface::updateMeshes(QUuid uuid, const scriptable::ScriptableModelPointer model) {
     auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>();
-    qCDebug(graphics_scripting) << "appProvider" << appProvider.data();
+    //qCDebug(graphics_scripting) << "appProvider" << appProvider.data();
     scriptable::ModelProviderPointer provider = appProvider ? appProvider->lookupModelProvider(uuid) : nullptr;
     QString providerType = provider ? provider->metadata.value("providerType").toString() : QString();
     if (providerType.isEmpty()) {
@@ -56,12 +56,12 @@ bool ModelScriptingInterface::updateMeshes(QUuid uuid, const scriptable::Scripta
     }
     bool success = false;
     if (provider) {
-        qCDebug(graphics_scripting) << "fetching meshes from " << providerType << "...";
+        //qCDebug(graphics_scripting) << "fetching meshes from " << providerType << "...";
         auto scriptableMeshes = provider->getScriptableModel(&success);
-        qCDebug(graphics_scripting) << "//fetched meshes from " << providerType << "success:" <<success << "#" << scriptableMeshes.meshes.size();
+        //qCDebug(graphics_scripting) << "//fetched meshes from " << providerType << "success:" <<success << "#" << scriptableMeshes.meshes.size();
         if (success) {
             const scriptable::ScriptableModelBasePointer base = model->operator scriptable::ScriptableModelBasePointer();
-            qCDebug(graphics_scripting) << "as base" << base;
+            //qCDebug(graphics_scripting) << "as base" << base;
             if (base) {
                 //auto meshes = model->getConstMeshes();
                 success = provider->replaceScriptableModelMeshPart(base, -1, -1);

@@ -1,3 +1,4 @@
+
 //
 //  Avatar.h
 //  interface/src/avatar
@@ -20,7 +21,7 @@
 #include <AvatarData.h>
 #include <ShapeInfo.h>
 #include <render/Scene.h>
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
 
@@ -274,7 +275,7 @@ public:
     virtual void setAvatarEntityDataChanged(bool value) override;
 
 
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

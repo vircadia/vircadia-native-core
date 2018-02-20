@@ -113,7 +113,7 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
 
 private:
     bool updateOnCount(const ivec3& v, uint8_t toValue);
@@ -163,7 +163,7 @@ class PolyVoxEntityRenderer : public TypedEntityRenderer<RenderablePolyVoxEntity
 
 public:
     PolyVoxEntityRenderer(const EntityItemPointer& entity);
-    virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override {
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override {
         return asTypedEntity<RenderablePolyVoxEntityItem>()->getScriptableModel(ok);
     }
     

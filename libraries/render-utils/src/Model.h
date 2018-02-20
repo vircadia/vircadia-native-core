@@ -27,7 +27,7 @@
 #include <gpu/Batch.h>
 #include <render/Forward.h>
 #include <render/Scene.h>
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
 #include <TriangleSet.h>
@@ -314,7 +314,8 @@ public:
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
-    Q_INVOKABLE virtual scriptable::ScriptableModel getScriptableModel(bool* ok = nullptr) override;
+    Q_INVOKABLE virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
 

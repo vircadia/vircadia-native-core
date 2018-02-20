@@ -157,8 +157,8 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     args->_details._trianglesRendered += (int)triCount;
 }
 
-scriptable::ScriptableModel ShapeEntityRenderer::getScriptableModel(bool* ok)  {
-    scriptable::ScriptableModel result;
+scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel(bool* ok)  {
+    scriptable::ScriptableModelBase result;
     result.metadata = {
         { "entityID", getEntity()->getID().toString() },
         { "shape", entity::stringFromShape(_shape) },
@@ -169,7 +169,10 @@ scriptable::ScriptableModel ShapeEntityRenderer::getScriptableModel(bool* ok)  {
     auto vertexColor = glm::vec3(_color);
     auto success = false;
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
-        result.meshes << mesh;
+        scriptable::ScriptableMeshBase base{ mesh, {
+            { "shape", entity::stringFromShape(_shape) },
+        }};
+        result.append(base);
         success = true;
     }
     if (ok) {

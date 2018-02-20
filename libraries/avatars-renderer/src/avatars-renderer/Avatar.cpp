@@ -35,7 +35,7 @@
 #include "ModelEntityItem.h"
 #include "RenderableModelEntityItem.h"
 
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 
 #include "Logging.h"
 
@@ -1763,24 +1763,24 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     }
 }
 
-scriptable::ScriptableModel Avatar::getScriptableModel(bool* ok) {
+scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
     qDebug() << "Avatar::getScriptableModel" ;
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
-    scriptable::ScriptableModel result;
-    result.metadata = {
+    scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
+    result.objectID = getSessionUUID(); 
+    result.mixin({
         { "avatarID", getSessionUUID().toString() },
         { "url", _skeletonModelURL.toString() },
         { "origin", "Avatar/avatar::" + _displayName },
         { "textures", _skeletonModel->getTextures() },
-    };
-    result.mixin(_skeletonModel->getScriptableModel(ok));
-
-    // FIXME: for now access to attachment models are merged with the main avatar model
-    for (auto& attachmentModel : _attachmentModels) {
-        if (attachmentModel->isLoaded()) {
-            result.mixin(attachmentModel->getScriptableModel(ok));
+    });
+    // FIXME: for now access to attachment models are merged into the main avatar ScriptableModel set
+    for (int i = 0; i < (int)_attachmentModels.size(); i++) {
+        auto& model = _attachmentModels.at(i);
+        if (model->isLoaded()) {
+            result.append(model->getScriptableModel(ok), _attachmentData.at(i).toVariant().toMap());
         }
     }
     if (ok) {

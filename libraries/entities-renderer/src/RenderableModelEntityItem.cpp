@@ -962,7 +962,6 @@ scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScript
 }
 
 bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
-    qCDebug(entitiesrenderer) << "REPLACING RenderableModelEntityItem" << newModel->objectName();
     ModelPointer model;
     withReadLock([&] { model = _model; });
 
@@ -970,7 +969,7 @@ bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scrip
         return false;
     }
 
-   return _model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
+   return model->replaceScriptableModelMeshPart(newModel, meshIndex, partIndex);
 }
 
 void RenderableModelEntityItem::simulateRelayedJoints() {

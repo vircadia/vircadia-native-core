@@ -2448,7 +2448,8 @@ graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec
     auto partBuffer = new gpu::Buffer(sizeof(graphics::Mesh::Part), (gpu::Byte*)&part);
     mesh->setPartBuffer(gpu::BufferView(partBuffer, gpu::Element::PART_DRAWCALL));
 
-    mesh->displayName = QString("GeometryCache/shape::%1").arg(GeometryCache::stringFromShape(geometryShape));
+    mesh->modelName = GeometryCache::stringFromShape(geometryShape).toStdString();
+    mesh->displayName = QString("GeometryCache/shape::%1").arg(GeometryCache::stringFromShape(geometryShape)).toStdString();
 
     return mesh;
 }

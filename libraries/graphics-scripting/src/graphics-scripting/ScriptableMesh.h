@@ -100,7 +100,7 @@ namespace scriptable {
         ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex);
         ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
         ScriptableMeshPart(const ScriptableMeshPart& other) : parentMesh(other.parentMesh), partIndex(other.partIndex) {}
-        ~ScriptableMeshPart() { qDebug() << "~ScriptableMeshPart" << this; }
+        // ~ScriptableMeshPart() { qDebug() << "~ScriptableMeshPart" << this; }
 
     public slots:
         scriptable::ScriptableMeshPointer getParentMesh() const { return parentMesh; }

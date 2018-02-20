@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QLoggingCategory>
+namespace { QLoggingCategory wtf{ "tim.Model.cpp" }; }
+
+
 #include "Model.h"
 
 #include <QMetaType>
@@ -26,7 +30,7 @@
 #include <GLMHelpers.h>
 #include <TBBHelpers.h>
 
-#include <graphics-scripting/ScriptableModel.h>
+#include <graphics-scripting/Forward.h>
 #include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
@@ -75,7 +79,7 @@ void initCollisionMaterials() {
             graphics::MaterialPointer material;
             material = std::make_shared<graphics::Material>();
             int index = j * sectionWidth + i;
-            float red = component[index];
+            float red = component[index % NUM_COLLISION_HULL_COLORS];
             float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
             float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
             material->setAlbedo(glm::vec3(red, green, blue));
@@ -573,35 +577,109 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-scriptable::ScriptableModel Model::getScriptableModel(bool* ok) {
-    scriptable::ScriptableModel result;
+// FIXME: temporary workaround that updates the whole FBXGeometry (to keep findRayIntersection in sync)
+#include "Model_temporary_hack.cpp.h"
+
+bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer _newModel, int meshIndex, int partIndex) {
+    QMutexLocker lock(&_mutex);
+
+    if (!isLoaded()) {
+        return false;
+    }
+
+    {
+        // FIXME: temporary workaround for updating the whole FBXGeometry (to keep findRayIntersection in sync)
+        auto newRenderGeometry = new MyGeometryMappingResource(
+            _url, _renderGeometry, _newModel ? scriptable::make_qtowned<scriptable::ScriptableModelBase>(*_newModel) : nullptr
+            );
+        _needsUpdateTextures = true;
+        _visualGeometryRequestFailed = false;
+        invalidCalculatedMeshBoxes();
+        deleteGeometry();
+        _renderGeometry.reset(newRenderGeometry);
+        onInvalidate();
+        reset();
+        _rig.destroyAnimGraph();
+        assert(_rig.jointStatesEmpty());
+        updateGeometry();
+        calculateTriangleSets();
+        computeMeshPartLocalBounds();
+        _needsReload = false;
+        _needsFixupInScene = true;
+        invalidCalculatedMeshBoxes();
+        setRenderItemsNeedUpdate();
+    }
+    return true;
+}
+
+scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
+    QMutexLocker lock(&_mutex);
+    scriptable::ScriptableModelBase result;
     const Geometry::Pointer& renderGeometry = getGeometry();
 
     if (!isLoaded()) {
-        qDebug() << "Model::getScriptableModel -- !isLoaded";
+        qCDebug(wtf) << "Model::getScriptableModel -- !isLoaded";
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
     const FBXGeometry& geometry = getFBXGeometry();
-    auto mat4toVariant = [](const glm::mat4& mat4) -> QVariant {
-        QVector<float> floats;
-        floats.resize(16);
-        memcpy(floats.data(), &mat4, sizeof(glm::mat4));
-        QVariant v;
-        v.setValue<QVector<float>>(floats);
-        return v;
-    };
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+    glm::mat4 offsetMat = offset.getMatrix();
+    glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+    glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
     result.metadata = {
         { "url", _url.toString() },
         { "textures", renderGeometry->getTextures() },
         { "offset", vec3toVariant(_offset) },
-        { "scale", vec3toVariant(_scale) },
-        { "rotation", quatToVariant(_rotation) },
-        { "translation", vec3toVariant(_translation) },
-        { "meshToModel", mat4toVariant(glm::scale(_scale) * glm::translate(_offset)) },
-        { "meshToWorld", mat4toVariant(createMatFromQuatAndPos(_rotation, _translation) * (glm::scale(_scale) * glm::translate(_offset))) },
-        { "geometryOffset", mat4toVariant(geometry.offset) },
+        { "scale", vec3toVariant(getScale()) },
+        { "rotation", quatToVariant(getRotation()) },
+        { "translation", vec3toVariant(getTranslation()) },
+        { "meshToModel", buffer_helpers::toVariant(meshToModelMatrix) },
+        { "meshToWorld", buffer_helpers::toVariant(meshToWorldMatrix) },
+        { "geometryOffset", buffer_helpers::toVariant(geometry.offset) },
+        { "naturalDimensions", vec3toVariant(getNaturalDimensions()) },
+        { "meshExtents", buffer_helpers::toVariant(getMeshExtents()) },
+        { "unscaledMeshExtents", buffer_helpers::toVariant(getUnscaledMeshExtents()) },
+        { "meshBound", buffer_helpers::toVariant(Extents(getRenderableMeshBound())) },
+        { "bindExtents", buffer_helpers::toVariant(getBindExtents()) },
+        { "offsetMat", buffer_helpers::toVariant(offsetMat) },
+        { "transform", buffer_helpers::toVariant(getTransform().getMatrix()) },
     };
+    {
+        Transform transform;
+        transform.setScale(getScale());
+        transform.setTranslation(getTranslation());
+        transform.setRotation(getRotation());
+        result.metadata["_transform"] = buffer_helpers::toVariant(transform.getMatrix());
+    }
+    {
+        glm::vec3 position = _translation;
+        glm::mat4 rotation = glm::mat4_cast(_rotation);
+        glm::mat4 translation = glm::translate(position);
+        glm::mat4 modelToWorldMatrix = translation * rotation;
+        //glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+        result.metadata["_modelToWorld"] = buffer_helpers::toVariant(modelToWorldMatrix);
+    }
+    {
+        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
+        //glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
+        result.metadata["_meshToWorld"] = buffer_helpers::toVariant(meshToWorldMatrix);
+    }
+    {
+        Transform transform;
+        transform.setTranslation(_translation);
+        transform.setRotation(_rotation);
+        Transform offset;
+        offset.setScale(_scale);
+        offset.postTranslate(_offset);
+        Transform output;
+        Transform::mult( output, transform, offset);
+        result.metadata["_renderTransform"] = buffer_helpers::toVariant(output.getMatrix());
+    }        
+
     QVariantList submeshes;
     int numberOfMeshes = geometry.meshes.size();
     for (int i = 0; i < numberOfMeshes; i++) {
@@ -610,53 +688,43 @@ scriptable::ScriptableModel Model::getScriptableModel(bool* ok) {
         if (!mesh) {
             continue;
         }
-        result.meshes << std::const_pointer_cast<graphics::Mesh>(mesh);
-        auto extraInfo = geometry.getModelNameOfMesh(i);
-        qDebug() << "Model::getScriptableModel #" << i << QString(mesh->displayName) << extraInfo;
-        submeshes << QVariantMap{
+        auto name = geometry.getModelNameOfMesh(i);
+        qCDebug(wtf) << "Model::getScriptableModel #" << i << QString::fromStdString(mesh->displayName) << name;
+        const AABox& box = _modelSpaceMeshTriangleSets.value(i).getBounds();
+        AABox hardbounds;
+        auto meshTransform = geometry.offset * fbxMesh.modelTransform;
+        for (const auto& v : fbxMesh.vertices) {
+            hardbounds += glm::vec3(meshTransform * glm::vec4(v,1));
+        }
+        QVariantList renderIDs;
+        for (uint32_t m = 0; m <  _modelMeshRenderItemIDs.size(); m++) {
+            auto meshIndex = _modelMeshRenderItemShapes.size() > m ? _modelMeshRenderItemShapes.at(m).meshIndex : -1;
+            if (meshIndex == i) {
+                renderIDs << _modelMeshRenderItemIDs[m];
+                break;
+            }
+        }
+
+        result.append(std::const_pointer_cast<graphics::Mesh>(mesh), {
             { "index", i },
+            { "name", name },
+            { "renderIDs", renderIDs },
             { "meshIndex", fbxMesh.meshIndex },
-            { "modelName", extraInfo },
-            { "transform", mat4toVariant(fbxMesh.modelTransform) },
-            { "extents", QVariantMap({
-                { "minimum", vec3toVariant(fbxMesh.meshExtents.minimum) },
-                { "maximum", vec3toVariant(fbxMesh.meshExtents.maximum) },
-            })},
-        };
+            { "displayName", QString::fromStdString(mesh->displayName) },
+            { "modelName", QString::fromStdString(mesh->modelName) },
+            { "modelTransform", buffer_helpers::toVariant(fbxMesh.modelTransform) },
+            { "transform", buffer_helpers::toVariant(geometry.offset * fbxMesh.modelTransform) },
+            { "extents", buffer_helpers::toVariant(fbxMesh.meshExtents) },
+            { "bounds", buffer_helpers::toVariant(Extents(box)) },
+            { "hardbounds", buffer_helpers::toVariant(Extents(hardbounds)) },
+                });
     }
     if (ok) {
         *ok = true;
     }
-    qDebug() << "//Model::getScriptableModel -- #" << result.meshes.size();
+    qCDebug(wtf) << "//Model::getScriptableModel -- #" << result.meshes.size();
     result.metadata["submeshes"] = submeshes;
     return result;
-
-// TODO: remove -- this was an earlier approach using renderGeometry instead of FBXGeometry
-#if 0 // renderGeometry approach
-    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
-    Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
-    glm::mat4 offsetMat = offset.getMatrix();
-
-    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
-        if (!mesh) {
-            continue;
-        }
-        qDebug() << "Model::getScriptableModel #" << i++ << mesh->displayName;
-        auto newmesh = mesh->map(
-            [=](glm::vec3 position) {
-                return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
-            },
-            [=](glm::vec3 color) { return color; },
-            [=](glm::vec3 normal) {
-                return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
-            },
-            [&](uint32_t index) { return index; });
-        newmesh->displayName = mesh->displayName;
-        result << newmesh;
-    }
-#endif
 }
 
 void Model::calculateTriangleSets() {

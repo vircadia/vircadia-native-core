@@ -28,6 +28,8 @@
 
 #include "OBJWriter.h"
 
+// #define SCRIPTABLE_MESH_DEBUG
+
 namespace scriptable {
     // QScriptValue jsBindCallback(QScriptValue callback);
     // template <typename T> QPointer<T> qpointer_qobject_cast(const QScriptValue& value);
@@ -287,7 +289,9 @@ quint32 scriptable::ScriptableMesh::mapAttributeValues(QScriptValue _callback) {
         return 0;
     }
     auto meshPart = js ? js->toScriptValue(getSelf()) : QScriptValue::NullValue;
+#ifdef SCRIPTABLE_MESH_DEBUG
     qCInfo(graphics_scripting) << "mapAttributeValues" << mesh.get() << js->currentContext()->thisObject().toQObject();
+#endif
     auto obj = js->newObject();
     auto attributeViews = buffer_helpers::gatherBufferViews(mesh, { "normal", "color" });
     metadata["last-modified"] = QDateTime::currentDateTime().toTimeSpec(Qt::OffsetFromUTC).toString(Qt::ISODate);
@@ -328,9 +332,10 @@ quint32 scriptable::ScriptableMeshPart::mapAttributeValues(QScriptValue callback
 }
 
 bool scriptable::ScriptableMeshPart::unrollVertices(bool recalcNormals) {
-    auto meshProxy = this;
     auto mesh = getMeshPointer();
+#ifdef SCRIPTABLE_MESH_DEBUG
     qCInfo(graphics_scripting) << "ScriptableMeshPart::unrollVertices" << !!mesh<< !!meshProxy;
+#endif
     if (!mesh) {
         return false;
     }
@@ -527,28 +532,32 @@ scriptable::ScriptableMeshPointer scriptable::ScriptableMesh::cloneMesh(bool rec
         qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh -- !meshPointer";
         return nullptr;
     }
-    qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
+    // qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
     auto clone = buffer_helpers::cloneMesh(mesh);
     
-    qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
+    // qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
     if (recalcNormals) {
         buffer_helpers::recalculateNormals(clone);
     }
-    qCDebug(graphics_scripting) << clone.get();// << metadata;
+    //qCDebug(graphics_scripting) << clone.get();// << metadata;
     auto meshPointer = scriptable::make_scriptowned<scriptable::ScriptableMesh>(provider, model, clone, metadata);
     clone.reset(); // free local reference
-    qCInfo(graphics_scripting) << "========= ScriptableMesh::cloneMesh..." << meshPointer << meshPointer->ownedMesh.use_count();
+    // qCInfo(graphics_scripting) << "========= ScriptableMesh::cloneMesh..." << meshPointer << meshPointer->ownedMesh.use_count();
     //scriptable::MeshPointer* ppMesh = new scriptable::MeshPointer();
     //*ppMesh = clone;
 
-    if (meshPointer) {
+    if (0 && meshPointer) {
         scriptable::WeakMeshPointer delme = meshPointer->mesh;
         QString debugString = scriptable::toDebugString(meshPointer);
         QObject::connect(meshPointer, &QObject::destroyed, meshPointer, [=]() {
-            qCWarning(graphics_scripting) << "*************** cloneMesh/Destroy";
-            qCWarning(graphics_scripting) << "*************** " << debugString << delme.lock().get();
+            // qCWarning(graphics_scripting) << "*************** cloneMesh/Destroy";
+            // qCWarning(graphics_scripting) << "*************** " << debugString << delme.lock().get();
             if (!delme.expired()) {
-                qCWarning(graphics_scripting) << "cloneMesh -- potential memory leak..." << debugString << delme.lock().get();
+                QTimer::singleShot(250, this, [=]{
+                    if (!delme.expired()) {
+                        qCWarning(graphics_scripting) << "cloneMesh -- potential memory leak..." << debugString << delme.use_count();
+                    }
+                });
             }
         });
     }
@@ -575,12 +584,16 @@ scriptable::ScriptableMeshBase& scriptable::ScriptableMeshBase::operator=(const 
 }
                                                                                                                                                                                                scriptable::ScriptableMeshBase::~ScriptableMeshBase() {
     ownedMesh.reset();
+#ifdef SCRIPTABLE_MESH_DEBUG
     qCInfo(graphics_scripting) << "//~ScriptableMeshBase" << this << "ownedMesh:"  << ownedMesh.use_count() << "mesh:" << mesh.use_count();
+#endif
 }
 
 scriptable::ScriptableMesh::~ScriptableMesh() {
     ownedMesh.reset();
+#ifdef SCRIPTABLE_MESH_DEBUG
     qCInfo(graphics_scripting) << "//~ScriptableMesh" << this << "ownedMesh:"  << ownedMesh.use_count() << "mesh:" << mesh.use_count();
+#endif
 }
 
 QString scriptable::ScriptableMeshPart::toOBJ() {

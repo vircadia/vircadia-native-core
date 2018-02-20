@@ -1897,7 +1897,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
         geometry.meshes.append(extracted.mesh);
         int meshIndex = geometry.meshes.size() - 1;
         if (extracted.mesh._mesh) {
-            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex);
+            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex).toStdString();
+            extracted.mesh._mesh->modelName = modelIDsToNames.value(modelID).toStdString();
         }
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
@@ -1983,7 +1984,7 @@ FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QStri
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
-    qDebug() << "Reading FBX: " << url;
+    qCDebug(modelformat) << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

@@ -1414,14 +1414,14 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     }
 }
 
-scriptable::ScriptableModel RenderablePolyVoxEntityItem::getScriptableModel(bool * ok) {
+scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(bool * ok) {
     if (!updateDependents() || !_mesh) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
     bool success = false;
     glm::mat4 transform = voxelToLocalMatrix();
-    scriptable::ScriptableModel result;
+    scriptable::ScriptableModelBase result;
     withReadLock([&] {
         gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
         if (!_meshReady) {
@@ -1433,11 +1433,12 @@ scriptable::ScriptableModel RenderablePolyVoxEntityItem::getScriptableModel(bool
         } else {
             success = true;
             // the mesh will be in voxel-space.  transform it into object-space
-            result.meshes << 
-                _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
-                           [=](glm::vec3 color){ return color; },
-                           [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
-                           [&](uint32_t index){ return index; });
+            result.append(_mesh->map(
+                [=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                [=](glm::vec3 color){ return color; },
+                [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                [&](uint32_t index){ return index; }
+            ));
         }
     });
     if (ok) {

@@ -71,7 +71,8 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             out << formatFloat(v[1]) << " ";
             out << formatFloat(v[2]);
             if (colorIndex < numColors) {
-                glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
+                glm::vec3 color = glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(colorsBufferView, colorIndex));
+                //glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
                 out << " " << formatFloat(color[0]);
                 out << " " << formatFloat(color[1]);
                 out << " " << formatFloat(color[2]);
@@ -94,7 +95,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(gpu::Stream::InputSlot::NORMAL);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
         for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
-            glm::vec3 normal = glmVecFromVariant<glm::vec3>(bufferViewElementToVariant(normalsBufferView, i));
+            glm::vec3 normal = glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(normalsBufferView, i));
             //glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
             out << "vn ";
             out << formatFloat(normal[0]) << " ";
@@ -117,7 +118,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& indexBuffer = mesh->getIndexBuffer();
 
         graphics::Index partCount = (graphics::Index)mesh->getNumParts();
-        QString name = (!mesh->displayName.size() ? QString("mesh-%1-part").arg(nth) : QString(mesh->displayName))
+        QString name = (!mesh->displayName.size() ? QString("mesh-%1-part").arg(nth) : QString::fromStdString(mesh->displayName))
             .replace(QRegExp("[^-_a-zA-Z0-9]"), "_");
         for (int partIndex = 0; partIndex < partCount; partIndex++) {
             const graphics::Mesh::Part& part = partBuffer.get<graphics::Mesh::Part>(partIndex);

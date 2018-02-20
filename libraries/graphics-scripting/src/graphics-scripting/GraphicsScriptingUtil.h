@@ -19,7 +19,9 @@ namespace scriptable {
     // JS => QPointer<QObject>
     template <typename T> QPointer<T> qpointer_qobject_cast(const QScriptValue& value) {
         auto obj = value.toQObject();
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCInfo(graphics_scripting) << "qpointer_qobject_cast" << obj << value.toString();
+#endif
         if (auto tmp = qobject_cast<T*>(obj)) {
             return QPointer<T>(tmp);
         }
@@ -41,11 +43,15 @@ namespace scriptable {
     // C++ > QtOwned instance
     template <typename T, class... Rest> std::shared_ptr<T> make_qtowned(Rest... rest) {
         T* tmp = new T(rest...);
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCInfo(graphics_scripting) << "scriptable::make_qtowned" << toDebugString(tmp);
+#endif
         QString debug = toDebugString(tmp);
         if (tmp) {
             tmp->metadata["__ownership__"] = QScriptEngine::QtOwnership;
+#ifdef SCRIPTABLE_MESH_DEBUG
             QObject::connect(tmp, &QObject::destroyed, [=]() {  qCInfo(graphics_scripting) << "-------- ~scriptable::make_qtowned" << debug; });
+#endif
             auto ptr = std::shared_ptr<T>(tmp, [debug](T* tmp) {
                     //qDebug() << "~std::shared_ptr<T>" << debug;
                 delete tmp;
@@ -58,7 +64,9 @@ namespace scriptable {
     // C++ > ScriptOwned JS instance
     template <typename T, class... Rest> QPointer<T> make_scriptowned(Rest... rest) {
         T* tmp = new T(rest...);
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCInfo(graphics_scripting) << "scriptable::make_scriptowned" << toDebugString(tmp);
+#endif
         if (tmp) {
             tmp->metadata["__ownership__"] = QScriptEngine::ScriptOwnership;
             //auto blah = (DeleterFunction)[](void* delme) { };
@@ -71,12 +79,14 @@ namespace scriptable {
     template <typename T> QPointer<T> add_scriptowned_destructor(T* tmp) {
         QString debug = toDebugString(tmp);
         if (tmp) {
+#ifdef SCRIPTABLE_MESH_DEBUG
             QObject::connect(tmp, &QObject::destroyed, [=]() {
                     qCInfo(graphics_scripting) << "-------- ~scriptable::make_scriptowned" << debug;// << !!customDeleter;
                 //if (customDeleter) {
                     // customDeleter(tmp);
                 //}
             });
+#endif
         } else {
             qCInfo(graphics_scripting) << "add_scriptowned_destructor -- not connecting to null value" << debug;
         }
