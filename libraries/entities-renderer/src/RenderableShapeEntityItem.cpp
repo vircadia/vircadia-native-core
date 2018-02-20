@@ -54,8 +54,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     if (_lastUserData != entity->getUserData()) {
         return true;
     }
-    glm::vec4 newColor(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
-    if (newColor != _color) {
+    if (_material != entity->getMaterial()) {
         return true;
     }
 
@@ -78,7 +77,9 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _procedural.setProceduralData(ProceduralData::parse(_lastUserData));
         }
 
-        _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+        removeMaterial(_material, "0");
+        _material = entity->getMaterial();
+        addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
@@ -112,14 +113,13 @@ bool ShapeEntityRenderer::isTransparent() const {
     return Parent::isTransparent();
 }
 
-
-
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     Q_ASSERT(args->_batch);
 
     gpu::Batch& batch = *args->_batch;
 
+    std::shared_ptr<graphics::Material> mat;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
     bool proceduralRender = false;
@@ -127,14 +127,21 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
-        outColor = _color;
-        if (_procedural.isReady()) {
-            _procedural.prepare(batch, _position, _dimensions, _orientation);
-            outColor = _procedural.getColor(_color);
-            outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-            proceduralRender = true;
+        mat = _materials["0"].top().material;
+        if (mat) {
+            outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
+            if (_procedural.isReady()) {
+                _procedural.prepare(batch, _position, _dimensions, _orientation);
+                outColor = _procedural.getColor(outColor);
+                outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
+                proceduralRender = true;
+            }
         }
     });
+
+    if (!mat) {
+        return;
+    }
 
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {

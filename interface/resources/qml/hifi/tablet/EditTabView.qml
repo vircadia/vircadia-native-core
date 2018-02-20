@@ -144,6 +144,17 @@ TabView {
                         editTabView.currentIndex = 4
                     }
                 }
+
+                NewEntityButton {
+                    icon: "icons/create-icons/126-material-01.svg"
+                    text: "MATERIAL"
+                    onClicked: {
+                        editRoot.sendToScript({
+                            method: "newEntityButtonClicked", params: { buttonName: "newMaterialButton" }
+                        });
+                        editTabView.currentIndex = 2
+                    }
+                }
             }
 
             HifiControls.Button {

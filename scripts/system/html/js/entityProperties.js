@@ -25,13 +25,16 @@ var ICON_FOR_TYPE = {
     Zone: "o",
     PolyVox: "&#xe005;",
     Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;"
+    PolyLine: "&#xe01b;",
+    Material: "&#xe00b;"
 };
 
 var EDITOR_TIMEOUT_DURATION = 1500;
 var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 var colorPickers = [];
 var lastEntityID = null;
+
+var MATERIAL_PREFIX_STRING = "mat::";
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -78,7 +81,6 @@ function disableProperties() {
     if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
         showStaticUserData();
     }
-
 }
 
 function showElements(els, show) {
@@ -170,6 +172,17 @@ function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
         var properties = {};
         properties[group] = {};
         properties[group][propertyName] = this.value;
+        updateProperties(properties);
+    };
+}
+
+function createEmitVec2PropertyUpdateFunction(property, elX, elY) {
+    return function () {
+        var properties = {};
+        properties[property] = {
+            x: elX.value,
+            y: elY.value
+        };
         updateProperties(properties);
     };
 }
@@ -480,7 +493,6 @@ function bindAllNonJSONEditorElements() {
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
-
                 }
             }
         });
@@ -494,6 +506,18 @@ function unbindAllInputs() {
         var input = inputs[i];
         var field = $(input);
         field.unbind();
+    }
+}
+
+function showParentMaterialNameBox(number, elNumber, elString) {
+    if (number) {
+        $('#property-parent-material-id-number-container').show();
+        $('#property-parent-material-id-string-container').hide();
+        elString.value = "";
+    } else {
+        $('#property-parent-material-id-string-container').show();
+        $('#property-parent-material-id-number-container').hide();
+        elNumber.value = 0;
     }
 }
 
@@ -618,6 +642,18 @@ function loaded() {
         var elModelAnimationAllowTranslation = document.getElementById("property-model-animation-allow-translation");
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
+
+        var elMaterialURL = document.getElementById("property-material-url");
+        //var elMaterialMappingMode = document.getElementById("property-material-mapping-mode");
+        var elPriority = document.getElementById("property-priority");
+        var elParentMaterialNameString = document.getElementById("property-parent-material-id-string");
+        var elParentMaterialNameNumber = document.getElementById("property-parent-material-id-number");
+        var elParentMaterialNameCheckbox = document.getElementById("property-parent-material-id-checkbox");
+        var elMaterialMappingPosX = document.getElementById("property-material-mapping-pos-x");
+        var elMaterialMappingPosY = document.getElementById("property-material-mapping-pos-y");
+        var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
+        var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
+        var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
 
         var elImageURL = document.getElementById("property-image-url");
 
@@ -1120,6 +1156,25 @@ function loaded() {
                             elXTextureURL.value = properties.xTextureURL;
                             elYTextureURL.value = properties.yTextureURL;
                             elZTextureURL.value = properties.zTextureURL;
+                        } else if (properties.type === "Material") {
+                            elMaterialURL.value = properties.materialURL;
+                            //elMaterialMappingMode.value = properties.materialMappingMode;
+                            //setDropdownText(elMaterialMappingMode);
+                            elPriority.value = properties.priority;
+                            if (properties.parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
+                                elParentMaterialNameString.value = properties.parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
+                                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = false;
+                            } else {
+                                elParentMaterialNameNumber.value = parseInt(properties.parentMaterialName);
+                                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+                                elParentMaterialNameCheckbox.checked = true;
+                            }
+                            elMaterialMappingPosX.value = properties.materialMappingPos.x.toFixed(4);
+                            elMaterialMappingPosY.value = properties.materialMappingPos.y.toFixed(4);
+                            elMaterialMappingScaleX.value = properties.materialMappingScale.x.toFixed(4);
+                            elMaterialMappingScaleY.value = properties.materialMappingScale.y.toFixed(4);
+                            elMaterialMappingRot.value = properties.materialMappingRot.toFixed(2);
                         }
 
                         if (properties.locked) {
@@ -1389,6 +1444,30 @@ function loaded() {
             createEmitGroupCheckedPropertyUpdateFunction('animation', 'allowTranslation'));
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
+
+        elMaterialURL.addEventListener('change', createEmitTextPropertyUpdateFunction('materialURL'));
+        //elMaterialMappingMode.addEventListener('change', createEmitTextPropertyUpdateFunction('materialMappingMode'));
+        elPriority.addEventListener('change', createEmitNumberPropertyUpdateFunction('priority', 0));
+
+        elParentMaterialNameString.addEventListener('change', function () { updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value); });
+        elParentMaterialNameNumber.addEventListener('change', function () { updateProperty("parentMaterialName", this.value); });
+        elParentMaterialNameCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                updateProperty("parentMaterialName", elParentMaterialNameNumber.value);
+                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
+            } else {
+                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value);
+                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
+            }
+        });
+
+        var materialMappingPosChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingPos', elMaterialMappingPosX, elMaterialMappingPosY);
+        elMaterialMappingPosX.addEventListener('change', materialMappingPosChangeFunction);
+        elMaterialMappingPosY.addEventListener('change', materialMappingPosChangeFunction);
+        var materialMappingScaleChangeFunction = createEmitVec2PropertyUpdateFunction('materialMappingScale', elMaterialMappingScaleX, elMaterialMappingScaleY);
+        elMaterialMappingScaleX.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingScaleY.addEventListener('change', materialMappingScaleChangeFunction);
+        elMaterialMappingRot.addEventListener('change', createEmitNumberPropertyUpdateFunction('materialMappingRot', 2));
 
         elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
         elTextFaceCamera.addEventListener('change', createEmitCheckedPropertyUpdateFunction('faceCamera'));
