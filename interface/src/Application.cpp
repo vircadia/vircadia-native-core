@@ -5275,7 +5275,8 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
-        appRenderArgs._headPose= getHMDSensorPose();
+        appRenderArgs._prevHeadPose = appRenderArgs._headPose;
+        appRenderArgs._headPose = getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
 

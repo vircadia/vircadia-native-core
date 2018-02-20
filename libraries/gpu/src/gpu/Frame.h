@@ -30,6 +30,8 @@ namespace gpu {
         uint32_t frameIndex{ 0 };
         /// The sensor pose used for rendering the frame, only applicable for HMDs
         Mat4 pose;
+        /// The sensor pose used for rendering the previous frame, only applicable for HMDs
+        Mat4 prevPose;
         /// The collection of batches which make up the frame
         Batches batches;
         /// The main thread updates to buffers that are applicable for this frame.

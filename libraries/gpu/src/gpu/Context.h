@@ -161,7 +161,7 @@ public:
 
     const std::string& getBackendVersion() const;
 
-    void beginFrame(const glm::mat4& renderPose = glm::mat4());
+    void beginFrame(const glm::mat4& renderPose = glm::mat4(), const glm::mat4& prevRenderPose = glm::mat4());
     void appendFrameBatch(Batch& batch);
     FramePointer endFrame();
 

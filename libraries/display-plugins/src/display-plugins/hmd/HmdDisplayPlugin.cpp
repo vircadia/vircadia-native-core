@@ -330,6 +330,7 @@ void HmdDisplayPlugin::updateFrameData() {
                 }
             }
             if (newFrameIndex != INVALID_FRAME) {
+                _previousPresentFrameInfo = _currentPresentFrameInfo;
                 _currentPresentFrameInfo = _frameInfos[newFrameIndex];
             }
         });
@@ -338,10 +339,11 @@ void HmdDisplayPlugin::updateFrameData() {
     updatePresentPose();
 
     if (_currentFrame) {
-        auto batchPose = _currentFrame->pose;
-        auto currentPose = _currentPresentFrameInfo.presentPose;
-        auto correction = glm::inverse(batchPose) * currentPose;
-        getGLBackend()->setCameraCorrection(correction);
+        auto invBatchPose = glm::inverse(_currentFrame->pose);
+        auto invPrevBatchPose = glm::inverse(_currentFrame->prevPose);
+        auto correction = invBatchPose * _currentPresentFrameInfo.presentPose;
+        auto prevCorrection = invPrevBatchPose * _previousPresentFrameInfo.presentPose;
+        getGLBackend()->setCameraCorrection(correction, prevCorrection);
     }
 }
 

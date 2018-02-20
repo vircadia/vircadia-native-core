@@ -85,6 +85,6 @@ void DebugHmdDisplayPlugin::updatePresentPose() {
         // Simulates head pose latency correction
         _currentPresentFrameInfo.presentPose =
             glm::mat4_cast(glm::angleAxis(yaw, Vectors::UP)) *
-            glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT));
+            glm::mat4_cast(glm::angleAxis(pitch, Vectors::RIGHT)) ;
     }
 }

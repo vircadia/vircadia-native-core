@@ -68,7 +68,7 @@ public:
 
     virtual ~GLBackend();
 
-    void setCameraCorrection(const Mat4& correction, bool reset = false);
+    void setCameraCorrection(const Mat4& correction, const Mat4& prevCorrection, bool reset = false);
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState

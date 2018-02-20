@@ -62,6 +62,7 @@ void Application::paintGL() {
 
     RenderArgs renderArgs;
     glm::mat4  HMDSensorPose;
+    glm::mat4  HMDSensorPrevPose;
     glm::mat4  eyeToWorld;
     glm::mat4  sensorToWorld;
 
@@ -79,6 +80,7 @@ void Application::paintGL() {
         }
 
         HMDSensorPose = _appRenderArgs._headPose;
+        HMDSensorPrevPose = _appRenderArgs._prevHeadPose;
         eyeToWorld = _appRenderArgs._eyeToWorld;
         sensorToWorld = _appRenderArgs._sensorToWorld;
         isStereo = _appRenderArgs._isStereo;
@@ -90,7 +92,7 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(HMDSensorPose);
+        _gpuContext->beginFrame(HMDSensorPose, HMDSensorPrevPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
         gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
