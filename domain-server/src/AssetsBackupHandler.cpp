@@ -111,9 +111,9 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
     }
 }
 
-bool AssetsBackupHandler::isCorruptedBackup(const QString& filePath) {
-    auto it = find_if(begin(_backups), end(_backups), [&](const std::vector<AssetServerBackup>::value_type& value) {
-        return value.filePath == filePath;
+bool AssetsBackupHandler::isCorruptedBackup(const QString& backupName) {
+    auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& value) {
+        return value.name == backupName;
     });
 
     if (it == end(_backups)) {

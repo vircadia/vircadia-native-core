@@ -39,7 +39,7 @@ public:
     void recoverBackup(const QString& backupName, QuaZip& zip) override;
     void deleteBackup(const QString& backupName) override;
     void consolidateBackup(const QString& backupName, QuaZip& zip) override;
-    bool isCorruptedBackup(const QString& absoluteFilePath) override;
+    bool isCorruptedBackup(const QString& backupName) override;
 
     bool operationInProgress() { return getRecoveryStatus().first; }
 

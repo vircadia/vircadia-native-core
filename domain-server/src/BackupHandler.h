@@ -32,7 +32,7 @@ public:
     virtual void recoverBackup(const QString& backupName, QuaZip& zip) = 0;
     virtual void deleteBackup(const QString& backupName) = 0;
     virtual void consolidateBackup(const QString& backupName, QuaZip& zip) = 0;
-    virtual bool isCorruptedBackup(const QString& absoluteFilePath) = 0;
+    virtual bool isCorruptedBackup(const QString& backupName) = 0;
 };
 using BackupHandlerPointer = std::unique_ptr<BackupHandlerInterface>;
 

@@ -32,7 +32,7 @@ public:
 
     void consolidateBackup(const QString& backupName, QuaZip& zip) override {}
 
-    bool isCorruptedBackup(const QString& absoluteFilePath) override { return true; }
+    bool isCorruptedBackup(const QString& backupName) override { return false; }
 
 private:
     DomainServerSettingsManager& _settingsManager;

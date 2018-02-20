@@ -372,7 +372,7 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
             isAvailable &= handlerIsAvailable;
             availabilityProgress += progress / _backupHandlers.size();
 
-            isCorrupted = isCorrupted || handler->isCorruptedBackup(backup.absolutePath);
+            isCorrupted = isCorrupted || handler->isCorruptedBackup(backup.id);
         }
         variantBackups.push_back(QVariantMap({
             { "id", backup.id },
