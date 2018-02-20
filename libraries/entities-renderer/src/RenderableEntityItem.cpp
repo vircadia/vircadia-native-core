@@ -25,6 +25,7 @@
 #include "RenderableTextEntityItem.h"
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
+#include "RenderableMaterialEntityItem.h"
 
 
 using namespace render;
@@ -145,6 +146,7 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
     });
+    _materials = entity->getMaterials();
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -250,6 +252,10 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
 
         case Type::Zone:
             result = make_renderer<ZoneEntityRenderer>(entity);
+            break;
+
+        case Type::Material:
+            result = make_renderer<MaterialEntityRenderer>(entity);
             break;
 
         default:
@@ -394,4 +400,14 @@ void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
 void EntityRenderer::onRemoveFromScene(const EntityItemPointer& entity) { 
     entity->deregisterChangeHandler(_changeHandlerId);
     QObject::disconnect(this, &EntityRenderer::requestRenderUpdate, this, nullptr);
+}
+
+void EntityRenderer::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].push(material);
+}
+
+void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].remove(material);
 }
