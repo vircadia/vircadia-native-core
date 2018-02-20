@@ -550,7 +550,11 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
-                rezEntity(message.itemHref, message.itemType);
+                if (message.itemType === "app") {
+
+                } else {
+                    rezEntity(message.itemHref, message.itemType);
+                }
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':

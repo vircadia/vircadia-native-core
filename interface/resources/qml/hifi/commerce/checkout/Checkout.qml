@@ -530,7 +530,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                visible: !(root.itemType === "avatar" && viewInMyPurchasesButton.visible)
+                visible: !((root.itemType === "avatar" || root.itemType === "app") && viewInMyPurchasesButton.visible)
                 enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived) || (!root.isCertified);
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
