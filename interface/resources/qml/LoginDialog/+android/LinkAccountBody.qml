@@ -117,62 +117,25 @@ Item {
         }
         spacing: hifi.dimensions.contentSpacing.y / 2
 
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
             TextField {
                 id: usernameField
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                      horizontalCenter: parent.horizontalCenter
                 }
-                width: 780
-
+                width: 1080
                 placeholderText: qsTr("Username or Email")
             }
-
-            ShortcutText {
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-
-                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                linkColor: hifi.colors.blueAccent
-
-                onLinkActivated: loginDialog.openUrl(link)
-            }
-        }
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
 
             TextField {
                 id: passwordField
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                      horizontalCenter: parent.horizontalCenter
                 }
-                width: 780
+                width: 1080
 
                 placeholderText: qsTr("Password")
                 echoMode: TextInput.Password
             }
-
-            ShortcutText {
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-
-                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                linkColor: hifi.colors.blueAccent
-
-                onLinkActivated: loginDialog.openUrl(link)
-            }
-        }
-
     }
 
     InfoItem {
