@@ -13,6 +13,7 @@
 #define hifi_Oven_h
 
 #include <atomic>
+#include <memory>
 
 class Oven {
 
