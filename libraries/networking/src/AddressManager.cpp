@@ -303,7 +303,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
         _previousLookup.clear();
         // if this is a relative path then handle it as a relative viewpoint
-        handlePath(lookupUrl.path(), trigger, true);
+        handlePath(lookupUrl.path(), trigger, false);
         emit lookupResultsFinished();
         return true;
 
