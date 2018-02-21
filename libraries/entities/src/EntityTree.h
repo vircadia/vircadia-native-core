@@ -57,7 +57,8 @@ public:
     enum FilterType {
         Add,
         Edit,
-        Physics
+        Physics,
+        Delete
     };
     EntityTree(bool shouldReaverage = false);
     virtual ~EntityTree();
@@ -193,6 +194,8 @@ public:
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
+    bool shouldEraseEntity(EntityItemID entityID, const SharedNodePointer& sourceNode);
+
 
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void addEntityMapEntry(EntityItemPointer entity);
