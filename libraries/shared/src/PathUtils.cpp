@@ -133,12 +133,16 @@ QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
 }
 
-QString PathUtils::expandToAppAbsolutePath(const QString& filePath) {
-    QString path = filePath;
+QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
+    QUrl url = fileUrl;
+    QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
-        path.replace(1, 2, applicationAbsolutePath());
+        QString absolutePath = applicationAbsolutePath();
+        path.replace(0, 3, absolutePath);
+        url = QUrl("file:///" + path);
+        qDebug() << "QQQ expanded URL " << url;
     }
-    return path;
+    return url;
 }
 const QString& PathUtils::qmlBaseUrl() {
     static const QString staticResourcePath = resourcesUrl() + "qml/";

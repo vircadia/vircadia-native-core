@@ -517,8 +517,19 @@ bool isDomainURL(QUrl url) {
     if (!url.isValid()) {
         return false;
     }
-    // XXX check ending of path
-    return url.scheme() == HIFI_URL_SCHEME || url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https";
+    if (url.scheme() != HIFI_URL_SCHEME &&
+        url.scheme() != "file" &&
+        url.scheme() != "http" &&
+        url.scheme() != "https") {
+        return false;
+    }
+
+    if (url.path().endsWith(".domain.json", Qt::CaseInsensitive) ||
+        url.path().endsWith(".domain.json.gz", Qt::CaseInsensitive)) {
+        return true;
+    }
+
+    return false;
 }
 
 #ifdef Q_OS_WIN
