@@ -4551,7 +4551,7 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    
+
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     if (!DISABLE_DEFERRED) {
@@ -5772,6 +5772,7 @@ void Application::clearDomainAvatars() {
 
 void Application::domainChanged(const QString& domainHostname) {
     clearDomainOctreeDetails();
+    getEntities()->getTree()->setIsServerlessMode(isServerlessMode());
     updateWindowTitle();
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
