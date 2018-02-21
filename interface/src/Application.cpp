@@ -4544,8 +4544,6 @@ void Application::init() {
     _physicsEngine->init();
 
     EntityTreePointer tree = getEntities()->getTree();
-    connect(tree.get(), &EntityTree::deletingEntity, this, &Application::deletingEntity, Qt::QueuedConnection);
-    connect(tree.get(), &EntityTree::addingEntity, this, &Application::addingEntity, Qt::QueuedConnection);
     _entitySimulation->init(tree, _physicsEngine, &_entityEditSender);
     tree->setSimulation(_entitySimulation);
 
@@ -4879,14 +4877,16 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
             auto entityId = _keyboardFocusedEntity.get();
             if (entities->wantsKeyboardFocus(entityId)) {
                 entities->setProxyWindow(entityId, _window->windowHandle());
-                auto entity = getEntities()->getEntity(entityId);
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                auto entity = getEntities()->getEntity(entityId);
+                if (entity) {
+                    setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
+                        entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                }
             }
         }
     }
@@ -7673,14 +7673,6 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
 
 void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
-}
-
-void Application::addingEntity(const EntityItemID& entityID) {
-    // TODO: Andrew to implement this
-}
-
-void Application::deletingEntity(const EntityItemID& entityID) {
-    // TODO: Andrew to implement this
 }
 
 #include "Application.moc"

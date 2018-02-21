@@ -14,6 +14,7 @@ include_hifi_library_headers(entities)
 include_hifi_library_headers(avatars)
 include_hifi_library_headers(controllers)
 include_hifi_library_headers(task)
+include_hifi_library_headers(workload)
 
 target_bullet()
 target_polyvox()

@@ -2364,14 +2364,18 @@ void EntityItem::locationChanged(bool tellPhysics) {
             tree->entityChanged(getThisPointer());
         }
     }
-    // TODO: Andrew to connect this to the Space instance in Application
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
+    emit spaceUpdate(data);
     somethingChangedNotification();
 }
 
 void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
+    _boundingRadius = 0.5f * glm::length(getScaledDimensions());
+    std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
+    emit spaceUpdate(data);
     somethingChangedNotification();
 }
 

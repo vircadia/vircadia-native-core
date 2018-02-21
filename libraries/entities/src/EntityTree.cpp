@@ -260,7 +260,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
             return;
         }
     }
-    
+
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -271,10 +271,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     _isDirty = true;
-    emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
     fixupNeedsParentFixups();
+
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -695,6 +696,11 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         if (_simulation) {
             _simulation->prepareEntityForDelete(theEntity);
         }
+
+        // We save a pointer to theEntity for external contexts that need it
+        // but this means: external contexts that remove entities from the tree
+        // must occasionally swapRemovedEntities() to flush these references.
+        _removedEntities.push_back(theEntity);
     }
 }
 

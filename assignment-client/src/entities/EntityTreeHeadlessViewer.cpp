@@ -35,6 +35,10 @@ void EntityTreeHeadlessViewer::update() {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->withTryWriteLock([&] {
             tree->update();
+
+            // flush final EntityTree references to deleted entities
+            std::vector<EntityItemPointer> deletedEntities;
+            tree->swapRemovedEntities(deletedEntities);
         });
     }
 }

@@ -24,6 +24,7 @@
 #include <TextureCache.h>
 #include <OctreeProcessor.h>
 #include <render/Forward.h>
+#include <workload/Space.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -138,6 +139,10 @@ public slots:
     void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
     render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
+
+    //void handleSpaceUpdate(workload::Space::ProxyUpdate proxyUpdate);
+    void handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate);
+    void testSlot();
 
 protected:
     virtual OctreePointer createTree() override {
@@ -261,6 +266,10 @@ private:
     static std::function<bool()> _entitiesShouldFadeFunction;
 
     static std::function<bool()> _renderDebugHullsOperator;
+
+    mutable std::mutex _spaceLock;
+    workload::Space _space;
+    std::vector<workload::Space::ProxyUpdate> _spaceUpdates;
 };
 
 
