@@ -310,9 +310,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
         qDebug() << "QQQQ file or http before serverless domain" << lookupUrl.toString();
         _previousLookup.clear();
-        QUrl domainUrl = lookupUrl;
-        const QString path = PathUtils::expandToAppAbsolutePath(lookupUrl.path());
-        domainUrl.setPath(path);
+        QUrl domainUrl = PathUtils::expandToAppAbsolutePath(lookupUrl);
         emit setServersEnabled(false);
         setDomainInfo(domainUrl, QString(), 0, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
