@@ -13,7 +13,7 @@
 //
 
 #include "Space.h"
-
+#include <cstring>
 #include <algorithm>
 
 #include <glm/gtx/quaternion.hpp>
