@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls 2.2 // Need both for short-term fix
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
@@ -8,6 +9,7 @@ import "../toolbars"
 import QtGraphicalEffects 1.0
 import "../../controls-uit" as HifiControls
 import "../../styles-uit"
+
 
 
 TabView {
@@ -23,8 +25,25 @@ TabView {
 
         Rectangle {
             color: "#404040"
+            id: container
+
+            Flickable {
+            height: parent.height
+            width: parent.width
+
+            contentHeight: createEntitiesFlow.height +  importButton.height + assetServerButton.height + 153
+            contentWidth: width
+
+            ScrollBar.vertical : ScrollBar {
+                visible: parent.contentHeight > parent.height
+                width: 20
+                background: Rectangle {
+                    color: hifi.colors.tableScrollBackgroundDark
+                }
+            }
 
             Text {
+                id: header
                 color: "#ffffff"
                 text: "Choose an Entity Type to Create:"
                 font.pixelSize: 14
@@ -176,6 +195,7 @@ TabView {
             }
 
             HifiControls.Button {
+                id: importButton
                 text: "Import Entities (.json)"
                 color: hifi.buttons.black
                 colorScheme: hifi.colorSchemes.dark
@@ -192,6 +212,7 @@ TabView {
                 }
             }
         }
+      } // Flickable
     }
 
     Tab {
