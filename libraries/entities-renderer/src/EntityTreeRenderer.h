@@ -120,6 +120,9 @@ public:
     static void setRenderDebugHullsOperator(std::function<bool()> renderDebugHullsOperator) { _renderDebugHullsOperator = renderDebugHullsOperator; }
     static bool shouldRenderDebugHulls() { return _renderDebugHullsOperator(); }
 
+    // Access the workload Space
+    const workload::SpacePointer getWorkloadSpace() const { return _space; }
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -266,7 +269,7 @@ private:
     static std::function<bool()> _renderDebugHullsOperator;
 
     mutable std::mutex _spaceLock;
-    workload::Space _space;
+    workload::SpacePointer _space{ new workload::Space() };
     std::vector<workload::Space::ProxyUpdate> _spaceUpdates;
 };
 

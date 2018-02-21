@@ -281,7 +281,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             if (entity->getSpaceIndex() == -1) {
                 std::unique_lock<std::mutex> lock(_spaceLock);
                 workload::Space::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
-                int32_t spaceIndex = _space.createProxy(sphere);
+                int32_t spaceIndex = _space->createProxy(sphere);
                 entity->setSpaceIndex(spaceIndex);
                 connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
             }
@@ -428,7 +428,7 @@ void EntityTreeRenderer::update(bool simulate) {
         }
         {   // update proxies in the workload::Space
             std::unique_lock<std::mutex> lock(_spaceLock);
-            _space.updateProxies(_spaceUpdates);
+            _space->updateProxies(_spaceUpdates);
             _spaceUpdates.clear();
         }
         {   // flush final EntityTree references to removed entities
@@ -442,7 +442,7 @@ void EntityTreeRenderer::update(bool simulate) {
                     disconnect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate);
                     deadProxies.push_back(spaceIndex);
                 }
-                _space.deleteProxies(deadProxies);
+                _space->deleteProxies(deadProxies);
             }
         }
 

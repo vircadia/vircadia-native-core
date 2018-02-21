@@ -2276,7 +2276,8 @@ Application::~Application() {
     // shutdown render engine
     _main3DScene = nullptr;
     _renderEngine = nullptr;
-    _infinityEngine = nullptr;
+
+    _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
 
@@ -2398,6 +2399,8 @@ void Application::initializeGL() {
         // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
     });
+
+    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene);
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
@@ -4166,7 +4169,7 @@ void Application::idle() {
     }
 
     {
-        _infinityEngine->run();
+        _gameWorkload._engine->run();
     }
     {
         PerformanceTimer perfTimer("update");
