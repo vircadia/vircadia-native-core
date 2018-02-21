@@ -564,6 +564,7 @@ Item {
                                        : hifi.buttons.disabledTextColor[control.colorScheme]
                     }
                     RalewayBold {
+                        id: rezIconLabel;
                         anchors.top: rezIcon.bottom;
                         anchors.topMargin: -4;
                         anchors.right: parent.right;
@@ -575,13 +576,7 @@ Item {
                         size: 15;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: {
-                            if (MyAvatar.skeletonModelURL === root.itemHref) {
-                                "CURRENT";
-                            } else {
-                                (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
-                            }
-                        }
+                        text: MyAvatar.skeletonModelURL === root.itemHref ? "CURRENT" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)];
                     }
                 }
             }
