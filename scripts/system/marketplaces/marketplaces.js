@@ -551,7 +551,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
                 if (message.itemType === "app") {
-
+                    console.log("How did you get here? You can't buy apps yet!");
                 } else {
                     rezEntity(message.itemHref, message.itemType);
                 }

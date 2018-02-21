@@ -401,10 +401,10 @@ Rectangle {
                         "wearable";
                     } else if (model.root_file_url.endsWith('.json.gz')) {
                         "contentSet";
+                    } else if (model.root_file_url.endsWith('.app.json')) {
+                        "app";
                     } else if (model.root_file_url.endsWith('.json')) {
                         "entity";
-                    } else if (model.root_file_url.endsWith('.js')) {
-                        "app";
                     } else {
                         "unknown";
                     }

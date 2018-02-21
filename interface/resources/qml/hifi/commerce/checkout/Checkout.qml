@@ -135,10 +135,10 @@ Rectangle {
             root.itemType = "avatar";
         } else if (root.itemHref.indexOf('.json.gz') > -1) {
             root.itemType = "contentSet";
+        } else if (root.itemHref.indexOf('.app.json') > -1) {
+            root.itemType = "app";
         } else if (root.itemHref.indexOf('.json') > -1) {
             root.itemType = "entity"; // "wearable" type handled later
-        } else if (root.itemHref.indexOf('.js') > -1) {
-            root.itemType = "app";
         } else {
             console.log("WARNING - Item type is UNKNOWN!");
             root.itemType = "entity";
