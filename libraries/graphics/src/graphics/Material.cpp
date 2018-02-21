@@ -12,6 +12,8 @@
 
 #include "TextureMap.h"
 
+#include <Transform.h>
+
 using namespace graphics;
 using namespace gpu;
 
@@ -30,6 +32,7 @@ Material::Material() :
 }
 
 Material::Material(const Material& material) :
+    _name(material._name),
     _key(material._key),
     _textureMaps(material._textureMaps)
 {
@@ -45,6 +48,8 @@ Material::Material(const Material& material) :
 
 Material& Material::operator= (const Material& material) {
     QMutexLocker locker(&_textureMapsMutex);
+
+    _name = material._name;
 
     _key = (material._key);
     _textureMaps = (material._textureMaps);
@@ -221,4 +226,15 @@ bool Material::calculateMaterialInfo() const {
         _hasCalculatedTextureInfo = allTextures;
     }
     return _hasCalculatedTextureInfo;
+}
+
+void Material::setTextureTransforms(const Transform& transform) {
+    for (auto &textureMapItem : _textureMaps) {
+        if (textureMapItem.second) {
+            textureMapItem.second->setTextureTransform(transform);
+        }
+    }
+    for (int i = 0; i < NUM_TEXCOORD_TRANSFORMS; i++) {
+        _texMapArrayBuffer.edit<TexMapArraySchema>()._texcoordTransforms[i] = transform.getMatrix();
+    }
 }
