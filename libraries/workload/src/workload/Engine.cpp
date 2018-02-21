@@ -16,6 +16,8 @@
 
 #include <iostream>
 
+#include "ClassificationTracker.h"
+
 namespace workload {
 
     // the "real Job"
@@ -47,6 +49,8 @@ namespace workload {
         using JobModel = Task::Model<EngineModel>;
         void build(EngineModel& model, const Varying& in, Varying& out) {
             model.addJob<HelloWorld>("helloWorld");
+
+            auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
         }
     };
 

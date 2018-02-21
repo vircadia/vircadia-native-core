@@ -85,6 +85,7 @@ private:
 };
 
 using SpacePointer = std::shared_ptr<Space>;
+using Classifications = std::vector<Space::Change>;
 
 } // namespace workload
 
