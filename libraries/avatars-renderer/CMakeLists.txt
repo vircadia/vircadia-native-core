@@ -14,5 +14,6 @@ include_hifi_library_headers(audio)
 include_hifi_library_headers(entities)
 include_hifi_library_headers(octree)
 include_hifi_library_headers(task)
+include_hifi_library_headers(workload)
 
 target_bullet()

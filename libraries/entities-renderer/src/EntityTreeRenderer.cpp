@@ -278,6 +278,13 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             if (!entity->isParentPathComplete()) {
                 continue;
             }
+            if (entity->getSpaceIndex() == -1) {
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                workload::Space::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
+                int32_t spaceIndex = _space.createProxy(sphere);
+                entity->setSpaceIndex(spaceIndex);
+                connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
+            }
 
             auto entityID = entity->getEntityItemID();
             processedIds.insert(entityID);
@@ -286,7 +293,6 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 _entitiesInScene.insert({ entityID, renderable });
             }
         }
-
 
         if (!processedIds.empty()) {
             for (const auto& processedId : processedIds) {
@@ -407,8 +413,7 @@ void EntityTreeRenderer::update(bool simulate) {
         // here we update _currentFrame and _lastAnimated and sync with the server properties.
         tree->update(simulate);
 
-        // Update the rendereable entities as needed
-        {
+        {   // Update the rendereable entities as needed
             PROFILE_RANGE(simulation_physics, "Scene");
             PerformanceTimer sceneTimer("scene");
             auto scene = _viewState->getMain3DScene();
@@ -419,6 +424,25 @@ void EntityTreeRenderer::update(bool simulate) {
                 _viewState->copyCurrentViewFrustum(view);
                 updateChangedEntities(scene, view, transaction);
                 scene->enqueueTransaction(transaction);
+            }
+        }
+        {   // update proxies in the workload::Space
+            std::unique_lock<std::mutex> lock(_spaceLock);
+            _space.updateProxies(_spaceUpdates);
+            _spaceUpdates.clear();
+        }
+        {   // flush final EntityTree references to removed entities
+            std::vector<EntityItemPointer> deletedEntities;
+            tree->swapRemovedEntities(deletedEntities);
+            {   // delete proxies from workload::Space
+                std::vector<int32_t> deadProxies;
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                for (auto entity : deletedEntities) {
+                    int32_t spaceIndex = entity->getSpaceIndex();
+                    disconnect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate);
+                    deadProxies.push_back(spaceIndex);
+                }
+                _space.deleteProxies(deadProxies);
             }
         }
 
@@ -435,6 +459,11 @@ void EntityTreeRenderer::update(bool simulate) {
         }
 
     }
+}
+
+void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
+    std::unique_lock<std::mutex> lock(_spaceLock);
+    _spaceUpdates.push_back(proxyUpdate);
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {

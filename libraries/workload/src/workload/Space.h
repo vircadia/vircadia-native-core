@@ -31,6 +31,7 @@ public:
     static const uint8_t REGION_INVALID = 4;
 
     using Sphere = glm::vec4; // <x,y,z> = center, w = radius
+    using ProxyUpdate = std::pair<int32_t, Sphere>;
 
     class Proxy {
     public:
@@ -63,7 +64,7 @@ public:
 
     int32_t createProxy(const Sphere& sphere);
     void deleteProxies(const std::vector<int32_t>& deadIndices);
-    void updateProxies(const std::vector<std::pair<int32_t, Sphere> >& changedProxies);
+    void updateProxies(const std::vector<ProxyUpdate>& changedProxies);
     void setViews(const std::vector<View>& views);
 
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }

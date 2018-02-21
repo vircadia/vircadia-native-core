@@ -40,7 +40,7 @@ void Space::deleteProxies(const std::vector<int32_t>& deadIndices) {
     }
 }
 
-void Space::updateProxies(const std::vector<std::pair<int32_t, Sphere> >& changedProxies) {
+void Space::updateProxies(const std::vector<ProxyUpdate>& changedProxies) {
     for (uint32_t i = 0; i < changedProxies.size(); ++i) {
         int32_t proxyId = changedProxies[i].first;
         if (proxyId > -1 && proxyId < (int32_t)_proxies.size()) {
