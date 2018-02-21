@@ -33,7 +33,8 @@ Item {
         bar.visible = shown;
         sendToScript({method: 'shownChanged', params: { shown: shown }});
         if (shown) {
-            updateLocationText(false);
+            addressLine.text="";
+            updateLocationText(addressLine.text.length > 0);
         }
     }
 
@@ -43,7 +44,7 @@ Item {
     }
 
     Component.onCompleted: {
-        updateLocationText(false);
+        updateLocationText(addressLine.text.length > 0);
     }
 
     HifiConstants { id: hifi }
@@ -130,7 +131,7 @@ Item {
         HifiStyles.FiraSansRegular {
             id: location;
             font.pixelSize: addressLine.font.pixelSize;
-            color: "gray";
+            color: "lightgray";
             clip: true;
             anchors.fill: addressLine;
             visible: addressLine.text.length === 0
