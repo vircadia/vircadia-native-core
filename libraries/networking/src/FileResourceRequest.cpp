@@ -17,7 +17,7 @@
 
 #include <StatTracker.h>
 #include <shared/FileUtils.h>
-#include <pathUtils.h>
+#include <PathUtils.h>
 
 #include "ResourceManager.h"
 
