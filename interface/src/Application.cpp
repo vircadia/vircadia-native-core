@@ -893,6 +893,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
+    _entityClipboard->setIsServerlessMode(true);
+
     {
         const QString TEST_SCRIPT = "--testScript";
         const QString TRACE_FILE = "--traceFile";
@@ -3057,6 +3059,9 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
 
     clearDomainOctreeDetails();
+    _entityClipboard->eraseAllOctreeElements();
+    getEntities()->getTree()->setIsServerlessMode(true);
+    getEntities()->getTree()->eraseAllOctreeElements();
     if (importEntities(domainURL.toString())) {
         pasteEntities(0.0f, 0.0f, 0.0f);
     }
