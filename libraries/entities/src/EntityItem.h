@@ -464,6 +464,7 @@ public:
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
     virtual void locationChanged(bool tellPhysics = true) override;
+    //void wtf(int32_t i) override;
 
     virtual bool getScalesWithParent() const override;
 
@@ -478,6 +479,7 @@ public:
     void setCauterized(bool value) { _cauterized = value; }
     bool getCauterized() const { return _cauterized; }
 
+    float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index) { assert(_spaceIndex == -1); _spaceIndex = index; }
     int32_t getSpaceIndex() const { return _spaceIndex; }
 
@@ -490,6 +492,7 @@ public:
 
 signals:
     void requestRenderUpdate();
+    void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
 protected:
     QHash<ChangeHandlerId, ChangeHandlerCallback> _changeHandlers;
@@ -641,6 +644,7 @@ protected:
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
+    float _boundingRadius { 0.0f };
     int32_t _spaceIndex { -1 }; // index to proxy in workload::Space
     bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
 
