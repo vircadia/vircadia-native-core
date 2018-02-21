@@ -21,4 +21,6 @@ FocusScope {
         onActiveFocusChanged: root.destroy()
     }
 
+    function start() {
+    }
 }
