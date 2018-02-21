@@ -140,9 +140,7 @@ public slots:
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
     render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
 
-    //void handleSpaceUpdate(workload::Space::ProxyUpdate proxyUpdate);
     void handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate);
-    void testSlot();
 
 protected:
     virtual OctreePointer createTree() override {
