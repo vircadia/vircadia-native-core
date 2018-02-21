@@ -185,7 +185,7 @@ Item {
             visible: !root.hasPermissionToRezThis;
             anchors.verticalCenter: itemName.verticalCenter;
             anchors.left: itemName.right;
-            anchors.leftMargin: itemName.truncated ? -14 : -2;
+            anchors.leftMargin: itemName.truncated ? -10 : -2;
             text: hifi.glyphs.info;
             // Size
             size: 40;
