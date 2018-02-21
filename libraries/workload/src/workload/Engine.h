@@ -60,7 +60,7 @@ namespace workload {
     // (5) Engine derives from task::Task<C> and will run all the Job<C>'s
     class Engine : public Task {
     public:
-        Engine(const WorkloadContextPointer& context = std::make_shared<WorkloadContext>());
+        Engine(const WorkloadContextPointer& context);
         ~Engine() = default;
 
         // (6) The Engine's Context is passed to its Jobs when they are run()
