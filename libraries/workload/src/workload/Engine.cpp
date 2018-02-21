@@ -33,10 +33,10 @@ namespace workload {
             if (_isEnabled) {
                 std::cout << _message.toStdString() << std::endl;
             }
-	    }
+        }
     };
 
-    WorkloadContext::WorkloadContext() : task::JobContext(trace_workload()) {}
+    WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
     using EngineModel = Task::Model<class HelloWorldBuilder>;
 
@@ -50,8 +50,8 @@ namespace workload {
         }
     };
 
-    Engine::Engine() : Task("Engine", EngineModel::create()),
-            _context(std::make_shared<WorkloadContext>()) {
+    Engine::Engine(const WorkloadContextPointer& context) : Task("Engine", EngineModel::create()),
+            _context(context) {
     }
 } // namespace workload
 

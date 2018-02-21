@@ -15,8 +15,10 @@
 #ifndef hifi_workload_Space_h
 #define hifi_workload_Space_h
 
+#include <memory>
 #include <vector>
 #include <glm/glm.hpp>
+
 
 namespace workload {
 
@@ -33,6 +35,7 @@ public:
 
     class Proxy {
     public:
+        Proxy() : sphere(0.0f) {}
         Proxy(const Sphere& s) : sphere(s) {}
         Sphere sphere;
         uint8_t region { REGION_UNKNOWN };
@@ -66,8 +69,11 @@ public:
     void setViews(const std::vector<View>& views);
 
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumAllocatedProxies() const { return (uint32_t)(_proxies.size()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
+
+    uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies);
 
 private:
     void deleteProxy(int32_t proxyId);
@@ -77,6 +83,8 @@ private:
     std::vector<View> _views;
     std::vector<int32_t> _freeIndices;
 };
+
+using SpacePointer = std::shared_ptr<Space>;
 
 } // namespace workload
 

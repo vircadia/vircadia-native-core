@@ -20,6 +20,8 @@
 
 #include <task/Task.h>
 
+#include "Space.h"
+
 namespace workload {
 
     // How to make an Engine under the task::Task<C> paradigm...
@@ -27,8 +29,10 @@ namespace workload {
     // (1) Derive class C from task::JobContext
     class WorkloadContext : public task::JobContext {
     public:
-        WorkloadContext();
+        WorkloadContext(const SpacePointer& space);
         virtual ~WorkloadContext() {}
+
+        SpacePointer _space;
     };
     using WorkloadContextPointer = std::shared_ptr<WorkloadContext>;
 
@@ -43,7 +47,7 @@ namespace workload {
         Q_PROPERTY(QString message READ getMessage WRITE setMessage)
         QString _message {"Hello World."};
     public:
-	    HelloWorldConfig() : Job::Config(true) {}
+        HelloWorldConfig() : Job::Config(true) {}
         QString getMessage() const { return _message; }
         void setMessage(const QString& msg) { _message = msg; }
     };
@@ -56,15 +60,15 @@ namespace workload {
     // (5) Engine derives from task::Task<C> and will run all the Job<C>'s
     class Engine : public Task {
     public:
-        Engine();
+        Engine(const WorkloadContextPointer& context = std::make_shared<WorkloadContext>());
         ~Engine() = default;
 
         // (6) The Engine's Context is passed to its Jobs when they are run()
-        void run() { assert(_context); Task::run(_context); }
+        void run() { assert(_context); run(_context); }
 
     protected:
         // (6) Again, the Engine's Context is passed to its Jobs when they are run()
-        void run(const WorkloadContextPointer& context) override { assert(_context);  Task::run(_context); }
+        void run(const WorkloadContextPointer& context) override { assert(_context); Task::run(_context); }
 
     private:
         WorkloadContextPointer _context;

@@ -1,0 +1,102 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawItemBounds.slv
+//  vertex shader
+//
+//  Created by Sam Gateau on 6/29/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+uniform vec4 inColor;
+
+
+struct ItemBound {
+    vec4 id_boundPos;
+    vec4 boundDim_s;
+};
+
+#if defined(GPU_GL410)
+uniform samplerBuffer ssbo0Buffer;
+ItemBound getItemBound(int i) {
+    int offset = 2 * i;
+    ItemBound bound;
+    bound.id_boundPos = texelFetch(ssbo0Buffer, offset);
+    bound.boundDim_s = texelFetch(ssbo0Buffer, offset + 1);
+    return bound;
+}
+#else
+layout(std140) buffer ssbo0Buffer {
+    ItemBound bounds[];
+};
+ItemBound getItemBound(int i) {
+    ItemBound bound = bounds[i];
+    return bound;
+}
+#endif
+
+
+
+out vec4 varColor;
+out vec2 varTexcoord;
+
+void main(void) {
+    const vec4 UNIT_BOX[8] = vec4[8](
+        vec4(0.0, 0.0, 0.0, 0.0),
+        vec4(1.0, 0.0, 0.0, 1.0),
+        vec4(0.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 2.0),
+        vec4(0.0, 0.0, 1.0, 1.0),
+        vec4(1.0, 0.0, 1.0, 2.0),
+        vec4(0.0, 1.0, 1.0, 2.0),
+        vec4(1.0, 1.0, 1.0, 3.0)
+    );
+    const int UNIT_BOX_LINE_INDICES[24] = int[24](
+        0, 1,
+        1, 3,
+        3, 2,
+        2, 0,
+        4, 5,
+        5, 7,
+        7, 6,
+        6, 4,
+        2, 6,
+        3, 7,
+        0, 4,
+        1, 5
+    );
+
+    int boundID = gl_VertexID / 24;
+    int vertexID = gl_VertexID - boundID * 24;
+
+    vec4 cubeVec = UNIT_BOX[UNIT_BOX_LINE_INDICES[vertexID]];
+
+    ItemBound bound = getItemBound(boundID);
+    vec3 boundPos = bound.id_boundPos.yzw;
+    vec3 boundDim = bound.boundDim_s.xyz;
+
+    vec4 pos = vec4(boundPos + boundDim * cubeVec.xyz, 1.0);
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+
+    if (inColor.w < 0.0) {
+        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
+    } else {
+        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
+    }
+    varTexcoord = vec2(cubeVec.w, length(boundDim));
+
+}
