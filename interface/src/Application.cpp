@@ -3037,14 +3037,12 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 void Application::setServersEnabled(bool serversEnabled) {
-    qDebug() << "QQQQ serversEnabled =" << serversEnabled;
     if (_serversEnabled != serversEnabled) {
         _serversEnabled = serversEnabled;
     }
 }
 
 bool Application::visitServerlessDomain(const QString& urlString) {
-    qDebug() << "QQQQ visit serverless domain" << urlString;
     DependencyManager::get<AddressManager>()->handleLookupString(urlString);
     return true;
 }

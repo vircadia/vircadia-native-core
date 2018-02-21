@@ -165,7 +165,7 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
             if (_serverlessDomainURL != QUrl()) {
                 setIsConnected(true);
             }
-            emit serverlessDomainChanged("");
+            emit serverlessDomainChanged(_serverlessDomainURL.toString());
         }
 
         if (hostname != _hostname) {
@@ -197,6 +197,11 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
 }
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
+
+    if (_serverlessDomainURL != QUrl()) {
+        _serverlessDomainURL = QUrl();
+        emit serverlessDomainChanged("");
+    }
 
     if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
         // re-set the domain info to connect to new domain
