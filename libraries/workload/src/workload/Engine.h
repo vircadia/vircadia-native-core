@@ -29,7 +29,7 @@ namespace workload {
     // (1) Derive class C from task::JobContext
     class WorkloadContext : public task::JobContext {
     public:
-        WorkloadContext();
+        WorkloadContext(const SpacePointer& space);
         virtual ~WorkloadContext() {}
 
         SpacePointer _space;
@@ -66,12 +66,7 @@ namespace workload {
         // (6) The Engine's Context is passed to its Jobs when they are run()
         void run() { assert(_context); Task::run(_context); }
 
-        // Register the Space
-        void registerSpace(const SpacePointer& space) { _context->_space = space; }
-
     protected:
-        // (6) Again, the Engine's Context is passed to its Jobs when they are run()
-        void run(const WorkloadContextPointer& context) override { assert(_context);  Task::run(_context); }
 
     private:
         WorkloadContextPointer _context;

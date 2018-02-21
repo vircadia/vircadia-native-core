@@ -15,21 +15,9 @@
 
 #include "render/Scene.h"
 
-class GameSpaceToRender {
-public:
-    using Outputs = render::Transaction;
-    using JobModel = workload::Job::ModelO<GameSpaceToRender, Outputs>;
-
-    GameSpaceToRender() {}
-    void run(const workload::WorkloadContextPointer& renderContext, Outputs& outputs);
-
-protected:
-    render::ItemID _spaceRenderItemID{ render::Item::INVALID_ITEM_ID };
-};
-
 class GameWorkloadContext : public workload::WorkloadContext {
 public:
-    GameWorkloadContext(const render::ScenePointer& scene);
+    GameWorkloadContext(const workload::SpacePointer& space, const render::ScenePointer& scene);
     virtual ~GameWorkloadContext();
 
     render::ScenePointer _scene;
@@ -40,7 +28,7 @@ public:
     GameWorkload();
     ~GameWorkload();
 
-    void startup(const render::ScenePointer& scene);
+    void startup(const workload::SpacePointer& space, const render::ScenePointer& scene);
     void shutdown();
 
     workload::EnginePointer _engine;

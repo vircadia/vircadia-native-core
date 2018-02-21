@@ -70,6 +70,8 @@ public:
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
 
+    uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies);
+
 private:
     void deleteProxy(int32_t proxyId);
     void updateProxy(int32_t proxyId, const Sphere& sphere);

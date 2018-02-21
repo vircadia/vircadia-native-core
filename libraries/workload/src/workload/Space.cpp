@@ -101,6 +101,15 @@ void Space::deleteProxy(int32_t proxyId) {
     }
 }
 
+uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) {
+
+    auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
+    memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));
+
+    return numCopied;
+}
+
+
 // private
 void Space::updateProxy(int32_t proxyId, const Space::Sphere& newSphere) {
     if (proxyId > -1 && proxyId < (int32_t)_proxies.size()) {

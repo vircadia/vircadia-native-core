@@ -36,7 +36,7 @@ namespace workload {
         }
     };
 
-    WorkloadContext::WorkloadContext() : task::JobContext(trace_workload()) {}
+    WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
     using EngineModel = Task::Model<class HelloWorldBuilder>;
 

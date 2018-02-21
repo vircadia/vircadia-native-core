@@ -2400,7 +2400,7 @@ void Application::initializeGL() {
         DependencyManager::get<GeometryCache>()->initializeShapePipelines();
     });
 
-    _gameWorkload.startup(_main3DScene);
+    _gameWorkload.startup(_workloadSpace, _main3DScene);
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
