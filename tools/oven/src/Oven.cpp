@@ -32,9 +32,12 @@ Oven::Oven() {
 }
 
 Oven::~Oven() {
-    // quit and wait on the worker threads
+    // quit all worker threads and wait on them
     for (auto& thread : _workerThreads) {
         thread->quit();
+    }
+
+    for (auto& thread: _workerThreads) {
         thread->wait();
     }
 
