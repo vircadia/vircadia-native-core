@@ -18,6 +18,8 @@
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
 
+#include "Plugins/Forward.h"
+
 #include "AudioMixerStats.h"
 #include "AudioMixerSlavePool.h"
 
