@@ -89,7 +89,7 @@ public:
     void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
 
     bool canCastShadow() const { return _canCastShadow; }
-    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene);
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
 
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);

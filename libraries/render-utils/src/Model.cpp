@@ -713,15 +713,13 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene,
     }
 }
 
-void Model::setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene) {
+void Model::setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
     if (_canCastShadow != canCastShadow) {
         _canCastShadow = canCastShadow;
 
         bool isVisible = _isVisible;
-        bool viewTagBits = _viewTagBits;
         bool isLayeredInFront = _isLayeredInFront;
         bool isLayeredInHUD = _isLayeredInHUD;
-        bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {

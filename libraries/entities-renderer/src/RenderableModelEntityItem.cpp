@@ -1357,7 +1357,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // TODO? early exit here when not visible?
 
     if (model->canCastShadow() != _canCastShadow) {
-        model->setCanCastShadow(_canCastShadow, scene);
+        model->setCanCastShadow(_canCastShadow, scene, viewTaskBits, false);
     }
 
     if (_needsCollisionGeometryUpdate) {
