@@ -509,15 +509,6 @@ function unbindAllInputs() {
     }
 }
 
-function clearSelection() {
-    if (document.selection && document.selection.empty) {
-        document.selection.empty();
-    } else if (window.getSelection) {
-        var sel = window.getSelection();
-        sel.removeAllRanges();
-    }
-}
-
 function showParentMaterialNameBox(number, elNumber, elString) {
     if (number) {
         $('#property-parent-material-id-number-container').show();
@@ -831,8 +822,10 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        // the event bridge and json parsing handle our avatar id string differently.
 
+                        var doSelectElement = lastEntityID === '"' + properties.id + '"';
+
+                        // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
@@ -1214,12 +1207,10 @@ function loaded() {
                         }
 
                         var activeElement = document.activeElement;
-
-                        if (typeof activeElement.select !== "undefined") {
+                        if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
                         }
                     }
-                    clearSelection();
                 }
             });
         }
@@ -1787,34 +1778,13 @@ function loaded() {
         };
 
         // For input and textarea elements, select all of the text on focus
-        // WebKit-based browsers, such as is used with QWebView, have a quirk
-        // where the mouseup event comes after the focus event, causing the
-        // text to be deselected immediately after selecting all of the text.
-        // To make this work we block the first mouseup event after the elements
-        // received focus.  If we block all mouseup events the user will not
-        // be able to click within the selected text.
-        // We also check to see if the value has changed to make sure we aren't
-        // blocking a mouse-up event when clicking on an input spinner.
         var els = document.querySelectorAll("input, textarea");
         for (var i = 0; i < els.length; i++) {
-            var clicked = false;
-            var originalText;
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onfocus = function(e) {
-                originalText = this.value;
-                this.select();
-                clicked = false;
-            };
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onmouseup = function(e) {
-                if (!clicked && originalText === this.value) {
-                    e.preventDefault();
-                }
-                clicked = true;
+            els[i].onfocus = function (e) {
+                e.target.select();
             };
         }
+
         bindAllNonJSONEditorElements();
     });
 
