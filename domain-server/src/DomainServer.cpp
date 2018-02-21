@@ -735,7 +735,6 @@ void DomainServer::setupNodeListAndAssignments() {
     _assetClientThread.setObjectName("AssetClient Thread");
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->moveToThread(&_assetClientThread);
-    QObject::connect(&_assetClientThread, &QThread::started, assetClient.data(), &AssetClient::init);
     _assetClientThread.start();
 
     // add whatever static assignments that have been parsed to the queue
