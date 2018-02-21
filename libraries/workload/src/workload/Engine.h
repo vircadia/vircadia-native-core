@@ -47,7 +47,7 @@ namespace workload {
         Q_PROPERTY(QString message READ getMessage WRITE setMessage)
         QString _message {"Hello World."};
     public:
-	    HelloWorldConfig() : Job::Config(true) {}
+        HelloWorldConfig() : Job::Config(true) {}
         QString getMessage() const { return _message; }
         void setMessage(const QString& msg) { _message = msg; }
     };
@@ -64,9 +64,11 @@ namespace workload {
         ~Engine() = default;
 
         // (6) The Engine's Context is passed to its Jobs when they are run()
-        void run() { assert(_context); Task::run(_context); }
+        void run() { assert(_context); run(_context); }
 
     protected:
+        // (6) Again, the Engine's Context is passed to its Jobs when they are run()
+        void run(const WorkloadContextPointer& context) override { assert(_context); Task::run(_context); }
 
     private:
         WorkloadContextPointer _context;
