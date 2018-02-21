@@ -20,36 +20,14 @@
 
 namespace workload {
 
-    // the "real Job"
-    class HelloWorld {
-        QString _message;
-        bool _isEnabled { true };
-    public:
-        using JobModel = Job::Model<HelloWorld, HelloWorldConfig>;
-        HelloWorld() {}
-        void configure(const HelloWorldConfig& configuration) {
-            _isEnabled = configuration.isEnabled();
-            _message = configuration.getMessage();
-        }
-        void run(const WorkloadContextPointer& context) {
-            if (_isEnabled) {
-                std::cout << _message.toStdString() << std::endl;
-            }
-        }
-    };
-
     WorkloadContext::WorkloadContext(const SpacePointer& space) : task::JobContext(trace_workload()), _space(space) {}
 
-    using EngineModel = Task::Model<class HelloWorldBuilder>;
+    using EngineModel = Task::Model<class EngineBuilder>;
 
-    // the 'Builder' is the 'Data' on which the EngineModel templatizes.
-    // It must implement build() which is called by EngineModel::create().
-    class HelloWorldBuilder {
+    class EngineBuilder {
     public:
         using JobModel = Task::Model<EngineModel>;
         void build(EngineModel& model, const Varying& in, Varying& out) {
-            model.addJob<HelloWorld>("helloWorld");
-
             auto classifications = model.addJob<ClassificationTracker>("classificationTracker");
         }
     };
