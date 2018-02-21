@@ -32,7 +32,9 @@ void main(void) {
     vec2 pixVelocity = imageSize * texture(velocityMap, varTexCoord0).xy;
     float pixVelocityLength = length(pixVelocity);
     vec2 velocity = pixVelocity * texelSize;
-    vec2 prevTexCoord = varTexCoord0 - velocity;
+    int stereoSide = 0;
+    vec2 prevTexCoord = taa_fromFragUVToEyeUVAndSide(varTexCoord0, stereoSide) - velocity;
+    prevTexCoord = taa_fromEyeUVToFragUV(prevTexCoord, stereoSide);
     vec2 prevPix = prevTexCoord * imageSize;
 
     // Pixel Debugged
@@ -43,7 +45,7 @@ void main(void) {
         vec2 cursorUV = cursorUVRaw;
         vec2 cursorPos = cursorUV * imageSize;
         vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
-        vec2 cursorPrevUV = cursorUV - cursorVelocity;
+        vec2 cursorPrevUV = taa_fromFragUVToEyeUVAndSide(cursorUV, stereoSide) - cursorVelocity;
         cursorVelocity *= imageSize;
         float cursorVelocityLength = length(cursorVelocity);
         vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
@@ -143,13 +145,11 @@ void main(void) {
     if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
         prevColor = texture(historyMap, prevTexCoord).xyz;
     }
-    outFragColor.xyz =  prevColor;
+    outFragColor.xyz = mix(prevColor, vec3(1,0,1), clamp(distance(prevColor, nextColor) - 0.01, 0, 1));
 
     if (pixVelocityLength > params.debugShowVelocityThreshold) {
         vec3 speedColor = taa_getVelocityColorAboveThreshold(pixVelocityLength);
 
         outFragColor = vec4(0.0, 1.0, 1.0, 1.0);
     }
-
-
 }

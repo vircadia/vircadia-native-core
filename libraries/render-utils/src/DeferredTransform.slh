@@ -89,7 +89,11 @@ mat4 getViewInverse() {
 }
 
 mat4 getView() {
-    return frameTransform._view * cameraCorrection._correctionInverse;
+    return cameraCorrection._correctionInverse * frameTransform._view;
+}
+
+mat4 getPreviousView() {
+    return cameraCorrection._prevCorrectionInverse * frameTransform._prevView;
 }
 
 bool isStereo() {

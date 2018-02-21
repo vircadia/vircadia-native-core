@@ -26,17 +26,12 @@ void main(void) {
     ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
     
 	float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
-/*    float Zeye = evalZeyeFromZdb(Zdb);
-	if (Zeye <= -getPosLinearDepthFar()) {
-       outFragColor = vec4(0.5, 0.5, 0.0, 0.0);
-       return;
-    }*/
 
 	// The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZdb(stereoSide.x, Zdb, texcoordPos);
-	vec3 worldPos = (frameTransform._viewInverse * cameraCorrection._correction * vec4(eyePos, 1.0)).xyz;
+	vec3 worldPos = (getViewInverse() * vec4(eyePos, 1.0)).xyz;
     
-    vec3 prevEyePos = (cameraCorrection._prevCorrectionInverse * frameTransform._prevView * vec4(worldPos, 1.0)).xyz;
+    vec3 prevEyePos = (getPreviousView() * vec4(worldPos, 1.0)).xyz;
     vec4 prevClipPos = (frameTransform._projection[stereoSide.x] * vec4(prevEyePos, 1.0));
     vec2 prevUV =  0.5 * (prevClipPos.xy / prevClipPos.w) + vec2(0.5);
 

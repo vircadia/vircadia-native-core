@@ -225,12 +225,37 @@ vec3 taa_fetchVelocityMapBest(vec2 uv) {
     return vec3(best.xy, taa_fetchDepth(uv));
 }
 
+vec2 taa_fromFragUVToEyeUVAndSide(vec2 fragUV, out int stereoSide) {
+    vec2 eyeUV = fragUV;
+    stereoSide = 0;
+    if (isStereo()) {
+        if (eyeUV.x > 0.5) {
+            eyeUV.x -= 0.5;
+            stereoSide = 1;
+        }
+        eyeUV.x *= 2.0;
+    }
+    return eyeUV;
+}
+
+vec2 taa_fromEyeUVToFragUV(vec2 eyeUV, int stereoSide) {
+    vec2 fragUV = eyeUV;
+    if (isStereo()) {
+        fragUV.x *= 0.5;
+        fragUV.x += stereoSide*0.5;
+    }
+    return fragUV;
+}
+
 vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
+    int stereoSide = 0;
+    vec2 eyeUV = taa_fromFragUVToEyeUVAndSide(fragUV, stereoSide);
+    vec2 prevEyeUV = eyeUV - fragVelocity;
 
-    vec2 prevFragUV = fragUV - fragVelocity;
     historyColor = sourceColor;
-    if (!(any(lessThan(prevFragUV, vec2(0.0))) || any(greaterThan(prevFragUV, vec2(1.0))))) {
+    vec2 prevFragUV = taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
+    if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
         historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
     }
     return prevFragUV;

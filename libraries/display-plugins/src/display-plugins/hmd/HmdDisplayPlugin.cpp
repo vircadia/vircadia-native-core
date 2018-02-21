@@ -330,7 +330,6 @@ void HmdDisplayPlugin::updateFrameData() {
                 }
             }
             if (newFrameIndex != INVALID_FRAME) {
-                _previousPresentFrameInfo = _currentPresentFrameInfo;
                 _currentPresentFrameInfo = _frameInfos[newFrameIndex];
             }
         });
@@ -344,6 +343,8 @@ void HmdDisplayPlugin::updateFrameData() {
         auto correction = invBatchPose * _currentPresentFrameInfo.presentPose;
         auto prevCorrection = invPrevBatchPose * _previousPresentFrameInfo.presentPose;
         getGLBackend()->setCameraCorrection(correction, prevCorrection);
+
+        _previousPresentFrameInfo = _currentPresentFrameInfo;
     }
 }
 
