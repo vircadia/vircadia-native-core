@@ -43,7 +43,7 @@ namespace workload {
         Q_PROPERTY(QString message READ getMessage WRITE setMessage)
         QString _message {"Hello World."};
     public:
-	    HelloWorldConfig() : Job::Config(true) {}
+        HelloWorldConfig() : Job::Config(true) {}
         QString getMessage() const { return _message; }
         void setMessage(const QString& msg) { _message = msg; }
     };

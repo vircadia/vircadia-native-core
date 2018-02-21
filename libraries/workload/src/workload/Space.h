@@ -78,6 +78,8 @@ private:
     std::vector<int32_t> _freeIndices;
 };
 
+using Classifications = std::vector<Space::Change>;
+
 } // namespace workload
 
 #endif // hifi_workload_Space_h
