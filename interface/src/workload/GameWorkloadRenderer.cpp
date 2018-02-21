@@ -30,17 +30,23 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         auto renderItem = std::make_shared<GameWorkloadRenderItem>();
         renderItem->editBound().expandedContains(glm::vec3(0.0), 32000.0);
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(std::make_shared<GameWorkloadRenderItem>()));
+        scene->enqueueTransaction(transaction);
     }
 
-    scene->enqueueTransaction(transaction);
 
     auto space = gameWorkloadContext->_space;
     if (!space) {
         return;
     }
 
-    space->getNumObjects();
+    std::vector<workload::Space::Proxy> proxies(space->getNumAllocatedProxies());
 
+    space->copyProxyValues(proxies.data(), proxies.size());
+
+    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [proxies](GameWorkloadRenderItem& item) {
+        item.setAllProxies(proxies);
+    });
+    scene->enqueueTransaction(transaction);
 }
 
 namespace render {

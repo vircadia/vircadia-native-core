@@ -616,7 +616,6 @@ private:
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
     GameWorkload _gameWorkload;
-    workload::SpacePointer _workloadSpace{ new workload::Space() };
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {

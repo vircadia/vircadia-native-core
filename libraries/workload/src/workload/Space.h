@@ -35,6 +35,7 @@ public:
 
     class Proxy {
     public:
+        Proxy() : sphere(0.0f) {}
         Proxy(const Sphere& s) : sphere(s) {}
         Sphere sphere;
         uint8_t region { REGION_UNKNOWN };
@@ -68,6 +69,7 @@ public:
     void setViews(const std::vector<View>& views);
 
     uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumAllocatedProxies() const { return (uint32_t)(_proxies.size()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
 
