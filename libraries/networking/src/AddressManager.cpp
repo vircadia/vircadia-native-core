@@ -294,6 +294,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
         _previousLookup.clear();
+
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, false);
         emit lookupResultsFinished();
