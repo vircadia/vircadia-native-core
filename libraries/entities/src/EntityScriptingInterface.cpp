@@ -588,7 +588,10 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 if (entity->getLocked()) {
                     shouldDelete = false;
                 } else {
-                    _entityTree->deleteEntity(entityID);
+                    // only delete local entities, server entities will round trip through the server filters
+                    if (entity->getClientOnly()) {
+                        _entityTree->deleteEntity(entityID);
+                    }
                 }
             }
         });
