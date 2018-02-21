@@ -162,6 +162,9 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
 
         if (serverlessDomainURL != _serverlessDomainURL) {
             _serverlessDomainURL = serverlessDomainURL;
+            if (_serverlessDomainURL != QUrl()) {
+                setIsConnected(true);
+            }
             emit serverlessDomainChanged("");
         }
 
