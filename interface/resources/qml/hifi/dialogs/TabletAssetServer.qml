@@ -207,7 +207,7 @@ Rectangle {
             SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
             SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
         
-            var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
+            var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_SIMPLE_COMPOUND;
             var DYNAMIC_DEFAULT = false;
             var prompt = tabletRoot.customInputDialog({
                 textInput: {
