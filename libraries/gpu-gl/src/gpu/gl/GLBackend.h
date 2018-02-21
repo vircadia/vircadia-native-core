@@ -126,14 +126,14 @@ public:
     // Resource Stage
     virtual void do_setResourceBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setResourceTexture(const Batch& batch, size_t paramOffset) final;
-    virtual void do_setResourceFramebufferRingTexture(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) final;
 
     // Pipeline Stage
     virtual void do_setPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Output stage
     virtual void do_setFramebuffer(const Batch& batch, size_t paramOffset) final;
-    virtual void do_setFramebufferRing(const Batch& batch, size_t paramOffset) final;
+    virtual void do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) final;
     virtual void do_clearFramebuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_blit(const Batch& batch, size_t paramOffset) = 0;
 

@@ -40,11 +40,11 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
     setFramebuffer(framebuffer);
 }
 
-void GLBackend::do_setFramebufferRing(const Batch& batch, size_t paramOffset) {
-    auto ringbuffer = batch._ringbuffers.get(batch._params[paramOffset]._uint);
-    if (ringbuffer) {
+void GLBackend::do_setFramebufferSwapChain(const Batch& batch, size_t paramOffset) {
+    auto swapChain = batch._swapChains.get(batch._params[paramOffset]._uint);
+    if (swapChain) {
         auto index = batch._params[paramOffset + 1]._uint;
-        FramebufferPointer framebuffer = static_cast<const FramebufferRing*>(ringbuffer.get())->get(index);
+        FramebufferPointer framebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
         setFramebuffer(framebuffer);
     }
 }
@@ -61,7 +61,7 @@ void GLBackend::setFramebuffer(const FramebufferPointer& framebuffer) {
 }
 
 void GLBackend::do_advance(const Batch& batch, size_t paramOffset) {
-    auto ringbuffer = batch._ringbuffers.get(batch._params[paramOffset]._uint);
+    auto ringbuffer = batch._swapChains.get(batch._params[paramOffset]._uint);
     if (ringbuffer) {
         ringbuffer->advance();
     }

@@ -99,10 +99,10 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setUniformBuffer),
     (&::gpu::gl::GLBackend::do_setResourceBuffer),
     (&::gpu::gl::GLBackend::do_setResourceTexture),
-    (&::gpu::gl::GLBackend::do_setResourceFramebufferRingTexture),
+    (&::gpu::gl::GLBackend::do_setResourceFramebufferSwapChainTexture),
 
     (&::gpu::gl::GLBackend::do_setFramebuffer),
-    (&::gpu::gl::GLBackend::do_setFramebufferRing),
+    (&::gpu::gl::GLBackend::do_setFramebufferSwapChain),
     (&::gpu::gl::GLBackend::do_clearFramebuffer),
     (&::gpu::gl::GLBackend::do_blit),
     (&::gpu::gl::GLBackend::do_generateTextureMips),

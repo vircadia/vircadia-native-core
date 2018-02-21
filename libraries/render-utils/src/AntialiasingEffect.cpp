@@ -188,7 +188,7 @@ const int AntialiasingPass_NextMapSlot = 4;
 
 
 Antialiasing::Antialiasing() {
-    _antialiasingBuffers = std::make_shared<gpu::FramebufferRing>(2U);
+    _antialiasingBuffers = std::make_shared<gpu::FramebufferSwapChain>(2U);
 }
 
 Antialiasing::~Antialiasing() {
@@ -343,7 +343,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
         // TAA step
         getAntialiasingPipeline();
-        batch.setResourceFramebufferRingTexture(AntialiasingPass_HistoryMapSlot, _antialiasingBuffers, 0);
+        batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_HistoryMapSlot, _antialiasingBuffers, 0);
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
         batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
@@ -351,7 +351,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, deferredFrameTransform->getFrameTransformBuffer());
         
-        batch.setFramebufferRing(_antialiasingBuffers, 1);
+        batch.setFramebufferSwapChain(_antialiasingBuffers, 1);
         batch.setPipeline(getAntialiasingPipeline());       
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
@@ -364,7 +364,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         }  else {
             batch.setPipeline(getBlendPipeline());
         }
-        batch.setResourceFramebufferRingTexture(AntialiasingPass_NextMapSlot, _antialiasingBuffers, 1);
+        batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_NextMapSlot, _antialiasingBuffers, 1);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.advance(_antialiasingBuffers);
         

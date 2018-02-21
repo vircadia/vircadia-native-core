@@ -187,13 +187,13 @@ public:
 
     void setResourceTexture(uint32 slot, const TexturePointer& texture);
     void setResourceTexture(uint32 slot, const TextureView& view); // not a command, just a shortcut from a TextureView
-    void setResourceFramebufferRingTexture(uint32 slot, const FramebufferRingPointer& framebuffer, unsigned int ringIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
+    void setResourceFramebufferSwapChainTexture(uint32 slot, const FramebufferSwapChainPointer& framebuffer, unsigned int swpaChainIndex, unsigned int renderBufferSlot = 0U); // not a command, just a shortcut from a TextureView
 
     // Ouput Stage
     void setFramebuffer(const FramebufferPointer& framebuffer);
-    void setFramebufferRing(const FramebufferRingPointer& framebuffer, unsigned int ringIndex);
+    void setFramebufferSwapChain(const FramebufferSwapChainPointer& framebuffer, unsigned int swapChainIndex);
 
-    void advance(const RingBufferPointer& ringbuffer);
+    void advance(const SwapChainPointer& swapChain);
 
     // Clear framebuffer layers
     // Targets can be any of the render buffers contained in the currnetly bound Framebuffer
@@ -302,10 +302,10 @@ public:
         COMMAND_setUniformBuffer,
         COMMAND_setResourceBuffer,
         COMMAND_setResourceTexture,
-        COMMAND_setResourceFramebufferRingTexture,
+        COMMAND_setResourceFramebufferSwapChainTexture,
 
         COMMAND_setFramebuffer,
-        COMMAND_setFramebufferRing,
+        COMMAND_setFramebufferSwapChain,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
@@ -428,7 +428,7 @@ public:
     typedef Cache<Transform>::Vector TransformCaches;
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
-    typedef Cache<RingBufferPointer>::Vector RingBufferCaches;
+    typedef Cache<SwapChainPointer>::Vector SwapChainCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
     typedef Cache<std::string>::Vector StringCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
@@ -483,7 +483,7 @@ public:
     TransformCaches _transforms;
     PipelineCaches _pipelines;
     FramebufferCaches _framebuffers;
-    RingBufferCaches _ringbuffers;
+    SwapChainCaches _swapChains;
     QueryCaches _queries;
     LambdaCache _lambdas;
     StringCaches _profileRanges;

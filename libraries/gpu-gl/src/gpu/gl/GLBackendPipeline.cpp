@@ -256,22 +256,22 @@ void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     setResourceTexture(slot, resourceTexture);
 }
 
-void GLBackend::do_setResourceFramebufferRingTexture(const Batch& batch, size_t paramOffset) {
+void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint)MAX_NUM_RESOURCE_TEXTURES) {
-        qCDebug(gpugllogging) << "GLBackend::do_setResourceFramebufferRingTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceFramebufferSwapChainTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
         return;
     }
 
-    RingBufferPointer ringBuffer = batch._ringbuffers.get(batch._params[paramOffset + 0]._uint);
+    SwapChainPointer swapChain = batch._swapChains.get(batch._params[paramOffset + 0]._uint);
 
-    if (!ringBuffer) {
+    if (!swapChain) {
         releaseResourceTexture(slot);
         return;
     }
     auto index = batch._params[paramOffset + 2]._uint;
     auto renderBufferSlot = batch._params[paramOffset + 3]._uint;
-    FramebufferPointer resourceFramebuffer = static_cast<const FramebufferRing*>(ringBuffer.get())->get(index);
+    FramebufferPointer resourceFramebuffer = static_cast<const FramebufferSwapChain*>(swapChain.get())->get(index);
     TexturePointer resourceTexture = resourceFramebuffer->getRenderBuffer(renderBufferSlot);
 
     setResourceTexture(slot, resourceTexture);
