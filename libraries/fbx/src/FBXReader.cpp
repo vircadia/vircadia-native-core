@@ -1979,7 +1979,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-
+    {
+        int i = 0;
+        for (const auto& mesh : geometry.meshes) {
+            auto name = geometry.getModelNameOfMesh(i++);
+            if (!name.isEmpty()) {
+                if (mesh._mesh) {
+                    mesh._mesh->modelName = name.toStdString();
+                    if (!mesh._mesh->displayName.size()) {
+                        mesh._mesh->displayName = mesh._mesh->displayName + "#" + name;
+                    }
+                } else {
+                    qDebug() << "modelName but no mesh._mesh" << name;
+                }
+            }
+        }
+    }
     return geometryPtr;
 }
 
