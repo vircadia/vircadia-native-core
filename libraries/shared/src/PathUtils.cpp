@@ -140,7 +140,6 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
         QString absolutePath = applicationAbsolutePath();
         path.replace(0, 3, absolutePath);
         url = QUrl("file:///" + path);
-        qDebug() << "QQQ expanded URL " << url;
     }
     return url;
 }

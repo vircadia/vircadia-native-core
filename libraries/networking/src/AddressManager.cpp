@@ -73,7 +73,6 @@ QUrl AddressManager::currentAddress(bool domainOnly) const {
         hifiURL.setPath(currentPath());
     }
 
-    qDebug() << "QQQQ currentAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
@@ -83,7 +82,6 @@ QUrl AddressManager::currentFacingAddress() const {
         hifiURL.setPath(currentFacingPath());
     }
 
-    qDebug() << "QQQQ currentFacingAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
@@ -99,10 +97,8 @@ QUrl AddressManager::currentShareableAddress(bool domainOnly) const {
             hifiURL.setPath(currentPath());
         }
 
-        qDebug() << "QQQQ currentShareableAddress --> " << hifiURL.toString();
         return hifiURL;
     } else {
-        qDebug() << "QQQQ currentShareableAddress --> " << currentAddress(domainOnly).toString();
         return currentAddress(domainOnly);
     }
 }
@@ -113,7 +109,6 @@ QUrl AddressManager::currentFacingShareableAddress() const {
         hifiURL.setPath(currentFacingPath());
     }
 
-    qDebug() << "QQQQ currentFacingShareableAddress --> " << hifiURL.toString();
     return hifiURL;
 }
 
@@ -153,7 +148,6 @@ void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
     if (url.scheme() == "file" || url.scheme() == "http" || url.scheme() == "https" || !url.host().isEmpty()) {
-        qDebug() << "QQQQ setting address in settings to " << url.toString();
         currentAddressHandle.set(url);
     } else {
         qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
@@ -222,8 +216,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
     static QString URL_TYPE_DOMAIN_ID = "domain_id";
     static QString URL_TYPE_PLACE = "place";
     static QString URL_TYPE_NETWORK_ADDRESS = "network_address";
-
-    qDebug() << "QQQQ handleUrl: " << lookupUrl.toString();
 
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
 
@@ -302,19 +294,18 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
         _previousLookup.clear();
+
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, false);
         emit lookupResultsFinished();
         return true;
 
     } else if (lookupUrl.scheme() == "http" || lookupUrl.scheme() == "https" || lookupUrl.scheme() == "file") {
-        qDebug() << "QQQQ file or http before serverless domain" << lookupUrl.toString();
         _previousLookup.clear();
         QUrl domainUrl = PathUtils::expandToAppAbsolutePath(lookupUrl);
         emit setServersEnabled(false);
         setDomainInfo(domainUrl, QString(), 0, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
-        emit loadServerlessDomain(domainUrl);
         emit lookupResultsFinished();
         return true;
     }
@@ -329,7 +320,6 @@ bool isPossiblePlaceName(QString possiblePlaceName) {
         const QRegExp PLACE_NAME_REGEX = QRegExp("^[0-9A-Za-z](([0-9A-Za-z]|-(?!-))*[^\\W_]$|$)");
         result = PLACE_NAME_REGEX.indexIn(possiblePlaceName) == 0;
     }
-    qDebug() << "QQQQ isPossiblePlaceName: " << possiblePlaceName << " " << result;
     return result;
 }
 
@@ -347,7 +337,6 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
         }
 
         lookupURL = QUrl(sanitizedString);
-        qDebug() << "QQQQ handleLookupString: " << lookupString << " " << lookupURL.toString();
 
         handleUrl(lookupURL, fromSuggestions ? Suggestions : UserInput);
     }
@@ -405,7 +394,6 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
             QVariantMap domainObject = rootMap[LOCATION_API_DOMAIN_KEY].toMap();
 
             if (!domainObject.isEmpty()) {
-                // XXX serverless domain URL ?
                 const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
                 const QString DOMAIN_NETWORK_PORT_KEY = "network_port";
                 const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
@@ -415,6 +403,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString DOMAIN_ID_KEY = "id";
                 QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
                 QUuid domainID(domainIDString);
+
+                qDebug() << "QQQQ AddressManager::goToAddressFromObject";
 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
@@ -767,7 +757,7 @@ bool AddressManager::setDomainInfo(const QUrl& serverlessDomainURL,
     _serverlessDomainURL = serverlessDomainURL;
 
     if (!serverlessDomainURL.isEmpty()) {
-        qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL;
+        qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL.toString();
     } else {
         qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
     }

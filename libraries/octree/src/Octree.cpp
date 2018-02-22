@@ -1685,6 +1685,15 @@ bool Octree::readFromURL(const QString& urlString) {
     }
 
     auto data = request->getData();
+
+    QByteArray uncompressedJsonData;
+    bool wasCompressed = gunzip(data, uncompressedJsonData);
+
+    if (wasCompressed) {
+        QDataStream inputStream(uncompressedJsonData);
+        return readFromStream(uncompressedJsonData.size(), inputStream, marketplaceID);
+    }
+
     QDataStream inputStream(data);
     return readFromStream(data.size(), inputStream, marketplaceID);
 }
