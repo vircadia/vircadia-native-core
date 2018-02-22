@@ -1048,7 +1048,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&domainHandler, SIGNAL(serverlessDomainChanged(const QString&)), SLOT(domainChanged(const QString&)));
+    connect(&domainHandler, SIGNAL(serverlessDomainChanged(QUrl)), SLOT(loadServerlessDomain(QUrl)));
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&, const QUrl&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
@@ -1109,7 +1109,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(addressManager.data(), &AddressManager::setServersEnabled, this, &Application::setServersEnabled);
-    connect(addressManager.data(), &AddressManager::loadServerlessDomain, this, &Application::loadServerlessDomain);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
@@ -2978,25 +2977,25 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     QString sentTo;
 
-        // If this is a first run we short-circuit the address passed in
-        if (firstRun.get()) {
-            showHelp();
-            if (sandboxIsRunning) {
-                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                sentTo = SENT_TO_SANDBOX;
-            } else {
-                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                DependencyManager::get<AddressManager>()->goToEntry();
-                sentTo = SENT_TO_ENTRY;
-            }
-            firstRun.set(false);
-
+    // If this is a first run we short-circuit the address passed in
+    if (firstRun.get()) {
+        showHelp();
+        if (sandboxIsRunning) {
+            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+            DependencyManager::get<AddressManager>()->goToLocalSandbox();
+            sentTo = SENT_TO_SANDBOX;
         } else {
-            qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
-            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-            sentTo = SENT_TO_PREVIOUS_LOCATION;
+            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+            DependencyManager::get<AddressManager>()->goToEntry();
+            sentTo = SENT_TO_ENTRY;
         }
+        firstRun.set(false);
+
+    } else {
+        qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
+        DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+        sentTo = SENT_TO_PREVIOUS_LOCATION;
+    }
 
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
@@ -3053,11 +3052,23 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    qDebug() << "QQQQ loadServerlessDomain" << domainURL.toString();
 
     clearDomainOctreeDetails();
     _entityClipboard->eraseAllOctreeElements();
+
+    if (domainURL.isEmpty()) {
+        return;
+    }
+
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+
+    // there is no domain-server to tell us our permissions, so enable all
+    NodePermissions permissions;
+    permissions.setAll(true);
+    DependencyManager::get<NodeList>()->setPermissions(permissions);
+
     getEntities()->getTree()->setIsServerlessMode(true);
     getEntities()->getTree()->eraseAllOctreeElements();
     if (importEntities(domainURL.toString())) {
@@ -5774,6 +5785,7 @@ void Application::clearDomainAvatars() {
 }
 
 void Application::domainChanged(const QString& domainHostname) {
+    qDebug() << "QQQQ Application::domainChanged" << domainHostname;
     clearDomainOctreeDetails();
     getEntities()->getTree()->setIsServerlessMode(isServerlessMode());
     updateWindowTitle();

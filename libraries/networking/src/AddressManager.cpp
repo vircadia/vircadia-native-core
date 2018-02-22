@@ -306,7 +306,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit setServersEnabled(false);
         setDomainInfo(domainUrl, QString(), 0, trigger);
         DependencyManager::get<NodeList>()->getDomainHandler().setIsConnected(true);
-        emit loadServerlessDomain(domainUrl);
         emit lookupResultsFinished();
         return true;
     }
@@ -404,6 +403,8 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 const QString DOMAIN_ID_KEY = "id";
                 QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
                 QUuid domainID(domainIDString);
+
+                qDebug() << "QQQQ AddressManager::goToAddressFromObject";
 
                 if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
                     QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
@@ -756,7 +757,7 @@ bool AddressManager::setDomainInfo(const QUrl& serverlessDomainURL,
     _serverlessDomainURL = serverlessDomainURL;
 
     if (!serverlessDomainURL.isEmpty()) {
-        qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL;
+        qCDebug(networking) << "Possible domain change required to serverless domain: " << serverlessDomainURL.toString();
     } else {
         qCDebug(networking) << "Possible domain change required to connect to domain at" << hostname << "on" << port;
     }

@@ -156,6 +156,8 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
 
     _pendingDomainID = domainID;
 
+    qDebug() << "QQQQ DomainHandler::setSocketAndID " << serverlessDomainURL << hostname << port;
+
     if (serverlessDomainURL != _serverlessDomainURL || hostname != _hostname || _sockAddr.getPort() != port) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
@@ -165,7 +167,8 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
             if (_serverlessDomainURL != QUrl()) {
                 setIsConnected(true);
             }
-            emit serverlessDomainChanged(_serverlessDomainURL.toString());
+            qDebug() << "QQQQ serverlessDomainChanged";
+            emit serverlessDomainChanged(_serverlessDomainURL);
         }
 
         if (hostname != _hostname) {
@@ -184,6 +187,7 @@ void DomainHandler::setSocketAndID(const QUrl& serverlessDomainURL,
 
                 UserActivityLogger::getInstance().changedDomain(_hostname);
             }
+            qDebug() << "QQQQ hostnameChanged";
             emit hostnameChanged(_hostname);
         }
 
@@ -200,7 +204,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
 
     if (_serverlessDomainURL != QUrl()) {
         _serverlessDomainURL = QUrl();
-        emit serverlessDomainChanged("");
+        emit serverlessDomainChanged(QUrl());
     }
 
     if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
