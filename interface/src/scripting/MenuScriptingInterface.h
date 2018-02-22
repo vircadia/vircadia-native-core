@@ -163,13 +163,6 @@ public slots:
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
-    /**
-     * TODO: Not working; don't document until fixed.
-     */
-    void addActionGroup(const QString& groupName, const QStringList& actionList,
-                        const QString& selected = QString());
-    void removeActionGroup(const QString& groupName);
-
     /**jsdoc
      * Check whether a checkable menu item is checked.
      * @function Menu.isOptionChecked
@@ -221,12 +214,6 @@ public slots:
      * print(Menu.isMenuEnabled("Settings > Advanced Menus")); // false
      */
     void setMenuEnabled(const QString& menuName, bool isEnabled);
-
-    /**
-    * TODO: Not used or useful; will not document until used.
-    */
-    void closeInfoView(const QString& path);
-    bool isInfoViewVisible(const QString& path);
 
 signals:
     /**jsdoc
