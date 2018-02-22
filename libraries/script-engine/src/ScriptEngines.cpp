@@ -62,8 +62,7 @@ void ScriptEngines::onErrorLoadingScript(const QString& url) {
 }
 
 ScriptEngines::ScriptEngines(ScriptEngine::Context context)
-    : _context(context),
-      _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
+    : _context(context)
 {
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -429,13 +428,8 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
     return stoppedScript;
 }
 
-QString ScriptEngines::getScriptsLocation() const {
-    return _scriptsLocationHandle.get();
-}
-
-void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
-    _scriptsLocationHandle.set(scriptsLocation);
-    _scriptsModel.updateScriptsLocation(scriptsLocation);
+void ScriptEngines::reloadLocalFiles() {
+    _scriptsModel.reloadLocalFiles();
 }
 
 void ScriptEngines::reloadAllScripts() {

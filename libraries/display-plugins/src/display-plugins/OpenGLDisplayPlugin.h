@@ -8,7 +8,6 @@
 #pragma once
 
 #include "DisplayPlugin.h"
-#include <gl/Config.h>
 
 #include <condition_variable>
 #include <memory>

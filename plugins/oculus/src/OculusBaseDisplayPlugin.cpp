@@ -11,6 +11,7 @@
 #include <controllers/Pose.h>
 #include <display-plugins/CompositorHelper.h>
 #include <gpu/Frame.h>
+#include <gl/Config.h>
 
 #include "OculusHelpers.h"
 
@@ -92,9 +93,7 @@ glm::mat4 OculusBaseDisplayPlugin::getCullingProjection(const glm::mat4& basePro
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusBaseDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    GLenum err = glewInit();
-    glGetError(); // clear the potential error from glewExperimental
+    gl::initModuleGl();
     Parent::customizeContext();
 }
 

@@ -13,6 +13,7 @@
 #define hifi_ApplicationOverlay_h
 
 #include <gpu/Texture.h>
+#include <render/Args.h>
 
 
 // Handles the drawing of the overlays to the screen

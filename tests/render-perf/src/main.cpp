@@ -226,9 +226,7 @@ public:
         _context.makeCurrent();
         window->setSurfaceType(QSurface::OpenGLSurface);
         _context.makeCurrent(_context.qglContext(), window);
-#ifdef Q_OS_WIN
-        wglSwapIntervalEXT(0);
-#endif
+        gl::setSwapInterval(0);
         // GPU library init
         gpu::Context::init<gpu::gl::GLBackend>();
         _gpuContext = std::make_shared<gpu::Context>();

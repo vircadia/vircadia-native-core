@@ -25,6 +25,7 @@ static bool timeElapsed = false;
 #endif
 
 void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
+#if !defined(USE_GLES)
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
@@ -40,9 +41,11 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
         glquery->_rangeQueryDepth = _queryStage._rangeQueryDepth;
         (void)CHECK_GL_ERROR();
     }
+#endif
 }
 
 void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
+#if !defined(USE_GLES)
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
@@ -65,9 +68,11 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
 
         (void)CHECK_GL_ERROR();
     }
+#endif
 }
 
 void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
+#if !defined(USE_GLES)
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     if (glGetQueryObjectui64vEXT == NULL)
         return;
@@ -87,6 +92,7 @@ void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
         }
         (void)CHECK_GL_ERROR();
     }
+#endif
 }
 
 void GLBackend::resetQueryStage() {

@@ -8,10 +8,15 @@
 #ifndef hifi_gpu_gl_GLTexture_h
 #define hifi_gpu_gl_GLTexture_h
 
+#include <QtCore/QThreadPool>
+#include <QtConcurrent>
+
 #include "GLShared.h"
-#include "GLTextureTransfer.h"
 #include "GLBackend.h"
 #include "GLTexelFormat.h"
+#include <thread>
+
+#define THREADED_TEXTURE_BUFFERING 1
 
 namespace gpu { namespace gl {
 
@@ -20,213 +25,186 @@ struct GLFilterMode {
     GLint magFilter;
 };
 
+class GLVariableAllocationSupport {
+    friend class GLBackend;
+
+public:
+    GLVariableAllocationSupport();
+    virtual ~GLVariableAllocationSupport();
+
+    enum class MemoryPressureState {
+        Idle,
+        Transfer,
+        Oversubscribed,
+        Undersubscribed,
+    };
+
+    using QueuePair = std::pair<TextureWeakPointer, float>;
+    struct QueuePairLess {
+        bool operator()(const QueuePair& a, const QueuePair& b) {
+            return a.second < b.second;
+        }
+    };
+    using WorkQueue = std::priority_queue<QueuePair, std::vector<QueuePair>, QueuePairLess>;
+
+    class TransferJob {
+        using VoidLambda = std::function<void()>;
+        using VoidLambdaQueue = std::queue<VoidLambda>;
+        const GLTexture& _parent;
+        Texture::PixelsPointer _mipData;
+        size_t _transferOffset { 0 };
+        size_t _transferSize { 0 };
+
+        bool _bufferingRequired { true };
+        VoidLambda _transferLambda;
+        VoidLambda _bufferingLambda;
+
+#if THREADED_TEXTURE_BUFFERING
+        // Indicates if a transfer from backing storage to interal storage has started
+        QFuture<void> _bufferingStatus;
+        static QThreadPool* _bufferThreadPool;
+#endif
+
+    public:
+        TransferJob(const TransferJob& other) = delete;
+        TransferJob(const GLTexture& parent, std::function<void()> transferLambda);
+        TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t targetMip, uint8_t face, uint32_t lines = 0, uint32_t lineOffset = 0);
+        ~TransferJob();
+        bool tryTransfer();
+
+#if THREADED_TEXTURE_BUFFERING
+        void startBuffering();
+        bool bufferingRequired() const;
+        bool bufferingCompleted() const;
+        static void startBufferingThread();
+#endif
+
+    private:
+        void transfer();
+    };
+
+    using TransferJobPointer = std::shared_ptr<TransferJob>;
+    using TransferQueue = std::queue<TransferJobPointer>;
+    static MemoryPressureState _memoryPressureState;
+
+public:
+    static void addMemoryManagedTexture(const TexturePointer& texturePointer);
+
+protected:
+    static size_t _frameTexturesCreated;
+    static std::atomic<bool> _memoryPressureStateStale;
+    static std::list<TextureWeakPointer> _memoryManagedTextures;
+    static WorkQueue _transferQueue;
+    static WorkQueue _promoteQueue;
+    static WorkQueue _demoteQueue;
+#if THREADED_TEXTURE_BUFFERING
+    static TexturePointer _currentTransferTexture;
+    static TransferJobPointer _currentTransferJob;
+#endif
+    static const uvec3 INITIAL_MIP_TRANSFER_DIMENSIONS;
+    static const uvec3 MAX_TRANSFER_DIMENSIONS;
+    static const size_t MAX_TRANSFER_SIZE;
+
+
+    static void updateMemoryPressure();
+    static void processWorkQueues();
+    static void processWorkQueue(WorkQueue& workQueue);
+    static TexturePointer getNextWorkQueueItem(WorkQueue& workQueue);
+    static void addToWorkQueue(const TexturePointer& texture);
+    static WorkQueue& getActiveWorkQueue();
+
+    static void manageMemory();
+
+    //bool canPromoteNoAllocate() const { return _allocatedMip < _populatedMip; }
+    bool canPromote() const { return _allocatedMip > _minAllocatedMip; }
+    bool canDemote() const { return _allocatedMip < _maxAllocatedMip; }
+    bool hasPendingTransfers() const { return _populatedMip > _allocatedMip; }
+#if THREADED_TEXTURE_BUFFERING
+    void executeNextBuffer(const TexturePointer& currentTexture);
+#endif
+    bool executeNextTransfer(const TexturePointer& currentTexture);
+    virtual void populateTransferQueue() = 0;
+    virtual void promote() = 0;
+    virtual void demote() = 0;
+
+    // THe amount of memory currently allocated
+    Size _size { 0 };
+
+    // The amount of memory currnently populated
+    void incrementPopulatedSize(Size delta) const;
+    void decrementPopulatedSize(Size delta) const;
+    mutable Size _populatedSize { 0 };
+
+    // The allocated mip level, relative to the number of mips in the gpu::Texture object
+    // The relationship between a given glMip to the original gpu::Texture mip is always
+    // glMip + _allocatedMip
+    uint16 _allocatedMip { 0 };
+    // The populated mip level, relative to the number of mips in the gpu::Texture object
+    // This must always be >= the allocated mip
+    uint16 _populatedMip { 0 };
+    // The highest (lowest resolution) mip that we will support, relative to the number
+    // of mips in the gpu::Texture object
+    uint16 _maxAllocatedMip { 0 };
+    // The lowest (highest resolution) mip that we will support, relative to the number
+    // of mips in the gpu::Texture object
+    uint16 _minAllocatedMip { 0 };
+    // Contains a series of lambdas that when executed will transfer data to the GPU, modify
+    // the _populatedMip and update the sampler in order to fully populate the allocated texture
+    // until _populatedMip == _allocatedMip
+    TransferQueue _pendingTransfers;
+};
 
 class GLTexture : public GLObject<Texture> {
+    using Parent = GLObject<Texture>;
+    friend class GLBackend;
+    friend class GLVariableAllocationSupport;
 public:
     static const uint16_t INVALID_MIP { (uint16_t)-1 };
     static const uint8_t INVALID_FACE { (uint8_t)-1 };
 
-    static void initTextureTransferHelper();
-    static std::shared_ptr<GLTextureTransferHelper> _textureTransferHelper;
-
-    template <typename GLTextureType>
-    static GLTexture* sync(GLBackend& backend, const TexturePointer& texturePointer, bool needTransfer) {
-        const Texture& texture = *texturePointer;
-
-        // Special case external textures
-        //CLIMAX_MERGE_START 
-        //Z:/HiFi_Android/HiFi_GIT/libraries/gpu-gl-android/src/gpu/gl/../gles/../gl/GLTexture.h:37:32: error: no member named 'isExternal' in 'gpu::Texture::Usage'
-        // The only instance of this being used again. replace.
-        // if (texture.getUsage().isExternal()) {
-            // Texture::ExternalUpdates updates = texture.getUpdates();
-            // if (!updates.empty()) {
-                // Texture::ExternalRecycler recycler = texture.getExternalRecycler();
-                // Q_ASSERT(recycler);
-                // // Discard any superfluous updates
-                // while (updates.size() > 1) {
-                    // const auto& update = updates.front();
-                    // // Superfluous updates will never have been read, but we want to ensure the previous 
-                    // // writes to them are complete before they're written again, so return them with the 
-                    // // same fences they arrived with.  This can happen on any thread because no GL context 
-                    // // work is involved
-                    // recycler(update.first, update.second);
-                    // updates.pop_front();
-                // }
-
-                // // The last texture remaining is the one we'll use to create the GLTexture
-                // const auto& update = updates.front();
-                // // Check for a fence, and if it exists, inject a wait into the command stream, then destroy the fence
-                // if (update.second) {
-                    // GLsync fence = static_cast<GLsync>(update.second);
-                    // glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
-                    // glDeleteSync(fence);
-                // }
-
-                // // Create the new texture object (replaces any previous texture object)
-                // new GLTextureType(backend.shared_from_this(), texture, update.first);
-            // }
-            
-            
-            // Return the texture object (if any) associated with the texture, without extensive logic
-            // (external textures are 
-            //return Backend::getGPUObject<GLTextureType>(texture);
-        //}
-        //CLIMAX_MERGE_END
-        if (!texture.isDefined()) {
-            // NO texture definition yet so let's avoid thinking
-            return nullptr;
-        }
-
-        // If the object hasn't been created, or the object definition is out of date, drop and re-create
-        GLTexture* object = Backend::getGPUObject<GLTextureType>(texture);
-
-        // Create the texture if need be (force re-creation if the storage stamp changes
-        // for easier use of immutable storage)
-        if (!object || object->isInvalid()) {
-            // This automatically any previous texture
-            object = new GLTextureType(backend.shared_from_this(), texture, needTransfer);
-            if (!object->_transferrable) {
-                object->createTexture();
-                object->_contentStamp = texture.getDataStamp();
-                object->updateSize();
-                object->postTransfer();
-            }
-        }
-
-        // Object maybe doens't neet to be tranasferred after creation
-        if (!object->_transferrable) {
-            return object;
-        }
-
-        // If we just did a transfer, return the object after doing post-transfer work
-        if (GLSyncState::Transferred == object->getSyncState()) {
-            object->postTransfer();
-        }
-
-        if (object->isOutdated()) {
-            // Object might be outdated, if so, start the transfer
-            // (outdated objects that are already in transfer will have reported 'true' for ready()
-            _textureTransferHelper->transferTexture(texturePointer);
-            return nullptr;
-        }
-
-        if (!object->isReady()) {
-            return nullptr;
-        }
-
-        ((GLTexture*)object)->updateMips();
-
-        return object;
-    }
-
-    template <typename GLTextureType> 
-    static GLuint getId(GLBackend& backend, const TexturePointer& texture, bool shouldSync) {
-        if (!texture) {
-            return 0;
-        }
-        GLTexture* object { nullptr };
-        if (shouldSync) {
-            object = sync<GLTextureType>(backend, texture, shouldSync);
-        } else {
-            object = Backend::getGPUObject<GLTextureType>(*texture);
-        }
-
-        if (!object) {
-            return 0;
-        }
-
-        if (!shouldSync) {
-            return object->_id;
-        }
-
-        // Don't return textures that are in transfer state
-        if ((object->getSyncState() != GLSyncState::Idle) ||
-            // Don't return transferrable textures that have never completed transfer
-            (!object->_transferrable || 0 != object->_transferCount)) {
-            return 0;
-        }
-        
-        return object->_id;
-    }
-
     ~GLTexture();
 
-    // Is this texture generated outside the GPU library?
-    const bool _external;
     const GLuint& _texture { _id };
     const std::string _source;
-    const Stamp _storageStamp;
     const GLenum _target;
-    const GLenum _internalFormat;
-    const uint16 _maxMip;
-    uint16 _minMip;
-    const GLuint _virtualSize; // theoretical size as expected
-    Stamp _contentStamp { 0 };
-    const bool _transferrable;
-    Size _transferCount { 0 };
-    GLuint size() const { return _size; }
-    GLSyncState getSyncState() const { return _syncState; }
+    GLTexelFormat _texelFormat;
 
-    // Is the storage out of date relative to the gpu texture?
-    bool isInvalid() const;
+    static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
+    static uint8_t getFaceCount(GLenum textureType);
+    static GLenum getGLTextureType(const Texture& texture);
 
-    // Is the content out of date relative to the gpu texture?
-    bool isOutdated() const;
-
-    // Is the texture in a state where it can be rendered with no work?
-    bool isReady() const;
-
-    // Execute any post-move operations that must occur only on the main thread
-    virtual void postTransfer();
-
-    uint16 usedMipLevels() const { return (_maxMip - _minMip) + 1; }
-
-    static const size_t CUBE_NUM_FACES = 6;
-    static const GLenum CUBE_FACE_LAYOUT[6];
+    static const uint8_t TEXTURE_2D_NUM_FACES = 1;
+    static const uint8_t TEXTURE_CUBE_NUM_FACES = 6;
+    static const GLenum CUBE_FACE_LAYOUT[TEXTURE_CUBE_NUM_FACES];
     static const GLFilterMode FILTER_MODES[Sampler::NUM_FILTERS];
     static const GLenum WRAP_MODES[Sampler::NUM_WRAP_MODES];
 
-    // Return a floating point value indicating how much of the allowed 
-    // texture memory we are currently consuming.  A value of 0 indicates 
-    // no texture memory usage, while a value of 1 indicates all available / allowed memory
-    // is consumed.  A value above 1 indicates that there is a problem.
-    static float getMemoryPressure();
 protected:
-
-    static const std::vector<GLenum>& getFaceTargets(GLenum textureType);
-
-    static GLenum getGLTextureType(const Texture& texture);
-
-
-    const GLuint _size { 0 }; // true size as reported by the gl api
-    std::atomic<GLSyncState> _syncState { GLSyncState::Idle };
-
-    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id, bool transferrable);
-    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
-
-    void setSyncState(GLSyncState syncState) { _syncState = syncState; }
-
-    void createTexture();
-
-    virtual void updateMips() {}
-    virtual void allocateStorage() const = 0;
-    virtual void updateSize() const = 0;
-    virtual void syncSampler() const = 0;
+    virtual Size size() const = 0;
     virtual void generateMips() const = 0;
-    virtual void withPreservedTexture(std::function<void()> f) const;
+    virtual void syncSampler() const = 0;
 
-protected:
-    void setSize(GLuint size) const;
+    virtual Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const = 0;
+    virtual Size copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const final;
+    virtual void copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {} // Only relevant for Variable Allocation textures
 
-    virtual void startTransfer();
-    // Returns true if this is the last block required to complete transfer
-    virtual bool continueTransfer() { return false; }
-    virtual void finishTransfer();
-
-private:
-    friend class GLTextureTransferHelper;
-    friend class GLBackend;
+    GLTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
 };
+
+class GLExternalTexture : public GLTexture {
+    using Parent = GLTexture;
+    friend class GLBackend;
+public:
+    ~GLExternalTexture();
+protected:
+    GLExternalTexture(const std::weak_ptr<gl::GLBackend>& backend, const Texture& texture, GLuint id);
+    void generateMips() const override {}
+    void syncSampler() const override {}
+    Size copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const override { return 0;}
+
+    Size size() const override { return 0; }
+};
+
 
 } }
 

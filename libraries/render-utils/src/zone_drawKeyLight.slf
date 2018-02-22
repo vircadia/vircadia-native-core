@@ -25,7 +25,7 @@ void main(void) {
 
     <$evalGlobeWidget()$>
 
-    Light light = getLight();
+    Light light = getKeyLight();
     vec3 lightDirection = normalize(getLightDirection(light));
     vec3 lightIrradiance = getLightIrradiance(light);
     vec3 color = vec3(0.0);

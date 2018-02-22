@@ -29,7 +29,7 @@
 using namespace gpu;
 
 #if defined(Q_OS_ANDROID)
-#define CPU_MIPMAPS 0
+#define CPU_MIPMAPS 1
 #else
 #define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>
@@ -49,6 +49,9 @@ static std::atomic<bool> compressGrayscaleTextures { false };
 static std::atomic<bool> compressCubeTextures { false };
 
 uint rectifyDimension(const uint& dimension) {
+    if (dimension == 0) {
+        return 0;
+    }
     if (dimension < SPARSE_PAGE_SIZE.x) {
         uint newSize = SPARSE_PAGE_SIZE.x;
         while (dimension <= newSize / 2) {
@@ -676,6 +679,7 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
 
 void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS
+#if !defined(Q_OS_ANDROID)
     PROFILE_RANGE(resource_parse, "generateMips");
 
     if (image.format() == QIMAGE_HDR_FORMAT) {
@@ -683,6 +687,16 @@ void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>
     } else  {
         generateLDRMips(texture, std::move(image), abortProcessing, face);
     }
+
+#else
+    //texture->setAutoGenerateMips(false);
+    texture->assignStoredMip(0, image.byteCount(), image.constBits());
+    for (uint16 level = 1; level < texture->getNumMips(); ++level) {
+        QSize mipSize(texture->evalMipWidth(level), texture->evalMipHeight(level));
+        QImage mipImage = image.scaled(mipSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        texture->assignStoredMip(level, mipImage.byteCount(), mipImage.constBits());
+    }
+#endif
 #else
     texture->setAutoGenerateMips(true);
 #endif
@@ -723,9 +737,15 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
     bool validAlpha = image.hasAlphaChannel();
     bool alphaAsMask = false;
 
+#if !defined(Q_OS_ANDROID)
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
     }
+#else
+    if (image.format() != QImage::Format_RGBA8888) {
+        image = image.convertToFormat(QImage::Format_RGBA8888);
+    }
+#endif
 
     if (validAlpha) {
         processTextureAlpha(image, validAlpha, alphaAsMask);
@@ -765,6 +785,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
         }
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -871,6 +892,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 
@@ -907,6 +929,7 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
+        theTexture->assignStoredMip(0, image.byteCount(), image.constBits());
         generateMips(theTexture.get(), std::move(image), abortProcessing);
     }
 

@@ -77,3 +77,15 @@ TAGS
 # ignore node files for the console
 node_modules
 npm-debug.log
+
+# Android studio files
+*___jb_old___
+
+# Generated assets for Android
+android/app/src/main/assets
+
+# Resource binary file
+interface/compiledResources
+
+# GPUCache
+interface/resources/GPUCache/*

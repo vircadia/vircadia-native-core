@@ -59,8 +59,8 @@ public:
     float& distance;
     BoxFace& face;
     glm::vec3& surfaceNormal;
-    void** intersectedObject;
-    bool found;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
 };
 
 
@@ -748,23 +748,24 @@ bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
-        args->found = true;
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
+    if (!entityID.isNull()) {
+        args->entityID = entityID;
     }
     return keepSearching;
 }
 
-bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
                                     bool visibleOnly, bool collidableOnly, bool precisionPicking, 
                                     OctreeElementPointer& element, float& distance,
-                                    BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject,
+                                    BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, surfaceNormal,  intersectedObject, false };
+            element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
@@ -776,7 +777,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
         *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
     }
 
-    return args.found;
+    return args.entityID;
 }
 
 
@@ -1678,14 +1679,17 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-
 void EntityTree::fixupNeedsParentFixups() {
     PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
+    QVector<EntityItemWeakPointer> entitiesToFixup;
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        entitiesToFixup = _needsParentFixup;
+        _needsParentFixup.clear();
+    }
 
-    QWriteLocker locker(&_needsParentFixupLock);
-
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesToFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1747,6 +1751,12 @@ void EntityTree::fixupNeedsParentFixups() {
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
+    }
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        // add back the entities that did not get fixup
+        _needsParentFixup.append(entitiesToFixup);
     }
 }
 

@@ -36,7 +36,7 @@ public:
     bool isInSnapshotFilenameFormat(QString filename);
     bool isInExpectedImageFilenameFormat(QString filename);
 
-    void importTest(QTextStream& textStream, const QString& testPathname, int testNumber);
+    void importTest(QTextStream& textStream, const QString& testPathname);
 
     void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 

@@ -86,4 +86,24 @@ int clusterGrid_getClusterLightId(int index, int offset) {
     return (((elementIndex & 0x00000001) == 1) ? (element >> 16) : element) & 0x0000FFFF;
 }
 
+
+<@func fetchClusterInfo(fragWorldPos)@>
+
+    // From frag world pos find the cluster
+    vec4 clusterEyePos = frustumGrid_worldToEye(<$fragWorldPos$>);
+    ivec3 clusterPos = frustumGrid_eyeToClusterPos(clusterEyePos.xyz);
+
+    ivec3 cluster = clusterGrid_getCluster(frustumGrid_clusterToIndex(clusterPos));
+    int numLights = cluster.x + cluster.y;
+    ivec3 dims = frustumGrid.dims.xyz;
+
+<@endfunc@>
+
+bool hasLocalLights(int numLights, ivec3 clusterPos, ivec3 dims) {
+    return numLights>0 
+        && all(greaterThanEqual(clusterPos, ivec3(0))) 
+        && all(lessThan(clusterPos.xy, dims.xy))
+        && clusterPos.z <= dims.z;
+}
+
 <@endif@>

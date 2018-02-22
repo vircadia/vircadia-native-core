@@ -19,6 +19,7 @@
 #include <map>
 
 #include <DependencyManager.h>
+#include <shared/MiniPromises.h>
 
 #include "AssetUtils.h"
 #include "ByteRange.h"
@@ -41,10 +42,10 @@ struct AssetInfo {
     int64_t size;
 };
 
-using MappingOperationCallback = std::function<void(bool responseReceived, AssetServerError serverError, QSharedPointer<ReceivedMessage> message)>;
-using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
-using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
-using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
+using MappingOperationCallback = std::function<void(bool responseReceived, AssetUtils::AssetServerError serverError, QSharedPointer<ReceivedMessage> message)>;
+using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetUtils::AssetServerError serverError, const QByteArray& data)>;
+using GetInfoCallback = std::function<void(bool responseReceived, AssetUtils::AssetServerError serverError, AssetInfo info)>;
+using UploadResultCallback = std::function<void(bool responseReceived, AssetUtils::AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
 
 class AssetClient : public QObject, public Dependency {
@@ -52,13 +53,13 @@ class AssetClient : public QObject, public Dependency {
 public:
     AssetClient();
 
-    Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
+    Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetUtils::AssetPath& path);
     Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
-    Q_INVOKABLE DeleteMappingsRequest* createDeleteMappingsRequest(const AssetPathList& paths);
-    Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
-    Q_INVOKABLE RenameMappingRequest* createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
-    Q_INVOKABLE SetBakingEnabledRequest* createSetBakingEnabledRequest(const AssetPathList& path, bool enabled);
-    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const ByteRange& byteRange = ByteRange());
+    Q_INVOKABLE DeleteMappingsRequest* createDeleteMappingsRequest(const AssetUtils::AssetPathList& paths);
+    Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash);
+    Q_INVOKABLE RenameMappingRequest* createRenameMappingRequest(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath);
+    Q_INVOKABLE SetBakingEnabledRequest* createSetBakingEnabledRequest(const AssetUtils::AssetPathList& path, bool enabled);
+    Q_INVOKABLE AssetRequest* createRequest(const AssetUtils::AssetHash& hash, const ByteRange& byteRange = ByteRange());
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
@@ -66,6 +67,10 @@ public slots:
     void init();
 
     void cacheInfoRequest(QObject* reciever, QString slot);
+    MiniPromise::Promise cacheInfoRequestAsync(MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise queryCacheMetaAsync(const QUrl& url, MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise loadFromCacheAsync(const QUrl& url, MiniPromise::Promise deferred = nullptr);
+    MiniPromise::Promise saveToCacheAsync(const QUrl& url, const QByteArray& data, const QVariantMap& metadata = QVariantMap(), MiniPromise::Promise deferred = nullptr);
     void clearCache();
 
 private slots:
@@ -78,15 +83,15 @@ private slots:
     void handleNodeClientConnectionReset(SharedNodePointer node);
 
 private:
-    MessageID getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    MessageID getAssetMapping(const AssetUtils::AssetHash& hash, MappingOperationCallback callback);
     MessageID getAllAssetMappings(MappingOperationCallback callback);
-    MessageID setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
-    MessageID deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback);
-    MessageID renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback);
-    MessageID setBakingEnabled(const AssetPathList& paths, bool enabled, MappingOperationCallback callback);
+    MessageID setAssetMapping(const QString& path, const AssetUtils::AssetHash& hash, MappingOperationCallback callback);
+    MessageID deleteAssetMappings(const AssetUtils::AssetPathList& paths, MappingOperationCallback callback);
+    MessageID renameAssetMapping(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath, MappingOperationCallback callback);
+    MessageID setBakingEnabled(const AssetUtils::AssetPathList& paths, bool enabled, MappingOperationCallback callback);
 
     MessageID getAssetInfo(const QString& hash, GetInfoCallback callback);
-    MessageID getAsset(const QString& hash, DataOffset start, DataOffset end,
+    MessageID getAsset(const QString& hash, AssetUtils::DataOffset start, AssetUtils::DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
     MessageID uploadAsset(const QByteArray& data, UploadResultCallback callback);
 
@@ -95,8 +100,8 @@ private:
     bool cancelGetAssetRequest(MessageID id);
     bool cancelUploadAssetRequest(MessageID id);
 
-    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, qint64 size, DataOffset length);
-    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length);
+    void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, qint64 size, AssetUtils::DataOffset length);
+    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, AssetUtils::DataOffset length);
 
     void forceFailureOfPendingRequests(SharedNodePointer node);
 

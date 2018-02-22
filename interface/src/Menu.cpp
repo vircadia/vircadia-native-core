@@ -34,6 +34,7 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "AvatarBookmarks.h"
+#include "AvatarEntitiesBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
@@ -206,6 +207,9 @@ Menu::Menu() {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
     avatarBookmarks->setupMenus(this, avatarMenu);
 
+    auto avatarEntitiesBookmarks = DependencyManager::get<AvatarEntitiesBookmarks>();
+    avatarEntitiesBookmarks->setupMenus(this, avatarMenu);
+
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
     // menus for "2D"/"3D" - we need to add support for detecting the appropriate
@@ -278,7 +282,7 @@ Menu::Menu() {
 
     // Navigate > Show Address Bar
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
-        dialogsManager.data(), SLOT(showAddressBar()));
+        dialogsManager.data(), SLOT(toggleAddressBar()));
 
     // Navigate > LocationBookmarks related menus -- Note: the LocationBookmarks class adds its own submenus here.
     auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
@@ -755,6 +759,13 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+
+    // Developer > Advanced Settings...
+    action = addActionToQMenuAndActionHash(developerMenu, "Advanced Preferences...");
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AdvancedPreferencesDialog.qml"),
+            QString("hifi/tablet/AdvancedPreferencesDialog.qml"), "AdvancedPreferencesDialog");
+    });
 
     // Developer > API Debugger
     action = addActionToQMenuAndActionHash(developerMenu, "API Debugger");

@@ -33,6 +33,8 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
+    virtual void updateKey(bool isVisible, bool isLayered, uint8_t tagBits);
+
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
     virtual void notifyLocationChanged() {}
@@ -70,6 +72,9 @@ public:
     size_t getMaterialTextureSize() { return _drawMaterial ? _drawMaterial->getTextureSize() : 0; }
     int getMaterialTextureCount() { return _drawMaterial ? _drawMaterial->getTextureCount() : 0; }
     bool hasTextureInfo() const { return _drawMaterial ? _drawMaterial->hasTextureInfo() : false; }
+
+protected:
+    render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
 };
 
 namespace render {
@@ -94,16 +99,15 @@ public:
     using TransformType = glm::mat4;
 #endif
 
+    void updateKey(bool isVisible, bool isLayered, uint8_t tagBits) override;
     void updateClusterBuffer(const std::vector<TransformType>& clusterTransforms);
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
-    render::ItemKey getKey() const override;
     int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setKey(bool isVisible, bool isLayered);
     void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
     void setShapeKey(bool invalidateShapeKey, bool isWireframe);
 
@@ -126,7 +130,6 @@ private:
     void initCache(const ModelPointer& model);
 
     gpu::BufferPointer _blendedVertexBuffer;
-    render::ItemKey _itemKey { render::ItemKey::Builder::opaqueShape().build() };
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
     int _layer { render::Item::LAYER_3D };
 };

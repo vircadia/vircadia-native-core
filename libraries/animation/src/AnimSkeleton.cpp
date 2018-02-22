@@ -192,7 +192,11 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     _nonMirroredIndices.clear();
     _mirrorMap.reserve(_jointsSize);
     for (int i = 0; i < _jointsSize; i++) {
-        if (_joints[i].name.endsWith("tEye")) {
+        if (_joints[i].name != "Hips" && _joints[i].name != "Spine" &&
+            _joints[i].name != "Spine1" && _joints[i].name != "Spine2" &&
+            _joints[i].name != "Neck" && _joints[i].name != "Head" &&
+            !((_joints[i].name.startsWith("Left") || _joints[i].name.startsWith("Right")) &&
+              _joints[i].name != "LeftEye" && _joints[i].name != "RightEye")) {
             // HACK: we don't want to mirror some joints so we remember their indices
             // so we can restore them after a future mirror operation
             _nonMirroredIndices.push_back(i);

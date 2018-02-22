@@ -35,6 +35,8 @@
 #include <PerfStat.h>
 #include <SharedUtil.h>
 #include <SoundCache.h>
+#include <ModelEntityItem.h>
+#include <GLMHelpers.h>
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
@@ -46,6 +48,7 @@
 #include <recording/Frame.h>
 #include <RecordingScriptingInterface.h>
 #include <trackers/FaceTracker.h>
+#include <RenderableModelEntityItem.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -501,10 +504,41 @@ void MyAvatar::updateEyeContactTarget(float deltaTime) {
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
 extern void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
 
+void MyAvatar::beParentOfChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::beParentOfChild(newChild);
+}
+
+void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
+    _cauterizationNeedsUpdate = true;
+    SpatiallyNestable::forgetChild(newChild);
+}
+
+void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object) {
+    if (object->getNestableType() == NestableType::Entity) {
+        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+        entity->setCauterized(!_prevShouldDrawHead);
+    }
+}
+
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
 
     animateScaleChanges(deltaTime);
+
+    if (_cauterizationNeedsUpdate) {
+        const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
+        forEachChild([&](SpatiallyNestablePointer object) {
+            bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
+            if (isChildOfHead) {
+                updateChildCauterization(object);
+                object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    updateChildCauterization(descendant);
+                });
+            }
+        });
+        _cauterizationNeedsUpdate = false;
+    }
 
     {
         PerformanceTimer perfTimer("transform");
@@ -1065,7 +1099,7 @@ void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
 }
 
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
-    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene());
+    _skeletonModel->setVisibleInScene(isEnabled, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
 }
 
 void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
@@ -1415,10 +1449,42 @@ void MyAvatar::clearJointsData() {
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     Avatar::setSkeletonModelURL(skeletonModelURL);
-    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
+    _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene(), render::ItemKey::TAG_BITS_NONE);
     _headBoneSet.clear();
+    _cauterizationNeedsUpdate = true;
     emit skeletonChanged();
 
+}
+
+void MyAvatar::removeAvatarEntities() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
+}
+
+QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    QVariantList avatarEntitiesData;
+    QScriptEngine scriptEngine;
+    forEachChild([&](SpatiallyNestablePointer child) {
+        if (child->getNestableType() == NestableType::Entity) {
+            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
+            if (modelEntity) {
+                QVariantMap avatarEntityData;
+                EntityItemProperties entityProperties = modelEntity->getProperties();
+                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
+                avatarEntitiesData.append(QVariant(avatarEntityData));
+            }
+        }
+    });
+    return avatarEntitiesData;
 }
 
 
@@ -1729,7 +1795,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visible) {
     if (model->isActive() && model->isRenderable()) {
-        model->setVisibleInScene(visible, scene);
+        model->setVisibleInScene(visible, scene, render::ItemKey::TAG_BITS_NONE);
     }
 }
 
@@ -1757,6 +1823,8 @@ void MyAvatar::initHeadBones() {
         }
         q.pop();
     }
+
+    _cauterizationNeedsUpdate = true;
 }
 
 QUrl MyAvatar::getAnimGraphOverrideUrl() const {
@@ -1803,7 +1871,7 @@ void MyAvatar::initAnimGraph() {
     } else if (!_fstAnimGraphOverrideUrl.isEmpty()) {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
-        graphUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "avatar/avatar-animation.json");
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
@@ -1827,6 +1895,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
         initAnimGraph();
         _isAnimatingScale = true;
+        _cauterizationNeedsUpdate = true;
     }
 
     if (_enableDebugDrawDefaultPose || _enableDebugDrawAnimPose) {
@@ -1915,6 +1984,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     // toggle using the cauterizedBones depending on where the camera is and the rendering pass type.
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
+        _cauterizationNeedsUpdate = true;
         _skeletonModel->setEnableCauterization(!shouldDrawHead);
 
         for (int i = 0; i < _attachmentData.size(); i++) {
@@ -1924,7 +1994,8 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
                 _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
                 _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
-                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene());
+                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene(),
+                                                        render::ItemKey::TAG_BITS_NONE);
             }
         }
     }
@@ -2420,7 +2491,6 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
         OctreeElementPointer element;
-        EntityItemPointer intersectedEntity = NULL;
         float distance;
         BoxFace face;
         const bool visibleOnly = false;
@@ -2432,13 +2502,14 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
-        bool intersects = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, normalOut, (void**)&intersectedEntity, lockType, accurateResult);
-        if (!intersects || !intersectedEntity) {
+        QVariantMap extraInfo;
+        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+            element, distance, face, normalOut, extraInfo, lockType, accurateResult);
+        if (entityID.isNull()) {
              return false;
         }
         intersectionOut = startPointIn + (directionIn * distance);
-        entityIdOut = intersectedEntity->getEntityItemID();
+        entityIdOut = entityID;
         return true;
     };
 
@@ -3205,8 +3276,6 @@ bool MyAvatar::pinJoint(int index, const glm::vec3& position, const glm::quat& o
     slamPosition(position);
     setWorldOrientation(orientation);
 
-    _skeletonModel->getRig().setMaxHipsOffsetLength(0.05f);
-
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it == _pinnedJoints.end()) {
         _pinnedJoints.push_back(index);
@@ -3226,12 +3295,6 @@ bool MyAvatar::clearPinOnJoint(int index) {
     auto it = std::find(_pinnedJoints.begin(), _pinnedJoints.end(), index);
     if (it != _pinnedJoints.end()) {
         _pinnedJoints.erase(it);
-
-        auto hipsIndex = getJointIndex("Hips");
-        if (index == hipsIndex) {
-            _skeletonModel->getRig().setMaxHipsOffsetLength(FLT_MAX);
-        }
-
         return true;
     }
     return false;

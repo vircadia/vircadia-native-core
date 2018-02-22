@@ -14,6 +14,7 @@
 
 #include "FBX.h"
 
+#include <QtGlobal>
 #include <QMetaType>
 #include <QSet>
 #include <QUrl>
@@ -33,7 +34,11 @@
 class QIODevice;
 class FBXNode;
 
+#if defined(Q_OS_ANDROID)
+#define FBX_PACK_NORMALS 0
+#else
 #define FBX_PACK_NORMALS 1
+#endif
 
 #if FBX_PACK_NORMALS
 using NormalType = glm::uint32;

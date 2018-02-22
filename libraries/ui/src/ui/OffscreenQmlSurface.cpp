@@ -6,13 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
-#include "ImageProvider.h"
 
-// Has to come before Qt GL includes
-#include <gl/Config.h>
+#include <AudioClient.h>
 
 #include <unordered_set>
 #include <unordered_map>
+
+#include <gl/Config.h>
 
 #include <QtWidgets/QWidget>
 #include <QtQml/QtQml>
@@ -29,7 +29,6 @@
 #include <QtMultimedia/QAudioOutputSelectorControl>
 #include <QtMultimedia/QMediaPlayer>
 
-#include <AudioClient.h>
 #include <shared/NsightHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <shared/QtHelpers.h>
@@ -46,8 +45,10 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
 #include <gl/Context.h>
+#include <gl/Config.h>
 #include <shared/ReadWriteLockable.h>
 
+#include "ImageProvider.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
@@ -70,7 +71,7 @@ public:
         withWriteLock([&] {
             for (auto url : urls) {
                 if (url.isRelative()) {
-                    url = QUrl(PathUtils::qmlBasePath() + url.toString());
+                    url = PathUtils::qmlUrl(url.toString());
                 }
                 _callbacks[url].push_back(callback);
             }
@@ -282,7 +283,7 @@ private:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
-#if !defined(Q_OS_ANDROID)
+#if !defined(USE_GLES)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
 #endif
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
@@ -443,7 +444,7 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     auto rootContext = engine->rootContext();
     rootContext->setContextProperty("GL", ::getGLContextData());
     rootContext->setContextProperty("urlHandler", new UrlHandler());
-    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl(PathUtils::resourcesUrl()));
     rootContext->setContextProperty("pathToFonts", "../../");
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
@@ -519,6 +520,7 @@ QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
 
 void OffscreenQmlSurface::cleanup() {
     _isCleaned = true;
+#if !defined(DISABLE_QML)
     _canvas->makeCurrent();
 
     _renderControl->invalidate();
@@ -536,9 +538,12 @@ void OffscreenQmlSurface::cleanup() {
     offscreenTextures.releaseSize(_size);
 
     _canvas->doneCurrent();
+#endif
 }
 
 void OffscreenQmlSurface::render() {
+#if !defined(DISABLE_QML)
+
     if (nsightActive()) {
         return;
     }
@@ -582,6 +587,7 @@ void OffscreenQmlSurface::render() {
     _quickWindow->resetOpenGLState();
     _lastRenderTime = usecTimestampNow();
     _canvas->doneCurrent();
+#endif
 }
 
 bool OffscreenQmlSurface::fetchTexture(TextureAndFence& textureAndFence) {
@@ -634,7 +640,9 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 
     cleanup();
     auto engine = _qmlContext->engine();
+#if !defined(DISABLE_QML)
     _canvas->deleteLater();
+#endif
     _rootItem->deleteLater();
     _quickWindow->deleteLater();
     releaseEngine(engine);
@@ -659,6 +667,7 @@ void OffscreenQmlSurface::disconnectAudioOutputTimer() {
 void OffscreenQmlSurface::create() {
     qCDebug(uiLogging) << "Building QML surface";
 
+#if !defined(DISABLE_QML)
     _renderControl = new QMyQuickRenderControl();
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
     connect(_renderControl, &QQuickRenderControl::sceneChanged, this, [this] { _render = _polish = true; });
@@ -675,26 +684,30 @@ void OffscreenQmlSurface::create() {
     _quickWindow->setClearBeforeRendering(false);
 
     _renderControl->_renderWindow = _proxyWindow;
-
     _canvas = new OffscreenGLCanvas();
     if (!_canvas->create(getSharedContext())) {
         qFatal("Failed to create OffscreenGLCanvas");
         return;
     };
 
-    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
-
     // acquireEngine interrogates the GL context, so we need to have the context current here
     if (!_canvas->makeCurrent()) {
         qFatal("Failed to make context current for QML Renderer");
         return;
     }
+#else
+    _quickWindow = new QQuickWindow();
+#endif
+
+
+    connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
+
     
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
 
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
-    _qmlContext->setBaseUrl(QUrl{ PathUtils::qmlBasePath() });
+    _qmlContext->setBaseUrl(QUrl{ PathUtils::qmlBaseUrl() });
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlContext->setContextProperty("eventBridge", this);
     _qmlContext->setContextProperty("webEntity", this);
@@ -703,7 +716,10 @@ void OffscreenQmlSurface::create() {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
+
+#if !defined(DISABLE_QML)
     _renderControl->initialize(_canvas->getContext());
+#endif
 
 #if !defined(Q_OS_ANDROID)
     // Connect with the audio client and listen for audio device changes
@@ -803,6 +819,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
         return;
     }
 
+#if !defined(DISABLE_QML)
     qCDebug(uiLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
     gl::withSavedContext([&] {
         _canvas->makeCurrent();
@@ -842,6 +859,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
 
         _canvas->doneCurrent();
     });
+#endif
 }
 
 QQuickItem* OffscreenQmlSurface::getRootItem() {
@@ -1024,7 +1042,9 @@ void OffscreenQmlSurface::updateQuick() {
 
     if (_polish) {
         PROFILE_RANGE(render_qml, "OffscreenQML polish")
+#if !defined(DISABLE_QML)
         _renderControl->polishItems();
+#endif
         _polish = false;
     }
 
@@ -1112,6 +1132,27 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
             }
             break;
         }
+#if defined(Q_OS_ANDROID)
+        case QEvent::TouchBegin:
+        case QEvent::TouchUpdate:
+        case QEvent::TouchEnd: {
+            QTouchEvent *originalEvent = static_cast<QTouchEvent *>(event);
+            QTouchEvent *fakeEvent = new QTouchEvent(*originalEvent);
+            auto newTouchPoints = fakeEvent->touchPoints();
+            for (size_t i = 0; i < newTouchPoints.size(); ++i) {
+                const auto &originalPoint = originalEvent->touchPoints()[i];
+                auto &newPoint = newTouchPoints[i];
+                newPoint.setPos(originalPoint.pos());
+            }
+            fakeEvent->setTouchPoints(newTouchPoints);
+            if (QCoreApplication::sendEvent(_quickWindow, fakeEvent)) {
+                qInfo() << __FUNCTION__ << "sent fake touch event:" << fakeEvent->type()
+                        << "_quickWindow handled it... accepted:" << fakeEvent->isAccepted();
+                return false; //event->isAccepted();
+            }
+            break;
+        }
+#endif
         default:
             break;
     }
@@ -1294,9 +1335,11 @@ bool OffscreenQmlSurface::isPaused() const {
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
     _proxyWindow = window;
+#if !defined(DISABLE_QML)
     if (_renderControl) {
         _renderControl->_renderWindow = window;
     }
+#endif
 }
 
 QObject* OffscreenQmlSurface::getEventHandler() {

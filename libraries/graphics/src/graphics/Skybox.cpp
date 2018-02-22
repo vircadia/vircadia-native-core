@@ -37,6 +37,12 @@ void Skybox::setCubemap(const gpu::TexturePointer& cubemap) {
     }
 }
 
+void Skybox::setOrientation(const glm::quat& orientation) {
+    // The zone rotations need to be negated
+    _orientation = orientation;
+    _orientation.w = -_orientation.w;
+}
+
 void Skybox::updateSchemaBuffer() const {
     auto blend = 0.0f;
     if (getCubemap() && getCubemap()->isDefined()) {
@@ -89,12 +95,14 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             auto skyFS = gpu::Shader::createPixel(std::string(skybox_frag));
             auto skyShader = gpu::Shader::createProgram(skyVS, skyFS);
 
-            gpu::Shader::BindingSet bindings;
-            bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
-            bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
-            if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
+            batch.runLambda([skyShader] {
+                gpu::Shader::BindingSet bindings;
+                bindings.insert(gpu::Shader::Binding(std::string("cubeMap"), SKYBOX_SKYMAP_SLOT));
+                bindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), SKYBOX_CONSTANTS_SLOT));
+                if (!gpu::Shader::makeProgram(*skyShader, bindings)) {
 
-            }
+                }
+            });
 
             auto skyState = std::make_shared<gpu::State>();
             // Must match PrepareStencil::STENCIL_BACKGROUND
@@ -113,6 +121,10 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
 
     Transform viewTransform;
     viewFrustum.evalViewTransform(viewTransform);
+
+    // Orientate view transform to be relative to zone
+    viewTransform.setRotation(skybox.getOrientation() * viewTransform.getRotation());
+
     batch.setProjectionTransform(projMat);
     batch.setViewTransform(viewTransform);
     batch.setModelTransform(Transform()); // only for Mac

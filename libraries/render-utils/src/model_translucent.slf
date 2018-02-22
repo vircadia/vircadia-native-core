@@ -16,7 +16,9 @@
 
 <@include DeferredGlobalLight.slh@>
 
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+
+<@include LightLocal.slh@>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
@@ -27,6 +29,7 @@
 in vec2 _texCoord0;
 in vec2 _texCoord1;
 in vec4 _position;
+in vec4 _worldPosition;
 in vec3 _normal;
 in vec3 _color;
 in float _alpha;
@@ -56,20 +59,32 @@ void main(void) {
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 fragPosition = _position.xyz;
+    // Lighting is done in world space
     vec3 fragNormal = normalize(_normal);
 
     TransformCamera cam = getTransformCamera();
+    vec3 fragEyeVector = vec3(cam._viewInverse * vec4(-fragPosition, 0.0));
+    vec3 fragEyeDir = normalize(fragEyeVector);
+    SurfaceData surface = initSurfaceData(roughness, fragNormal, fragEyeDir);
+
+    vec4 localLighting = vec4(0.0);
+
+    <$fetchClusterInfo(_worldPosition)$>;
+    if (hasLocalLights(numLights, clusterPos, dims)) {
+        localLighting = evalLocalLighting(cluster, numLights, _worldPosition.xyz, surface,
+                                          metallic, fresnel, albedo, 0.0,
+                                          vec4(0), vec4(0), opacity);
+    }
 
     _fragColor =  vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
         occlusionTex,
         fragPosition,
-        fragNormal,
         albedo,
         fresnel,
         metallic,
         emissive,
-        roughness, opacity),
+        surface, opacity, localLighting.rgb),
         opacity);
 }

@@ -1344,7 +1344,7 @@ function recursiveDelete(entities, childrenList, deletedIDs) {
         var entityID = entities[i];
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList);
+        recursiveDelete(children, grandchildrenList, deletedIDs);
         var initialProperties = Entities.getEntityProperties(entityID);
         childrenList.push({
             entityID: entityID,

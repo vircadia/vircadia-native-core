@@ -39,8 +39,7 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
-
-    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+    connect(request, &SetMappingRequest::finished, this, [callback](SetMappingRequest* request) mutable {
         if (callback.isCallable()) {
             QJSValueList args { request->getErrorString(), request->getPath() };
             callback.call(args);
@@ -48,15 +47,13 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
 
         request->deleteLater();
     });
-
     request->start();
 }
 
 void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetMappingRequest(path);
-
-    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+    connect(request, &GetMappingRequest::finished, this, [callback](GetMappingRequest* request) mutable {
         auto hash = request->getHash();
 
         if (callback.isCallable()) {
@@ -263,7 +260,7 @@ void AssetMappingModel::refresh() {
             for (auto& mapping : mappings) {
                 auto& path = mapping.first;
 
-                if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                if (path.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
                     // Hide baked mappings
                     continue;
                 }
@@ -306,7 +303,7 @@ void AssetMappingModel::refresh() {
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
-                    if (mapping.second.status == Pending) {
+                    if (mapping.second.status == AssetUtils::Pending) {
                         ++numPendingBakes;
                     }
                 }

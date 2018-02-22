@@ -171,10 +171,13 @@ private:
     using Lock = std::unique_lock<std::mutex>;
 
     QQuickWindow* _quickWindow { nullptr };
-    QMyQuickRenderControl* _renderControl{ nullptr };
     QQmlContext* _qmlContext { nullptr };
     QQuickItem* _rootItem { nullptr };
+
+#if !defined(DISABLE_QML)
+    QMyQuickRenderControl* _renderControl{ nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
+#endif
 
     QTimer _updateTimer;
     uint32_t _fbo { 0 };

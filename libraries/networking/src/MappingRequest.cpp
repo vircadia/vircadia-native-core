@@ -51,13 +51,13 @@ QString MappingRequest::getErrorString() const {
     }
 }
 
-GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path.trimmed()) {
+GetMappingRequest::GetMappingRequest(const AssetUtils::AssetPath& path) : _path(path.trimmed()) {
 };
 
 void GetMappingRequest::doStart() {
 
     // short circuit the request if the path is invalid
-    if (!isValidFilePath(_path)) {
+    if (!AssetUtils::isValidFilePath(_path)) {
         _error = MappingRequest::InvalidPath;
         emit finished(this);
         return;
@@ -66,17 +66,17 @@ void GetMappingRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
 
     _mappingRequestID = assetClient->getAssetMapping(_path,
-            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+            [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
-                case AssetServerError::AssetNotFound:
+                case AssetUtils::AssetServerError::AssetNotFound:
                     _error = NotFound;
                     break;
                 default:
@@ -86,7 +86,7 @@ void GetMappingRequest::doStart() {
         }
 
         if (!_error) {
-            _hash = message->read(SHA256_HASH_LENGTH).toHex();
+            _hash = message->read(AssetUtils::SHA256_HASH_LENGTH).toHex();
 
             // check the boolean to see if this request got re-directed
             quint8 wasRedirected;
@@ -112,7 +112,7 @@ GetAllMappingsRequest::GetAllMappingsRequest() {
 void GetAllMappingsRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
     _mappingRequestID = assetClient->getAllAssetMappings(
-            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+            [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
 
@@ -120,7 +120,7 @@ void GetAllMappingsRequest::doStart() {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
                 default:
@@ -135,11 +135,11 @@ void GetAllMappingsRequest::doStart() {
             message->readPrimitive(&numberOfMappings);
             for (uint32_t i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
-                auto hash = message->read(SHA256_HASH_LENGTH).toHex();
-                BakingStatus status;
+                auto hash = message->read(AssetUtils::SHA256_HASH_LENGTH).toHex();
+                AssetUtils::BakingStatus status;
                 QString lastBakeErrors;
                 message->readPrimitive(&status);
-                if (status == BakingStatus::Error) {
+                if (status == AssetUtils::BakingStatus::Error) {
                     lastBakeErrors = message->readString();
                 }
                 _mappings[path] = { hash, status, lastBakeErrors };
@@ -149,7 +149,7 @@ void GetAllMappingsRequest::doStart() {
     });
 };
 
-SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) :
+SetMappingRequest::SetMappingRequest(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash) :
     _path(path.trimmed()),
     _hash(hash)
 {
@@ -159,8 +159,8 @@ SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& has
 void SetMappingRequest::doStart() {
 
     // short circuit the request if the hash or path are invalid
-    auto validPath = isValidFilePath(_path);
-    auto validHash = isValidHash(_hash);
+    auto validPath = AssetUtils::isValidFilePath(_path);
+    auto validHash = AssetUtils::isValidHash(_hash);
     if (!validPath || !validHash) {
         _error = !validPath ? MappingRequest::InvalidPath : MappingRequest::InvalidHash;
         emit finished(this);
@@ -170,17 +170,17 @@ void SetMappingRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
 
     _mappingRequestID = assetClient->setAssetMapping(_path, _hash,
-            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+            [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
-                case AssetServerError::PermissionDenied:
+                case AssetUtils::AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
                     break;
                 default:
@@ -193,7 +193,7 @@ void SetMappingRequest::doStart() {
     });
 };
 
-DeleteMappingsRequest::DeleteMappingsRequest(const AssetPathList& paths) : _paths(paths) {
+DeleteMappingsRequest::DeleteMappingsRequest(const AssetUtils::AssetPathList& paths) : _paths(paths) {
     for (auto& path : _paths) {
         path = path.trimmed();
     }
@@ -203,7 +203,7 @@ void DeleteMappingsRequest::doStart() {
 
     // short circuit the request if any of the paths are invalid
     for (auto& path : _paths) {
-        if (!isValidPath(path)) {
+        if (!AssetUtils::isValidPath(path)) {
             _error = MappingRequest::InvalidPath;
             emit finished(this);
             return;
@@ -213,17 +213,17 @@ void DeleteMappingsRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
 
     _mappingRequestID = assetClient->deleteAssetMappings(_paths,
-            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+            [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
-                case AssetServerError::PermissionDenied:
+                case AssetUtils::AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
                     break;
                 default:
@@ -236,7 +236,7 @@ void DeleteMappingsRequest::doStart() {
     });
 };
 
-RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) :
+RenameMappingRequest::RenameMappingRequest(const AssetUtils::AssetPath& oldPath, const AssetUtils::AssetPath& newPath) :
     _oldPath(oldPath.trimmed()),
     _newPath(newPath.trimmed())
 {
@@ -246,7 +246,7 @@ RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const Asset
 void RenameMappingRequest::doStart() {
 
     // short circuit the request if either of the paths are invalid
-    if (!isValidFilePath(_oldPath) || !isValidFilePath(_newPath)) {
+    if (!AssetUtils::isValidFilePath(_oldPath) || !AssetUtils::isValidFilePath(_newPath)) {
         _error = InvalidPath;
         emit finished(this);
         return;
@@ -255,17 +255,17 @@ void RenameMappingRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
 
     _mappingRequestID = assetClient->renameAssetMapping(_oldPath, _newPath,
-            [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+            [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-                case AssetServerError::NoError:
+                case AssetUtils::AssetServerError::NoError:
                     _error = NoError;
                     break;
-                case AssetServerError::PermissionDenied:
+                case AssetUtils::AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
                     break;
                 default:
@@ -278,7 +278,7 @@ void RenameMappingRequest::doStart() {
     });
 }
 
-SetBakingEnabledRequest::SetBakingEnabledRequest(const AssetPathList& paths, bool enabled) : _paths(paths), _enabled(enabled) {
+SetBakingEnabledRequest::SetBakingEnabledRequest(const AssetUtils::AssetPathList& paths, bool enabled) : _paths(paths), _enabled(enabled) {
     for (auto& path : _paths) {
         path = path.trimmed();
     }
@@ -288,7 +288,7 @@ void SetBakingEnabledRequest::doStart() {
 
     // short circuit the request if any of the paths are invalid
     for (auto& path : _paths) {
-        if (!isValidPath(path)) {
+        if (!AssetUtils::isValidPath(path)) {
             _error = MappingRequest::InvalidPath;
             emit finished(this);
             return;
@@ -298,17 +298,17 @@ void SetBakingEnabledRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
 
     _mappingRequestID = assetClient->setBakingEnabled(_paths, _enabled,
-        [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        [this, assetClient](bool responseReceived, AssetUtils::AssetServerError error, QSharedPointer<ReceivedMessage> message) {
 
         _mappingRequestID = INVALID_MESSAGE_ID;
         if (!responseReceived) {
             _error = NetworkError;
         } else {
             switch (error) {
-            case AssetServerError::NoError:
+            case AssetUtils::AssetServerError::NoError:
                 _error = NoError;
                 break;
-            case AssetServerError::PermissionDenied:
+            case AssetUtils::AssetServerError::PermissionDenied:
                 _error = PermissionDenied;
                 break;
             default:

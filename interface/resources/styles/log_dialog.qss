@@ -22,7 +22,7 @@ QLineEdit {
 }
 
 QPushButton#searchButton {
-    background: url(styles/search.svg);
+    background: url(:/styles/search.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -55,7 +55,7 @@ QPushButton#searchPrevButton {
 
 QPushButton#revealLogButton {
     font-family: Helvetica, Arial, sans-serif;
-    background: url(styles/txt-file.svg);
+    background: url(:/styles/txt-file.svg);
     background-repeat: none;
     background-position: left center;
     background-origin: content;
@@ -86,11 +86,11 @@ QCheckBox {
 }
 
 QCheckBox::indicator:unchecked {
-    image: url(styles/unchecked.svg);
+    image: url(:/styles/unchecked.svg);
 }
 
 QCheckBox::indicator:checked {
-    image: url(styles/checked.svg);
+    image: url(:/styles/checked.svg);
 }
 
 QComboBox {
@@ -110,6 +110,6 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-    image: url(styles/filter.png);
+    image: url(:/styles/filter.png);
     border-width: 0px;
 }

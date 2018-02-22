@@ -22,6 +22,7 @@
 
 #include "ResourceRequest.h"
 
+const QString URL_SCHEME_QRC = "qrc";
 const QString URL_SCHEME_FILE = "file";
 const QString URL_SCHEME_HTTP = "http";
 const QString URL_SCHEME_HTTPS = "https";

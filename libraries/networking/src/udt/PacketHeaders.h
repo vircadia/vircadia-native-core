@@ -248,7 +248,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
     UpdatedMannequinDefaultAvatar,
-    AvatarJointDefaultPoseFlags
+    AvatarJointDefaultPoseFlags,
+    FBXReaderNodeReparenting
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

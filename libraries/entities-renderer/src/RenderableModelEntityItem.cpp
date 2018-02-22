@@ -282,7 +282,7 @@ bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
-                         glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
+                         glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
     if (!model) {
         return true;
@@ -290,9 +290,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
     //                           << precisionPicking;
 
-    QString extraInfo;
     return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
-                                                       face, surfaceNormal, extraInfo, precisionPicking, false);
+               face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {
@@ -1014,9 +1013,9 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape();
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
     }
 }
 
@@ -1329,15 +1328,22 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _currentTextures = newTextures;
         }
     }
-
+    if (entity->_needsJointSimulation) {
+        entity->copyAnimationJointDataToModel();
+    }
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    if (model->isVisible() != _visible) {
+    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
+    uint32_t viewTaskBits = _cauterized ?
+        render::ItemKey::TAG_BITS_1 : // draw in every view except the main one (view zero)
+        render::ItemKey::TAG_BITS_ALL; // draw in all views
+
+    if (model->isVisible() != _visible || model->getViewTagBits() != viewTaskBits) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
         //        so most of the time we don't do anything in this function.
-        model->setVisibleInScene(_visible, scene);
+        model->setVisibleInScene(_visible, scene, viewTaskBits);
     }
     // TODO? early exit here when not visible?
 

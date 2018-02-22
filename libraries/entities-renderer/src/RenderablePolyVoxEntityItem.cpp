@@ -99,7 +99,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
   decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
-  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  polyVox surface extractor to create _mesh (as well as set Simulation _flags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
 
@@ -565,7 +565,7 @@ public:
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                               bool& keepSearching, OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                              void** intersectedObject, bool precisionPicking) const
+                                                              QVariantMap& extraInfo, bool precisionPicking) const
 {
     // TODO -- correctly pick against marching-cube generated meshes
     if (!precisionPicking) {
@@ -1138,7 +1138,7 @@ void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         if (!_collisionless) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
         _mesh = mesh;
         _meshDirty = true;
@@ -1457,7 +1457,7 @@ static gpu::PipelinePointer _pipelines[2];
 static gpu::PipelinePointer _wireframePipelines[2];
 static gpu::Stream::FormatPointer _vertexFormat;
 
-ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
+ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
         gpu::ShaderPointer vertexShaders[2] = { gpu::Shader::createVertex(std::string(polyvox_vert)), gpu::Shader::createVertex(std::string(polyvox_fade_vert)) };
         gpu::ShaderPointer pixelShaders[2] = { gpu::Shader::createPixel(std::string(polyvox_frag)), gpu::Shader::createPixel(std::string(polyvox_fade_frag)) };
@@ -1485,7 +1485,10 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
-            gpu::Shader::makeProgram(*program, slotBindings);
+         
+            batch.runLambda([program, slotBindings] {
+                gpu::Shader::makeProgram(*program, slotBindings);
+            });
 
             _pipelines[i] = gpu::Pipeline::create(program, state);
             _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);

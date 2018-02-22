@@ -493,7 +493,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    getConnectionData(false, location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
+    getConnectionData(false, location.domainID); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
     conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {

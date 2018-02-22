@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include "Config.h"
+
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QRegularExpression>
@@ -10,8 +12,6 @@
 #include <QtGui/QSurfaceFormat>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
-
-#include <QtOpenGL/QGL>
 
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
@@ -28,18 +28,19 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;
     std::call_once(once, [] {
-#if defined(HIFI_GLES)
+#if defined(USE_GLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         format.setRedBufferSize(8);
         format.setGreenBufferSize(8);
         format.setBlueBufferSize(8);
         format.setAlphaBufferSize(8);
+#else
+        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
         setGLFormatVersion(format);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
         QSurfaceFormat::setDefaultFormat(format);
     });
     return format;

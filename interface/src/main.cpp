@@ -20,7 +20,6 @@
 #include <QTranslator>
 
 #include <BuildInfo.h>
-#include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 #include <NetworkAccessManager.h>
@@ -42,6 +41,14 @@ int main(int argc, const char* argv[]) {
 
 #ifdef Q_OS_LINUX
     QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
+#endif
+
+#if defined(USE_GLES) && defined(Q_OS_WIN)
+    // When using GLES on Windows, we can't create normal GL context in Qt, so 
+    // we force Qt to use angle.  This will cause the QML to be unable to be used 
+    // in the output window, so QML should be disabled.
+    qputenv("QT_ANGLE_PLATFORM", "d3d11");
+    QCoreApplication::setAttribute(Qt::AA_UseOpenGLES);
 #endif
 
     disableQtBearerPoll(); // Fixes wifi ping spikes

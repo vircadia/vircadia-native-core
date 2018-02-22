@@ -348,6 +348,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.activeView = "step_1";
                 }
             }
@@ -393,6 +394,7 @@ Item {
         MouseArea {
             anchors.fill: parent;
             propagateComposedEvents: false;
+            hoverEnabled: true;
         }
 
         Image {
@@ -439,7 +441,7 @@ Item {
     }
     Item {
         id: choosePassphraseContainer;
-        visible: root.activeView === "step_3";
+        visible: root.hasShownSecurityImageTip && root.activeView === "step_3";
         // Anchors
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 30;
@@ -449,7 +451,10 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
+                sendSignalToWallet({method: 'disableHmdPreview'});
                 Commerce.getWalletAuthenticatedStatus();
+            } else {
+                sendSignalToWallet({method: 'maybeEnableHmdPreview'});
             }
         }
 
@@ -516,6 +521,7 @@ Item {
                 width: 200;
                 text: "Back"
                 onClicked: {
+                    securityImageSelection.resetSelection();
                     root.lastPage = "step_3";
                     root.activeView = "step_2";
                 }

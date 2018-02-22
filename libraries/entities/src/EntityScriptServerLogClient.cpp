@@ -51,9 +51,9 @@ void EntityScriptServerLogClient::enableToEntityServerScriptLog(bool enable) {
 
         if (_subscribed != enable) {
             if (enable) {
-                emit receivedNewLogLines("====================== Subscribded to the Entity Script Server's log ======================");
+                emit receivedNewLogLines("====================== Subscribed to the Entity Script Server's log ======================");
             } else {
-                emit receivedNewLogLines("==================== Unsubscribded from the Entity Script Server's log ====================");
+                emit receivedNewLogLines("==================== Unsubscribed from the Entity Script Server's log ====================");
             }
         }
         _subscribed = enable;

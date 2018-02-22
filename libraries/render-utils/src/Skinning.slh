@@ -74,7 +74,7 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (dot(real, polarityReference) < 0) {
+        if (dot(real, polarityReference) < 0.0) {
             dqClusterWeight = -clusterWeight;
         }
 
@@ -125,7 +125,7 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (dot(real, polarityReference) < 0) {
+        if (dot(real, polarityReference) < 0.0) {
             dqClusterWeight = -clusterWeight;
         }
 
@@ -178,7 +178,7 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
-        if (dot(real, polarityReference) < 0) {
+        if (dot(real, polarityReference) < 0.0) {
             dqClusterWeight = -clusterWeight;
         }
 

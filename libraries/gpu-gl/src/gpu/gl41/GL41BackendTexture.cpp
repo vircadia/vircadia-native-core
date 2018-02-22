@@ -156,7 +156,7 @@ void GL41Texture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);

@@ -11,16 +11,24 @@
 
 #include "PathUtils.h"
 
-#include <QCoreApplication>
-#include <QString>
-#include <QVector>
-#include <QDateTime>
-#include <QFileInfo>
-#include <QDir>
-#include <QUrl>
-#include <QtCore/QStandardPaths>
-#include <QRegularExpression>
 #include <mutex> // std::once
+
+#include <QtCore/QCoreApplication>
+#include <QtCore/QDateTime>
+#include <QtCore/QDir>
+#include <QtCore/QDirIterator>
+#include <QtCore/QFileInfo>
+#include <QtCore/QProcessEnvironment>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QString>
+#include <QtCore/QUrl>
+#include <QtCore/QVector>
+
+#if defined(Q_OS_OSX)
+#include <mach-o/dyld.h>
+#endif
+
 #include "shared/GlobalAppProperties.h"
 #include "SharedUtil.h"
 
@@ -28,14 +36,21 @@
 // Example: ...
 QString TEMP_DIR_FORMAT { "%1-%2-%3" };
 
-const QString& PathUtils::resourcesPath() {
-#ifdef Q_OS_MAC
-    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+static bool USE_SOURCE_TREE_RESOURCES() {
+#if defined(Q_OS_OSX)
+    return true;
 #else
-    static const QString staticResourcePath = QCoreApplication::applicationDirPath() + "/resources/";
+    static bool result = false;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        const QString USE_SOURCE_TREE_RESOURCES_FLAG("HIFI_USE_SOURCE_TREE_RESOURCES");
+        result = QProcessEnvironment::systemEnvironment().contains(USE_SOURCE_TREE_RESOURCES_FLAG);
+    });
+    return result;
 #endif
-    return staticResourcePath;
 }
+#endif
 
 #ifdef DEV_BUILD
 const QString& PathUtils::projectRootPath() {
@@ -49,14 +64,69 @@ const QString& PathUtils::projectRootPath() {
 }
 #endif
 
-const QString& PathUtils::qmlBasePath() {
-#ifdef DEV_BUILD
-    static const QString staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/qml/").toString();
+const QString& PathUtils::resourcesPath() {
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        // FIXME fix the OSX installer to install the resources.rcc instead of the
+        // individual resource files
+        // FIXME the first call to fetch the resources location seems to return
+        // nothing for QCoreApplication::applicationDirPath()
+        char buffer[8192];
+        uint32_t bufferSize = sizeof(buffer);
+        _NSGetExecutablePath(buffer, &bufferSize);
+        staticResourcePath = QDir::cleanPath(QFileInfo(buffer).dir().absoluteFilePath("../Resources")) + "/";
 #else
-    static const QString staticResourcePath = "qrc:///qml/";
+        staticResourcePath = ":/";
 #endif
+        
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES()) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = projectRootPath() + "/interface/resources/";
+        }
+#endif
+        qDebug() << "Resource path resolved to " << staticResourcePath;
+    });
 
     return staticResourcePath;
+}
+
+const QString& PathUtils::resourcesUrl() {
+    static QString staticResourcePath;
+    static std::once_flag once;
+    std::call_once(once, [&]{
+
+#if defined(Q_OS_OSX)
+        staticResourcePath = QUrl::fromLocalFile(resourcesPath()).toString();
+#else
+        staticResourcePath = "qrc:///";
+#endif
+
+#if !defined(Q_OS_ANDROID) && defined(DEV_BUILD)
+        if (USE_SOURCE_TREE_RESOURCES()) {
+            // For dev builds, optionally load content from the Git source tree
+            staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/").toString();
+        }
+#endif
+        qDebug() << "Resource url resolved to " << staticResourcePath;
+    });
+    return staticResourcePath;
+}
+
+QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
+    return QUrl(resourcesUrl() + relativeUrl);
+}
+
+const QString& PathUtils::qmlBaseUrl() {
+    static const QString staticResourcePath = resourcesUrl() + "qml/";
+    return staticResourcePath;
+}
+
+QUrl PathUtils::qmlUrl(const QString& relativeUrl) {
+    return QUrl(qmlBaseUrl() + relativeUrl);
 }
 
 QString PathUtils::getAppDataPath() {
@@ -71,7 +141,11 @@ QString PathUtils::getAppLocalDataPath() {
     }
 
     // otherwise return standard path
+#ifdef Q_OS_ANDROID
+    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/";
+#else
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
+#endif
 }
 
 QString PathUtils::getAppDataFilePath(const QString& filename) {

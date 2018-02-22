@@ -223,7 +223,7 @@ bool ShapeEntityItem::supportsDetailedRayIntersection() const {
 bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                    bool& keepSearching, OctreeElementPointer& element,
                                                    float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                   void** intersectedObject, bool precisionPicking) const {
+                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     // determine the ray in the frame of the entity transformed from a unit sphere
     glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);

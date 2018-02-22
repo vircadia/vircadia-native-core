@@ -38,8 +38,6 @@
 
 const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
-const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
-
 using PacketOrPacketList = std::pair<std::unique_ptr<NLPacket>, std::unique_ptr<NLPacketList>>;
 using NodePacketOrPacketListPair = std::pair<SharedNodePointer, PacketOrPacketList>;
 
@@ -62,7 +60,6 @@ public:
     Q_INVOKABLE qint64 sendStats(QJsonObject statsObject, HifiSockAddr destination);
     Q_INVOKABLE qint64 sendStatsToDomainServer(QJsonObject statsObject);
 
-    int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     DomainHandler& getDomainHandler() { return _domainHandler; }
 
     const NodeSet& getNodeInterestSet() const { return _nodeTypesOfInterest; }
@@ -96,7 +93,9 @@ public:
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
 public slots:
-    void reset();
+    void reset(bool skipDomainHandlerReset = false);
+    void resetFromDomainHandler() { reset(true); }
+    
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
 
@@ -119,7 +118,6 @@ public slots:
 #endif
 
 signals:
-    void limitOfSilentDomainCheckInsReached();
     void receivedDomainServerList();
     void ignoredNode(const QUuid& nodeID, bool enabled);
     void ignoreRadiusEnabledChanged(bool isIgnored);
@@ -161,7 +159,6 @@ private:
     std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
-    int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;

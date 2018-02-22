@@ -29,7 +29,7 @@
     vec3 fragEyeDir = normalize(fragEyeVector);
 
     // Get light
-    Light light = getLight();
+    Light light = getKeyLight();
     LightAmbient lightAmbient = getLightAmbient();
     
     vec3 lightDirection = getLightDirection(light);
@@ -143,7 +143,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
 <@func declareEvalLightmappedColor()@>
 vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 albedo, vec3 lightmap) {
-    Light light = getLight();
+    Light light = getKeyLight();
     LightAmbient ambient = getLightAmbient();
 
     // Catch normals perpendicular to the projection plane, hence the magic number for the threshold

@@ -51,6 +51,7 @@ const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
  * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
  * @property {Vec3} intersection - The position of the intersection point.
+ * @property {Object} extraInfo Additional intersection details, if available.
  */
 class RayToOverlayIntersectionResult {
 public:
@@ -60,7 +61,7 @@ public:
     BoxFace face;
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
-    QString extraInfo;
+    QVariantMap extraInfo;
 };
 
 

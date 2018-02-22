@@ -306,8 +306,8 @@ void Test::evaluateTestsRecursively(bool interactiveMode, QProgressBar* progress
     zipAndDeleteTestResultsFolder();
 }
 
-void Test::importTest(QTextStream& textStream, const QString& testPathname, int testNumber) {
-    textStream << "var test" << testNumber << " = Script.require(\"" << "file:///" << testPathname + "\");" << endl;
+void Test::importTest(QTextStream& textStream, const QString& testPathname) {
+    textStream << "Script.include(\"" << "file:///" << testPathname + "?raw=true\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -330,12 +330,14 @@ void Test::createRecursiveScript() {
     }
 
     QTextStream textStream(&allTestsFilename);
-    textStream << "// This is an automatically generated file, created by auto-tester" << endl;
+    textStream << "// This is an automatically generated file, created by auto-tester" << endl << endl;
+
+    textStream << "var autoTester = Script.require(\"https://github.com/highfidelity/hifi_tests/blob/master/tests/utils/autoTester.js?raw=true\");" << endl;
+    textStream << "autoTester.enableRecursive();" << endl << endl;
 
     // The main will call each test after the previous test is completed
     // This is implemented with an interval timer that periodically tests if a
     // running test has increment a testNumber variable that it received as an input.
-    int testNumber = 1;
     QVector<QString> testPathnames;
 
     // First test if top-level folder has a test.js file
@@ -343,8 +345,7 @@ void Test::createRecursiveScript() {
     QFileInfo fileInfo(testPathname);
     if (fileInfo.exists()) {
         // Current folder contains a test
-        importTest(textStream, testPathname, testNumber);
-        ++testNumber;
+        importTest(textStream, testPathname);
 
         testPathnames << testPathname;
     }
@@ -363,8 +364,7 @@ void Test::createRecursiveScript() {
         QFileInfo fileInfo(testPathname);
         if (fileInfo.exists()) {
             // Current folder contains a test
-            importTest(textStream, testPathname, testNumber);
-            ++testNumber;
+            importTest(textStream, testPathname);
 
             testPathnames << testPathname;
         }
@@ -377,79 +377,9 @@ void Test::createRecursiveScript() {
     }
 
     textStream << endl;
-
-    // Define flags for each test
-    for (int i = 1; i <= testPathnames.length(); ++i) {
-        textStream << "var test" << i << "HasNotStarted = true;" << endl;
-    }
-
-    // Leave a blank line in the main
-    textStream << endl;
-
-    const int TEST_PERIOD = 1000; // in milliseconds
-    const QString tab = "    ";
-
-    textStream << "// Check every second if the current test is complete and the next test can be run" << endl;
-    textStream << "var testTimer = Script.setInterval(" << endl;
-    textStream << tab << "function() {" << endl;
-
-    const QString testFunction = "test";
-    for (int i = 1; i <= testPathnames.length(); ++i) {
-        // First test starts immediately, all other tests wait for the previous test to complete.
-        // The script produced will look as follows:
-        //      if (test1HasNotStarted) {
-        //          test1HasNotStarted = false;
-        //          test1.test("auto");
-        //          print("******started test 1******");
-        //      }
-        //      |
-        //      |
-        //      if (test5.complete && test6HasNotStarted) {
-        //          test6HasNotStarted = false;
-        //          test7.test();
-        //          print("******started test 6******");
-        //      }
-        //      |
-        //      |
-        //      if (test12.complete) {
-        //          print("******stopping******");
-        //          Script.stop();
-        //      }
-        //
-        if (i == 1) {
-            textStream << tab << tab << "if (test1HasNotStarted) {" << endl;
-        } else {
-            textStream << tab << tab << "if (test" << i - 1 << ".complete && test" << i << "HasNotStarted) {" << endl;
-        }
-        textStream << tab << tab << tab << "test" << i << "HasNotStarted = false;" << endl;
-        textStream << tab << tab << tab << "test" << i << "." << testFunction << "(\"auto\");" << endl;
-        textStream << tab << tab << tab << "print(\"******started test " << i << "******\");" << endl;
-
-        textStream << tab << tab << "}" << endl << endl;
-
-    }
-
-    // Add extra step to stop the script
-    textStream << tab << tab << "if (test" << testPathnames.length() << ".complete) {" << endl;
-    textStream << tab << tab << tab << "print(\"******stopping******\");" << endl;
-    textStream << tab << tab << tab << "Script.stop();" << endl;
-    textStream << tab << tab << "}" << endl << endl;
-
-    textStream << tab << "}," << endl;
-    textStream << endl;
-    textStream << tab << TEST_PERIOD << endl;
-    textStream << ");" << endl << endl;
-
-    textStream << "// Stop the timer and clear the module cache" << endl;
-    textStream << "Script.scriptEnding.connect(" << endl;
-    textStream << tab << "function() {" << endl;
-    textStream << tab << tab << "Script.clearInterval(testTimer);" << endl;
-    textStream << tab << tab << "Script.require.cache = {};" << endl;
-    textStream << tab << "}" << endl;
-    textStream << ");" << endl;
+    textStream << "autoTester.runRecursive();" << endl;
 
     allTestsFilename.close();
-
     messageBox.information(0, "Success", "Script has been created");
 }
 

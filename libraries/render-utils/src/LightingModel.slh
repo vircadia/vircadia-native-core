@@ -289,9 +289,8 @@ void evalFragShading(out vec3 diffuse, out vec3 specular,
 
 
 void evalFragShadingScattering(out vec3 diffuse, out vec3 specular,
-    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo
-    ,float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
-) {
+    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo,
+    float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature) {
     vec3 brdf = evalSkinBRDF(surface.lightDir, surface.normal, midNormalCurvature.xyz, lowNormalCurvature.xyz, lowNormalCurvature.w);
     float NdotL = surface.ndotl;
     diffuse = mix(vec3(NdotL), brdf, scattering);
@@ -305,8 +304,7 @@ void evalFragShadingScattering(out vec3 diffuse, out vec3 specular,
 }
 
 void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
-    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo
-) {
+    float metallic, vec3 fresnel, SurfaceData surface, vec3 albedo) {
     vec4 shading = evalPBRShading(metallic, fresnel, surface);
     diffuse = vec3(shading.w);
     diffuse *= mix(vec3(1.0), albedo, isAlbedoEnabled());
