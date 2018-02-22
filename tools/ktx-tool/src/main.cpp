@@ -53,9 +53,13 @@ void stripKtxKeyValues(const std::string& sourceFile, const std::string& destFil
     ktx::KTX::write(destStorage.mutableData(), newStorageSize, ktx->_header, ktx->_images);
 }
 
-
+#if DEV_BUILD
 const QDir SOURCE_FOLDER{ PathUtils::projectRootPath() + "/interface/resources/meshes/mannequin" };
 const QDir DEST_FOLDER{ PathUtils::projectRootPath() + "/interface/resources/meshes/mannequin/+gles" };
+#else
+const QDir SOURCE_FOLDER{ PathUtils::resourcesPath() + "/interface/resources/meshes/mannequin" };
+const QDir DEST_FOLDER{ PathUtils::resourcesPath() + "/interface/resources/meshes/mannequin/+gles" };
+#endif
 
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
