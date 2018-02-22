@@ -3061,6 +3061,8 @@ void Application::loadServerlessDomain(QUrl domainURL) {
         return;
     }
 
+    getMyAvatar()->setSessionUUID(AVATAR_SELF_ID);
+
     auto addressManager = DependencyManager::get<AddressManager>();
     addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
 
