@@ -1298,6 +1298,9 @@ bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settings
                     }
                 } else {
                     // we have a value to restore, use update setting to set it
+                    // but clear the existing value first so that no merging between the restored settings
+                    // and existing settings occurs
+                    variantValue->clear();
 
                     // we might need to re-grab config group map in case it didn't exist when we looked for it before
                     // but was created by the call to valueForKeyPath before
