@@ -31,7 +31,7 @@ var ICON_FOR_TYPE = {
 
 var EDITOR_TIMEOUT_DURATION = 1500;
 var KEY_P = 80; // Key code for letter p used for Parenting hotkey.
-var colorPickers = [];
+var colorPickers = {};
 var lastEntityID = null;
 
 var MATERIAL_PREFIX_STRING = "mat::";
@@ -73,8 +73,8 @@ function enableProperties() {
 function disableProperties() {
     disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
     disableChildren(document, ".colpick");
-    for (var i = 0; i < colorPickers.length; i++) {
-        colorPickers[i].colpickHide();
+    for (var pickKey in colorPickers) {
+        colorPickers[pickKey].colpickHide();
     }
     var elLocked = document.getElementById("property-locked");
 
@@ -86,7 +86,6 @@ function disableProperties() {
 function showElements(els, show) {
     for (var i = 0; i < els.length; i++) {
         els[i].style.display = (show) ? 'table' : 'none';
-
     }
 }
 
@@ -509,15 +508,6 @@ function unbindAllInputs() {
     }
 }
 
-function clearSelection() {
-    if (document.selection && document.selection.empty) {
-        document.selection.empty();
-    } else if (window.getSelection) {
-        var sel = window.getSelection();
-        sel.removeAllRanges();
-    }
-}
-
 function showParentMaterialNameBox(number, elNumber, elString) {
     if (number) {
         $('#property-parent-material-id-number-container').show();
@@ -827,8 +817,10 @@ function loaded() {
                         if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
                             saveJSONUserData(true);
                         }
-                        // the event bridge and json parsing handle our avatar id string differently.
 
+                        var doSelectElement = lastEntityID === '"' + properties.id + '"';
+
+                        // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
@@ -1193,12 +1185,10 @@ function loaded() {
                         }
 
                         var activeElement = document.activeElement;
-
-                        if (typeof activeElement.select !== "undefined") {
+                        if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
                         }
                     }
-                    clearSelection();
                 }
             });
         }
@@ -1381,13 +1371,19 @@ function loaded() {
         elColorRed.addEventListener('change', colorChangeFunction);
         elColorGreen.addEventListener('change', colorChangeFunction);
         elColorBlue.addEventListener('change', colorChangeFunction);
-        colorPickers.push($('#property-color-control2').colpick({
+        colorPickers['#property-color-control2'] = $('#property-color-control2').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-color-control2').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-color-control2'].colpickSetColor({ 
+                    "r": elColorRed.value, 
+                    "g": elColorGreen.value, 
+                    "b": elColorBlue.value});
             },
             onHide: function(colpick) {
                 $('#property-color-control2').attr('active', 'false');
@@ -1396,7 +1392,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         elLightSpotLight.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isSpotlight'));
 
@@ -1405,13 +1401,20 @@ function loaded() {
         elLightColorRed.addEventListener('change', lightColorChangeFunction);
         elLightColorGreen.addEventListener('change', lightColorChangeFunction);
         elLightColorBlue.addEventListener('change', lightColorChangeFunction);
-        colorPickers.push($('#property-light-color').colpick({
+        colorPickers['#property-light-color'] = $('#property-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-light-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-light-color'].colpickSetColor({
+                    "r": elLightColorRed.value,
+                    "g": elLightColorGreen.value,
+                    "b": elLightColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-light-color').attr('active', 'false');
@@ -1420,7 +1423,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity', 1));
         elLightFalloffRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('falloffRadius', 1));
@@ -1486,13 +1489,20 @@ function loaded() {
         elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
         elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
         elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
-        colorPickers.push($('#property-text-text-color').colpick({
+        colorPickers['#property-text-text-color'] = $('#property-text-text-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-text-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-text-text-color'].colpickSetColor({
+                    "r": elTextTextColorRed.value,
+                    "g": elTextTextColorGreen.value,
+                    "b": elTextTextColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-text-text-color').attr('active', 'false');
@@ -1502,7 +1512,7 @@ function loaded() {
                 $(el).attr('active', 'false');
                 emitColorPropertyUpdate('textColor', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
             'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
@@ -1510,13 +1520,20 @@ function loaded() {
         elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
         elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
-        colorPickers.push($('#property-text-background-color').colpick({
+        colorPickers['#property-text-background-color'] = $('#property-text-background-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-text-background-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-text-background-color'].colpickSetColor({
+                    "r": elTextBackgroundColorRed.value,
+                    "g": elTextBackgroundColorGreen.value,
+                    "b": elTextBackgroundColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-text-background-color').attr('active', 'false');
@@ -1525,7 +1542,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
-        }));
+        });
 
         // Key light
         var keyLightModeChanged = createZoneComponentModeChangedFunction('keyLightMode',
@@ -1535,13 +1552,20 @@ function loaded() {
         elZoneKeyLightModeDisabled.addEventListener('change', keyLightModeChanged);
         elZoneKeyLightModeEnabled.addEventListener('change', keyLightModeChanged);
 
-        colorPickers.push($('#property-zone-key-light-color').colpick({
+        colorPickers['#property-zone-key-light-color'] = $('#property-zone-key-light-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-key-light-color'].colpickSetColor({
+                    "r": elZoneKeyLightColorRed.value,
+                    "g": elZoneKeyLightColorGreen.value,
+                    "b": elZoneKeyLightColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-key-light-color').attr('active', 'false');
@@ -1550,7 +1574,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'keyLight');
             }
-        }));
+        });
         var zoneKeyLightColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('keyLight', 'color', 
             elZoneKeyLightColorRed, elZoneKeyLightColorGreen, elZoneKeyLightColorBlue);
 
@@ -1604,13 +1628,20 @@ function loaded() {
 
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
 
-        colorPickers.push($('#property-zone-haze-color').colpick({
+        colorPickers['#property-zone-haze-color'] = $('#property-zone-haze-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-haze-color'].colpickSetColor({
+                    "r": elZoneHazeColorRed.value,
+                    "g": elZoneHazeColorGreen.value,
+                    "b": elZoneHazeColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-color').attr('active', 'false');
@@ -1619,7 +1650,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('hazeColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
-        }));
+        });
         var zoneHazeColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeColor', 
             elZoneHazeColorRed, 
             elZoneHazeColorGreen, 
@@ -1629,13 +1660,20 @@ function loaded() {
         elZoneHazeColorGreen.addEventListener('change', zoneHazeColorChangeFunction);
         elZoneHazeColorBlue.addEventListener('change', zoneHazeColorChangeFunction);
 
-        colorPickers.push($('#property-zone-haze-glare-color').colpick({
+        colorPickers['#property-zone-haze-glare-color'] = $('#property-zone-haze-glare-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-haze-glare-color'].colpickSetColor({
+                    "r": elZoneHazeGlareColorRed.value,
+                    "g": elZoneHazeGlareColorGreen.value,
+                    "b": elZoneHazeGlareColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-haze-glare-color').attr('active', 'false');
@@ -1644,7 +1682,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('hazeGlareColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
-        }));
+        });
         var zoneHazeGlareColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeGlareColor', 
             elZoneHazeGlareColorRed, 
             elZoneHazeGlareColorGreen, 
@@ -1671,13 +1709,20 @@ function loaded() {
         elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorGreen.addEventListener('change', zoneSkyboxColorChangeFunction);
         elZoneSkyboxColorBlue.addEventListener('change', zoneSkyboxColorChangeFunction);
-        colorPickers.push($('#property-zone-skybox-color').colpick({
+        colorPickers['#property-zone-skybox-color'] = $('#property-zone-skybox-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             submit: false, // We don't want to have a submission button
             onShow: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'true');
+                // The original color preview within the picker needs to be updated on show because
+                // prior to the picker being shown we don't have access to the selections' starting color.
+                colorPickers['#property-zone-skybox-color'].colpickSetColor({
+                    "r": elZoneSkyboxColorRed.value,
+                    "g": elZoneSkyboxColorGreen.value,
+                    "b": elZoneSkyboxColorBlue.value
+                });
             },
             onHide: function(colpick) {
                 $('#property-zone-skybox-color').attr('active', 'false');
@@ -1686,7 +1731,7 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'skybox');
             }
-        }));
+        });
 
         elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox', 'url'));
 
@@ -1761,34 +1806,13 @@ function loaded() {
         };
 
         // For input and textarea elements, select all of the text on focus
-        // WebKit-based browsers, such as is used with QWebView, have a quirk
-        // where the mouseup event comes after the focus event, causing the
-        // text to be deselected immediately after selecting all of the text.
-        // To make this work we block the first mouseup event after the elements
-        // received focus.  If we block all mouseup events the user will not
-        // be able to click within the selected text.
-        // We also check to see if the value has changed to make sure we aren't
-        // blocking a mouse-up event when clicking on an input spinner.
         var els = document.querySelectorAll("input, textarea");
         for (var i = 0; i < els.length; i++) {
-            var clicked = false;
-            var originalText;
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onfocus = function(e) {
-                originalText = this.value;
-                this.select();
-                clicked = false;
-            };
-            // TODO FIXME: (JSHint) Functions declared within loops referencing 
-            //             an outer scoped variable may lead to confusing semantics.
-            els[i].onmouseup = function(e) {
-                if (!clicked && originalText === this.value) {
-                    e.preventDefault();
-                }
-                clicked = true;
+            els[i].onfocus = function (e) {
+                e.target.select();
             };
         }
+
         bindAllNonJSONEditorElements();
     });
 

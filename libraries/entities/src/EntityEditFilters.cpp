@@ -41,8 +41,8 @@ QList<EntityItemID> EntityEditFilters::getZonesByPosition(glm::vec3& position) {
     return zones;
 }
 
-bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
-        EntityTree::FilterType filterType, EntityItemID& itemID) {
+bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut,
+        bool& wasChanged, EntityTree::FilterType filterType, EntityItemID& itemID, EntityItemPointer& existingEntity) {
     
     // get the ids of all the zones (plus the global entity edit filter) that the position
     // lies within
@@ -61,6 +61,17 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             if (filterData.rejectAll) {
                 return false;
             }
+
+            // check to see if this filter wants to filter this message type
+            if ((!filterData.wantsToFilterEdit && filterType == EntityTree::FilterType::Edit) ||
+                (!filterData.wantsToFilterPhysics && filterType == EntityTree::FilterType::Physics) ||
+                (!filterData.wantsToFilterDelete && filterType == EntityTree::FilterType::Delete) ||
+                (!filterData.wantsToFilterAdd && filterType == EntityTree::FilterType::Add)) {
+
+                wasChanged = false;
+                return true; // accept the message
+            }
+
             auto oldProperties = propertiesIn.getDesiredProperties();
             auto specifiedProperties = propertiesIn.getChangedProperties();
             propertiesIn.setDesiredProperties(specifiedProperties);
@@ -68,16 +79,62 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
             propertiesIn.setDesiredProperties(oldProperties);
 
             auto in = QJsonValue::fromVariant(inputValues.toVariant()); // grab json copy now, because the inputValues might be side effected by the filter.
+
             QScriptValueList args;
             args << inputValues;
             args << filterType;
 
+            // get the current properties for then entity and include them for the filter call
+            if (existingEntity && filterData.wantsOriginalProperties) {
+                auto currentProperties = existingEntity->getProperties(filterData.includedOriginalProperties);
+                QScriptValue currentValues = currentProperties.copyToScriptValue(filterData.engine, false, true, true);
+                args << currentValues;
+            }
+
+
+            // get the zone properties
+            if (filterData.wantsZoneProperties) {
+                auto zoneEntity = _tree->findEntityByEntityItemID(id);
+                if (zoneEntity) {
+                    auto zoneProperties = zoneEntity->getProperties(filterData.includedZoneProperties);
+                    QScriptValue zoneValues = zoneProperties.copyToScriptValue(filterData.engine, false, true, true);
+
+                    if (filterData.wantsZoneBoundingBox) {
+                        bool success = true;
+                        AABox aaBox = zoneEntity->getAABox(success);
+                        if (success) {
+                            QScriptValue boundingBox = filterData.engine->newObject();
+                            QScriptValue bottomRightNear = vec3toScriptValue(filterData.engine, aaBox.getCorner());
+                            QScriptValue topFarLeft = vec3toScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                            QScriptValue center = vec3toScriptValue(filterData.engine, aaBox.calcCenter());
+                            QScriptValue boundingBoxDimensions = vec3toScriptValue(filterData.engine, aaBox.getDimensions());
+                            boundingBox.setProperty("brn", bottomRightNear);
+                            boundingBox.setProperty("tfl", topFarLeft);
+                            boundingBox.setProperty("center", center);
+                            boundingBox.setProperty("dimensions", boundingBoxDimensions);
+                            zoneValues.setProperty("boundingBox", boundingBox);
+                        }
+                    }
+
+                    // If this is an add or delete, or original properties weren't requested
+                    // there won't be original properties in the args, but zone properties need
+                    // to be the fourth parameter, so we need to pad the args accordingly
+                    int EXPECTED_ARGS = 3;
+                    if (args.length() < EXPECTED_ARGS) {
+                        args << QScriptValue();
+                    }
+                    assert(args.length() == EXPECTED_ARGS); // we MUST have 3 args by now!
+                    args << zoneValues;
+                }
+            }
+
             QScriptValue result = filterData.filterFn.call(_nullObjectForFilter, args);
+
             if (filterData.uncaughtExceptions()) {
                 return false;
             }
 
-            if (result.isObject()){
+            if (result.isObject()) {
                 // make propertiesIn reflect the changes, for next filter...
                 propertiesIn.copyFromScriptValue(result, false);
 
@@ -86,6 +143,17 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                 // Javascript objects are == only if they are the same object. To compare arbitrary values, we need to use JSON.
                 auto out = QJsonValue::fromVariant(result.toVariant());
                 wasChanged |= (in != out);
+            } else if (result.isBool()) {
+
+                // if the filter returned false, then it's authoritative
+                if (!result.toBool()) {
+                    return false;
+                }
+
+                // otherwise, assume it wants to pass all properties
+                propertiesOut = propertiesIn;
+                wasChanged = false;
+                
             } else {
                 return false;
             }
@@ -182,8 +250,8 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
 void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
     qDebug() << "script request completed for entity " << entityID;
     auto scriptRequest = qobject_cast<ResourceRequest*>(sender());
-    const QString urlString = scriptRequest->getUrl().toString();
     if (scriptRequest && scriptRequest->getResult() == ResourceRequest::Success) {
+        const QString urlString = scriptRequest->getUrl().toString();
         auto scriptContents = scriptRequest->getData();
         qInfo() << "Downloaded script:" << scriptContents;
         QScriptProgram program(scriptContents, urlString);
@@ -207,6 +275,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                 entitiesObject.setProperty("ADD_FILTER_TYPE", EntityTree::FilterType::Add);
                 entitiesObject.setProperty("EDIT_FILTER_TYPE", EntityTree::FilterType::Edit);
                 entitiesObject.setProperty("PHYSICS_FILTER_TYPE", EntityTree::FilterType::Physics);
+                entitiesObject.setProperty("DELETE_FILTER_TYPE", EntityTree::FilterType::Delete);
                 global.setProperty("Entities", entitiesObject);
                 filterData.filterFn = global.property("filter");
                 if (!filterData.filterFn.isFunction()) {
@@ -214,8 +283,86 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
                     delete engine;
                     filterData.rejectAll=true;
                 }
-               
-                
+
+                // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterAddValue = filterData.filterFn.property("wantsToFilterAdd");
+                filterData.wantsToFilterAdd = wantsToFilterAddValue.isBool() ? wantsToFilterAddValue.toBool() : true;
+
+                // if the wantsToFilterEdit is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterEditValue = filterData.filterFn.property("wantsToFilterEdit");
+                filterData.wantsToFilterEdit = wantsToFilterEditValue.isBool() ? wantsToFilterEditValue.toBool() : true;
+
+                // if the wantsToFilterPhysics is a boolean evaluate as a boolean, otherwise assume true
+                QScriptValue wantsToFilterPhysicsValue = filterData.filterFn.property("wantsToFilterPhysics");
+                filterData.wantsToFilterPhysics = wantsToFilterPhysicsValue.isBool() ? wantsToFilterPhysicsValue.toBool() : true;
+
+                // if the wantsToFilterDelete is a boolean evaluate as a boolean, otherwise assume false
+                QScriptValue wantsToFilterDeleteValue = filterData.filterFn.property("wantsToFilterDelete");
+                filterData.wantsToFilterDelete = wantsToFilterDeleteValue.isBool() ? wantsToFilterDeleteValue.toBool() : false;
+
+                // check to see if the filterFn has properties asking for Original props
+                QScriptValue wantsOriginalPropertiesValue = filterData.filterFn.property("wantsOriginalProperties");
+                // if the wantsOriginalProperties is a boolean, or a string, or list of strings, then evaluate as follows:
+                //   - boolean - true  - include all original properties
+                //               false - no properties at all
+                //   - string  - empty - no properties at all
+                //               any valid property - include just that property in the Original properties
+                //   - list of strings - include only those properties in the Original properties
+                if (wantsOriginalPropertiesValue.isBool()) {
+                    filterData.wantsOriginalProperties = wantsOriginalPropertiesValue.toBool();
+                } else if (wantsOriginalPropertiesValue.isString()) {
+                    auto stringValue = wantsOriginalPropertiesValue.toString();
+                    filterData.wantsOriginalProperties = !stringValue.isEmpty();
+                    if (filterData.wantsOriginalProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
+                    }
+                } else if (wantsOriginalPropertiesValue.isArray()) {
+                    EntityPropertyFlagsFromScriptValue(wantsOriginalPropertiesValue, filterData.includedOriginalProperties);
+                    filterData.wantsOriginalProperties = !filterData.includedOriginalProperties.isEmpty();
+                }
+
+                // check to see if the filterFn has properties asking for Zone props
+                QScriptValue wantsZonePropertiesValue = filterData.filterFn.property("wantsZoneProperties");
+                // if the wantsZoneProperties is a boolean, or a string, or list of strings, then evaluate as follows:
+                //   - boolean - true  - include all Zone properties
+                //               false - no properties at all
+                //   - string  - empty - no properties at all
+                //               any valid property - include just that property in the Zone properties
+                //   - list of strings - include only those properties in the Zone properties
+                if (wantsZonePropertiesValue.isBool()) {
+                    filterData.wantsZoneProperties = wantsZonePropertiesValue.toBool();
+                    filterData.wantsZoneBoundingBox = filterData.wantsZoneProperties; // include this too
+                } else if (wantsZonePropertiesValue.isString()) {
+                    auto stringValue = wantsZonePropertiesValue.toString();
+                    filterData.wantsZoneProperties = !stringValue.isEmpty();
+                    if (filterData.wantsZoneProperties) {
+                        if (stringValue == "boundingBox") {
+                            filterData.wantsZoneBoundingBox = true;
+                        } else {
+                            EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
+                        }
+                    }
+                } else if (wantsZonePropertiesValue.isArray()) {
+                    auto length = wantsZonePropertiesValue.property("length").toInteger();
+                    for (int i = 0; i < length; i++) {
+                        auto stringValue = wantsZonePropertiesValue.property(i).toString();
+                        if (!stringValue.isEmpty()) {
+                            filterData.wantsZoneProperties = true;
+
+                            // boundingBox is a special case since it's not a true EntityPropertyFlag, so we
+                            // need to detect it here.
+                            if (stringValue == "boundingBox") {
+                                filterData.wantsZoneBoundingBox = true;
+                                break; // we can break here, since there are no other special cases
+                            }
+
+                        }
+                    }
+                    if (filterData.wantsZoneProperties) {
+                        EntityPropertyFlagsFromScriptValue(wantsZonePropertiesValue, filterData.includedZoneProperties);
+                    }
+                }
+
                 _lock.lockForWrite();
                 _filterDataMap.insert(entityID, filterData);
                 _lock.unlock();
@@ -227,6 +374,7 @@ void EntityEditFilters::scriptRequestFinished(EntityItemID entityID) {
             }
         } 
     } else if (scriptRequest) {
+        const QString urlString = scriptRequest->getUrl().toString();
         qCritical() << "Failed to download script at" << urlString;
         // See HTTPResourceRequest::onRequestFinished for interpretation of codes. For example, a 404 is code 6 and 403 is 3. A timeout is 2. Go figure.
         qCritical() << "ResourceRequest error was" << scriptRequest->getResult();
