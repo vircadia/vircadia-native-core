@@ -32,6 +32,7 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "graphics/TextureMap.h"
+#include "graphics/BufferViewHelpers.h"
 #include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
@@ -2409,26 +2410,15 @@ graphics::MeshPointer GeometryCache::meshFromShape(Shape geometryShape, glm::vec
 
     qDebug() << "GeometryCache::getMeshProxyListFromShape" << shapeData << stringFromShape(geometryShape);
 
-    auto cloneBufferView = [](const gpu::BufferView& in) -> gpu::BufferView {
-        auto buffer = std::make_shared<gpu::Buffer>(*in._buffer); // copy
-        // FIXME: gpu::BufferView seems to have a bug where constructing a new instance from an existing one
-        //   results in over-multiplied buffer/view sizes -- hence constructing manually here from each input prop
-        auto out = gpu::BufferView(buffer, in._offset, in._size, in._stride, in._element);
-        Q_ASSERT(out.getNumElements() == in.getNumElements());
-        Q_ASSERT(out._size == in._size);
-        Q_ASSERT(out._buffer->getSize() == in._buffer->getSize());
-        return out;
-    };
-    
-    auto positionsBufferView = cloneBufferView(shapeData->_positionView);
-    auto normalsBufferView = cloneBufferView(shapeData->_normalView);
-    auto indexBufferView = cloneBufferView(shapeData->_indicesView);
+    auto positionsBufferView = buffer_helpers::clone(shapeData->_positionView);
+    auto normalsBufferView = buffer_helpers::clone(shapeData->_normalView);
+    auto indexBufferView = buffer_helpers::clone(shapeData->_indicesView);
 
     gpu::BufferView::Size numVertices = positionsBufferView.getNumElements();
     Q_ASSERT(numVertices == normalsBufferView.getNumElements());
 
     // apply input color across all vertices
-    auto colorsBufferView = cloneBufferView(shapeData->_normalView);
+    auto colorsBufferView = buffer_helpers::clone(shapeData->_normalView);
     for (gpu::BufferView::Size i = 0; i < numVertices; i++) {
         colorsBufferView.edit<glm::vec3>((gpu::BufferView::Index)i) = color;
     }
