@@ -394,9 +394,15 @@ void AssetsBackupHandler::refreshMappings() {
     QObject::connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) {
         if (request->getError() == MappingRequest::NoError) {
             const auto& mappings = request->getMappings();
+
+            // Clear existing mappings
             _currentMappings.clear();
+
+            // Set new mapping, but ignore baked assets
             for (const auto& mapping : mappings) {
-                _currentMappings.insert({ mapping.first, mapping.second.hash });
+                if (!mapping.first.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
+                    _currentMappings.insert({ mapping.first, mapping.second.hash });
+                }
             }
             _lastMappingsRefresh = usecTimestampNow();
 
