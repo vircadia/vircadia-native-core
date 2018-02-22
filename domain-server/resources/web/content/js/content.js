@@ -5,6 +5,8 @@ $(document).ready(function(){
   var UPLOAD_CONTENT_ALLOWED_DIV_ID = 'upload-content-allowed';
   var UPLOAD_CONTENT_RECOVERING_DIV_ID = 'upload-content-recovering';
 
+  var isRestoring = false;
+
   function progressBarHTML(extraClass, label) {
     var html = "<div class='progress'>";
     html += "<div class='" + extraClass + " progress-bar progress-bar-success progress-bar-striped active' role='progressbar' aria-valuemin='0' aria-valuemax='100'>";
@@ -64,6 +66,7 @@ $(document).ready(function(){
           contentType: false,
           data: fileFormData
         }).done(function(data, textStatus, jqXHR) {
+          isRestoring = true;
           swal.close();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(
@@ -138,6 +141,13 @@ $(document).ready(function(){
       var splitBackups = _.partition(data.backups, function(value, index) {
         return value.isManualBackup;
       });
+
+      if (isRestoring && !data.status.isRecovering) {
+        // we were recovering and we finished - the DS is going to restart so show the restart modal
+        showRestartModal();
+      }
+
+      isRestoring = data.status.isRecovering;
 
       manualBackups = splitBackups[0];
       automaticBackups = splitBackups[1];
@@ -281,6 +291,7 @@ $(document).ready(function(){
 
         // setup an AJAX POST to request content restore
         $.post('/api/backups/recover/' + backupID).done(function(data, textStatus, jqXHR) {
+          isRestoring = true;
           swal.close();
         }).fail(function(jqXHR, textStatus, errorThrown) {
           showErrorMessage(
