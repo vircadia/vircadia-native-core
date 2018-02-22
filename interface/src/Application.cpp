@@ -3074,6 +3074,7 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     if (importEntities(domainURL.toString())) {
         pasteEntities(0.0f, 0.0f, 0.0f);
     }
+    _fullSceneReceivedCounter++;
 }
 
 bool Application::importImage(const QString& urlString) {
@@ -5911,22 +5912,22 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     AABox avatarBox(getMyAvatar()->getWorldPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
     // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
     std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
-            if (entity->shouldBePhysical()) {
-                bool success = false;
-                AABox entityBox = entity->getAABox(success);
-                // important: bail for entities that cannot supply a valid AABox
-                return success && avatarBox.touches(entityBox);
-            }
-            return false;
-        };
+        if (entity->shouldBePhysical()) {
+            bool success = false;
+            AABox entityBox = entity->getAABox(success);
+            // important: bail for entities that cannot supply a valid AABox
+            return success && avatarBox.touches(entityBox);
+        }
+        return false;
+    };
     std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
-            if (element->getAACube().touches(avatarBox)) {
-                EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
-                entityTreeElement->getEntities(entityScan, entities);
-                return true;
-            }
-            return false;
-        };
+        if (element->getAACube().touches(avatarBox)) {
+            EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+            entityTreeElement->getEntities(entityScan, entities);
+            return true;
+        }
+        return false;
+    };
 
     entityTree->withReadLock([&] {
         // Pass the second function to the general-purpose EntityTree::findEntities()
