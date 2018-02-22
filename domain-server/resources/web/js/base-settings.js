@@ -682,11 +682,11 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
-            "name='" + col.name + "'>" +
-          "<input type='text' style='display: none;' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
-                 "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
-                 (col.readonly ? " readonly" : "") + ">" +
-        "</td>";
+          "name='" + col.name + "'>" +
+          "<input type='text' style='display: none;' class='form-control " + Settings.TRIGGER_CHANGE_CLASS +
+          "' placeholder='" + (col.placeholder ? col.placeholder : "") + "' " +
+          "value='" + (defaultValue || "") + "' data-default='" + (defaultValue || "") + "'" +
+          (col.readonly ? " readonly" : "") + ">" + "</td>";
     }
   })
 
