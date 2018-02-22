@@ -657,10 +657,8 @@ public:
         scriptable::ModelProviderPointer provider;
         auto avatarManager = DependencyManager::get<AvatarManager>();
         if (auto avatar = avatarManager->getAvatarBySessionID(sessionUUID)) {
-            if (avatar->getSessionUUID() == sessionUUID) {
-                provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(avatar);
-                provider->modelProviderType = NestableType::Avatar;
-            }
+            provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(avatar);
+            provider->modelProviderType = NestableType::Avatar;
         }
         return provider;
     }
