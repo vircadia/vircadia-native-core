@@ -279,7 +279,7 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
         qCWarning(asset_backup) << "Current asset mappings that might be stale.";
     }
 
-    const auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+    auto it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
         return backup.name == backupName;
     });
     if (it == end(_backups)) {
@@ -305,6 +305,17 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
 
                 writeAssetFile(asset, zipFile.readAll());
             }
+        }
+
+        // iterator is end() and has been invalidated in the `loadBackup` call
+        // grab the new iterator
+        it = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+            return backup.name == backupName;
+        });
+
+        if (it == end(_backups)) {
+            qCCritical(asset_backup) << "Failed to recover backup:" << backupName;
+            return;
         }
     }
 
