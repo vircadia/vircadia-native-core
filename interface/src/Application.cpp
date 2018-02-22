@@ -4829,7 +4829,6 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
     if (_keyboardFocusHighlightID == UNKNOWN_OVERLAY_ID || !getOverlays().isAddedOverlay(_keyboardFocusHighlightID)) {
         _keyboardFocusHighlight = std::make_shared<Cube3DOverlay>();
         _keyboardFocusHighlight->setAlpha(1.0f);
-        _keyboardFocusHighlight->setBorderSize(1.0f);
         _keyboardFocusHighlight->setColor({ 0xFF, 0xEF, 0x00 });
         _keyboardFocusHighlight->setIsSolid(false);
         _keyboardFocusHighlight->setPulseMin(0.5);
@@ -5969,7 +5968,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
