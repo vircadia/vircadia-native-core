@@ -78,7 +78,6 @@ private:
     };
 
     // Internal storage for backups on disk
-    bool _allBackupsLoadedSuccessfully { false };
     std::vector<AssetServerBackup> _backups;
     std::set<AssetUtils::AssetHash> _assetsInBackups;
     std::set<AssetUtils::AssetHash> _assetsOnDisk;
