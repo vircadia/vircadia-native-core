@@ -101,7 +101,10 @@ void AssetsBackupHandler::checkForAssetsToDelete() {
 
     if (deprecatedAssets.size() > 0) {
         qCDebug(asset_backup) << "Found" << deprecatedAssets.size() << "backup assets to delete from disk.";
-        if (_allBackupsLoadedSuccessfully) {
+        const auto noCorruptedBackups = none_of(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+            return backup.corruptedBackup;
+        });
+        if (noCorruptedBackups) {
             for (const auto& hash : deprecatedAssets) {
                 QFile::remove(_assetsDirectory + hash);
             }
@@ -175,7 +178,6 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
         qCCritical(asset_backup) << "Failed to find" << MAPPINGS_FILE << "while loading backup";
         qCCritical(asset_backup) << "    Error:" << zip.getZipError();
         backup.corruptedBackup = true;
-        _allBackupsLoadedSuccessfully = false;
         return;
     }
 
@@ -184,7 +186,6 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
         qCCritical(asset_backup) << "Could not unzip backup file for load:" << backupName;
         qCCritical(asset_backup) << "    Error:" << zip.getZipError();
         backup.corruptedBackup = true;
-        _allBackupsLoadedSuccessfully = false;
         return;
     }
 
@@ -194,7 +195,6 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
         qCCritical(asset_backup) << "Could not parse backup file to JSON object for load:" << backupName;
         qCCritical(asset_backup) << "    Error:" << error.errorString();
         backup.corruptedBackup = true;
-        _allBackupsLoadedSuccessfully = false;
         return;
     }
 
@@ -206,7 +206,6 @@ void AssetsBackupHandler::loadBackup(const QString& backupName, QuaZip& zip) {
         if (!AssetUtils::isValidHash(assetHash)) {
             qCCritical(asset_backup) << "Corrupted mapping in loading backup file" << backupName << ":" << it.key();
             backup.corruptedBackup = true;
-            _allBackupsLoadedSuccessfully = false;
             continue;
         }
 
