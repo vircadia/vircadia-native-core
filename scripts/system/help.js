@@ -30,9 +30,8 @@
         if (onHelpScreen) {
             tablet.gotoHomeScreen();
         } else {
-            var tabletEntity = HMD.tabletID;
-            if (tabletEntity) {
-                Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
             }
             Menu.triggerOption('Help...');
             onHelpScreen = true;

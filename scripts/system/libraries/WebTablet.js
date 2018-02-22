@@ -331,7 +331,7 @@ WebTablet.prototype.destroy = function () {
 };
 
 WebTablet.prototype.geometryChanged = function (geometry) {
-    if (!HMD.active) {
+    if (!HMD.active && HMD.tabletID) {
         var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
@@ -459,6 +459,9 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
+    if (!HMD.tabletID) {
+        return;
+    }
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
