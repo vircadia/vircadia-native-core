@@ -199,7 +199,7 @@ Rectangle {
             var SHAPE_TYPE_BOX = 4;
             var SHAPE_TYPE_SPHERE = 5;
         
-            var SHAPE_TYPES = [];ww
+            var SHAPE_TYPES = [];
             SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
