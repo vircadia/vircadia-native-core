@@ -22,8 +22,8 @@ BraceWrapping:
 
 AccessModifierOffset: -4
 AllowShortFunctionsOnASingleLine: InlineOnly
-BreakConstructorInitializers: BeforeColon
-BreakConstructorInitializersBeforeComma: true
+BreakConstructorInitializers: AfterColon
+BreakConstructorInitializersBeforeComma: false
 IndentCaseLabels: true
 ReflowComments: false
 Cpp11BracedListStyle: false
