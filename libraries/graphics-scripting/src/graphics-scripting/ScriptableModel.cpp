@@ -27,6 +27,16 @@ void scriptable::ScriptableModelBase::mixin(const QVariantMap& modelMetaData) {
     }
 }
 
+scriptable::ScriptableModelBase& scriptable::ScriptableModelBase::operator=(const scriptable::ScriptableModelBase& other) {
+    provider = other.provider;
+    objectID = other.objectID;
+    metadata = other.metadata;
+    for (auto& mesh : other.meshes) {
+        append(mesh);
+    }
+    return *this;
+}
+
 scriptable::ScriptableModelBase::~ScriptableModelBase() {
 #ifdef SCRIPTABLE_MESH_DEBUG
     qCDebug(graphics_scripting) << "~ScriptableModelBase" << this;

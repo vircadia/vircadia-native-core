@@ -607,7 +607,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 
 class ApplicationMeshProvider : public scriptable::ModelProviderFactory  {
 public:
-    virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) {
+    virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) override {
         QString error;
 
         scriptable::ModelProviderPointer provider;

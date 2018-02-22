@@ -281,13 +281,22 @@ gpu::BufferView buffer_helpers::fromVector(const QVector<T>& elements, const gpu
     auto vertexBuffer = std::make_shared<gpu::Buffer>(elements.size() * sizeof(T), (gpu::Byte*)elements.data());
     return { vertexBuffer, 0, vertexBuffer->getSize(),sizeof(T), elementType };
 }
+
+namespace {
+    template <typename T>
+    gpu::BufferView _fromVector(const QVector<T>& elements, const gpu::Element& elementType) {
+        auto vertexBuffer = std::make_shared<gpu::Buffer>(elements.size() * sizeof(T), (gpu::Byte*)elements.data());
+        return { vertexBuffer, 0, vertexBuffer->getSize(),sizeof(T), elementType };
+    }
+}
+
 template<> gpu::BufferView buffer_helpers::fromVector<unsigned int>(
     const QVector<unsigned int>& elements, const gpu::Element& elementType
-) { return fromVector(elements, elementType); }
+) { return _fromVector(elements, elementType); }
 
 template<> gpu::BufferView buffer_helpers::fromVector<glm::vec3>(
     const QVector<glm::vec3>& elements, const gpu::Element& elementType
-) { return fromVector(elements, elementType); }
+) { return _fromVector(elements, elementType); }
 
 template <typename T> struct GpuVec4ToGlm;
 template <typename T> struct GpuScalarToGlm;
@@ -537,14 +546,14 @@ std::map<QString, gpu::BufferView> buffer_helpers::gatherBufferViews(graphics::M
         auto slot = a.second;
         auto view = getBufferView(mesh, slot);
         auto beforeCount = view.getNumElements();
+#if DEV_BUILD
         auto beforeTotal = view._size;
+#endif
         if (expandToMatchPositions.contains(name)) {
             expandAttributeToMatchPositions(mesh, slot);
         }
         if (beforeCount > 0) {
             auto element = view._element;
-            auto vecN = element.getScalarCount();
-            //auto type = element.getType();
             QString typeName = QString("%1").arg(element.getType());
 #ifdef DEBUG_BUFFERVIEW_SCRIPTING
             typeName = DebugNames::stringFrom(element.getType());
@@ -553,6 +562,7 @@ std::map<QString, gpu::BufferView> buffer_helpers::gatherBufferViews(graphics::M
             attributeViews[name] = getBufferView(mesh, slot);
 
 #if DEV_BUILD
+            const auto vecN = element.getScalarCount();
             auto afterTotal = attributeViews[name]._size;
             auto afterCount = attributeViews[name].getNumElements();
             if (beforeTotal != afterTotal || beforeCount != afterCount) {
@@ -604,14 +614,14 @@ bool buffer_helpers::recalculateNormals(graphics::MeshPointer mesh) {
 #endif
             break;
         }
-        vertexToFaces[glm::to_string(face.v0).c_str()] << i;
-        vertexToFaces[glm::to_string(face.v1).c_str()] << i;
-        vertexToFaces[glm::to_string(face.v2).c_str()] << i;
+        vertexToFaces[glm::to_string(glm::dvec3(face.v0)).c_str()] << i;
+        vertexToFaces[glm::to_string(glm::dvec3(face.v1)).c_str()] << i;
+        vertexToFaces[glm::to_string(glm::dvec3(face.v2)).c_str()] << i;
     }
     for (quint32 j = 0; j < numNormals; j++) {
         //auto v = verts.get<glm::vec3>(j);
         glm::vec3 normal { 0.0f, 0.0f, 0.0f };
-        QString key { glm::to_string(verts.get<glm::vec3>(j)).c_str() };
+        QString key { glm::to_string(glm::dvec3(verts.get<glm::vec3>(j))).c_str() };
         const auto& faces = vertexToFaces.value(key);
         if (faces.size()) {
             for (const auto i : faces) {

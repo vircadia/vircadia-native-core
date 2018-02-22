@@ -23,12 +23,12 @@
 #include "ScriptableMesh.moc"
 
 scriptable::ScriptableMeshPart::ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex)
-    : parentMesh(parentMesh), partIndex(partIndex)  {
+    : QObject(), parentMesh(parentMesh), partIndex(partIndex)  {
     setObjectName(QString("%1.part[%2]").arg(parentMesh ? parentMesh->objectName() : "").arg(partIndex));
 }
 
 scriptable::ScriptableMesh::ScriptableMesh(const ScriptableMeshBase& other)
-    : ScriptableMeshBase(other) {
+    : ScriptableMeshBase(other), QScriptable() {
     auto mesh = getMeshPointer();
     QString name = mesh ? QString::fromStdString(mesh->modelName) : "";
     if (name.isEmpty()) {
@@ -59,15 +59,6 @@ quint32 scriptable::ScriptableMesh::getNumVertices() const {
     }
     return 0;
 }
-
-// glm::vec3 ScriptableMesh::getPos3(quint32 index) const {
-//     if (auto mesh = getMeshPointer()) {
-//         if (index < getNumVertices()) {
-//             return mesh->getPos3(index);
-//         }
-//     }
-//     return glm::vec3(NAN);
-// }
 
 QVector<quint32> scriptable::ScriptableMesh::findNearbyIndices(const glm::vec3& origin, float epsilon) const {
     QVector<quint32> result;

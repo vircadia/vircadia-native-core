@@ -42,7 +42,7 @@ namespace scriptable {
         ScriptableMeshBase(WeakModelProviderPointer provider, ScriptableModelBasePointer model, WeakMeshPointer mesh, const QVariantMap& metadata);
         ScriptableMeshBase(WeakMeshPointer mesh = WeakMeshPointer());
         ScriptableMeshBase(MeshPointer mesh, const QVariantMap& metadata);
-        ScriptableMeshBase(const ScriptableMeshBase& other) { *this = other; }
+        ScriptableMeshBase(const ScriptableMeshBase& other) : QObject() { *this = other; }
         ScriptableMeshBase& operator=(const ScriptableMeshBase& view);
         virtual ~ScriptableMeshBase();
         Q_INVOKABLE const scriptable::MeshPointer getMeshPointer() const { return mesh.lock(); }
@@ -60,16 +60,8 @@ namespace scriptable {
         QVector<scriptable::ScriptableMeshBase> meshes;
 
         ScriptableModelBase(QObject* parent = nullptr) : QObject(parent) {}
-        ScriptableModelBase(const ScriptableModelBase& other) { *this = other; }
-        ScriptableModelBase& operator=(const ScriptableModelBase& other) {
-            provider = other.provider;
-            objectID = other.objectID;
-            metadata = other.metadata;
-            for (auto& mesh : other.meshes) {
-                append(mesh);
-            }
-            return *this;
-        }
+        ScriptableModelBase(const ScriptableModelBase& other) : QObject() { *this = other; }
+        ScriptableModelBase& operator=(const ScriptableModelBase& other);
         virtual ~ScriptableModelBase();
 
         void mixin(const QVariantMap& other);

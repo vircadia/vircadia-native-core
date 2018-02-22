@@ -27,7 +27,7 @@
 
 #include "GraphicsScriptingInterface.moc"
 
-GraphicsScriptingInterface::GraphicsScriptingInterface(QObject* parent) : QObject(parent) {
+GraphicsScriptingInterface::GraphicsScriptingInterface(QObject* parent) : QObject(parent), QScriptable() {
     if (auto scriptEngine = qobject_cast<QScriptEngine*>(parent)) {
         this->registerMetaTypes(scriptEngine);
     }
