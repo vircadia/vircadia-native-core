@@ -722,7 +722,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: noPermissionText;
-            visible: !root.canRezCertifiedItems && root.itemType !== "wearable";
+            visible: !root.canRezCertifiedItems && root.itemType === "entity";
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">You do not have Certified Rez permissions in this domain.</a></font>'
             // Text size
             size: 16;
