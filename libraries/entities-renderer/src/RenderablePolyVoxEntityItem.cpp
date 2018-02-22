@@ -20,6 +20,8 @@
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <model-networking/SimpleMeshProxy.h>
+#include <ModelScriptingInterface.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>
@@ -1416,6 +1418,39 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     }
 }
 
+// deprecated
+bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
+    if (!updateDependents()) {
+        return false;
+    }
+
+    bool success = false;
+    if (_mesh) {
+        MeshProxy* meshProxy = nullptr;
+        glm::mat4 transform = voxelToLocalMatrix();
+        withReadLock([&] {
+            gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+            if (!_meshReady) {
+                // we aren't ready to return a mesh.  the caller will have to try again later.
+                success = false;
+            } else if (numVertices == 0) {
+                // we are ready, but there are no triangles in the mesh.
+                success = true;
+            } else {
+                success = true;
+                // the mesh will be in voxel-space.  transform it into object-space
+                meshProxy = new SimpleMeshProxy(
+                    _mesh->map([=](glm::vec3 position) { return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                    [=](glm::vec3 color) { return color; },
+                    [=](glm::vec3 normal) { return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                    [&](uint32_t index) { return index; }));
+                result << meshProxy;
+            }
+        });
+    }
+    return success;
+}
+
 scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(bool * ok) {
     if (!updateDependents() || !_mesh) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
@@ -1424,6 +1459,7 @@ scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(
     bool success = false;
     glm::mat4 transform = voxelToLocalMatrix();
     scriptable::ScriptableModelBase result;
+    result.objectID = getThisPointer()->getID();
     withReadLock([&] {
         gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
         if (!_meshReady) {

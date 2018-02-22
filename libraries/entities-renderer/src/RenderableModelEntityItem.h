@@ -111,6 +111,7 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    bool getMeshes(MeshProxyList& result) override; // deprecated
     const void* getCollisionMeshKey() const { return _collisionMeshKey; }
 
 signals:

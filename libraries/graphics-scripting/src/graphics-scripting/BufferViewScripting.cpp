@@ -9,10 +9,10 @@
 #include <gpu/Format.h>
 #include <gpu/Stream.h>
 
-#include <graphics-scripting/BufferViewHelpers.h>
+#include <graphics/BufferViewHelpers.h>
 
 #ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    #include <graphics/DebugNames.h>
+    #include "DebugNames.h"
 #endif
 
 namespace {
@@ -41,8 +41,6 @@ void setBufferViewElement(const gpu::BufferView& view, quint32 index, const QScr
 bool bufferViewElementFromScriptValue(const QScriptValue& v, const gpu::BufferView& view, quint32 index) {
     return buffer_helpers::fromVariant(view, index, v.toVariant());
 }
-
-//
 
 template <typename T>
 QScriptValue glmVecToScriptValue(QScriptEngine *js, const T& v, bool asArray) {

@@ -1,26 +1,22 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <QtCore/QObject>
-#include <QtCore/QVector>
-#include <QtCore/QList>
-#include <QtCore/QVariant>
-#include <QtCore/QUuid>
-#include <QPointer>
-#include <memory>
+#include "ScriptableModel.h"
 
+#include <glm/glm.hpp>
+#include <graphics/BufferViewHelpers.h>
 #include <DependencyManager.h>
 
-//#include <graphics-scriping/Forward.h>
-#include <graphics-scripting/ScriptableModel.h>
-#include <graphics-scripting/BufferViewHelpers.h>
-
-#include <QtScript/QScriptable>
+#include <memory>
+#include <QPointer>
+#include <QtCore/QList>
+#include <QtCore/QObject>
+#include <QtCore/QUuid>
+#include <QtCore/QVariant>
+#include <QtCore/QVector>
 #include <QtScript/QScriptValue>
+#include <QtScript/QScriptable>
 
 namespace scriptable {
-
-    QScriptValue jsBindCallback(QScriptValue callback);
     class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT
     public:
@@ -37,14 +33,11 @@ namespace scriptable {
         bool hasValidOwnedMesh() const { return (bool)getOwnedMeshPointer(); }
 
         operator const ScriptableMeshBase*() const { return (qobject_cast<const scriptable::ScriptableMeshBase*>(this)); }
-        ScriptableMesh(scriptable::MeshPointer mesh) : ScriptableMeshBase(mesh) { ownedMesh = mesh; }
+        ScriptableMesh(scriptable::MeshPointer mesh) : ScriptableMeshBase(mesh), QScriptable() { ownedMesh = mesh; }
         ScriptableMesh(WeakModelProviderPointer provider, ScriptableModelBasePointer model, MeshPointer mesh, const QVariantMap& metadata)
-            : ScriptableMeshBase(provider, model, mesh, metadata) { ownedMesh = mesh; }
-        //ScriptableMesh& operator=(const ScriptableMesh& other)  { model=other.model; mesh=other.mesh; metadata=other.metadata; return *this; };
-        //ScriptableMesh() : QObject(), model(nullptr) {}
-        //ScriptableMesh(const ScriptableMesh& other) : QObject(), model(other.model), mesh(other.mesh), metadata(other.metadata) {}
+            : ScriptableMeshBase(provider, model, mesh, metadata), QScriptable() { ownedMesh = mesh; }
         ScriptableMesh(const ScriptableMeshBase& other);
-        ScriptableMesh(const ScriptableMesh& other) : ScriptableMeshBase(other) {};
+        ScriptableMesh(const ScriptableMesh& other) : ScriptableMeshBase(other), QScriptable() {};
         virtual ~ScriptableMesh();
 
         Q_INVOKABLE const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
@@ -95,12 +88,9 @@ namespace scriptable {
 
         Q_PROPERTY(QVariantMap metadata MEMBER metadata)
 
-        //Q_PROPERTY(scriptable::ScriptableMeshPointer parentMesh MEMBER parentMesh CONSTANT HIDE)
-
         ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex);
         ScriptableMeshPart& operator=(const ScriptableMeshPart& view) { parentMesh=view.parentMesh; return *this; };
-        ScriptableMeshPart(const ScriptableMeshPart& other) : parentMesh(other.parentMesh), partIndex(other.partIndex) {}
-        // ~ScriptableMeshPart() { qDebug() << "~ScriptableMeshPart" << this; }
+        ScriptableMeshPart(const ScriptableMeshPart& other) : QObject(), QScriptable(), parentMesh(other.parentMesh), partIndex(other.partIndex) {}
 
     public slots:
         scriptable::ScriptableMeshPointer getParentMesh() const { return parentMesh; }
@@ -152,8 +142,8 @@ namespace scriptable {
     class GraphicsScriptingInterface : public QObject, QScriptable {
         Q_OBJECT
     public:
-        GraphicsScriptingInterface(QObject* parent = nullptr) : QObject(parent) {}
-        GraphicsScriptingInterface(const GraphicsScriptingInterface& other) {}
+        GraphicsScriptingInterface(QObject* parent = nullptr) : QObject(parent), QScriptable() {}
+        GraphicsScriptingInterface(const GraphicsScriptingInterface& other) : QObject(), QScriptable() {}
     public slots:
         ScriptableMeshPartPointer exportMeshPart(ScriptableMeshPointer mesh, int part=0) {
             return ScriptableMeshPartPointer(new ScriptableMeshPart(mesh, part));

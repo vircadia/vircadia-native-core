@@ -408,7 +408,16 @@ static void createTangents(const FBXMesh& mesh, bool generateFromTexCoords,
     }
 }
 
-static void createMeshTangents(FBXMesh& mesh, bool generateFromTexCoords) {
+static void _createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape);
+
+void FBXMesh::createBlendShapeTangents(bool generateTangents) {
+    for (auto& blendShape : blendshapes) {
+        _createBlendShapeTangents(*this, generateTangents, blendShape);
+    }
+}
+
+void FBXMesh::createMeshTangents(bool generateFromTexCoords) {
+    FBXMesh& mesh = *this;
     // This is the only workaround I've found to trick the compiler into understanding that mesh.tangents isn't
     // const in the lambda function.
     auto& tangents = mesh.tangents;
@@ -421,7 +430,7 @@ static void createMeshTangents(FBXMesh& mesh, bool generateFromTexCoords) {
     });
 }
 
-static void createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape) {
+static void _createBlendShapeTangents(FBXMesh& mesh, bool generateFromTexCoords, FBXBlendshape& blendShape) {
     // Create lookup to get index in blend shape from vertex index in mesh
     std::vector<int> reverseIndices;
     reverseIndices.resize(mesh.vertices.size());
@@ -1718,10 +1727,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
 
-        createMeshTangents(extracted.mesh, generateTangents);
-        for (auto& blendShape : extracted.mesh.blendshapes) {
-            createBlendShapeTangents(extracted.mesh, generateTangents, blendShape);
-        }
+        extracted.mesh.createMeshTangents(generateTangents);
+        extracted.mesh.createBlendShapeTangents(generateTangents);
 
         // find the clusters with which the mesh is associated
         QVector<QString> clusterIDs;
@@ -1972,7 +1979,22 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             }
         }
     }
-
+    {
+        int i = 0;
+        for (const auto& mesh : geometry.meshes) {
+            auto name = geometry.getModelNameOfMesh(i++);
+            if (!name.isEmpty()) {
+                if (mesh._mesh) {
+                    mesh._mesh->modelName = name.toStdString();
+                    if (!mesh._mesh->displayName.size()) {
+                        mesh._mesh->displayName = QString("#%1").arg(name).toStdString();
+                    }
+                } else {
+                    qDebug() << "modelName but no mesh._mesh" << name;
+                }
+            }
+        }
+    }
     return geometryPtr;
 }
 

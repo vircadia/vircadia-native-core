@@ -1,49 +1,34 @@
 //
-//  SimpleMeshProxy.cpp
-//  libraries/model-networking/src/model-networking/
-//
-//  Created by Seth Alves on 2017-3-22.
-//  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GraphicsScriptingUtil.h"
 #include "ScriptableMesh.h"
 
+#include "BufferViewScripting.h"
+#include "DebugNames.h"
+#include "GraphicsScriptingUtil.h"
+#include "OBJWriter.h"
+#include <BaseScriptEngine.h>
+#include <QtScript/QScriptValue>
+#include <RegisteredMetaTypes.h>
 #include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/transform.hpp>
+#include <graphics/BufferViewHelpers.h>
 #include <graphics/Geometry.h>
-#include <graphics-scripting/DebugNames.h>
-#include <graphics-scripting/BufferViewHelpers.h>
-#include <graphics-scripting/BufferViewScripting.h>
 
 #include "ScriptableMesh.moc"
 
-#include <RegisteredMetaTypes.h>
-#include <BaseScriptEngine.h>
-#include <QtScript/QScriptValue>
-
-#include "OBJWriter.h"
-
-// #define SCRIPTABLE_MESH_DEBUG
-
-namespace scriptable {
-    // QScriptValue jsBindCallback(QScriptValue callback);
-    // template <typename T> QPointer<T> qpointer_qobject_cast(const QScriptValue& value);
-    // template <typename T> T this_qobject_cast(QScriptEngine* engine);
-    // template <typename T, class... Rest> QPointer<T> make_scriptowned(Rest... rest);
-}
-
 scriptable::ScriptableMeshPart::ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex)
-    : parentMesh(parentMesh), partIndex(partIndex)  {
+    : QObject(), parentMesh(parentMesh), partIndex(partIndex)  {
     setObjectName(QString("%1.part[%2]").arg(parentMesh ? parentMesh->objectName() : "").arg(partIndex));
 }
 
 scriptable::ScriptableMesh::ScriptableMesh(const ScriptableMeshBase& other)
-    : ScriptableMeshBase(other) {
+    : ScriptableMeshBase(other), QScriptable() {
     auto mesh = getMeshPointer();
     QString name = mesh ? QString::fromStdString(mesh->modelName) : "";
     if (name.isEmpty()) {
@@ -74,15 +59,6 @@ quint32 scriptable::ScriptableMesh::getNumVertices() const {
     }
     return 0;
 }
-
-// glm::vec3 ScriptableMesh::getPos3(quint32 index) const {
-//     if (auto mesh = getMeshPointer()) {
-//         if (index < getNumVertices()) {
-//             return mesh->getPos3(index);
-//         }
-//     }
-//     return glm::vec3(NAN);
-// }
 
 QVector<quint32> scriptable::ScriptableMesh::findNearbyIndices(const glm::vec3& origin, float epsilon) const {
     QVector<quint32> result;

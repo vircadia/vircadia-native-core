@@ -950,6 +950,16 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
+// FIXME: deprecated; remove >= RC67
+bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
+    auto model = getModel();
+    if (!model || !model->isLoaded()) {
+        return false;
+    }
+    BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
+    return !result.isEmpty();
+}
+
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel(bool* ok) {
     ModelPointer model;
     withReadLock([&] { model = _model; });
@@ -958,7 +968,9 @@ scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScript
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
-    return _model->getScriptableModel(ok);
+    auto result = _model->getScriptableModel(ok);
+    result.objectID = getEntity()->getID();
+    return result;
 }
 
 bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
@@ -1064,7 +1076,6 @@ void ModelEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction
 void ModelEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
     entity->setModel({});
 }
-
 
 void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     if (!_animation || !_animation->isLoaded()) {
@@ -1289,6 +1300,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->clearSubRenderItemIDs();
             });
+            emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
         return;
     }
@@ -1299,6 +1312,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
             emit requestRenderUpdate();
+            if(didVisualGeometryRequestSucceed) {
+                emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                    modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
+            }
         });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);

@@ -16,7 +16,6 @@
 #include <graphics-scripting/Forward.h>
 #include "Overlay.h"
 
-namespace model { class Mesh; }
 class Base3DOverlay : public Overlay, public SpatiallyNestable, public scriptable::ModelProvider {
     Q_OBJECT
     using Parent = Overlay;

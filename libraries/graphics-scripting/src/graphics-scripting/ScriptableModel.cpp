@@ -27,6 +27,16 @@ void scriptable::ScriptableModelBase::mixin(const QVariantMap& modelMetaData) {
     }
 }
 
+scriptable::ScriptableModelBase& scriptable::ScriptableModelBase::operator=(const scriptable::ScriptableModelBase& other) {
+    provider = other.provider;
+    objectID = other.objectID;
+    metadata = other.metadata;
+    for (auto& mesh : other.meshes) {
+        append(mesh);
+    }
+    return *this;
+}
+
 scriptable::ScriptableModelBase::~ScriptableModelBase() {
 #ifdef SCRIPTABLE_MESH_DEBUG
     qCDebug(graphics_scripting) << "~ScriptableModelBase" << this;
@@ -131,20 +141,3 @@ quint32 scriptable::ScriptableModel::mapAttributeValues(QScriptValue callback) {
     }
     return result;
 }
-
-/*namespace {
-    QScriptValue modelPointerToScriptValue(QScriptEngine* engine, scriptable::ScriptableModelPointer const &in) {
-        return qObjectToScriptValue(engine, in);
-    }
-    void modelPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableModelPointer &out) {
-        out = scriptable::qpointer_qobject_cast<scriptable::ScriptableModel>(value);
-    }
-}
-
-namespace scriptable {
-    bool registerMetaTypes(QScriptEngine* engine) {
-        qScriptRegisterMetaType(engine, modelPointerToScriptValue, modelPointerFromScriptValue);
-        return true;
-    }
-}
-*/

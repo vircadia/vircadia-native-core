@@ -37,6 +37,7 @@
 #include "BaseScriptEngine.h"
 
 class EntityTree;
+class MeshProxy;
 
 // helper factory to compose standardized, async metadata queries for "magic" Entity properties
 // like .script and .serverScripts.  This is used for automated testing of core scripting features
@@ -399,6 +400,9 @@ public slots:
 
     Q_INVOKABLE bool AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
                                             const glm::vec3& start, const glm::vec3& end, float radius);
+
+    // FIXME move to a renderable entity interface
+    Q_INVOKABLE void getMeshes(QUuid entityID, QScriptValue callback);
 
     /**jsdoc
      * Returns object to world transform, excluding scale

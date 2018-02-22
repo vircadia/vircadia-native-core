@@ -72,6 +72,7 @@
 
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
+#include <ModelScriptingInterface.h>
 #include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"

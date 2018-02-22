@@ -166,11 +166,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
 scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel(bool* ok)  {
     scriptable::ScriptableModelBase result;
-    result.metadata = {
-        { "entityID", getEntity()->getID().toString() },
-        { "shape", entity::stringFromShape(_shape) },
-        { "userData", getEntity()->getUserData() },
-    };
+    result.objectID = getEntity()->getID();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto geometryShape = geometryCache->getShapeForEntityShape(_shape);
     glm::vec3 vertexColor;
@@ -179,10 +175,7 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel(bool* ok
     }
     auto success = false;
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
-        scriptable::ScriptableMeshBase base{ mesh, {
-            { "shape", entity::stringFromShape(_shape) },
-        }};
-        result.append(base);
+        result.append({ mesh, {{ "shape", entity::stringFromShape(_shape) }}});
         success = true;
     }
     if (ok) {

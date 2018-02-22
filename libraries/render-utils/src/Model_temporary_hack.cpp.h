@@ -1,15 +1,7 @@
-#include <graphics-scripting/BufferViewHelpers.h>
+#include <graphics/BufferViewHelpers.h>
 #include <graphics-scripting/GraphicsScriptingUtil.h>
 class MyGeometryMappingResource : public GeometryResource {
-//    Q_OBJECT
 public:
-    virtual void init(bool resetLoaded = true) override {
-        qCDebug(wtf) << "############################# Snarfing init()...";
-    }
-
-    virtual void deleter() override {
-        qCDebug(wtf) << "############################# Snarfing deleter()...";
-    }
     shared_ptr<FBXGeometry> fbxGeometry;
     MyGeometryMappingResource(const QUrl& url, Geometry::Pointer originalGeometry, std::shared_ptr<scriptable::ScriptableModelBase> newModel) : GeometryResource(url) {
         fbxGeometry = std::make_shared<FBXGeometry>();
@@ -77,6 +69,8 @@ public:
                 mesh.colors = buffer_helpers::toVector<glm::vec3>(buffer_helpers::getBufferView(mesh._mesh, gpu::Stream::COLOR), "mesh.colors");
                 mesh.texCoords = buffer_helpers::toVector<glm::vec2>(buffer_helpers::getBufferView(mesh._mesh, gpu::Stream::TEXCOORD0), "mesh.texCoords");
                 mesh.texCoords1 = buffer_helpers::toVector<glm::vec2>(buffer_helpers::getBufferView(mesh._mesh, gpu::Stream::TEXCOORD1), "mesh.texCoords1");
+                mesh.createMeshTangents(true);
+                mesh.createBlendShapeTangents(false);
                 geometry.meshes << mesh;
                 // Copy mesh pointers
                 meshes->emplace_back(newMesh.getMeshPointer());//buffer_helpers::cloneMesh(ptr));
@@ -84,10 +78,9 @@ public:
                 const auto oldParts = mesh.parts;
                 mesh.parts.clear();
                 for (const FBXMeshPart& fbxPart : oldParts) {
-                    FBXMeshPart part; // copy;
+                    FBXMeshPart part; // new copy
                     part.materialID = fbxPart.materialID;
                     // Construct local parts
-                    ///qCDebug(wtf) << "GeometryMappingResource -- meshes part" << meshID << partID << part.materialID;
                     part.triangleIndices = buffer_helpers::toVector<int>(mesh._mesh->getIndexBuffer(), "part.triangleIndices");
                     mesh.parts << part;
                     auto p = std::make_shared<MeshPart>(meshID, partID, (int)materialIDAtlas[part.materialID]);
@@ -115,7 +108,6 @@ public:
         _animGraphOverrideUrl = originalGeometry ? originalGeometry->getAnimGraphOverrideUrl() : QUrl();
         _loaded = true;
         _fbxGeometry = fbxGeometry;
-        finishedLoading(true);
     };    
 };
 

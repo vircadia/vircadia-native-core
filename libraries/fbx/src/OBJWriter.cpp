@@ -9,14 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OBJWriter.h"
+
 #include <QFile>
 #include <QFileInfo>
-#include "graphics/Geometry.h"
-#include "OBJWriter.h"
+#include <graphics/BufferViewHelpers.h>
+#include <graphics/Geometry.h>
 #include "ModelFormatLogging.h"
-
-// FIXME: should this live in shared? (it depends on gpu/)
-#include <../graphics-scripting/src/graphics-scripting/BufferViewHelpers.h>
 
 static QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.
@@ -71,8 +70,10 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             out << formatFloat(v[1]) << " ";
             out << formatFloat(v[2]);
             if (colorIndex < numColors) {
-                glm::vec3 color = glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(colorsBufferView, colorIndex));
-                //glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
+                glm::vec3 color = buffer_helpers::convert<glm::vec3>(colorsBufferView, colorIndex);
+                // TODO: still verifying that the above decodes properly; previous variations were:
+                // glm::vec3 color = buffer_helpers::glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(colorsBufferView, colorIndex));
+                // glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
                 out << " " << formatFloat(color[0]);
                 out << " " << formatFloat(color[1]);
                 out << " " << formatFloat(color[2]);
@@ -95,8 +96,10 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
         const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(gpu::Stream::InputSlot::NORMAL);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
         for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
-            glm::vec3 normal = glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(normalsBufferView, i));
-            //glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
+            glm::vec3 normal = buffer_helpers::convert<glm::vec3>(normalsBufferView, i);
+            // TODO: still verifying that the above decodes properly; previous variations were:
+            // glm::vec3 normal = buffer_helpers::glmVecFromVariant<glm::vec3>(buffer_helpers::toVariant(normalsBufferView, i));
+            // glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);
             out << "vn ";
             out << formatFloat(normal[0]) << " ";
             out << formatFloat(normal[1]) << " ";
@@ -153,16 +156,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             // graphics::Mesh::TRIANGLES / graphics::Mesh::QUADS
             // TODO -- handle other formats
             uint32_t len = part._startIndex + part._numIndices;
-            auto stringFromTopology = [&](graphics::Mesh::Topology topo) -> QString {
-                return topo == graphics::Mesh::Topology::QUADS ? "QUADS" :
-                topo == graphics::Mesh::Topology::QUAD_STRIP ? "QUAD_STRIP" :
-                topo == graphics::Mesh::Topology::TRIANGLES ? "TRIANGLES" :
-                topo == graphics::Mesh::Topology::TRIANGLE_STRIP ? "TRIANGLE_STRIP" :
-                topo == graphics::Mesh::Topology::QUAD_STRIP ? "QUAD_STRIP" :
-                QString("topo:%1").arg((int)topo);
-            };
-
-            qCDebug(modelformat) << "OBJWriter -- part" << partIndex << "topo" << stringFromTopology(part._topology) << "index elements" << (shorts ? "uint16_t" : "uint32_t");
+            qCDebug(modelformat) << "OBJWriter -- part" << partIndex << "topo" << part._topology << "index elements" << (shorts ? "uint16_t" : "uint32_t");
             if (part._topology == graphics::Mesh::TRIANGLES && len % 3 != 0) {
                 qCDebug(modelformat) << "OBJWriter -- index buffer length isn't a multiple of 3" << len;
             }

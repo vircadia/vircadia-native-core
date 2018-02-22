@@ -113,6 +113,7 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
+    bool getMeshes(MeshProxyList& result) override; // deprecated
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
 
 private:

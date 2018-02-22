@@ -143,7 +143,7 @@ public:
     /// Returns a reference to the shared collision geometry.
     const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
-    const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
+    const QVariantMap getTextures() const { assert(isLoaded()); return getGeometry()->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
 
     /// Provided as a convenience, will crash if !isLoaded()
@@ -317,10 +317,12 @@ public:
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
-    Q_INVOKABLE virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+    virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
 
     void scaleToFit();
+
+    Q_INVOKABLE MeshProxyList getMeshes() const;
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
@@ -414,7 +416,7 @@ protected:
     int _blendNumber;
     int _appliedBlendNumber;
 
-    QMutex _mutex;
+    mutable QMutex _mutex{ QMutex::Recursive };
 
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };

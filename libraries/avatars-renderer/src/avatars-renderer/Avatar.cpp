@@ -578,6 +578,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
 
     _mustFadeIn = true;
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::fadeIn(render::ScenePointer scene) {
@@ -627,6 +628,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -1799,12 +1801,7 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
     }
     scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
     result.objectID = getSessionUUID();
-    result.mixin({
-        { "avatarID", getSessionUUID().toString() },
-        { "url", _skeletonModelURL.toString() },
-        { "origin", "Avatar/avatar::" + _displayName },
-        { "textures", _skeletonModel->getTextures() },
-    });
+    result.mixin({{ "textures", _skeletonModel->getTextures() }});
     // FIXME: for now access to attachment models are merged into the main avatar ScriptableModel set
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         auto& model = _attachmentModels.at(i);
