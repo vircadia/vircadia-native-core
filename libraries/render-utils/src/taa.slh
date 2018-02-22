@@ -38,6 +38,10 @@ layout(std140) uniform taaParamsBuffer {
 
 #define GET_BIT(bitfield, bitIndex) bool((bitfield) & (1 << (bitIndex)))
 
+bool taa_isDebugEnabled() {
+    return GET_BIT(params.flags.x, 0);
+}
+
 bool taa_showDebugCursor() {
     return GET_BIT(params.flags.x, 1);
 }
@@ -247,14 +251,19 @@ vec2 taa_fromEyeUVToFragUV(vec2 eyeUV, int stereoSide) {
     return fragUV;
 }
 
-vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
-    sourceColor = taa_fetchSourceMap(fragUV).xyz;
+vec2 taa_computePrevFragAndEyeUV(vec2 fragUV, vec2 fragVelocity, out vec2 prevEyeUV) {
     int stereoSide = 0;
     vec2 eyeUV = taa_fromFragUVToEyeUVAndSide(fragUV, stereoSide);
-    vec2 prevEyeUV = eyeUV - fragVelocity;
+    prevEyeUV = eyeUV - fragVelocity;
+    return taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
+}
+
+vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
+    vec2 prevEyeUV;
+    vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
+    sourceColor = taa_fetchSourceMap(fragUV).xyz;
 
     historyColor = sourceColor;
-    vec2 prevFragUV = taa_fromEyeUVToFragUV(prevEyeUV, stereoSide);
     if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
         historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
     }

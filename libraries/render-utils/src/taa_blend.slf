@@ -145,6 +145,7 @@ void main(void) {
     if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
         prevColor = texture(historyMap, prevTexCoord).xyz;
     }
+
     outFragColor.xyz = mix(prevColor, vec3(1,0,1), clamp(distance(prevColor, nextColor) - 0.01, 0, 1));
 
     if (pixVelocityLength > params.debugShowVelocityThreshold) {
