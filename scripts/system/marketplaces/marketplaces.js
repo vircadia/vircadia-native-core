@@ -104,8 +104,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.gotoHomeScreen();
         } else {
             Wallet.refreshWalletStatus();
-            var entity = HMD.tabletID;
-            Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
+            }
             showMarketplace();
         }
     }
