@@ -140,7 +140,7 @@ public:
  *
  * @typedef {object} PickRay
  * @property {Vec3} origin - The starting position of the PickRay.
- * @property {Quat} direction - The direction that the PickRay travels.
+ * @property {Vec3} direction - The direction that the PickRay travels.
  */
 class PickRay : public MathPick {
 public:
