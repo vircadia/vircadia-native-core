@@ -51,6 +51,9 @@ signals:
 
     void contentSetChanged(const QString& contentSetHref);
 
+    void appInstalled(const QString& appFileName);
+    void appUninstalled(const QString& appFileName);
+
 protected:
     Q_INVOKABLE void getWalletStatus();
 
@@ -76,8 +79,11 @@ protected:
     Q_INVOKABLE void transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage);
 
-
     Q_INVOKABLE void replaceContentSet(const QString& itemHref);
+
+    Q_INVOKABLE bool isAppInstalled(const QString& itemHref);
+    Q_INVOKABLE bool installApp(const QString& itemHref);
+    Q_INVOKABLE bool uninstallApp(const QString& itemHref);
 };
 
 #endif // hifi_QmlCommerce_h

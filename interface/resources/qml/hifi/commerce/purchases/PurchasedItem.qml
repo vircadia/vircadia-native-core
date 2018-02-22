@@ -506,6 +506,9 @@ Item {
                     sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref});
                 } else if (root.itemType === "avatar") {
                     sendToPurchases({method: 'showChangeAvatarLightbox', itemName: root.itemName, itemHref: root.itemHref});
+                } else if (root.itemType === "app") {
+                    // "Run" and "Uninstall" buttons are separate.
+                    Commerce.installApp(root.itemHref);
                 } else {
                     sendToPurchases({method: 'purchases_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     root.showConfirmation = true;

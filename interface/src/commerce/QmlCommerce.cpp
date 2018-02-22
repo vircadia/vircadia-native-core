@@ -10,6 +10,7 @@
 //
 
 #include "QmlCommerce.h"
+#include "CommerceLogging.h"
 #include "Application.h"
 #include "DependencyManager.h"
 #include "Ledger.h"
@@ -17,6 +18,7 @@
 #include <AccountManager.h>
 #include <Application.h>
 #include <UserActivityLogger.h>
+#include <ScriptEngines.h>
 
 QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
@@ -182,4 +184,101 @@ void QmlCommerce::replaceContentSet(const QString& itemHref) {
 void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->alreadyOwned(marketplaceId);
+}
+
+static QString APP_PATH = PathUtils::getAppDataPath() + "apps";
+bool QmlCommerce::isAppInstalled(const QString& itemHref) {
+    QUrl appHref(itemHref);
+
+    QFileInfo appFile(APP_PATH + "/" + appHref.fileName());
+    if (appFile.exists() && appFile.isFile()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool QmlCommerce::installApp(const QString& itemHref) {
+    if (!QDir(APP_PATH).exists()) {
+        if (!QDir().mkdir(APP_PATH)) {
+            qCDebug(commerce) << "Couldn't make APP_PATH directory.";
+            return false;
+        }
+    }
+
+    QUrl appHref(itemHref);
+
+    auto request =
+        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref));
+
+    if (!request) {
+        qCDebug(commerce) << "Couldn't create resource request for app.";
+        return false;
+    }
+
+    QEventLoop loop;
+    connect(request.get(), &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    request->send();
+    loop.exec();
+
+    if (request->getResult() != ResourceRequest::Success) {
+        qCDebug(commerce) << "Failed to get .app.json file from remote.";
+        return false;
+    }
+
+    // Copy the .app.json to the apps directory inside %AppData%/High Fidelity/Interface
+    auto requestData = request->getData();
+    QFile appFile(APP_PATH + "/" + appHref.fileName());
+    if (!appFile.open(QIODevice::WriteOnly)) {
+        qCDebug(commerce) << "Couldn't open local .app.json file for creation.";
+        return false;
+    }
+    if (appFile.write(requestData) == -1) {
+        qCDebug(commerce) << "Couldn't write to local .app.json file.";
+        return false;
+    }
+    // Close the file
+    appFile.close();
+
+    // Read from the returned datastream to know what .js to add to Running Scripts
+    QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(requestData);
+    QJsonObject appFileJsonObject = appFileJsonDocument.object();
+    QString scriptUrl = appFileJsonObject["scriptURL"].toString();
+
+    if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+        qCDebug(commerce) << "Couldn't load script.";
+        return false;
+    }
+
+    emit appInstalled(appHref.fileName());
+    return true;
+}
+
+bool QmlCommerce::uninstallApp(const QString& itemHref) {
+    QUrl appHref(itemHref);
+
+    // Read from the file to know what .js script to stop
+    QFile appFile(APP_PATH + "/" + appHref.fileName());
+    if (!appFile.open(QIODevice::ReadOnly)) {
+        qCDebug(commerce) << "Couldn't open local .app.json file for deletion.";
+        return false;
+    }
+    QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
+    QJsonObject appFileJsonObject = appFileJsonDocument.object();
+    QString scriptUrl = appFileJsonObject["scriptURL"].toString();
+
+    if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
+        qCDebug(commerce) << "Couldn't stop script.";
+        return false;
+    }
+
+    // Delete the .app.json from the filesystem
+    // remove() closes the file first.
+    if (!appFile.remove()) {
+        qCDebug(commerce) << "Couldn't delete local .app.json file.";
+        return false;
+    }
+
+    emit appUninstalled(appHref.fileName());
+    return true;
 }

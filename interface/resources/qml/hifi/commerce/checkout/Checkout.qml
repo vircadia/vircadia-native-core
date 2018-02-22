@@ -146,7 +146,8 @@ Rectangle {
     }
 
     onItemTypeChanged: {
-        if (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "avatar") {
+        if (root.itemType === "entity" || root.itemType === "wearable" ||
+            root.itemType === "contentSet" || root.itemType === "avatar" || root.itemType === "app") {
             root.isCertified = true;
         } else {
             root.isCertified = false;
@@ -679,7 +680,7 @@ Rectangle {
             id: rezNowButton;
             enabled: (root.itemType === "entity" && root.canRezCertifiedItems) ||
                 (root.itemType === "contentSet" && Entities.canReplaceContent()) ||
-                root.itemType === "wearable" || root.itemType === "avatar";
+                root.itemType === "wearable" || root.itemType === "avatar" || root.itemType === "app";
             buttonGlyph: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -712,6 +713,9 @@ Rectangle {
                     lightboxPopup.button2text = "CONFIRM";
                     lightboxPopup.button2method = "MyAvatar.useFullAvatarURL('" + root.itemHref + "'); root.visible = false;";
                     lightboxPopup.visible = true;
+                } else if (root.itemType === "app") {
+                    // "Run" button is separate.
+                    Commerce.installApp(root.itemHref);
                 } else {
                     sendToScript({method: 'checkout_rezClicked', itemHref: root.itemHref, itemType: root.itemType});
                     rezzedNotifContainer.visible = true;
