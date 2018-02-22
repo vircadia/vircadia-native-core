@@ -44,6 +44,7 @@ static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
 static const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
 static const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
 static const QString MANUAL_BACKUP_PREFIX { "backup-" };
+static const QString MANUAL_BACKUP_NAME_RE { "[a-zA-Z0-9\\-_ ]+" };
 
 void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) {
     _backupHandlers.push_back(std::move(handler));
@@ -561,9 +562,17 @@ void DomainContentBackupManager::createManualBackup(MiniPromise::Promise promise
         return;
     }
 
+
+    QRegExp nameRE { MANUAL_BACKUP_NAME_RE };
     bool success;
-    QString path;
-    std::tie(success, path) = createBackup(MANUAL_BACKUP_PREFIX, name);
+
+    if (!nameRE.exactMatch(name)) {
+        qDebug() << "Cannot create manual backup with invalid name: " << name;
+        success = false;
+    } else {
+        QString path;
+        std::tie(success, path) = createBackup(MANUAL_BACKUP_PREFIX, name);
+    }
 
     promise->resolve({
         { "success", success }
