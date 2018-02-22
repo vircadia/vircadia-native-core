@@ -391,7 +391,7 @@ $(document).ready(function(){
         return false;
       }
 
-      var MANUAL_ARCHIVE_NAME_REGEX = /^[a-zA-Z0-9\\-_ ]+$/;
+      var MANUAL_ARCHIVE_NAME_REGEX = /^[a-zA-Z0-9\-_ ]+$/;
       if (!MANUAL_ARCHIVE_NAME_REGEX.test(inputValue)) {
         swal.showInputError("Valid characters include A-z, 0-9, ' ', '_', and '-'.");
         return false;
@@ -407,12 +407,14 @@ $(document).ready(function(){
       }).done(function(data) {
         // since we successfully setup a new content archive, reload the table of archives
         // which should show that this archive is pending creation
+        swal.close();
         reloadBackupInformation();
       }).fail(function(jqXHR, textStatus, errorThrown) {
-
+        showErrorMessage(
+          "Error",
+          "There was an unexpected error creating the manual content archive"
+        )
       });
-
-      swal.close();
     });
   });
 
