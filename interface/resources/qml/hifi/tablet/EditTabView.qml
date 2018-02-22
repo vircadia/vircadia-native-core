@@ -31,7 +31,9 @@ TabView {
             height: parent.height
             width: parent.width
 
-            contentHeight: createEntitiesFlow.height +  importButton.height + assetServerButton.height + 153
+            contentHeight: createEntitiesFlow.height +  importButton.height + assetServerButton.height +
+                           header.anchors.topMargin + createEntitiesFlow.anchors.topMargin +
+                           assetServerButton.anchors.topMargin + importButton.anchors.topMargin
             contentWidth: width
 
             ScrollBar.vertical : ScrollBar {
