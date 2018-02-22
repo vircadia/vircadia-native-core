@@ -81,9 +81,13 @@ protected:
 
     Q_INVOKABLE void replaceContentSet(const QString& itemHref);
 
-    Q_INVOKABLE bool isAppInstalled(const QString& itemHref);
-    Q_INVOKABLE bool installApp(const QString& itemHref);
-    Q_INVOKABLE bool uninstallApp(const QString& itemHref);
+    Q_INVOKABLE bool isAppInstalled(const QString& appHref);
+    Q_INVOKABLE bool installApp(const QString& appHref);
+    Q_INVOKABLE bool uninstallApp(const QString& appHref);
+    Q_INVOKABLE bool openApp(const QString& appHref);
+
+private:
+    QString _appsPath;
 };
 
 #endif // hifi_QmlCommerce_h

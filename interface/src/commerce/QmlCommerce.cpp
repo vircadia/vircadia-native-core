@@ -19,6 +19,8 @@
 #include <Application.h>
 #include <UserActivityLogger.h>
 #include <ScriptEngines.h>
+#include <ui/TabletScriptingInterface.h>
+#include "scripting/HMDScriptingInterface.h"
 
 QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
@@ -42,6 +44,8 @@ QmlCommerce::QmlCommerce() {
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         setPassphrase("");
     });
+
+    _appsPath = PathUtils::getAppDataPath() + "Apps";
 }
 
 void QmlCommerce::getWalletStatus() {
@@ -186,22 +190,32 @@ void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
     ledger->alreadyOwned(marketplaceId);
 }
 
-static QString APP_PATH = PathUtils::getAppDataPath() + "apps";
 bool QmlCommerce::isAppInstalled(const QString& itemHref) {
     QUrl appHref(itemHref);
 
-    QFileInfo appFile(APP_PATH + "/" + appHref.fileName());
-    if (appFile.exists() && appFile.isFile()) {
-        return true;
-    } else {
+    // First check if .app.json exists
+    QFileInfo appFile(_appsPath + "/" + appHref.fileName());
+    if (!(appFile.exists() && appFile.isFile())) {
         return false;
     }
+
+    // Then check to see if script is running
+    auto runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
+    foreach(const QString& runningScript, runningScripts) {
+        QUrl runningScriptURL = QUrl(runningScript);
+        qCDebug(commerce) << "ZRF FIXME" << runningScriptURL;
+        if (runningScriptURL == appHref) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool QmlCommerce::installApp(const QString& itemHref) {
-    if (!QDir(APP_PATH).exists()) {
-        if (!QDir().mkdir(APP_PATH)) {
-            qCDebug(commerce) << "Couldn't make APP_PATH directory.";
+    if (!QDir(_appsPath).exists()) {
+        if (!QDir().mkdir(_appsPath)) {
+            qCDebug(commerce) << "Couldn't make _appsPath directory.";
             return false;
         }
     }
@@ -228,7 +242,7 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     // Copy the .app.json to the apps directory inside %AppData%/High Fidelity/Interface
     auto requestData = request->getData();
-    QFile appFile(APP_PATH + "/" + appHref.fileName());
+    QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::WriteOnly)) {
         qCDebug(commerce) << "Couldn't open local .app.json file for creation.";
         return false;
@@ -250,7 +264,7 @@ bool QmlCommerce::installApp(const QString& itemHref) {
         return false;
     }
 
-    emit appInstalled(appHref.fileName());
+    emit appInstalled(itemHref);
     return true;
 }
 
@@ -258,7 +272,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QUrl appHref(itemHref);
 
     // Read from the file to know what .js script to stop
-    QFile appFile(APP_PATH + "/" + appHref.fileName());
+    QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
         qCDebug(commerce) << "Couldn't open local .app.json file for deletion.";
         return false;
@@ -279,6 +293,35 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
         return false;
     }
 
-    emit appUninstalled(appHref.fileName());
+    emit appUninstalled(itemHref);
+    return true;
+}
+
+bool QmlCommerce::openApp(const QString& itemHref) {
+    QUrl appHref(itemHref);
+
+    // Read from the file to know what .html or .qml document to open
+    QFile appFile(_appsPath + "/" + appHref.fileName());
+    if (!appFile.open(QIODevice::ReadOnly)) {
+        qCDebug(commerce) << "Couldn't open local .app.json file.";
+        return false;
+    }
+    QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
+    QJsonObject appFileJsonObject = appFileJsonDocument.object();
+    QString homeUrl = appFileJsonObject["homeURL"].toString();
+
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (homeUrl.contains(".qml", Qt::CaseInsensitive)) {
+        tablet->loadQMLSource(homeUrl);
+    } else if (homeUrl.contains(".html", Qt::CaseInsensitive)) {
+        tablet->gotoWebScreen(homeUrl);
+    } else {
+        qCDebug(commerce) << "Attempted to open unknown type of homeURL!";
+        return false;
+    }
+
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+
     return true;
 }

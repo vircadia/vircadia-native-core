@@ -47,6 +47,7 @@ Item {
     property bool showConfirmation: false;
     property bool hasPermissionToRezThis;
     property bool permissionExplanationCardVisible;
+    property bool isInstalled: false;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -60,6 +61,12 @@ Item {
         onContentSetChanged: {
             if (contentSetHref === root.itemHref) {
                 showConfirmation = true;
+            }
+        }
+
+        onAppInstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = true;
             }
         }
     }
@@ -80,6 +87,10 @@ Item {
             root.hasPermissionToRezThis = false;
         } else {
             root.hasPermissionToRezThis = true;
+        }
+
+        if (itemType === "app") {
+            root.isInstalled = Commerce.isAppInstalled(root.itemHref);
         }
     }
 
@@ -470,6 +481,40 @@ Item {
                     interval: 2000;
                     onTriggered: rezzedNotifContainer.visible = false
                 }
+        }
+
+        Rectangle {
+            id: appButtonContainer;
+            color: hifi.colors.white;
+            z: 994;
+            visible: root.isInstalled;
+            anchors.fill: buttonContainer;
+
+            HifiControlsUit.Button {
+                id: openAppButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.top: parent.top;
+                anchors.right: parent.right;
+                height: 44;
+                text: "OPEN"
+                onClicked: {
+                    Commerce.openApp(root.itemHref);
+                }
+            }
+
+            HifiControlsUit.Button {
+                id: uninstallAppButton;
+                color: hifi.buttons.noneBorderless;
+                colorScheme: hifi.colorSchemes.light;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                height: 44;
+                text: "UNINSTALL"
+                onClicked: {
+                    Commerce.uninstallApp(root.itemHref);
+                }
+            }
         }
 
         Button {
