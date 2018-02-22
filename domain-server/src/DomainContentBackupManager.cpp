@@ -1,9 +1,10 @@
 //
 //  DomainContentBackupManager.cpp
-//  libraries/octree/src
+//  libraries/domain-server/src
 //
-//  Created by Brad Hefta-Gaub on 8/21/13.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Ryan Huffman on 1/01/18.
+//  Adapted from OctreePersistThread
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
