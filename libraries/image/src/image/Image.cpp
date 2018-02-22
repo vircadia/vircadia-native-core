@@ -745,7 +745,12 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
             }
             formatMip = formatGPU;
         } else {
+#ifdef USE_GLES
+            // GLES does not support GL_BGRA
+            formatMip = gpu::Element::COLOR_SRGBA_32;
+#else
             formatMip = gpu::Element::COLOR_SBGRA_32;
+#endif
             formatGPU = gpu::Element::COLOR_SRGBA_32;
         }
 
