@@ -1,8 +1,7 @@
 //
 //  GraphicsScriptingInterface.cpp
-//  libraries/script-engine/src
+//  libraries/graphics-scripting/src
 //
-//  Created by Seth Alves on 2017-1-27.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -10,27 +9,23 @@
 //
 
 #include "GraphicsScriptingInterface.h"
-#include <QtScript/QScriptEngine>
-#include <QtScript/QScriptValueIterator>
-#include <QtScript/QScriptValue>
-#include <QUuid>
 #include "BaseScriptEngine.h"
-#include "ScriptEngineLogging.h"
+#include "BufferViewScripting.h"
+#include "DebugNames.h"
+#include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
-
+#include "RegisteredMetaTypes.h"
+#include "ScriptEngineLogging.h"
+#include "ScriptableMesh.h"
 #include <GeometryUtil.h>
+#include <QUuid>
+#include <QtScript/QScriptEngine>
+#include <QtScript/QScriptValue>
+#include <QtScript/QScriptValueIterator>
+#include <graphics/BufferViewHelpers.h>
 #include <shared/QtHelpers.h>
 
-#include <graphics-scripting/DebugNames.h>
-#include <graphics-scripting/BufferViewHelpers.h>
-
-#include "BufferViewScripting.h"
-#include "ScriptableMesh.h"
-#include "GraphicsScriptingUtil.h"
-
 #include "GraphicsScriptingInterface.moc"
-
-#include "RegisteredMetaTypes.h"
 
 GraphicsScriptingInterface::GraphicsScriptingInterface(QObject* parent) : QObject(parent) {
     if (auto scriptEngine = qobject_cast<QScriptEngine*>(parent)) {

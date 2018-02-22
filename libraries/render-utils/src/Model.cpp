@@ -9,10 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QLoggingCategory>
-namespace { QLoggingCategory wtf{ "tim.Model.cpp" }; }
-
-
 #include "Model.h"
 
 #include <QMetaType>
@@ -31,7 +27,7 @@ namespace { QLoggingCategory wtf{ "tim.Model.cpp" }; }
 #include <TBBHelpers.h>
 
 #include <graphics-scripting/Forward.h>
-#include <graphics-scripting/BufferViewHelpers.h>
+#include <graphics/BufferViewHelpers.h>
 #include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
@@ -372,7 +368,7 @@ bool Model::updateGeometry() {
 #if FBX_PACK_NORMALS
                     glm::uint32 finalNormal;
                     glm::uint32 finalTangent;
-                    packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+                    buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
                     const auto finalNormal = *normalIt;
                     const auto finalTangent = *tangentIt;
@@ -569,25 +565,15 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         auto newRenderGeometry = new MyGeometryMappingResource(
             _url, _renderGeometry, _newModel ? scriptable::make_qtowned<scriptable::ScriptableModelBase>(*_newModel) : nullptr
         );
-        //_needsUpdateTextures = true;
         _visualGeometryRequestFailed = false;
-        //invalidCalculatedMeshBoxes();
         deleteGeometry();
         _renderGeometry.reset(newRenderGeometry);
-        //onInvalidate();
-        //reset();
         _rig.destroyAnimGraph();
-        //assert(_rig.jointStatesEmpty());
         updateGeometry();
         calculateTriangleSets();
-        //computeMeshPartLocalBounds();
-        //_needsReload = false;
+        _needsReload = false;
         _needsFixupInScene = true;
-        //invalidCalculatedMeshBoxes();
         setRenderItemsNeedUpdate();
-        //_hasCalculatedTextureInfo = false;
-        //calculateTextureInfo();
-        //updateRenderItems();
     }
     return true;
 }
@@ -597,7 +583,7 @@ scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
     scriptable::ScriptableModelBase result;
 
     if (!isLoaded()) {
-        qCDebug(wtf) << "Model::getScriptableModel -- !isLoaded";
+        qCDebug(renderutils) << "Model::getScriptableModel -- !isLoaded";
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 

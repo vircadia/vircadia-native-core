@@ -15,9 +15,6 @@ namespace gpu {
     class Element;
 }
 
-template <typename T> QVariant glmVecToVariant(const T& v, bool asArray = false);
-template <typename T> const T glmVecFromVariant(const QVariant& v);
-
 namespace graphics {
     class Mesh;
     using MeshPointer = std::shared_ptr<Mesh>;
@@ -27,6 +24,9 @@ class Extents;
 class AABox;
 
 struct buffer_helpers {
+    template <typename T> static QVariant glmVecToVariant(const T& v, bool asArray = false);
+    template <typename T> static const T glmVecFromVariant(const QVariant& v);
+
     static graphics::MeshPointer cloneMesh(graphics::MeshPointer mesh);
     static QMap<QString,int> ATTRIBUTES;
     static std::map<QString, gpu::BufferView> gatherBufferViews(graphics::MeshPointer mesh, const QStringList& expandToMatchPositions = QStringList());

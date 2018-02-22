@@ -1,26 +1,22 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <QtCore/QObject>
-#include <QtCore/QVector>
-#include <QtCore/QList>
-#include <QtCore/QVariant>
-#include <QtCore/QUuid>
-#include <QPointer>
-#include <memory>
+#include "ScriptableModel.h"
 
+#include <glm/glm.hpp>
+#include <graphics/BufferViewHelpers.h>
 #include <DependencyManager.h>
 
-//#include <graphics-scriping/Forward.h>
-#include <graphics-scripting/ScriptableModel.h>
-#include <graphics-scripting/BufferViewHelpers.h>
-
-#include <QtScript/QScriptable>
+#include <memory>
+#include <QPointer>
+#include <QtCore/QList>
+#include <QtCore/QObject>
+#include <QtCore/QUuid>
+#include <QtCore/QVariant>
+#include <QtCore/QVector>
 #include <QtScript/QScriptValue>
+#include <QtScript/QScriptable>
 
 namespace scriptable {
-
-    QScriptValue jsBindCallback(QScriptValue callback);
     class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT
     public:

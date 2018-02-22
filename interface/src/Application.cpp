@@ -607,7 +607,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
 
 class ApplicationMeshProvider : public scriptable::ModelProviderFactory  {
 public:
-    virtual scriptable::ModelProviderPointer lookupModelProvider(QUuid uuid) {
+    virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) {
         QString error;
 
         scriptable::ModelProviderPointer provider;
@@ -631,7 +631,7 @@ public:
         if (auto entity = entityTree->findEntityByID(entityID)) {
             if (auto renderer = entityTreeRenderer->renderableForEntityId(entityID)) {
                 provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(renderer);
-                provider->metadata["providerType"] = "entity";
+                provider->modelProviderType = NestableType::Entity;
             } else {
                 qCWarning(interfaceapp) << "no renderer for entity ID" << entityID.toString();
             }
@@ -645,7 +645,7 @@ public:
         if (auto overlay = overlays.getOverlay(overlayID)) {
             if (auto base3d = std::dynamic_pointer_cast<Base3DOverlay>(overlay)) {
                 provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(base3d);
-                provider->metadata["providerType"] = "overlay";
+                provider->modelProviderType = NestableType::Overlay;
             } else {
                 qCWarning(interfaceapp) << "no renderer for overlay ID" << overlayID.toString();
             }
@@ -659,7 +659,7 @@ public:
         if (auto avatar = avatarManager->getAvatarBySessionID(sessionUUID)) {
             if (avatar->getSessionUUID() == sessionUUID) {
                 provider = std::dynamic_pointer_cast<scriptable::ModelProvider>(avatar);
-                provider->metadata["providerType"] = "avatar";
+                provider->modelProviderType = NestableType::Avatar;
             }
         }
         return provider;
@@ -811,6 +811,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
+    DependencyManager::set<GraphicsScriptingInterface>();
     DependencyManager::registerInheritance<scriptable::ModelProviderFactory, ApplicationMeshProvider>();
     DependencyManager::set<ApplicationMeshProvider>();
     DependencyManager::set<RecordingScriptingInterface>();

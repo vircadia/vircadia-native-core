@@ -1,41 +1,26 @@
 //
-//  SimpleMeshProxy.cpp
-//  libraries/model-networking/src/model-networking/
-//
-//  Created by Seth Alves on 2017-3-22.
-//  Copyright 2017 High Fidelity, Inc.
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GraphicsScriptingUtil.h"
 #include "ScriptableMesh.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <glm/gtx/norm.hpp>
-#include <graphics/Geometry.h>
-#include <graphics-scripting/DebugNames.h>
-#include <graphics-scripting/BufferViewHelpers.h>
-#include <graphics-scripting/BufferViewScripting.h>
-
-#include "ScriptableMesh.moc"
-
-#include <RegisteredMetaTypes.h>
+#include "BufferViewScripting.h"
+#include "DebugNames.h"
+#include "GraphicsScriptingUtil.h"
+#include "OBJWriter.h"
 #include <BaseScriptEngine.h>
 #include <QtScript/QScriptValue>
+#include <RegisteredMetaTypes.h>
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/transform.hpp>
+#include <graphics/BufferViewHelpers.h>
+#include <graphics/Geometry.h>
 
-#include "OBJWriter.h"
-
-// #define SCRIPTABLE_MESH_DEBUG
-
-namespace scriptable {
-    // QScriptValue jsBindCallback(QScriptValue callback);
-    // template <typename T> QPointer<T> qpointer_qobject_cast(const QScriptValue& value);
-    // template <typename T> T this_qobject_cast(QScriptEngine* engine);
-    // template <typename T, class... Rest> QPointer<T> make_scriptowned(Rest... rest);
-}
+#include "ScriptableMesh.moc"
 
 scriptable::ScriptableMeshPart::ScriptableMeshPart(scriptable::ScriptableMeshPointer parentMesh, int partIndex)
     : parentMesh(parentMesh), partIndex(partIndex)  {

@@ -1073,13 +1073,7 @@ void ModelEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction
 
 void ModelEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
     entity->setModel({});
-    //emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(entity->getID(), NestableType::Entity, _model);
 }
-
-void ModelEntityRenderer::onAddToSceneTyped(const TypedEntityPointer& entity) {
-    //emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(entity->getID(), NestableType::Entity, _model);
-}
-
 
 void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     if (!_animation || !_animation->isLoaded()) {

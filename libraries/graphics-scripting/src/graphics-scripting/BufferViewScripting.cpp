@@ -9,10 +9,10 @@
 #include <gpu/Format.h>
 #include <gpu/Stream.h>
 
-#include <graphics-scripting/BufferViewHelpers.h>
+#include <graphics/BufferViewHelpers.h>
 
 #ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    #include <graphics/DebugNames.h>
+    #include "DebugNames.h"
 #endif
 
 namespace {
