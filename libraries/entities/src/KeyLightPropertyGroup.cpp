@@ -29,7 +29,7 @@ void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desired
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_COLOR, KeyLight, keyLight, Color, color);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_INTENSITY, KeyLight, keyLight, Intensity, intensity);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_DIRECTION, KeyLight, keyLight, Direction, direction);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_CAST_SHADOWS, KeyLight, keyLight, CastShadows, castShadows);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_CAST_SHADOW, KeyLight, keyLight, CastShadows, castShadows);
 }
 
 void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
@@ -88,14 +88,13 @@ bool KeyLightPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getDirection());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOWS, getCastShadows());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, getCastShadows());
 
     return true;
 }
 
 bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt, 
-    int& processedBytes) 
-{
+                                                 int& processedBytes) {
         
     int bytesRead = 0;
     bool overwriteLocalData = true;
@@ -104,12 +103,12 @@ bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFl
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOWS, bool, setCastShadows);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_COLOR, Color);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_INTENSITY, Intensity);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_DIRECTION, Direction);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_CAST_SHADOWS, CastShadows);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_CAST_SHADOW, CastShadows);
 
     processedBytes += bytesRead;
 
@@ -131,7 +130,7 @@ EntityPropertyFlags KeyLightPropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, direction);
-    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_CAST_SHADOWS, castShadows);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_CAST_SHADOW, castShadows);
 
     return changedProperties;
 }
@@ -160,7 +159,7 @@ EntityPropertyFlags KeyLightPropertyGroup::getEntityProperties(EncodeBitstreamPa
     requestedProperties += PROP_KEYLIGHT_COLOR;
     requestedProperties += PROP_KEYLIGHT_INTENSITY;
     requestedProperties += PROP_KEYLIGHT_DIRECTION;
-    requestedProperties += PROP_KEYLIGHT_CAST_SHADOWS;
+    requestedProperties += PROP_KEYLIGHT_CAST_SHADOW;
 
     return requestedProperties;
 }
@@ -178,7 +177,7 @@ void KeyLightPropertyGroup::appendSubclassData(OctreePacketData* packetData, Enc
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getDirection());
-    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOWS, getCastShadows());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, getCastShadows());
 }
 
 int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -192,7 +191,7 @@ int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char*
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOWS, bool, setCastShadows);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
 
     return bytesRead;
 }

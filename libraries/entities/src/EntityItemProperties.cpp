@@ -1192,7 +1192,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, glm::vec3);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOWS, KeyLightCastShadows, keyLightCastShadows, bool);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
