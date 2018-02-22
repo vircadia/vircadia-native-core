@@ -24,6 +24,7 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
+#include <model-networking/SimpleMeshProxy.h>
 #include <TBBHelpers.h>
 
 #include <graphics-scripting/Forward.h>
@@ -548,6 +549,43 @@ bool Model::convexHullContains(glm::vec3 point) {
     }
     // It wasn't in any mesh, return false.
     return false;
+}
+
+// TODO: deprecate and remove
+MeshProxyList Model::getMeshes() const {
+    MeshProxyList result;
+    const Geometry::Pointer& renderGeometry = getGeometry();
+    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
+
+    if (!isLoaded()) {
+        return result;
+    }
+
+    Transform offset;
+    offset.setScale(_scale);
+    offset.postTranslate(_offset);
+    glm::mat4 offsetMat = offset.getMatrix();
+
+    for (std::shared_ptr<const graphics::Mesh> mesh : meshes) {
+        if (!mesh) {
+            continue;
+        }
+
+        MeshProxy* meshProxy = new SimpleMeshProxy(
+            mesh->map(
+                [=](glm::vec3 position) {
+                    return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
+                },
+                [=](glm::vec3 color) { return color; },
+                [=](glm::vec3 normal) {
+                    return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
+                },
+                [&](uint32_t index) { return index; }));
+        meshProxy->setObjectName(mesh->displayName.c_str());
+        result << meshProxy;
+    }
+
+    return result;
 }
 
 // FIXME: temporary workaround that updates the whole FBXGeometry (to keep findRayIntersection in sync)
