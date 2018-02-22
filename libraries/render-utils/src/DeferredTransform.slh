@@ -43,13 +43,6 @@ uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 
-DeferredFrameTransform getDeferredFrameTransform() {
-    DeferredFrameTransform result = frameTransform;
-    result._view = result._view * cameraCorrection._correctionInverse;  
-    result._viewInverse = result._viewInverse * cameraCorrection._correction;  
-    return result;
-}
-
 vec2 getWidthHeight(int resolutionLevel) {
     return vec2(ivec2(frameTransform._pixelInfo.zw) >> resolutionLevel);
 }
@@ -94,6 +87,17 @@ mat4 getView() {
 
 mat4 getPreviousView() {
     return cameraCorrection._prevCorrectionInverse * frameTransform._prevView;
+}
+
+mat4 getPreviousViewInverse() {
+    return frameTransform._prevViewInverse * cameraCorrection._prevCorrection;
+}
+
+DeferredFrameTransform getDeferredFrameTransform() {
+    DeferredFrameTransform result = frameTransform;
+    result._view = getView();  
+    result._viewInverse = getViewInverse();  
+    return result;
 }
 
 bool isStereo() {
