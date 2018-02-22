@@ -59,6 +59,8 @@ namespace render {
     template <> const ItemKey payloadGetKey(const GameWorkloadRenderItem::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload);
     template <> void payloadRender(const GameWorkloadRenderItem::Pointer& payload, RenderArgs* args);
+    template <> const ShapeKey shapeGetShapeKey(const GameWorkloadRenderItem::Pointer& payload);
+
 }
 
 #endif
