@@ -1459,6 +1459,7 @@ scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(
     bool success = false;
     glm::mat4 transform = voxelToLocalMatrix();
     scriptable::ScriptableModelBase result;
+    result.objectID = getThisPointer()->getID();
     withReadLock([&] {
         gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
         if (!_meshReady) {

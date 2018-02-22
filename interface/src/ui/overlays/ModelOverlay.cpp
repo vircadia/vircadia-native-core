@@ -669,5 +669,7 @@ scriptable::ScriptableModelBase ModelOverlay::getScriptableModel(bool* ok) {
     if (!_model || !_model->isLoaded()) {
         return Base3DOverlay::getScriptableModel(ok);
     }
-    return _model->getScriptableModel(ok);
+    auto result = _model->getScriptableModel(ok);
+    result.objectID = getID();
+    return result;
 }

@@ -184,10 +184,7 @@ scriptable::ScriptableModelBase Shape3DOverlay::getScriptableModel(bool* ok) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto vertexColor = ColorUtils::toVec3(_color);
     scriptable::ScriptableModelBase result;
-    result.metadata = {
-        { "origin", "Shape3DOverlay::"+shapeStrings[_shape] },
-        { "overlayID", getID() },
-    };
+    result.objectID = getID();
     result.append(geometryCache->meshFromShape(_shape, vertexColor), {{ "shape", shapeStrings[_shape] }});
     if (ok) {
         *ok = true;

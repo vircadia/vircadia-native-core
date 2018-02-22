@@ -1801,12 +1801,7 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
     }
     scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
     result.objectID = getSessionUUID();
-    result.mixin({
-        { "avatarID", getSessionUUID().toString() },
-        { "url", _skeletonModelURL.toString() },
-        { "origin", "Avatar/avatar::" + _displayName },
-        { "textures", _skeletonModel->getTextures() },
-    });
+    result.mixin({{ "textures", _skeletonModel->getTextures() }});
     // FIXME: for now access to attachment models are merged into the main avatar ScriptableModel set
     for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         auto& model = _attachmentModels.at(i);

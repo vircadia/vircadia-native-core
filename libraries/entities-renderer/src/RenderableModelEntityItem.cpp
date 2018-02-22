@@ -968,7 +968,9 @@ scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScript
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
 
-    return _model->getScriptableModel(ok);
+    auto result = _model->getScriptableModel(ok);
+    result.objectID = getEntity()->getID();
+    return result;
 }
 
 bool render::entities::ModelEntityRenderer::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer newModel, int meshIndex, int partIndex) {
