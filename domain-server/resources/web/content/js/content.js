@@ -386,6 +386,12 @@ $(document).ready(function(){
         return false;
       }
 
+      var MANUAL_ARCHIVE_NAME_REGEX = /^[a-zA-Z0-9\\-_ ]+$/;
+      if (!MANUAL_ARCHIVE_NAME_REGEX.test(inputValue)) {
+        swal.showInputError("Valid characters include A-z, 0-9, ' ', '_', and '-'.");
+        return false;
+      }
+
       // post the provided archive name to ask the server to kick off a manual backup
       $.ajax({
         type: 'POST',
