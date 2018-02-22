@@ -73,6 +73,7 @@ public:
 
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
+    bool isServerless() const { return _serverlessDomainURL != QUrl(); }
 
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
