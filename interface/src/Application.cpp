@@ -5447,7 +5447,9 @@ void Application::update(float deltaTime) {
 
         {
             QMutexLocker viewLocker(&_viewMutex);
+            appRenderArgs._prevView = glm::inverse(_displayViewFrustum.getView());
             _myCamera.loadViewFrustum(_displayViewFrustum);
+            appRenderArgs._view = glm::inverse(_displayViewFrustum.getView());
         }
 
         {

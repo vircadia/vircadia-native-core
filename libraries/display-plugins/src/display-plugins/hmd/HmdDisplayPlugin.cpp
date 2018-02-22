@@ -341,10 +341,12 @@ void HmdDisplayPlugin::updateFrameData() {
         auto invBatchPose = glm::inverse(_currentFrame->pose);
         auto invPrevBatchPose = glm::inverse(_currentFrame->prevPose);
         auto correction = invBatchPose * _currentPresentFrameInfo.presentPose;
-        auto prevCorrection = invPrevBatchPose * _previousPresentFrameInfo.presentPose;
+        auto prevCorrection = /*_currentFrame->prevView * glm::inverse(_prevRenderView) */ invPrevBatchPose * _previousPresentFrameInfo.presentPose;
+
         getGLBackend()->setCameraCorrection(correction, prevCorrection);
 
         _previousPresentFrameInfo = _currentPresentFrameInfo;
+        _prevRenderView = _currentFrame->view;
     }
 }
 

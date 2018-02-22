@@ -80,6 +80,7 @@ protected:
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _previousPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
+    mat4 _prevRenderView;
     RateCounter<> _stutterRate;
 
     bool _disablePreview { true };

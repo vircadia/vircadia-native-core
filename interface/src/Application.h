@@ -617,6 +617,8 @@ private:
     struct AppRenderArgs {
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
+        glm::mat4 _view;
+        glm::mat4 _prevView;
         glm::mat4 _eyeOffsets[2];
         glm::mat4 _eyeProjections[2];
         glm::mat4 _headPose;
