@@ -131,20 +131,3 @@ quint32 scriptable::ScriptableModel::mapAttributeValues(QScriptValue callback) {
     }
     return result;
 }
-
-/*namespace {
-    QScriptValue modelPointerToScriptValue(QScriptEngine* engine, scriptable::ScriptableModelPointer const &in) {
-        return qObjectToScriptValue(engine, in);
-    }
-    void modelPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableModelPointer &out) {
-        out = scriptable::qpointer_qobject_cast<scriptable::ScriptableModel>(value);
-    }
-}
-
-namespace scriptable {
-    bool registerMetaTypes(QScriptEngine* engine) {
-        qScriptRegisterMetaType(engine, modelPointerToScriptValue, modelPointerFromScriptValue);
-        return true;
-    }
-}
-*/
