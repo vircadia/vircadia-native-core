@@ -84,12 +84,6 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
 
-    // Lighting Buffer ready for tone mapping
-#if !defined (Q_OS_ANDROID)
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, framebuffer).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-#endif
-
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
@@ -101,13 +95,19 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     }
 
-    // Layered Overlays
+    // Lighting Buffer ready for tone mapping
+    // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
+    // the output FBO as null, which causes the tonemapping to target the blit framebuffer
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, nullptr).asVarying();
+    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    // Layered Overlays
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
 
+    // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
-    task.addJob<Blit>("Blit", framebuffer);
+    // task.addJob<Blit>("Blit", framebuffer);
 }
 
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
