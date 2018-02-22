@@ -13,6 +13,7 @@
 #define hifi_DomainServerSettingsManager_h
 
 #include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
 #include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 
@@ -28,6 +29,7 @@ const QString SETTINGS_PATHS_KEY = "paths";
 
 const QString SETTINGS_PATH = "/settings";
 const QString SETTINGS_PATH_JSON = SETTINGS_PATH + ".json";
+const QString CONTENT_SETTINGS_PATH_JSON = "/content-settings.json";
 const QString AGENT_STANDARD_PERMISSIONS_KEYPATH = "security.standard_permissions";
 const QString AGENT_PERMISSIONS_KEYPATH = "security.permissions";
 const QString IP_PERMISSIONS_KEYPATH = "security.ip_permissions";
@@ -38,6 +40,10 @@ const QString GROUP_FORBIDDENS_KEYPATH = "security.group_forbiddens";
 
 using GroupByUUIDKey = QPair<QUuid, QUuid>; // groupID, rankID
 
+enum SettingsType {
+    DomainSettings,
+    ContentSettings
+};
 
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
@@ -123,8 +129,11 @@ private slots:
 private:
     QStringList _argumentList;
 
-    QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
+    QJsonArray filteredDescriptionArray(bool isContentSettings);
+    QJsonObject settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated = false,
+                                              bool includeDomainSettings = true, bool includeContentSettings = true,
+                                              bool includeDefaults = true, bool isForBackup = false);
+    bool recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, SettingsType settingsType);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
@@ -132,8 +141,17 @@ private:
     void sortPermissions();
     void persistToFile();
 
+    void splitSettingsDescription();
+
+    bool restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType);
+
     double _descriptionVersion;
+
     QJsonArray _descriptionArray;
+    QJsonArray _domainSettingsDescription;
+    QJsonArray _contentSettingsDescription;
+    QJsonObject _settingsMenuGroups;
+
     HifiConfigVariantMap _configMap;
 
     friend class DomainServer;

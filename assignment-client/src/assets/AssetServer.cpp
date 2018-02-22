@@ -464,32 +464,41 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply, QByteArray(), true, true);
     replyPacket->writePrimitive(messageID);
 
+    bool canWriteToAssetServer = true;
+    if (senderNode) {
+        canWriteToAssetServer = senderNode->getCanWriteToAssetServer();
+    }
+
     switch (operationType) {
         case AssetMappingOperationType::Get:
-            handleGetMappingOperation(*message, senderNode, *replyPacket);
+            handleGetMappingOperation(*message, *replyPacket);
             break;
         case AssetMappingOperationType::GetAll:
-            handleGetAllMappingOperation(*message, senderNode, *replyPacket);
+            handleGetAllMappingOperation(*replyPacket);
             break;
         case AssetMappingOperationType::Set:
-            handleSetMappingOperation(*message, senderNode, *replyPacket);
+            handleSetMappingOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::Delete:
-            handleDeleteMappingsOperation(*message, senderNode, *replyPacket);
+            handleDeleteMappingsOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::Rename:
-            handleRenameMappingOperation(*message, senderNode, *replyPacket);
+            handleRenameMappingOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
         case AssetMappingOperationType::SetBakingEnabled:
-            handleSetBakingEnabledOperation(*message, senderNode, *replyPacket);
+            handleSetBakingEnabledOperation(*message, canWriteToAssetServer, *replyPacket);
             break;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacket), *senderNode);
+    if (senderNode) {
+        nodeList->sendPacketList(std::move(replyPacket), *senderNode);
+    } else {
+        nodeList->sendPacketList(std::move(replyPacket), message->getSenderSockAddr());
+    }
 }
 
-void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketList& replyPacket) {
     QString assetPath = message.readString();
 
     QUrl url { assetPath };
@@ -568,7 +577,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+void AssetServer::handleGetAllMappingOperation(NLPacketList& replyPacket) {
     replyPacket.writePrimitive(AssetUtils::AssetServerError::NoError);
 
     uint32_t count = (uint32_t)_fileMappings.size();
@@ -591,8 +600,8 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     }
 }
 
-void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleSetMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         QString assetPath = message.readString();
 
         auto assetHash = message.read(AssetUtils::SHA256_HASH_LENGTH).toHex();
@@ -614,8 +623,8 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         int numberOfDeletedMappings { 0 };
         message.readPrimitive(&numberOfDeletedMappings);
 
@@ -642,8 +651,8 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
     }
 }
 
-void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         QString oldPath = message.readString();
         QString newPath = message.readString();
 
@@ -664,8 +673,8 @@ void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedN
     }
 }
 
-void AssetServer::handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
-    if (senderNode->getCanWriteToAssetServer()) {
+void AssetServer::handleSetBakingEnabledOperation(ReceivedMessage& message, bool hasWriteAccess, NLPacketList& replyPacket) {
+    if (hasWriteAccess) {
         bool enabled { true };
         message.readPrimitive(&enabled);
 
@@ -739,9 +748,14 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 }
 
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    bool canWriteToAssetServer = true;
+    if (senderNode) {
+        canWriteToAssetServer = senderNode->getCanWriteToAssetServer();
+    }
 
-    if (senderNode->getCanWriteToAssetServer()) {
-        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
+
+    if (canWriteToAssetServer) {
+        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(message->getSourceID());
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
@@ -761,7 +775,11 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
 
         // send off the packet
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
+        if (senderNode) {
+            nodeList->sendPacket(std::move(permissionErrorPacket), *senderNode);
+        } else {
+            nodeList->sendPacket(std::move(permissionErrorPacket), message->getSenderSockAddr());
+        }
     }
 }
 

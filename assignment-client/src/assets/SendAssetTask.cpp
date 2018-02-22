@@ -112,5 +112,9 @@ void SendAssetTask::run() {
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(replyPacketList), *_senderNode);
+    if (_senderNode) {
+        nodeList->sendPacketList(std::move(replyPacketList), *_senderNode);
+    } else {
+        nodeList->sendPacketList(std::move(replyPacketList), _message->getSenderSockAddr());
+    }
 }

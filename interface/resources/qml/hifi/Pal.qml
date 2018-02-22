@@ -48,7 +48,7 @@ Rectangle {
     // The letterbox used for popup messages
     LetterboxMessage {
         id: letterboxMessage;
-        z: 999; // Force the popup on top of everything else
+        z: 998; // Force the popup on top of everything else
     }
     Connections {
         target: GlobalServices
@@ -60,7 +60,7 @@ Rectangle {
     // The ComboDialog used for setting availability
     ComboDialog {
         id: comboDialog;
-        z: 999; // Force the ComboDialog on top of everything else
+        z: 998; // Force the ComboDialog on top of everything else
         dialogWidth: parent.width - 50;
         dialogHeight: parent.height - 100;
     }
@@ -1013,7 +1013,7 @@ Rectangle {
                 }
                 MouseArea {
                     anchors.fill: parent;
-                    enabled: myData.userName !== "Unknown user";
+                    enabled: myData.userName !== "Unknown user" && !userInfoViewer.visible;
                     hoverEnabled: true;
                     onClicked: {
                         popupComboDialog("Set your availability:",
@@ -1044,6 +1044,7 @@ Rectangle {
 
         HifiControls.TabletWebView {
             id: userInfoViewer;
+            z: 999;
             anchors {
                 top: parent.top;
                 bottom: parent.bottom;

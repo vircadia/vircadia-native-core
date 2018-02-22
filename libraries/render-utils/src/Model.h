@@ -86,7 +86,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -108,6 +108,8 @@ public:
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
     bool isLayeredInHUD() const { return _isLayeredInHUD; }
+
+    bool isGroupCulled() const { return _isGroupCulled; }
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -313,6 +315,9 @@ public:
     void scaleToFit();
     bool getUseDualQuaternionSkinning() const { return _useDualQuaternionSkinning; }
 
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -431,6 +436,7 @@ protected:
     render::ItemIDs _modelMeshRenderItemIDs;
     using ShapeInfo = struct { int meshIndex; };
     std::vector<ShapeInfo> _modelMeshRenderItemShapes;
+    std::vector<std::string> _modelMeshMaterialNames;
 
     bool _addedToScene { false }; // has been added to scene
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
@@ -458,12 +464,16 @@ protected:
     bool _isLayeredInFront { false };
     bool _isLayeredInHUD { false };
 
+    bool _isGroupCulled{ false };
+
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
 private:
     float _loadingPriority { 0.0f };
 
     void calculateTextureInfo();
+
+    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialName);
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

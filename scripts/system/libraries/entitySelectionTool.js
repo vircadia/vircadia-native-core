@@ -1018,6 +1018,7 @@ SelectionDisplay = (function() {
             return;
         }
 
+
         if (SelectionManager.hasSelection()) {
             var position = SelectionManager.worldPosition;
             var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
@@ -1317,8 +1318,12 @@ SelectionDisplay = (function() {
                                        isActiveTool(handleScaleRTNCube) || isActiveTool(handleScaleLTFCube) || 
                                        isActiveTool(handleScaleRTFCube) || isActiveTool(handleStretchXSphere) || 
                                        isActiveTool(handleStretchYSphere) || isActiveTool(handleStretchZSphere));
-        that.setHandleScaleEdgeVisible(!isActiveTool(handleRotatePitchRing) && !isActiveTool(handleRotateYawRing) && 
-                                       !isActiveTool(handleRotateRollRing));
+
+        var showOutlineForZone = (SelectionManager.selections.length === 1 &&
+                                  SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
+        that.setHandleScaleEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
+                                                              !isActiveTool(handleRotateYawRing) &&
+                                                              !isActiveTool(handleRotateRollRing)));
 
         //keep cloner always hidden for now since you can hold Alt to clone while  
         //translating an entity - we may bring cloner back for HMD only later

@@ -13,5 +13,6 @@ include_hifi_library_headers(entities-renderer)
 include_hifi_library_headers(audio)
 include_hifi_library_headers(entities)
 include_hifi_library_headers(octree)
+include_hifi_library_headers(task)
 
 target_bullet()

@@ -25,7 +25,7 @@ public:
 
     void updateTransformForCauterizedMesh(const Transform& renderTransform);
 
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+    void bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const override;
 
     void setEnableCauterization(bool enableCauterization) { _enableCauterization = enableCauterization; }
 

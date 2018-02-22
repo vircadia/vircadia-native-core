@@ -271,6 +271,7 @@ void Model::updateRenderItems() {
         uint8_t viewTagBits = self->getViewTagBits();
         bool isLayeredInFront = self->isLayeredInFront();
         bool isLayeredInHUD = self->isLayeredInHUD();
+        bool isGroupCulled = self->isGroupCulled();
 
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
@@ -286,7 +287,7 @@ void Model::updateRenderItems() {
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
                                                                   viewTagBits, isLayeredInFront,
-                                                                  isLayeredInHUD](ModelMeshPartPayload& data) {
+                                                                  isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -310,7 +311,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
@@ -698,10 +699,11 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits) {
-    if (_isVisible != isVisible || _viewTagBits != viewTagBits) {
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled) {
+    if (_isVisible != isVisible || _viewTagBits != viewTagBits || _isGroupCulled != isGroupCulled) {
         _isVisible = isVisible;
         _viewTagBits = viewTagBits;
+        _isGroupCulled = isGroupCulled;
 
         bool isLayeredInFront = _isLayeredInFront;
         bool isLayeredInHUD = _isLayeredInHUD;
@@ -709,14 +711,14 @@ void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene,
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
             });
         }
         scene->enqueueTransaction(transaction);
@@ -731,19 +733,20 @@ void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer&
         bool isVisible = _isVisible;
         uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInHUD = _isLayeredInHUD;
+        bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -758,19 +761,20 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         bool isVisible = _isVisible;
         uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInFront = _isLayeredInFront;
+        bool isGroupCulled = _isGroupCulled;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
             transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
-                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
+                                                                isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits, isGroupCulled);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -842,6 +846,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
     foreach(auto item, _collisionRenderItemsMap.keys()) {
@@ -1474,6 +1479,7 @@ void Model::createVisibleRenderItemSet() {
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
+    _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
     Transform transform;
@@ -1497,6 +1503,7 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
@@ -1540,6 +1547,77 @@ void Model::createCollisionRenderItemSet() {
 
 bool Model::isRenderable() const {
     return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
+}
+
+std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
+    // try to find all meshes with materials that match parentMaterialName as a string
+    // if none, return parentMaterialName as a uint
+    std::vector<unsigned int> toReturn;
+    const QString MATERIAL_NAME_PREFIX = "mat::";
+    if (parentMaterialName.startsWith(MATERIAL_NAME_PREFIX)) {
+        parentMaterialName.replace(0, MATERIAL_NAME_PREFIX.size(), QString(""));
+        for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
+            if (_modelMeshMaterialNames[i] == parentMaterialName.toStdString()) {
+                toReturn.push_back(i);
+            }
+        }
+    }
+
+    if (toReturn.empty()) {
+        toReturn.push_back(parentMaterialName.toUInt());
+    }
+
+    return toReturn;
+}
+
+void Model::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    render::Transaction transaction;
+    for (auto shapeID : shapeIDs) {
+        if (shapeID < _modelMeshRenderItemIDs.size()) {
+            auto itemID = _modelMeshRenderItemIDs[shapeID];
+            bool visible = isVisible();
+            uint8_t viewTagBits = getViewTagBits();
+            bool layeredInFront = isLayeredInFront();
+            bool layeredInHUD = isLayeredInHUD();
+            bool wireframe = isWireframe();
+            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
+                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                data.addMaterial(material);
+                // if the material changed, we might need to update our item key or shape key
+                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+            });
+        }
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
+void Model::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    render::Transaction transaction;
+    for (auto shapeID : shapeIDs) {
+        if (shapeID < _modelMeshRenderItemIDs.size()) {
+            auto itemID = _modelMeshRenderItemIDs[shapeID];
+            bool visible = isVisible();
+            uint8_t viewTagBits = getViewTagBits();
+            bool layeredInFront = isLayeredInFront();
+            bool layeredInHUD = isLayeredInHUD();
+            bool wireframe = isWireframe();
+            auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+            bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
+                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                data.removeMaterial(material);
+                // if the material changed, we might need to update our item key or shape key
+                data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setShapeKey(invalidatePayloadShapeKey, wireframe);
+            });
+        }
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 class CollisionRenderGeometry : public Geometry {
