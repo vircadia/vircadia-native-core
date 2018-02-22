@@ -125,6 +125,7 @@ $(document).ready(function(){
   var BACKUP_DOWNLOAD_LINK_CLASS = 'download-backup';
   var BACKUP_DELETE_LINK_CLASS = 'delete-backup';
   var ACTIVE_BACKUP_ROW_CLASS = 'active-backup';
+  var CORRUPTED_ROW_CLASS = 'danger';
 
   function reloadBackupInformation() {
     // make a GET request to get backup information to populate the table
@@ -183,11 +184,21 @@ $(document).ready(function(){
         } else if (backup.id == data.status.recoveringBackupId) {
           // add a progress bar to the status row for recovery
           $backupRow.find('td.backup-status').html(progressBarHTML('recovery', 'Restoring'));
+        } else if (backup.isCorrupted) {
+          // add text for corrupted status to row
+          $backupRow.find('td.backup-status').html('<span>Corrupted</span>');
         } else {
           // no special status for this row, use an empty status column
           $backupRow.find('td.backup-status').html('');
         }
 
+        // color the row red if it is corrupted
+        $backupRow.toggleClass(CORRUPTED_ROW_CLASS, backup.isCorrupted);
+
+        // disable restore if the backup is corrupted
+        $backupRow.find('a.' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', backup.isCorrupted);
+
+        // toggle the dropdown menu depending on if the row is available
         $backupRow.find('td.' + ACTION_MENU_CLASS + ' .dropdown').toggle(backup.isAvailable);
 
         $backupRow.addClass(ACTIVE_BACKUP_ROW_CLASS);
@@ -213,7 +224,7 @@ $(document).ready(function(){
       $('#' + CONTENT_ARCHIVES_NORMAL_ID + ' tbody tr:not(.' + ACTIVE_BACKUP_ROW_CLASS + ')').remove();
 
       // check if the restore action on all rows should be enabled or disabled
-      $('.' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', data.status.isRecovering);
+      $('tr:not(.' + CORRUPTED_ROW_CLASS + ') .' + BACKUP_RESTORE_LINK_CLASS).parent().toggleClass('disabled', data.status.isRecovering);
 
       // hide or show the manual content upload file and button depending on our recovering status
       $('#' + UPLOAD_CONTENT_ALLOWED_DIV_ID).toggle(!data.status.isRecovering);
