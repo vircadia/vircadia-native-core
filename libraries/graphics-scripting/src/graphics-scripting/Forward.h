@@ -8,10 +8,12 @@
 #include <memory>
 
 #include <DependencyManager.h>
-
+#include <SpatiallyNestable.h>
 namespace graphics {
     class Mesh;
 }
+class Model;
+using ModelPointer = std::shared_ptr<Model>;
 namespace gpu {
     class BufferView;
 }
@@ -83,7 +85,7 @@ namespace scriptable {
     // mixin class for Avatar/Entity/Overlay Rendering that expose their in-memory graphics::Meshes
     class ModelProvider {
     public:
-        QVariantMap metadata{ { "providerType", "unknown" } };
+        NestableType modelProviderType;
         static scriptable::ScriptableModelBase modelUnavailableError(bool* ok) { if (ok) { *ok = false; } return {}; }
         virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) = 0;
 
@@ -91,9 +93,13 @@ namespace scriptable {
     };
 
     // mixin class for resolving UUIDs into a corresponding ModelProvider
-    class ModelProviderFactory : public Dependency {
+    class ModelProviderFactory : public QObject, public Dependency {
+        Q_OBJECT
     public:
-        virtual scriptable::ModelProviderPointer lookupModelProvider(QUuid uuid) = 0;
+        virtual scriptable::ModelProviderPointer lookupModelProvider(const QUuid& uuid) = 0;
+    signals:
+        void modelAddedToScene(const QUuid& objectID, NestableType nestableType, const ModelPointer& sender);
+        void modelRemovedFromScene(const QUuid& objectID, NestableType nestableType, const ModelPointer& sender);
     };
 
     using uint32 = quint32;
@@ -105,3 +111,5 @@ namespace scriptable {
     using ScriptableMeshPartPointer = QPointer<ScriptableMeshPart>;
     bool registerMetaTypes(QScriptEngine* engine);
 }
+
+Q_DECLARE_METATYPE(NestableType)

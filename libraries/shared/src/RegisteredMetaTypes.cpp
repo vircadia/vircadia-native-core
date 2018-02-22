@@ -855,3 +855,68 @@ QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const Animatio
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& details) {
     // nothing for now...
 }
+
+QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
+    return engine->newQObject(in, QScriptEngine::QtOwnership,
+        QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+}
+
+void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
+    out = qobject_cast<MeshProxy*>(value.toQObject());
+}
+
+QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in) {
+    // QScriptValueList result;
+    QScriptValue result = engine->newArray();
+    int i = 0;
+    foreach(MeshProxy* const meshProxy, in) {
+        result.setProperty(i++, meshToScriptValue(engine, meshProxy));
+    }
+    return result;
+}
+
+void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
+    QScriptValueIterator itr(value);
+
+    qDebug() << "in meshesFromScriptValue, value.length =" << value.property("length").toInt32();
+
+    while (itr.hasNext()) {
+        itr.next();
+        MeshProxy* meshProxy = qscriptvalue_cast<MeshProxyList::value_type>(itr.value());
+        if (meshProxy) {
+            out.append(meshProxy);
+        } else {
+            qDebug() << "null meshProxy";
+        }
+    }
+}
+
+
+QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const MeshFace &meshFace) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("vertices", qVectorIntToScriptValue(engine, meshFace.vertexIndices));
+    return obj;
+}
+
+void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResult) {
+    qVectorIntFromScriptValue(object.property("vertices"), meshFaceResult.vertexIndices);
+}
+
+QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector) {
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        array.setProperty(i, meshFaceToScriptValue(engine, vector.at(i)));
+    }
+    return array;
+}
+
+void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result) {
+    int length = array.property("length").toInteger();
+    result.clear();
+
+    for (int i = 0; i < length; i++) {
+        MeshFace meshFace = MeshFace();
+        meshFaceFromScriptValue(array.property(i), meshFace);
+        result << meshFace;
+    }
+}

@@ -1318,7 +1318,6 @@ void GeometryCache::renderUnitQuad(gpu::Batch& batch, const glm::vec4& color, in
     renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color, id);
 }
 
-
 void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
     const glm::vec2& texCoordMinCorner, const glm::vec2& texCoordMaxCorner,
     const glm::vec4& color, int id) {

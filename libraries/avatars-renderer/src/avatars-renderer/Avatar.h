@@ -1,4 +1,3 @@
-
 //
 //  Avatar.h
 //  interface/src/avatar
@@ -276,6 +275,7 @@ public:
 
 
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

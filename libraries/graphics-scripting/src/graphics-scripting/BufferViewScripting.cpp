@@ -42,8 +42,6 @@ bool bufferViewElementFromScriptValue(const QScriptValue& v, const gpu::BufferVi
     return buffer_helpers::fromVariant(view, index, v.toVariant());
 }
 
-//
-
 template <typename T>
 QScriptValue glmVecToScriptValue(QScriptEngine *js, const T& v, bool asArray) {
     static const auto len = T().length();

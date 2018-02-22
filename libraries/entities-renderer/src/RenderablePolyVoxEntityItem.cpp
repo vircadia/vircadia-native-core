@@ -20,6 +20,8 @@
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <model-networking/SimpleMeshProxy.h>
+#include <ModelScriptingInterface.h>
 #include <EntityEditPacketSender.h>
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>
@@ -97,7 +99,7 @@ const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
   In RenderablePolyVoxEntityItem::render, these flags are checked and changes are propagated along the chain.
   decompressVolumeData() is called to decompress _voxelData into _volData.  recomputeMesh() is called to invoke the
-  polyVox surface extractor to create _mesh (as well as set Simulation _dirtyFlags).  Because Simulation::DIRTY_SHAPE
+  polyVox surface extractor to create _mesh (as well as set Simulation _flags).  Because Simulation::DIRTY_SHAPE
   is set, isReadyToComputeShape() gets called and _shape is created either from _volData or _shape, depending on
   the surface style.
 
@@ -1412,6 +1414,39 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
     if (currentZNNeighbor) {
         currentZNNeighbor->setVolDataDirty();
     }
+}
+
+// deprecated
+bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
+    if (!updateDependents()) {
+        return false;
+    }
+
+    bool success = false;
+    if (_mesh) {
+        MeshProxy* meshProxy = nullptr;
+        glm::mat4 transform = voxelToLocalMatrix();
+        withReadLock([&] {
+            gpu::BufferView::Index numVertices = (gpu::BufferView::Index)_mesh->getNumVertices();
+            if (!_meshReady) {
+                // we aren't ready to return a mesh.  the caller will have to try again later.
+                success = false;
+            } else if (numVertices == 0) {
+                // we are ready, but there are no triangles in the mesh.
+                success = true;
+            } else {
+                success = true;
+                // the mesh will be in voxel-space.  transform it into object-space
+                meshProxy = new SimpleMeshProxy(
+                    _mesh->map([=](glm::vec3 position) { return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                    [=](glm::vec3 color) { return color; },
+                    [=](glm::vec3 normal) { return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
+                    [&](uint32_t index) { return index; }));
+                result << meshProxy;
+            }
+        });
+    }
+    return success;
 }
 
 scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(bool * ok) {

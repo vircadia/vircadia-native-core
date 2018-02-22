@@ -166,7 +166,7 @@
 #include "scripting/AccountServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
-#include "graphics-scripting/ModelScriptingInterface.h"
+#include "graphics-scripting/GraphicsScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -199,6 +199,7 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
+#include <ModelScriptingInterface.h>
 
 #include <PickManager.h>
 #include <PointerManager.h>
@@ -800,7 +801,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
-    DependencyManager::set<ModelScriptingInterface>();
     DependencyManager::registerInheritance<scriptable::ModelProviderFactory, ApplicationMeshProvider>();
     DependencyManager::set<ApplicationMeshProvider>();
     DependencyManager::set<RecordingScriptingInterface>();
@@ -5981,8 +5981,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
-    ModelScriptingInterface::registerMetaTypes(scriptEngine.data());
-    scriptEngine->registerGlobalObject("Model", DependencyManager::get<ModelScriptingInterface>().data());
+    GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
+    scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());

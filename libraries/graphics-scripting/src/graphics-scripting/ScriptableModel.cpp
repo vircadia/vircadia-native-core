@@ -38,6 +38,7 @@ scriptable::ScriptableModelBase::~ScriptableModelBase() {
     meshes.clear();
     //qCDebug(graphics_scripting) << "//~ScriptableModelBase" << this;
 }
+
 void scriptable::ScriptableModelBase::append(scriptable::WeakMeshPointer mesh, const QVariantMap& metadata) {
     //qCDebug(graphics_scripting) << "+ APPEND WeakMeshPointer" << mesh.lock().get();
     meshes << ScriptableMeshBase{ provider, this, mesh, metadata };

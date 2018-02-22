@@ -31,6 +31,7 @@ namespace { QLoggingCategory wtf{ "tim.Model.cpp" }; }
 #include <TBBHelpers.h>
 
 #include <graphics-scripting/Forward.h>
+#include <graphics-scripting/BufferViewHelpers.h>
 #include <DualQuaternion.h>
 
 #include <glm/gtc/packing.hpp>
@@ -333,34 +334,6 @@ void Model::reset() {
     }
 }
 
-#if FBX_PACK_NORMALS
-static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
-    auto absNormal = glm::abs(normal);
-    auto absTangent = glm::abs(tangent);
-    normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
-    tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
-    normal = glm::clamp(normal, -1.0f, 1.0f);
-    tangent = glm::clamp(tangent, -1.0f, 1.0f);
-    normal *= 511.0f;
-    tangent *= 511.0f;
-    normal = glm::round(normal);
-    tangent = glm::round(tangent);
-
-    glm::detail::i10i10i10i2 normalStruct;
-    glm::detail::i10i10i10i2 tangentStruct;
-    normalStruct.data.x = int(normal.x);
-    normalStruct.data.y = int(normal.y);
-    normalStruct.data.z = int(normal.z);
-    normalStruct.data.w = 0;
-    tangentStruct.data.x = int(tangent.x);
-    tangentStruct.data.y = int(tangent.y);
-    tangentStruct.data.z = int(tangent.z);
-    tangentStruct.data.w = 0;
-    packedNormal = normalStruct.pack;
-    packedTangent = tangentStruct.pack;
-}
-#endif
-
 bool Model::updateGeometry() {
     bool needFullUpdate = false;
 
@@ -591,23 +564,26 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         // FIXME: temporary workaround for updating the whole FBXGeometry (to keep findRayIntersection in sync)
         auto newRenderGeometry = new MyGeometryMappingResource(
             _url, _renderGeometry, _newModel ? scriptable::make_qtowned<scriptable::ScriptableModelBase>(*_newModel) : nullptr
-            );
-        _needsUpdateTextures = true;
+        );
+        //_needsUpdateTextures = true;
         _visualGeometryRequestFailed = false;
-        invalidCalculatedMeshBoxes();
+        //invalidCalculatedMeshBoxes();
         deleteGeometry();
         _renderGeometry.reset(newRenderGeometry);
-        onInvalidate();
-        reset();
+        //onInvalidate();
+        //reset();
         _rig.destroyAnimGraph();
-        assert(_rig.jointStatesEmpty());
+        //assert(_rig.jointStatesEmpty());
         updateGeometry();
         calculateTriangleSets();
-        computeMeshPartLocalBounds();
-        _needsReload = false;
+        //computeMeshPartLocalBounds();
+        //_needsReload = false;
         _needsFixupInScene = true;
-        invalidCalculatedMeshBoxes();
+        //invalidCalculatedMeshBoxes();
         setRenderItemsNeedUpdate();
+        //_hasCalculatedTextureInfo = false;
+        //calculateTextureInfo();
+        //updateRenderItems();
     }
     return true;
 }
@@ -615,7 +591,6 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
 scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
     QMutexLocker lock(&_mutex);
     scriptable::ScriptableModelBase result;
-    const Geometry::Pointer& renderGeometry = getGeometry();
 
     if (!isLoaded()) {
         qCDebug(wtf) << "Model::getScriptableModel -- !isLoaded";
@@ -623,107 +598,26 @@ scriptable::ScriptableModelBase Model::getScriptableModel(bool* ok) {
     }
 
     const FBXGeometry& geometry = getFBXGeometry();
-    Transform offset;
-    offset.setScale(_scale);
-    offset.postTranslate(_offset);
-    glm::mat4 offsetMat = offset.getMatrix();
-    glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-    glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
-    result.metadata = {
-        { "url", _url.toString() },
-        { "textures", renderGeometry->getTextures() },
-        { "offset", vec3toVariant(_offset) },
-        { "scale", vec3toVariant(getScale()) },
-        { "rotation", quatToVariant(getRotation()) },
-        { "translation", vec3toVariant(getTranslation()) },
-        { "meshToModel", buffer_helpers::toVariant(meshToModelMatrix) },
-        { "meshToWorld", buffer_helpers::toVariant(meshToWorldMatrix) },
-        { "geometryOffset", buffer_helpers::toVariant(geometry.offset) },
-        { "naturalDimensions", vec3toVariant(getNaturalDimensions()) },
-        { "meshExtents", buffer_helpers::toVariant(getMeshExtents()) },
-        { "unscaledMeshExtents", buffer_helpers::toVariant(getUnscaledMeshExtents()) },
-        { "meshBound", buffer_helpers::toVariant(Extents(getRenderableMeshBound())) },
-        { "bindExtents", buffer_helpers::toVariant(getBindExtents()) },
-        { "offsetMat", buffer_helpers::toVariant(offsetMat) },
-        { "transform", buffer_helpers::toVariant(getTransform().getMatrix()) },
-    };
-    {
-        Transform transform;
-        transform.setScale(getScale());
-        transform.setTranslation(getTranslation());
-        transform.setRotation(getRotation());
-        result.metadata["_transform"] = buffer_helpers::toVariant(transform.getMatrix());
-    }
-    {
-        glm::vec3 position = _translation;
-        glm::mat4 rotation = glm::mat4_cast(_rotation);
-        glm::mat4 translation = glm::translate(position);
-        glm::mat4 modelToWorldMatrix = translation * rotation;
-        //glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
-        result.metadata["_modelToWorld"] = buffer_helpers::toVariant(modelToWorldMatrix);
-    }
-    {
-        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
-        //glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
-        result.metadata["_meshToWorld"] = buffer_helpers::toVariant(meshToWorldMatrix);
-    }
-    {
-        Transform transform;
-        transform.setTranslation(_translation);
-        transform.setRotation(_rotation);
-        Transform offset;
-        offset.setScale(_scale);
-        offset.postTranslate(_offset);
-        Transform output;
-        Transform::mult( output, transform, offset);
-        result.metadata["_renderTransform"] = buffer_helpers::toVariant(output.getMatrix());
-    }        
-
-    QVariantList submeshes;
     int numberOfMeshes = geometry.meshes.size();
     for (int i = 0; i < numberOfMeshes; i++) {
         const FBXMesh& fbxMesh = geometry.meshes.at(i);
-        auto mesh = fbxMesh._mesh;
-        if (!mesh) {
-            continue;
+        if (auto mesh = fbxMesh._mesh) {
+            auto name = geometry.getModelNameOfMesh(i);
+            result.append(std::const_pointer_cast<graphics::Mesh>(mesh), {
+                { "index", i },
+                { "name", name },
+                { "meshIndex", fbxMesh.meshIndex },
+                { "displayName", QString::fromStdString(mesh->displayName) },
+                { "modelName", QString::fromStdString(mesh->modelName) },
+                { "modelTransform", buffer_helpers::toVariant(fbxMesh.modelTransform) },
+                { "transform", buffer_helpers::toVariant(geometry.offset * fbxMesh.modelTransform) },
+                { "extents", buffer_helpers::toVariant(fbxMesh.meshExtents) },
+            });
         }
-        auto name = geometry.getModelNameOfMesh(i);
-        qCDebug(wtf) << "Model::getScriptableModel #" << i << QString::fromStdString(mesh->displayName) << name;
-        const AABox& box = _modelSpaceMeshTriangleSets.value(i).getBounds();
-        AABox hardbounds;
-        auto meshTransform = geometry.offset * fbxMesh.modelTransform;
-        for (const auto& v : fbxMesh.vertices) {
-            hardbounds += glm::vec3(meshTransform * glm::vec4(v,1));
-        }
-        QVariantList renderIDs;
-        for (uint32_t m = 0; m <  _modelMeshRenderItemIDs.size(); m++) {
-            auto meshIndex = _modelMeshRenderItemShapes.size() > m ? _modelMeshRenderItemShapes.at(m).meshIndex : -1;
-            if (meshIndex == i) {
-                renderIDs << _modelMeshRenderItemIDs[m];
-                break;
-            }
-        }
-
-        result.append(std::const_pointer_cast<graphics::Mesh>(mesh), {
-            { "index", i },
-            { "name", name },
-            { "renderIDs", renderIDs },
-            { "meshIndex", fbxMesh.meshIndex },
-            { "displayName", QString::fromStdString(mesh->displayName) },
-            { "modelName", QString::fromStdString(mesh->modelName) },
-            { "modelTransform", buffer_helpers::toVariant(fbxMesh.modelTransform) },
-            { "transform", buffer_helpers::toVariant(geometry.offset * fbxMesh.modelTransform) },
-            { "extents", buffer_helpers::toVariant(fbxMesh.meshExtents) },
-            { "bounds", buffer_helpers::toVariant(Extents(box)) },
-            { "hardbounds", buffer_helpers::toVariant(Extents(hardbounds)) },
-                });
     }
     if (ok) {
         *ok = true;
     }
-    qCDebug(wtf) << "//Model::getScriptableModel -- #" << result.meshes.size();
-    result.metadata["submeshes"] = submeshes;
     return result;
 }
 
@@ -1458,7 +1352,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 #if FBX_PACK_NORMALS
             glm::uint32 finalNormal;
             glm::uint32 finalTangent;
-            packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
             const auto finalNormal = *normalIt;
             const auto finalTangent = *tangentIt;
@@ -1481,7 +1375,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 #if FBX_PACK_NORMALS
                 glm::uint32 finalNormal;
                 glm::uint32 finalTangent;
-                packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+                buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
 #else
                 const auto finalNormal = *normalIt;
                 const auto finalTangent = *tangentIt;
@@ -1555,7 +1449,7 @@ void Model::createVisibleRenderItemSet() {
 
     // all of our mesh vectors must match in size
     if (meshes.size() != _meshStates.size()) {
-        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
+        qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! " << meshes.size() << _meshStates.size() << " We will not segregate mesh groups yet.";
         return;
     }
 

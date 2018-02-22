@@ -75,6 +75,7 @@ void ModelOverlay::update(float deltatime) {
     render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_model->needsFixupInScene()) {
+        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getID(), NestableType::Overlay, _model);
         _model->removeFromScene(scene, transaction);
         _model->addToScene(scene, transaction);
 
@@ -83,6 +84,7 @@ void ModelOverlay::update(float deltatime) {
             auto modelOverlay = static_cast<ModelOverlay*>(&data);
             modelOverlay->setSubRenderItemIDs(newRenderItemIDs);
         });
+        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
     if (_visibleDirty) {
         _visibleDirty = false;
@@ -107,12 +109,14 @@ void ModelOverlay::update(float deltatime) {
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::addToScene(overlay, scene, transaction);
     _model->addToScene(scene, transaction);
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     return true;
 }
 
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::removeFromScene(overlay, scene, transaction);
     _model->removeFromScene(scene, transaction);
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getID(), NestableType::Overlay, _model);
     transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {
         auto modelOverlay = static_cast<ModelOverlay*>(&data);
         modelOverlay->clearSubRenderItemIDs();

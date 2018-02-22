@@ -42,9 +42,11 @@ struct buffer_helpers {
 
     template <typename T> static gpu::BufferView fromVector(const QVector<T>& elements, const gpu::Element& elementType);
 
-    template <typename T> static QVector<T> toVector(const gpu::BufferView& view, const char *hint = "");    
+    template <typename T> static QVector<T> toVector(const gpu::BufferView& view, const char *hint = "");
     template <typename T> static T convert(const gpu::BufferView& view, quint32 index, const char* hint = "");
-    
+
     static gpu::BufferView clone(const gpu::BufferView& input);
-    static gpu::BufferView resize(const gpu::BufferView& input, quint32 numElements);    
+    static gpu::BufferView resize(const gpu::BufferView& input, quint32 numElements);
+
+    static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent);
 };

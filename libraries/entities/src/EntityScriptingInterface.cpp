@@ -585,7 +585,10 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 if (entity->getLocked()) {
                     shouldDelete = false;
                 } else {
-                    _entityTree->deleteEntity(entityID);
+                    // only delete local entities, server entities will round trip through the server filters
+                    if (entity->getClientOnly()) {
+                        _entityTree->deleteEntity(entityID);
+                    }
                 }
             }
         });
@@ -1803,6 +1806,30 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     glm::vec3 penetration;
     AABox aaBox(low, dimensions);
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
+}
+
+void EntityScriptingInterface::getMeshes(QUuid entityID, QScriptValue callback) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
+    if (!entity) {
+        qCDebug(entities) << "EntityScriptingInterface::getMeshes no entity with ID" << entityID;
+        QScriptValueList args { callback.engine()->undefinedValue(), false };
+        callback.call(QScriptValue(), args);
+        return;
+    }
+
+    MeshProxyList result;
+    bool success = entity->getMeshes(result);
+
+    if (success) {
+        QScriptValue resultAsScriptValue = meshesToScriptValue(callback.engine(), result);
+        QScriptValueList args { resultAsScriptValue, true };
+        callback.call(QScriptValue(), args);
+    } else {
+        QScriptValueList args { callback.engine()->undefinedValue(), false };
+        callback.call(QScriptValue(), args);
+    }
 }
 
 glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {

@@ -111,6 +111,7 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    bool getMeshes(MeshProxyList& result) override; // deprecated
     const void* getCollisionMeshKey() const { return _collisionMeshKey; }
 
 signals:
@@ -137,6 +138,7 @@ namespace render { namespace entities {
 class ModelEntityRenderer : public TypedEntityRenderer<RenderableModelEntityItem> {
     using Parent = TypedEntityRenderer<RenderableModelEntityItem>;
     friend class EntityRenderer;
+    Q_OBJECT
 
 public:
     ModelEntityRenderer(const EntityItemPointer& entity);

@@ -16,8 +16,8 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
-#include <render-utils/simple_vert.h>
-#include <render-utils/simple_frag.h>
+#include "render-utils/simple_vert.h"
+#include "render-utils/simple_frag.h"
 
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
@@ -111,8 +111,6 @@ bool ShapeEntityRenderer::isTransparent() const {
     //        return _entity->getLocalRenderAlpha() < 1.0f || Parent::isTransparent();
     return Parent::isTransparent();
 }
-
-
 
 void ShapeEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");

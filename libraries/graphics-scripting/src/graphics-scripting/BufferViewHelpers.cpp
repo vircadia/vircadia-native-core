@@ -22,7 +22,7 @@ namespace glm {
 
 //#define DEBUG_BUFFERVIEW_SCRIPTING
 //#ifdef DEBUG_BUFFERVIEW_SCRIPTING
-    #include "DebugNames.h"
+#include "DebugNames.h"
 //#endif
 
 namespace {
@@ -59,8 +59,8 @@ void setBufferViewElement(const gpu::BufferView& view, quint32 index, const QVar
     view.edit<T>(index) = glmVecFromVariant<T>(v);
 }
 
-//FIXME copied from Model.cpp
-static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
+
+void buffer_helpers::packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
     auto absNormal = glm::abs(normal);
     auto absTangent = glm::abs(tangent);
     normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
@@ -152,9 +152,9 @@ bool boundsCheck(const gpu::BufferView& view, quint32 index) {
     return (
         index < view.getNumElements() &&
         index * byteLength < (view._size - 1) * byteLength
-     );
+    );
 }
-    
+
 QVariant buffer_helpers::toVariant(const gpu::BufferView& view, quint32 index, bool asArray, const char* hint) {
     const auto& element = view._element;
     const auto vecN = element.getScalarCount();
@@ -189,7 +189,7 @@ QVariant buffer_helpers::toVariant(const gpu::BufferView& view, quint32 index, b
                 return glmVecToVariant(glm::vec3(glm::unpackSnorm3x10_1x2(packedNormal)));
             }
 
-            return getBufferViewElement<glm::u8vec4>(view, index, asArray); 
+            return getBufferViewElement<glm::u8vec4>(view, index, asArray);
         }
         }
     } else if (BYTES_PER_ELEMENT == 2) {
@@ -271,12 +271,12 @@ gpu::BufferView buffer_helpers::fromVector(const QVector<T>& elements, const gpu
 template<> gpu::BufferView buffer_helpers::fromVector<unsigned int>(const QVector<unsigned int>& elements, const gpu::Element& elementType) { return fromVector(elements, elementType); }
 template<> gpu::BufferView buffer_helpers::fromVector<glm::vec3>(const QVector<glm::vec3>& elements, const gpu::Element& elementType) { return fromVector(elements, elementType); }
 
-template <typename T> struct getVec4;// { static T get(const gpu::BufferView& view, quint32 index, const char *hint); };
+template <typename T> struct GpuVec4ToGlm;// { static T get(const gpu::BufferView& view, quint32 index, const char *hint); };
 template <typename T> struct getScalar;// { static T get(const gpu::BufferView& view, quint32 index, const char *hint); };
 
-struct gotter {
+struct GpuToGlmAdapter {
     static float error(const QString& name, const gpu::BufferView& view, quint32 index, const char *hint) {
-        qDebug() << QString("gotter:: unhandled type=%1(element=%2(%3)) size=%4(per=%5) vec%6 hint=%7 #%8")
+        qDebug() << QString("GpuToGlmAdapter:: unhandled type=%1(element=%2(%3)) size=%4(per=%5) vec%6 hint=%7 #%8")
             .arg(name)
             .arg(DebugNames::stringFrom(view._element.getType()))
             .arg(view._element.getType())
@@ -288,9 +288,9 @@ struct gotter {
         Q_ASSERT(false);
         assert(false);
         return NAN;
-    }        
+    }
 };
-template <typename T> struct getScalar : gotter {
+template <typename T> struct getScalar : GpuToGlmAdapter {
     static T get(const gpu::BufferView& view, quint32 index, const char *hint) { switch(view._element.getType()) {
         case gpu::UINT32: return view.get<glm::uint32>(index);
         case gpu::UINT16: return view.get<glm::uint16>(index);
@@ -305,7 +305,7 @@ template <typename T> struct getScalar : gotter {
     }
 };
 
-template <typename T> struct getVec2 : gotter { static T get(const gpu::BufferView& view, quint32 index, const char *hint) { switch(view._element.getType()) {
+template <typename T> struct GpuVec2ToGlm : GpuToGlmAdapter { static T get(const gpu::BufferView& view, quint32 index, const char *hint) { switch(view._element.getType()) {
         case gpu::UINT32: return view.get<glm::u32vec2>(index);
         case gpu::UINT16: return view.get<glm::u16vec2>(index);
         case gpu::UINT8: return view.get<glm::u8vec2>(index);
@@ -315,10 +315,10 @@ template <typename T> struct getVec2 : gotter { static T get(const gpu::BufferVi
         case gpu::FLOAT: return view.get<glm::fvec2>(index);
         case gpu::HALF: return glm::unpackSnorm2x8(view.get<glm::int16>(index));
         default: break;
-        } return T(error("getVec2", view, index, hint)); }};
+        } return T(error("GpuVec2ToGlm", view, index, hint)); }};
 
 
-template <typename T> struct getVec3  : gotter  { static T get(const gpu::BufferView& view, quint32 index, const char *hint) { switch(view._element.getType()) {
+template <typename T> struct GpuVec3ToGlm  : GpuToGlmAdapter  { static T get(const gpu::BufferView& view, quint32 index, const char *hint) { switch(view._element.getType()) {
         case gpu::UINT32: return view.get<glm::u32vec3>(index);
         case gpu::UINT16: return view.get<glm::u16vec3>(index);
         case gpu::UINT8: return view.get<glm::u8vec3>(index);
@@ -330,12 +330,12 @@ template <typename T> struct getVec3  : gotter  { static T get(const gpu::Buffer
         case gpu::NUINT8:
         case gpu::NINT2_10_10_10:
             if (view._element.getSize() == sizeof(glm::int32)) {
-                return getVec4<T>::get(view, index, hint);
+                return GpuVec4ToGlm<T>::get(view, index, hint);
             }
         default: break;
-        } return T(error("getVec3", view, index, hint)); }};
+        } return T(error("GpuVec3ToGlm", view, index, hint)); }};
 
-template <typename T> struct getVec4 : gotter { static T get(const gpu::BufferView& view, quint32 index, const char *hint) {
+template <typename T> struct GpuVec4ToGlm : GpuToGlmAdapter { static T get(const gpu::BufferView& view, quint32 index, const char *hint) {
     assert(view._element.getSize() == sizeof(glm::int32));
     switch(view._element.getType()) {
     case gpu::UINT32: return view.get<glm::u32vec4>(index);
@@ -346,7 +346,7 @@ template <typename T> struct getVec4 : gotter { static T get(const gpu::BufferVi
     case gpu::INT8: return view.get<glm::i8vec4>(index);
     case gpu::NUINT32: break;
     case gpu::NUINT16: break;
-    case gpu::NUINT8: return glm::unpackUnorm4x8(view.get<glm::uint32>(index)); 
+    case gpu::NUINT8: return glm::unpackUnorm4x8(view.get<glm::uint32>(index));
     case gpu::NUINT2: break;
     case gpu::NINT32: break;
     case gpu::NINT16: break;
@@ -356,7 +356,7 @@ template <typename T> struct getVec4 : gotter { static T get(const gpu::BufferVi
     case gpu::FLOAT: return view.get<glm::fvec4>(index);
     case gpu::HALF: return glm::unpackSnorm4x8(view.get<glm::int32>(index));
     case gpu::NINT2_10_10_10: return glm::unpackSnorm3x10_1x2(view.get<glm::uint32>(index));
-    } return T(error("getVec4", view, index, hint)); }};
+    } return T(error("GpuVec4ToGlm", view, index, hint)); }};
 
 
 template <typename FUNC, typename T>
@@ -376,16 +376,32 @@ struct getVec {
     }
 };
 
-template <> QVector<int> buffer_helpers::toVector<int>(const gpu::BufferView& view, const char *hint) { return getVec<getScalar<int>,int>::__to_vector__(view, hint); }
-template <> QVector<glm::vec2> buffer_helpers::toVector<glm::vec2>(const gpu::BufferView& view, const char *hint) { return getVec<getVec2<glm::vec2>,glm::vec2>::__to_vector__(view, hint); }
-template <> QVector<glm::vec3> buffer_helpers::toVector<glm::vec3>(const gpu::BufferView& view, const char *hint) { return getVec<getVec3<glm::vec3>,glm::vec3>::__to_vector__(view, hint); }
-template <> QVector<glm::vec4> buffer_helpers::toVector<glm::vec4>(const gpu::BufferView& view, const char *hint) { return getVec<getVec4<glm::vec4>,glm::vec4>::__to_vector__(view, hint); }
+template <> QVector<int> buffer_helpers::toVector<int>(const gpu::BufferView& view, const char *hint) {
+    return getVec<getScalar<int>,int>::__to_vector__(view, hint);
+}
+template <> QVector<glm::vec2> buffer_helpers::toVector<glm::vec2>(const gpu::BufferView& view, const char *hint) {
+    return getVec<GpuVec2ToGlm<glm::vec2>,glm::vec2>::__to_vector__(view, hint);
+}
+template <> QVector<glm::vec3> buffer_helpers::toVector<glm::vec3>(const gpu::BufferView& view, const char *hint) {
+    return getVec<GpuVec3ToGlm<glm::vec3>,glm::vec3>::__to_vector__(view, hint);
+}
+template <> QVector<glm::vec4> buffer_helpers::toVector<glm::vec4>(const gpu::BufferView& view, const char *hint) {
+    return getVec<GpuVec4ToGlm<glm::vec4>,glm::vec4>::__to_vector__(view, hint);
+}
 
 
-template <> int buffer_helpers::convert<int>(const gpu::BufferView& view, quint32 index, const char *hint) { return getVec<getScalar<int>,int>::__to_scalar__(view, index, hint); }
-template <> glm::vec2 buffer_helpers::convert<glm::vec2>(const gpu::BufferView& view, quint32 index, const char *hint) { return getVec<getVec2<glm::vec2>,glm::vec2>::__to_scalar__(view, index, hint); }
-template <> glm::vec3 buffer_helpers::convert<glm::vec3>(const gpu::BufferView& view, quint32 index, const char *hint) { return getVec<getVec3<glm::vec3>,glm::vec3>::__to_scalar__(view, index, hint); }
-template <> glm::vec4 buffer_helpers::convert<glm::vec4>(const gpu::BufferView& view, quint32 index, const char *hint) { return getVec<getVec4<glm::vec4>,glm::vec4>::__to_scalar__(view, index, hint); }
+template <> int buffer_helpers::convert<int>(const gpu::BufferView& view, quint32 index, const char *hint) {
+    return getVec<getScalar<int>,int>::__to_scalar__(view, index, hint);
+}
+template <> glm::vec2 buffer_helpers::convert<glm::vec2>(const gpu::BufferView& view, quint32 index, const char *hint) {
+    return getVec<GpuVec2ToGlm<glm::vec2>,glm::vec2>::__to_scalar__(view, index, hint);
+}
+template <> glm::vec3 buffer_helpers::convert<glm::vec3>(const gpu::BufferView& view, quint32 index, const char *hint) {
+    return getVec<GpuVec3ToGlm<glm::vec3>,glm::vec3>::__to_scalar__(view, index, hint);
+}
+template <> glm::vec4 buffer_helpers::convert<glm::vec4>(const gpu::BufferView& view, quint32 index, const char *hint) {
+    return getVec<GpuVec4ToGlm<glm::vec4>,glm::vec4>::__to_scalar__(view, index, hint);
+}
 
 gpu::BufferView buffer_helpers::clone(const gpu::BufferView& input) {
     return gpu::BufferView(
@@ -410,7 +426,7 @@ gpu::BufferView buffer_helpers::resize(const gpu::BufferView& input, quint32 num
 graphics::MeshPointer buffer_helpers::cloneMesh(graphics::MeshPointer mesh) {
     auto clone = std::make_shared<graphics::Mesh>();
     //[](graphics::Mesh* blah) {
-        //qCDebug(bufferhelper_logging) << "--- DELETING MESH POINTER" << blah;
+    //qCDebug(bufferhelper_logging) << "--- DELETING MESH POINTER" << blah;
     //  delete blah;
     //});
     clone->displayName = (QString::fromStdString(mesh->displayName) + "-clone").toStdString();
@@ -437,12 +453,12 @@ graphics::MeshPointer buffer_helpers::cloneMesh(graphics::MeshPointer mesh) {
 namespace {
     // expand the corresponding attribute buffer (creating it if needed) so that it matches POSITIONS size and specified element type
     gpu::BufferView _expandedAttributeBuffer(const graphics::MeshPointer mesh, gpu::Stream::Slot slot) {
-        gpu::BufferView bufferView = buffer_helpers::getBufferView(mesh, slot);        
+        gpu::BufferView bufferView = buffer_helpers::getBufferView(mesh, slot);
         const auto& elementType = bufferView._element;
         //auto vecN = element.getScalarCount();
         //auto type = element.getType();
         //gpu::Element elementType = getVecNElement(type, vecN);
-        
+
         gpu::Size elementSize = elementType.getSize();
         auto nPositions = mesh->getNumVertices();
         auto vsize = nPositions * elementSize;
@@ -484,8 +500,8 @@ namespace {
             typeName = DebugNames::stringFrom(bufferView._element.getType());
 #endif
             qCDebug(bufferhelper_logging, "NOTE:: _expandedAttributeBuffer.%s vec%d %s (before count=%lu bytes=%lu // after count=%lu bytes=%lu)",
-                          hint.toStdString().c_str(), bufferView._element.getScalarCount(),
-                          typeName.toStdString().c_str(), beforeCount, beforeTotal, afterCount, afterTotal);
+                    hint.toStdString().c_str(), bufferView._element.getScalarCount(),
+                    typeName.toStdString().c_str(), beforeCount, beforeTotal, afterCount, afterTotal);
         }
 #endif
         return bufferView;
@@ -529,7 +545,7 @@ std::map<QString, gpu::BufferView> buffer_helpers::gatherBufferViews(graphics::M
             auto afterCount = attributeViews[name].getNumElements();
             if (beforeTotal != afterTotal || beforeCount != afterCount) {
                 qCDebug(bufferhelper_logging, "NOTE:: gatherBufferViews.%s vec%d %s (before count=%lu bytes=%lu // after count=%lu bytes=%lu)",
-                              name.toStdString().c_str(), vecN, typeName.toStdString().c_str(), beforeCount, beforeTotal, afterCount, afterTotal);
+                        name.toStdString().c_str(), vecN, typeName.toStdString().c_str(), beforeCount, beforeTotal, afterCount, afterTotal);
             }
 #endif
         }
@@ -538,7 +554,7 @@ std::map<QString, gpu::BufferView> buffer_helpers::gatherBufferViews(graphics::M
 }
 
 
-bool buffer_helpers::recalculateNormals(graphics::MeshPointer mesh) {    
+bool buffer_helpers::recalculateNormals(graphics::MeshPointer mesh) {
     qCInfo(bufferhelper_logging) << "Recalculating normals" << !!mesh;
     if (!mesh) {
         return false;
@@ -605,7 +621,7 @@ bool buffer_helpers::recalculateNormals(graphics::MeshPointer mesh) {
             }
             break;
         }
-        normals.edit<glm::vec3>(j) = glm::normalize(normal);
+        buffer_helpers::fromVariant(normals, j, glmVecToVariant(glm::normalize(normal)));
     }
     return true;
 }

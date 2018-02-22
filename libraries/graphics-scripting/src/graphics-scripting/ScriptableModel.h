@@ -16,7 +16,6 @@ namespace scriptable {
         ScriptableModel(const ScriptableModel& other) : ScriptableModelBase(other) {}
         ScriptableModel(const ScriptableModelBase& other) : ScriptableModelBase(other) {}
         ScriptableModel& operator=(const ScriptableModelBase& view) {  ScriptableModelBase::operator=(view); return *this; }
-        //virtual ~ScriptableModel() { qDebug() << "~ScriptableModel" << this; }
 
         Q_INVOKABLE scriptable::ScriptableModelPointer cloneModel(const QVariantMap& options = QVariantMap());
         // TODO: in future accessors for these could go here

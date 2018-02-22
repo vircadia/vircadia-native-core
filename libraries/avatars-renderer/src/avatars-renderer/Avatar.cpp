@@ -221,7 +221,7 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid()) {
+    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
@@ -577,6 +577,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
 
     _mustFadeIn = true;
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::fadeIn(render::ScenePointer scene) {
@@ -626,6 +627,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->removeFromScene(scene, transaction);
     }
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getSessionUUID(), NestableType::Avatar, _skeletonModel);
 }
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
@@ -1764,12 +1766,11 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
 }
 
 scriptable::ScriptableModelBase Avatar::getScriptableModel(bool* ok) {
-    qDebug() << "Avatar::getScriptableModel" ;
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
         return scriptable::ModelProvider::modelUnavailableError(ok);
     }
     scriptable::ScriptableModelBase result = _skeletonModel->getScriptableModel(ok);
-    result.objectID = getSessionUUID(); 
+    result.objectID = getSessionUUID();
     result.mixin({
         { "avatarID", getSessionUUID().toString() },
         { "url", _skeletonModelURL.toString() },

@@ -56,6 +56,7 @@ public:
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override { return scriptable::ModelProvider::modelUnavailableError(ok); }
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);

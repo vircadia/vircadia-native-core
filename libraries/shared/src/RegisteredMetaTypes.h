@@ -315,9 +315,51 @@ Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
 
+namespace graphics {
+    class Mesh;
+}
+
+using MeshPointer = std::shared_ptr<graphics::Mesh>;
 
 
+class MeshProxy : public QObject {
+    Q_OBJECT
 
+public:
+    virtual MeshPointer getMeshPointer() const = 0;
+    Q_INVOKABLE virtual int getNumVertices() const = 0;
+    Q_INVOKABLE virtual glm::vec3 getPos3(int index) const = 0;
+};
+
+Q_DECLARE_METATYPE(MeshProxy*);
+
+class MeshProxyList : public QList<MeshProxy*> {}; // typedef and using fight with the Qt macros/templates, do this instead
+Q_DECLARE_METATYPE(MeshProxyList);
+
+
+QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in);
+void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out);
+
+QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in);
+void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out);
+
+class MeshFace {
+
+public:
+    MeshFace() {}
+    ~MeshFace() {}
+
+    QVector<uint32_t> vertexIndices;
+    // TODO -- material...
+};
+
+Q_DECLARE_METATYPE(MeshFace)
+Q_DECLARE_METATYPE(QVector<MeshFace>)
+
+QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const MeshFace &meshFace);
+void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResult);
+QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector);
+void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result);
 
 
 #endif // hifi_RegisteredMetaTypes_h
