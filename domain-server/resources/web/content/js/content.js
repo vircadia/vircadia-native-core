@@ -271,9 +271,14 @@ $(document).ready(function(){
   }
 
   // handle click in table to restore a given content backup
-  $('body').on('click', '.' + BACKUP_RESTORE_LINK_CLASS, function(e){
+  $('body').on('click', '.' + BACKUP_RESTORE_LINK_CLASS, function(e) {
     // stop the default behaviour
     e.preventDefault();
+
+    // if this is a disabled link, don't proceed with the restore
+    if ($(this).parent().hasClass('disabled')) {
+      return false;
+    }
 
     // grab the name of this backup so we can show it in alerts
     var backupName = $(this).closest('tr').attr('data-backup-name');
