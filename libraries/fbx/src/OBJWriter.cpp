@@ -156,16 +156,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             // graphics::Mesh::TRIANGLES / graphics::Mesh::QUADS
             // TODO -- handle other formats
             uint32_t len = part._startIndex + part._numIndices;
-            auto stringFromTopology = [&](graphics::Mesh::Topology topo) -> QString {
-                return topo == graphics::Mesh::Topology::QUADS ? "QUADS" :
-                topo == graphics::Mesh::Topology::QUAD_STRIP ? "QUAD_STRIP" :
-                topo == graphics::Mesh::Topology::TRIANGLES ? "TRIANGLES" :
-                topo == graphics::Mesh::Topology::TRIANGLE_STRIP ? "TRIANGLE_STRIP" :
-                topo == graphics::Mesh::Topology::QUAD_STRIP ? "QUAD_STRIP" :
-                QString("topo:%1").arg((int)topo);
-            };
-
-            qCDebug(modelformat) << "OBJWriter -- part" << partIndex << "topo" << stringFromTopology(part._topology) << "index elements" << (shorts ? "uint16_t" : "uint32_t");
+            qCDebug(modelformat) << "OBJWriter -- part" << partIndex << "topo" << part._topology << "index elements" << (shorts ? "uint16_t" : "uint32_t");
             if (part._topology == graphics::Mesh::TRIANGLES && len % 3 != 0) {
                 qCDebug(modelformat) << "OBJWriter -- index buffer length isn't a multiple of 3" << len;
             }
