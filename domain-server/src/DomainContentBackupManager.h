@@ -75,6 +75,7 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual void setup() override;
     virtual bool process() override;
+    virtual void shutdown() override;
 
     void load();
     void backup();

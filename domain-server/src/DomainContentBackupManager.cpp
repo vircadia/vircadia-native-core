@@ -155,6 +155,11 @@ bool DomainContentBackupManager::process() {
     return isStillRunning();
 }
 
+void DomainContentBackupManager::shutdown() {
+    // Destroy handlers on the correct thread so that they can cleanup timers
+    _backupHandlers.clear();
+}
+
 void DomainContentBackupManager::aboutToFinish() {
     _stopThread = true;
 }
