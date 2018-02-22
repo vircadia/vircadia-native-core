@@ -57,8 +57,6 @@ public:
 
     void clearIKJointLimitHistory();
 
-    void setMaxHipsOffsetLength(float maxLength);
-
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
     enum class SolutionSource {
@@ -92,7 +90,6 @@ protected:
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
     void preconditionRelativePosesToAvoidLimbLock(const AnimContext& context, const std::vector<IKTarget>& targets);
     void setSecondaryTargets(const AnimContext& context);
-    AnimPose applyHipsOffset() const;
 
     // used to pre-compute information about each joint influeced by a spline IK target.
     struct SplineJointInfo {
@@ -111,7 +108,6 @@ protected:
     void clearConstraints();
     void initConstraints();
     void initLimitCenterPoses();
-    glm::vec3 computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt, glm::vec3 prevHipsOffset) const;
 
     // no copies
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
@@ -150,9 +146,6 @@ protected:
 
     mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
-    // experimental data for moving hips during IK
-    glm::vec3 _hipsOffset { Vectors::ZERO };
-    float _maxHipsOffsetLength{ FLT_MAX };
     int _headIndex { -1 };
     int _hipsIndex { -1 };
     int _hipsParentIndex { -1 };

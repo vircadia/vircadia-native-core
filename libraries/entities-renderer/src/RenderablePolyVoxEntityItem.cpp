@@ -27,6 +27,7 @@
 #include <StencilMaskPass.h>
 
 #include "EntityTreeRenderer.h"
+
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
 #include "polyvox_fade_vert.h"
@@ -70,6 +71,7 @@
 #include "StencilMaskPass.h"
 
 #include "EntityTreeRenderer.h"
+
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
 #include "polyvox_fade_vert.h"
@@ -1138,7 +1140,7 @@ void RenderablePolyVoxEntityItem::setMesh(graphics::MeshPointer mesh) {
     bool neighborsNeedUpdate;
     withWriteLock([&] {
         if (!_collisionless) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
         }
         _mesh = mesh;
         _meshDirty = true;
@@ -1493,8 +1495,8 @@ static gpu::Stream::FormatPointer _vertexFormat;
 
 ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
-        gpu::ShaderPointer vertexShaders[2] = { gpu::Shader::createVertex(std::string(polyvox_vert)), gpu::Shader::createVertex(std::string(polyvox_fade_vert)) };
-        gpu::ShaderPointer pixelShaders[2] = { gpu::Shader::createPixel(std::string(polyvox_frag)), gpu::Shader::createPixel(std::string(polyvox_fade_frag)) };
+        gpu::ShaderPointer vertexShaders[2] = { polyvox_vert::getShader(), polyvox_fade_vert::getShader() };
+        gpu::ShaderPointer pixelShaders[2] = { polyvox_frag::getShader(), polyvox_fade_frag::getShader() };
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));

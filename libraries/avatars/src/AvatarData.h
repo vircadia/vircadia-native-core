@@ -54,6 +54,8 @@
 #include "HeadData.h"
 #include "PathUtils.h"
 
+#include <graphics/Material.h>
+
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
@@ -694,6 +696,9 @@ public:
 
     bool getIsReplicated() const { return _isReplicated; }
 
+    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
+    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+
 signals:
     void displayNameChanged();
     void sessionDisplayNameChanged();
@@ -707,7 +712,11 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) {
         if (sessionUUID != getID()) {
-            setID(sessionUUID);
+            if (sessionUUID == QUuid()) {
+                setID(AVATAR_SELF_ID);
+            } else {
+                setID(sessionUUID);
+            }
             emit sessionUUIDChanged();
         }
     }

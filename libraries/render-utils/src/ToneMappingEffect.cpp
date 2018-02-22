@@ -28,7 +28,7 @@ ToneMappingEffect::ToneMappingEffect() {
 }
 
 void ToneMappingEffect::init() {
-    auto blitPS = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(toneMapping_frag)));
+    auto blitPS = toneMapping_frag::getShader();
 
     auto blitVS = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));

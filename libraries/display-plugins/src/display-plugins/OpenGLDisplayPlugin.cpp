@@ -27,6 +27,7 @@
 #include <gl/GLWidget.h>
 #include <gl/GLEscrow.h>
 #include <gl/Context.h>
+#include <gl/OffscreenGLCanvas.h>
 
 #include <gpu/Texture.h>
 #include <gpu/StandardShaderLib.h>
@@ -130,14 +131,14 @@ public:
         CHECK_GL_ERROR();
         _context->doneCurrent();
         while (!_shutdown) {
-            if (_pendingMainThreadOperation) {
+            if (_pendingOtherThreadOperation) {
                 PROFILE_RANGE(render, "MainThreadOp")
                 {
                     Lock lock(_mutex);
                     _context->doneCurrent();
                     // Move the context to the main thread
-                    _context->moveToThread(qApp->thread());
-                    _pendingMainThreadOperation = false;
+                    _context->moveToThread(_targetOperationThread);
+                    _pendingOtherThreadOperation = false;
                     // Release the main thread to do it's action
                     _condition.notify_one();
                 }
@@ -146,7 +147,7 @@ public:
                 {
                     // Main thread does it's thing while we wait on the lock to release
                     Lock lock(_mutex);
-                    _condition.wait(lock, [&] { return _finishedMainThreadOperation; });
+                    _condition.wait(lock, [&] { return _finishedOtherThreadOperation; });
                 }
             }
 
@@ -214,23 +215,25 @@ public:
         _condition.notify_one();
     }
 
-    void withMainThreadContext(std::function<void()> f) {
+    void withOtherThreadContext(std::function<void()> f) {
         // Signal to the thread that there is work to be done on the main thread
         Lock lock(_mutex);
-        _pendingMainThreadOperation = true;
-        _finishedMainThreadOperation = false;
-        _condition.wait(lock, [&] { return !_pendingMainThreadOperation; });
+        _targetOperationThread = QThread::currentThread();
+        _pendingOtherThreadOperation = true;
+        _finishedOtherThreadOperation = false;
+        _condition.wait(lock, [&] { return !_pendingOtherThreadOperation; });
 
         _context->makeCurrent();
         f();
         _context->doneCurrent();
 
+        _targetOperationThread = nullptr;
         // Move the context back to the presentation thread
         _context->moveToThread(this);
 
         // restore control of the context to the presentation thread and signal
         // the end of the operation
-        _finishedMainThreadOperation = true;
+        _finishedOtherThreadOperation = true;
         lock.unlock();
         _condition.notify_one();
     }
@@ -244,9 +247,11 @@ private:
     Mutex _mutex;
     // Used to allow the main thread to perform context operations
     Condition _condition;
-    bool _pendingMainThreadOperation { false };
-    bool _finishedMainThreadOperation { false };
-    QThread* _mainThread { nullptr };
+
+
+    QThread* _targetOperationThread { nullptr };
+    bool _pendingOtherThreadOperation { false };
+    bool _finishedOtherThreadOperation { false };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
     gl::Context* _context { nullptr };
 };
@@ -744,10 +749,12 @@ void OpenGLDisplayPlugin::swapBuffers() {
     context->swapBuffers();
 }
 
-void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
+void OpenGLDisplayPlugin::withOtherThreadContext(std::function<void()> f) const {
     static auto presentThread = DependencyManager::get<PresentThread>();
-    presentThread->withMainThreadContext(f);
-    _container->makeRenderingContextCurrent();
+    presentThread->withOtherThreadContext(f);
+    if (!OffscreenGLCanvas::restoreThreadContext()) {
+        qWarning("Unable to restore original OpenGL context");
+    }
 }
 
 bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
@@ -784,7 +791,7 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     }
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
-    withMainThreadContext([&] {
+    withOtherThreadContext([&] {
         glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     });
     return screenshot.mirrored(false, true);
@@ -797,7 +804,7 @@ QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
 
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
-    withMainThreadContext([&] {
+    withOtherThreadContext([&] {
         glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
     });
     return screenshot.mirrored(false, true);
@@ -886,7 +893,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
 void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
 #if !defined(USE_GLES)
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
-    withMainThreadContext([&] {
+    withOtherThreadContext([&] {
         GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
         GLuint targetTexture = target->texture();
         GLuint fbo[2] {0, 0};

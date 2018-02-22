@@ -8,59 +8,19 @@
 #include "GLShared.h"
 
 #include <mutex>
+#include <fstream>
 
 #include <QtCore/QThread>
 
+#include <gl/GLHelpers.h>
 #include <GPUIdent.h>
 #include <NumericalConstants.h>
-#include <fstream>
 
 Q_LOGGING_CATEGORY(gpugllogging, "hifi.gpu.gl")
 Q_LOGGING_CATEGORY(trace_render_gpu_gl, "trace.render.gpu.gl")
 Q_LOGGING_CATEGORY(trace_render_gpu_gl_detail, "trace.render.gpu.gl.detail")
 
 namespace gpu { namespace gl {
-
-bool checkGLError(const char* name) {
-    GLenum error = glGetError();
-    if (!error) {
-        return false;
-    } else {
-        switch (error) {
-        case GL_INVALID_ENUM:
-            qCWarning(gpugllogging) << "GLBackend::" << name << ": An unacceptable value is specified for an enumerated argument.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_INVALID_VALUE:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": A numeric argument is out of range.The offending command is ignored and has no other side effect than to set the error flag";
-            break;
-        case GL_INVALID_OPERATION:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": The specified operation is not allowed in the current state.The offending command is ignored and has no other side effect than to set the error flag..";
-            break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": The framebuffer object is not complete.The offending command is ignored and has no other side effect than to set the error flag.";
-            break;
-        case GL_OUT_OF_MEMORY:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": There is not enough memory left to execute the command.The state of the GL is undefined, except for the state of the error flags, after this error is recorded.";
-            break;
-        case GL_STACK_UNDERFLOW:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to underflow.";
-            break;
-        case GL_STACK_OVERFLOW:
-            qCWarning(gpugllogging) << "GLBackend" << name << ": An attempt has been made to perform an operation that would cause an internal stack to overflow.";
-            break;
-        }
-        return true;
-    }
-}
-
-bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
-    return checkGLError(name);
-#else
-    Q_UNUSED(name);
-    return false;
-#endif
-}
 
 gpu::Size getFreeDedicatedMemory() {
     Size result { 0 };

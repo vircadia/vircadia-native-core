@@ -273,6 +273,8 @@ public:
 
     virtual void setAvatarEntityDataChanged(bool value) override;
 
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
 
@@ -401,6 +403,11 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
+
+    void processMaterials();
 };
 
 #endif // hifi_Avatar_h

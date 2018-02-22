@@ -60,7 +60,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
 gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
     if (!_paintStencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(stencil_drawMask_frag));
+        auto ps = stencil_drawMask_frag::getShader();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 

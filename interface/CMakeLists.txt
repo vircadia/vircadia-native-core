@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
-add_custom_target(qml SOURCES ${QML_SRC})
+add_custom_target(qmls SOURCES ${QML_SRC})
 GroupSources("resources/qml")
 
 function(JOIN VALUES GLUE OUTPUT)
@@ -11,9 +11,17 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
+set(CUSTOM_INTERFACE_QRC_PATHS "")
+
+find_npm()
+
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  add_custom_qrc_path(CUSTOM_INTERFACE_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
+endif ()
+
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
-generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *)
+generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_INTERFACE_QRC_PATHS} GLOBS *)
 
 add_custom_command(
     OUTPUT ${RESOURCES_RCC}
@@ -70,7 +78,7 @@ endif ()
 
 find_package(
   Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script Svg
+  Gui Widgets Multimedia Network Qml Quick Script Svg
   ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
@@ -163,6 +171,11 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+if (BUILD_TOOLS AND NPM_EXECUTABLE)
+  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  add_dependencies(resources jsdoc)
+endif()
+
 add_dependencies(${TARGET_NAME} resources)
 
 if (WIN32)
@@ -192,12 +205,14 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared octree ktx gpu gl procedural graphics graphics-scripting render
+  shared task octree ktx gpu gl procedural graphics graphics-scripting render
   pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
-  render-utils entities-renderer avatars-renderer ui auto-updater midi
+  render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
+  workload
   ${PLATFORM_GL_BACKEND}
 )
 
@@ -256,7 +271,7 @@ endif ()
 
 target_link_libraries(
   ${TARGET_NAME}
-  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
+  Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::Widgets
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
   Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}
@@ -289,6 +304,7 @@ if (APPLE)
   )
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+
 
   # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD

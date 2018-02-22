@@ -913,18 +913,25 @@ void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
     recurseTreeWithOperation(elementFilter, nullptr);
 }
 
-EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
+EntityItemPointer EntityTree::findEntityByID(const QUuid& id) const {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);
 }
 
-EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /*const*/ {
-    EntityItemPointer foundEntity = NULL;
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        foundEntity = containingElement->getEntityWithEntityItemID(entityID);
+EntityItemPointer EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) const {
+    EntityItemPointer foundEntity = nullptr;
+    {
+        QReadLocker locker(&_entityMapLock);
+        foundEntity = _entityMap.value(entityID);
     }
-    return foundEntity;
+    if (foundEntity && !foundEntity->getElement()) {
+        // special case to maintain legacy behavior:
+        // if the entity is in the map but not in the tree
+        // then pretend the entity doesn't exist
+        return EntityItemPointer(nullptr);
+    } else {
+        return foundEntity;
+    }
 }
 
 void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties) {
@@ -1098,7 +1105,7 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     if (entityEditFilters) {
         auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
-        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID);
+        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
     }
 
     return accepted;
@@ -1679,14 +1686,17 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-
 void EntityTree::fixupNeedsParentFixups() {
     PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
+    QVector<EntityItemWeakPointer> entitiesToFixup;
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        entitiesToFixup = _needsParentFixup;
+        _needsParentFixup.clear();
+    }
 
-    QWriteLocker locker(&_needsParentFixupLock);
-
-    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesToFixup);
     while (iter.hasNext()) {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
@@ -1729,7 +1739,8 @@ void EntityTree::fixupNeedsParentFixups() {
                 }
             });
             entity->locationChanged(true);
-        } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
+            entity->postParentFixup();
+        } else if (getIsServer() || _avatarIDs.contains(entity->getParentID())) {
             // this is a child of an avatar, which the entity server will never have
             // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
             if (!_childrenOfAvatars.contains(entity->getParentID())) {
@@ -1748,6 +1759,12 @@ void EntityTree::fixupNeedsParentFixups() {
     if (moveOperator.hasMovingEntities()) {
         PerformanceTimer perfTimer("recurseTreeWithOperator");
         recurseTreeWithOperator(&moveOperator);
+    }
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        // add back the entities that did not get fixup
+        _needsParentFixup.append(entitiesToFixup);
     }
 }
 
@@ -1851,6 +1868,36 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 }
 
 
+bool EntityTree::shouldEraseEntity(EntityItemID entityID, const SharedNodePointer& sourceNode) {
+    EntityItemPointer existingEntity;
+
+    auto startLookup = usecTimestampNow();
+    existingEntity = findEntityByEntityItemID(entityID);
+    auto endLookup = usecTimestampNow();
+    _totalLookupTime += endLookup - startLookup;
+
+    auto startFilter = usecTimestampNow();
+    FilterType filterType = FilterType::Delete;
+    EntityItemProperties dummyProperties;
+    bool wasChanged = false;
+
+    bool allowed = (sourceNode->isAllowedEditor()) || filterProperties(existingEntity, dummyProperties, dummyProperties, wasChanged, filterType);
+    auto endFilter = usecTimestampNow();
+
+    _totalFilterTime += endFilter - startFilter;
+
+    if (allowed) {
+        if (wantEditLogging() || wantTerseEditLogging()) {
+            qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityID;
+        }
+    } else if (wantEditLogging() || wantTerseEditLogging()) {
+        qCDebug(entities) << "User [" << sourceNode->getUUID() << "] attempted to deleteentity. ID:" << entityID << " Filter rejected erase.";
+    }
+
+    return allowed;
+}
+
+
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     #ifdef EXTRA_ERASE_DEBUGGING
@@ -1878,12 +1925,10 @@ int EntityTree::processEraseMessage(ReceivedMessage& message, const SharedNodePo
                 #endif
 
                 EntityItemID entityItemID(entityID);
-                entityItemIDsToDelete << entityItemID;
 
-                if (wantEditLogging() || wantTerseEditLogging()) {
-                    qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+                if (shouldEraseEntity(entityID, sourceNode)) {
+                    entityItemIDsToDelete << entityItemID;
                 }
-
             }
             deleteEntities(entityItemIDsToDelete, true, true);
         }
@@ -1929,10 +1974,9 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
             #endif
 
             EntityItemID entityItemID(entityID);
-            entityItemIDsToDelete << entityItemID;
 
-            if (wantEditLogging() || wantTerseEditLogging()) {
-                qCDebug(entities) << "User [" << sourceNode->getUUID() << "] deleting entity. ID:" << entityItemID;
+            if (shouldEraseEntity(entityID, sourceNode)) {
+                entityItemIDsToDelete << entityItemID;
             }
 
         }
@@ -2369,3 +2413,51 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
+std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToEntityOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToOverlayOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+
+bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    if (_addMaterialToEntityOperator) {
+        return _addMaterialToEntityOperator(entityID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTree::removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    if (_removeMaterialFromEntityOperator) {
+        return _removeMaterialFromEntityOperator(entityID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    if (_addMaterialToAvatarOperator) {
+        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    if (_removeMaterialFromAvatarOperator) {
+        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    if (_addMaterialToOverlayOperator) {
+        return _addMaterialToOverlayOperator(overlayID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    if (_removeMaterialFromOverlayOperator) {
+        return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialName);
+    }
+    return false;
+}

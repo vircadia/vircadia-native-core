@@ -36,6 +36,8 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
+#include "graphics/Material.h"
+
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -47,7 +49,6 @@ typedef std::shared_ptr<EntityTree> EntityTreePointer;
 typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
-
 
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -358,7 +359,11 @@ public:
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);
-    void clearDirtyFlags(uint32_t mask = 0xffffffff);
+    void clearDirtyFlags(uint32_t mask = 0x0000ffff);
+
+    uint32_t getSpecialFlags() const;
+    void markSpecialFlags(uint32_t mask);
+    void clearSpecialFlags(uint32_t mask = 0xffff0000);
 
     bool isMoving() const;
     bool isMovingRelativeToParent() const;
@@ -385,7 +390,7 @@ public:
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
     void flagForOwnershipBid(uint8_t priority);
-    void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
+    void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
     bool addAction(EntitySimulationPointer simulation, EntityDynamicPointer action);
@@ -439,10 +444,10 @@ public:
     void scriptHasUnloaded() { _loadedScript = ""; _loadedScriptTimestamp = 0; }
 
     bool getClientOnly() const { return _clientOnly; }
-    void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
+    virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
     // if this entity is client-only, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
-    void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
+    virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
     virtual bool wantsHandControllerPointerEvents() const { return false; }
     virtual bool wantsKeyboardFocus() const { return false; }
@@ -469,6 +474,16 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
+
+    void setCauterized(bool value) { _cauterized = value; }
+    bool getCauterized() const { return _cauterized; }
+
+    virtual void preDelete();
+    virtual void postParentFixup() {}
+
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
+    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
 
 signals:
     void requestRenderUpdate();
@@ -572,7 +587,7 @@ protected:
     //
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
-    uint32_t _dirtyFlags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
+    uint32_t _flags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
 
     // these backpointers are only ever set/cleared by friends:
     EntityTreeElementPointer _element; // set by EntityTreeElement
@@ -622,6 +637,12 @@ protected:
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
     quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
+
+    bool _cauterized { false }; // if true, don't draw because it would obscure 1st-person camera
+
+private:
+    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
+    std::mutex _materialsLock;
 
 };
 

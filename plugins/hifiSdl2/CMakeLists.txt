@@ -7,6 +7,6 @@
 #
 
 set(TARGET_NAME hifiSdl2)
-setup_hifi_plugin(Script Qml Widgets)
+setup_hifi_plugin(Qml)
 link_hifi_libraries(shared controllers ui plugins input-plugins script-engine)
 target_sdl2()

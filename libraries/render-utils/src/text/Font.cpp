@@ -223,9 +223,9 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = gpu::Shader::createVertex(std::string(sdf_text3D_vert));
-            auto pixelShader = gpu::Shader::createPixel(std::string(sdf_text3D_frag));
-            auto pixelShaderTransparent = gpu::Shader::createPixel(std::string(sdf_text3D_transparent_frag));
+            auto vertexShader = sdf_text3D_vert::getShader();
+            auto pixelShader = sdf_text3D_frag::getShader();
+            auto pixelShaderTransparent = sdf_text3D_transparent_frag::getShader();
             gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
             gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(vertexShader, pixelShaderTransparent);
 

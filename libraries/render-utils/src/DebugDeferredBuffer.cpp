@@ -369,8 +369,7 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile)
 
 const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
-        static const std::string VERTEX_SHADER { debug_deferred_buffer_vert };
-        static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag };
+        static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag::getSource() };
         static const std::string SOURCE_PLACEHOLDER { "//SOURCE_PLACEHOLDER" };
         static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
         Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
@@ -380,7 +379,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(),
                                     getShaderSourceCode(mode, customFile));
         
-        static const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
+        const auto vs = debug_deferred_buffer_vert::getShader();
         const auto ps = gpu::Shader::createPixel(bakedFragmentShader);
         const auto program = gpu::Shader::createProgram(vs, ps);
         

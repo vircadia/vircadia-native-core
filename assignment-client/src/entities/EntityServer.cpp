@@ -453,7 +453,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId().remove(QRegExp("\\{|\\}"));
+    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());

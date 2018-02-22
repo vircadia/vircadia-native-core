@@ -59,6 +59,9 @@ public:
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
 
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
     virtual scriptable::ScriptableModelBase getScriptableModel(bool* ok = nullptr) override;
 protected:
     Transform evalRenderTransform() override;
@@ -107,9 +110,11 @@ private:
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
 
-    bool _visibleDirty { false };
+    bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+
+    void processMaterials();
 
 };
 

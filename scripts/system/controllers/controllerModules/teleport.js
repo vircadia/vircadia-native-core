@@ -411,7 +411,7 @@ Script.include("/~/system/libraries/controllers.js");
         var data = parseJSON(props.userData);
         if (data !== undefined && data.seat !== undefined) {
             var avatarUuid = Uuid.fromString(data.seat.user);
-            if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid)) {
+            if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid).sessionUUID) {
                 return TARGET.SEAT;
             } else {
                 return TARGET.INVALID;

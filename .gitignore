@@ -86,3 +86,6 @@ android/app/src/main/assets
 
 # Resource binary file
 interface/compiledResources
+
+# GPUCache
+interface/resources/GPUCache/*

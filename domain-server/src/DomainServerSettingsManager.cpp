@@ -39,8 +39,11 @@ const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
 const QString DESCRIPTION_NAME_KEY = "name";
+const QString DESCRIPTION_GROUP_LABEL_KEY = "label";
+const QString DESCRIPTION_BACKUP_FLAG_KEY = "backup";
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 const QString DESCRIPTION_COLUMNS_KEY = "columns";
+const QString CONTENT_SETTING_FLAG_KEY = "content_setting";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
@@ -63,6 +66,8 @@ DomainServerSettingsManager::DomainServerSettingsManager() {
 
             if (descriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
                 _descriptionArray = descriptionDocument.object()[DESCRIPTION_SETTINGS_KEY].toArray();
+                splitSettingsDescription();
+
                 return;
             }
         }
@@ -78,11 +83,99 @@ DomainServerSettingsManager::DomainServerSettingsManager() {
                               Q_ARG(int, MISSING_SETTINGS_DESC_ERROR_CODE));
 }
 
+void DomainServerSettingsManager::splitSettingsDescription() {
+    // construct separate description arrays for domain settings and content settings
+    // since they are displayed on different pages
+
+    // along the way we also construct one object that holds the groups separated by domain settings
+    // and content settings, so that the DS can setup dropdown menus below "Content" and "Settings"
+    // headers to jump directly to a settings group on the page of either
+    QJsonArray domainSettingsMenuGroups;
+    QJsonArray contentSettingsMenuGroups;
+
+    foreach(const QJsonValue& group, _descriptionArray) {
+        QJsonObject groupObject = group.toObject();
+
+        static const QString HIDDEN_GROUP_KEY = "hidden";
+        bool groupHidden = groupObject.contains(HIDDEN_GROUP_KEY) && groupObject[HIDDEN_GROUP_KEY].toBool();
+
+        QJsonArray domainSettingArray;
+        QJsonArray contentSettingArray;
+
+        foreach(const QJsonValue& settingDescription, groupObject[DESCRIPTION_SETTINGS_KEY].toArray()) {
+            QJsonObject settingDescriptionObject = settingDescription.toObject();
+
+            bool isContentSetting = settingDescriptionObject.contains(CONTENT_SETTING_FLAG_KEY)
+                && settingDescriptionObject[CONTENT_SETTING_FLAG_KEY].toBool();
+
+            if (isContentSetting) {
+                // push the setting description to the pending content setting array
+                contentSettingArray.push_back(settingDescriptionObject);
+            } else {
+                // push the setting description to the pending domain setting array
+                domainSettingArray.push_back(settingDescriptionObject);
+            }
+        }
+
+        if (!domainSettingArray.isEmpty() || !contentSettingArray.isEmpty()) {
+
+            // we know for sure we'll have something to add to our settings menu groups
+            // so setup that object for the group now, as long as the group isn't hidden alltogether
+            QJsonObject settingsDropdownGroup;
+
+            if (!groupHidden) {
+                if (groupObject.contains(DESCRIPTION_NAME_KEY)) {
+                    settingsDropdownGroup[DESCRIPTION_NAME_KEY] = groupObject[DESCRIPTION_NAME_KEY];
+                }
+
+                settingsDropdownGroup[DESCRIPTION_GROUP_LABEL_KEY] = groupObject[DESCRIPTION_GROUP_LABEL_KEY];
+
+                static const QString DESCRIPTION_GROUP_HTML_ID_KEY = "html_id";
+                if (groupObject.contains(DESCRIPTION_GROUP_HTML_ID_KEY)) {
+                    settingsDropdownGroup[DESCRIPTION_GROUP_HTML_ID_KEY] = groupObject[DESCRIPTION_GROUP_HTML_ID_KEY];
+                }
+            }
+
+            if (!domainSettingArray.isEmpty()) {
+                // we have some domain settings from this group, add the group with the filtered settings
+                QJsonObject filteredGroupObject = groupObject;
+                filteredGroupObject[DESCRIPTION_SETTINGS_KEY] = domainSettingArray;
+                _domainSettingsDescription.push_back(filteredGroupObject);
+
+                // if the group isn't hidden, add its information to the domain settings menu groups
+                if (!groupHidden) {
+                    domainSettingsMenuGroups.push_back(settingsDropdownGroup);
+                }
+            }
+
+            if (!contentSettingArray.isEmpty()) {
+                // we have some content settings from this group, add the group with the filtered settings
+                QJsonObject filteredGroupObject = groupObject;
+                filteredGroupObject[DESCRIPTION_SETTINGS_KEY] = contentSettingArray;
+                _contentSettingsDescription.push_back(filteredGroupObject);
+
+                // if the group isn't hidden, add its information to the content settings menu groups
+                if (!groupHidden) {
+                    contentSettingsMenuGroups.push_back(settingsDropdownGroup);
+                }
+            }
+        }
+    }
+
+    // populate the settings menu groups with what we've collected
+
+    static const QString SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY = "domain_settings";
+    static const QString SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY = "content_settings";
+
+    _settingsMenuGroups[SPLIT_MENU_GROUPS_DOMAIN_SETTINGS_KEY] = domainSettingsMenuGroups;
+    _settingsMenuGroups[SPLIT_MENU_GROUPS_CONTENT_SETTINGS_KEY] = contentSettingsMenuGroups;
+}
+
 void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message) {
     Assignment::Type type;
     message->readPrimitive(&type);
 
-    QJsonObject responseObject = responseObjectForType(QString::number(type));
+    QJsonObject responseObject = settingsResponseObjectForType(QString::number(type));
     auto json = QJsonDocument(responseObject).toJson();
 
     auto packetList = NLPacketList::create(PacketType::DomainSettings, QByteArray(), true, true);
@@ -314,14 +407,14 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             QVariant* avatarMinScale = _configMap.valueForKeyPath(AVATAR_MIN_SCALE_KEYPATH);
             if (avatarMinScale) {
-                float scale = avatarMinScale->toFloat();
-                _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+                auto newMinScaleVariant = _configMap.valueForKeyPath(AVATAR_MIN_HEIGHT_KEYPATH, true);
+                *newMinScaleVariant = avatarMinScale->toFloat() * DEFAULT_AVATAR_HEIGHT;
             }
 
             QVariant* avatarMaxScale = _configMap.valueForKeyPath(AVATAR_MAX_SCALE_KEYPATH);
             if (avatarMaxScale) {
-                float scale = avatarMaxScale->toFloat();
-                _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, scale * DEFAULT_AVATAR_HEIGHT);
+                auto newMaxScaleVariant = _configMap.valueForKeyPath(AVATAR_MAX_HEIGHT_KEYPATH, true);
+                *newMaxScaleVariant = avatarMaxScale->toFloat() * DEFAULT_AVATAR_HEIGHT;
             }
         }
 
@@ -986,48 +1079,246 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
 }
 
 bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH_JSON) {
-        // this is a POST operation to change one or more settings
-        QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
-        QJsonObject postedObject = postedDocument.object();
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
+        static const QString SETTINGS_RESTORE_PATH = "/settings/restore";
 
-        // we recurse one level deep below each group for the appropriate setting
-        bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject);
+        if (url.path() == SETTINGS_PATH_JSON || url.path() == CONTENT_SETTINGS_PATH_JSON) {
+            // this is a POST operation to change one or more settings
+            QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
+            QJsonObject postedObject = postedDocument.object();
 
-        // store whatever the current _settingsMap is to file
-        persistToFile();
+            SettingsType endpointType = url.path() == SETTINGS_PATH_JSON ? DomainSettings : ContentSettings;
 
-        // return success to the caller
-        QString jsonSuccess = "{\"status\": \"success\"}";
-        connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+            // we recurse one level deep below each group for the appropriate setting
+            bool restartRequired = recurseJSONObjectAndOverwriteSettings(postedObject, endpointType);
 
-        // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
-        if (restartRequired) {
-            const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
-            QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
-        } else {
-            unpackPermissions();
-            apiRefreshGroupInformation();
-            emit updateNodePermissions();
-            emit settingsUpdated();
+            // store whatever the current _settingsMap is to file
+            persistToFile();
+
+            // return success to the caller
+            QString jsonSuccess = "{\"status\": \"success\"}";
+            connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+
+            // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
+            if (restartRequired) {
+                const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+                QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+            } else {
+                unpackPermissions();
+                apiRefreshGroupInformation();
+                emit updateNodePermissions();
+                emit settingsUpdated();
+            }
+
+            return true;
+        } else if (url.path() == SETTINGS_RESTORE_PATH) {
+            // this is an JSON settings file restore, ask the HTTPConnection to parse the data
+            QList<FormData> formData = connection->parseFormData();
+
+            bool wasRestoreSuccessful = false;
+
+            if (formData.size() > 0 && formData[0].second.size() > 0) {
+                // take the posted file and convert it to a QJsonObject
+                auto postedDocument = QJsonDocument::fromJson(formData[0].second);
+                if (postedDocument.isObject()) {
+                    wasRestoreSuccessful = restoreSettingsFromObject(postedDocument.object(), DomainSettings);
+                }
+            }
+
+            if (wasRestoreSuccessful) {
+                // respond with a 200 for success
+                QString jsonSuccess = "{\"status\": \"success\"}";
+                connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
+
+                // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
+                const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+                QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+            } else {
+                // respond with a 400 for failure
+                connection->respond(HTTPConnection::StatusCode400);
+            }
+
+            return true;
         }
+    }   else if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        static const QString SETTINGS_MENU_GROUPS_PATH = "/settings-menu-groups.json";
+        static const QString SETTINGS_BACKUP_PATH = "/settings/backup.json";
 
-        return true;
-    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
-        // setup a JSON Object with descriptions and non-omitted settings
-        const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
-        const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+        if (url.path() == SETTINGS_PATH_JSON || url.path() == CONTENT_SETTINGS_PATH_JSON) {
 
-        QJsonObject rootObject;
-        rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
-        rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
-        connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
+            // setup a JSON Object with descriptions and non-omitted settings
+            const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
+            const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+
+            QJsonObject rootObject;
+
+            bool forDomainSettings = (url.path() == SETTINGS_PATH_JSON);
+            bool forContentSettings = (url.path() == CONTENT_SETTINGS_PATH_JSON);;
+
+            rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = forDomainSettings
+                ? _domainSettingsDescription : _contentSettingsDescription;
+
+            // grab a domain settings object for all types, filtered for the right class of settings
+            // and exclude default values
+            rootObject[SETTINGS_RESPONSE_VALUE_KEY] = settingsResponseObjectForType("", true,
+                                                                                    forDomainSettings, forContentSettings,
+                                                                                    true);
+
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
+
+            return true;
+        } else if (url.path() == SETTINGS_MENU_GROUPS_PATH) {
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(_settingsMenuGroups).toJson(), "application/json");
+
+            return true;
+        } else if (url.path() == SETTINGS_BACKUP_PATH) {
+            // grab the settings backup as an authenticated user
+            // for the domain settings type only, excluding hidden and default values
+            auto currentDomainSettingsJSON = settingsResponseObjectForType("", true, true, false, false, true);
+
+            // setup headers that tell the client to download the file wth a special name
+            Headers downloadHeaders;
+            downloadHeaders.insert("Content-Transfer-Encoding", "binary");
+
+            // create a timestamped filename for the backup
+            const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
+            auto backupFilename = "domain-settings_" + QDateTime::currentDateTime().toString(DATETIME_FORMAT) + ".json";
+
+            downloadHeaders.insert("Content-Disposition",
+                                   QString("attachment; filename=\"%1\"").arg(backupFilename).toLocal8Bit());
+
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(currentDomainSettingsJSON).toJson(),
+                                "application/force-download", downloadHeaders);
+        }
     }
 
     return false;
 }
 
-QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated) {
+bool DomainServerSettingsManager::restoreSettingsFromObject(QJsonObject settingsToRestore, SettingsType settingsType) {
+    QJsonArray* filteredDescriptionArray = settingsType == DomainSettings
+        ? &_domainSettingsDescription : &_contentSettingsDescription;
+
+    // grab a copy of the current config before restore, so that we can back out if something bad happens during
+    QVariantMap preRestoreConfig = _configMap.getConfig();
+
+    bool shouldCancelRestore = false;
+
+    // enumerate through the settings in the description
+    // if we have one in the restore then use it, otherwise clear it from current settings
+    foreach(const QJsonValue& descriptionGroupValue, *filteredDescriptionArray) {
+        QJsonObject descriptionGroupObject = descriptionGroupValue.toObject();
+        QString groupKey = descriptionGroupObject[DESCRIPTION_NAME_KEY].toString();
+        QJsonArray descriptionGroupSettings = descriptionGroupObject[DESCRIPTION_SETTINGS_KEY].toArray();
+
+        // grab the matching group from the restore so we can look at its settings
+        QJsonObject restoreGroup;
+        QVariantMap* configGroupMap = nullptr;
+
+        if (groupKey.isEmpty()) {
+            // this is for a setting at the root, use the full object as our restore group
+            restoreGroup = settingsToRestore;
+
+            // the variant map for this "group" is just the config map since there's no group
+            configGroupMap = &_configMap.getConfig();
+        } else {
+            if (settingsToRestore.contains(groupKey)) {
+                restoreGroup = settingsToRestore[groupKey].toObject();
+            }
+
+            // grab the variant for the group
+            auto groupMapVariant = _configMap.valueForKeyPath(groupKey);
+
+            // if it existed, double check that it is a map - any other value is unexpected and should cancel a restore
+            if (groupMapVariant) {
+                if (groupMapVariant->canConvert<QVariantMap>()) {
+                    configGroupMap = static_cast<QVariantMap*>(groupMapVariant->data());
+                } else {
+                    shouldCancelRestore = true;
+                    break;
+                }
+            }
+        }
+
+        foreach(const QJsonValue& descriptionSettingValue, descriptionGroupSettings) {
+
+            QJsonObject descriptionSettingObject = descriptionSettingValue.toObject();
+
+            // we'll override this setting with the default or what is in the restore as long as
+            // it isn't specifically excluded from backups
+            bool isBackedUpSetting = !descriptionSettingObject.contains(DESCRIPTION_BACKUP_FLAG_KEY)
+                || descriptionSettingObject[DESCRIPTION_BACKUP_FLAG_KEY].toBool();
+
+            if (isBackedUpSetting) {
+                QString settingName = descriptionSettingObject[DESCRIPTION_NAME_KEY].toString();
+
+                // check if we have a matching setting for this in the restore
+                QJsonValue restoreValue;
+                if (restoreGroup.contains(settingName)) {
+                    restoreValue = restoreGroup[settingName];
+                }
+
+                // we should create the value for this key path in our current config map
+                // if we had value in the restore file
+                bool shouldCreateIfMissing = !restoreValue.isNull();
+
+                // get a QVariant pointer to this setting in our config map
+                QString fullSettingKey = !groupKey.isEmpty()
+                    ? groupKey + "." + settingName : settingName;
+
+                QVariant* variantValue = _configMap.valueForKeyPath(fullSettingKey, shouldCreateIfMissing);
+
+                if (restoreValue.isNull()) {
+                    if (variantValue && !variantValue->isNull() && configGroupMap) {
+                        // we didn't have a value to restore, but there might be a value in the config map
+                        // so we need to remove the value in the config map which will set it back to the default
+                        qDebug() << "Removing" << fullSettingKey << "from settings since it is not in the restored JSON";
+                        configGroupMap->remove(settingName);
+                    }
+                } else {
+                    // we have a value to restore, use update setting to set it
+
+                    // we might need to re-grab config group map in case it didn't exist when we looked for it before
+                    // but was created by the call to valueForKeyPath before
+                    if (!configGroupMap) {
+                        auto groupMapVariant = _configMap.valueForKeyPath(groupKey);
+                        if (groupMapVariant && groupMapVariant->canConvert<QVariantMap>()) {
+                            configGroupMap = static_cast<QVariantMap*>(groupMapVariant->data());
+                        } else {
+                            shouldCancelRestore = true;
+                            break;
+                        }
+                    }
+
+                    qDebug() << "Updating setting" << fullSettingKey << "from restored JSON";
+
+                    updateSetting(settingName, restoreValue, *configGroupMap, descriptionSettingObject);
+                }
+            }
+        }
+
+        if (shouldCancelRestore) {
+            break;
+        }
+    }
+
+    if (shouldCancelRestore) {
+        // if we cancelled the restore, go back to our state before and return false
+        qDebug() << "Restore cancelled, settings have not been changed";
+        _configMap.getConfig() = preRestoreConfig;
+        return false;
+    } else {
+        // restore completed, persist the new settings
+        qDebug() << "Restore completed, persisting restored settings to file";
+        persistToFile();
+        return true;
+    }
+}
+
+QJsonObject DomainServerSettingsManager::settingsResponseObjectForType(const QString& typeValue, bool isAuthenticated,
+                                                                       bool includeDomainSettings,
+                                                                       bool includeContentSettings,
+                                                                       bool includeDefaults, bool isForBackup) {
     QJsonObject responseObject;
 
     if (!typeValue.isEmpty() || isAuthenticated) {
@@ -1036,8 +1327,16 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
         const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
 
-        // enumerate the groups in the description object to find which settings to pass
-        foreach(const QJsonValue& groupValue, _descriptionArray) {
+        // only enumerate the requested settings type (domain setting or content setting)
+        QJsonArray* filteredDescriptionArray = &_descriptionArray;
+        if (includeDomainSettings && !includeContentSettings) {
+            filteredDescriptionArray = &_domainSettingsDescription;
+        } else if (includeContentSettings && !includeDomainSettings) {
+            filteredDescriptionArray = &_contentSettingsDescription;
+        }
+
+        // enumerate the groups in the potentially filtered object to find which settings to pass
+        foreach(const QJsonValue& groupValue, *filteredDescriptionArray) {
             QJsonObject groupObject = groupValue.toObject();
             QString groupKey = groupObject[DESCRIPTION_NAME_KEY].toString();
             QJsonArray groupSettingsArray = groupObject[DESCRIPTION_SETTINGS_KEY].toArray();
@@ -1045,11 +1344,17 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
             QJsonObject groupResponseObject;
 
             foreach(const QJsonValue& settingValue, groupSettingsArray) {
+
                 const QString VALUE_HIDDEN_FLAG_KEY = "value-hidden";
 
                 QJsonObject settingObject = settingValue.toObject();
 
-                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
+                // consider this setting as long as it isn't hidden
+                // and either this isn't for a backup or it's a value included in backups
+                bool includedInBackups = !settingObject.contains(DESCRIPTION_BACKUP_FLAG_KEY)
+                    || settingObject[DESCRIPTION_BACKUP_FLAG_KEY].toBool();
+
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool() && (!isForBackup || includedInBackups)) {
                     QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
                     if (affectedTypesArray.isEmpty()) {
                         affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
@@ -1057,8 +1362,6 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
 
                     if (affectedTypesArray.contains(queryType) ||
                         (queryType.isNull() && isAuthenticated)) {
-                        // this is a setting we should include in the responseObject
-
                         QString settingName = settingObject[DESCRIPTION_NAME_KEY].toString();
 
                         // we need to check if the settings map has a value for this setting
@@ -1074,28 +1377,31 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                             variantValue = _configMap.value(settingName);
                         }
 
-                        QJsonValue result;
+                        // final check for inclusion
+                        // either we include default values or we don't but this isn't a default value
+                        if (includeDefaults || !variantValue.isNull()) {
+                            QJsonValue result;
 
-                        if (variantValue.isNull()) {
-                            // no value for this setting, pass the default
-                            if (settingObject.contains(SETTING_DEFAULT_KEY)) {
-                                result = settingObject[SETTING_DEFAULT_KEY];
+                            if (variantValue.isNull()) {
+                                // no value for this setting, pass the default
+                                if (settingObject.contains(SETTING_DEFAULT_KEY)) {
+                                    result = settingObject[SETTING_DEFAULT_KEY];
+                                } else {
+                                    // users are allowed not to provide a default for string values
+                                    // if so we set to the empty string
+                                    result = QString("");
+                                }
                             } else {
-                                // users are allowed not to provide a default for string values
-                                // if so we set to the empty string
-                                result = QString("");
+                                result = QJsonValue::fromVariant(variantValue);
                             }
 
-                        } else {
-                            result = QJsonValue::fromVariant(variantValue);
-                        }
-
-                        if (!groupKey.isEmpty()) {
-                            // this belongs in the group object
-                            groupResponseObject[settingName] = result;
-                        } else {
-                            // this is a value that should be at the root
-                            responseObject[settingName] = result;
+                            if (!groupKey.isEmpty()) {
+                                // this belongs in the group object
+                                groupResponseObject[settingName] = result;
+                            } else {
+                                // this is a value that should be at the root
+                                responseObject[settingName] = result;
+                            }
                         }
                     }
                 }
@@ -1107,7 +1413,6 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
             }
         }
     }
-
 
     return responseObject;
 }
@@ -1140,6 +1445,8 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
                 settingMap[key] = sanitizedValue;
             }
         }
+    } else if (newValue.isDouble()) {
+        settingMap[key] = newValue.toDouble();
     } else if (newValue.isBool()) {
         settingMap[key] = newValue.toBool();
     } else if (newValue.isObject()) {
@@ -1212,7 +1519,8 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
+                                                                        SettingsType settingsType) {
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
@@ -1221,6 +1529,8 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
+
+    auto& filteredDescriptionArray = settingsType == DomainSettings ? _domainSettingsDescription : _contentSettingsDescription;
 
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
@@ -1236,7 +1546,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         QJsonObject groupDescriptionObject;
 
         // we need to check the description array to see if this is a root setting or a group setting
-        foreach(const QJsonValue& groupValue, _descriptionArray) {
+        foreach(const QJsonValue& groupValue, filteredDescriptionArray) {
             if (groupValue.toObject()[DESCRIPTION_NAME_KEY] == rootKey) {
                 // we matched a group - keep this since we'll use it below to update the settings
                 groupDescriptionObject = groupValue.toObject();
@@ -1257,7 +1567,9 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             foreach(const QJsonValue& groupValue, _descriptionArray) {
                 // find groups with root values (they don't have a group name)
                 QJsonObject groupObject = groupValue.toObject();
+
                 if (!groupObject.contains(DESCRIPTION_NAME_KEY)) {
+
                     // this is a group with root values - check if our setting is in here
                     matchingDescriptionObject = settingDescriptionFromGroup(groupObject, rootKey);
 
@@ -1269,6 +1581,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
+
                 if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
                     rootKey != SETTINGS_PATHS_KEY && rootKey != WIZARD_KEY) {
                     needRestart = true;
@@ -1286,6 +1599,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
+
                     if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
                          rootKey != DESCRIPTION_ROOT_KEY && rootKey != WIZARD_KEY) ||
                         settingKey == AC_SUBNET_WHITELIST_KEY) {
