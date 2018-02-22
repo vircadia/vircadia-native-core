@@ -1300,7 +1300,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 auto entityRenderer = static_cast<EntityRenderer*>(&data);
                 entityRenderer->clearSubRenderItemIDs();
             });
-            emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
+            emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
         return;
     }
@@ -1311,10 +1312,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
             emit requestRenderUpdate();
-            auto factory = DependencyManager::get<scriptable::ModelProviderFactory>().data();
-            qDebug() << "leopoly didVisualGeometryRequestSucceed" << didVisualGeometryRequestSucceed << QThread::currentThread() << _model.get();
             if(didVisualGeometryRequestSucceed) {
-                emit factory->modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
+                emit DependencyManager::get<scriptable::ModelProviderFactory>()->
+                    modelAddedToScene(entity->getEntityItemID(), NestableType::Entity, _model);
             }
         });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);

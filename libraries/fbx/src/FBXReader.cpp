@@ -1987,7 +1987,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 if (mesh._mesh) {
                     mesh._mesh->modelName = name.toStdString();
                     if (!mesh._mesh->displayName.size()) {
-                        mesh._mesh->displayName = mesh._mesh->displayName + "#" + name;
+                        mesh._mesh->displayName = QString("#%1").arg(name).toStdString();
                     }
                 } else {
                     qDebug() << "modelName but no mesh._mesh" << name;
