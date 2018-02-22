@@ -30,9 +30,8 @@
         if (onHelpScreen) {
             tablet.gotoHomeScreen();
         } else {
-            var tabletEntity = HMD.tabletID;
-            if (tabletEntity) {
-                Entities.editEntity(tabletEntity, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
             }
             Menu.triggerOption('Help...');
             onHelpScreen = true;
@@ -47,22 +46,12 @@
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
-    var POLL_RATE = 500;
-    var interval = Script.setInterval(function () {
-        var visible = Menu.isInfoViewVisible('InfoView_html/help.html');
-        if (visible !== enabled) {
-            enabled = visible;
-            button.editProperties({isActive: enabled});
-        }
-    }, POLL_RATE);
-
     Script.scriptEnding.connect(function () {
         if (onHelpScreen) {
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
         tablet.screenChanged.disconnect(onScreenChanged);
-        Script.clearInterval(interval);
         if (tablet) {
             tablet.removeButton(button);
         }

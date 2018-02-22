@@ -230,10 +230,8 @@ public:
 
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
-    static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
     static ModalDialogListener* getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
     static ModalDialogListener* getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
-    static ModalDialogListener* getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config);
 
     unsigned int getMenuUserDataId() const;
     QList<QObject *> &getModalDialogListeners();
