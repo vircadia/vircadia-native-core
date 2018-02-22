@@ -23,6 +23,10 @@ static const int HRTF_BLOCK = 240;      // block processing size
 
 static const float HRTF_GAIN = 1.0f;    // HRTF global gain adjustment
 
+// Near-field HRTF
+static const float HRTF_DISTANCE_MIN = 0.125f;
+static const float HRTF_HEAD_RADIUS = 0.0875f;  // average human head
+
 class AudioHRTF {
 
 public:

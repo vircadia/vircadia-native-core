@@ -72,6 +72,28 @@ ALIGN32 static const float crossfadeTable[HRTF_BLOCK] = {
 };
 
 //
+// Model the normalized near-field Distance Variation Filter.
+//
+// This version is parameterized by the DC gain correction, instead of directly by azimuth and distance.
+// A first-order shelving filter is used to minimize the disturbance in ITD.
+//
+// Loosely based on data from S. Spagnol, "Distance rendering and perception of nearby virtual sound sources
+// with a near-field filter model,” Applied Acoustics (2017)
+// 
+static const int NNEARFIELD = 9;
+static const float nearFieldTable[NNEARFIELD][3] = {    // { b0, b1, a1 }
+    { 0.008410604f, -0.000262748f, -0.991852144f },     // gain = 1/256
+    { 0.016758914f, -0.000529590f, -0.983770676f },     // gain = 1/128
+    { 0.033270607f, -0.001075350f, -0.967804743f },     // gain = 1/64
+    { 0.065567740f, -0.002213762f, -0.936646021f },     // gain = 1/32
+    { 0.127361554f, -0.004667324f, -0.877305769f },     // gain = 1/16
+    { 0.240536414f, -0.010201827f, -0.769665412f },     // gain = 1/8
+    { 0.430858205f, -0.023243052f, -0.592384847f },     // gain = 1/4
+    { 0.703238106f, -0.054157913f, -0.350919807f },     // gain = 1/2
+    { 1.000000000f, -0.123144711f, -0.123144711f },     // gain = 1/1
+};
+
+//
 // Model the frequency-dependent attenuation of sound propogation in air.
 //
 // Fit using linear regression to a log-log model of lowpass cutoff frequency vs distance,
@@ -168,6 +190,8 @@ static const float lowpassTable[NLOWPASS][5] = {    // { b0, b1, b2, a1, a2 }
     { 0.000076480f, 0.000024509f, -0.000000991f, -1.985807957f, 0.985907955f },
 };
 
+static const float HALFPI = 1.570796327f;
+static const float PI = 3.141592654f;
 static const float TWOPI = 6.283185307f;
 
 //
@@ -716,7 +740,7 @@ static void distanceBiquad(float distance, float& b0, float& b1, float& b2, floa
     //
 
     float x = distance;
-    x = MIN(MAX(x, 1.0f), 1<<30);
+    x = MIN(x, 1<<30);
     x *= x;
     x *= x; // x = distance^4
 
@@ -747,33 +771,151 @@ static void distanceBiquad(float distance, float& b0, float& b1, float& b2, floa
     a2 = lowpassTable[e+0][4] + frac * (lowpassTable[e+1][4] - lowpassTable[e+0][4]);
 }
 
+//
+// Geometric correction of the azimuth, to the angle at each ear.
+// D. Brungart, "Auditory parallax effects in the HRTF for nearby sources," IEEE WASPAA (1999).
+//
+static void nearFieldAzimuth(float azimuth, float distance, float& azimuthL, float& azimuthR) {
+
+    // FIXME: optimize
+    float dx = distance * cosf(azimuth);
+    float dy = distance * sinf(azimuth);
+
+    azimuthL = atan2f(dy + HRTF_HEAD_RADIUS, dx);
+    azimuthR = atan2f(dy - HRTF_HEAD_RADIUS, dx);
+}
+
+//
+// Approximate the near-field DC gain correction at each ear.
+//
+static void nearFieldGain(float azimuth, float distance, float& gainL, float& gainR) {
+
+    // normalized distance factor = [0,1] as distance = [1,HRTF_HEAD_RADIUS]
+    assert(distance < 1.0f);
+    assert(distance > HRTF_HEAD_RADIUS);
+	float d = (1.0f - distance) * ( 1.0f / (1.0f - HRTF_HEAD_RADIUS));
+
+    // angle of incidence at each ear
+    float angleL = azimuth + HALFPI;
+    float angleR = azimuth - HALFPI;
+    if (angleL > +PI) {
+        angleL -= TWOPI;
+    }
+    if (angleR < -PI) {
+        angleR += TWOPI;
+    }
+    assert(angleL >= -PI);
+    assert(angleL <= +PI);
+    assert(angleR >= -PI);
+    assert(angleR <= +PI);
+
+    // normalized occlusion factor = [0,1] as angle of incidence = [0,pi]
+    angleL *= angleL;
+    angleR *= angleR;
+    float cL = ((-0.000452339132f * angleL - 0.00173192444f) * angleL + 0.162476536f) * angleL;
+    float cR = ((-0.000452339132f * angleR - 0.00173192444f) * angleR + 0.162476536f) * angleR;
+
+    // approximate the gain correction
+    // NOTE: this must converge to 1.0 when distance = 1.0m at all azimuth
+    gainL = 1.0f - d * cL;
+    gainR = 1.0f - d * cR;
+}
+
+//
+// Approximate the normalized near-field Distance Variation Function at each ear.
+// A. Kan, "Distance Variation Function for simulation of near-field virtual auditory space," IEEE ICASSP (2006)
+//
+static void nearFieldFilter(float gain, float& b0, float& b1, float& a1) {
+
+    //
+    // Computed from a lookup table quantized to gain = 2^(-N)
+    // and reconstructed by piecewise linear interpolation.
+    //
+
+    // split gain into e and frac, such that gain = 2^(e+0) + frac * (2^(e+1) - 2^(e+0))
+    int e;
+    float frac;
+    splitf(gain, e, frac);
+
+    // clamp to table limits
+    e += NNEARFIELD-1;
+    if (e < 0) {
+        e = 0;
+        frac = 0.0f;
+    } 
+    if (e > NNEARFIELD-2) {
+        e = NNEARFIELD-2;
+        frac = 1.0f;
+    }
+    assert(frac >= 0.0f);
+    assert(frac <= 1.0f);
+    assert(e+0 >= 0);
+    assert(e+1 < NNEARFIELD);
+
+    // piecewise linear interpolation
+    b0 = nearFieldTable[e+0][0] + frac * (nearFieldTable[e+1][0] - nearFieldTable[e+0][0]);
+    b1 = nearFieldTable[e+0][1] + frac * (nearFieldTable[e+1][1] - nearFieldTable[e+0][1]);
+    a1 = nearFieldTable[e+0][2] + frac * (nearFieldTable[e+1][2] - nearFieldTable[e+0][2]);
+}
+
+static void azimuthToIndex(float azimuth, int& index0, int& index1, float& frac) {
+
+    // convert from radians to table units
+    azimuth *= (HRTF_AZIMUTHS / TWOPI);
+
+    if (azimuth < 0.0f) {
+        azimuth += HRTF_AZIMUTHS;
+    }
+
+    // table parameters
+    index0 = (int)azimuth;
+    index1 = index0 + 1;
+    frac = azimuth - (float)index0;
+
+    if (index1 >= HRTF_AZIMUTHS) {
+        index1 -= HRTF_AZIMUTHS;
+    }
+
+    assert((index0 >= 0) && (index0 < HRTF_AZIMUTHS));
+    assert((index1 >= 0) && (index1 < HRTF_AZIMUTHS));
+    assert((frac >= 0.0f) && (frac < 1.0f));
+}
+
 // compute new filters for a given azimuth, distance and gain
 static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int delay[4], 
                        int index, float azimuth, float distance, float gain, int channel) {
 
-    // convert from radians to table units
-    azimuth *= HRTF_AZIMUTHS / TWOPI;
-
-    // wrap to principle value
-    while (azimuth < 0.0f) {
-        azimuth += HRTF_AZIMUTHS;
+    if (azimuth > PI) {
+        azimuth -= TWOPI;
     }
-    while (azimuth >= HRTF_AZIMUTHS) {
-        azimuth -= HRTF_AZIMUTHS;
+    assert(azimuth >= -PI);
+    assert(azimuth <= +PI);
+
+    distance = MAX(distance, HRTF_DISTANCE_MIN);
+
+    // compute the azimuth correction at each ear
+    float azimuthL, azimuthR;
+    nearFieldAzimuth(azimuth, distance, azimuthL, azimuthR);
+
+    // compute the DC gain correction at each ear
+    float gainL = 1.0f;
+    float gainR = 1.0f;
+    if (distance < 1.0f) {
+        nearFieldGain(azimuth, distance, gainL, gainR);
     }
 
-    // table parameters
-    int az0 = (int)azimuth;
-    int az1 = (az0 + 1) % HRTF_AZIMUTHS;
-    float frac = azimuth - (float)az0;
+    // parameters for table interpolation
+    int azL0, azR0, az0;
+    int azL1, azR1, az1;
+    float fracL, fracR, frac;
 
-    assert((az0 >= 0) && (az0 < HRTF_AZIMUTHS));
-    assert((az1 >= 0) && (az1 < HRTF_AZIMUTHS));
-    assert((frac >= 0.0f) && (frac < 1.0f));
+    azimuthToIndex(azimuthL, azL0, azL1, fracL);
+    azimuthToIndex(azimuthR, azR0, azR1, fracR);
+    azimuthToIndex(azimuth, az0, az1, frac);
 
     // interpolate FIR
-    interpolate(firCoef[channel+0], ir_table_table[index][az0][0], ir_table_table[index][az1][0], frac, gain);
-    interpolate(firCoef[channel+1], ir_table_table[index][az0][1], ir_table_table[index][az1][1], frac, gain);
+    interpolate(firCoef[channel+0], ir_table_table[index][azL0][0], ir_table_table[index][azL1][0], fracL, gain * gainL);
+    interpolate(firCoef[channel+1], ir_table_table[index][azR0][1], ir_table_table[index][azR1][1], fracR, gain * gainR);
 
     // interpolate ITD
     float itd = (1.0f - frac) * itd_table_table[index][az0] + frac * itd_table_table[index][az1];
@@ -832,21 +974,40 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     }
 
     //
-    // Second biquad implements the distance filter.
+    // Second biquad implements the near-field or distance filter.
     //
-    distanceBiquad(distance, b0, b1, b2, a1, a2);
+    if (distance < 1.0f) {
+        nearFieldFilter(gainL, b0, b1, a1);
 
-    bqCoef[0][channel+4] = b0;
-    bqCoef[1][channel+4] = b1;
-    bqCoef[2][channel+4] = b2;
-    bqCoef[3][channel+4] = a1;
-    bqCoef[4][channel+4] = a2;
+        bqCoef[0][channel+4] = b0;
+        bqCoef[1][channel+4] = b1;
+        bqCoef[2][channel+4] = 0.0f;
+        bqCoef[3][channel+4] = a1;
+        bqCoef[4][channel+4] = 0.0f;
 
-    bqCoef[0][channel+5] = b0;
-    bqCoef[1][channel+5] = b1;
-    bqCoef[2][channel+5] = b2;
-    bqCoef[3][channel+5] = a1;
-    bqCoef[4][channel+5] = a2;
+        nearFieldFilter(gainR, b0, b1, a1);
+
+        bqCoef[0][channel+5] = b0;
+        bqCoef[1][channel+5] = b1;
+        bqCoef[2][channel+5] = 0.0f;
+        bqCoef[3][channel+5] = a1;
+        bqCoef[4][channel+5] = 0.0f;
+
+    } else {
+        distanceBiquad(distance, b0, b1, b2, a1, a2);
+
+        bqCoef[0][channel+4] = b0;
+        bqCoef[1][channel+4] = b1;
+        bqCoef[2][channel+4] = b2;
+        bqCoef[3][channel+4] = a1;
+        bqCoef[4][channel+4] = a2;
+
+        bqCoef[0][channel+5] = b0;
+        bqCoef[1][channel+5] = b1;
+        bqCoef[2][channel+5] = b2;
+        bqCoef[3][channel+5] = a1;
+        bqCoef[4][channel+5] = a2;
+    }
 }
 
 void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames) {
