@@ -76,6 +76,7 @@ Rectangle {
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
+            console.log("FIXME wallet status:", walletStatus, "activeView:", root.activeView);
         }
 
         onLoginStatusResult: {
@@ -176,10 +177,6 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    WalletChoice {
-        visible: (root.activeView === "preexisiting") || (root.activeView === "conflicting");
-        activeView: root.activeView;
-    }
 
     WalletSetup {
         id: walletSetup;
@@ -729,6 +726,17 @@ Rectangle {
             }
         }
     }
+
+    WalletChoice {
+        visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
+        activeView: root.activeView;
+        width: parent.width;
+        anchors {
+            top: titleBarContainer.bottom;
+            bottom: parent.bottom;
+        }
+    }
+
 
     //
     // FUNCTION DEFINITIONS START
