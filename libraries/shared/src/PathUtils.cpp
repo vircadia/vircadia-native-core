@@ -139,10 +139,12 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
     if (path.startsWith("/~/")) {
         QString absolutePath = applicationAbsolutePath();
         path.replace(0, 3, absolutePath);
-        url = QUrl("file:///" + path);
+        url = QUrl("file://" + path);
+        qDebug() << "QQQQ expandToAppAbsolutePath " << fileUrl << url;
     }
     return url;
 }
+
 const QString& PathUtils::qmlBaseUrl() {
     static const QString staticResourcePath = resourcesUrl() + "qml/";
     return staticResourcePath;
