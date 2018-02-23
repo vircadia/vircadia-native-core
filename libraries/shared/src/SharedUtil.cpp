@@ -59,6 +59,9 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <QSysInfo>
 #include <QThread>
 
+#include <BuildInfo.h>
+
+#include "LogHandler.h"
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
@@ -1179,6 +1182,23 @@ void watchParentProcess(int parentPID) {
 }
 #endif
 
+void setupHifiApplication(QString applicationName) {
+    disableQtBearerPoll(); // Fixes wifi ping spikes
+
+    QCoreApplication::setApplicationName(applicationName);
+    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
+
+    setupGlobalInstances();
+
+#ifndef WIN32
+    setvbuf(stdout, NULL, _IOLBF, 0);
+#endif
+
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    qInfo() << "Starting.";
+}
 
 #ifdef Q_OS_WIN
 QString getLastErrorAsString() {

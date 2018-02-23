@@ -15,12 +15,7 @@
 #include <SharedUtil.h>
 
 int main (int argc, char** argv) {
-    QCoreApplication::setApplicationName("Oven");
-    QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
-    QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
-    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
-
-    setupGlobalInstances();
+    setupHifiApplication("Oven");
 
     // init the settings interface so we can save and load settings
     Setting::init();

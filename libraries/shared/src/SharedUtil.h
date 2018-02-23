@@ -228,6 +228,7 @@ void watchParentProcess(int parentPID);
 
 bool processIsRunning(int64_t pid);
 
+void setupHifiApplication(QString applicationName);
 
 #ifdef Q_OS_WIN
 void* createProcessGroup();
