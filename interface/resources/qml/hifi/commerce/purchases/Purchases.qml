@@ -36,7 +36,7 @@ Rectangle {
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property int pendingItemCount: 0;
-    property var installedApps;
+    property string installedApps;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -63,7 +63,6 @@ Rectangle {
                 } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
                     root.installedApps = Commerce.getInstalledApps();
-                    console.log("ZRF! " + root.installedApps);
                     Commerce.inventory();
                 }
             } else {
@@ -688,9 +687,6 @@ Rectangle {
             var currentId;
             for (var i = 0; i < tempPurchasesModel.count; i++) {
                 currentId = tempPurchasesModel.get(i).id;
-                console.log("ZRF HERE 2 " + root.installedApps);
-                console.log("ZRF HERE 3 " + currentId);
-                console.log("ZRF HERE 4 " + ((root.installedApps).indexOf(currentId) > -1));
 
                 filteredPurchasesModel.append(tempPurchasesModel.get(i));
                 filteredPurchasesModel.setProperty(i, 'permissionExplanationCardVisible', false);

@@ -190,16 +190,15 @@ void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
     ledger->alreadyOwned(marketplaceId);
 }
 
-QStringList QmlCommerce::getInstalledApps() {
-    QStringList installedAppsFromMarketplace;
+QString QmlCommerce::getInstalledApps() {
+    QString installedAppsFromMarketplace;
     QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
 
     QDir directory(_appsPath);
-    qCDebug(commerce) << "ZRF FIXME" << _appsPath;
     QStringList apps = directory.entryList(QStringList("*.app.json"));
     foreach(QString appFileName, apps) {
-        installedAppsFromMarketplace.append(appFileName);
-        qCDebug(commerce) << "ZRF FIXME" << appFileName;
+        installedAppsFromMarketplace += appFileName;
+        installedAppsFromMarketplace += ",";
         QFile appFile(_appsPath + appFileName);
         if (appFile.open(QIODevice::ReadOnly)) {
             QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
