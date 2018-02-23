@@ -14,8 +14,8 @@ import "../styles-uit"
 Item {
     property int colorScheme: 0;
     
-    readonly property var topColor: [ hifi.colors.baseGrayShadow, hifi.colors.faintGray ];
-    readonly property var bottomColor: [ hifi.colors.baseGrayHighlight, hifi.colors.faintGray ];
+    readonly property var topColor: [ hifi.colors.baseGrayShadow, hifi.colors.faintGray, "#89858C" ];
+    readonly property var bottomColor: [ hifi.colors.baseGrayHighlight, hifi.colors.faintGray, "#89858C" ];
 
     // Size
     height: colorScheme === 0 ? 2 : 1;
