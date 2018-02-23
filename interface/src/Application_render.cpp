@@ -62,9 +62,7 @@ void Application::paintGL() {
 
     RenderArgs renderArgs;
     glm::mat4  HMDSensorPose;
-    glm::mat4  HMDSensorPrevPose;
     glm::mat4  eyeToWorld;
-    glm::mat4  prevEyeToWorld;
     glm::mat4  sensorToWorld;
 
     bool isStereo;
