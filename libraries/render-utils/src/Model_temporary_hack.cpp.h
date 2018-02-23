@@ -1,3 +1,4 @@
+// FIXME: temporary workaround for duplicating the FBXModel when dynamically replacing an underlying mesh part
 #include <graphics/BufferViewHelpers.h>
 #include <graphics-scripting/GraphicsScriptingUtil.h>
 class MyGeometryResource : public GeometryResource {

@@ -72,7 +72,7 @@ scriptable::ScriptableModelPointer scriptable::ScriptableModel::cloneModel(const
 
 const QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::getConstMeshes() const {
     QVector<scriptable::ScriptableMeshPointer> out;
-    for(const auto& mesh : meshes) {
+    for (const auto& mesh : meshes) {
         const scriptable::ScriptableMesh* m = qobject_cast<const scriptable::ScriptableMesh*>(&mesh);
         if (!m) {
             m = scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh);
@@ -87,7 +87,7 @@ const QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::ge
 
 QVector<scriptable::ScriptableMeshPointer> scriptable::ScriptableModel::getMeshes() {
     QVector<scriptable::ScriptableMeshPointer> out;
-    for(auto& mesh : meshes) {
+    for (auto& mesh : meshes) {
         scriptable::ScriptableMesh* m = qobject_cast<scriptable::ScriptableMesh*>(&mesh);
         if (!m) {
             m = scriptable::make_scriptowned<scriptable::ScriptableMesh>(mesh);

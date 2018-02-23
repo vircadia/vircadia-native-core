@@ -24,9 +24,9 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
-#include <model-networking/SimpleMeshProxy.h>
 #include <TBBHelpers.h>
 
+#include <model-networking/SimpleMeshProxy.h>
 #include <graphics-scripting/Forward.h>
 #include <graphics/BufferViewHelpers.h>
 #include <DualQuaternion.h>
@@ -885,7 +885,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
 
     DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
 
-    for(const auto& triangleSet : _modelSpaceMeshTriangleSets) {
+    for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
         auto box = triangleSet.getBounds();
 
         if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
