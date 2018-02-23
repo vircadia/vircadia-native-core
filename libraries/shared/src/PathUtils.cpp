@@ -116,19 +116,6 @@ const QString& PathUtils::resourcesUrl() {
     return staticResourcePath;
 }
 
-QString applicationAbsolutePath() {
-    QString path;
-#if defined(Q_OS_OSX)
-    path = QCoreApplication::applicationDirPath() + "/../";
-#elif defined(Q_OS_ANDROID)
-    path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
-#else
-    path = QCoreApplication::applicationDirPath() + "/";
-#endif
-
-    return path;
-}
-
 QUrl PathUtils::resourcesUrl(const QString& relativeUrl) {
     return QUrl(resourcesUrl() + relativeUrl);
 }
@@ -137,14 +124,8 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
     QUrl url = fileUrl;
     QString path = fileUrl.path();
     if (path.startsWith("/~/")) {
-        QString absolutePath = applicationAbsolutePath();
-        path.replace(0, 3, absolutePath);
-#if defined(Q_OS_OSX)
-        url = QUrl("file://" + path);
-#else
-        url = QUrl("file:///" + path);
-#endif
-        qDebug() << "QQQQ expandToAppAbsolutePath " << fileUrl << url;
+        path.replace(0, 3, resourcesUrl());
+        url = QUrl(path);
     }
     return url;
 }
