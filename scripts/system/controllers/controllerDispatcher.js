@@ -146,7 +146,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setIgnorePointerItems = function() {
-            if (HMD.tabletID !== this.tabletID) {
+            if (HMD.tabletID && HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
                 Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist);
                 Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist);
@@ -479,7 +479,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
     }
     function mouseReleaseOnOverlay(overlayID, event) {
-        if (overlayID === HMD.homeButtonID && event.button === "Primary") {
+        if (HMD.homeButtonID && overlayID === HMD.homeButtonID && event.button === "Primary") {
             Messages.sendLocalMessage("home", overlayID);
         }
     }
