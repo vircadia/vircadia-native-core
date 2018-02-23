@@ -358,6 +358,7 @@ public:
 
     const std::string& getName() { return _name; }
 
+    const std::string& getModel() { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
 protected:

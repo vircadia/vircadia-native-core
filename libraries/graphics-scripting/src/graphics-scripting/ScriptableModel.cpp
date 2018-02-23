@@ -14,7 +14,106 @@
 
 #include <QtScript/QScriptEngine>
 
+#include "graphics/Material.h"
+
+#include "image/Image.h"
+
 // #define SCRIPTABLE_MESH_DEBUG 1
+
+scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const scriptable::ScriptableMaterial& material) {
+    name = material.name;
+    model = material.model;
+    opacity = material.opacity;
+    roughness = material.roughness;
+    metallic = material.metallic;
+    scattering = material.scattering;
+    unlit = material.unlit;
+    emissive = material.emissive;
+    albedo = material.albedo;
+    emissiveMap = material.emissiveMap;
+    albedoMap = material.albedoMap;
+    opacityMap = material.opacityMap;
+    metallicMap = material.metallicMap;
+    specularMap = material.specularMap;
+    roughnessMap = material.roughnessMap;
+    glossMap = material.glossMap;
+    normalMap = material.normalMap;
+    bumpMap = material.bumpMap;
+    occlusionMap = material.occlusionMap;
+    lightmapMap = material.lightmapMap;
+    scatteringMap = material.scatteringMap;
+    priority = material.priority;
+
+    return *this;
+}
+
+scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialLayer& materialLayer) :
+    name(materialLayer.material->getName().c_str()),
+    model(materialLayer.material->getModel().c_str()),
+    opacity(materialLayer.material->getOpacity()),
+    roughness(materialLayer.material->getRoughness()),
+    metallic(materialLayer.material->getMetallic()),
+    scattering(materialLayer.material->getScattering()),
+    unlit(materialLayer.material->isUnlit()),
+    emissive(materialLayer.material->getEmissive()),
+    albedo(materialLayer.material->getAlbedo()),
+    priority(materialLayer.priority)
+{
+    auto map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::EMISSIVE_MAP);
+    if (map && map->getTextureSource()) {
+        emissiveMap = map->getTextureSource()->getUrl().toString();
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::ALBEDO_MAP);
+    if (map && map->getTextureSource()) {
+        albedoMap = map->getTextureSource()->getUrl().toString();
+        if (map->useAlphaChannel()) {
+            opacityMap = albedoMap;
+        }
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::METALLIC_MAP);
+    if (map && map->getTextureSource()) {
+        if (map->getTextureSource()->getType() == image::TextureUsage::Type::METALLIC_TEXTURE) {
+            metallicMap = map->getTextureSource()->getUrl().toString();
+        } else if (map->getTextureSource()->getType() == image::TextureUsage::Type::SPECULAR_TEXTURE) {
+            specularMap = map->getTextureSource()->getUrl().toString();
+        }
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::ROUGHNESS_MAP);
+    if (map && map->getTextureSource()) {
+        if (map->getTextureSource()->getType() == image::TextureUsage::Type::ROUGHNESS_TEXTURE) {
+            roughnessMap = map->getTextureSource()->getUrl().toString();
+        } else if (map->getTextureSource()->getType() == image::TextureUsage::Type::GLOSS_TEXTURE) {
+            glossMap = map->getTextureSource()->getUrl().toString();
+        }
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::NORMAL_MAP);
+    if (map && map->getTextureSource()) {
+        if (map->getTextureSource()->getType() == image::TextureUsage::Type::NORMAL_TEXTURE) {
+            normalMap = map->getTextureSource()->getUrl().toString();
+        } else if (map->getTextureSource()->getType() == image::TextureUsage::Type::BUMP_TEXTURE) {
+            bumpMap = map->getTextureSource()->getUrl().toString();
+        }
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::OCCLUSION_MAP);
+    if (map && map->getTextureSource()) {
+        occlusionMap = map->getTextureSource()->getUrl().toString();
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::LIGHTMAP_MAP);
+    if (map && map->getTextureSource()) {
+        lightmapMap = map->getTextureSource()->getUrl().toString();
+    }
+
+    map = materialLayer.material->getTextureMap(graphics::Material::MapChannel::SCATTERING_MAP);
+    if (map && map->getTextureSource()) {
+        scatteringMap = map->getTextureSource()->getUrl().toString();
+    }
+}
 
 scriptable::ScriptableModelBase& scriptable::ScriptableModelBase::operator=(const scriptable::ScriptableModelBase& other) {
     provider = other.provider;
@@ -22,6 +121,8 @@ scriptable::ScriptableModelBase& scriptable::ScriptableModelBase::operator=(cons
     for (const auto& mesh : other.meshes) {
         append(mesh);
     }
+    materials = other.materials;
+    materialNames = other.materialNames;
     return *this;
 }
 
@@ -34,6 +135,8 @@ scriptable::ScriptableModelBase::~ScriptableModelBase() {
         m.strongMesh.reset();
     }
     meshes.clear();
+    materials.clear();
+    materialNames.clear();
 }
 
 void scriptable::ScriptableModelBase::append(scriptable::WeakMeshPointer mesh) {
@@ -45,6 +148,27 @@ void scriptable::ScriptableModelBase::append(const ScriptableMeshBase& mesh) {
         qCDebug(graphics_scripting) << "warning: appending mesh from different provider..." << mesh.provider.lock().get() << " != " << provider.lock().get();
     }
     meshes << mesh;
+}
+
+void scriptable::ScriptableModelBase::appendMaterial(const graphics::MaterialLayer& material, int shapeID, std::string materialName) {
+    materials[QString::number(shapeID)].push_back(ScriptableMaterial(material));
+    materials["mat::" + QString::fromStdString(materialName)].push_back(ScriptableMaterial(material));
+}
+
+void scriptable::ScriptableModelBase::appendMaterials(const std::unordered_map<std::string, graphics::MultiMaterial>& materialsToAppend) {
+    auto materialsToAppendCopy = materialsToAppend;
+    for (auto& multiMaterial : materialsToAppendCopy) {
+        while (!multiMaterial.second.empty()) {
+            materials[QString(multiMaterial.first.c_str())].push_back(ScriptableMaterial(multiMaterial.second.top()));
+            multiMaterial.second.pop();
+        }
+    }
+}
+
+void scriptable::ScriptableModelBase::appendMaterialNames(const std::vector<std::string>& names) {
+    for (auto& name : names) {
+        materialNames.append(QString::fromStdString(name));
+    }
 }
 
 QString scriptable::ScriptableModel::toString() const {

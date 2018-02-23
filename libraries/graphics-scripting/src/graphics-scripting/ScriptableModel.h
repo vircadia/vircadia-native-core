@@ -19,6 +19,8 @@ namespace scriptable {
         Q_PROPERTY(QUuid objectID MEMBER objectID CONSTANT)
         Q_PROPERTY(uint32 numMeshes READ getNumMeshes)
         Q_PROPERTY(QVector<scriptable::ScriptableMeshPointer> meshes READ getMeshes)
+        Q_PROPERTY(scriptable::MultiMaterialMap materials READ getMaterials)
+        Q_PROPERTY(QVector<QString> materialNames READ getMaterialNames)
 
         ScriptableModel(QObject* parent = nullptr) : ScriptableModelBase(parent) {}
         ScriptableModel(const ScriptableModel& other) : ScriptableModelBase(other) {}
@@ -28,7 +30,6 @@ namespace scriptable {
         Q_INVOKABLE scriptable::ScriptableModelPointer cloneModel(const QVariantMap& options = QVariantMap());
         // TODO: in future accessors for these could go here
         // QVariantMap shapes;
-        // QVariantMap materials;
         // QVariantMap armature;
 
         QVector<scriptable::ScriptableMeshPointer> getMeshes();
@@ -37,6 +38,8 @@ namespace scriptable {
             return QPointer<scriptable::ScriptableModelBase>(qobject_cast<scriptable::ScriptableModelBase*>(this));
         }
 
+        scriptable::MultiMaterialMap getMaterials() { return materials; }
+        QVector<QString> getMaterialNames() { return materialNames; }
 
         // QScriptEngine-specific wrappers
         Q_INVOKABLE uint32 mapAttributeValues(QScriptValue callback);
@@ -51,3 +54,5 @@ Q_DECLARE_METATYPE(scriptable::WeakMeshPointer)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelPointer)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelBase)
 Q_DECLARE_METATYPE(scriptable::ScriptableModelBasePointer)
+Q_DECLARE_METATYPE(scriptable::ScriptableMaterial)
+Q_DECLARE_METATYPE(scriptable::MultiMaterialMap)

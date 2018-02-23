@@ -6,9 +6,14 @@
 #include <QtCore/QUuid>
 #include <QPointer>
 #include <memory>
+#include <unordered_map>
 
 #include <DependencyManager.h>
 #include <SpatiallyNestable.h>
+
+#include "graphics/Material.h"
+#include "graphics/TextureMap.h"
+
 namespace graphics {
     class Mesh;
 }
@@ -30,6 +35,38 @@ namespace scriptable {
     class ModelProvider;
     using ModelProviderPointer = std::shared_ptr<scriptable::ModelProvider>;
     using WeakModelProviderPointer = std::weak_ptr<scriptable::ModelProvider>;
+
+    class ScriptableMaterial {
+    public:
+        ScriptableMaterial() {}
+        ScriptableMaterial(const graphics::MaterialLayer& materialLayer);
+        ScriptableMaterial(const ScriptableMaterial& material) { *this = material; }
+        ScriptableMaterial& operator=(const ScriptableMaterial& material);
+
+        QString name;
+        QString model;
+        float opacity;
+        float roughness;
+        float metallic;
+        float scattering;
+        bool unlit;
+        glm::vec3 emissive;
+        glm::vec3 albedo;
+        QString emissiveMap;
+        QString albedoMap;
+        QString opacityMap;
+        QString metallicMap;
+        QString specularMap;
+        QString roughnessMap;
+        QString glossMap;
+        QString normalMap;
+        QString bumpMap;
+        QString occlusionMap;
+        QString lightmapMap;
+        QString scatteringMap;
+        quint16 priority;
+    };
+    typedef QHash<QString, QVector<scriptable::ScriptableMaterial>> MultiMaterialMap;
 
     class ScriptableMeshBase : public QObject {
         Q_OBJECT
@@ -55,6 +92,8 @@ namespace scriptable {
         WeakModelProviderPointer provider;
         QUuid objectID; // spatially nestable ID
         QVector<scriptable::ScriptableMeshBase> meshes;
+        MultiMaterialMap materials;
+        QVector<QString> materialNames;
 
         ScriptableModelBase(QObject* parent = nullptr) : QObject(parent) {}
         ScriptableModelBase(const ScriptableModelBase& other) : QObject(other.parent()) { *this = other; }
@@ -63,9 +102,11 @@ namespace scriptable {
 
         void append(const ScriptableMeshBase& mesh);
         void append(scriptable::WeakMeshPointer mesh);
+        void appendMaterial(const graphics::MaterialLayer& material, int shapeID, std::string materialName);
+        void appendMaterials(const std::unordered_map<std::string, graphics::MultiMaterial>& materialsToAppend);
+        void appendMaterialNames(const std::vector<std::string>& names);
         // TODO: in future containers for these could go here
         // QVariantMap shapes;
-        // QVariantMap materials;
         // QVariantMap armature;
     };
 

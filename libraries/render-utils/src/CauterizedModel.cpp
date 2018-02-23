@@ -57,6 +57,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
         _modelMeshRenderItems.clear();
+        _modelMeshMaterialNames.clear();
         _modelMeshRenderItemShapes.clear();
 
         Transform transform;
@@ -81,6 +82,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
+                _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
                 _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
