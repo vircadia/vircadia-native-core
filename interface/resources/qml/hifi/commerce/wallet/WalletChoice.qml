@@ -20,6 +20,7 @@ import "../../../controls-uit" as HifiControlsUit
 Column {
     property string activeView: "conflict";
     property bool isMissing: activeView === "preeexisting";
+    property var proceedFunction: nil;
     RalewayBold {
         text: isMissing 
             ? "Where are your private keys?"
@@ -45,26 +46,35 @@ Column {
         color: hifi.buttons.blue;
         colorScheme: hifi.colorSchemes.dark;
         onClicked: {
-            console.log("FIXME CREATE");
+            console.log("FIXME open modal that says Are you sure, where the yes button calls proceed directly instead of this next line.")
+            proceed(true);
         }
     }
     RalewayRegular {
         text: "What's this?";
     }
+
     function onFileOpenChanged(filename) {
-        console.log('fixme selected', filename);
         // disconnect the event, otherwise the requests will stack up
-        try {
-            // Not all calls to onFileOpenChanged() connect an event.
+        try { // Not all calls to onFileOpenChanged() connect an event.
             Window.browseChanged.disconnect(onFileOpenChanged);
         } catch (e) {
-            console.log('ignoring', e);
+            console.log('WalletChoice.qml ignoring', e);
         }
-        console.log('fixme do something with', filename);
+        if (filename) {
+            console.log("FIXME copy file to the right place");
+            proceed(false);
+        } // Else we're still at WalletChoice
     }
     function walletChooser() {
-        console.log("GOT CLICK");
         Window.browseChanged.connect(onFileOpenChanged); 
-        Window.browseAsync("Choose wallet file", "", "*.hifikey");
+        Window.browseAsync("Locate your .hifikey file", "", "*.hifikey");
+    }
+    function proceed(isReset) {
+        if (!proceedFunction) {
+            console.log("Provide a function of no arguments to WalletChoice.qml.");
+        } else {
+            proceedFunction(isReset);
+        }
     }
 }

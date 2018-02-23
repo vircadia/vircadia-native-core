@@ -730,6 +730,13 @@ Rectangle {
     WalletChoice {
         visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
         activeView: root.activeView;
+        proceedFunction: function (isReset) {
+            console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
+            if (isReset) {
+                root.activeView = "initialize";
+                Commerce.getWalletStatus();
+            }
+        }
         width: parent.width;
         anchors {
             top: titleBarContainer.bottom;
