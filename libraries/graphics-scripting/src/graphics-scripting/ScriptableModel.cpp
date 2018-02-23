@@ -41,34 +41,29 @@ scriptable::ScriptableModelBase::~ScriptableModelBase() {
 #ifdef SCRIPTABLE_MESH_DEBUG
     qCDebug(graphics_scripting) << "~ScriptableModelBase" << this;
 #endif
+    // makes cleanup order more deterministic to help with debugging
     for (auto& m : meshes) {
         m.ownedMesh.reset();
-        //qCDebug(graphics_scripting) << "~~~~ScriptableModelBase" << &m << m.mesh.use_count();
     }
     meshes.clear();
-    //qCDebug(graphics_scripting) << "//~ScriptableModelBase" << this;
 }
 
 void scriptable::ScriptableModelBase::append(scriptable::WeakMeshPointer mesh, const QVariantMap& metadata) {
-    //qCDebug(graphics_scripting) << "+ APPEND WeakMeshPointer" << mesh.lock().get();
     meshes << ScriptableMeshBase{ provider, this, mesh, metadata };
 }
 
 void scriptable::ScriptableModelBase::append(const ScriptableMeshBase& mesh, const QVariantMap& modelMetaData) {
-    //qCDebug(graphics_scripting) << "+ APPEND ScriptableMeshBase" << &mesh;
     if (mesh.provider.lock().get() != provider.lock().get()) {
         qCDebug(graphics_scripting) << "warning: appending mesh from different provider..." << mesh.provider.lock().get() << " != " << provider.lock().get();
     }
-    //if (mesh.model && mesh.model != this) {
-    //    qCDebug(graphics_scripting) << "warning: appending mesh from different model..." << mesh.model << " != " << this;
-    //}                    
     meshes << mesh;
     mixin(modelMetaData);
 }
 
 void scriptable::ScriptableModelBase::append(const ScriptableModelBase& other, const QVariantMap& modelMetaData) {
-    //qCDebug(graphics_scripting) << "+ APPEND ScriptableModelBase" << &other;
-    for (const auto& mesh : other.meshes) { append(mesh); }
+    for (const auto& mesh : other.meshes) {
+        append(mesh);
+    }
     mixin(other.metadata);
     mixin(modelMetaData);
 }
@@ -82,21 +77,16 @@ QString scriptable::ScriptableModel::toString() const {
 
 scriptable::ScriptableModelPointer scriptable::ScriptableModel::cloneModel(const QVariantMap& options) {
     scriptable::ScriptableModelPointer clone = scriptable::ScriptableModelPointer(new scriptable::ScriptableModel(*this));
-    qCDebug(graphics_scripting) << "clone->getNumMeshes" << clone->getNumMeshes();
     clone->meshes.clear();
-    qCDebug(graphics_scripting) << "..clone->getNumMeshes" << clone->getNumMeshes();
     for (const auto &mesh : getConstMeshes()) {
         auto cloned = mesh->cloneMesh(options.value("recalculateNormals").toBool());
         if (auto tmp = qobject_cast<scriptable::ScriptableMeshBase*>(cloned)) {
-            qCDebug(graphics_scripting) << "++ APPEND"  << tmp << tmp->ownedMesh.use_count() << tmp->metadata.value("__ownership__") << tmp->metadata.value("__native__");
             clone->meshes << *tmp;
-            tmp->deleteLater();
-            qCDebug(graphics_scripting) << "//++ APPEND"  << clone->meshes.constLast().ownedMesh.use_count();;
+            tmp->deleteLater(); // schedule our copy for cleanup
         } else {
             qCDebug(graphics_scripting) << "error cloning mesh" << cloned;
         }
     }
-    qCDebug(graphics_scripting) << "//clone->getNumMeshes" << clone->getNumMeshes();
     return clone;
 }
 

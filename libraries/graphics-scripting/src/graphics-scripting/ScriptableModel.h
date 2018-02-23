@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Forward.h"
+#include "GraphicsScriptingUtil.h"
 
 class QScriptValue;
 namespace scriptable {

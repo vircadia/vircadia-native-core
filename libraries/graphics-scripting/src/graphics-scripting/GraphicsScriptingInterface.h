@@ -24,6 +24,7 @@ class GraphicsScriptingInterface : public QObject, public QScriptable, public De
     Q_OBJECT
 
 public:
+    static void registerMetaTypes(QScriptEngine* engine);
     GraphicsScriptingInterface(QObject* parent = nullptr);
 
 public slots:
@@ -38,8 +39,6 @@ public slots:
     bool updateMeshes(QUuid uuid, const scriptable::ScriptableMeshPointer mesh, int meshIndex=0, int partIndex=0);
 
     QString meshToOBJ(const scriptable::ScriptableModel& in);
-
-    static void registerMetaTypes(QScriptEngine* engine);
 
 private:
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMeshPointer meshProxy);

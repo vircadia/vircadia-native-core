@@ -8,7 +8,6 @@
 #include "ScriptableMesh.h"
 
 #include "BufferViewScripting.h"
-#include "DebugNames.h"
 #include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
 #include <BaseScriptEngine.h>
@@ -508,14 +507,11 @@ scriptable::ScriptableMeshPointer scriptable::ScriptableMesh::cloneMesh(bool rec
         qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh -- !meshPointer";
         return nullptr;
     }
-    // qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
     auto clone = buffer_helpers::cloneMesh(mesh);
     
-    // qCInfo(graphics_scripting) << "ScriptableMesh::cloneMesh...";
     if (recalcNormals) {
         buffer_helpers::recalculateNormals(clone);
     }
-    //qCDebug(graphics_scripting) << clone.get();// << metadata;
     auto meshPointer = scriptable::make_scriptowned<scriptable::ScriptableMesh>(provider, model, clone, metadata);
     clone.reset(); // free local reference
     // qCInfo(graphics_scripting) << "========= ScriptableMesh::cloneMesh..." << meshPointer << meshPointer->ownedMesh.use_count();
@@ -549,7 +545,6 @@ scriptable::ScriptableMeshBase::ScriptableMeshBase(scriptable::MeshPointer mesh,
     : ScriptableMeshBase(WeakModelProviderPointer(), nullptr, mesh, metadata) {
     ownedMesh = mesh;
 }
-//scriptable::ScriptableMeshBase::ScriptableMeshBase(const scriptable::ScriptableMeshBase& other) { *this = other; }
 scriptable::ScriptableMeshBase& scriptable::ScriptableMeshBase::operator=(const scriptable::ScriptableMeshBase& view) {
     provider = view.provider;
     model = view.model;
@@ -617,22 +612,6 @@ namespace {
     void meshPartPointerFromScriptValue(const QScriptValue& value, scriptable::ScriptableMeshPartPointer &out) {
         out = scriptable::qpointer_qobject_cast<scriptable::ScriptableMeshPart>(value);
     }
-    
-    // FIXME: MESHFACES:
-    // QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const mesh::MeshFace &meshFace) {
-    //     QScriptValue obj = engine->newObject();
-    //     obj.setProperty("vertices", qVectorIntToScriptValue(engine, meshFace.vertexIndices));
-    //     return obj;
-    // }
-    // void meshFaceFromScriptValue(const QScriptValue &object, mesh::MeshFace& meshFaceResult) {
-    //     qScriptValueToSequence(object.property("vertices"), meshFaceResult.vertexIndices);
-    // }
-    // QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<mesh::MeshFace>& vector) {
-    //     return qScriptValueFromSequence(engine, vector);
-    // }
-    // void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<mesh::MeshFace>& result) {
-    //     qScriptValueToSequence(array, result);
-    // }
 
     QScriptValue qVectorUInt32ToScriptValue(QScriptEngine* engine, const QVector<scriptable::uint32>& vector) {
         return qScriptValueFromSequence(engine, vector);
@@ -700,11 +679,15 @@ bool scriptable::GraphicsScriptingInterface::updateMeshPart(ScriptableMeshPointe
     Q_ASSERT(part->parentMesh);
     auto tmp = exportMeshPart(mesh, part->partIndex);
     if (part->parentMesh == mesh) {
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCInfo(graphics_scripting) << "updateMeshPart -- update via clone" << mesh << part;
+#endif
         tmp->replaceMeshData(part->cloneMeshPart());
         return false;
     } else {
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCInfo(graphics_scripting) << "updateMeshPart -- update via inplace" << mesh << part;
+#endif
         tmp->replaceMeshData(part);
         return true;
     }

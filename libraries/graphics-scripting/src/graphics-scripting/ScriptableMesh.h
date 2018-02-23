@@ -16,6 +16,8 @@
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptable>
 
+#include "GraphicsScriptingUtil.h"
+
 namespace scriptable {
     class ScriptableMesh : public ScriptableMeshBase, QScriptable {
         Q_OBJECT

@@ -11,7 +11,6 @@
 #include "GraphicsScriptingInterface.h"
 #include "BaseScriptEngine.h"
 #include "BufferViewScripting.h"
-#include "DebugNames.h"
 #include "GraphicsScriptingUtil.h"
 #include "OBJWriter.h"
 #include "RegisteredMetaTypes.h"

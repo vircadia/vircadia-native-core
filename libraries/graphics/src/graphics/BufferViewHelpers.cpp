@@ -34,9 +34,11 @@ namespace glm {
 
 namespace {
     QLoggingCategory bufferhelper_logging{ "hifi.bufferview" };
-    const std::array<const char*, 4> XYZW = { { "x", "y", "z", "w" } };
-    const std::array<const char*, 4> ZERO123 = { { "0", "1", "2", "3" } };
 }
+
+
+const std::array<const char*, 4> buffer_helpers::XYZW = { { "x", "y", "z", "w" } };
+const std::array<const char*, 4> buffer_helpers::ZERO123 = { { "0", "1", "2", "3" } };
 
 gpu::BufferView buffer_helpers::getBufferView(graphics::MeshPointer mesh, gpu::Stream::Slot slot) {
     return slot == gpu::Stream::POSITION ? mesh->getVertexBuffer() : mesh->getAttributeBuffer(slot);

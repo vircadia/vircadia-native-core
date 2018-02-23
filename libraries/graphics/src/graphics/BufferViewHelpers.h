@@ -49,4 +49,7 @@ struct buffer_helpers {
     static gpu::BufferView resize(const gpu::BufferView& input, quint32 numElements);
 
     static void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent);
+
+    static const std::array<const char*, 4> XYZW;
+    static const std::array<const char*, 4> ZERO123;
 };
