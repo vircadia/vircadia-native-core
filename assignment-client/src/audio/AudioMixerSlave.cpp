@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixerSlave.h"
+
 #include <algorithm>
 
 #include <glm/glm.hpp>
@@ -33,8 +35,6 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 #include "AudioHelpers.h"
-
-#include "AudioMixerSlave.h"
 
 using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
 

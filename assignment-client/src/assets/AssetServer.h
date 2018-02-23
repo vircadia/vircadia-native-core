@@ -21,12 +21,7 @@
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
 
-namespace std {
-    template <>
-    struct hash<QString> {
-        size_t operator()(const QString& v) const { return qHash(v); }
-    };
-}
+#include "RegisteredMetaTypes.h"
 
 struct AssetMeta {
     int bakeVersion { 0 };
