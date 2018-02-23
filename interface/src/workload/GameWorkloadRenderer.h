@@ -45,6 +45,7 @@ public:
 protected:
     render::Item::Bound _bound;
 
+    std::vector<workload::Space::Proxy> _myOwnProxies;
     gpu::BufferPointer _allProxiesBuffer;
     uint32_t _numAllProxies{ 0 };
 
@@ -60,6 +61,8 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const GameWorkloadRenderItem::Pointer& payload);
     template <> void payloadRender(const GameWorkloadRenderItem::Pointer& payload, RenderArgs* args);
     template <> const ShapeKey shapeGetShapeKey(const GameWorkloadRenderItem::Pointer& payload);
+    template <> int payloadGetLayer(const GameWorkloadRenderItem::Pointer& payloadData);
+
 
 }
 

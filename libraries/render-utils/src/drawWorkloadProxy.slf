@@ -10,14 +10,15 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include DeferredBufferWrite.slh@>
 
 in vec4 varColor;
 in vec2 varTexcoord;
-out vec4 outFragColor;
+//out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = vec4(1.0);
-    /*
+      /*  outFragColor = vec4(1.0);
+
     float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
 
     if (varColor.a == 0.0) {
@@ -27,4 +28,9 @@ void main(void) {
         outFragColor = vec4(mix(vec3(1.0), varColor.xyz, var), varColor.a);
     }*/
 
+    
+    packDeferredFragmentUnlit(
+        vec3(0.0, 1.0, 0.0), 
+        1.0,
+        vec3(1.0));
 }
