@@ -6370,6 +6370,24 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
+void Application::replaceDomainContent(const QString& url) {
+    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+    QByteArray urlData(url.toUtf8());
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+    }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+        auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+        octreeFilePacket->write(urlData);
+        limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+    });
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+}
+
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
     const int MAX_CHARACTERS_PER_LINE = 90;
@@ -6389,21 +6407,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                    QByteArray urlData(url.toUtf8());
-                    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-                    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-                            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                        }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
-                            auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
-                            octreeFilePacket->write(urlData);
-                            limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                        });
-                    auto addressManager = DependencyManager::get<AddressManager>();
-                    addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
-                    QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
-                    qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
-                    DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
+                    replaceDomainContent(url);
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";

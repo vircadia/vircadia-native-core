@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixerClientData.h"
+
 #include <random>
 
 #include <QtCore/QDebug>
@@ -22,8 +24,6 @@
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
 #include "AudioMixer.h"
-#include "AudioMixerClientData.h"
-
 
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
     NodeData(nodeID),

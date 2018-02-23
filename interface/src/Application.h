@@ -288,6 +288,8 @@ public:
 
     bool isServerlessMode() const { return !_serversEnabled; }
 
+    void replaceDomainContent(const QString& url);
+
 signals:
     void svoImportRequested(const QString& url);
 
