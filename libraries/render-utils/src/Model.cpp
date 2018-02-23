@@ -288,6 +288,7 @@ void Model::updateRenderItems() {
                                                                   invalidatePayloadShapeKey, isWireframe, isVisible,
                                                                   viewTagBits, isLayeredInFront,
                                                                   isLayeredInHUD, isGroupCulled](ModelMeshPartPayload& data) {
+                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -388,11 +389,8 @@ bool Model::updateGeometry() {
         const FBXGeometry& fbxGeometry = getFBXGeometry();
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
-            if (_useDualQuaternionSkinning) {
-                state.clusterDualQuaternions.resize(mesh.clusters.size());
-            } else {
-                state.clusterMatrices.resize(mesh.clusters.size());
-            }
+            state.clusterDualQuaternions.resize(mesh.clusters.size());
+            state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
@@ -1248,6 +1246,10 @@ void Model::snapToRegistrationPoint() {
     _snappedToRegistrationPoint = true;
 }
 
+void Model::setUseDualQuaternionSkinning(bool value) {
+    _useDualQuaternionSkinning = value;
+}
+
 void Model::simulate(float deltaTime, bool fullUpdate) {
     DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
@@ -1583,11 +1585,13 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.addMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
                 data.setShapeKey(invalidatePayloadShapeKey, wireframe);
             });
         }
@@ -1608,11 +1612,13 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, layeredInFront, layeredInHUD, viewTagBits,
-                invalidatePayloadShapeKey, wireframe](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(visible, layeredInFront || layeredInHUD, viewTagBits);
+                data.setUseDualQuaternionSkinning(useDualQuaternionSkinning);
                 data.setShapeKey(invalidatePayloadShapeKey, wireframe);
             });
         }

@@ -120,6 +120,8 @@ public:
     // dual quaternion skinning
     void computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions);
 
+    void setUseDualQuaternionSkinning(bool value);
+
     gpu::BufferPointer _clusterBuffer;
 
     int _meshIndex;

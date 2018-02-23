@@ -407,7 +407,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     if (isWireframe) {
         builder.withWireframe();
     }
-    if (_useDualQuaternionSkinning) {
+    if (_useDualQuaternionSkinning && isSkinned) {
         builder.withDualQuatSkinned();
     }
 
@@ -496,4 +496,11 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::Tr
             _adjustedLocalBound += clusterBound;
         }
     }
+}
+
+void ModelMeshPartPayload::setUseDualQuaternionSkinning(bool value) {
+    if (value != _useDualQuaternionSkinning) {
+        _clusterBuffer.reset();
+    }
+    _useDualQuaternionSkinning = value;
 }

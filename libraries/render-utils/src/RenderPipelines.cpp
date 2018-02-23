@@ -447,7 +447,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withSpecular().withFade(),
         skinModelNormalMapFadeVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
 
-    // dual quatenion skinned
+    // dual quaternion skinned
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withDualQuatSkinned(),
         skinModelDualQuatVertex, modelPixel, nullptr, nullptr);
