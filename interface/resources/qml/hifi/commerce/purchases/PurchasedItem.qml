@@ -47,7 +47,7 @@ Item {
     property bool showConfirmation: false;
     property bool hasPermissionToRezThis;
     property bool permissionExplanationCardVisible;
-    property bool isInstalled: false;
+    property bool isInstalled;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -69,6 +69,12 @@ Item {
                 root.isInstalled = true;
             }
         }
+
+        onAppUninstalled: {
+            if (appHref === root.itemHref) {
+                root.isInstalled = false;
+            }
+        }
     }
 
     Connections {
@@ -87,10 +93,6 @@ Item {
             root.hasPermissionToRezThis = false;
         } else {
             root.hasPermissionToRezThis = true;
-        }
-
-        if (itemType === "app") {
-            root.isInstalled = Commerce.isAppInstalled(root.itemHref);
         }
     }
 
@@ -496,6 +498,8 @@ Item {
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: parent.top;
                 anchors.right: parent.right;
+                anchors.left: parent.left;
+                width: 92;
                 height: 44;
                 text: "OPEN"
                 onClicked: {
@@ -509,6 +513,7 @@ Item {
                 colorScheme: hifi.colorSchemes.light;
                 anchors.bottom: parent.bottom;
                 anchors.right: parent.right;
+                anchors.left: parent.left;
                 height: 44;
                 text: "UNINSTALL"
                 onClicked: {

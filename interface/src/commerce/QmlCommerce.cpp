@@ -45,7 +45,7 @@ QmlCommerce::QmlCommerce() {
         setPassphrase("");
     });
 
-    _appsPath = PathUtils::getAppDataPath() + "Apps";
+    _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
 void QmlCommerce::getWalletStatus() {
@@ -190,26 +190,38 @@ void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
     ledger->alreadyOwned(marketplaceId);
 }
 
-bool QmlCommerce::isAppInstalled(const QString& itemHref) {
-    QUrl appHref(itemHref);
+QStringList QmlCommerce::getInstalledApps() {
+    QStringList installedAppsFromMarketplace;
+    QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
 
-    // First check if .app.json exists
-    QFileInfo appFile(_appsPath + "/" + appHref.fileName());
-    if (!(appFile.exists() && appFile.isFile())) {
-        return false;
-    }
+    QDir directory(_appsPath);
+    qCDebug(commerce) << "ZRF FIXME" << _appsPath;
+    QStringList apps = directory.entryList(QStringList("*.app.json"));
+    foreach(QString appFileName, apps) {
+        installedAppsFromMarketplace.append(appFileName);
+        qCDebug(commerce) << "ZRF FIXME" << appFileName;
+        QFile appFile(_appsPath + appFileName);
+        if (appFile.open(QIODevice::ReadOnly)) {
+            QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
 
-    // Then check to see if script is running
-    auto runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
-    foreach(const QString& runningScript, runningScripts) {
-        QUrl runningScriptURL = QUrl(runningScript);
-        qCDebug(commerce) << "ZRF FIXME" << runningScriptURL;
-        if (runningScriptURL == appHref) {
-            return true;
+            appFile.close();
+
+            QJsonObject appFileJsonObject = appFileJsonDocument.object();
+            QString scriptURL = appFileJsonObject["scriptURL"].toString();
+
+            // If the script .app.json is on the user's local disk but the associated script isn't running
+            // for some reason, start that script again.
+            if (!runningScripts.contains(scriptURL)) {
+                if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptURL.trimmed())).isNull()) {
+                    qCDebug(commerce) << "Couldn't start script while checking installed apps.";
+                }
+            }
+        } else {
+            qCDebug(commerce) << "Couldn't open local .app.json file for reading.";
         }
     }
 
-    return false;
+    return installedAppsFromMarketplace;
 }
 
 bool QmlCommerce::installApp(const QString& itemHref) {
