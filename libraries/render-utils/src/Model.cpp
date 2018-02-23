@@ -268,6 +268,7 @@ void Model::updateRenderItems() {
 
         bool isWireframe = self->isWireframe();
         bool isVisible = self->isVisible();
+        uint8_t viewTagBits = self->getViewTagBits();
         bool isLayeredInFront = self->isLayeredInFront();
         bool isLayeredInHUD = self->isLayeredInHUD();
 
@@ -280,8 +281,10 @@ void Model::updateRenderItems() {
 
             bool invalidatePayloadShapeKey = self->shouldInvalidatePayloadShapeKey(meshIndex);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms, invalidatePayloadShapeKey,
-                    isWireframe, isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterTransforms,
+                                                                  invalidatePayloadShapeKey, isWireframe, isVisible,
+                                                                  viewTagBits, isLayeredInFront,
+                                                                  isLayeredInHUD](ModelMeshPartPayload& data) {
                 data.updateClusterBuffer(clusterTransforms);
 
                 Transform renderTransform = modelTransform;
@@ -297,7 +300,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe);
             });
@@ -422,8 +425,8 @@ void Model::initJointStates() {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                    BoxFace& face, glm::vec3& surfaceNormal,
-                                                    QString& extraInfo, bool pickAgainstTriangles, bool allowBackface) {
+                                                BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                                bool pickAgainstTriangles, bool allowBackface) {
 
     bool intersectedSomething = false;
 
@@ -454,6 +457,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         QMutexLocker locker(&_mutex);
 
         float bestDistance = std::numeric_limits<float>::max();
+        Triangle bestModelTriangle;
+        Triangle bestWorldTriangle;
+        int bestSubMeshIndex = 0;
+
         int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
 
@@ -471,8 +478,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
-            glm::vec3 triangleSetNormal;
-            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetNormal, pickAgainstTriangles, allowBackface)) {
+            Triangle triangleSetTriangle;
+            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
 
                 glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
                 glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
@@ -482,8 +489,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     bestDistance = worldDistance;
                     intersectedSomething = true;
                     face = triangleSetFace;
-                    surfaceNormal = glm::vec3(meshToWorldMatrix * glm::vec4(triangleSetNormal, 0.0f));
-                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                    extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                    bestSubMeshIndex = subMeshIndex;
                 }
             }
             subMeshIndex++;
@@ -491,9 +501,24 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         if (intersectedSomething) {
             distance = bestDistance;
+            surfaceNormal = bestWorldTriangle.getNormal();
+            if (pickAgainstTriangles) {
+                extraInfo["subMeshIndex"] = bestSubMeshIndex;
+                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshTriangleWorld"] = QVariantMap{
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
+                };
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshTriangle"] = QVariantMap{
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
+                };
+            }
+            
         }
-
-        return intersectedSomething;
     }
 
     return intersectedSomething;
@@ -659,22 +684,25 @@ void Model::calculateTriangleSets() {
     }
 }
 
-void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene) {
-    if (_isVisible != isVisible) {
+void Model::setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits) {
+    if (_isVisible != isVisible || _viewTagBits != viewTagBits) {
         _isVisible = isVisible;
+        _viewTagBits = viewTagBits;
 
         bool isLayeredInFront = _isLayeredInFront;
         bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach (auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
             });
         }
         scene->enqueueTransaction(transaction);
@@ -687,18 +715,21 @@ void Model::setLayeredInFront(bool isLayeredInFront, const render::ScenePointer&
         _isLayeredInFront = isLayeredInFront;
 
         bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInHUD = _isLayeredInHUD;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
@@ -711,18 +742,21 @@ void Model::setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& sce
         _isLayeredInHUD = isLayeredInHUD;
 
         bool isVisible = _isVisible;
+        uint8_t viewTagBits = _viewTagBits;
         bool isLayeredInFront = _isLayeredInFront;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }
         foreach(auto item, _collisionRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, isLayeredInFront, isLayeredInHUD](ModelMeshPartPayload& data) {
-                data.setKey(isVisible, isLayeredInFront || isLayeredInHUD);
+            transaction.updateItem<ModelMeshPartPayload>(item, [isVisible, viewTagBits, isLayeredInFront,
+                                                                isLayeredInHUD](ModelMeshPartPayload& data) {
+                data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, viewTagBits);
                 data.setLayer(isLayeredInFront, isLayeredInHUD);
             });
         }

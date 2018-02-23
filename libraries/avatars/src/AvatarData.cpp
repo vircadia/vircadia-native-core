@@ -2504,6 +2504,7 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("distance", value.distance);
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
@@ -2516,6 +2517,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;

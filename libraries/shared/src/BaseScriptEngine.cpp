@@ -325,6 +325,12 @@ QScriptValue makeScopedHandlerObject(QScriptValue scopeOrCallback, QScriptValue 
         } else if (methodOrName.isFunction()) {
             scope = scopeOrCallback;
             callback = methodOrName;
+        } else if (!methodOrName.isValid()) {
+            // instantiate from an existing scoped handler object
+            if (scopeOrCallback.property("callback").isFunction()) {
+                scope = scopeOrCallback.property("scope");
+                callback = scopeOrCallback.property("callback");
+            }
         }
     }
     auto handler = engine->newObject();

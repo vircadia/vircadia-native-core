@@ -30,7 +30,7 @@
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "model_translucent_vert.h"
-#include "model_translucent_fade_vert.h"
+#include "model_translucent_normal_map_vert.h"
 #include "skin_model_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
 
@@ -65,10 +65,12 @@
 #include "model_lightmap_normal_map_frag.h"
 #include "model_translucent_frag.h"
 #include "model_translucent_unlit_frag.h"
+#include "model_translucent_normal_map_frag.h"
 
 #include "model_lightmap_fade_frag.h"
 #include "model_lightmap_normal_map_fade_frag.h"
 #include "model_translucent_fade_frag.h"
+#include "model_translucent_normal_map_fade_frag.h"
 #include "model_translucent_unlit_fade_frag.h"
 
 #include "overlay3D_vert.h"
@@ -279,7 +281,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleVertex, simpleTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        modelTranslucentVertex, modelTranslucentPixel, nullptr, nullptr);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapPixel, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
@@ -287,7 +289,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
     // Same thing but with Fade on
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withFade(),
-        modelTranslucentFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        modelTranslucentVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withTranslucent().withFade(),
         simpleFadeVertex, simpleTranslucentFadePixel, batchSetter, itemSetter);
@@ -299,7 +301,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         simpleFadeVertex, simpleTranslucentUnlitFadePixel, batchSetter, itemSetter);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
-        modelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+        modelTranslucentNormalMapVertex, modelTranslucentNormalMapFadePixel, batchSetter, itemSetter);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),

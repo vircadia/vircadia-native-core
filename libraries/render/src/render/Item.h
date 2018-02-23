@@ -38,24 +38,61 @@ class Context;
 // Key is the KEY to filter Items and create specialized lists
 class ItemKey {
 public:
-    enum FlagBit {
+    // 8 tags are available to organize the items and filter them against as fields of the ItemKey.
+    // TAG & TAG_BITS are defined from several bits in the Key.
+    // An Item can be tagged and filtering can rely on the tags to keep or exclude items
+    // ItemKey are not taged by default
+    enum Tag : uint8_t {
+        TAG_0 = 0, // 8 Tags
+        TAG_1,
+        TAG_2,
+        TAG_3,
+        TAG_4,
+        TAG_5,
+        TAG_6,
+        TAG_7,
+
+        NUM_TAGS
+    };
+    // Tag bits are derived from the Tag enum
+    const static uint8_t TAG_BITS_ALL;
+    const static uint8_t TAG_BITS_NONE;
+    const static uint8_t TAG_BITS_0;
+    const static uint8_t TAG_BITS_1;
+    const static uint8_t TAG_BITS_2;
+    const static uint8_t TAG_BITS_3;
+    const static uint8_t TAG_BITS_4;
+    const static uint8_t TAG_BITS_5;
+    const static uint8_t TAG_BITS_6;
+    const static uint8_t TAG_BITS_7;
+
+    enum FlagBit : uint32_t {
         TYPE_SHAPE = 0,   // Item is a Shape
         TYPE_LIGHT,       // Item is a Light
         TYPE_META,        // Item is a Meta: meanning it s used to represent a higher level object, potentially represented by other render items
+
         TRANSLUCENT,      // Transparent and not opaque, for some odd reason TRANSPARENCY doesn't work...
         VIEW_SPACE,       // Transformed in view space, and not in world space
         DYNAMIC,          // Dynamic and bound will change unlike static item
         DEFORMED,         // Deformed within bound, not solid
-        INVISIBLE,        // Visible or not? could be just here to cast shadow
+        INVISIBLE,        // Visible or not in the scene?
         SHADOW_CASTER,    // Item cast shadows
-        PICKABLE,         // Item can be picked/selected
         LAYERED,          // Item belongs to one of the layers different from the default layer
 
-        SMALLER,
+        FIRST_TAG_BIT, // 8 Tags available to organize the items and filter them against
+        LAST_TAG_BIT = FIRST_TAG_BIT + NUM_TAGS,
+
+        __SMALLER,        // Reserved bit for spatialized item to indicate that it is smaller than expected in the cell in which it belongs (probably because it overlaps over several smaller cells)
 
         NUM_FLAGS,      // Not a valid flag
     };
     typedef std::bitset<NUM_FLAGS> Flags;
+
+    // All the bits touching tag bits sets to true
+    const static uint32_t KEY_TAG_BITS_MASK;
+    static uint32_t evalTagBitsWithKeyBits(uint8_t tagBits, const uint32_t keyBits) {
+        return (keyBits & ~KEY_TAG_BITS_MASK) | (((uint32_t)tagBits) << FIRST_TAG_BIT);
+    }
 
     // The key is the Flags
     Flags _flags;
@@ -84,8 +121,11 @@ public:
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withInvisible() { _flags.set(INVISIBLE); return (*this); }
         Builder& withShadowCaster() { _flags.set(SHADOW_CASTER); return (*this); }
-        Builder& withPickable() { _flags.set(PICKABLE); return (*this); }
         Builder& withLayered() { _flags.set(LAYERED); return (*this); }
+
+        Builder& withTag(Tag tag) { _flags.set(FIRST_TAG_BIT + tag); return (*this); }
+        // Set ALL the tags in one call using the Tag bits
+        Builder& withTagBits(uint8_t tagBits) { _flags = evalTagBitsWithKeyBits(tagBits, _flags.to_ulong()); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
         static Builder opaqueShape() { return Builder().withTypeShape(); }
@@ -116,14 +156,15 @@ public:
 
     bool isShadowCaster() const { return _flags[SHADOW_CASTER]; }
 
-    bool isPickable() const { return _flags[PICKABLE]; }
-
     bool isLayered() const { return _flags[LAYERED]; }
     bool isSpatial() const { return !isLayered(); }
 
+    bool isTag(Tag tag) const { return _flags[FIRST_TAG_BIT + tag]; }
+    uint8_t getTagBits() const { return ((_flags.to_ulong() & KEY_TAG_BITS_MASK) >> FIRST_TAG_BIT); }
+
     // Probably not public, flags used by the scene
-    bool isSmall() const { return _flags[SMALLER]; }
-    void setSmaller(bool smaller) { (smaller ? _flags.set(SMALLER) : _flags.reset(SMALLER)); }
+    bool isSmall() const { return _flags[__SMALLER]; }
+    void setSmaller(bool smaller) { (smaller ? _flags.set(__SMALLER) : _flags.reset(__SMALLER)); }
 
     bool operator==(const ItemKey& key) { return (_flags == key._flags); }
     bool operator!=(const ItemKey& key) { return (_flags != key._flags); }
@@ -177,10 +218,13 @@ public:
         Builder& withNoShadowCaster()   { _value.reset(ItemKey::SHADOW_CASTER); _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
         Builder& withShadowCaster()     { _value.set(ItemKey::SHADOW_CASTER);  _mask.set(ItemKey::SHADOW_CASTER); return (*this); }
 
-        Builder& withPickable()         { _value.set(ItemKey::PICKABLE);  _mask.set(ItemKey::PICKABLE); return (*this); }
-
         Builder& withoutLayered()       { _value.reset(ItemKey::LAYERED); _mask.set(ItemKey::LAYERED); return (*this); }
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
+
+        Builder& withoutTag(ItemKey::Tag tagIndex)    { _value.reset(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
+        Builder& withTag(ItemKey::Tag tagIndex)       { _value.set(ItemKey::FIRST_TAG_BIT + tagIndex);  _mask.set(ItemKey::FIRST_TAG_BIT + tagIndex); return (*this); }
+        // Set ALL the tags in one call using the Tag bits and the Tag bits touched
+        Builder& withTagBits(uint8_t tagBits, uint8_t tagMask) { _value = ItemKey::evalTagBitsWithKeyBits(tagBits, _value.to_ulong()); _mask = ItemKey::evalTagBitsWithKeyBits(tagMask, _mask.to_ulong()); return (*this); }
 
         Builder& withNothing()          { _value.reset(); _mask.reset(); return (*this); }
 

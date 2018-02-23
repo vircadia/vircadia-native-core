@@ -157,7 +157,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     DependencyManager::set<StatTracker>();
 
     LogUtils::init();
-    Setting::init();
 
     qDebug() << "Setting up domain-server";
     qDebug() << "[VERSION] Build sequence:" << qPrintable(applicationVersion());

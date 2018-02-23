@@ -97,11 +97,11 @@ public:
     virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly, bool precisionPicking, 
         OctreeElementPointer& node, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, void** intersectedObject = NULL,
+        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }

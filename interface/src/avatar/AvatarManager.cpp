@@ -546,7 +546,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             continue;
         }
 
-        QString extraInfo;
+        QVariantMap extraInfo;
         intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
                                                                       distance, face, surfaceNormal, extraInfo, true);
 
@@ -554,6 +554,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.distance = distance;
+            result.extraInfo = extraInfo;
         }
     }
 

@@ -38,7 +38,7 @@ const QString FATAL_TEXT = "[FATAL]";
 const QString SUPPRESS_TEXT = "[SUPPRESS]";
 const QString UNKNOWN_TEXT = "[UNKNOWN]";
 
-LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLogDialog(parent) {
+LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLogDialog(parent), _windowGeometry("logDialogGeometry", QRect()) {
     _logger = logger;
     setWindowTitle("Log");
 
@@ -155,6 +155,11 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _clearFilterButton->show();
     connect(_clearFilterButton, &QPushButton::clicked, this, &LogDialog::handleClearFilterButton);
     handleClearFilterButton();
+
+    auto windowGeometry = _windowGeometry.get();
+    if (windowGeometry.isValid()) {
+        setGeometry(windowGeometry);
+    }
 }
 
 void LogDialog::resizeEvent(QResizeEvent* event) {
@@ -171,6 +176,11 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
+}
+
+void LogDialog::closeEvent(QCloseEvent* event) {
+    BaseLogDialog::closeEvent(event);
+    _windowGeometry.set(geometry());
 }
 
 void LogDialog::handleRevealButton() {

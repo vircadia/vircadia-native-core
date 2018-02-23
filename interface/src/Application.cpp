@@ -68,6 +68,7 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
+#include <AvatarEntitiesBookmarks.h>
 #include <CursorManager.h>
 #include <VirtualPadManager.h>
 #include <DebugDraw.h>
@@ -150,6 +151,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
+#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -318,7 +320,7 @@ static QTimer pingTimer;
 static bool DISABLE_WATCHDOG = true;
 #else
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
-static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
+static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
 
 #if defined(USE_GLES)
@@ -397,6 +399,7 @@ public:
         setObjectName("Deadlock Watchdog");
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
+        _paused = false;
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
@@ -414,11 +417,26 @@ public:
         *crashTrigger = 0xDEAD10CC;
     }
 
+    static void withPause(const std::function<void()>& lambda) {
+        pause();
+        lambda();
+        resume();
+    }
+    static void pause() {
+        _paused = true;
+    }
+
+    static void resume() {
+        // Update the heartbeat BEFORE resuming the checks
+        updateHeartbeat();
+        _paused = false;
+    }
+
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             // Don't do heartbeat detection under nsight
-            if (nsightActive()) {
+            if (_paused) {
                 continue;
             }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
@@ -474,6 +492,7 @@ public:
         }
     }
 
+    static std::atomic<bool> _paused;
     static std::atomic<uint64_t> _heartbeat;
     static std::atomic<uint64_t> _maxElapsed;
     static std::atomic<int> _maxElapsedAverage;
@@ -482,6 +501,7 @@ public:
     bool _quit { false };
 };
 
+std::atomic<bool> DeadlockWatchdogThread::_paused;
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
 std::atomic<uint64_t> DeadlockWatchdogThread::_maxElapsed;
 std::atomic<int> DeadlockWatchdogThread::_maxElapsedAverage;
@@ -657,8 +677,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 #endif
 
-    Setting::init();
-
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
@@ -766,6 +784,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
+    DependencyManager::set<AvatarEntitiesBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
@@ -910,6 +929,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     _logger->setSessionID(accountManager->getSessionID());
 
+    setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
+
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
     }
@@ -1034,7 +1055,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
-    connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
+    connect(&nodeList->getDomainHandler(), SIGNAL(limitOfSilentDomainCheckInsReached()),
+            nodeList.data(), SLOT(reset()));
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -1912,7 +1934,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 entityResult.distance = pickResult->distance;
                 entityResult.surfaceNormal = pickResult->surfaceNormal;
                 entityResult.entityID = pickResult->objectID;
-                entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+                entityResult.extraInfo = pickResult->extraInfo;
             }
         }
         return entityResult;
@@ -2273,19 +2295,22 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
-    // Set up the render engine
-    render::CullFunctor cullFunctor = LODManager::shouldRender;
-    static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
+    // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
+    DeadlockWatchdogThread::withPause([&] {
+        // Set up the render engine
+        render::CullFunctor cullFunctor = LODManager::shouldRender;
+        static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
+        _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
+        _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !DISABLE_DEFERRED);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED);
-    _renderEngine->load();
-    _renderEngine->registerScene(_main3DScene);
+        _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !DISABLE_DEFERRED, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+        _renderEngine->load();
+        _renderEngine->registerScene(_main3DScene);
 
-    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
-    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+        // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+        DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+    });
 
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->setObjectName("MainThreadContext");
@@ -2384,7 +2409,9 @@ void Application::initializeUi() {
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    DeadlockWatchdogThread::pause();
     offscreenUi->create();
+    DeadlockWatchdogThread::resume();
 
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
@@ -2449,6 +2476,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    surfaceContext->setContextProperty("AvatarEntitiesBookmarks", DependencyManager::get<AvatarEntitiesBookmarks>().data());
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
@@ -5876,6 +5904,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    scriptEngine->registerGlobalObject("AvatarEntitiesBookmarks", DependencyManager::get<AvatarEntitiesBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
@@ -6293,7 +6322,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("../dialogs/TabletAssetServer.qml");
+            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
             tablet->pushOntoStack(url);
         }
     }

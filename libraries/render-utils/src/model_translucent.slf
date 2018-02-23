@@ -16,7 +16,7 @@
 
 <@include DeferredGlobalLight.slh@>
 
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include LightLocal.slh@>
 

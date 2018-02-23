@@ -292,6 +292,14 @@ glm::vec3 Triangle::getNormal() const {
     return glm::normalize(glm::cross(edge1, edge2));
 }
 
+Triangle Triangle::operator*(const glm::mat4& transform) const {
+    return {
+        glm::vec3(transform * glm::vec4(v0, 1.0f)),
+        glm::vec3(transform * glm::vec4(v1, 1.0f)),
+        glm::vec3(transform * glm::vec4(v2, 1.0f))
+    };
+}
+
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface) {
     glm::vec3 firstSide = v0 - v1;

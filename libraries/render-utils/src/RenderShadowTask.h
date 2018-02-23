@@ -48,7 +48,7 @@ public:
     using JobModel = render::Task::Model<RenderShadowTask, Config>;
 
     RenderShadowTask() {}
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor shouldRender, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
 
     void configure(const Config& configuration);
 };
@@ -67,12 +67,14 @@ public:
     using Outputs = render::VaryingSet3<RenderArgs::RenderMode, render::ItemFilter, float>;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
-    RenderShadowCascadeSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
+    RenderShadowCascadeSetup(unsigned int cascadeIndex, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) : _cascadeIndex{ cascadeIndex }, _tagBits(tagBits), _tagMask(tagMask) {}
     void run(const render::RenderContextPointer& renderContext, Outputs& output);
 
 private:
 
     unsigned int _cascadeIndex;
+    uint8_t _tagBits{ 0x00 };
+    uint8_t _tagMask{ 0x00 };
 };
 
 class RenderShadowCascadeTeardown {

@@ -1,10 +1,10 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model_translucent_fade.slv
+//  model_translucent_normal_map.slv
 //  vertex shader
 //
-//  Created by Olivier Prat on 15/01/18.
+//  Created by Olivier Prat on 23/01/18.
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -25,6 +25,7 @@ out vec2 _texCoord1;
 out vec4 _position;
 out vec4 _worldPosition;
 out vec3 _normal;
+out vec3 _tangent;
 out vec3 _color;
 
 void main(void) {
@@ -41,4 +42,5 @@ void main(void) {
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
     <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangent)$>
 }

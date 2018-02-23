@@ -61,7 +61,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     details._rendered += (int)outItems.size();
 }
 
-void FetchNonspatialItems::run(const RenderContextPointer& renderContext, ItemBounds& outItems) {
+void FetchNonspatialItems::run(const RenderContextPointer& renderContext, const ItemFilter& filter, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     auto& scene = renderContext->_scene;
@@ -72,7 +72,9 @@ void FetchNonspatialItems::run(const RenderContextPointer& renderContext, ItemBo
     outItems.reserve(items.size());
     for (auto& id : items) {
         auto& item = scene->getItem(id);
-        outItems.emplace_back(ItemBound(id, item.getBound()));
+        if (filter.test(item.getKey())) {
+            outItems.emplace_back(ItemBound(id, item.getBound()));
+        }
     }
 }
 

@@ -93,7 +93,7 @@ TableView {
             size: hifi.fontSizes.tableHeadingIcon
             anchors {
                 left: titleText.right
-                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 5 : 0)
+                leftMargin: -hifi.fontSizes.tableHeadingIcon / 3 - (centerHeaderText ? 15 : 10)
                 right: parent.right
                 rightMargin: hifi.dimensions.tablePadding
                 verticalCenter: titleText.verticalCenter

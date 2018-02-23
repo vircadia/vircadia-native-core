@@ -346,7 +346,6 @@ protected:
     bool _enabledAnimations { true };
 
     mutable uint32_t _jointNameWarningCount { 0 };
-    float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };

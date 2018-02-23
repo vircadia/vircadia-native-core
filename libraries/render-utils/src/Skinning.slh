@@ -58,17 +58,19 @@ mat4 dualQuatToMat4(vec4 real, vec4 dual) {
 void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, out vec4 skinnedPosition) {
 
     // linearly blend scale and dual quaternion components
-    vec3 sAccum = vec3(0.0, 0.0, 0.0);
+    vec4 sAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 cAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 scale = clusterMatrix[0];
         vec4 real = clusterMatrix[1];
         vec4 dual = clusterMatrix[2];
+        vec4 cauterizedPos = clusterMatrix[3];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -79,6 +81,7 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
         dAccum += dual * dqClusterWeight;
+        cAccum += cauterizedPos * clusterWeight;
     }
 
     // normalize dual quaternion
@@ -88,25 +91,37 @@ void skinPosition(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPositio
 
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
-    skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
+
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
+        skinnedPosition = cAccum;
+    } else {
+        sAccum.w = 1.0;
+        skinnedPosition = m * (sAccum * inPosition);
+    }
 }
 
 void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inPosition, vec3 inNormal,
                         out vec4 skinnedPosition, out vec3 skinnedNormal) {
 
     // linearly blend scale and dual quaternion components
-    vec3 sAccum = vec3(0.0, 0.0, 0.0);
+    vec4 sAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 cAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 scale = clusterMatrix[0];
         vec4 real = clusterMatrix[1];
         vec4 dual = clusterMatrix[2];
+        vec4 cauterizedPos = clusterMatrix[3];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -117,6 +132,7 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
         dAccum += dual * dqClusterWeight;
+        cAccum += cauterizedPos * clusterWeight;
     }
 
     // normalize dual quaternion
@@ -126,7 +142,18 @@ void skinPositionNormal(ivec4 skinClusterIndex, vec4 skinClusterWeight, vec4 inP
 
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
-    skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
+
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
+        skinnedPosition = cAccum;
+    } else {
+        sAccum.w = 1.0;
+        skinnedPosition = m * (sAccum * inPosition);
+    }
+
     skinnedNormal = vec3(m * vec4(inNormal, 0));
 }
 
@@ -134,18 +161,20 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
                                out vec4 skinnedPosition, out vec3 skinnedNormal, out vec3 skinnedTangent) {
 
     // linearly blend scale and dual quaternion components
-    vec3 sAccum = vec3(0.0, 0.0, 0.0);
+    vec4 sAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 rAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 dAccum = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 cAccum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 polarityReference = clusterMatrices[skinClusterIndex[0]][1];
 
     for (int i = 0; i < INDICES_PER_VERTEX; i++) {
         mat4 clusterMatrix = clusterMatrices[(skinClusterIndex[i])];
         float clusterWeight = skinClusterWeight[i];
 
-        vec3 scale = vec3(clusterMatrix[0]);
+        vec4 scale = clusterMatrix[0];
         vec4 real = clusterMatrix[1];
         vec4 dual = clusterMatrix[2];
+        vec4 cauterizedPos = clusterMatrix[3];
 
         // to ensure that we rotate along the shortest arc, reverse dual quaternions with negative polarity.
         float dqClusterWeight = clusterWeight;
@@ -156,6 +185,7 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
         sAccum += scale * clusterWeight;
         rAccum += real * dqClusterWeight;
         dAccum += dual * dqClusterWeight;
+        cAccum += cauterizedPos * clusterWeight;
     }
 
     // normalize dual quaternion
@@ -165,7 +195,18 @@ void skinPositionNormalTangent(ivec4 skinClusterIndex, vec4 skinClusterWeight, v
 
     // conversion from dual quaternion to 4x4 matrix.
     mat4 m = dualQuatToMat4(rAccum, dAccum);
-    skinnedPosition = m * (vec4(sAccum, 1) * inPosition);
+
+    // sAccum.w indicates the amount of cauterization for this vertex.
+    // 0 indicates no cauterization and 1 indicates full cauterization.
+    // TODO: make this cauterization smoother or implement full dual-quaternion scale support.
+    const float CAUTERIZATION_THRESHOLD = 0.1;
+    if (sAccum.w > CAUTERIZATION_THRESHOLD) {
+        skinnedPosition = cAccum;
+    } else {
+        sAccum.w = 1.0;
+        skinnedPosition = m * (sAccum * inPosition);
+    }
+
     skinnedNormal = vec3(m * vec4(inNormal, 0));
     skinnedTangent = vec3(m * vec4(inTangent, 0));
 }

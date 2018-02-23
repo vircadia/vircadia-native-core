@@ -520,7 +520,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             float thisDistance;
             BoxFace thisFace;
             glm::vec3 thisSurfaceNormal;
-            QString thisExtraInfo;
+            QVariantMap thisExtraInfo;
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
                                                           thisFace, thisSurfaceNormal, thisExtraInfo)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
@@ -578,7 +578,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("face", faceName);
     auto intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    obj.setProperty("extraInfo", value.extraInfo);
+    obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
@@ -612,7 +612,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar
             value.intersection = newIntersection;
         }
     }
-    value.extraInfo = object["extraInfo"].toString();
+    value.extraInfo = object["extraInfo"].toMap();
 }
 
 bool Overlays::isLoaded(OverlayID id) {

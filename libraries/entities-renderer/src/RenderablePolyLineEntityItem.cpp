@@ -112,7 +112,7 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta();
+    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {

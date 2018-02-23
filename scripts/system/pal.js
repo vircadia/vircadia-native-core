@@ -361,7 +361,7 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    url = METAVERSE_BASE + '/api/v1/users?'
+    url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -493,7 +493,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    getConnectionData(false, location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
+    getConnectionData(false, location.domainID); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
     conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {

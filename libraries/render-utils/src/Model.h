@@ -86,7 +86,7 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits);
     void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
     void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
@@ -104,6 +104,7 @@ public:
     bool isRenderable() const;
 
     bool isVisible() const { return _isVisible; }
+    uint8_t getViewTagBits() const { return _viewTagBits; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
     bool isLayeredInHUD() const { return _isLayeredInHUD; }
@@ -161,8 +162,8 @@ public:
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                             BoxFace& face, glm::vec3& surfaceNormal, 
-                                             QString& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
@@ -263,26 +264,34 @@ public:
             _scale.x = p.scale().x;
             _scale.y = p.scale().y;
             _scale.z = p.scale().z;
+            _scale.w = 0.0f;
             _dq = DualQuaternion(p.rot(), p.trans());
         }
         TransformDualQuaternion(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
             _scale.x = scale.x;
             _scale.y = scale.y;
             _scale.z = scale.z;
+            _scale.w = 0.0f;
             _dq = DualQuaternion(rot, trans);
         }
         TransformDualQuaternion(const Transform& transform) {
             _scale = glm::vec4(transform.getScale(), 0.0f);
+            _scale.w = 0.0f;
             _dq = DualQuaternion(transform.getRotation(), transform.getTranslation());
         }
         glm::vec3 getScale() const { return glm::vec3(_scale); }
         glm::quat getRotation() const { return _dq.getRotation(); }
         glm::vec3 getTranslation() const { return _dq.getTranslation(); }
         glm::mat4 getMatrix() const { return createMatFromScaleQuatAndPos(getScale(), getRotation(), getTranslation()); };
+
+        void setCauterizationParameters(float cauterizationAmount, const glm::vec3& cauterizedPosition) {
+            _scale.w = cauterizationAmount;
+            _cauterizedPosition = glm::vec4(cauterizedPosition, 1.0f);
+        }
     protected:
         glm::vec4 _scale { 1.0f, 1.0f, 1.0f, 0.0f };
         DualQuaternion _dq;
-        glm::vec4 _padding;
+        glm::vec4 _cauterizedPosition { 0.0f, 0.0f, 0.0f, 1.0f };
     };
 #endif
 
@@ -388,6 +397,7 @@ protected:
 
     QUrl _url;
     bool _isVisible;
+    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
     gpu::Buffers _blendedVertexBuffers;
 

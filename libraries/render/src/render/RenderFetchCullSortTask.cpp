@@ -17,19 +17,21 @@
 
 using namespace render;
 
-void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor) {
+void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // CPU jobs:
     // Fetch and cull the items from the scene
-    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const ItemFilter filter = ItemFilter::Builder::visibleWorldItems().withoutLayered().withTagBits(tagBits, tagMask);
     const auto spatialFilter = render::Varying(filter);
     const auto spatialSelection = task.addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
     const auto cullInputs = CullSpatialSelection::Inputs(spatialSelection, spatialFilter).asVarying();
     const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, RenderDetails::ITEM);
 
     // Overlays are not culled
-    const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchOverlaySelection");
+    const ItemFilter overlayfilter = ItemFilter::Builder().withVisible().withTagBits(tagBits, tagMask);
+    const auto nonspatialFilter = render::Varying(overlayfilter);
+    const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchOverlaySelection", nonspatialFilter);
 
     // Multi filter visible items into different buckets
     const int NUM_SPATIAL_FILTERS = 4; 

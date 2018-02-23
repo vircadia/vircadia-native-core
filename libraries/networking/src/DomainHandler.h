@@ -31,6 +31,8 @@ const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
 const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
 
+const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
+
 class DomainHandler : public QObject {
     Q_OBJECT
 public:
@@ -83,6 +85,10 @@ public:
     bool isSocketKnown() const { return !_sockAddr.getAddress().isNull(); }
 
     void softReset();
+
+    int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
+    void sentCheckInPacket();
+    void domainListReceived() { _checkInPacketsSinceLastReply = 0; }
 
     /**jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
@@ -165,6 +171,8 @@ signals:
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
 
+    void limitOfSilentDomainCheckInsReached();
+
 private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
@@ -187,6 +195,7 @@ private:
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
     int _connectionDenialsSinceKeypairRegen { 0 };
+    int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
 };

@@ -19,6 +19,8 @@
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
+namespace AssetUtils {
+
 using DataOffset = int64_t;
 
 using AssetPath = QString;
@@ -71,7 +73,8 @@ struct MappingInfo {
 
 using AssetMapping = std::map<AssetPath, MappingInfo>;
 
-QUrl getATPUrl(const QString& hash);
+QUrl getATPUrl(const QString& input);
+AssetHash extractAssetHash(const QString& input);
 
 QByteArray hashData(const QByteArray& data);
 
@@ -83,5 +86,7 @@ bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
 
 QString bakingStatusToString(BakingStatus status);
+
+} // namespace AssetUtils
 
 #endif // hifi_AssetUtils_h

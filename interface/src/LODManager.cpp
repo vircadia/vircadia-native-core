@@ -168,7 +168,7 @@ float LODManager::getDesktopLODDecreaseFPS() const {
 }
 
 float LODManager::getDesktopLODIncreaseFPS() const {
-    return glm::max(((float)MSECS_PER_SECOND / _desktopMaxRenderTime) + INCREASE_LOD_GAP_FPS, MAX_LIKELY_DESKTOP_FPS);
+    return glm::min(((float)MSECS_PER_SECOND / _desktopMaxRenderTime) + INCREASE_LOD_GAP_FPS, MAX_LIKELY_DESKTOP_FPS);
 }
 
 void LODManager::setHMDLODDecreaseFPS(float fps) {
@@ -184,7 +184,7 @@ float LODManager::getHMDLODDecreaseFPS() const {
 }
 
 float LODManager::getHMDLODIncreaseFPS() const {
-    return glm::max(((float)MSECS_PER_SECOND / _hmdMaxRenderTime) + INCREASE_LOD_GAP_FPS, MAX_LIKELY_HMD_FPS);
+    return glm::min(((float)MSECS_PER_SECOND / _hmdMaxRenderTime) + INCREASE_LOD_GAP_FPS, MAX_LIKELY_HMD_FPS);
 }
 
 QString LODManager::getLODFeedbackText() {

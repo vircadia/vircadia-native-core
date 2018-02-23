@@ -68,7 +68,7 @@ public:
                                         BoxFace& face, glm::vec3& surfaceNormal);
 
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
+                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
         return findRayIntersection(origin, direction, distance, face, surfaceNormal);
     }
 

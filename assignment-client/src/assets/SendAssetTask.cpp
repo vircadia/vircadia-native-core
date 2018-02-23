@@ -40,7 +40,7 @@ void SendAssetTask::run() {
     ByteRange byteRange;
 
     _message->readPrimitive(&messageID);
-    QByteArray assetHash = _message->read(SHA256_HASH_LENGTH);
+    QByteArray assetHash = _message->read(AssetUtils::SHA256_HASH_LENGTH);
 
     // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
     // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
@@ -61,7 +61,7 @@ void SendAssetTask::run() {
     replyPacketList->writePrimitive(messageID);
 
     if (!byteRange.isValid()) {
-        replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
+        replyPacketList->writePrimitive(AssetUtils::AssetServerError::InvalidByteRange);
     } else {
         QString filePath = _resourcesDir.filePath(QString(hexHash));
         
@@ -75,7 +75,7 @@ void SendAssetTask::run() {
             // check if we're being asked to read data that we just don't have
             // because of the file size
             if (file.size() < byteRange.fromInclusive || file.size() < byteRange.toExclusive) {
-                replyPacketList->writePrimitive(AssetServerError::InvalidByteRange);
+                replyPacketList->writePrimitive(AssetUtils::AssetServerError::InvalidByteRange);
                 qCDebug(networking) << "Bad byte range: " << hexHash << " "
                     << byteRange.fromInclusive << ":" << byteRange.toExclusive;
             } else {
@@ -86,7 +86,7 @@ void SendAssetTask::run() {
 
                     // this range is positive, meaning we just need to seek into the file and then read from there
                     file.seek(byteRange.fromInclusive);
-                    replyPacketList->writePrimitive(AssetServerError::NoError);
+                    replyPacketList->writePrimitive(AssetUtils::AssetServerError::NoError);
                     replyPacketList->writePrimitive(size);
                     replyPacketList->write(file.read(size));
                 } else {
@@ -95,7 +95,7 @@ void SendAssetTask::run() {
                     // seek to the part of the file where the negative range begins
                     file.seek(file.size() + byteRange.fromInclusive);
 
-                    replyPacketList->writePrimitive(AssetServerError::NoError);
+                    replyPacketList->writePrimitive(AssetUtils::AssetServerError::NoError);
                     replyPacketList->writePrimitive(size);
 
                     // first write everything from the negative range to the end of the file
@@ -107,7 +107,7 @@ void SendAssetTask::run() {
             file.close();
         } else {
             qCDebug(networking) << "Asset not found: " << filePath << "(" << hexHash << ")";
-            replyPacketList->writePrimitive(AssetServerError::AssetNotFound);
+            replyPacketList->writePrimitive(AssetUtils::AssetServerError::AssetNotFound);
         }
     }
 

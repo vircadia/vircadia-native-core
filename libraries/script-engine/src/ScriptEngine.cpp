@@ -56,6 +56,7 @@
 #include <AnimationObject.h>
 
 #include "ArrayBufferViewClass.h"
+#include "AssetScriptingInterface.h"
 #include "BatchLoader.h"
 #include "BaseScriptEngine.h"
 #include "DataViewClass.h"
@@ -175,6 +176,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     _timerFunctionMap(),
     _fileNameString(fileNameString),
     _arrayBufferClass(new ArrayBufferClass(this)),
+    _assetScriptingInterface(new AssetScriptingInterface(this)),
     // don't delete `ScriptEngines` until all `ScriptEngine`s are gone
     _scriptEngines(DependencyManager::get<ScriptEngines>())
 {
@@ -704,7 +706,7 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    registerGlobalObject("Assets", &_assetScriptingInterface);
+    registerGlobalObject("Assets", _assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
     registerGlobalObject("DebugDraw", &DebugDraw::getInstance());

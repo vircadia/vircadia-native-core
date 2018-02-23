@@ -27,7 +27,8 @@ class TriangleSet {
         void clear();
 
         bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface = false);
+            float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
+            bool allowBackface = false);
 
         const AABox& getBounds() const { return _bounds; }
 
@@ -38,7 +39,8 @@ class TriangleSet {
 
         // checks our internal list of triangles
         bool findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface = false);
+            float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
+            bool allowBackface = false);
 
         std::vector<Triangle>& _allTriangles;
         std::map<AABox::OctreeChild, TriangleOctreeCell> _children;
@@ -60,7 +62,7 @@ public:
     void insert(const Triangle& t);
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, bool allowBackface = false);
+        float& distance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface = false);
 
     void balanceOctree();
 
@@ -72,7 +74,7 @@ public:
     // intersection occurs, the distance and surface normal will be provided.
     // note: this might side-effect internal structures
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
+        float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched);
 
     // Determine if a point is "inside" all the triangles of a convex hull. It is the responsibility of the caller to
     // determine that the triangle set is indeed a convex hull. If the triangles added to this set are not in fact a 

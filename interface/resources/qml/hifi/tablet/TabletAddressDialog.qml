@@ -54,6 +54,7 @@ StackView {
             console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
 
             feeds.forEach(function(feed) {
+                feed.protocol = encodeURIComponent(message.protocolSignature);
                 Qt.callLater(feed.fillDestinations);
             });
 

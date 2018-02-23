@@ -200,7 +200,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     });
 }
 
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&) { return true; };
 
     // Prepare the ShapePipeline
@@ -216,7 +216,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     task.addJob<RenderShadowSetup>("ShadowSetup");
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i);
+        const auto setupOutput = task.addJob<RenderShadowCascadeSetup>("ShadowCascadeSetup", i, tagBits, tagMask);
         const auto shadowFilter = setupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
 
         // CPU jobs:
@@ -264,7 +264,7 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
 
         globalShadow->setKeylightCascadeFrustum(_cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
