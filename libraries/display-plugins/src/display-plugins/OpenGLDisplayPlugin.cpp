@@ -692,6 +692,9 @@ void OpenGLDisplayPlugin::present() {
     incrementPresentCount();
 
     if (_currentFrame) {
+        auto correction = getViewCorrection();
+        getGLBackend()->setCameraCorrection(correction, _prevRenderView);
+        _prevRenderView = correction * _currentFrame->view;
         {
             withPresentThreadLock([&] {
                 _renderRate.increment();

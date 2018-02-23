@@ -59,6 +59,7 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
+    glm::mat4 getViewCorrection() override;
 
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
@@ -79,7 +80,6 @@ protected:
     QMap<uint32_t, FrameInfo> _frameInfos;
     FrameInfo _currentPresentFrameInfo;
     FrameInfo _currentRenderFrameInfo;
-    mat4 _prevRenderView;
     RateCounter<> _stutterRate;
 
     bool _disablePreview { true };

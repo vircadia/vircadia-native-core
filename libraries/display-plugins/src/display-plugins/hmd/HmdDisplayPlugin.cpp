@@ -336,12 +336,14 @@ void HmdDisplayPlugin::updateFrameData() {
     }
 
     updatePresentPose();
+}
 
+glm::mat4 HmdDisplayPlugin::getViewCorrection() {
     if (_currentFrame) {
         auto batchPose = _currentFrame->pose;
-        auto correction = glm::inverse(_currentPresentFrameInfo.presentPose) * batchPose ;
-        getGLBackend()->setCameraCorrection(correction, _prevRenderView);
-        _prevRenderView = correction * _currentFrame->view;
+        return glm::inverse(_currentPresentFrameInfo.presentPose) * batchPose;
+    } else {
+        return glm::mat4();
     }
 }
 
