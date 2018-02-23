@@ -197,7 +197,6 @@ Item {
                 "CREATE NEW WALLET" :
                 "CONTINUE WITH THESE KEYS"
             onClicked: {
-                if (root.activeView === "preexisting") {
                     lightboxPopup.titleText = "Are you sure?";
                     lightboxPopup.bodyText = "Taking this step will abandon your old wallet and you will no " +
                         "longer be able to access your money and your past purchases.<br><br>" +
@@ -208,9 +207,7 @@ Item {
                     lightboxPopup.button2text = "CLOSE";
                     lightboxPopup.button2method = "root.visible = false;"
                     lightboxPopup.visible = true;
-                } else {
-                    console.log('FIXME');
-                }
+
             }
         }
 

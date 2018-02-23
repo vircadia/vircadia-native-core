@@ -177,6 +177,7 @@ Rectangle {
         proceedFunction: function (isReset) {
             console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
             if (isReset) {
+                walletSetup();
             } else {
                 root.activeView = "initialize";
                 Commerce.getWalletStatus();
