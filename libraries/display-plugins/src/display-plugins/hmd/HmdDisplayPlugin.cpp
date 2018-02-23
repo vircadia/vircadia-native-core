@@ -338,18 +338,10 @@ void HmdDisplayPlugin::updateFrameData() {
     updatePresentPose();
 
     if (_currentFrame) {
-        auto invBatchPose = glm::inverse(_currentFrame->pose);
-        auto invPrevBatchPose = glm::inverse(_currentFrame->prevPose);
-        auto correction = invBatchPose * _currentPresentFrameInfo.presentPose;
-        // _currentFrame->prevView * glm::inverse(_prevRenderView) : this is to get the 
-        // view matrix of the last rendered frame in the present thread
-        auto prevCorrection = _currentFrame->prevView * glm::inverse(_prevRenderView);
-        prevCorrection = prevCorrection * invPrevBatchPose * _previousPresentFrameInfo.presentPose;
-
-        getGLBackend()->setCameraCorrection(correction, prevCorrection);
-
-        _previousPresentFrameInfo = _currentPresentFrameInfo;
-        _prevRenderView = _currentFrame->view;
+        auto batchPose = _currentFrame->pose;
+        auto correction = glm::inverse(_currentPresentFrameInfo.presentPose) * batchPose ;
+        getGLBackend()->setCameraCorrection(correction, _prevRenderView);
+        _prevRenderView = correction * _currentFrame->view;
     }
 }
 

@@ -31,10 +31,6 @@ void DeferredFrameTransform::update(RenderArgs* args) {
 
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
-    // Move the current view transform to prev
-    frameTransformBuffer.prevInvView = frameTransformBuffer.invView;
-    frameTransformBuffer.prevView = frameTransformBuffer.view;
-
     Transform cameraTransform;
     args->getViewFrustum().evalViewTransform(cameraTransform);
     cameraTransform.getMatrix(frameTransformBuffer.invView);

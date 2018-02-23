@@ -54,11 +54,6 @@ protected:
         // View matrix from world space to eye space (mono)
         glm::mat4 view;
 
-        // Previous Frame Inv View matrix from eye space (mono) to world space
-        glm::mat4 prevInvView;
-        // Previous Frame View matrix from world space to eye space (mono)
-        glm::mat4 prevView;
-
         FrameTransform() {}
     };
     UniformBufferView _frameTransformBuffer;

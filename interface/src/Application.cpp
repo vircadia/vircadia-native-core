@@ -5342,7 +5342,6 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this, deltaTime](AppRenderArgs& appRenderArgs) {
         PerformanceTimer perfTimer("editRenderArgs");
-        appRenderArgs._prevHeadPose = appRenderArgs._headPose;
         appRenderArgs._headPose = getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
@@ -5447,7 +5446,6 @@ void Application::update(float deltaTime) {
 
         {
             QMutexLocker viewLocker(&_viewMutex);
-            appRenderArgs._prevView = glm::inverse(_displayViewFrustum.getView());
             _myCamera.loadViewFrustum(_displayViewFrustum);
             appRenderArgs._view = glm::inverse(_displayViewFrustum.getView());
         }

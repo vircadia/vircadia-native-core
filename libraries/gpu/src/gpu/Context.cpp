@@ -53,15 +53,12 @@ const std::string& Context::getBackendVersion() const {
     return _backend->getVersion();
 }
 
-void Context::beginFrame(const glm::mat4& renderView, const glm::mat4& prevRenderView,
-                         const glm::mat4& renderPose, const glm::mat4& prevRenderPose) {
+void Context::beginFrame(const glm::mat4& renderView, const glm::mat4& renderPose) {
     assert(!_frameActive);
     _frameActive = true;
     _currentFrame = std::make_shared<Frame>();
     _currentFrame->pose = renderPose;
-    _currentFrame->prevPose = prevRenderPose;
     _currentFrame->view = renderView;
-    _currentFrame->prevView = prevRenderView;
 
     if (!_frameRangeTimer) {
         _frameRangeTimer = std::make_shared<RangeTimer>("gpu::Context::Frame");

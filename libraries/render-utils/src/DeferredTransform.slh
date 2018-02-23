@@ -17,8 +17,8 @@ struct CameraCorrection {
     mat4 _correction;
     mat4 _correctionInverse;
     
-    mat4 _prevCorrection;
-    mat4 _prevCorrectionInverse;
+    mat4 _prevView;
+    mat4 _prevViewInverse;
 };
  
 uniform cameraCorrectionBuffer {
@@ -35,8 +35,6 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
-    mat4 _prevViewInverse;
-    mat4 _prevView;
 };
 
 uniform deferredFrameTransformBuffer {
@@ -78,19 +76,19 @@ float getPosLinearDepthFar() {
 }
 
 mat4 getViewInverse() {
-    return frameTransform._viewInverse * cameraCorrection._correction;
+    return frameTransform._viewInverse * cameraCorrection._correctionInverse;
 }
 
 mat4 getView() {
-    return cameraCorrection._correctionInverse * frameTransform._view;
+    return cameraCorrection._correction * frameTransform._view;
 }
 
 mat4 getPreviousView() {
-    return cameraCorrection._prevCorrectionInverse * frameTransform._prevView;
+    return cameraCorrection._prevView;
 }
 
 mat4 getPreviousViewInverse() {
-    return frameTransform._prevViewInverse * cameraCorrection._prevCorrection;
+    return cameraCorrection._prevViewInverse;
 }
 
 DeferredFrameTransform getDeferredFrameTransform() {
