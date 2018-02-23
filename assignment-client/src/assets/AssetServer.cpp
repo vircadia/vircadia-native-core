@@ -289,6 +289,7 @@ void AssetServer::aboutToFinish() {
         if (pendingRunnable) {
             it = _pendingBakes.erase(it);
         } else {
+            qDebug() << "Aborting bake for" << it.key();
             it.value()->abort();
             ++it;
         }
@@ -1387,6 +1388,8 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 }
 
 void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath) {
+    qDebug() << "Aborted bake:" << originalAssetHash;
+
     // for an aborted bake we don't do anything but remove the BakeAssetTask from our pending bakes
     _pendingBakes.remove(originalAssetHash);
 }
