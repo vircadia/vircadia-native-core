@@ -749,7 +749,7 @@ void GLBackend::recycle() const {
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
-void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView) {
+void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
     auto invCorrection = glm::inverse(correction);
     auto invPrevView = glm::inverse(prevRenderView);
     _transform._correction.prevView = (reset ? Mat4() : prevRenderView);

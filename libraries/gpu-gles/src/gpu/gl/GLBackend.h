@@ -303,6 +303,8 @@ protected:
     struct CameraCorrection {
         Mat4 correction;
         Mat4 correctionInverse;
+        Mat4 prevView;
+        Mat4 prevViewInverse;
     };
 
     struct TransformStageState {
