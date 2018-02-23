@@ -139,7 +139,11 @@ QUrl PathUtils::expandToAppAbsolutePath(const QUrl& fileUrl) {
     if (path.startsWith("/~/")) {
         QString absolutePath = applicationAbsolutePath();
         path.replace(0, 3, absolutePath);
+#if defined(Q_OS_OSX)
         url = QUrl("file://" + path);
+#else
+        url = QUrl("file:///" + path);
+#endif
         qDebug() << "QQQQ expandToAppAbsolutePath " << fileUrl << url;
     }
     return url;
