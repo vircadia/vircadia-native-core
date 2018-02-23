@@ -366,7 +366,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             batch.setPipeline(getDebugBlendPipeline());
         }  else {
             batch.setPipeline(getBlendPipeline());
-            batch._glUniform1f(_sharpenLoc, _sharpen);
+            // Disable sharpen if FXAA
+            batch._glUniform1f(_sharpenLoc, _sharpen * _params.get().regionInfo.z);
         }
         batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_NextMapSlot, _antialiasingBuffers, 1);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
