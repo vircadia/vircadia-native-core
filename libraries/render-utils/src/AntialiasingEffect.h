@@ -108,7 +108,7 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     float blend{ 0.05f };
-    float sharpen{ 0.25f };
+    float sharpen{ 0.15f };
 
     bool constrainColor{ true };
     bool covarianceClipColor{ true };
@@ -200,7 +200,7 @@ private:
     gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
-    float _sharpen{ 0.25f };
+    float _sharpen{ 0.15f };
     int _sharpenLoc{ -1 };
 };
 
