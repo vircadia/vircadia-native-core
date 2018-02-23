@@ -178,6 +178,21 @@ Rectangle {
     // TITLE BAR END
     //
 
+    WalletChoice {
+        id: walletChoice;
+        proceedFunction: function (isReset) {
+            console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
+            if (isReset) {
+                root.activeView = "initialize";
+                Commerce.getWalletStatus();
+            }
+        }
+        z: 997;
+        visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
+        activeView: root.activeView;
+        anchors.fill: parent;
+    }
+
     WalletSetup {
         id: walletSetup;
         visible: root.activeView === "walletSetup";
@@ -724,23 +739,6 @@ Rectangle {
                 left: parent.left;
                 right: parent.right;
             }
-        }
-    }
-
-    WalletChoice {
-        visible: (root.activeView === "preexisting") || (root.activeView === "conflicting");
-        activeView: root.activeView;
-        proceedFunction: function (isReset) {
-            console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
-            if (isReset) {
-                root.activeView = "initialize";
-                Commerce.getWalletStatus();
-            }
-        }
-        width: parent.width;
-        anchors {
-            top: titleBarContainer.bottom;
-            bottom: parent.bottom;
         }
     }
 
