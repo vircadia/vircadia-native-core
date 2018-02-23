@@ -47,13 +47,7 @@ Rectangle {
                 }
             } else if (walletStatus === 1) {
                 if (root.activeView !== "walletSetup") {
-                    root.activeView = "walletSetup";
-                    Commerce.resetLocalWalletOnly();
-                    var timestamp = new Date();
-                    walletSetup.startingTimestamp = timestamp;
-                    walletSetup.setupAttemptID = generateUUID();
-                    UserActivityLogger.commerceWalletSetupStarted(timestamp, setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
-                        (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
+                    walletSetup();
                 }
             } else if (walletStatus === 2) {
                 if (root.activeView != "preexisting") {
@@ -183,6 +177,7 @@ Rectangle {
         proceedFunction: function (isReset) {
             console.log(isReset ? "Reset wallet." : "Trying again with new wallet.");
             if (isReset) {
+            } else {
                 root.activeView = "initialize";
                 Commerce.getWalletStatus();
             }
@@ -742,7 +737,6 @@ Rectangle {
         }
     }
 
-
     //
     // FUNCTION DEFINITIONS START
     //
@@ -792,6 +786,16 @@ Rectangle {
             d = Math.floor(d / 16);
             return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
         });
+    }
+
+    function walletSetup() {
+        root.activeView = "walletSetup";
+        Commerce.resetLocalWalletOnly();
+        var timestamp = new Date();
+        walletSetup.startingTimestamp = timestamp;
+        walletSetup.setupAttemptID = generateUUID();
+        UserActivityLogger.commerceWalletSetupStarted(timestamp, setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
+            (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
     }
     //
     // FUNCTION DEFINITIONS END
