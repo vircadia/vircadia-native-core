@@ -233,49 +233,47 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request =
-        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";
         return false;
     }
 
-    QEventLoop loop;
-    connect(request.get(), &ResourceRequest::finished, &loop, &QEventLoop::quit);
+    connect(request, &ResourceRequest::finished, this, [=]() {
+        if (request->getResult() != ResourceRequest::Success) {
+            qCDebug(commerce) << "Failed to get .app.json file from remote.";
+            return false;
+        }
+
+        // Copy the .app.json to the apps directory inside %AppData%/High Fidelity/Interface
+        auto requestData = request->getData();
+        QFile appFile(_appsPath + "/" + appHref.fileName());
+        if (!appFile.open(QIODevice::WriteOnly)) {
+            qCDebug(commerce) << "Couldn't open local .app.json file for creation.";
+            return false;
+        }
+        if (appFile.write(requestData) == -1) {
+            qCDebug(commerce) << "Couldn't write to local .app.json file.";
+            return false;
+        }
+        // Close the file
+        appFile.close();
+
+        // Read from the returned datastream to know what .js to add to Running Scripts
+        QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(requestData);
+        QJsonObject appFileJsonObject = appFileJsonDocument.object();
+        QString scriptUrl = appFileJsonObject["scriptURL"].toString();
+
+        if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+            qCDebug(commerce) << "Couldn't load script.";
+            return false;
+        }
+
+        emit appInstalled(itemHref);
+        return true;
+    });
     request->send();
-    loop.exec();
-
-    if (request->getResult() != ResourceRequest::Success) {
-        qCDebug(commerce) << "Failed to get .app.json file from remote.";
-        return false;
-    }
-
-    // Copy the .app.json to the apps directory inside %AppData%/High Fidelity/Interface
-    auto requestData = request->getData();
-    QFile appFile(_appsPath + "/" + appHref.fileName());
-    if (!appFile.open(QIODevice::WriteOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file for creation.";
-        return false;
-    }
-    if (appFile.write(requestData) == -1) {
-        qCDebug(commerce) << "Couldn't write to local .app.json file.";
-        return false;
-    }
-    // Close the file
-    appFile.close();
-
-    // Read from the returned datastream to know what .js to add to Running Scripts
-    QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(requestData);
-    QJsonObject appFileJsonObject = appFileJsonDocument.object();
-    QString scriptUrl = appFileJsonObject["scriptURL"].toString();
-
-    if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
-        qCDebug(commerce) << "Couldn't load script.";
-        return false;
-    }
-
-    emit appInstalled(itemHref);
     return true;
 }
 
