@@ -28,6 +28,7 @@ public:
     virtual std::pair<bool, float> getRecoveryStatus() = 0;
 
     virtual void loadBackup(const QString& backupName, QuaZip& zip) = 0;
+    virtual void loadingComplete() = 0;
     virtual void createBackup(const QString& backupName, QuaZip& zip) = 0;
     virtual void recoverBackup(const QString& backupName, QuaZip& zip) = 0;
     virtual void deleteBackup(const QString& backupName) = 0;

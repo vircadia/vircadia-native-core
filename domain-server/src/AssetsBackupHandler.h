@@ -35,6 +35,7 @@ public:
     std::pair<bool, float> getRecoveryStatus() override;
 
     void loadBackup(const QString& backupName, QuaZip& zip) override;
+    void loadingComplete() override;
     void createBackup(const QString& backupName, QuaZip& zip) override;
     void recoverBackup(const QString& backupName, QuaZip& zip) override;
     void deleteBackup(const QString& backupName) override;
