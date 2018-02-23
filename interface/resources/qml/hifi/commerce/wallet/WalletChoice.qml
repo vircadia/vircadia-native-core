@@ -13,6 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import "../common" as HifiCommerceCommon
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 
@@ -33,6 +34,14 @@ Item {
         id: lightboxPopup;
         visible: false;
         anchors.fill: parent;
+    }
+    // This object is always used in a popup.
+    // This MouseArea is used to prevent a user from being
+    //     able to click on a button/mouseArea underneath the popup.
+    MouseArea {
+        anchors.fill: parent;
+        propagateComposedEvents: false;
+        hoverEnabled: true;
     }
 
     //
@@ -207,7 +216,7 @@ Item {
         // "What's This?" link
         RalewayRegular {
             id: whatsThisLink;
-            text: '<font color="#FFFFFF"><a href="#">What's this?</a></font>';
+            text: '<font color="#FFFFFF"><a href="#">What\'s this?</a></font>';
             // Anchors
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 24;
