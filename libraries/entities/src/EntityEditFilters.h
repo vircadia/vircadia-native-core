@@ -28,6 +28,18 @@ class EntityEditFilters : public QObject, public Dependency {
 public:
     struct FilterData {
         QScriptValue filterFn;
+        bool wantsOriginalProperties { false };
+        bool wantsZoneProperties { false };
+
+        bool wantsToFilterAdd { true };
+        bool wantsToFilterEdit { true };
+        bool wantsToFilterPhysics { true };
+        bool wantsToFilterDelete { true };
+
+        EntityPropertyFlags includedOriginalProperties;
+        EntityPropertyFlags includedZoneProperties;
+        bool wantsZoneBoundingBox { false };
+
         std::function<bool()> uncaughtExceptions;
         QScriptEngine* engine;
         bool rejectAll;
@@ -43,7 +55,7 @@ public:
     void removeFilter(EntityItemID entityID);
 
     bool filter(glm::vec3& position, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, 
-                EntityTree::FilterType filterType, EntityItemID& entityID);
+                EntityTree::FilterType filterType, EntityItemID& entityID, EntityItemPointer& existingEntity);
 
 signals:
     void filterAdded(EntityItemID id, bool success);

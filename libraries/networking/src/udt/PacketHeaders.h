@@ -229,7 +229,8 @@ enum class EntityVersion : PacketVersion {
     OwnershipChallengeFix,
     ZoneLightInheritModes = 82,
     ZoneStageRemoved,
-    SoftEntities
+    SoftEntities,
+    MaterialEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

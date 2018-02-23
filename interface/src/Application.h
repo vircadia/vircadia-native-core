@@ -286,6 +286,8 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
     void saveNextPhysicsStats(QString filename);
 
+    void replaceDomainContent(const QString& url);
+
 signals:
     void svoImportRequested(const QString& url);
 

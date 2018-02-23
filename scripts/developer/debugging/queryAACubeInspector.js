@@ -40,7 +40,6 @@ function updateOverlay(entityID, queryAACube) {
                 blue: 255
             },
             alpha: 1,
-            // borderSize: ...,
             solid: false
         });
     }
