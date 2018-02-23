@@ -472,7 +472,9 @@ scriptable::ScriptableMeshBase::ScriptableMeshBase(
     scriptable::WeakModelProviderPointer provider, scriptable::ScriptableModelBasePointer model, scriptable::WeakMeshPointer weakMesh, QObject* parent
     ) : QObject(parent), provider(provider), model(model), weakMesh(weakMesh) {
     if (parent) {
+#ifdef SCRIPTABLE_MESH_DEBUG
         qCDebug(graphics_scripting) << "ScriptableMeshBase -- have parent QObject, creating strong neshref" << weakMesh.lock().get() << parent;
+#endif
         strongMesh = weakMesh.lock();
     }
 }

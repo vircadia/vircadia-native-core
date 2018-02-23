@@ -100,7 +100,7 @@ scriptable::ScriptableModelPointer GraphicsScriptingInterface::getModelObject(QU
                 error = "no meshes available: " + modelObject.objectID.toString();
             }
         } else {
-            error = "objectID mismatch: " + modelObject.objectID.toString();
+            error = QString("objectID mismatch: %1 (containing %2 meshes)").arg(modelObject.objectID.toString()).arg(modelObject.meshes.size());
         }
     } else {
         error = "provider unavailable";
