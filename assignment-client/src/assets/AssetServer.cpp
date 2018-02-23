@@ -394,6 +394,7 @@ void AssetServer::completeSetup() {
 
         if (_fileMappings.size() > 0) {
             cleanupUnmappedFiles();
+            cleanupBakedFilesForDeletedAssets();
         }
 
         nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
@@ -473,7 +474,7 @@ void AssetServer::replayRequests() {
 }
 
 void AssetServer::cleanupUnmappedFiles() {
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(AssetUtils::SHA256_HASH_HEX_LENGTH) + "}" };
+    QRegExp hashFileRegex { AssetUtils::ASSET_HASH_REGEX_STRING };
 
     auto files = _filesDirectory.entryInfoList(QDir::Files);
 
@@ -501,6 +502,38 @@ void AssetServer::cleanupUnmappedFiles() {
                     qCDebug(asset_server) << "\tAttempt to delete unmapped file" << filename << "failed";
                 }
             }
+        }
+    }
+}
+
+void AssetServer::cleanupBakedFilesForDeletedAssets() {
+    qCInfo(asset_server) << "Performing baked asset cleanup for deleted assets";
+
+    std::set<AssetUtils::AssetHash> bakedHashes;
+
+    for (auto it : _fileMappings) {
+        // check if this is a mapping to baked content
+        if (it.first.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
+            // extract the hash from the baked mapping
+            AssetUtils::AssetHash hash = it.first.mid(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER.length(),
+                                                      AssetUtils::SHA256_HASH_HEX_LENGTH);
+
+            // add the hash to our set of hashes for which we have baked content
+            bakedHashes.insert(hash);
+        }
+    }
+
+    // enumerate the hashes for which we have baked content
+    for (auto hash : bakedHashes) {
+        // check if we have a mapping that points to this hash
+        auto matchingMapping = std::find_if(std::begin(_fileMappings), std::end(_fileMappings),
+                                            [&hash](const std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash> mappingPair) {
+            return mappingPair.second == hash;
+        });
+
+        if (matchingMapping == std::end(_fileMappings)) {
+            // we didn't find a mapping for this hash, remove any baked content we still have for it
+            removeBakedPathsForDeletedAsset(hash);
         }
     }
 }

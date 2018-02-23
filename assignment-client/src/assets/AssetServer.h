@@ -88,6 +88,9 @@ private:
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
 
+    /// Delete any baked files for assets removed from the local asset directory
+    void cleanupBakedFilesForDeletedAssets();
+
     QString getPathToAssetHash(const AssetUtils::AssetHash& assetHash);
 
     std::pair<AssetUtils::BakingStatus, QString> getAssetStatus(const AssetUtils::AssetPath& path, const AssetUtils::AssetHash& hash);
