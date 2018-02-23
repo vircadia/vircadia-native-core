@@ -44,6 +44,8 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
 const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 /**jsdoc
+ * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection} or 
+ * {@link Overlays.findRayIntersectionVector|findRayIntersectionVector}.
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
  *     <code>false</code>.
@@ -327,10 +329,8 @@ public slots:
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - Whitelist for intersection test. If empty then the result isn't limited
-     *     to overlays in the list.
-     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Blacklist for intersection test. If empty then the result doesn't
-     *     exclude overlays in the list.
+     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - If not empty then the search is restricted to these overlays.
+     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Overlays to ignore during the search.
      * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
@@ -365,10 +365,8 @@ public slots:
      * @deprecated Use {@link Overlays.findRayIntersection} instead; it has identical parameters and results.
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - Whitelist for intersection test. If empty then the result isn't limited
-     *     to overlays in the list.
-     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Blacklist for intersection test. If empty then the result doesn't
-     *     exclude overlays in the list.
+     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - If not empty then the search is restricted to these overlays.
+     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Overlays to ignore during the search.
      * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
