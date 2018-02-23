@@ -511,7 +511,7 @@ void AssetServer::cleanupBakedFilesForDeletedAssets() {
 
     std::set<AssetUtils::AssetHash> bakedHashes;
 
-    for (auto it : _fileMappings) {
+    for (const auto& it : _fileMappings) {
         // check if this is a mapping to baked content
         if (it.first.startsWith(AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER)) {
             // extract the hash from the baked mapping
@@ -524,7 +524,7 @@ void AssetServer::cleanupBakedFilesForDeletedAssets() {
     }
 
     // enumerate the hashes for which we have baked content
-    for (auto hash : bakedHashes) {
+    for (const auto& hash : bakedHashes) {
         // check if we have a mapping that points to this hash
         auto matchingMapping = std::find_if(std::begin(_fileMappings), std::end(_fileMappings),
                                             [&hash](const std::pair<AssetUtils::AssetPath, AssetUtils::AssetHash> mappingPair) {
