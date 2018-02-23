@@ -1799,10 +1799,10 @@ void MyAvatar::setScriptedMotorFrame(QString frame) {
     }
 }
 
-void MyAvatar::setScriptedMotorMode(QString frame) {
-    if (frame.toLower() == "simple") {
+void MyAvatar::setScriptedMotorMode(QString mode) {
+    if (mode.toLower() == "simple") {
         _scriptedMotorMode = SCRIPTED_MOTOR_SIMPLE_MODE;
-    } else if (frame.toLower() == "dynamic") {
+    } else if (mode.toLower() == "dynamic") {
         _scriptedMotorMode = SCRIPTED_MOTOR_DYNAMIC_MODE;
     }
 }
