@@ -219,7 +219,7 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    if (getID() == QUuid()) {
+    if (getID() == QUuid() || getID() == AVATAR_SELF_ID) {
         return; // wait until MyAvatar gets an ID before doing this.
     }
 
@@ -570,6 +570,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     }
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
+    processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
@@ -761,6 +762,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
     }
@@ -1758,5 +1760,33 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
         }
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
+    }
+}
+
+void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].push(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->addMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    _materials[parentMaterialName].remove(material);
+    if (_skeletonModel && _skeletonModel->fetchRenderItemIDs().size() > 0) {
+        _skeletonModel->removeMaterial(material, parentMaterialName);
+    }
+}
+
+void Avatar::processMaterials() {
+    assert(_skeletonModel);
+    std::lock_guard<std::mutex> lock(_materialsLock);
+    for (auto& shapeMaterialPair : _materials) {
+        auto material = shapeMaterialPair.second;
+        while (!material.empty()) {
+            _skeletonModel->addMaterial(material.top(), shapeMaterialPair.first);
+            material.pop();
+        }
     }
 }
